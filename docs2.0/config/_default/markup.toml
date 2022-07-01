@@ -1,0 +1,14 @@
+[highlight]
+    anchorLineNos = false
+    codeFences = true
+    guessSyntax = false
+    hl_Lines = ""
+    lineAnchors = ""
+    lineNoStart = 1
+    lineNos = false
+    lineNumbersInTable = true
+    noClasses = false
+    style = "algol"
+    tabWidth = 4
+
+pygmentsCodeFences = true
