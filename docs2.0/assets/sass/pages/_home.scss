@@ -1,0 +1,4 @@
+body {
+    @include flexbox;
+    @include flex-direction(column);
+}
