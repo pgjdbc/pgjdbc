@@ -221,7 +221,6 @@ the following might be helpful to debug the case.
 of the messages send between the driver and the backend
 1. You might check `org.postgresql.test.jdbc2.AutoRollbackTestSuite` as it verifies lots of combinations
 
-<a name="server-prepared-statement-example"></a>
 **Example 9.3. Using server side prepared statements**
 
 ```java

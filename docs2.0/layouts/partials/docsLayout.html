@@ -2,10 +2,12 @@
     {{ partial "sidebar"  . }}
     <article>
         <h1>{{ .Title }}</h1>
+        <br>
         <p>{{ .Content }}</p>
+        <br>
         {{- partial "previous-next-links.html" . -}}
     </article>
-    <aside>
+    {{/*  <aside>
         {{ .TableOfContents }}
-    </aside>
+    </aside>  */}}
 </div>

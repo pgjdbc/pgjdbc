@@ -44,7 +44,6 @@ the `DriverManager.getConnection()` method:
 
 `Connection db = DriverManager.getConnection(url, username, password)`;
 
-<a name="connection-parameters"></a>
 ## Connection Parameters
 
 In addition to the standard connection parameters the driver supports a number
@@ -589,7 +588,6 @@ Connection conn = DriverManager.getConnection(url);
   Fully qualified class name of the class implementing the AuthenticationPlugin interface.
   If this is null, the password value in the connection properties will be used.
 
-<a name="unix sockets"></a>
 ## Unix sockets
 
 By adding junixsocket you can obtain a socket factory that works with the driver.
@@ -610,7 +608,6 @@ to the connection URL.
 
 For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
 
-<a name="connection-failover"></a>
 ## Connection Fail-over
 
 To support simple connection fail-over it is possible to define multiple endpoints

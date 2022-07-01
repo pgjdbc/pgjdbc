@@ -27,7 +27,6 @@ notifications and must poll the backend to check if any notifications were issue
 A timeout can be given to the poll function, but then the execution of statements
 from other threads will block.
 
-<a name="listen-notify-example"></a>
 **Example 9.2. Receiving Notifications**
 
 ```java

@@ -25,7 +25,6 @@ so that it doesn't have to make a reference to the `DataSource` available to all
 application components that may need to use it. An example of this is shown in
 [Example 11.2, “`DataSource` JNDI Code Example”](jndi.html#ds-jndi).
 
-<a name="ds-jndi"></a>
 **Example 11.2. `DataSource` JNDI Code Example**
 
 Application code to initialize a pooling `DataSource` and add it to JNDI might

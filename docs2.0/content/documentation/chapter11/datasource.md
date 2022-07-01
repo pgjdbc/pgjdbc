@@ -13,7 +13,6 @@ JDBC 2 introduced standard connection pooling features in an add-on API known as
 the JDBC 2.0 Optional Package (also known as the JDBC 2.0 Standard Extension).
 These features have since been included in the core JDBC 3 API.
 
-<a name="ds-intro"></a>
 # Overview
 
 The JDBC API provides a client and a server interface for connection pooling.
