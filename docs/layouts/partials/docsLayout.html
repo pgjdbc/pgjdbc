@@ -1,7 +1,13 @@
-<div>
+<div class="flex">
     {{ partial "sidebar"  . }}
     <article>
         <h1>{{ .Title }}</h1>
-        <p>{{ .Content }}</p>
+        <br>
+        {{ .Content }}
+        <br>
+        {{- partial "previous-next-links.html" . -}}
     </article>
+    <aside>
+        {{- partial "toc.html" . -}}
+    </aside>
 </div>

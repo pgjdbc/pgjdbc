@@ -1,7 +1,17 @@
-<footer>
-    <div>
-        <p>
-            Copyright © 1996-2022 The PostgreSQL Global Development Group
-        </p>
+<footer class="footer">
+    <div class="footer__items">
+        {{ range $.Site.Data.data.footer}}
+            <div class="footer__items__links">
+                <ul>
+                    <li>{{ .title }}</li>
+                    {{ range .links}}
+                        <li><a href="{{ .url }}">{{ .name }}</a></li>
+                    {{end}}
+                </ul>
+            </div>
+        {{ end }}
     </div>
+    <p class="copyright">
+        Copyright © 1996-2022 The PostgreSQL Global Development Group
+    </p>
 </footer>

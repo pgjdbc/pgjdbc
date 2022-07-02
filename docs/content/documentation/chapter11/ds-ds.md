@@ -26,121 +26,44 @@ general it is not recommended to use the PostgreSQL™ provided connection pool.
 Check your application server or check out the excellent [jakarta commons DBCP](http://jakarta.apache.org/commons/dbcp/)
 project.
 
-<a name="ds-ds-imp"></a>
 **Table 11.2. `DataSource` Implementations**
 
-<table summary="DataSource Implementations" class="CALSTABLE" border="1">
-  <tr>
-    <th>Pooling</th>
-    <th>Implementation Class</th>
-  </tr>
-  <tbody>
-    <tr>
-      <td>No</td>
-      <td>`org.postgresql.ds.PGSimpleDataSource</td>
-    </tr>
-    <tr>
-      <td>Yes</td>
-      <td>`org.postgresql.ds.PGPoolingDataSource</td>
-    </tr>
-  </tbody>
-</table>
+|Pooling|Implementation Class|
+|---|---|
+|No|`org.postgresql.ds.PGSimpleDataSource|
+|Yes|`org.postgresql.ds.PGPoolingDataSource|
+
 
 Both implementations use the same configuration scheme. JDBC requires that a
 `DataSource` be configured via JavaBean properties, shown in [Table 11.3, “`DataSource` Configuration Properties”](ds-ds.html#ds-ds-props),
 so there are get and set methods for each of these properties.
 
-<a name="ds-ds-props"></a>
 **Table 11.3. `DataSource` Configuration Properties**
 
-<table summary="DataSource Configuration Properties" class="CALSTABLE" border="1">
-  <tr>
-    <th>Property</th>
-    <th>Type</th>
-    <th>Description</th>
-  </tr>
-  <tbody>
-    <tr>
-      <td>serverName</td>
-      <td>STRING</td>
-      <td>PostgreSQL™ database server host name</td>
-    </tr>
-    <tr>
-      <td>databaseName</td>
-      <td>STRING</td>
-      <td>PostgreSQL™ database name</td>
-    </tr>
-    <tr>
-      <td>portNumber</td>
-      <td>INT</td>
-      <td>TCP port which the PostgreSQL™
-database server is listening on (or 0 to use the default port)</td>
-    </tr>
-    <tr>
-      <td>user</td>
-      <td>STRING</td>
-      <td>User used to make database connections</td>
-    </tr>
-    <tr>
-      <td>password</td>
-      <td>STRING</td>
-      <td>Password used to make database connections</td>
-    </tr>
-    <tr>
-      <td>ssl</td>
-      <td>BOOLEAN</td>
-      <td> If true, use SSL encrypted
-connections (default false) </td>
-    </tr>
-    <tr>
-      <td>sslfactory</td>
-      <td>STRING</td>
-      <td> Custom javax.net.ssl.SSLSocketFactory
-class name (see the section called [“Custom
-SSLSocketFactory”](ssl-factory.html))</td>
-    </tr>
-  </tbody>
-</table>
+|Property|Type|Description|
+|---|---|---|
+|serverName|STRING|PostgreSQL™ database server host name|
+|databaseName|STRING|PostgreSQL™ database name|
+|portNumber|INT|TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)|
+|user|STRING|User used to make database connections|
+|password|STRING|Password used to make database connections|
+|ssl|BOOLEAN|If true, use SSL encrypted connections (default false)|
+|sslfactory|STRING|Custom javax.net.ssl.SSLSocketFactory class name (see the section called [“Custom SSLSocketFactory”](ssl-factory.html))|
 
 The pooling implementation requires some additional configuration properties,
 which are shown in [Table 11.4, “Additional Pooling `DataSource` Configuration Properties](ds-ds.html#ds-ds-xprops).
 
-<a name="ds-ds-xprops"></a>
 **Table 11.4. Additional Pooling `DataSource` Configuration Properties**
 
-<table summary="Additional Pooling DataSource Configuration Properties" class="CALSTABLE" border="1">
-  <tr>
-    <th>Property</th>
-    <th>Type</th>
-    <th>Description</th>
-  </tr>
-  <tbody>
-    <tr>
-      <td>dataSourceName</td>
-      <td>STRING</td>
-      <td>Every pooling DataSource must
-have a unique name.</td>
-    </tr>
-    <tr>
-      <td>initialConnections</td>
-      <td>INT</td>
-      <td>The number of database connections to be created when the
-pool is initialized.</td>
-    </tr>
-    <tr>
-      <td>maxConnections</td>
-      <td>INT</td>
-      <td>The maximum number of open database connections to allow.
-When more connections are requested, the caller will hang until a
-connection is returned to the pool.</td>
-    </tr>
-  </tbody>
-</table>
+|Property|Type|Description|
+|---|---|---|
+|dataSourceName|STRING|Every pooling DataSource must have a unique name.|
+|initialConnections|INT|The number of database connections to be created when the pool is initialized.|
+|maxConnections|INT|The maximum number of open database connections to allow. When more connections are requested, the caller will hang until a connection is returned to the pool.|
 
 [Example 11.1, “`DataSource` Code Example”](ds-ds.html#ds-example) shows an example
 of typical application code using a pooling `DataSource`.
 
-<a name="ds-example"></a>
 **Example 11.1. `DataSource` Code Example**
 
 Code to initialize a pooling `DataSource` might look like this:

@@ -23,7 +23,6 @@ a void returning function. For new applications, use
 values to stored functions and `CallableStatement`s without return values to
 stored procedures.
 
-<a name="call-function-example"></a>
 **Example 6.1. Calling a built in stored function**
 
 This example shows how to call a PostgreSQL™ built in function, `upper`, which
@@ -38,7 +37,6 @@ String upperCased = upperFunc.getString(1);
 upperFunc.close();
 ```
 
-<a name="callfunc-resultset"></a>
 # Obtaining a `ResultSet` from a stored function
 
 PostgreSQL's™ stored functions can return results in two different ways. The
@@ -46,14 +44,12 @@ function may return either a refcursor value or a `SETOF` some datatype.  Depend
 on which of these return methods are used determines how the function should be
 called.
 
-<a name="callfunc-resultset-setof"></a>
 ## From a Function Returning `SETOF` type
 
 Functions that return data as a set should not be called via the `CallableStatement`
 interface, but instead should use the normal `Statement` or `PreparedStatement`
 interfaces.
 
-<a name="setof-resultset"></a>
 **Example 6.2. Getting `SETOF` type values from a function**
 
 ```java
@@ -69,7 +65,6 @@ rs.close();
 stmt.close();
 ```
 
-<a name="callfunc-resultset-refcursor"></a>
 ## From a Function Returning a refcursor
 
 When calling a function that returns a refcursor you must cast the return type of
@@ -84,7 +79,6 @@ described in the section called [“Getting results based on a cursor”](query.
 is ignored. This limitation is a deficiency of the JDBC driver, not the server,
 and it is technically possible to remove it, we just haven't found the time.
 
-<a name="get-refcursor-from-function-call"></a>
 **Example 6.3. Getting refcursor Value From a Function**
 
 ```java
@@ -119,7 +113,6 @@ It is also possible to treat the refcursor return value as a cursor name directl
 To do this, use the `getString` of `ResultSet`. With the underlying cursor name,
 you are free to directly use cursor commands on it, such as `FETCH` and `MOVE`.
 
-<a name="refcursor-string-example"></a>
 **Example 6.4. Treating refcursor as a cursor name**
 
 ```java
@@ -131,7 +124,6 @@ String cursorName = func.getString(1);
 func.close();
 ```
 
-<a name="call-procedure-example"></a>
 **Example 6.5. Calling a stored procedure
 
 This example shows how to call a PostgreSQL™ procedure that uses transaction control.

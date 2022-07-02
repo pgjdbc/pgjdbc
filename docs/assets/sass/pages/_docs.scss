@@ -1,0 +1,14 @@
+.flex {
+   @include flexbox;
+   @include flex-direction(row);
+
+   article {
+      padding: 0.5rem;
+   };
+
+   .prev__next {
+        @include flexbox;
+        @include flex-direction(row);
+        @include justify-content(space-between);
+   };
+};
