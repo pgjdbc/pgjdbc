@@ -1,98 +1,95 @@
-<!doctype html><html><head><meta charset=utf-8><base href=http://localhost:1313/><title>Pgjdbc | Tomcat setup</title><link rel=stylesheet href=http://localhost:1313/sass/main.4444731f7116386ab6822ca30bdfcce309f779d0e912deceb72a9585a99593b4.css integrity="sha256-RERzH3EWOGq2giyjC9/M4wn3edDpEt7OtyqVhamVk7Q="><link rel=icon href=favicon.ico type=image/x-icon><link rel="shortcut icon" href=favicon.ico type=image/x-icon></head><body><nav class=nav><a href=/>Home</a>
-<a class=nav__item href=/development/>Development</a>
-<a class=nav__item href=/download/>Download</a>
-<a class=nav__item href=/documentation/>Documentation</a>
-<a class=nav__item href=/community/>Community</a></nav><main><div><nav role=navigation><ul><li><a href=/documentation/chapter1/>Introduction</a><ul><li><a href=/documentation/chapter1/intro/>Introduction</a></li></ul></li><li><a href=/documentation/chapter2/>Setting up the JDBC Driver</a><ul><li><a href=/documentation/chapter2/setup/>Setting up the JDBC Driver</a></li><li><a href=/documentation/chapter2/classpath/>Setting up the Class Path</a></li><li><a href=/documentation/chapter2/prepare/>Preparing the Database Server for JDBC</a></li><li><a href=/documentation/chapter2/your-database/>Creating a Database</a></li></ul></li><li><a href=/documentation/chapter3/>Initializing the Driver</a><ul><li><a href=/documentation/chapter3/use/>Initializing the Driver</a></li><li><a href=/documentation/chapter3/load/>Loading the Driver</a></li><li><a href=/documentation/chapter3/connect/>Connecting to the Database</a></li></ul></li><li><a href=/documentation/chapter4/>Using SSL</a><ul><li><a href=/documentation/chapter4/ssl/>Using SSL</a></li><li><a href=/documentation/chapter4/ssl-client/>Configuring the Client</a></li><li><a href=/documentation/chapter4/ssl-factory/>Custom SSLSocketFactory</a></li></ul></li><li><a href=/documentation/chapter5/>Issuing a Query and Processing the Result</a><ul><li><a href=/documentation/chapter5/query/>Issuing a Query and Processing the Result</a></li><li><a href=/documentation/chapter5/statement/>Using the Statement or PreparedStatement Interface</a></li><li><a href=/documentation/chapter5/resultset/>Using the ResultSet Interface</a></li><li><a href=/documentation/chapter5/update/>Performing Updates</a></li><li><a href=/documentation/chapter5/ddl/>Creating and Modifying Database Objects</a></li><li><a href=/documentation/chapter5/java8-date-time/>Using Java 8 Date and Time classes</a></li></ul></li><li><a href=/documentation/chapter6/>Calling Stored Functions and Procedures</a><ul><li><a href=/documentation/chapter6/callproc/>Calling Stored Functions and Procedures</a></li></ul></li><li><a href=/documentation/chapter7/>Storing Binary Data</a><ul><li><a href=/documentation/chapter7/binary-data/>Storing Binary Data</a></li></ul></li><li><a href=/documentation/chapter8/>JDBC escapes</a><ul><li><a href=/documentation/chapter8/escapes/>JDBC escapes</a></li><li><a href=/documentation/chapter8/outer-joins-escape/>Escape for outer joins</a></li><li><a href=/documentation/chapter8/escapes-datetime/>Date-time escapes</a></li><li><a href=/documentation/chapter8/escaped-functions/>Escaped scalar functions</a></li></ul></li><li><a href=/documentation/chapter9/>PostgreSQL™ Extensions to the JDBC API</a><ul><li><a href=/documentation/chapter9/ext/>PostgreSQL™ Extensions to the JDBC API</a></li><li><a href=/documentation/chapter9/geometric/>Geometric Data Types</a></li><li><a href=/documentation/chapter9/largeobjects/>Large Objects</a></li><li><a href=/documentation/chapter9/listennotify/>Listen / Notify</a></li><li><a href=/documentation/chapter9/server-prepare/>Server Prepared Statements</a></li><li><a href=/documentation/chapter9/parameterstatus/>Parameter Status Messages</a></li><li><a href=/documentation/chapter9/replication/>Physical and Logical replication API</a></li><li><a href=/documentation/chapter9/arrays/>Arrays</a></li></ul></li><li><a href=/documentation/chapter10/>Using the Driver in a Multithreaded or a Servlet Environment</a><ul><li><a href=/documentation/chapter10/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li></ul></li><li><a href=/documentation/chapter11/>Connection Pools and Data Sources</a><ul><li><a href=/documentation/chapter11/datasource/>Connection Pools and Data Sources</a></li><li><a href=/documentation/chapter11/ds-cpds/>Application Servers ConnectionPoolDataSource</a></li><li><a href=/documentation/chapter11/ds-ds/>Applications DataSource</a></li><li><a href=/documentation/chapter11/jndi/>Data Sources and JNDI</a></li><li><a href=/documentation/chapter11/tomcat/>Tomcat setup</a></li></ul></li><li><a href=/documentation/chapter12/>Logging using java.util.logging</a><ul><li><a href=/documentation/chapter12/logging/>Logging using java.util.logging</a></li></ul></li><li><a href=/documentation/chapter13/>Further Reading</a><ul><li><a href=/documentation/chapter13/reading/>Further Reading</a></li></ul></li></ul></nav><article><h1>Tomcat setup</h1><p><h3 id=note>Note</h3><p>The postgresql.jar file must be placed in $CATALINA_HOME/common/lib in both
+<!doctype html><html><head><meta charset=utf-8><title>Pgjdbc | Tomcat setup</title><link rel=stylesheet href=https://pgjdbc.github.io/pgjdbc/sass/main.e946902265096118ab63cb74d4453d2690cb98e02350ac6ad40325a645b55613.css integrity="sha256-6UaQImUJYRirY8t01EU9JpDLmOAjUKxq1AMlpkW1VhM="><link rel=icon href=favicon.ico type=image/x-icon><link rel="shortcut icon" href=favicon.ico type=image/x-icon></head><body><nav class=nav><a href=/pgjdbc><img src=/images/postgreslogo.svg></a><div class=nav__items><a class=nav__item href=/pgjdbc/development/>Development</a>
+<a class=nav__item href=/pgjdbc/download/>Download</a>
+<a class=nav__item href=/pgjdbc/documentation/>Documentation</a>
+<a class=nav__item href=/pgjdbc/community/>Community</a></div><a href=https://github.com/pgjdbc/pgjdbc><img src=/images/github.svg></a></nav><main><div class=flex><nav role=navigation class=side__nav><ul><li><a href=/pgjdbc/documentation/chapter1/>Introduction</a><ul><li><a href=/pgjdbc/documentation/chapter1/intro/>Introduction</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter2/>Setting up the JDBC Driver</a><ul><li><a href=/pgjdbc/documentation/chapter2/setup/>Getting the Driver</a></li><li><a href=/pgjdbc/documentation/chapter2/classpath/>Setting up the Class Path</a></li><li><a href=/pgjdbc/documentation/chapter2/prepare/>Preparing the Database Server for JDBC</a></li><li><a href=/pgjdbc/documentation/chapter2/your-database/>Creating a Database</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter3/>Initializing the Driver</a><ul><li><a href=/pgjdbc/documentation/chapter3/use/>Importing JDBC</a></li><li><a href=/pgjdbc/documentation/chapter3/load/>Loading the Driver</a></li><li><a href=/pgjdbc/documentation/chapter3/connect/>Connecting to the Database</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter4/>Using SSL</a><ul><li><a href=/pgjdbc/documentation/chapter4/ssl/>Configuring the Server</a></li><li><a href=/pgjdbc/documentation/chapter4/ssl-client/>Configuring the Client</a></li><li><a href=/pgjdbc/documentation/chapter4/ssl-factory/>Custom SSLSocketFactory</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter5/>Issuing a Query and Processing the Result</a><ul><li><a href=/pgjdbc/documentation/chapter5/query/>Issuing a Query and Processing the Result</a></li><li><a href=/pgjdbc/documentation/chapter5/statement/>Using the Statement or PreparedStatement Interface</a></li><li><a href=/pgjdbc/documentation/chapter5/resultset/>Using the ResultSet Interface</a></li><li><a href=/pgjdbc/documentation/chapter5/update/>Performing Updates</a></li><li><a href=/pgjdbc/documentation/chapter5/ddl/>Creating and Modifying Database Objects</a></li><li><a href=/pgjdbc/documentation/chapter5/java8-date-time/>Using Java 8 Date and Time classes</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter6/>Calling Stored Functions and Procedures</a><ul><li><a href=/pgjdbc/documentation/chapter6/callproc/>Calling Stored Functions and Procedures</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter7/>Storing Binary Data</a><ul><li><a href=/pgjdbc/documentation/chapter7/binary-data/>Storing Binary Data</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter8/>JDBC escapes</a><ul><li><a href=/pgjdbc/documentation/chapter8/escapes/>JDBC escapes</a></li><li><a href=/pgjdbc/documentation/chapter8/outer-joins-escape/>Escape for outer joins</a></li><li><a href=/pgjdbc/documentation/chapter8/escapes-datetime/>Date-time escapes</a></li><li><a href=/pgjdbc/documentation/chapter8/escaped-functions/>Escaped scalar functions</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter9/>PostgreSQL™ Extensions to the JDBC API</a><ul><li><a href=/pgjdbc/documentation/chapter9/ext/>PostgreSQL™ Extensions to the JDBC API</a></li><li><a href=/pgjdbc/documentation/chapter9/geometric/>Geometric Data Types</a></li><li><a href=/pgjdbc/documentation/chapter9/largeobjects/>Large Objects</a></li><li><a href=/pgjdbc/documentation/chapter9/listennotify/>Listen / Notify</a></li><li><a href=/pgjdbc/documentation/chapter9/server-prepare/>Server Prepared Statements</a></li><li><a href=/pgjdbc/documentation/chapter9/parameterstatus/>Parameter Status Messages</a></li><li><a href=/pgjdbc/documentation/chapter9/replication/>Physical and Logical replication API</a></li><li><a href=/pgjdbc/documentation/chapter9/arrays/>Arrays</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter10/>Using the Driver in a Multithreaded or a Servlet Environment</a><ul><li><a href=/pgjdbc/documentation/chapter10/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter11/>Connection Pools and Data Sources</a><ul><li><a href=/pgjdbc/documentation/chapter11/datasource/>Connection Pools and Data Sources</a></li><li><a href=/pgjdbc/documentation/chapter11/ds-cpds/>Application Servers ConnectionPoolDataSource</a></li><li><a href=/pgjdbc/documentation/chapter11/ds-ds/>Applications DataSource</a></li><li><a href=/pgjdbc/documentation/chapter11/jndi/>Data Sources and JNDI</a></li><li><a href=/pgjdbc/documentation/chapter11/tomcat/>Tomcat setup</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter12/>Logging using java.util.logging</a><ul><li><a href=/pgjdbc/documentation/chapter12/logging/>Logging using java.util.logging</a></li></ul></li><li><a href=/pgjdbc/documentation/chapter13/>Further Reading</a><ul><li><a href=/pgjdbc/documentation/chapter13/reading/>Further Reading</a></li></ul></li></ul></nav><article><h1>Tomcat setup</h1><br><h3 id=note>Note</h3><p>The postgresql.jar file must be placed in $CATALINA_HOME/common/lib in both
 Tomcat 4 and 5.</p><p>The absolute easiest way to set this up in either tomcat instance is to use the
 admin web application that comes with Tomcat, simply add the datasource to the
 context you want to use it in.</p><p>Setup for Tomcat 4 place the following inside the &lt;Context> tag inside
-conf/server.xml</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-xml data-lang=xml><span style=color:#f92672>&lt;Resource</span> <span style=color:#a6e22e>name=</span><span style=color:#e6db74>&#34;jdbc/postgres&#34;</span> <span style=color:#a6e22e>scope=</span><span style=color:#e6db74>&#34;Shareable&#34;</span> <span style=color:#a6e22e>type=</span><span style=color:#e6db74>&#34;javax.sql.DataSource&#34;</span><span style=color:#f92672>/&gt;</span>
-<span style=color:#f92672>&lt;ResourceParams</span> <span style=color:#a6e22e>name=</span><span style=color:#e6db74>&#34;jdbc/postgres&#34;</span><span style=color:#f92672>&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>validationQuery<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>select version();<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>url<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>jdbc:postgresql://localhost/davec<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>password<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>davec<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>maxActive<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>4<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>maxWait<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>5000<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>driverClassName<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>org.postgresql.Driver<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>username<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>davec<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-	<span style=color:#f92672>&lt;parameter&gt;</span>
-		<span style=color:#f92672>&lt;name&gt;</span>maxIdle<span style=color:#f92672>&lt;/name&gt;</span>
-		<span style=color:#f92672>&lt;value&gt;</span>2<span style=color:#f92672>&lt;/value&gt;</span>
-	<span style=color:#f92672>&lt;/parameter&gt;</span>
-<span style=color:#f92672>&lt;/ResourceParams&gt;</span>
+conf/server.xml</p><div class=highlight><pre class=chroma><code class=language-xml data-lang=xml><span class=nt>&lt;Resource</span> <span class=na>name=</span><span class=s>&#34;jdbc/postgres&#34;</span> <span class=na>scope=</span><span class=s>&#34;Shareable&#34;</span> <span class=na>type=</span><span class=s>&#34;javax.sql.DataSource&#34;</span><span class=nt>/&gt;</span>
+<span class=nt>&lt;ResourceParams</span> <span class=na>name=</span><span class=s>&#34;jdbc/postgres&#34;</span><span class=nt>&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>validationQuery<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>select version();<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>url<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>jdbc:postgresql://localhost/davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>password<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxActive<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>4<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxWait<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>5000<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>driverClassName<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>org.postgresql.Driver<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>username<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxIdle<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>2<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+<span class=nt>&lt;/ResourceParams&gt;</span>
 </code></pre></div><p>Setup for Tomcat 5, you can use the above method, except that it goes inside the
 &lt;DefaultContext> tag inside the &lt;Host> tag. eg. &lt;Host> &mldr; &lt;DefaultContext> &mldr;</p><p>Alternatively there is a conf/Catalina/hostname/context.xml file. For example
 http://localhost:8080/servlet-example has a directory $CATALINA_HOME/conf/Catalina/localhost/servlet-example.xml file.
-Inside this file place the above xml inside the &lt;Context> tag</p><p>Then you can use the following code to access the connection.</p><div class=highlight><pre style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-java data-lang=java><span style=color:#f92672>import</span> javax.naming.*<span style=color:#f92672>;</span>
-<span style=color:#f92672>import</span> javax.sql.*<span style=color:#f92672>;</span>
-<span style=color:#f92672>import</span> java.sql.*<span style=color:#f92672>;</span>
-<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>class</span> <span style=color:#a6e22e>DBTest</span>
-<span style=color:#f92672>{</span>
+Inside this file place the above xml inside the &lt;Context> tag</p><p>Then you can use the following code to access the connection.</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=kn>import</span> <span class=nn>javax.naming.*</span><span class=o>;</span>
+<span class=kn>import</span> <span class=nn>javax.sql.*</span><span class=o>;</span>
+<span class=kn>import</span> <span class=nn>java.sql.*</span><span class=o>;</span>
+<span class=kd>public</span> <span class=kd>class</span> <span class=nc>DBTest</span>
+<span class=o>{</span>
 
-	String foo <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Not Connected&#34;</span><span style=color:#f92672>;</span>
-	<span style=color:#66d9ef>int</span> bar <span style=color:#f92672>=</span> <span style=color:#f92672>-</span>1<span style=color:#f92672>;</span>
+	<span class=n>String</span> <span class=n>foo</span> <span class=o>=</span> <span class=s>&#34;Not Connected&#34;</span><span class=o>;</span>
+	<span class=kt>int</span> <span class=n>bar</span> <span class=o>=</span> <span class=o>-</span><span class=n>1</span><span class=o>;</span>
 
-	<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>void</span> <span style=color:#a6e22e>init</span><span style=color:#f92672>()</span>
-	<span style=color:#f92672>{</span>
-		<span style=color:#66d9ef>try</span>
-		<span style=color:#f92672>{</span>
-			Context ctx <span style=color:#f92672>=</span> <span style=color:#66d9ef>new</span> InitialContext<span style=color:#f92672>();</span>
-			<span style=color:#66d9ef>if</span><span style=color:#f92672>(</span>ctx <span style=color:#f92672>==</span> <span style=color:#66d9ef>null</span> <span style=color:#f92672>)</span>
-				<span style=color:#66d9ef>throw</span> <span style=color:#66d9ef>new</span> Exception<span style=color:#f92672>(</span><span style=color:#e6db74>&#34;Boom - No Context&#34;</span><span style=color:#f92672>);</span>
+	<span class=kd>public</span> <span class=kt>void</span> <span class=nf>init</span><span class=o>()</span>
+	<span class=o>{</span>
+		<span class=k>try</span>
+		<span class=o>{</span>
+			<span class=n>Context</span> <span class=n>ctx</span> <span class=o>=</span> <span class=k>new</span> <span class=n>InitialContext</span><span class=o>();</span>
+			<span class=k>if</span><span class=o>(</span><span class=n>ctx</span> <span class=o>==</span> <span class=kc>null</span> <span class=o>)</span>
+				<span class=k>throw</span> <span class=k>new</span> <span class=n>Exception</span><span class=o>(</span><span class=s>&#34;Boom - No Context&#34;</span><span class=o>);</span>
 
-			<span style=color:#75715e>// /jdbc/postgres is the name of the resource above
-</span><span style=color:#75715e></span>			DataSource ds <span style=color:#f92672>=</span> <span style=color:#f92672>(</span>DataSource<span style=color:#f92672>)</span>ctx<span style=color:#f92672>.</span><span style=color:#a6e22e>lookup</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;java:comp/env/jdbc/postgres&#34;</span><span style=color:#f92672>);</span>
+			<span class=c1>// /jdbc/postgres is the name of the resource above
+</span><span class=c1></span>			<span class=n>DataSource</span> <span class=n>ds</span> <span class=o>=</span> <span class=o>(</span><span class=n>DataSource</span><span class=o>)</span><span class=n>ctx</span><span class=o>.</span><span class=na>lookup</span><span class=o>(</span><span class=s>&#34;java:comp/env/jdbc/postgres&#34;</span><span class=o>);</span>
 
-			<span style=color:#66d9ef>if</span> <span style=color:#f92672>(</span>ds <span style=color:#f92672>!=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span>
-			<span style=color:#f92672>{</span>
-				Connection conn <span style=color:#f92672>=</span> ds<span style=color:#f92672>.</span><span style=color:#a6e22e>getConnection</span><span style=color:#f92672>();</span>
+			<span class=k>if</span> <span class=o>(</span><span class=n>ds</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+			<span class=o>{</span>
+				<span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>ds</span><span class=o>.</span><span class=na>getConnection</span><span class=o>();</span>
 
-				<span style=color:#66d9ef>if</span><span style=color:#f92672>(</span>conn <span style=color:#f92672>!=</span> <span style=color:#66d9ef>null</span><span style=color:#f92672>)</span>
-				<span style=color:#f92672>{</span>
-					foo <span style=color:#f92672>=</span> <span style=color:#e6db74>&#34;Got Connection &#34;</span><span style=color:#f92672>+</span>conn<span style=color:#f92672>.</span><span style=color:#a6e22e>toString</span><span style=color:#f92672>();</span>
-					Statement stmt <span style=color:#f92672>=</span> conn<span style=color:#f92672>.</span><span style=color:#a6e22e>createStatement</span><span style=color:#f92672>();</span>
-					ResultSet rst <span style=color:#f92672>=</span> stmt<span style=color:#f92672>.</span><span style=color:#a6e22e>executeQuery</span><span style=color:#f92672>(</span><span style=color:#e6db74>&#34;select id, foo, bar from testdata&#34;</span><span style=color:#f92672>);</span>
+				<span class=k>if</span><span class=o>(</span><span class=n>conn</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+				<span class=o>{</span>
+					<span class=n>foo</span> <span class=o>=</span> <span class=s>&#34;Got Connection &#34;</span><span class=o>+</span><span class=n>conn</span><span class=o>.</span><span class=na>toString</span><span class=o>();</span>
+					<span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+					<span class=n>ResultSet</span> <span class=n>rst</span> <span class=o>=</span> <span class=n>stmt</span><span class=o>.</span><span class=na>executeQuery</span><span class=o>(</span><span class=s>&#34;select id, foo, bar from testdata&#34;</span><span class=o>);</span>
 
-					<span style=color:#66d9ef>if</span><span style=color:#f92672>(</span>rst<span style=color:#f92672>.</span><span style=color:#a6e22e>next</span><span style=color:#f92672>())</span>
-					<span style=color:#f92672>{</span>
-						foo<span style=color:#f92672>=</span>rst<span style=color:#f92672>.</span><span style=color:#a6e22e>getString</span><span style=color:#f92672>(</span>2<span style=color:#f92672>);</span>
-						bar<span style=color:#f92672>=</span>rst<span style=color:#f92672>.</span><span style=color:#a6e22e>getInt</span><span style=color:#f92672>(</span>3<span style=color:#f92672>);</span>
-					<span style=color:#f92672>}</span>
-					conn<span style=color:#f92672>.</span><span style=color:#a6e22e>close</span><span style=color:#f92672>();</span>
-				<span style=color:#f92672>}</span>
-			<span style=color:#f92672>}</span>
-		<span style=color:#f92672>}</span>
-		<span style=color:#66d9ef>catch</span><span style=color:#f92672>(</span>Exception e<span style=color:#f92672>)</span>
-		<span style=color:#f92672>{</span>
-			e<span style=color:#f92672>.</span><span style=color:#a6e22e>printStackTrace</span><span style=color:#f92672>();</span>
-		<span style=color:#f92672>}</span>
-	<span style=color:#f92672>}</span>
+					<span class=k>if</span><span class=o>(</span><span class=n>rst</span><span class=o>.</span><span class=na>next</span><span class=o>())</span>
+					<span class=o>{</span>
+						<span class=n>foo</span><span class=o>=</span><span class=n>rst</span><span class=o>.</span><span class=na>getString</span><span class=o>(</span><span class=n>2</span><span class=o>);</span>
+						<span class=n>bar</span><span class=o>=</span><span class=n>rst</span><span class=o>.</span><span class=na>getInt</span><span class=o>(</span><span class=n>3</span><span class=o>);</span>
+					<span class=o>}</span>
+					<span class=n>conn</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+				<span class=o>}</span>
+			<span class=o>}</span>
+		<span class=o>}</span>
+		<span class=k>catch</span><span class=o>(</span><span class=n>Exception</span> <span class=n>e</span><span class=o>)</span>
+		<span class=o>{</span>
+			<span class=n>e</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+		<span class=o>}</span>
+	<span class=o>}</span>
 
-	<span style=color:#66d9ef>public</span> String <span style=color:#a6e22e>getFoo</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span> <span style=color:#66d9ef>return</span> foo<span style=color:#f92672>;</span> <span style=color:#f92672>}</span>
+	<span class=kd>public</span> <span class=n>String</span> <span class=nf>getFoo</span><span class=o>()</span> <span class=o>{</span> <span class=k>return</span> <span class=n>foo</span><span class=o>;</span> <span class=o>}</span>
 
-	<span style=color:#66d9ef>public</span> <span style=color:#66d9ef>int</span> <span style=color:#a6e22e>getBar</span><span style=color:#f92672>()</span> <span style=color:#f92672>{</span> <span style=color:#66d9ef>return</span> bar<span style=color:#f92672>;}</span>
-<span style=color:#f92672>}</span>
-</code></pre></div></p></article></div><a title="Next page in Data Sources and JNDI" href=http://localhost:1313/documentation/chapter11/jndi/>Data Sources and JNDI | 36</a>
------------------------------
-<a title="Previous page in Logging using java.util.logging" href=http://localhost:1313/documentation/chapter12/logging/>Logging using java.util.logging | 38</a></main><hr><footer><div><p>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></div></footer></body></html>
+	<span class=kd>public</span> <span class=kt>int</span> <span class=nf>getBar</span><span class=o>()</span> <span class=o>{</span> <span class=k>return</span> <span class=n>bar</span><span class=o>;}</span>
+<span class=o>}</span>
+</code></pre></div><br><div class=prev__next><p><a title="Next page in Data Sources and JNDI" href=https://pgjdbc.github.io/pgjdbc/documentation/chapter11/jndi/>Data Sources and JNDI | 36</a></p><p><a title="Previous page in Logging using java.util.logging" href=https://pgjdbc.github.io/pgjdbc/documentation/chapter12/logging/>Logging using java.util.logging | 38</a></p></div></article><aside></aside></div></main><footer class=footer><div class=footer__items><div class=footer__items__links><ul><li>Pgjdbc</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Public API</a></li><li><a href=https://www.postgresql.org/>About PostgreSql</a></li></ul></div><div class=footer__items__links><ul><li>Community</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Slack</a></li><li><a href=https://www.postgresql.org/>Twitter</a></li><li><a href=https://www.postgresql.org/>Mailing List</a></li></ul></div><div class=footer__items__links><ul><li>More</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>FAQ</a></li><li><a href=https://www.postgresql.org/>Privacy</a></li><li><a href=https://www.postgresql.org/>License</a></li></ul></div></div><p class=copyright>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></footer></body></html>
