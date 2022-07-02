@@ -1,11 +1,16 @@
 {{ $pages := where .Site.RegularPages "Section" .Section }}
 
-{{ with $pages.ByWeight.Next . }}
-	<a title="Next page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
-{{ end }}
+<div class="prev__next">
+	<p>
+		{{ with $pages.ByWeight.Next . }}
+		<a title="Next page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
+		{{ end }}
+	</p>
 
------------------------------
+	<p>
+		{{ with $pages.ByWeight.Prev . }}
+		<a title="Previous page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
+		{{ end }}
+	</p>
 
-{{ with $pages.ByWeight.Prev . }}
-	<a title="Previous page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>
-{{ end }}
+</div>

@@ -9,7 +9,6 @@ menu:
     weight: 1
 ---
 
-<a name="overview"></a>
 # Overview
 
 The PostgreSQL JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
@@ -28,7 +27,6 @@ versions uses a custom mechanism to enable logging that it is replaced by the us
 Please note that while most people asked the use of a Logging Framework for a long time, this
 support is mainly to debug the driver itself and not for general sql query debug.
 
-<a name="configuration"></a>
 # Configuration
 
 The Logging APIs offer both static and dynamic configuration control. Static control enables field
@@ -38,7 +36,6 @@ running program.
 
 The root logger used by the PgJDBC driver is `org.postgresql`.
 
-<a name="fileprop"></a>
 ## Enable logging by using logging.properties file
 
 The default Java logging framework stores its configuration in a file called `logging.properties`.

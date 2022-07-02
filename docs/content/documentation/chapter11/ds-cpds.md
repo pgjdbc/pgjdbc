@@ -16,65 +16,19 @@ JDBC requires that a `ConnectionPoolDataSource` be configured via JavaBean
 properties, shown in [Table 11.1, “`ConnectionPoolDataSource` Configuration Properties”](ds-cpds.html#ds-cpds-props),
 so there are get and set methods for each of these properties.
 
-<a name="ds-cpds-props"></a>
 **Table 11.1. `ConnectionPoolDataSource` Configuration Properties**
 
-<table summary="ConnectionPoolDataSource Configuration Properties" class="CALSTABLE" border="1">
-  <tr>
-    <th>Property</th>
-    <th>Type</th>
-    <th>Description</th>
-  </tr>
-  <tbody>
-    <tr>
-      <td>serverName</td>
-      <td>STRING</td>
-      <td>PostgreSQL™ database server
-host name</td>
-    </tr>
-    <tr>
-      <td>databaseName</td>
-      <td>STRING</td>
-      <td>PostgreSQL™ database name</td>
-    </tr>
-    <tr>
-      <td>portNumber</td>
-      <td>INT</td>
-      <td> TCP port which the PostgreSQL™
-
-database server is listening on (or 0 to use the default port) </td>
-    </tr>
-    <tr>
-      <td>user</td>
-      <td>STRING</td>
-      <td>User used to make database connections</td>
-    </tr>
-    <tr>
-      <td>password</td>
-      <td>STRING</td>
-      <td>Password used to make database connections</td>
-    </tr>
-    <tr>
-      <td>ssl</td>
-      <td>BOOLEAN</td>
-      <td> If `true`, use SSL encrypted
-connections (default `false`) </td>
-    </tr>
-    <tr>
-      <td>sslfactory</td>
-      <td>STRING</td>
-      <td> Custom `javax.net.ssl.SSLSocketFactory`
-class name (see the section called [“Custom
-SSLSocketFactory”](ssl-factory.html)) </td>
-    </tr>
-    <tr>
-      <td>defaultAutoCommit</td>
-      <td>BOOLEAN</td>
-      <td> Whether connections should have autocommit enabled or
-disabled when they are supplied to the caller. The default is `false`, to disable autocommit. </td>
-    </tr>
-  </tbody>
-</table>
+|Property|Type|Description|
+|---|---|---|
+|serverName|STRING|PostgreSQL™ database server host name|
+|databaseName|STRING|PostgreSQL™ database name|
+|portNumber|INT|TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)|
+|user|STRING|User used to make database connections|
+|password|STRING|Password used to make database connections|
+|ssl|BOOLEAN|If `true`, use SSL encrypted connections (default `false`)|
+|sslfactory|STRING|Custom `javax.net.ssl.SSLSocketFactory` class name (see the section called [“Custom
+SSLSocketFactory”](ssl-factory.html))|
+|defaultAutoCommit|BOOLEAN|Whether connections should have autocommit enabled or disabled when they are supplied to the caller. The default is `false`, to disable autocommit.|
 
 Many application servers use a properties-style syntax to configure these
 properties, so it would not be unusual to enter properties as a block of text.

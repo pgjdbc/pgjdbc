@@ -31,23 +31,23 @@
 
   h1,
   .h1 {
-    font-size: --fs-800;
+    font-size: var(--fs-800);
   }
 
   h2,
   .h2 {
     --flow-spacer: 1.5em;
-    font-size: --fs-700;
+    font-size: var(--fs-700);
   }
   h3,
   .h3 {
     --flow-spacer: 1.5em;
-    font-size: --fs-600;
+    font-size: var(--fs-600);
   }
 
   h4,
   .h4 {
-    font-size: --fs-500;
+    font-size: var(--fs-500);
   }
 
   small,
@@ -67,7 +67,6 @@
     &:hover,
     &:focus {
       color: var(--clr-primary-500);
-      text-decoration: underline;
     }
   }
 

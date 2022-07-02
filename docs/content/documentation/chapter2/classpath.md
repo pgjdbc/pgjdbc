@@ -28,4 +28,4 @@ Current Java applications will likely use maven, gradle or some other package ma
 latest jars and how to include them in your project
 
 
-Loading the driver from within the application is covered in [Chapter 3, Initializing the Driver](use.html).
+Loading the driver from within the application is covered in [Initializing the Driver](/documentation/chapter3/use/).

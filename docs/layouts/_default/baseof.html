@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="utf-8">
-    <base href="{{.Site.BaseURL}}">
     <title>
         {{ block "title" . }}
         {{ .Site.Title }}
@@ -23,7 +22,6 @@
         <!-- The part of the page that begins to differ between templates -->
         {{ end }}
     </main>
-    <hr>
     {{- partial "footer" . -}}
 </body>
 

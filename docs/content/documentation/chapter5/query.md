@@ -16,7 +16,6 @@ the entire result (see the section called [“Getting results based on a cursor�
 here for how to alter this behaviour). [Example 5.1, “Processing a Simple Query in JDBC”](query.html#query-example)
 illustrates this process.
 
-<a name="query-example"></a>
 **Example 5.1. Processing a Simple Query in JDBC**
 
 This example will issue a simple query and print out the first column of each
@@ -51,7 +50,6 @@ rs.close();
 st.close();
 ```
 
-<a name="query-with-cursor"></a>
 # Getting results based on a cursor
 
 By default the driver collects all the results for the query at once. This can
@@ -79,7 +77,6 @@ exhausted the next block of rows is retrieved by repositioning the cursor.
 * The query given must be a single statement, not multiple statements strung
 	together with semicolons.
 
-<a name="fetchsize-example"></a>
 **Example 5.2. Setting fetch size to turn cursors on and off.**
 
 Changing code to cursor mode is as simple as setting the fetch size of the

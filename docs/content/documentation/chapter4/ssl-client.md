@@ -9,7 +9,7 @@ menu:
     weight: 2
 ---
 
-There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](connect.html#ssl)
+There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/chapter3/connect/#ssl)
 
 The simplest being `ssl=true`, passing this into the driver will cause the driver to validate both
 the SSL certificate and verify the hostname (same as `verify-full`). **Note** this is different than
@@ -54,34 +54,14 @@ Finer control of the SSL connection can be achieved using the `sslmode` connecti
 This parameter is the same as the libpq `sslmode` parameter and currently implements the
 following
 
-<div class="tblBasic">
-<table class="tblBasicWhite" border="1" summary="SSL Mode Descriptions" cellspacing="0" cellpadding="0">
-<thead>
-<tr>
-  <th>sslmode</th><th>Eavesdropping Protection</th><th> MITM Protection</th><th/>
-</tr>
-</thead>
-<tr>
-  <td>disable</td><td>No</td><td>No</td><td>I don't care about security and don't want to pay the overhead for encryption</td>
-</tr>
-<tr>
-  <td>allow</td><td>Maybe</td><td>No</td><td>I don't care about security but will pay the overhead for encryption if the server insists on it</td>
-</tr>
-<tr>
-  <td>prefer</td><td>Maybe</td><td>No</td><td>I don't care about encryption but will pay the overhead of encryption if the server supports it</td>
-</tr>
-<tr>
-  <td>require</td><td>Yes</td><td>No</td><td>I want my data to be encrypted, and I accept the overhead. I trust that the network will make sure I always connect to the server I want.</td>
-</tr>
-<tr>
-  <td>verify-ca</td><td>Yes</td><td>Depends on CA policy</td><td>I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server that I trust.</td>
-</tr>
-<tr>
-  <td>verify-full</td><td>Yes</td><td>Yes</td><td>I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server I trust, and that it's the one I specify.</td>
-</tr>
-</table>
-</div>
-
+|sslmode|Eavesdropping Protection|MITM Protection||
+|---|---|---|---|
+|disable|	No |No|I don't care about security and don't want to pay the overhead for encryption|
+|allow|	Maybe |No|I don't care about security but will pay the overhead for encryption if the server insists on it|
+|prefer|	Maybe|No|I don't care about encryption but will pay the overhead of encryption if the server supports it|
+|require|	Yes |No|I want my data to be encrypted, and I accept the overhead. I trust that the network will make sure I always connect to the server I want.|
+|verify-ca|	Yes|Depends on CA policy|I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server that I trust.|
+|verify-full|	Yes |Yes|I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server I trust, and that it's the one I specify.|
 
 ### Note
 
@@ -112,7 +92,6 @@ to use.
 In the event of problems extra debugging information is available by adding
 `-Djavax.net.debug=ssl` to your command line.
 
-<a name="nonvalidating"></a>
 ## Using SSL without Certificate Validation
 
 In some situations it may not be possible to configure your Java environment to

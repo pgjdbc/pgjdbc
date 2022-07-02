@@ -15,7 +15,6 @@ As these are facilities unique to PostgreSQL™, we support them from Java, with
 set of extension APIs. Some features within the core of the standard driver
 actually use these extensions to implement Large Objects, etc.
 
-<a name="extensions"></a>
 # Accessing the Extensions
 
 To access some of the extensions, you need to use some extra methods in the
