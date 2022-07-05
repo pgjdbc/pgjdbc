@@ -138,7 +138,7 @@ public class PGPropertyTest {
     // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all
     // known properties
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
+      if (property != PGProperty.DBNAME && property != PGProperty.HOST && property != PGProperty.PORT && property != PGProperty.SERVICE) {
         assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
@@ -154,7 +154,7 @@ public class PGPropertyTest {
 
     // test readability/writability of default value
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
+      if (property != PGProperty.DBNAME && property != PGProperty.HOST && property != PGProperty.PORT && property != PGProperty.SERVICE) {
         Object propertyValue =
             propertyDescriptors.get(property.getName()).getReadMethod().invoke(dataSource);
         propertyDescriptors.get(property.getName()).getWriteMethod().invoke(dataSource,
@@ -226,7 +226,7 @@ public class PGPropertyTest {
         + "?user=" + URLCoder.encode(userName)
         + "&password=" + URLCoder.encode(password);
     Properties parsed = Driver.parseURL(url, new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
+    assertEquals("dbname", databaseName, PGProperty.DBNAME.get(parsed));
     assertEquals("user", userName, PGProperty.USER.get(parsed));
     assertEquals("password", password, PGProperty.PASSWORD.get(parsed));
   }
@@ -235,7 +235,6 @@ public class PGPropertyTest {
   public void testLowerCamelCase() {
     // These are legacy properties excluded for backward compatibility.
     ArrayList<String> excluded = new ArrayList<String>();
-    excluded.add("LOG_LEVEL"); // Remove with PR #722
     excluded.add("PREPARED_STATEMENT_CACHE_SIZE_MIB"); // preparedStatementCacheSizeMi[B]
     excluded.add("DATABASE_METADATA_CACHE_FIELDS_MIB"); // databaseMetadataCacheFieldsMi[B]
     excluded.add("STRING_TYPE"); // string[t]ype
@@ -253,22 +252,20 @@ public class PGPropertyTest {
     excluded.add("REWRITE_BATCHED_INSERTS"); // re[W]riteBatchedInserts
 
     for (PGProperty property : PGProperty.values()) {
-      if (!property.name().startsWith("PG")) { // Ignore all properties that start with PG
-        String[] words = property.name().split("_");
-        if (words.length == 1) {
-          assertEquals(words[0].toLowerCase(Locale.ROOT), property.getName());
-        } else {
-          if (!excluded.contains(property.name())) {
-            String word = "";
-            for (int i = 0; i < words.length; i++) {
-              if (i == 0) {
-                word = words[i].toLowerCase(Locale.ROOT);
-              } else {
-                word += words[i].substring(0, 1).toUpperCase(Locale.ROOT) + words[i].substring(1).toLowerCase(Locale.ROOT);
-              }
+      String[] words = property.name().split("_");
+      if (words.length == 1) {
+        assertEquals(words[0].toLowerCase(Locale.ROOT), property.getName());
+      } else {
+        if (!excluded.contains(property.name())) {
+          String word = "";
+          for (int i = 0; i < words.length; i++) {
+            if (i == 0) {
+              word = words[i].toLowerCase(Locale.ROOT);
+            } else {
+              word += words[i].substring(0, 1).toUpperCase(Locale.ROOT) + words[i].substring(1).toLowerCase(Locale.ROOT);
             }
-            assertEquals(word, property.getName());
           }
+          assertEquals(word, property.getName());
         }
       }
     }
@@ -288,7 +285,7 @@ public class PGPropertyTest {
     dataSource.setApplicationName(applicationName);
 
     Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
+    assertEquals("dbname", databaseName, PGProperty.DBNAME.get(parsed));
     // datasources do not pass username and password as URL parameters
     assertFalse("user", PGProperty.USER.isPresent(parsed));
     assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));

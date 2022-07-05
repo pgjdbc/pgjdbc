@@ -98,7 +98,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     String user = PGProperty.USER.get(info);
-    String database = PGProperty.PG_DBNAME.get(info);
+    String database = PGProperty.DBNAME.get(info);
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }

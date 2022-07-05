@@ -19,19 +19,19 @@ class PGPropertyUtilTest {
 
   @Test
   void propertiesConsistencyCheck() {
-    // PGPORT
+    // port
     Properties properties = new Properties();
-    PGProperty.PG_PORT.set(properties, "0");
+    PGProperty.PORT.set(properties, "0");
     assertFalse(PGPropertyUtil.propertiesConsistencyCheck(properties));
-    PGProperty.PG_PORT.set(properties, "1");
+    PGProperty.PORT.set(properties, "1");
     assertTrue(PGPropertyUtil.propertiesConsistencyCheck(properties));
-    PGProperty.PG_PORT.set(properties, "5432");
+    PGProperty.PORT.set(properties, "5432");
     assertTrue(PGPropertyUtil.propertiesConsistencyCheck(properties));
-    PGProperty.PG_PORT.set(properties, "65535");
+    PGProperty.PORT.set(properties, "65535");
     assertTrue(PGPropertyUtil.propertiesConsistencyCheck(properties));
-    PGProperty.PG_PORT.set(properties, "65536");
+    PGProperty.PORT.set(properties, "65536");
     assertFalse(PGPropertyUtil.propertiesConsistencyCheck(properties));
-    PGProperty.PG_PORT.set(properties, "abcdef");
+    PGProperty.PORT.set(properties, "abcdef");
     assertFalse(PGPropertyUtil.propertiesConsistencyCheck(properties));
     // any other not handled
     properties = new Properties();
@@ -42,9 +42,6 @@ class PGPropertyUtilTest {
   // data for next two test methods
   private static final String[][] TRANSLATION_TABLE = {
       {"allowEncodingChanges", "allowEncodingChanges"},
-      {"port", "PGPORT"},
-      {"host", "PGHOST"},
-      {"dbname", "PGDBNAME"},
   };
 
   @Test

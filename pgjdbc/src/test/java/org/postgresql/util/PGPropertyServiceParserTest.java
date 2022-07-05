@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGEnvironment;
+import org.postgresql.PGProperty;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -84,9 +85,9 @@ class PGPropertyServiceParserTest {
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNotNull(result);
-      assertEquals("test_dbname", result.get("PGDBNAME"));
-      assertEquals("global-test-host.test.net", result.get("PGHOST"));
-      assertEquals("5433", result.get("PGPORT"));
+      assertEquals("test_dbname", PGProperty.DBNAME.get(result));
+      assertEquals("global-test-host.test.net", PGProperty.HOST.get(result));
+      assertEquals("5433", PGProperty.PORT.get(result));
       assertEquals("admin", result.get("user"));
       assertEquals(4, result.size());
     });
@@ -146,9 +147,9 @@ class PGPropertyServiceParserTest {
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNotNull(result);
-      assertEquals(" test_dbname", result.get("PGDBNAME"));
-      assertEquals("local-test-host.test.net", result.get("PGHOST"));
-      assertEquals("5433", result.get("PGPORT"));
+      assertEquals(" test_dbname", PGProperty.DBNAME.get(result));
+      assertEquals("local-test-host.test.net", PGProperty.HOST.get(result));
+      assertEquals("5433", PGProperty.PORT.get(result));
       assertEquals("admin", result.get("user"));
       assertEquals(4, result.size());
     });
@@ -195,9 +196,9 @@ class PGPropertyServiceParserTest {
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNotNull(result);
-      assertEquals("test_dbname", result.get("PGDBNAME"));
-      assertEquals("pgservicefileEnv-test-host.test.net", result.get("PGHOST"));
-      assertEquals("5433", result.get("PGPORT"));
+      assertEquals("test_dbname", PGProperty.DBNAME.get(result));
+      assertEquals("pgservicefileEnv-test-host.test.net", PGProperty.HOST.get(result));
+      assertEquals("5433", PGProperty.PORT.get(result));
       assertEquals("admin", result.get("user"));
       assertEquals("disable", result.get("sslmode"));
       assertEquals(5, result.size());
@@ -268,9 +269,9 @@ class PGPropertyServiceParserTest {
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNotNull(result);
-      assertEquals("test_dbname", result.get("PGDBNAME"));
-      assertEquals("pgservicefileProps-test-host.test.net", result.get("PGHOST"));
-      assertEquals("5433", result.get("PGPORT"));
+      assertEquals("test_dbname", PGProperty.DBNAME.get(result));
+      assertEquals("pgservicefileProps-test-host.test.net", PGProperty.HOST.get(result));
+      assertEquals("5433", PGProperty.PORT.get(result));
       assertEquals("admin", result.get("user"));
       assertEquals(4, result.size());
     });
@@ -323,12 +324,12 @@ class PGPropertyServiceParserTest {
       // service name: space before and after name becomes part of name
       result = PGPropertyServiceParser.getServiceProperties(" success-case-3 ");
       assertNotNull(result);
-      assertEquals("local-somehost3", result.get("PGHOST"));
+      assertEquals("local-somehost3", PGProperty.HOST.get(result));
       assertEquals(1, result.size());
       // service name: space inside name is part of name
       result = PGPropertyServiceParser.getServiceProperties("success case 4");
       assertNotNull(result);
-      assertEquals("local-somehost4", result.get("PGHOST"));
+      assertEquals("local-somehost4", PGProperty.HOST.get(result));
       assertEquals(1, result.size());
     });
   }

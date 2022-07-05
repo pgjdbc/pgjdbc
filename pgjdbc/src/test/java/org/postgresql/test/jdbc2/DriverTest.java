@@ -141,9 +141,9 @@ public class DriverTest {
         drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
     Properties p = (Properties) parseMethod.invoke(drv, url, null);
-    assertEquals(url, dbName, p.getProperty(PGProperty.PG_DBNAME.getName()));
-    assertEquals(url, hosts, p.getProperty(PGProperty.PG_HOST.getName()));
-    assertEquals(url, ports, p.getProperty(PGProperty.PG_PORT.getName()));
+    assertEquals(url, dbName, p.getProperty(PGProperty.DBNAME.getName()));
+    assertEquals(url, hosts, p.getProperty(PGProperty.HOST.getName()));
+    assertEquals(url, ports, p.getProperty(PGProperty.PORT.getName()));
   }
 
   /**
@@ -203,12 +203,12 @@ public class DriverTest {
         con.close();
         // service=wrong port; Properties=correct port
         Properties info = new Properties();
-        info.setProperty("PGPORT", String.valueOf(TestUtil.getPort()));
+        PGProperty.PORT.set(info, String.valueOf(TestUtil.getPort()));
         con = DriverManager.getConnection(String.format("jdbc:postgresql://?service=%s", testService2), info);
         assertNotNull(con);
         con.close();
         // service=wrong port; Properties=wrong port; URL port=correct
-        info.setProperty("PGPORT", wrongPort);
+        PGProperty.PORT.set(info, wrongPort);
         con = DriverManager.getConnection(String.format("jdbc:postgresql://:%s/?service=%s", TestUtil.getPort(), testService2), info);
         assertNotNull(con);
         con.close();
@@ -228,7 +228,7 @@ public class DriverTest {
           // Expected exception.
         }
         // service=correct port; Properties=wrong port
-        info.setProperty("PGPORT", wrongPort);
+        PGProperty.PORT.set(info, wrongPort);
         try {
           con = DriverManager.getConnection(String.format("jdbc:postgresql://?service=%s", testService1), info);
           fail("Expected an SQLException because port is out of range");
@@ -236,7 +236,7 @@ public class DriverTest {
           // Expected exception.
         }
         // service=correct port; Properties=correct port; URL port=wrong
-        info.setProperty("PGPORT", String.valueOf(TestUtil.getPort()));
+        PGProperty.PORT.set(info, String.valueOf(TestUtil.getPort()));
         try {
           con = DriverManager.getConnection(String.format("jdbc:postgresql://:%s/?service=%s", wrongPort, testService1), info);
           fail("Expected an SQLException because port is out of range");
