@@ -9,7 +9,6 @@ import org.postgresql.PGProperty;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.Locale;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,7 +21,7 @@ public class PGPropertyUtil {
   private static final Logger LOGGER = Logger.getLogger(PGPropertyUtil.class.getName());
 
   /**
-   * converts PGPORT String to Integer
+   * converts port String to Integer
    *
    * @param portStr value of port
    * @return value of port or null
@@ -49,14 +48,14 @@ public class PGPropertyUtil {
    */
   public static boolean propertiesConsistencyCheck(Properties properties) {
     //
-    String hosts = PGProperty.PG_HOST.get(properties);
+    String hosts = PGProperty.HOST.get(properties);
     if (hosts == null) {
-      LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.PG_HOST.getName());
+      LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.HOST.getName());
       return false;
     }
-    String ports = PGProperty.PG_PORT.get(properties);
+    String ports = PGProperty.PORT.get(properties);
     if (ports == null) {
-      LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.PG_PORT.getName());
+      LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.PORT.getName());
       return false;
     }
 
@@ -72,11 +71,11 @@ public class PGPropertyUtil {
     int portCount = ports.split(",").length;
     if (hostCount != portCount) {
       LOGGER.log(Level.WARNING, "Properties [{0}] [{1}] must have same amount of values",
-          new Object[]{PGProperty.PG_HOST.getName(), PGProperty.PG_PORT.getName()});
+          new Object[]{PGProperty.HOST.getName(), PGProperty.PORT.getName()});
       LOGGER.log(Level.WARNING, "Property [{0}] ; value [{1}] ; count [{2}]",
-          new Object[]{PGProperty.PG_HOST.getName(), hosts, hostCount});
+          new Object[]{PGProperty.HOST.getName(), hosts, hostCount});
       LOGGER.log(Level.WARNING, "Property [{0}] ; value [{1}] ; count [{2}]",
-          new Object[]{PGProperty.PG_PORT.getName(), ports, portCount});
+          new Object[]{PGProperty.PORT.getName(), ports, portCount});
       return false;
     }
     //
@@ -85,41 +84,22 @@ public class PGPropertyUtil {
 
   /**
    * translate PGSERVICEFILE keys host, port, dbname
-   * Example: "host" becomes "PGHOST"
    *
    * @param serviceKey key in pg_service.conf
    * @return translated property or the same value if translation is not needed
    */
   // translate PGSERVICEFILE keys host, port, dbname
   public static String translatePGServiceToPGProperty(String serviceKey) {
-    String testKey = "PG" + serviceKey.toUpperCase(Locale.ROOT);
-    if (
-        PGProperty.PG_HOST.getName().equals(testKey)
-            || (PGProperty.PG_PORT.getName().equals(testKey))
-            || (PGProperty.PG_DBNAME.getName().equals(testKey))
-    ) {
-      return testKey;
-    } else {
-      return serviceKey;
-    }
+    return serviceKey;
   }
 
   /**
    * translate PGSERVICEFILE keys host, port, dbname
-   * Example: "PGHOST" becomes "host"
    *
    * @param propertyKey postgres property
    * @return translated property or the same value if translation is not needed
    */
   public static String translatePGPropertyToPGService(String propertyKey) {
-    if (
-        PGProperty.PG_HOST.getName().equals(propertyKey)
-            || (PGProperty.PG_PORT.getName().equals(propertyKey))
-            || (PGProperty.PG_DBNAME.getName().equals(propertyKey))
-    ) {
-      return propertyKey.substring(2).toLowerCase(Locale.ROOT);
-    } else {
-      return propertyKey;
-    }
+    return propertyKey;
   }
 }

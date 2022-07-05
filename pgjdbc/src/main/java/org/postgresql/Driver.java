@@ -527,7 +527,7 @@ public class Driver implements java.sql.Driver {
     Properties priority3Service = new Properties();
     // priority 4 - Properties loaded by Driver.loadDefaultProperties() (user, org/postgresql/driverconfig.properties)
     // argument "defaults" INCLUDING defaults
-    // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
+    // priority 5 - PGProperty defaults for host, port, dbname
 
     String urlServer = url;
     String urlArgs = "";
@@ -563,7 +563,7 @@ public class Driver implements java.sql.Driver {
         if (value == null) {
           return null;
         }
-        PGProperty.PG_DBNAME.set(priority1Url, value);
+        PGProperty.DBNAME.set(priority1Url, value);
       }
       urlServer = urlServer.substring(0, slash);
 
@@ -577,12 +577,12 @@ public class Driver implements java.sql.Driver {
           ports.append(portStr);
           CharSequence hostStr = address.subSequence(0, portIdx);
           if (hostStr.length() == 0) {
-            hosts.append(PGProperty.PG_HOST.getDefaultValue());
+            hosts.append(PGProperty.HOST.getDefaultValue());
           } else {
             hosts.append(hostStr);
           }
         } else {
-          ports.append(PGProperty.PG_PORT.getDefaultValue());
+          ports.append(PGProperty.PORT.getDefaultValue());
           hosts.append(address);
         }
         ports.append(',');
@@ -590,8 +590,8 @@ public class Driver implements java.sql.Driver {
       }
       ports.setLength(ports.length() - 1);
       hosts.setLength(hosts.length() - 1);
-      PGProperty.PG_HOST.set(priority1Url, hosts.toString());
-      PGProperty.PG_PORT.set(priority1Url, ports.toString());
+      PGProperty.HOST.set(priority1Url, hosts.toString());
+      PGProperty.PORT.set(priority1Url, ports.toString());
     } else if (urlServer.startsWith("/")) {
       return null;
     } else {
@@ -599,7 +599,7 @@ public class Driver implements java.sql.Driver {
       if (value == null) {
         return null;
       }
-      priority1Url.setProperty(PGProperty.PG_DBNAME.getName(), value);
+      priority1Url.setProperty(PGProperty.DBNAME.getName(), value);
     }
 
     // parse the args part of the url
@@ -649,11 +649,11 @@ public class Driver implements java.sql.Driver {
       // priority 4 - stringPropertyNames() returns all entries INCLUDING defaults
       defaults.stringPropertyNames().forEach(s -> result.putIfAbsent(s, castNonNull(defaults.getProperty(s))));
     }
-    // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
-    result.putIfAbsent(PGProperty.PG_PORT.getName(), castNonNull(PGProperty.PG_PORT.getDefaultValue()));
-    result.putIfAbsent(PGProperty.PG_HOST.getName(), castNonNull(PGProperty.PG_HOST.getDefaultValue()));
+    // priority 5 - PGProperty defaults for host, port, dbname
+    result.putIfAbsent(PGProperty.PORT.getName(), castNonNull(PGProperty.PORT.getDefaultValue()));
+    result.putIfAbsent(PGProperty.HOST.getName(), castNonNull(PGProperty.HOST.getDefaultValue()));
     if (PGProperty.USER.get(result) != null) {
-      result.putIfAbsent(PGProperty.PG_DBNAME.getName(), castNonNull(PGProperty.USER.get(result)));
+      result.putIfAbsent(PGProperty.DBNAME.getName(), castNonNull(PGProperty.USER.get(result)));
     }
 
     // consistency check
@@ -664,7 +664,7 @@ public class Driver implements java.sql.Driver {
     // try to load .pgpass if password is missing
     if (PGProperty.PASSWORD.get(result) == null) {
       String password = PGPropertyPasswordParser.getPassword(
-          PGProperty.PG_HOST.get(result), PGProperty.PG_PORT.get(result), PGProperty.PG_DBNAME.get(result), PGProperty.USER.get(result)
+          PGProperty.HOST.get(result), PGProperty.PORT.get(result), PGProperty.DBNAME.get(result), PGProperty.USER.get(result)
       );
       if (password != null && !password.isEmpty()) {
         PGProperty.PASSWORD.set(result, password);
@@ -688,8 +688,8 @@ public class Driver implements java.sql.Driver {
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = castNonNull(PGProperty.PG_HOST.get(props)).split(",");
-    String[] ports = castNonNull(PGProperty.PG_PORT.get(props)).split(",");
+    String[] hosts = castNonNull(PGProperty.HOST.get(props)).split(",");
+    String[] ports = castNonNull(PGProperty.PORT.get(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.get(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {

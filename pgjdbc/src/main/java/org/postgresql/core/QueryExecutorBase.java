@@ -70,7 +70,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
     this.user = PGProperty.USER.get(info);
-    this.database = PGProperty.PG_DBNAME.get(info);
+    this.database = PGProperty.DBNAME.get(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);

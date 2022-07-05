@@ -191,6 +191,15 @@ public enum PGProperty {
       "Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache."),
 
   /**
+   * Database name to connect to (may be specified directly in the JDBC URL).
+   */
+  DBNAME(
+      "dbname",
+      null,
+      "Database name to connect to (may be specified directly in the JDBC URL)",
+      true),
+
+  /**
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
    * that need fetch all rows at once
    */
@@ -268,6 +277,15 @@ public enum PGProperty {
       "hideUnprivilegedObjects",
       "false",
       "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
+
+  /**
+   * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
+   */
+  HOST(
+      "host",
+      "localhost",
+      "Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)",
+      false),
 
   HOST_RECHECK_SECONDS(
       "hostRecheckSeconds",
@@ -389,28 +407,10 @@ public enum PGProperty {
       false),
 
   /**
-   * Database name to connect to (may be specified directly in the JDBC URL).
-   */
-  PG_DBNAME(
-      "PGDBNAME",
-      null,
-      "Database name to connect to (may be specified directly in the JDBC URL)",
-      true),
-
-  /**
-   * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
-   */
-  PG_HOST(
-      "PGHOST",
-      "localhost",
-      "Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)",
-      false),
-
-  /**
    * Port of the PostgreSQL server (may be specified directly in the JDBC URL).
    */
-  PG_PORT(
-      "PGPORT",
+  PORT(
+      "port",
       "5432",
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
