@@ -11,8 +11,8 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PGPropertyPasswordParser;
-import org.postgresql.util.PGPropertyServiceParser;
+import org.postgresql.jdbcurlresolver.PgPassParser;
+import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -629,7 +629,7 @@ public class Driver implements java.sql.Driver {
     // load pg_service.conf
     if (serviceName != null) {
       LOGGER.log(Level.FINE, "Processing option [?service={0}]", serviceName);
-      Properties result = PGPropertyServiceParser.getServiceProperties(serviceName);
+      Properties result = PgServiceConfParser.getServiceProperties(serviceName);
       if (result == null) {
         LOGGER.log(Level.WARNING, "Definition of service [{0}] not found", serviceName);
         return null;
@@ -663,7 +663,7 @@ public class Driver implements java.sql.Driver {
 
     // try to load .pgpass if password is missing
     if (PGProperty.PASSWORD.get(result) == null) {
-      String password = PGPropertyPasswordParser.getPassword(
+      String password = PgPassParser.getPassword(
           PGProperty.HOST.get(result), PGProperty.PORT.get(result), PGProperty.DBNAME.get(result), PGProperty.USER.get(result)
       );
       if (password != null && !password.isEmpty()) {

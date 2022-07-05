@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbcurlresolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -32,7 +32,7 @@ import java.util.Properties;
  * @author Marek Läll
  */
 @ExtendWith(SystemStubsExtension.class)
-class PGPropertyServiceParserTest {
+class PgServiceConfParserTest {
 
   // "org.postgresql.pgservicefile" : missing
   // "PGSERVICEFILE"                : missing
@@ -44,7 +44,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PgServiceConfParser.getServiceProperties("service-non-existent");
       assertNull(result);
     });
   }
@@ -62,9 +62,9 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PgServiceConfParser.getServiceProperties("service-non-existent");
       assertNull(result);
-      result = PGPropertyServiceParser.getServiceProperties("empty-service1");
+      result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
     });
@@ -83,7 +83,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNotNull(result);
       assertEquals("test_dbname", PGProperty.DBNAME.get(result));
       assertEquals("global-test-host.test.net", PGProperty.HOST.get(result));
@@ -105,7 +105,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), nonExistingDir),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNull(result);
     });
   }
@@ -124,9 +124,9 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PgServiceConfParser.getServiceProperties("service-non-existent");
       assertNull(result);
-      result = PGPropertyServiceParser.getServiceProperties("empty-service1");
+      result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
     });
@@ -145,7 +145,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", "APPDATA", urlPath.getPath(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNotNull(result);
       assertEquals(" test_dbname", PGProperty.DBNAME.get(result));
       assertEquals("local-test-host.test.net", PGProperty.HOST.get(result));
@@ -171,9 +171,9 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PgServiceConfParser.getServiceProperties("service-non-existent");
       assertNull(result);
-      result = PGPropertyServiceParser.getServiceProperties("empty-service1");
+      result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
     });
@@ -194,7 +194,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNotNull(result);
       assertEquals("test_dbname", PGProperty.DBNAME.get(result));
       assertEquals("pgservicefileEnv-test-host.test.net", PGProperty.HOST.get(result));
@@ -219,7 +219,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), nonExistingFile, PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNull(result);
     });
   }
@@ -242,9 +242,9 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PgServiceConfParser.getServiceProperties("service-non-existent");
       assertNull(result);
-      result = PGPropertyServiceParser.getServiceProperties("empty-service1");
+      result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
     });
@@ -267,7 +267,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNotNull(result);
       assertEquals("test_dbname", PGProperty.DBNAME.get(result));
       assertEquals("pgservicefileProps-test-host.test.net", PGProperty.HOST.get(result));
@@ -293,7 +293,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), nonExistingFile, "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
+      Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNull(result);
     });
   }
@@ -310,24 +310,24 @@ class PGPropertyServiceParserTest {
     ).execute(() -> {
       Properties result;
       // fail if there is space between key and equal sign
-      result = PGPropertyServiceParser.getServiceProperties("fail-case-1");
+      result = PgServiceConfParser.getServiceProperties("fail-case-1");
       assertNull(result);
       // service name is case-sensitive
-      result = PGPropertyServiceParser.getServiceProperties("fail-case-2");
+      result = PgServiceConfParser.getServiceProperties("fail-case-2");
       assertNull(result);
       // service name is case-sensitive
-      result = PGPropertyServiceParser.getServiceProperties("fail-case-2");
+      result = PgServiceConfParser.getServiceProperties("fail-case-2");
       assertNull(result);
       // invalid line in the section
-      result = PGPropertyServiceParser.getServiceProperties("fail-case-3");
+      result = PgServiceConfParser.getServiceProperties("fail-case-3");
       assertNull(result);
       // service name: space before and after name becomes part of name
-      result = PGPropertyServiceParser.getServiceProperties(" success-case-3 ");
+      result = PgServiceConfParser.getServiceProperties(" success-case-3 ");
       assertNotNull(result);
       assertEquals("local-somehost3", PGProperty.HOST.get(result));
       assertEquals(1, result.size());
       // service name: space inside name is part of name
-      result = PGPropertyServiceParser.getServiceProperties("success case 4");
+      result = PgServiceConfParser.getServiceProperties("success case 4");
       assertNotNull(result);
       assertEquals("local-somehost4", PGProperty.HOST.get(result));
       assertEquals(1, result.size());

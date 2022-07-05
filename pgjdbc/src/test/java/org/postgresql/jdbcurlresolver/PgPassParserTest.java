@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbcurlresolver;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -26,7 +26,7 @@ import java.net.URL;
  *
  * @author Marek Läll
  */
-class PGPropertyPasswordParserTest {
+class PgPassParserTest {
 
   // "org.postgresql.pgpassfile" : missing
   // "PGPASSFILE"                : missing
@@ -37,7 +37,7 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-non-existent"),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",   "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres", "postgres");
+      String result = PgPassParser.getPassword("localhost", "5432", "postgres", "postgres");
       assertNull(result);
     });
   }
@@ -54,43 +54,43 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", urlPath.getPath() ),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",  "user.home", urlPath.getPath())
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres",
+      String result = PgPassParser.getPassword("localhost", "5432", "postgres",
           "postgres");
       assertEquals("postgres1", result);
-      result = PGPropertyPasswordParser.getPassword("localhost2", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost2", "5432", "postgres", "postgres");
       assertEquals("postgres\\", result);
-      result = PGPropertyPasswordParser.getPassword("localhost3", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost3", "5432", "postgres", "postgres");
       assertEquals("postgres:", result);
-      result = PGPropertyPasswordParser.getPassword("localhost4", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost4", "5432", "postgres", "postgres");
       assertEquals("postgres1:", result);
-      result = PGPropertyPasswordParser.getPassword("localhost5", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost5", "5432", "postgres", "postgres");
       assertEquals("postgres5", result);
-      result = PGPropertyPasswordParser.getPassword("localhost6", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost6", "5432", "postgres", "postgres");
       assertEquals("post\\gres\\", result);
-      result = PGPropertyPasswordParser.getPassword("localhost7", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost7", "5432", "postgres", "postgres");
       assertEquals(" ab cd", result);
-      result = PGPropertyPasswordParser.getPassword("localhost8", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost8", "5432", "postgres", "postgres");
       assertEquals("", result);
       //
-      result = PGPropertyPasswordParser.getPassword("::1", "1234", "colon:db", "colon:user");
+      result = PgPassParser.getPassword("::1", "1234", "colon:db", "colon:user");
       assertEquals("pass:pass", result);
-      result = PGPropertyPasswordParser.getPassword("::1", "12345", "colon:db", "colon:user");
+      result = PgPassParser.getPassword("::1", "12345", "colon:db", "colon:user");
       assertEquals("pass:pass1", result);
-      result = PGPropertyPasswordParser.getPassword("::1", "1234", "slash\\db", "slash\\user");
+      result = PgPassParser.getPassword("::1", "1234", "slash\\db", "slash\\user");
       assertEquals("pass\\pass", result);
-      result = PGPropertyPasswordParser.getPassword("::1", "12345", "slash\\db", "slash\\user");
+      result = PgPassParser.getPassword("::1", "12345", "slash\\db", "slash\\user");
       assertEquals("pass\\pass1", result);
       //
-      result = PGPropertyPasswordParser.getPassword("any", "5432", "postgres", "postgres");
+      result = PgPassParser.getPassword("any", "5432", "postgres", "postgres");
       assertEquals("anyhost5", result);
-      result = PGPropertyPasswordParser.getPassword("localhost11", "9999", "postgres", "postgres");
+      result = PgPassParser.getPassword("localhost11", "9999", "postgres", "postgres");
       assertEquals("anyport5", result);
-      result = PGPropertyPasswordParser.getPassword("localhost12", "5432", "anydb", "postgres");
+      result = PgPassParser.getPassword("localhost12", "5432", "anydb", "postgres");
       assertEquals("anydb5", result);
-      result = PGPropertyPasswordParser.getPassword("localhost13", "5432", "postgres", "anyuser");
+      result = PgPassParser.getPassword("localhost13", "5432", "postgres", "anyuser");
       assertEquals("anyuser5", result);
       //
-      result = PGPropertyPasswordParser.getPassword("anyhost", "6544", "anydb", "anyuser");
+      result = PgPassParser.getPassword("anyhost", "6544", "anydb", "anyuser");
       assertEquals("absolute-any", result);
     });
   }
@@ -109,7 +109,7 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
+      String result = PgPassParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
     });
   }
@@ -128,7 +128,7 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(), "APPDATA", urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres1",
+      String result = PgPassParser.getPassword("localhost", "5432", "postgres1",
           "postgres2");
       assertEquals("postgres3", result);
     });
@@ -151,7 +151,7 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(),"", "user.home", urlPath.getPath())
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
+      String result = PgPassParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
     });
   }
@@ -172,11 +172,11 @@ class PGPropertyPasswordParserTest {
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(),"APPDATA", urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
-      String result = PGPropertyPasswordParser.getPassword("localhost77", "5432", "any", "postgres11");
+      String result = PgPassParser.getPassword("localhost77", "5432", "any", "postgres11");
       assertEquals("postgres22", result);
-      result = PGPropertyPasswordParser.getPassword("localhost888", "5432", "any", "postgres11");
+      result = PgPassParser.getPassword("localhost888", "5432", "any", "postgres11");
       assertNull(result);
-      result = PGPropertyPasswordParser.getPassword("localhost999", "5432", "any", "postgres11");
+      result = PgPassParser.getPassword("localhost999", "5432", "any", "postgres11");
       assertNull(result);
     });
   }
