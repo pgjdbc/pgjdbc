@@ -65,48 +65,48 @@ public class TestUtil {
   public static String getURL(String hostport, String database) {
     String logLevel = "";
     if (getLogLevel() != null && !getLogLevel().equals("")) {
-      logLevel = "&loggerLevel=" + getLogLevel();
+      logLevel = String.format("&%s=%s", PGProperty.LOGGER_LEVEL.getName(), getLogLevel());
     }
 
     String logFile = "";
     if (getLogFile() != null && !getLogFile().equals("")) {
-      logFile = "&loggerFile=" + getLogFile();
+      logFile = String.format("&%s=%s", PGProperty.LOGGER_FILE.getName(), getLogFile());
     }
 
     String protocolVersion = "";
     if (getProtocolVersion() != 0) {
-      protocolVersion = "&protocolVersion=" + getProtocolVersion();
+      protocolVersion = String.format("&%s=%s", PGProperty.PROTOCOL_VERSION.getName(), getProtocolVersion());
     }
 
     String options = "";
     if (getOptions() != null) {
-      options = "&options=" + getOptions();
+      options = String.format("&%s=%s", PGProperty.OPTIONS.getName(), getOptions());
     }
 
     String binaryTransfer = "";
     if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
-      binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
+      binaryTransfer = String.format("&%s=%s", PGProperty.BINARY_TRANSFER.getName(), getBinaryTransfer());
     }
 
     String receiveBufferSize = "";
     if (getReceiveBufferSize() != -1) {
-      receiveBufferSize = "&receiveBufferSize=" + getReceiveBufferSize();
+      receiveBufferSize = String.format("&%s=%s", PGProperty.RECEIVE_BUFFER_SIZE.getName(), getReceiveBufferSize());
     }
 
     String sendBufferSize = "";
     if (getSendBufferSize() != -1) {
-      sendBufferSize = "&sendBufferSize=" + getSendBufferSize();
+      sendBufferSize = String.format("&%s=%s", PGProperty.SEND_BUFFER_SIZE.getName(), getSendBufferSize());
     }
 
     String ssl = "";
     if (getSSL() != null) {
-      ssl = "&ssl=" + getSSL();
+      ssl = String.format("&%s=%s", PGProperty.SSL.getName(), getSSL());
     }
 
     return "jdbc:postgresql://"
         + hostport + "/"
         + database
-        + "?ApplicationName=Driver Tests"
+        + String.format("?%s=%s", PGProperty.APPLICATION_NAME.getName(), "Driver Tests")
         + logLevel
         + logFile
         + protocolVersion
@@ -171,6 +171,7 @@ public class TestUtil {
    * Returns password for default callbackhandler
    */
   public static String getSslPassword() {
+    // todo PGProperty.SSL_PASSWORD.getName() shouldn't be used here. It is accidental that those strings match
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
@@ -334,9 +335,9 @@ public class TestUtil {
     Properties properties = new Properties();
 
     PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
-    properties.setProperty("user", getPrivilegedUser());
-    properties.setProperty("password", getPrivilegedPassword());
-    properties.setProperty("options", "-c synchronous_commit=on");
+    PGProperty.USER.set(properties, getPrivilegedUser());
+    PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
+    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
     return DriverManager.getConnection(getURL(), properties);
 
   }
@@ -348,9 +349,9 @@ public class TestUtil {
     PGProperty.REPLICATION.set(properties, "database");
     //Only simple query protocol available for replication connection
     PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-    properties.setProperty("username", TestUtil.getPrivilegedUser());
-    properties.setProperty("password", TestUtil.getPrivilegedPassword());
-    properties.setProperty("options", "-c synchronous_commit=on");
+    PGProperty.USER.set(properties, TestUtil.getPrivilegedUser());
+    PGProperty.PASSWORD.set(properties, TestUtil.getPrivilegedPassword());
+    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
     return TestUtil.openDB(properties);
   }
 
@@ -371,7 +372,7 @@ public class TestUtil {
     initDriver();
 
     // Allow properties to override the user name.
-    String user = props.getProperty("username");
+    String user = PGProperty.USER.get2(props);
     if (user == null) {
       user = getUser();
     }
@@ -379,14 +380,14 @@ public class TestUtil {
       throw new IllegalArgumentException(
           "user name is not specified. Please specify 'username' property via -D or build.properties");
     }
-    props.setProperty("user", user);
+    PGProperty.USER.set(props, user);
 
     // Allow properties to override the password.
-    String password = props.getProperty("password");
+    String password = PGProperty.PASSWORD.get2(props);
     if (password == null) {
       password = getPassword() != null ? getPassword() : "";
     }
-    props.setProperty("password", password);
+    PGProperty.PASSWORD.set(props, password);
 
     String sslPassword = getSslPassword();
     if (sslPassword != null) {
@@ -410,7 +411,9 @@ public class TestUtil {
     if (PGProperty.GSS_ENC_MODE.getSetString(props) == null) {
       PGProperty.GSS_ENC_MODE.set(props, getGSSEncMode().value);
     }
-
+    // remove not valid properties to avoid error
+    props.remove(SERVER_HOST_PORT_PROP);
+    props.remove(DATABASE_PROP);
     return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
@@ -1102,8 +1105,8 @@ public class TestUtil {
   private static Connection createPrivilegedConnection(Connection conn) throws SQLException {
     String url = conn.getMetaData().getURL();
     Properties props = new Properties(conn.getClientInfo());
-    props.setProperty("user", getPrivilegedUser());
-    props.setProperty("password", getPrivilegedPassword());
+    PGProperty.USER.set(props, getPrivilegedUser());
+    PGProperty.PASSWORD.set(props, getPrivilegedPassword());
     return DriverManager.getConnection(url, props);
   }
 

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 chore: skip publishing pgjdbc-osgi-test to Central
 chore: bump Gradle to 7.4.2
+- Parsing and resolving JDBC URL is more compliant with libpq. "user" and "password" are supported: "jdbc:postgresql://[[user][:password]@][host1]...". Connection properties come from different sources. Override order is more clear: 1) URL arguments (values after "?" mark) 2) URL values (values before "?" mark) 3) Properties given to DriverManager.getConnection() 4) values provided by "service" (from resource .pg_service.conf) 5) values in Java System Properties 6) values in Operating System environment 7) values from driverconfig file(s) (org/postgresql/driverconfig.properties) 8) global defaults (four: host, port, user, dbname)
 
 ### Added
 chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar

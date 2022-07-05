@@ -398,6 +398,16 @@ public enum PGProperty {
       "Specify 'options' connection initialization parameter."),
 
   /**
+   * Specifies the name of the file used to store passwords.
+   * Defaults to ~/.pgpass, or %APPDATA%\postgresql\pgpass.conf on Microsoft Windows.
+   * (No error is reported if this file does not exist.).
+   */
+  PASSFILE(
+      "passfile",
+      null,
+      "File used to store passwords (may be specified directly in the JDBC URL)"),
+
+  /**
    * Password to use when authenticating.
    */
   PASSWORD(
@@ -735,7 +745,7 @@ public enum PGProperty {
    */
   USER(
       "user",
-      null,
+      System.getProperty("user.name"),
       "Username to connect to the database as.",
       true),
 
@@ -846,8 +856,20 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
    */
+  // todo should be renamed to getOrDefault()
   public @Nullable String get(Properties properties) {
     return properties.getProperty(name, defaultValue);
+  }
+
+  /**
+   * Returns the value of the connection parameters according to the given {@code Properties}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter
+   */
+  // todo should be renamed to get()
+  public @Nullable String get2(Properties properties) {
+    return properties.getProperty(name);
   }
 
   /**
