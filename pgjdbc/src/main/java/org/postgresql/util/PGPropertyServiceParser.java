@@ -184,7 +184,6 @@ public class PGPropertyServiceParser {
     // build set of allowed keys
     Set<String> allowedServiceKeys = Arrays.stream(PGProperty.values())
         .map(PGProperty::getName)
-        .map(PGPropertyUtil::translatePGPropertyToPGService)
         .collect(Collectors.toSet());
 
     //
@@ -240,7 +239,7 @@ public class PGPropertyServiceParser {
           // ignore line if value is missing
           if (!value.isEmpty()) {
             // ignore line having duplicate key, otherwise store key-value pair
-            result.putIfAbsent(PGPropertyUtil.translatePGServiceToPGProperty(key), value);
+            result.putIfAbsent(key, value);
           }
         } else {
           // if not equal sign then stop processing because of invalid syntax
