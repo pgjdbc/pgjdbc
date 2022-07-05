@@ -613,7 +613,7 @@ public class Driver implements java.sql.Driver {
       if (pos == -1) {
         priority1Url.setProperty(token, "");
       } else {
-        String pName = PGPropertyUtil.translatePGServiceToPGProperty(token.substring(0, pos));
+        String pName = token.substring(0, pos);
         String pValue = urlDecode(token.substring(pos + 1));
         if (pValue == null) {
           return null;

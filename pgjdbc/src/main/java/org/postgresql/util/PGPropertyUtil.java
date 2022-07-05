@@ -82,24 +82,4 @@ public class PGPropertyUtil {
     return true;
   }
 
-  /**
-   * translate PGSERVICEFILE keys host, port, dbname
-   *
-   * @param serviceKey key in pg_service.conf
-   * @return translated property or the same value if translation is not needed
-   */
-  // translate PGSERVICEFILE keys host, port, dbname
-  public static String translatePGServiceToPGProperty(String serviceKey) {
-    return serviceKey;
-  }
-
-  /**
-   * translate PGSERVICEFILE keys host, port, dbname
-   *
-   * @param propertyKey postgres property
-   * @return translated property or the same value if translation is not needed
-   */
-  public static String translatePGPropertyToPGService(String propertyKey) {
-    return propertyKey;
-  }
 }
