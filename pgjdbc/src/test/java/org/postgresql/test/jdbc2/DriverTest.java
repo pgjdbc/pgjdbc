@@ -75,19 +75,19 @@ public class DriverTest {
     assertNotNull(drv);
 
     // These are always correct
-    verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5433,locahost2:5434/test", "localhost,locahost2", "5433,5434", "test");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5433,:5434,[::1]/test", "[::1],localhost,[::1]", "5433,5434,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost/test?port=8888", "localhost", "8888", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?dbname=test2", "localhost", "5432", "test2");
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname");
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden");
-    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden?port=7777", "127.0.0.1", "7777", "hidden");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740/my%20data%23base%251?loggerFile=C%3A%5Cdir%5Cfile.log", "[::1]", "5740", "my data#base%1");
+    verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432," + "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost:5433,locahost2:5434/test", "localhost,locahost2", "5433,5434", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5433,:5434,[::1]/test", "[::1],localhost,[::1]", "5433,5434,5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost/test?port=8888", "localhost", "8888", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test", "localhost", "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?dbname=test2", "localhost", "5432", "test2", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://127.0.0.1/anydbname", "127.0.0.1", "5432", "anydbname", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden", "127.0.0.1", "5433", "hidden", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://127.0.0.1:5433/hidden?port=7777", "127.0.0.1", "7777", "hidden", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5740/db", "[::1]", "5740", "db", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5740/my%20data%23base%251?loggerFile=C%3A%5Cdir%5Cfile.log", "[::1]", "5740", "my data#base%1", "osUser", null);
 
     // tests for service syntax
     URL urlFileProps = getClass().getResource("/pg_service/pgservicefileProps.conf");
@@ -96,16 +96,18 @@ public class DriverTest {
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile())
     ).execute(() -> {
       // correct cases
-      verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1", "test-host1", "5444", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1&host=other-host", "other-host", "5444", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1", "test-host1", "5444", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1&port=3333&dbname=other-db", "test-host1", "3333", "other-db");
-      verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?service=driverTestService1", "localhost", "5432", "test");
-      verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?port=7777&dbname=other-db&service=driverTestService1", "localhost", "7777", "other-db");
-      verifyUrl(drv, "jdbc:postgresql://[::1]:5740/?service=driverTestService1", "[::1]", "5740", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://:5740/?service=driverTestService1", "localhost", "5740", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5432", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://localhost/?service=driverTestService2", "localhost", "5432", "testdb1");
+      verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1", "test-host1", "5444", "testdb1", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1&host=other-host", "other-host", "5444", "testdb1", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1", "test-host1", "5444", "testdb1", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1&port=3333&dbname=other-db", "test-host1", "3333", "other-db", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?service=driverTestService1", "localhost", "5432", "test", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?port=7777&dbname=other-db&service=driverTestService1", "localhost", "7777", "other-db", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://[::1]:5740/?service=driverTestService1", "[::1]", "5740", "testdb1", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://:5740/?service=driverTestService1", "test-host1", "5740", "testdb1", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5444", "testdb1", "osUser", null);
+      assertFalse(drv.acceptsURL("jdbc:postgresql://localhost/?service=driverTestService2"));
+      verifyUrl(drv, "jdbc:postgresql:/test", "localhost", "5432", "/test", "osUser", null);
+      verifyUrl(drv, "jdbc:postgresql:////", "localhost", "5432", "/", "osUser", null);
       // fail cases
       assertFalse(drv.acceptsURL("jdbc:postgresql://?service=driverTestService2"));
     });
@@ -125,25 +127,30 @@ public class DriverTest {
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
 
     // failover urls
-    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5432,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5433,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
-        "db");
+    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1", "5432,5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1", "5433,5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432", "db", "osUser", null);
   }
 
-  private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
+  private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName, String user, @Nullable String pass)
       throws Exception {
+    // two properties are needed as they are.
+    Properties defaults = new Properties();
+    defaults.setProperty("user", "osUser");
+    Properties props = new Properties(defaults);
+    // syntax check
     assertTrue(drv.acceptsURL(url), url);
-    Method parseMethod =
-        drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
+    // invoke parseURL
+    Method parseMethod = drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
-    Properties p = (Properties) parseMethod.invoke(drv, url, null);
+    Properties p = (Properties) parseMethod.invoke(drv, url, props);
+    //validate result
     assertEquals(dbName, p.getProperty(PGProperty.DBNAME.getName()), url);
     assertEquals(hosts, p.getProperty(PGProperty.HOST.getName()), url);
     assertEquals(ports, p.getProperty(PGProperty.PORT.getName()), url);
+    assertEquals(user, p.getProperty(PGProperty.USER.getName()), url);
+    assertEquals(pass, p.getProperty(PGProperty.PASSWORD.getName()), url);
   }
 
   /**
@@ -278,6 +285,16 @@ public class DriverTest {
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
           new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent",
               PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), tempPgPassFile.toString())
+      ).execute(() -> {
+        // password from .pgpass (correct)
+        Connection con = DriverManager.getConnection(String.format("jdbc:postgresql://%s:%s/%s?user=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getUser()));
+        assertNotNull(con);
+        con.close();
+      });
+      // same test, different way for .pgpass file
+      Resources.with(
+          new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), "", PGEnvironment.PGPASSFILE.getName(), tempPgPassFile.toString()),
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
       ).execute(() -> {
         // password from .pgpass (correct)
         Connection con = DriverManager.getConnection(String.format("jdbc:postgresql://%s:%s/%s?user=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getUser()));

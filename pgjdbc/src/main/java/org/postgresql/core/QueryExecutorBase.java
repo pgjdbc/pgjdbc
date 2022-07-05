@@ -69,7 +69,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
-    this.user = PGProperty.USER.get(info);
+    this.user = PGProperty.USER.get2(info);
     this.database = PGProperty.DBNAME.get(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
