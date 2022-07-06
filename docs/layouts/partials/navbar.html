@@ -1,7 +1,7 @@
 <nav class="nav">
     {{ $currentPage := . }}
 
-    <a href="{{ .Site.BaseURL | relLangURL }}"><img src="/images/postgreslogo.svg" /></a>
+    <a href="{{ .Site.BaseURL | relLangURL }}"><img src="{{"/images/postgreslogo.svg" | relURL}}" /></a>
 
     <div class="nav__items">
         {{ range .Site.Menus.global }}
@@ -10,6 +10,6 @@
         {{ end }}
     </div>
 
-    <a href="https://github.com/pgjdbc/pgjdbc"><img src="/images/github.svg" /></a>
+    <a href="https://github.com/pgjdbc/pgjdbc" target="_blank"><img src="{{"/images/github.svg" | relURL}}" /></a>
 
 </nav>

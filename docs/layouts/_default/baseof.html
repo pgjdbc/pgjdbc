@@ -11,8 +11,7 @@
     {{- $sass := resources.Get "sass/main.scss" -}}
     {{- $style := $sass | resources.ToCSS | resources.Fingerprint -}}
     <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    <link rel="icon" href="{{"favicon.ico" | relURL}}">
 </head>
 
 <body>
