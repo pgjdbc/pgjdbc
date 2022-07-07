@@ -33,9 +33,12 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for JDBC tests.
@@ -63,58 +66,29 @@ public class TestUtil {
   }
 
   public static String getURL(String hostport, String database) {
-    String logLevel = "";
-    if (getLogLevel() != null && !getLogLevel().equals("")) {
-      logLevel = String.format("&%s=%s", PGProperty.LOGGER_LEVEL.getName(), getLogLevel());
-    }
-
-    String logFile = "";
-    if (getLogFile() != null && !getLogFile().equals("")) {
-      logFile = String.format("&%s=%s", PGProperty.LOGGER_FILE.getName(), getLogFile());
-    }
-
-    String protocolVersion = "";
+    Map<PGProperty, String> map = new TreeMap<>();
+    map.put(PGProperty.APPLICATION_NAME, "Driver Tests");
+    map.put(PGProperty.LOGGER_LEVEL, getLogLevel());
+    map.put(PGProperty.LOGGER_FILE, getLogFile());
     if (getProtocolVersion() != 0) {
-      protocolVersion = String.format("&%s=%s", PGProperty.PROTOCOL_VERSION.getName(), getProtocolVersion());
+      map.put(PGProperty.PROTOCOL_VERSION, String.valueOf(getProtocolVersion()));
     }
-
-    String options = "";
-    if (getOptions() != null) {
-      options = String.format("&%s=%s", PGProperty.OPTIONS.getName(), getOptions());
-    }
-
-    String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
-      binaryTransfer = String.format("&%s=%s", PGProperty.BINARY_TRANSFER.getName(), getBinaryTransfer());
-    }
-
-    String receiveBufferSize = "";
+    map.put(PGProperty.OPTIONS, getOptions());
+    map.put(PGProperty.BINARY_TRANSFER, getBinaryTransfer());
     if (getReceiveBufferSize() != -1) {
-      receiveBufferSize = String.format("&%s=%s", PGProperty.RECEIVE_BUFFER_SIZE.getName(), getReceiveBufferSize());
+      map.put(PGProperty.RECEIVE_BUFFER_SIZE, String.valueOf(getReceiveBufferSize()));
     }
-
-    String sendBufferSize = "";
     if (getSendBufferSize() != -1) {
-      sendBufferSize = String.format("&%s=%s", PGProperty.SEND_BUFFER_SIZE.getName(), getSendBufferSize());
+      map.put(PGProperty.SEND_BUFFER_SIZE, String.valueOf(getSendBufferSize()));
     }
+    map.put(PGProperty.SSL, getSSL());
 
-    String ssl = "";
-    if (getSSL() != null) {
-      ssl = String.format("&%s=%s", PGProperty.SSL.getName(), getSSL());
-    }
+    String arguments = map.entrySet().stream()
+        .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+        .map(e -> String.format("%s=%s", e.getKey().getName(), e.getValue()))
+        .collect(Collectors.joining("&"));
 
-    return "jdbc:postgresql://"
-        + hostport + "/"
-        + database
-        + String.format("?%s=%s", PGProperty.APPLICATION_NAME.getName(), "Driver Tests")
-        + logLevel
-        + logFile
-        + protocolVersion
-        + options
-        + binaryTransfer
-        + receiveBufferSize
-        + sendBufferSize
-        + ssl;
+    return String.format("jdbc:postgresql://%s/%s?%s", hostport, database, arguments);
   }
 
   /*
