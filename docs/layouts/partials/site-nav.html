@@ -1,7 +1,7 @@
 <nav class="navbar" role="navigation">
 
     <a href="{{.Site.BaseURL | relLangURL }}">
-        <img src="/icons/postgreslogo.svg" class="logo" />
+        <img src="{{"/icons/postgreslogo.svg" | relURL}}" class="logo" />
     </a>
 
     <div class="navbar__items">
@@ -11,7 +11,7 @@
     </div>
 
     <a href="https://github.com/pgjdbc/pgjdbc" target="_blank">
-        <img src="/icons/github.svg" class="github" />
+        <img src="{{"/icons/github.svg" | relURL}}" class="github" />
     </a>
 
 </nav>
