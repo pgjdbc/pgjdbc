@@ -1,0 +1,17 @@
+<nav class="navbar" role="navigation">
+
+    <a href="{{.Site.BaseURL | relLangURL }}">
+        <img src="/icons/postgreslogo.svg" class="logo" />
+    </a>
+
+    <div class="navbar__items">
+        {{ range .Site.Menus.global }}
+        <a href="{{ .URL }}" title="{{ .Title }}" class="navbar__items__link">{{ .Name }}</a>
+        {{ end }}
+    </div>
+
+    <a href="https://github.com/pgjdbc/pgjdbc" target="_blank">
+        <img src="/icons/github.svg" class="github" />
+    </a>
+
+</nav>

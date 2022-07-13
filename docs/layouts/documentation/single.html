@@ -1,3 +1,7 @@
 {{ define "main" }}
-    {{- partial "docsLayout" . -}}
+<div class="doc">
+    {{ partial "docs/sidebar.html" . }}
+    {{ partial "docs/article.html" . }}
+    {{- partial "toc.html" . -}}
+</div>
 {{ end }}

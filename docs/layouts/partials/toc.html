@@ -1,4 +1,6 @@
 {{ if .Params.toc }}
-<p>What's on this Page</p>
-{{ .TableOfContents }}
+<aside class="toc">
+    <h4>{{.Title}}</h4>
+    {{ .TableOfContents }}
+</aside>
 {{ end }}

@@ -1,31 +1,50 @@
-.nav {
+.navbar {
+  @include flexbox;
+  @include flex-direction(row);
+  @include justify-content(space-between);
+
+  padding: 1rem;
+
+  background-color: var(--clr-blue-400);
+
+  .logo, .github {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+
+  &__items {
     @include flexbox;
     @include flex-direction(row);
-    @include justify-content(space-between);
+    gap: 1rem 1rem;
 
-    padding: 1rem;
+    &__link {
+      color: var(--clr-white-300);
+      text-decoration: none;
+      font-size: var(--fs-400);
+      position: relative;
 
-    background-color: var(--clr-primary-400);
+      &::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        transform: scaleX(0);
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background-color: white;
+        transform-origin: bottom right;
+        transition: transform 0.25s ease-out;
+      }
 
-    &__items {
-      @include flexbox;
-      @include flex-direction(row);
-      gap: 1rem 1rem;
-    };
+      &:hover::after {
+        transform: scaleX(1);
+        transform-origin: bottom left;
+      }
 
-    img {
-      width: 2rem;
-      height: 2rem;
+      &:hover,
+      &:focus {
+        color: var(--clr-white-400);
+      }
     }
-
-    a {
-        color: var(--clr-neutral-100);
-        text-decoration: none;
-
-        &:hover,
-        &:focus {
-          color: var(--clr-neutral-200);
-          text-decoration: underline;
-        };
-      };
-};
+  }
+}

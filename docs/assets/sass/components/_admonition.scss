@@ -1,0 +1,23 @@
+.admonition {
+    border-style: solid;
+    border-width: 0px;
+    border-left-width: 5px;
+    border-radius: 0.4rem;
+    padding: 0.7em;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, .1);
+
+    &__icon {
+        display: inline-block;
+        margin-right: .4em;
+        vertical-align: middle;
+    }
+
+    &--note {
+        border-color: var(--clr-gray-100);
+    }
+
+    &--info {
+        border-color: var(--clr-blue-300);
+        background-color: hsl(196, 79%, 96%);
+    }
+}

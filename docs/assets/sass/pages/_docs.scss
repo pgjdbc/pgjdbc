@@ -1,14 +1,17 @@
-.flex {
+.doc {
    @include flexbox;
-   @include flex-direction(row);
+}
 
-   article {
-      padding: 0.5rem;
-   };
+.article {
+   width: 60%;
+   padding: 2rem;
 
-   .prev__next {
-        @include flexbox;
-        @include flex-direction(row);
-        @include justify-content(space-between);
-   };
-};
+   p {
+      max-width: 100%;
+   }
+}
+
+.toc {
+   width: 20%;
+   padding: 1rem;
+}

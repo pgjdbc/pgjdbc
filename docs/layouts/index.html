@@ -1,5 +1,10 @@
 {{ define "main" }}
-    <h1>
-        HOMEPAGE
-    </h1>
+<div class="home flow">
+    {{ partial "home/hero.html" . }}
+    {{ partial "home/info.html" . }}
+    {{ partial "home/feature.html" . }}
+    {{ partial "home/example.html" . }}
+    {{ partial "home/report.html" . }}
+    {{ partial "home/support.html" . }}
+</div>
 {{ end }}

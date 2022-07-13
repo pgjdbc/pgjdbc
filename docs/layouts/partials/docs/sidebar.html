@@ -1,0 +1,20 @@
+<nav role="navigation" class="sidebar">
+  <ul role="list" class="flow">
+    {{ range .Site.Menus.docs.ByWeight }}
+    <li role="listitem">
+      <a href="{{ .URL }}">{{ .Name }}</a>
+      {{- if .HasChildren }}
+      <ul role="list">
+        {{- range .Children }}
+        <li role="listitem">
+          <a href="{{.URL}}">
+            {{ .Name }}
+          </a>
+        </li>
+        {{- end}}
+      </ul>
+      {{- end}}
+    </li>
+    {{- end}}
+  </ul>
+</nav>

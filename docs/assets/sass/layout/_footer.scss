@@ -1,37 +1,43 @@
 .footer {
     margin-top: auto;
+
     @include flexbox;
     @include flex-direction(column);
     @include justify-content(center);
     @include align-items(center);
-    background-color: var(--clr-primary-400);
+    background-color: var(--clr-blue-400);
     padding: 1rem;
 
     &__items {
         @include flexbox;
         @include flex-direction(row);
-        gap: 0rem 2rem;
+        gap: 0rem 3rem;
+
         &__links {
-            ul,li {
-            color: var(--clr-neutral-100);
-            list-style: none;
 
-            a {
-                color: var(--clr-neutral-100);
-                text-decoration: none;
+            ul,
+            li {
+                color: var(--clr-white-300);
+                margin: 0;
+                padding: 0;
 
-                &:hover,
-                &:focus {
-                  color: var(--clr-neutral-200);
-                };
-              };
+                a {
+                    color: var(--clr-white-300);
+                    text-decoration: none;
 
-            };
-        };
+                    &:hover,
+                    &:focus {
+                        color: var(--clr-white-400);
+                    }
 
-    };
+                }
+            }
+        }
+    }
 
     .copyright {
-        color: var(--clr-neutral-100);
-    };
-};
+        margin-top: 2em;
+        color: var(--clr-white-300);
+    }
+
+}

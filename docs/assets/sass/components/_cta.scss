@@ -1,0 +1,26 @@
+.cta {
+    border-radius: 100vmax;
+    padding: 0.5rem 1rem;
+    border-style: none;
+
+    &--dark {
+        background-color: var(--clr-blue-400);
+        color: var(--clr-white-400);
+    }
+
+    &--light {
+        color: var(--clr-blue-400);
+        background-color: var(--clr-white-400);
+        border-color: var(--clr-blue-400);
+        border-width: 2px;
+        border-style: solid;
+    }
+
+    &--orange {
+        background-color: var(--clr-orange-300);
+
+        a {
+            color: var(--clr-white-400);
+        }
+    }
+}
