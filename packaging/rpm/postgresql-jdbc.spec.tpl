@@ -111,8 +111,8 @@ find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
 # Remove the test files depending on system-stubs-jupiter
 rm src/test/java/org/postgresql/test/jdbc2/DriverTest.java \
    src/test/java/org/postgresql/util/OSUtilTest.java \
-   src/test/java/org/postgresql/util/PGPropertyPasswordParserTest.java \
-   src/test/java/org/postgresql/util/PGPropertyServiceParserTest.java
+   src/test/java/org/postgresql/jdbcurlresolver/PgPassParserTest.java \
+   src/test/java/org/postgresql/jdbcurlresolver/PgServiceConfParserTest.java
 
 # compat symlink: requested by dtardon (libreoffice), reverts part of
 # 0af97ce32de877 commit.
