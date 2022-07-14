@@ -1,5 +1,5 @@
 .home {
-    max-width: 80rem;
+    max-width: 70rem;
     margin: 2rem auto;
 }
 
@@ -8,7 +8,6 @@
 .hero {
     @include flexbox;
 
-    // margin-block: 1em;
     height: 50vh;
 
     &__media {
@@ -42,7 +41,6 @@
     @include flexbox;
     @include justify-content(space-between);
 
-    // margin-block: 4em;
 
     color: var(--clr-blue-400);
 
@@ -74,7 +72,6 @@
 .feature {
     @include flexbox;
     @include justify-content(space-between);
-    // margin-block: 4em;
     color: var(--clr-blue-400);
 
     &__item {

@@ -1,10 +1,3 @@
-* {
-  // this is a bad idea, but works for now
-  font-variation-settings:
-    'wght' var(--font-weight, 375),
-    'wdth' var(--font-width, 80);
-}
-
 body {
   font-size: 1.067rem;
   font-family: 'Inria Sans', sans-serif;
@@ -17,22 +10,14 @@ h2,
 h3,
 h4,
 h5 {
-  --font-weight: 400;
-  --font-width: 80;
-  // font-weight: normal;
   font-stretch: 100%;
   line-height: 1.3;
   color: var(--clr-black-300);
 }
 
 h1 {
-  --font-weight: 900;
-  color: var(--clr, var(--clr-blue-400));
+  color: var(--clr-blue-400);
 }
-
-// This is setting the font-sizes
-// based on the ones in the abstract
-// folder, go there to make updates
 
 h1,
 .h1 {
@@ -41,13 +26,13 @@ h1,
 
 h2,
 .h2 {
-  --flow-spacer: 1.5em;
+  // --flow-spacer: 1.5em;
   font-size: var(--fs-500);
 }
 
 h3,
 .h3 {
-  --flow-spacer: 1.5em;
+  // --flow-spacer: 1.5em;
   font-size: var(--fs-400);
 }
 
@@ -67,8 +52,7 @@ small,
 }
 
 strong {
-  --font-weight: 500;
-  // font-weight: normal;
+  font-weight: 500;
 }
 
 a {

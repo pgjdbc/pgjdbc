@@ -1,10 +1,10 @@
 [[external]]
-title = "Pgjdbc"
+title = "pgJDBC"
 [[external.links]]
 name = "Public API"
 url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
 [[external.links]]
-name = "About PostgreSql"
+name = "About PostgreSQL"
 url = "https://www.postgresql.org/"
 
 [[external]]
