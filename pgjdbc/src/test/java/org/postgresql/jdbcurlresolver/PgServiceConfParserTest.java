@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
+import org.postgresql.util.OSUtil;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -106,7 +107,11 @@ public class PgServiceConfParserTest {
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
     ).execute(() -> {
       JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("test-service1"));
-      assertEquals("Failed to handle resource [non-existing-dir/pg_service.conf] with error [non-existing-dir/pg_service.conf (No such file or directory)]", exception.getMessage());
+      if (OSUtil.isWindows()) {
+        assertEquals("Failed to handle resource [non-existing-dir\\pg_service.conf] with error [non-existing-dir\\pg_service.conf (The system cannot find the path specified)]", exception.getMessage());
+      } else {
+        assertEquals("Failed to handle resource [non-existing-dir/pg_service.conf] with error [non-existing-dir/pg_service.conf (No such file or directory)]", exception.getMessage());
+      }
     });
   }
 
@@ -220,7 +225,11 @@ public class PgServiceConfParserTest {
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("test-service1"));
-      assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (No such file or directory)]", exception.getMessage());
+      if (OSUtil.isWindows()) {
+        assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (The system cannot find the file specified)]", exception.getMessage());
+      } else {
+        assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (No such file or directory)]", exception.getMessage());
+      }
     });
   }
 
@@ -294,7 +303,11 @@ public class PgServiceConfParserTest {
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), nonExistingFile, "user.home", urlPath.getPath())
     ).execute(() -> {
       JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("test-service1"));
-      assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (No such file or directory)]", exception.getMessage());
+      if (OSUtil.isWindows()) {
+        assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (The system cannot find the file specified)]", exception.getMessage());
+      } else {
+        assertEquals("Failed to handle resource [non-existing-file.conf] with error [non-existing-file.conf (No such file or directory)]", exception.getMessage());
+      }
     });
   }
 
