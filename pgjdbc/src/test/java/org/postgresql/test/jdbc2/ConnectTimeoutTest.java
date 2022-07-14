@@ -56,7 +56,7 @@ public class ConnectTimeoutTest {
        * We treat this as a skipped test, as the test didn't really "succeed"
        * in testing the original behaviour, but it didn't fail either.
        */
-      Assume.assumeTrue("Host fast-failed connection to unreachable address "
+      Assume.assumeFalse("Host fast-failed connection to unreachable address "
                         + UNREACHABLE_HOST + " after " + interval + " ms, "
                         + " before timeout should have triggered.",
                         e.getCause() instanceof NoRouteToHostException
