@@ -20,86 +20,80 @@
 
 [[global]]
     name="Development"
-    weight=1
+    weight=4
     identifier="development"
     url="/development/"
 
 ### DOCS ITEMS
 
 [[docs]]
-    name="Introduction"
-    weight=1
-    identifier="chapter1"
-    url="/documentation/chapter1/"
-
-[[docs]]
-    name="Setting up the JDBC Driver"
+    name="Getting Started"
     weight=2
-    identifier="chapter2"
-    url="/documentation/chapter2/"
+    identifier="setup"
+    url="/documentation/setup/"
 
 [[docs]]
     name="Initializing the Driver"
     weight=3
-    identifier="chapter3"
-    url="/documentation/chapter3/"
+    identifier="use"
+    url="/documentation/use/"
 
 [[docs]]
     name="Using SSL"
     weight=4
-    identifier="chapter4"
-    url="/documentation/chapter4/"
+    identifier="ssl"
+    url="/documentation/ssl/"
 
 [[docs]]
     name="Issuing a Query and Processing the Result"
     weight=5
-    identifier="chapter5"
-    url="/documentation/chapter5/"
+    identifier="query"
+    url="/documentation/query/"
 
 [[docs]]
     name="Calling Stored Functions and Procedures"
     weight=6
-    identifier="chapter6"
-    url="/documentation/chapter6/"
+    identifier="callproc"
+    url="/documentation/callproc/"
 
 [[docs]]
     name="Storing Binary Data"
     weight=7
-    identifier="chapter7"
-    url="/documentation/chapter7/"
+    identifier="binary-data"
+    url="/documentation/binary-data/"
 
 [[docs]]
     name="JDBC escapes"
     weight=8
-    identifier="chapter8"
-    url="/documentation/chapter8/"
+    identifier="escapes"
+    url="/documentation/escapes/"
 
 [[docs]]
     name="PostgreSQL™ Extensions to the JDBC API"
     weight=9
-    identifier="chapter9"
-    url="/documentation/chapter9/"
+    identifier="server-prepare"
+    url="/documentation/server-prepare/"
 
 [[docs]]
     name="Using the Driver in a Multithreaded or a Servlet Environment"
     weight=10
-    identifier="chapter10"
-    url="/documentation/chapter10/"
+    identifier="thread"
+    url="/documentation/thread/"
 
 [[docs]]
     name="Connection Pools and Data Sources"
     weight=11
-    identifier="chapter11"
-    url="/documentation/chapter11/"
+    identifier="datasource"
+    url="/documentation/datasource/"
 
 [[docs]]
     name="Logging using java.util.logging"
     weight=12
-    identifier="chapter12"
-    url="/documentation/chapter12/"
+    identifier="logging"
+    url="/documentation/logging/"
 
 [[docs]]
     name="Further Reading"
     weight=13
-    identifier="chapter13"
-    url="/documentation/chapter13/"
+    identifier="reading"
+    url="/documentation/reading/"

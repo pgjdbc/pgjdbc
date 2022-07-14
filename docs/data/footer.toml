@@ -1,0 +1,32 @@
+[[external]]
+title = "Pgjdbc"
+[[external.links]]
+name = "Public API"
+url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
+[[external.links]]
+name = "About PostgreSql"
+url = "https://www.postgresql.org/"
+
+[[external]]
+title = "Community"
+[[external.links]]
+name = "Slack"
+url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
+[[external.links]]
+name = "Twitter"
+url = "https://www.postgresql.org/"
+[[external.links]]
+name = "Mailing List"
+url = "https://www.postgresql.org/"
+
+[[external]]
+title = "More"
+[[external.links]]
+name = "FAQ"
+url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
+[[external.links]]
+name = "Privacy"
+url = "https://www.postgresql.org/"
+[[external.links]]
+name = "License"
+url = "https://www.postgresql.org/"

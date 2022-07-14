@@ -1,4 +1,107 @@
-body {
+.home {
+    max-width: 80rem;
+    margin: 2rem auto;
+}
+
+// Hero Section
+
+.hero {
     @include flexbox;
-    @include flex-direction(column);
+
+    // margin-block: 1em;
+    height: 50vh;
+
+    &__media {
+        width: 50%;
+    }
+
+    &__content {
+        @include flexbox;
+        @include flex-direction(column);
+        @include justify-content(center);
+        @include align-items(center);
+        width: 50%;
+
+        &__head {
+            font-size: var(--fs-800);
+        }
+
+        &__desc {
+            font-size: var(--fs-400);
+        }
+
+        &__actions {
+            display: inline-block;
+        }
+    }
+}
+
+// Info Section
+
+.info {
+    @include flexbox;
+    @include justify-content(space-between);
+
+    // margin-block: 4em;
+
+    color: var(--clr-blue-400);
+
+    &__about {
+        @include flexbox;
+        @include flex-direction(column);
+        @include align-items(center);
+
+        h3 {
+            font-size: var(--fs-500);
+            color: var(--clr-blue-400);
+        }
+    }
+
+    &__release {
+        @include flexbox;
+        @include flex-direction(column);
+        @include align-items(center);
+
+        h3 {
+            font-size: var(--fs-500);
+            color: var(--clr-blue-400);
+        }
+    }
+}
+
+// Feature Section
+
+.feature {
+    @include flexbox;
+    @include justify-content(space-between);
+    // margin-block: 4em;
+    color: var(--clr-blue-400);
+
+    &__item {
+        @include flexbox;
+        @include flex-direction(column);
+        @include align-items(center);
+        gap: 0 6em;
+
+        &__media {
+            width: 4rem;
+            aspect-ratio: 1;
+        }
+    }
+}
+
+// Report Section
+
+.report {
+
+    &__row {
+        @include flexbox;
+        @include justify-content(space-between);
+        padding-block: 2rem;
+
+        &__item {
+            @include flexbox;
+            width: 30%
+        }
+    }
 }

@@ -1,12 +1,13 @@
 @import
-'abstracts/breakpoints',
-'abstracts/colors',
-'abstracts/functions',
-'abstracts/mixins',
-'abstracts/type',
-'abstracts/variables';
+  'abstracts/breakpoints',
+  'abstracts/colors',
+  'abstracts/functions',
+  'abstracts/mixins',
+  'abstracts/type',
+  'abstracts/variables';
 
 @import
+  'base/base',
   'base/font-face',
   'base/reset',
   'base/root',
@@ -18,12 +19,21 @@
   'layout/footer',
   'layout/header',
   'layout/navigation',
-  'layout/sidebar',
-  'layout/table';
+  'layout/sidebar';
+
 
 @import
-  'components/buttons';
+  'components/admonition',
+  'components/card',
+  'components/cta',
+  'components/pagination',
+  'components/table';
 
 @import
   'pages/home',
+  'pages/download',
   'pages/docs';
+
+@import
+  'utilities/container',
+  'utilities/flow';

@@ -1,6 +1,6 @@
 {{ $pages := where .Site.RegularPages "Section" .Section }}
 
-<div class="prev__next">
+<div class="pagination">
 	<p>
 		{{ with $pages.ByWeight.Next . }}
 		<a title="Next page in {{ .Page.Title }}" href="{{ .Permalink }}">{{.Title}} | {{ .Weight }}</a>

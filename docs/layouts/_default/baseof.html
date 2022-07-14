@@ -2,27 +2,29 @@
 <html>
 
 <head>
+
     <meta charset="utf-8">
-    <title>
-        {{ block "title" . }}
-        {{ .Site.Title }}
-        {{ end }}
-    </title>
-    {{- $sass := resources.Get "sass/main.scss" -}}
-    {{- $style := $sass | resources.ToCSS | resources.Fingerprint -}}
+
+    {{ partial "font-preload.html" . }}
+
+    <title>{{ block "title" . }}{{ with .Title }}{{ . }} | {{ end }}{{ .Site.Title }}{{ end }}</title>
+
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+
+    {{ $sass := resources.Get "sass/main.scss" }}
+    {{ $style := $sass | resources.ToCSS | resources.Fingerprint }}
     <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
-    <link rel="icon" href="favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+
+    {{ partial "site-manifest.html" . }}
+
 </head>
 
 <body>
-    {{- partial "navbar" . -}}
-    <main>
-        {{ block "main" . }}
-        <!-- The part of the page that begins to differ between templates -->
-        {{ end }}
+    {{ block "nav" . }}{{ partial "site-nav.html" . }}{{ end }}
+    <main role="main">
+        {{ block "main" . }}{{ end }}
     </main>
-    {{- partial "footer" . -}}
+    {{ block "footer" . }}{{ partialCached "site-footer.html" . }}{{ end }}
 </body>
 
 </html>
