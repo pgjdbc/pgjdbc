@@ -1,0 +1,581 @@
+<!doctype html><html><head><meta charset=utf-8><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-300.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-300italic.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-regular.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-700.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-italic.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-700italic.woff2 as=font type=font/woff2 crossorigin><title>PostgreSQL™ Extensions to the JDBC API | Pgjdbc</title><meta name=viewport content="width=device-width,minimum-scale=1"><link rel=stylesheet href=https://pgjdbc.github.io/pgjdbc/sass/main.ad8d39bcb73da9b9260850a40900e7af4477352c415da494ee27745e8ef7dc8f.css integrity="sha256-rY05vLc9qbkmCFCkCQDnr0R3NSxBXaSU7id0Xo733I8="><link rel=icon href=/pgjdbc/favicon.ico></head><body><nav class=navbar role=navigation><a href=/pgjdbc><img src=/pgjdbc/icons/postgreslogo.svg class=logo></a><div class=navbar__items><a href=/pgjdbc/download/ class=navbar__items__link>Download</a>
+<a href=/pgjdbc/documentation/ class=navbar__items__link>Documentation</a>
+<a href=/pgjdbc/community/ class=navbar__items__link>Community</a>
+<a href=/pgjdbc/development/ class=navbar__items__link>Development</a></div><a href=https://github.com/pgjdbc/pgjdbc target=_blank><img src=/pgjdbc/icons/github.svg class=github></a></nav><main role=main><div class=doc><nav role=navigation class=sidebar><ul role=list class=flow><li role=listitem><a href=/pgjdbc/documentation/setup/>Getting Started</a></li><li role=listitem><a href=/pgjdbc/documentation/use/>Initializing the Driver</a></li><li role=listitem><a href=/pgjdbc/documentation/ssl/>Using SSL</a></li><li role=listitem><a href=/pgjdbc/documentation/query/>Issuing a Query and Processing the Result</a></li><li role=listitem><a href=/pgjdbc/documentation/callproc/>Calling Stored Functions and Procedures</a></li><li role=listitem><a href=/pgjdbc/documentation/binary-data/>Storing Binary Data</a></li><li role=listitem><a href=/pgjdbc/documentation/escapes/>JDBC escapes</a></li><li role=listitem><a href=/pgjdbc/documentation/server-prepare/>PostgreSQL™ Extensions to the JDBC API</a></li><li role=listitem><a href=/pgjdbc/documentation/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li><li role=listitem><a href=/pgjdbc/documentation/datasource/>Connection Pools and Data Sources</a></li><li role=listitem><a href=/pgjdbc/documentation/logging/>Logging using java.util.logging</a></li><li role=listitem><a href=/pgjdbc/documentation/reading/>Further Reading</a></li></ul></nav><article class="article flow"><h1 id=postgresql-extensions-to-the-jdbc-api>PostgreSQL™ Extensions to the JDBC API</h1><p>PostgreSQL™ is an extensible database system. You can add your own functions to
+the server, which can then be called from queries, or even add your own data types.
+As these are facilities unique to PostgreSQL™, we support them from Java, with a
+set of extension APIs. Some features within the core of the standard driver
+actually use these extensions to implement Large Objects, etc.</p><h2 id=accessing-the-extensions>Accessing the Extensions <a class=header-link href=#accessing-the-extensions><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>To access some of the extensions, you need to use some extra methods in the
+<code>org.postgresql.PGConnection</code> class. In this case, you would need to cast the
+return value of <code>Driver.getConnection()</code>. For example:</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=n>Connection</span> <span class=n>db</span> <span class=o>=</span> <span class=n>Driver</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span> <span class=n>username</span><span class=o>,</span> <span class=n>password</span><span class=o>);</span>
+<span class=c1>// ...
+</span><span class=c1>// later on
+</span><span class=c1></span><span class=n>Fastpath</span> <span class=n>fp</span> <span class=o>=</span> <span class=n>db</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGConnection</span><span class=o>.</span><span class=na>class</span><span class=o>).</span><span class=na>getFastpathAPI</span><span class=o>();</span>
+</code></pre></div><h2 id=geometric-data-types>Geometric Data Types <a class=header-link href=#geometric-data-types><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>PostgreSQL™ has a set of data types that can store geometric features into a
+table. These include single points, lines, and polygons. We support these types
+in Java with the org.postgresql.geometric package. Please consult the Javadoc
+mentioned in <a href=reading.html>Chapter 13, <em>Further Reading</em></a> for details of
+available classes and features.</p><p><strong>Example 9.1. Using the CIRCLE datatype JDBC</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=kn>import</span> <span class=nn>java.sql.*</span><span class=o>;</span>
+
+<span class=kn>import</span> <span class=nn>org.postgresql.geometric.PGpoint</span><span class=o>;</span>
+<span class=kn>import</span> <span class=nn>org.postgresql.geometric.PGcircle</span><span class=o>;</span>
+
+<span class=kd>public</span> <span class=kd>class</span> <span class=nc>GeometricTest</span> <span class=o>{</span>
+    <span class=kd>public</span> <span class=kd>static</span> <span class=kt>void</span> <span class=nf>main</span><span class=o>(</span><span class=n>String</span> <span class=n>args</span><span class=o>[])</span> <span class=kd>throws</span> <span class=n>Exception</span> <span class=o>{</span>
+        <span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span class=o>;</span>
+        <span class=k>try</span> <span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span> <span class=s>&#34;test&#34;</span><span class=o>,</span> <span class=s>&#34;&#34;</span><span class=o>))</span> <span class=o>{</span>
+            <span class=k>try</span> <span class=o>(</span><span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>())</span> <span class=o>{</span>
+                <span class=n>stmt</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;CREATE TEMP TABLE geomtest(mycirc circle)&#34;</span><span class=o>);</span>
+            <span class=o>}</span>
+            <span class=n>insertCircle</span><span class=o>(</span><span class=n>conn</span><span class=o>);</span>
+            <span class=n>retrieveCircle</span><span class=o>(</span><span class=n>conn</span><span class=o>);</span>
+        <span class=o>}</span>
+    <span class=o>}</span>
+
+    <span class=kd>private</span> <span class=kd>static</span> <span class=kt>void</span> <span class=nf>insertCircle</span><span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span><span class=o>)</span> <span class=kd>throws</span> <span class=n>SQLException</span> <span class=o>{</span>
+        <span class=n>PGpoint</span> <span class=n>center</span> <span class=o>=</span> <span class=k>new</span> <span class=n>PGpoint</span><span class=o>(</span><span class=n>1</span><span class=o>,</span> <span class=n>2</span><span class=o>.</span><span class=na>5</span><span class=o>);</span>
+        <span class=kt>double</span> <span class=n>radius</span> <span class=o>=</span> <span class=n>4</span><span class=o>;</span>
+        <span class=n>PGcircle</span> <span class=n>circle</span> <span class=o>=</span> <span class=k>new</span> <span class=n>PGcircle</span><span class=o>(</span><span class=n>center</span><span class=o>,</span> <span class=n>radius</span><span class=o>);</span>
+        <span class=k>try</span> <span class=o>(</span><span class=n>PreparedStatement</span> <span class=n>ps</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>prepareStatement</span><span class=o>(</span><span class=s>&#34;INSERT INTO geomtest(mycirc) VALUES (?)&#34;</span><span class=o>))</span> <span class=o>{</span>
+            <span class=n>ps</span><span class=o>.</span><span class=na>setObject</span><span class=o>(</span><span class=n>1</span><span class=o>,</span> <span class=n>circle</span><span class=o>);</span>
+            <span class=n>ps</span><span class=o>.</span><span class=na>executeUpdate</span><span class=o>();</span>
+        <span class=o>}</span>
+    <span class=o>}</span>
+
+    <span class=kd>private</span> <span class=kd>static</span> <span class=kt>void</span> <span class=nf>retrieveCircle</span><span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span><span class=o>)</span> <span class=kd>throws</span> <span class=n>SQLException</span> <span class=o>{</span>
+        <span class=k>try</span> <span class=o>(</span><span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>())</span> <span class=o>{</span>
+            <span class=k>try</span> <span class=o>(</span><span class=n>ResultSet</span> <span class=n>rs</span> <span class=o>=</span> <span class=n>stmt</span><span class=o>.</span><span class=na>executeQuery</span><span class=o>(</span><span class=s>&#34;SELECT mycirc, area(mycirc) FROM geomtest&#34;</span><span class=o>))</span> <span class=o>{</span>
+                <span class=k>while</span> <span class=o>(</span><span class=n>rs</span><span class=o>.</span><span class=na>next</span><span class=o>())</span> <span class=o>{</span>
+                    <span class=n>PGcircle</span> <span class=n>circle</span> <span class=o>=</span> <span class=o>(</span><span class=n>PGcircle</span><span class=o>)</span><span class=n>rs</span><span class=o>.</span><span class=na>getObject</span><span class=o>(</span><span class=n>1</span><span class=o>);</span>
+                    <span class=kt>double</span> <span class=n>area</span> <span class=o>=</span> <span class=n>rs</span><span class=o>.</span><span class=na>getDouble</span><span class=o>(</span><span class=n>2</span><span class=o>);</span>
+
+                    <span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=s>&#34;Center (X, Y) = (&#34;</span> <span class=o>+</span> <span class=n>circle</span><span class=o>.</span><span class=na>center</span><span class=o>.</span><span class=na>x</span> <span class=o>+</span> <span class=s>&#34;, &#34;</span> <span class=o>+</span> <span class=n>circle</span><span class=o>.</span><span class=na>center</span><span class=o>.</span><span class=na>y</span> <span class=o>+</span> <span class=s>&#34;)&#34;</span><span class=o>);</span>
+                    <span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=s>&#34;Radius = &#34;</span> <span class=o>+</span> <span class=n>circle</span><span class=o>.</span><span class=na>radius</span><span class=o>);</span>
+                    <span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=s>&#34;Area = &#34;</span> <span class=o>+</span> <span class=n>area</span><span class=o>);</span>
+                <span class=o>}</span>
+            <span class=o>}</span>
+        <span class=o>}</span>
+    <span class=o>}</span>
+<span class=o>}</span>
+</code></pre></div><h2 id=large-objects>Large Objects <a class=header-link href=#large-objects><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Large objects are supported in the standard JDBC specification. However, that
+interface is limited, and the API provided by PostgreSQL™ allows for random
+access to the objects contents, as if it was a local file.</p><p>The org.postgresql.largeobject package provides to Java the libpq C interface&rsquo;s
+large object API. It consists of two classes, <code>LargeObjectManager</code>, which deals
+with creating, opening and deleting large objects, and <code>LargeObject</code> which deals
+with an individual object. For an example usage of this API, please see
+<a href=binary-data.html#binary-data-example>Example 7.1, “Processing Binary Data in JDBC”</a>.</p><h2 id=listen--notify>Listen / Notify <a class=header-link href=#listen--notify><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Listen and Notify provide a simple form of signal or interprocess communication
+mechanism for a collection of processes accessing the same PostgreSQL™ database.
+For more information on notifications consult the main server documentation. This
+section only deals with the JDBC specific aspects of notifications.</p><p>Standard <code>LISTEN</code>, <code>NOTIFY</code>, and <code>UNLISTEN</code> commands are issued via the standard
+<code>Statement</code> interface. To retrieve and process retrieved notifications the
+<code>Connection</code> must be cast to the PostgreSQL™ specific extension interface
+<code>PGConnection</code>. From there the <code>getNotifications()</code> method can be used to retrieve
+any outstanding notifications.</p><div class="admonition admonition--note"><div class=admonition__heading><h4><span class=admonition__icon><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942.0 01-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28s.52.09.7.28c.18.19.28.42.28.7s-.09.52-.28.7a1 1 0 01-.7.3c-.28.0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27.0.48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14.0-5.7 2.54-5.7 5.68s2.56 5.7 5.7 5.7 5.7-2.55 5.7-5.7-2.56-5.69-5.7-5.69v.01zM7 .98c3.86.0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"/></svg></span>NOTE</h4></div><div class=admonition__content><pre><code>A key limitation of the JDBC driver is that it cannot receive asynchronous
+notifications and must poll the backend to check if any notifications were issued.
+A timeout can be given to the poll function, but then the execution of statements
+from other threads will block.
+</code></pre></div></div><p><strong>Example 9.2. Receiving Notifications</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=kn>import</span> <span class=nn>java.sql.*</span><span class=o>;</span>
+
+<span class=kd>public</span> <span class=kd>class</span> <span class=nc>NotificationTest</span>
+<span class=o>{</span>
+	<span class=kd>public</span> <span class=kd>static</span> <span class=kt>void</span> <span class=nf>main</span><span class=o>(</span><span class=n>String</span> <span class=n>args</span><span class=o>[])</span> <span class=kd>throws</span> <span class=n>Exception</span>
+	<span class=o>{</span>
+		<span class=n>Class</span><span class=o>.</span><span class=na>forName</span><span class=o>(</span><span class=s>&#34;org.postgresql.Driver&#34;</span><span class=o>);</span>
+		<span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span class=o>;</span>
+
+		<span class=c1>// Create two distinct connections, one for the notifier
+</span><span class=c1></span>		<span class=c1>// and another for the listener to show the communication
+</span><span class=c1></span>		<span class=c1>// works across connections although this example would
+</span><span class=c1></span>		<span class=c1>// work fine with just one connection.
+</span><span class=c1></span>
+		<span class=n>Connection</span> <span class=n>lConn</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span><span class=s>&#34;test&#34;</span><span class=o>,</span><span class=s>&#34;&#34;</span><span class=o>);</span>
+		<span class=n>Connection</span> <span class=n>nConn</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span><span class=s>&#34;test&#34;</span><span class=o>,</span><span class=s>&#34;&#34;</span><span class=o>);</span>
+
+		<span class=c1>// Create two threads, one to issue notifications and
+</span><span class=c1></span>		<span class=c1>// the other to receive them.
+</span><span class=c1></span>
+		<span class=n>Listener</span> <span class=n>listener</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Listener</span><span class=o>(</span><span class=n>lConn</span><span class=o>);</span>
+		<span class=n>Notifier</span> <span class=n>notifier</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Notifier</span><span class=o>(</span><span class=n>nConn</span><span class=o>);</span>
+		<span class=n>listener</span><span class=o>.</span><span class=na>start</span><span class=o>();</span>
+		<span class=n>notifier</span><span class=o>.</span><span class=na>start</span><span class=o>();</span>
+	<span class=o>}</span>
+<span class=o>}</span>
+
+<span class=kd>class</span> <span class=nc>Listener</span> <span class=kd>extends</span> <span class=n>Thread</span>
+<span class=o>{</span>
+	<span class=kd>private</span> <span class=n>Connection</span> <span class=n>conn</span><span class=o>;</span>
+	<span class=kd>private</span> <span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGConnection</span> <span class=n>pgconn</span><span class=o>;</span>
+
+	<span class=n>Listener</span><span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span><span class=o>)</span> <span class=kd>throws</span> <span class=n>SQLException</span>
+	<span class=o>{</span>
+		<span class=k>this</span><span class=o>.</span><span class=na>conn</span> <span class=o>=</span> <span class=n>conn</span><span class=o>;</span>
+		<span class=k>this</span><span class=o>.</span><span class=na>pgconn</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGConnection</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+		<span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+		<span class=n>stmt</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;LISTEN mymessage&#34;</span><span class=o>);</span>
+		<span class=n>stmt</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+	<span class=o>}</span>
+
+	<span class=kd>public</span> <span class=kt>void</span> <span class=nf>run</span><span class=o>()</span>
+	<span class=o>{</span>
+		<span class=k>try</span>
+		<span class=o>{</span>
+			<span class=k>while</span> <span class=o>(</span><span class=kc>true</span><span class=o>)</span>
+			<span class=o>{</span>
+				<span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGNotification</span> <span class=n>notifications</span><span class=o>[]</span> <span class=o>=</span> <span class=n>pgconn</span><span class=o>.</span><span class=na>getNotifications</span><span class=o>();</span>
+
+				<span class=c1>// If this thread is the only one that uses the connection, a timeout can be used to
+</span><span class=c1></span>				<span class=c1>// receive notifications immediately:
+</span><span class=c1></span>				<span class=c1>// org.postgresql.PGNotification notifications[] = pgconn.getNotifications(10000);
+</span><span class=c1></span>
+				<span class=k>if</span> <span class=o>(</span><span class=n>notifications</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+				<span class=o>{</span>
+					<span class=k>for</span> <span class=o>(</span><span class=kt>int</span> <span class=n>i</span><span class=o>=</span><span class=n>0</span><span class=o>;</span> <span class=n>i</span> <span class=o>&lt;</span> <span class=n>notifications</span><span class=o>.</span><span class=na>length</span><span class=o>;</span> <span class=n>i</span><span class=o>++)</span>
+						<span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=s>&#34;Got notification: &#34;</span> <span class=o>+</span> <span class=n>notifications</span><span class=o>[</span><span class=n>i</span><span class=o>].</span><span class=na>getName</span><span class=o>());</span>
+				<span class=o>}</span>
+
+				<span class=c1>// wait a while before checking again for new
+</span><span class=c1></span>				<span class=c1>// notifications
+</span><span class=c1></span>
+				<span class=n>Thread</span><span class=o>.</span><span class=na>sleep</span><span class=o>(</span><span class=n>500</span><span class=o>);</span>
+			<span class=o>}</span>
+		<span class=o>}</span>
+		<span class=k>catch</span> <span class=o>(</span><span class=n>SQLException</span> <span class=n>sqle</span><span class=o>)</span>
+		<span class=o>{</span>
+			<span class=n>sqle</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+		<span class=o>}</span>
+		<span class=k>catch</span> <span class=o>(</span><span class=n>InterruptedException</span> <span class=n>ie</span><span class=o>)</span>
+		<span class=o>{</span>
+			<span class=n>ie</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+		<span class=o>}</span>
+	<span class=o>}</span>
+<span class=o>}</span>
+
+<span class=kd>class</span> <span class=nc>Notifier</span> <span class=kd>extends</span> <span class=n>Thread</span>
+<span class=o>{</span>
+	<span class=kd>private</span> <span class=n>Connection</span> <span class=n>conn</span><span class=o>;</span>
+
+	<span class=kd>public</span> <span class=nf>Notifier</span><span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span><span class=o>)</span>
+	<span class=o>{</span>
+		<span class=k>this</span><span class=o>.</span><span class=na>conn</span> <span class=o>=</span> <span class=n>conn</span><span class=o>;</span>
+	<span class=o>}</span>
+
+	<span class=kd>public</span> <span class=kt>void</span> <span class=nf>run</span><span class=o>()</span>
+	<span class=o>{</span>
+		<span class=k>while</span> <span class=o>(</span><span class=kc>true</span><span class=o>)</span>
+		<span class=o>{</span>
+			<span class=k>try</span>
+			<span class=o>{</span>
+				<span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+				<span class=n>stmt</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;NOTIFY mymessage&#34;</span><span class=o>);</span>
+				<span class=n>stmt</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+				<span class=n>Thread</span><span class=o>.</span><span class=na>sleep</span><span class=o>(</span><span class=n>2000</span><span class=o>);</span>
+			<span class=o>}</span>
+			<span class=k>catch</span> <span class=o>(</span><span class=n>SQLException</span> <span class=n>sqle</span><span class=o>)</span>
+			<span class=o>{</span>
+				<span class=n>sqle</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+			<span class=o>}</span>
+			<span class=k>catch</span> <span class=o>(</span><span class=n>InterruptedException</span> <span class=n>ie</span><span class=o>)</span>
+			<span class=o>{</span>
+				<span class=n>ie</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+			<span class=o>}</span>
+		<span class=o>}</span>
+	<span class=o>}</span>
+
+<span class=o>}</span>
+</code></pre></div><h2 id=server-prepared-statements>Server Prepared Statements <a class=header-link href=#server-prepared-statements><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><h3 id=motivation>Motivation <a class=header-link href=#motivation><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><p>The PostgreSQL™ server allows clients to compile sql statements that are expected
+to be reused to avoid the overhead of parsing and planning the statement for every
+execution. This functionality is available at the SQL level via PREPARE and EXECUTE
+beginning with server version 7.3, and at the protocol level beginning with server
+version 7.4, but as Java developers we really just want to use the standard
+<code>PreparedStatement</code> interface.</p><blockquote><p>PostgreSQL 9.2 release notes: prepared statements used to be optimized once, without any knowledge
+of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters
+sent (the query will be planned at execution), except if the query is executed several times and
+the planner decides that the generic plan is not too much more expensive than the specific plans.</p></blockquote><p>Server side prepared statements can improve execution speed as</p><ol><li>It sends just statement handle (e.g. <code>S_1</code>) instead of full SQL text</li><li>It enables use of binary transfer (e.g. binary int4, binary timestamps, etc); the parameters and results are much faster to parse</li><li>It enables the reuse server-side execution plan</li><li>The client can reuse result set column definition, so it does not have to receive and parse metadata on each execution</li></ol><h3 id=activation>Activation <a class=header-link href=#activation><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><blockquote><p>Previous versions of the driver used PREPARE and EXECUTE to implement
+server-prepared statements. This is supported on all server versions beginning
+with 7.3, but produced application-visible changes in query results, such as
+missing ResultSet metadata and row update counts. The current driver uses the V3
+protocol-level equivalents which avoid these changes in query results.</p></blockquote><p>The driver uses server side prepared statements <strong>by default</strong> when <code>PreparedStatement</code> API is used.
+In order to get to server-side prepare, you need to execute the query 5 times (that can be
+configured via <code>prepareThreshold</code> connection property).
+An internal counter keeps track of how many times the statement has been executed and when it
+reaches the threshold it will start to use server side prepared statements.</p><p>It is generally a good idea to reuse the same <code>PreparedStatement</code> object for performance reasons,
+however the driver is able to server-prepare statements automatically across <code>connection.prepareStatement(...)</code> calls.</p><p>For instance:</p><pre><code>PreparedStatement ps = con.prepareStatement(&quot;select /*test*/ ?::int4&quot;);
+ps.setInt(1, 42);
+ps.executeQuery().close();
+ps.close();
+
+PreparedStatement ps = con.prepareStatement(&quot;select /*test*/ ?::int4&quot;);
+ps.setInt(1, 43);
+ps.executeQuery().close();
+ps.close();
+</code></pre><p>is less efficient than</p><pre><code>PreparedStatement ps = con.prepareStatement(&quot;select /*test*/ ?::int4&quot;);
+ps.setInt(1, 42);
+ps.executeQuery().close();
+
+ps.setInt(1, 43);
+ps.executeQuery().close();
+</code></pre><p>however pgjdbc can use server side prepared statements in both cases.</p><p>Note: the <code>Statement</code> object is bound to a <code>Connection</code>, and it is not a good idea to access the same
+<code>Statement</code> and/or <code>Connection</code> from multiple concurrent threads (except <code>cancel()</code>, <code>close()</code>, and alike cases). It might be safer to just <code>close()</code> the statement rather than trying to cache it somehow.</p><p>Server-prepared statements consume memory both on the client and the server, so pgjdbc limits the number
+of server-prepared statements per connection. It can be configured via <code>preparedStatementCacheQueries</code>
+(default <code>256</code>, the number of queries known to pgjdbc), and <code>preparedStatementCacheSizeMiB</code> (default <code>5</code>,
+that is the client side cache size in megabytes per connection). Only a subset of <code>statement cache</code> is
+server-prepared as some of the statements might fail to reach <code>prepareThreshold</code>.</p><h3 id=deactivation>Deactivation <a class=header-link href=#deactivation><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><p>There might be cases when you would want to disable use of server-prepared statements.
+For instance, if you route connections through a balancer that is incompatible with server-prepared statements,
+you have little choice.</p><p>You can disable usage of server side prepared statements by setting <code>prepareThreshold=0</code></p><h3 id=corner-cases>Corner cases <a class=header-link href=#corner-cases><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><h4 id=ddl>DDL <a class=header-link href=#ddl><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>V3 protocol avoids sending column metadata on each execution, and BIND message specifies output column format.
+That creates a problem for cases like</p><pre><code>SELECT * FROM mytable;
+ALTER mytable ADD column ...;
+SELECT * FROM mytable;
+</code></pre><p>That results in <code>cached plan must not change result type</code> error, and it causes the transaction to fail.</p><p>The recommendation is:</p><ol><li>Use explicit column names in the SELECT list</li><li>Avoid column type alters</li></ol><h4 id=deallocate-all-discard-all>DEALLOCATE ALL, DISCARD ALL <a class=header-link href=#deallocate-all-discard-all><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>There are explicit commands to deallocate all server side prepared statements. It would result in
+the following server-side error message: <code>prepared statement name is invalid</code>.
+Of course it could defeat pgjdbc, however there are cases when you need to discard statements (e.g. after lots of DDLs)</p><p>The recommendation is:</p><ol><li>Use simple <code>DEALLOCATE ALL</code> and/or <code>DISCARD ALL</code> commands, avoid nesting the commands into pl/pgsql or alike. The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalidates client-side cache as well</li><li>Reconnect. The cache is per connection, so it would get invalidated if you reconnect</li></ol><h4 id=set-search_path>set search_path=&mldr; <a class=header-link href=#set-search_path><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>PostgreSQL allows to customize <code>search_path</code>, and it provides great power to the developer.
+With great power the following case could happen:</p><pre><code>set search_path='app_v1';
+SELECT * FROM mytable;
+set search_path='app_v2';
+SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
+</code></pre><p>Server side prepared statements are linked to database object IDs, so it could fetch data from &ldquo;old&rdquo;
+<code>app_v1.mytable</code> table. It is hard to tell which behaviour is expected, however pgjdbc tries to track
+<code>search_path</code> changes, and it invalidates prepare cache accordingly.</p><p>The recommendation is:</p><ol><li>Avoid changing <code>search_path</code> often, as it invalidates server side prepared statements</li><li>Use simple <code>set search_path...</code> commands, avoid nesting the commands into pl/pgsql or alike, otherwise
+pgjdbc won&rsquo;t be able to identify <code>search_path</code> change</li></ol><h4 id=re-execution-of-failed-statements>Re-execution of failed statements <a class=header-link href=#re-execution-of-failed-statements><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>It is a pity that a single <code>cached plan must not change result type</code> could cause the whole transaction to fail.
+The driver could re-execute the statement automatically in certain cases.</p><ol><li>In case the transaction has not failed (e.g. the transaction did not exist before execution of
+the statement that caused <code>cached plan...</code> error), then pgjdbc re-executes the statement automatically.
+This makes the application happy, and avoids unnecessary errors.</li><li>In case the transaction is in a failed state, there&rsquo;s nothing to do but rollback it. pgjdbc does have
+&ldquo;automatic savepoint&rdquo; feature, and it could automatically rollback and retry the statement. The behaviour
+is controlled via <code>autosave</code> property (default <code>never</code>). The value of <code>conservative</code> would auto-rollback
+for the errors related to invalid server-prepared statements.
+Note: <code>autosave</code> might result in <strong>severe</strong> performance issues for long transactions, as PostgreSQL backend
+is not optimized for the case of long transactions and lots of savepoints.</li></ol><h4 id=replication-connection>Replication connection <a class=header-link href=#replication-connection><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>PostgreSQL replication connection does not allow to use server side prepared statements, so pgjdbc
+uses simple queries in the case where <code>replication</code> connection property is activated.</p><h4 id=use-of-server-prepared-statements-for-concreatestatement>Use of server-prepared statements for con.createStatement() <a class=header-link href=#use-of-server-prepared-statements-for-concreatestatement><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>By default, pgjdbc uses server-prepared statements for <code>PreparedStatement</code> only, however you might want
+to activate server side prepared statements for regular <code>Statement</code> as well. For instance, if you
+execute the same statement through <code>con.createStatement().executeQuery(...)</code>, then you might improve
+performance by caching the statement. Of course it is better to use <code>PreparedStatements</code> explicitly,
+however the driver has an option to cache simple statements as well.</p><p>You can do that by setting <code>preferQueryMode</code> to <code>extendedCacheEverything</code>.
+Note: the option is more of a diagnostinc/debugging sort, so be careful how you use it .</p><h4 id=bind-placeholder-datatypes>Bind placeholder datatypes <a class=header-link href=#bind-placeholder-datatypes><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>The database optimizes the execution plan for given parameter types.
+Consider the below case:</p><pre><code>-- create table rooms (id int4, name varchar);
+-- create index name__rooms on rooms(name);
+PreparedStatement ps = con.prepareStatement(&quot;select id from rooms where name=?&quot;);
+ps.setString(1, &quot;42&quot;);
+</code></pre><p>It works as expected, however what would happen if one uses <code>setInt</code> instead?</p><pre><code>ps.setInt(1, 42);
+</code></pre><p>Even though the result would be identical, the first variation (<code>setString</code> case) enables the database
+to use index <code>name__rooms</code>, and the latter does not.
+In case the database gets <code>42</code> as integer, it uses the plan like <code>where cast(name as int4) = ?</code>.</p><p>The plan has to be specific for the (<code>SQL text</code>; <code>parameter types</code>) combination, so the driver
+has to invalidate server side prepared statements in case the statement is used with different
+parameter types.</p><p>This gets especially painful for batch operations as you don&rsquo;t want to interrupt the batch
+by using alternating datatypes.</p><p>The most typical case is as follows (don&rsquo;t ever use this in production):</p><pre><code>PreparedStatement ps = con.prepareStatement(&quot;select id from rooms where ...&quot;);
+if (param instanceof String) {
+    ps.setString(1, param);
+} else if (param instanceof Integer) {
+    ps.setInt(1, ((Integer) param).intValue());
+} else {
+    // Does it really matter which type of NULL to use?
+    // In fact, it does since data types specify which server-procedure to call
+    ps.setNull(1, Types.INTEGER);
+}
+</code></pre><p>As you might guess, <code>setString</code> vs <code>setNull(..., Types.INTEGER)</code> result in alternating datatypes,
+and it forces the driver to invalidate and re-prepare server side statement.</p><p>Recommendation is to use the consistent datatype for each bind placeholder, and use the same type
+for <code>setNull</code>.
+Check out <code>org.postgresql.test.jdbc2.PreparedStatementTest.testAlternatingBindType</code> example for more details.</p><h4 id=debugging>Debugging <a class=header-link href=#debugging><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h4><p>In case you run into <code>cached plan must not change result type</code> or <code>prepared statement \"S_2\" does not exist</code>
+the following might be helpful to debug the case.</p><ol><li>Client logging. If you add <code>loggerLevel=TRACE&loggerFile=pgjdbc-trace.log</code>, you would get trace
+of the messages send between the driver and the backend</li><li>You might check <code>org.postgresql.test.jdbc2.AutoRollbackTestSuite</code> as it verifies lots of combinations</li></ol><p><strong>Example 9.3. Using server side prepared statements</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=kn>import</span> <span class=nn>java.sql.*</span><span class=o>;</span>
+
+<span class=kd>public</span> <span class=kd>class</span> <span class=nc>ServerSidePreparedStatement</span>
+<span class=o>{</span>
+
+	<span class=kd>public</span> <span class=kd>static</span> <span class=kt>void</span> <span class=nf>main</span><span class=o>(</span><span class=n>String</span> <span class=n>args</span><span class=o>[])</span> <span class=kd>throws</span> <span class=n>Exception</span>
+	<span class=o>{</span>
+		<span class=n>Class</span><span class=o>.</span><span class=na>forName</span><span class=o>(</span><span class=s>&#34;org.postgresql.Driver&#34;</span><span class=o>);</span>
+		<span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span class=o>;</span>
+		<span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span><span class=s>&#34;test&#34;</span><span class=o>,</span><span class=s>&#34;&#34;</span><span class=o>);</span>
+
+		<span class=n>PreparedStatement</span> <span class=n>pstmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>prepareStatement</span><span class=o>(</span><span class=s>&#34;SELECT ?&#34;</span><span class=o>);</span>
+
+		<span class=c1>// cast to the pg extension interface
+</span><span class=c1></span>		<span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGStatement</span> <span class=n>pgstmt</span> <span class=o>=</span> <span class=n>pstmt</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGStatement</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+
+		<span class=c1>// on the third execution start using server side statements
+</span><span class=c1></span>		<span class=n>pgstmt</span><span class=o>.</span><span class=na>setPrepareThreshold</span><span class=o>(</span><span class=n>3</span><span class=o>);</span>
+
+		<span class=k>for</span> <span class=o>(</span><span class=kt>int</span> <span class=n>i</span><span class=o>=</span><span class=n>1</span><span class=o>;</span> <span class=n>i</span><span class=o>&lt;=</span><span class=n>5</span><span class=o>;</span> <span class=n>i</span><span class=o>++)</span>
+		<span class=o>{</span>
+			<span class=n>pstmt</span><span class=o>.</span><span class=na>setInt</span><span class=o>(</span><span class=n>1</span><span class=o>,</span><span class=n>i</span><span class=o>);</span>
+			<span class=kt>boolean</span> <span class=n>usingServerPrepare</span> <span class=o>=</span> <span class=n>pgstmt</span><span class=o>.</span><span class=na>isUseServerPrepare</span><span class=o>();</span>
+			<span class=n>ResultSet</span> <span class=n>rs</span> <span class=o>=</span> <span class=n>pstmt</span><span class=o>.</span><span class=na>executeQuery</span><span class=o>();</span>
+			<span class=n>rs</span><span class=o>.</span><span class=na>next</span><span class=o>();</span>
+			<span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=s>&#34;Execution: &#34;</span><span class=o>+</span><span class=n>i</span><span class=o>+</span><span class=s>&#34;, Used server side: &#34;</span> <span class=o>+</span> <span class=n>usingServerPrepare</span> <span class=o>+</span> <span class=s>&#34;, Result: &#34;</span><span class=o>+</span><span class=n>rs</span><span class=o>.</span><span class=na>getInt</span><span class=o>(</span><span class=n>1</span><span class=o>));</span>
+			<span class=n>rs</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+		<span class=o>}</span>
+
+		<span class=n>pstmt</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+		<span class=n>conn</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+	<span class=o>}</span>
+<span class=o>}</span>
+</code></pre></div><p>Which produces the expected result of using server side prepared statements upon
+the third execution.</p><pre><code>Execution: 1, Used server side: false, Result: 1
+Execution: 2, Used server side: false, Result: 2
+Execution: 3, Used server side: true, Result: 3
+Execution: 4, Used server side: true, Result: 4
+Execution: 5, Used server side: true, Result: 5
+</code></pre><p>The example shown above requires the programmer to use PostgreSQL™ specific code
+in a supposedly portable API which is not ideal. Also it sets the threshold only
+for that particular statement which is some extra typing if we wanted to use that
+threshold for every statement. Let&rsquo;s take a look at the other ways to set the
+threshold to enable server side prepared statements. There is already a hierarchy
+in place above a <code>PreparedStatement</code>, the <code>Connection</code> it was created from, and
+above that the source of the connection be it a <code>Datasource</code> or a URL. The server
+side prepared statement threshold can be set at any of these levels such that
+the value will be the default for all of it&rsquo;s children.</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=c1>// pg extension interfaces
+</span><span class=c1></span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGConnection</span> <span class=n>pgconn</span><span class=o>;</span>
+<span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGStatement</span> <span class=n>pgstmt</span><span class=o>;</span>
+
+<span class=c1>// set a prepared statement threshold for connections created from this url
+</span><span class=c1></span><span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/test?prepareThreshold=3&#34;</span><span class=o>;</span>
+
+<span class=c1>// see that the connection has picked up the correct threshold from the url
+</span><span class=c1></span><span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span><span class=s>&#34;test&#34;</span><span class=o>,</span><span class=s>&#34;&#34;</span><span class=o>);</span>
+<span class=n>pgconn</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGConnection</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+<span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=n>pgconn</span><span class=o>.</span><span class=na>getPrepareThreshold</span><span class=o>());</span> <span class=c1>// Should be 3
+</span><span class=c1></span>
+<span class=c1>// see that the statement has picked up the correct threshold from the connection
+</span><span class=c1></span><span class=n>PreparedStatement</span> <span class=n>pstmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>prepareStatement</span><span class=o>(</span><span class=s>&#34;SELECT ?&#34;</span><span class=o>);</span>
+<span class=n>pgstmt</span> <span class=o>=</span> <span class=n>pstmt</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGStatement</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+<span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=n>pgstmt</span><span class=o>.</span><span class=na>getPrepareThreshold</span><span class=o>());</span> <span class=c1>// Should be 3
+</span><span class=c1></span>
+<span class=c1>// change the connection&#39;s threshold and ensure that new statements pick it up
+</span><span class=c1></span><span class=n>pgconn</span><span class=o>.</span><span class=na>setPrepareThreshold</span><span class=o>(</span><span class=n>5</span><span class=o>);</span>
+<span class=n>PreparedStatement</span> <span class=n>pstmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>prepareStatement</span><span class=o>(</span><span class=s>&#34;SELECT ?&#34;</span><span class=o>);</span>
+<span class=n>pgstmt</span> <span class=o>=</span> <span class=n>pstmt</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>org</span><span class=o>.</span><span class=na>postgresql</span><span class=o>.</span><span class=na>PGStatement</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+<span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=n>pgstmt</span><span class=o>.</span><span class=na>getPrepareThreshold</span><span class=o>());</span> <span class=c1>// Should be 5
+</span></code></pre></div><h2 id=parameter-status-messages>Parameter Status Messages <a class=header-link href=#parameter-status-messages><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>PostgreSQL supports server parameters, also called server variables or,
+internally, Grand Unified Configuration (GUC) variables. These variables are
+manipulated by the <code>SET</code> command, <code>postgresql.conf</code>, <code>ALTER SYSTEM SET</code>, <code>ALTER USER SET</code>, <code>ALTER DATABASE SET</code>, the <code>set_config(...)</code> SQL-callable function,
+etc. See <a href=https://www.postgresql.org/docs/current/config-setting.html>the PostgreSQL manual</a>.</p><p>For a subset of these variables the server will <em>automatically report changes
+to the value to the client driver and application</em>. These variables are known
+internally as <code>GUC_REPORT</code> variables after the name of the flag that enables
+the functionality.</p><p>The server keeps track of all the variable scopes and reports when a variable
+reverts to a prior value, so the client doesn&rsquo;t have to guess what the current
+value is and whether some server-side function could&rsquo;ve changed it. Whenever
+the value changes, no matter why or how it changes, the server reports the new
+effective value in a <em>Parameter Status</em> protocol message to the client. PgJDBC
+uses many of these reports internally.</p><p>As of PgJDBC 42.2.6, it also exposes the parameter status information to user
+applications via the PGConnection extensions interface.</p><h2 id=methods>Methods <a class=header-link href=#methods><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Two methods on <code>org.postgresql.PGConnection</code> provide the client interface to
+reported parameters. Parameter names are case-insensitive and case-preserving.</p><ul><li><p><code>Map PGConnection.getParameterStatuses()</code> - return a map of all reported
+parameters and their values.</p></li><li><p><code>String PGConnection.getParameterStatus()</code> - shorthand to retrieve one
+value by name, or null if no value has been reported.</p></li></ul><p>See the <code>PGConnection</code> JavaDoc for details.</p><h2 id=example>Example <a class=header-link href=#example><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>If you&rsquo;re working directly with a <code>java.sql.Connection</code> you can</p><pre><code>import org.postgresql.PGConnection;
+
+void my_function(Connection conn) {
+
+    System.out.println(&quot;My application name is &quot; +
+        ((PGConnection)conn).getParameterStatus(&quot;application_name&quot;));
+
+}
+</code></pre><h2 id=other-client-drivers>Other client drivers <a class=header-link href=#other-client-drivers><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>The <code>libpq</code> equivalent is the <code>PQparameterStatus(...)</code> API function.</p><h2 id=physical-and-logical-replication-api>Physical and Logical replication API <a class=header-link href=#physical-and-logical-replication-api><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
+changes from a database to be streamed in real-time to an external system. The difference between physical replication and
+logical replication is that logical replication sends data over in a logical format whereas physical replication sends data over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication</p><p>Prior to logical replication keeping an external system synchronized in real time was problematic. The application would have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics system, and so on.
+This suffers from race conditions and reliability problems. For example if slightly different data gets written to two different datastores (perhaps due to a bug or a race condition),the contents of the datastores will gradually drift apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.</p><p>Logical decoding takes the database’s write-ahead log (WAL), and gives us access to row-level change events:
+every time a row in a table is inserted, updated or deleted, that’s an event. Those events are grouped by transaction,
+and appear in the order in which they were committed to the database. Aborted/rolled-back transactions
+do not appear in the stream. Thus, if you apply the change events in the same order, you end up with an exact,
+transactionally consistent copy of the database. It&rsquo;s looks like the Event Sourcing pattern that you previously implemented
+in your application, but now it&rsquo;s available out of the box from the PostgreSQL database.</p><p>For access to real-time changes PostgreSQL provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
+to stream changes to an external system.</p><p>Since the JDBC API does not include replication <code>PGConnection</code> implements the PostgreSQL API</p><h2 id=configure-database>Configure database <a class=header-link href=#configure-database><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Your database should be configured to enable logical or physical replication</p><h3 id=postgresqlconf>postgresql.conf <a class=header-link href=#postgresqlconf><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><ul><li>Property <code>max_wal_senders</code> should be at least equal to the number of replication consumers</li><li>Property <code>wal_keep_segments</code> should contain count wal segments that can&rsquo;t be removed from database.</li><li>Property <code>wal_level</code> for logical replication should be equal to <code>logical</code>.</li><li>Property <code>max_replication_slots</code> should be greater than zero for logical replication, because logical replication can&rsquo;t
+work without replication slot.</li></ul><h3 id=pg_hbaconf>pg_hba.conf <a class=header-link href=#pg_hbaconf><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><p>Enable connect user with replication privileges to replication stream.</p><pre><code>local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
+</code></pre><h3 id=configuration-for-examples>Configuration for examples <a class=header-link href=#configuration-for-examples><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h3><p><em>postgresql.conf</em></p><div class=highlight><pre class=chroma><code class=language-ini data-lang=ini><span class=na>max_wal_senders</span> <span class=o>=</span> <span class=s>4             # max number of walsender processes</span>
+<span class=na>wal_keep_segments</span> <span class=o>=</span> <span class=s>4           # in logfile segments, 16MB each; 0 disables</span>
+<span class=na>wal_level</span> <span class=o>=</span> <span class=s>logical             # minimal, replica, or logical</span>
+<span class=na>max_replication_slots</span> <span class=o>=</span> <span class=s>4       # max number of replication slots</span>
+</code></pre></div><p><em>pg_hba.conf</em></p><pre><code># Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication   all                   trust
+host    replication   all   127.0.0.1/32    md5
+host    replication   all   ::1/128         md5
+</code></pre><h2 id=logical-replication>Logical replication <a class=header-link href=#logical-replication><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to use the pgjdbc replication API we will use the <code>test_decoding</code> plugin that is include in the <code>postgresql-contrib</code> package, but you can use your own decoding plugin. There are a few on github which can be used as examples.</p><p>In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection is not available to
+execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL.</p><p><strong>Example 9.4. Create replication connection.</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/postgres&#34;</span><span class=o>;</span>
+    <span class=n>Properties</span> <span class=n>props</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Properties</span><span class=o>();</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>USER</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;postgres&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>PASSWORD</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;postgres&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>ASSUME_MIN_SERVER_VERSION</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;9.4&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>REPLICATION</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;database&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>PREFER_QUERY_MODE</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;simple&#34;</span><span class=o>);</span>
+
+    <span class=n>Connection</span> <span class=n>con</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span> <span class=n>props</span><span class=o>);</span>
+    <span class=n>PGConnection</span> <span class=n>replConnection</span> <span class=o>=</span> <span class=n>con</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>PGConnection</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+</code></pre></div><p>The entire replication API is grouped in <code>org.postgresql.replication.PGReplicationConnection</code> and is available
+via <code>org.postgresql.PGConnection#getReplicationAPI</code>.</p><p>Before you can start replication protocol, you need to have replication slot, which can be also created via pgjdbc API.</p><p><strong>Example 9.5. Create replication slot via pgjdbc API</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>createReplicationSlot</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+        <span class=o>.</span><span class=na>withOutputPlugin</span><span class=o>(</span><span class=s>&#34;test_decoding&#34;</span><span class=o>)</span>
+        <span class=o>.</span><span class=na>make</span><span class=o>();</span>
+</code></pre></div><p>Once we have the replication slot, we can create a ReplicationStream.</p><p><strong>Example 9.6. Create logical replication stream.</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>PGReplicationStream</span> <span class=n>stream</span> <span class=o>=</span>
+        <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>replicationStream</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;include-xids&#34;</span><span class=o>,</span> <span class=kc>false</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;skip-empty-xacts&#34;</span><span class=o>,</span> <span class=kc>true</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>start</span><span class=o>();</span>
+</code></pre></div><p>The replication stream will send all changes since the creation of the replication slot or from replication slot
+restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position,in that case LSN position should be specified when you create the replication stream.</p><p><strong>Example 9.7. Create logical replication stream from particular position.</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>LogSequenceNumber</span> <span class=n>waitLSN</span> <span class=o>=</span> <span class=n>LogSequenceNumber</span><span class=o>.</span><span class=na>valueOf</span><span class=o>(</span><span class=s>&#34;6F/E3C53568&#34;</span><span class=o>);</span>
+
+    <span class=n>PGReplicationStream</span> <span class=n>stream</span> <span class=o>=</span>
+        <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>replicationStream</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;include-xids&#34;</span><span class=o>,</span> <span class=kc>false</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;skip-empty-xacts&#34;</span><span class=o>,</span> <span class=kc>true</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withStartPosition</span><span class=o>(</span><span class=n>waitLSN</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>start</span><span class=o>();</span>
+</code></pre></div><p>Via <code>withSlotOption</code> we also can specify options that will be sent to our output plugin, this allows customize decoding.
+For example I have my own output plugin that has a property <code>sensitive=true</code> which will include changes by sensitive columns to change
+event.</p><p><strong>Example 9.8. Example output with include-xids=true</strong></p><pre><code>BEGIN 105779
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
+COMMIT 105779
+</code></pre><p><strong>Example 9.9. Example output with include-xids=false</strong></p><pre><code>BEGIN
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
+COMMIT
+</code></pre><p>During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
+ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and the database will free resources. In PostgreSQL the ping timeout is configured by the property <code>wal_sender_timeout</code> (default = 60 seconds).
+Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
+It is recommended to send feedback(ping) to the database more often than configured <code>wal_sender_timeout</code>. In production I use value equal to <code>wal_sender_timeout / 3</code>. It&rsquo;s avoids a potential problems with networks and changes to be streamed without disconnects by timeout. To specify the feedback interval use <code>withStatusInterval</code> method.</p><p><strong>Example 9.10. Replication stream with configured feedback interval equal to 20 sec</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>PGReplicationStream</span> <span class=n>stream</span> <span class=o>=</span>
+        <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>replicationStream</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;include-xids&#34;</span><span class=o>,</span> <span class=kc>false</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;skip-empty-xacts&#34;</span><span class=o>,</span> <span class=kc>true</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withStatusInterval</span><span class=o>(</span><span class=n>20</span><span class=o>,</span> <span class=n>TimeUnit</span><span class=o>.</span><span class=na>SECONDS</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>start</span><span class=o>();</span>
+</code></pre></div><p>After create <code>PGReplicationStream</code>, it&rsquo;s time to start receive changes in real-time. Changes can be received from
+stream as blocking(<code>org.postgresql.replication.PGReplicationStream#read</code>)
+or as non-blocking(<code>org.postgresql.replication.PGReplicationStream#readPending</code>).
+Both methods receive changes as a <code>java.nio.ByteBuffer</code> with the payload from the send output plugin. We can&rsquo;t receive
+part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That why pgjdbc returns the raw ByteBuffer instead of making assumptions.</p><p><strong>Example 9.11. Example send message from output plugin.</strong></p><pre><code>OutputPluginPrepareWrite(ctx, true);
+appendStringInfo(ctx-&gt;out, &quot;BEGIN %u&quot;, txn-&gt;xid);
+OutputPluginWrite(ctx, true);
+</code></pre><p><strong>Example 9.12. Receive changes via replication stream.</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=k>while</span> <span class=o>(</span><span class=kc>true</span><span class=o>)</span> <span class=o>{</span>
+      <span class=c1>//non blocking receive message
+</span><span class=c1></span>      <span class=n>ByteBuffer</span> <span class=n>msg</span> <span class=o>=</span> <span class=n>stream</span><span class=o>.</span><span class=na>readPending</span><span class=o>();</span>
+
+      <span class=k>if</span> <span class=o>(</span><span class=n>msg</span> <span class=o>==</span> <span class=kc>null</span><span class=o>)</span> <span class=o>{</span>
+        <span class=n>TimeUnit</span><span class=o>.</span><span class=na>MILLISECONDS</span><span class=o>.</span><span class=na>sleep</span><span class=o>(</span><span class=n>10L</span><span class=o>);</span>
+        <span class=k>continue</span><span class=o>;</span>
+      <span class=o>}</span>
+
+      <span class=kt>int</span> <span class=n>offset</span> <span class=o>=</span> <span class=n>msg</span><span class=o>.</span><span class=na>arrayOffset</span><span class=o>();</span>
+      <span class=kt>byte</span><span class=o>[]</span> <span class=n>source</span> <span class=o>=</span> <span class=n>msg</span><span class=o>.</span><span class=na>array</span><span class=o>();</span>
+      <span class=kt>int</span> <span class=n>length</span> <span class=o>=</span> <span class=n>source</span><span class=o>.</span><span class=na>length</span> <span class=o>-</span> <span class=n>offset</span><span class=o>;</span>
+      <span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=k>new</span> <span class=n>String</span><span class=o>(</span><span class=n>source</span><span class=o>,</span> <span class=n>offset</span><span class=o>,</span> <span class=n>length</span><span class=o>));</span>
+    <span class=o>}</span>
+</code></pre></div><p>As mentioned previously, replication stream should periodically send feedback to the database to prevent disconnect via
+timeout. Feedback is automatically sent when <code>read</code> or <code>readPending</code> are called if it&rsquo;s time to send feedback. Feedback can also be sent via <code>org.postgresql.replication.PGReplicationStream#forceUpdateStatus()</code> regardless of the timeout. Another important duty of feedback is to provide the server with the Logial Sequence Number (LSN) that has been successfully received and applied to consumer, it is necessary for monitoring and to truncate/archive WAL&rsquo;s that that are no longer needed. In the event that replication has been restarted, it&rsquo;s will start from last successfully processed LSN that was sent via feedback to database.</p><p>The API provides the following feedback mechanism to indicate the successfully applied LSN by the current consumer. LSN&rsquo;s before this can be truncated or archived.
+<code>org.postgresql.replication.PGReplicationStream#setFlushedLSN</code> and
+<code>org.postgresql.replication.PGReplicationStream#setAppliedLSN</code>. You always can get last receive LSN via
+<code>org.postgresql.replication.PGReplicationStream#getLastReceiveLSN</code>.</p><p><strong>Example 9.13. Add feedback indicating a successfully process LSN</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=k>while</span> <span class=o>(</span><span class=kc>true</span><span class=o>)</span> <span class=o>{</span>
+      <span class=c1>//Receive last successfully send to queue message. LSN ordered.
+</span><span class=c1></span>      <span class=n>LogSequenceNumber</span> <span class=n>successfullySendToQueue</span> <span class=o>=</span> <span class=n>getQueueFeedback</span><span class=o>();</span>
+      <span class=k>if</span> <span class=o>(</span><span class=n>successfullySendToQueue</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span> <span class=o>{</span>
+        <span class=n>stream</span><span class=o>.</span><span class=na>setAppliedLSN</span><span class=o>(</span><span class=n>successfullySendToQueue</span><span class=o>);</span>
+        <span class=n>stream</span><span class=o>.</span><span class=na>setFlushedLSN</span><span class=o>(</span><span class=n>successfullySendToQueue</span><span class=o>);</span>
+      <span class=o>}</span>
+
+      <span class=c1>//non blocking receive message
+</span><span class=c1></span>      <span class=n>ByteBuffer</span> <span class=n>msg</span> <span class=o>=</span> <span class=n>stream</span><span class=o>.</span><span class=na>readPending</span><span class=o>();</span>
+
+      <span class=k>if</span> <span class=o>(</span><span class=n>msg</span> <span class=o>==</span> <span class=kc>null</span><span class=o>)</span> <span class=o>{</span>
+        <span class=n>TimeUnit</span><span class=o>.</span><span class=na>MILLISECONDS</span><span class=o>.</span><span class=na>sleep</span><span class=o>(</span><span class=n>10L</span><span class=o>);</span>
+        <span class=k>continue</span><span class=o>;</span>
+      <span class=o>}</span>
+
+      <span class=n>asyncSendToQueue</span><span class=o>(</span><span class=n>msg</span><span class=o>,</span> <span class=n>stream</span><span class=o>.</span><span class=na>getLastReceiveLSN</span><span class=o>());</span>
+    <span class=o>}</span>
+</code></pre></div><p><strong>Example 9.14. Full example of logical replication</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>String</span> <span class=n>url</span> <span class=o>=</span> <span class=s>&#34;jdbc:postgresql://localhost:5432/test&#34;</span><span class=o>;</span>
+    <span class=n>Properties</span> <span class=n>props</span> <span class=o>=</span> <span class=k>new</span> <span class=n>Properties</span><span class=o>();</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>USER</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;postgres&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>PASSWORD</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;postgres&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>ASSUME_MIN_SERVER_VERSION</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;9.4&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>REPLICATION</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;database&#34;</span><span class=o>);</span>
+    <span class=n>PGProperty</span><span class=o>.</span><span class=na>PREFER_QUERY_MODE</span><span class=o>.</span><span class=na>set</span><span class=o>(</span><span class=n>props</span><span class=o>,</span> <span class=s>&#34;simple&#34;</span><span class=o>);</span>
+
+    <span class=n>Connection</span> <span class=n>con</span> <span class=o>=</span> <span class=n>DriverManager</span><span class=o>.</span><span class=na>getConnection</span><span class=o>(</span><span class=n>url</span><span class=o>,</span> <span class=n>props</span><span class=o>);</span>
+    <span class=n>PGConnection</span> <span class=n>replConnection</span> <span class=o>=</span> <span class=n>con</span><span class=o>.</span><span class=na>unwrap</span><span class=o>(</span><span class=n>PGConnection</span><span class=o>.</span><span class=na>class</span><span class=o>);</span>
+
+    <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>createReplicationSlot</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+        <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+        <span class=o>.</span><span class=na>withOutputPlugin</span><span class=o>(</span><span class=s>&#34;test_decoding&#34;</span><span class=o>)</span>
+        <span class=o>.</span><span class=na>make</span><span class=o>();</span>
+
+    <span class=c1>//some changes after create replication slot to demonstrate receive it
+</span><span class=c1></span>    <span class=n>sqlConnection</span><span class=o>.</span><span class=na>setAutoCommit</span><span class=o>(</span><span class=kc>true</span><span class=o>);</span>
+    <span class=n>Statement</span> <span class=n>st</span> <span class=o>=</span> <span class=n>sqlConnection</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;insert into test_logic_table(name) values(&#39;first tx changes&#39;)&#34;</span><span class=o>);</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+
+    <span class=n>st</span> <span class=o>=</span> <span class=n>sqlConnection</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;update test_logic_table set name = &#39;second tx change&#39; where pk = 1&#34;</span><span class=o>);</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+
+    <span class=n>st</span> <span class=o>=</span> <span class=n>sqlConnection</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;delete from test_logic_table where pk = 1&#34;</span><span class=o>);</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+
+    <span class=n>PGReplicationStream</span> <span class=n>stream</span> <span class=o>=</span>
+        <span class=n>replConnection</span><span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>replicationStream</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>logical</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>withSlotName</span><span class=o>(</span><span class=s>&#34;demo_logical_slot&#34;</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;include-xids&#34;</span><span class=o>,</span> <span class=kc>false</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withSlotOption</span><span class=o>(</span><span class=s>&#34;skip-empty-xacts&#34;</span><span class=o>,</span> <span class=kc>true</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>withStatusInterval</span><span class=o>(</span><span class=n>20</span><span class=o>,</span> <span class=n>TimeUnit</span><span class=o>.</span><span class=na>SECONDS</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>start</span><span class=o>();</span>
+
+    <span class=k>while</span> <span class=o>(</span><span class=kc>true</span><span class=o>)</span> <span class=o>{</span>
+      <span class=c1>//non blocking receive message
+</span><span class=c1></span>      <span class=n>ByteBuffer</span> <span class=n>msg</span> <span class=o>=</span> <span class=n>stream</span><span class=o>.</span><span class=na>readPending</span><span class=o>();</span>
+
+      <span class=k>if</span> <span class=o>(</span><span class=n>msg</span> <span class=o>==</span> <span class=kc>null</span><span class=o>)</span> <span class=o>{</span>
+        <span class=n>TimeUnit</span><span class=o>.</span><span class=na>MILLISECONDS</span><span class=o>.</span><span class=na>sleep</span><span class=o>(</span><span class=n>10L</span><span class=o>);</span>
+        <span class=k>continue</span><span class=o>;</span>
+      <span class=o>}</span>
+
+      <span class=kt>int</span> <span class=n>offset</span> <span class=o>=</span> <span class=n>msg</span><span class=o>.</span><span class=na>arrayOffset</span><span class=o>();</span>
+      <span class=kt>byte</span><span class=o>[]</span> <span class=n>source</span> <span class=o>=</span> <span class=n>msg</span><span class=o>.</span><span class=na>array</span><span class=o>();</span>
+      <span class=kt>int</span> <span class=n>length</span> <span class=o>=</span> <span class=n>source</span><span class=o>.</span><span class=na>length</span> <span class=o>-</span> <span class=n>offset</span><span class=o>;</span>
+      <span class=n>System</span><span class=o>.</span><span class=na>out</span><span class=o>.</span><span class=na>println</span><span class=o>(</span><span class=k>new</span> <span class=n>String</span><span class=o>(</span><span class=n>source</span><span class=o>,</span> <span class=n>offset</span><span class=o>,</span> <span class=n>length</span><span class=o>));</span>
+
+      <span class=c1>//feedback
+</span><span class=c1></span>      <span class=n>stream</span><span class=o>.</span><span class=na>setAppliedLSN</span><span class=o>(</span><span class=n>stream</span><span class=o>.</span><span class=na>getLastReceiveLSN</span><span class=o>());</span>
+      <span class=n>stream</span><span class=o>.</span><span class=na>setFlushedLSN</span><span class=o>(</span><span class=n>stream</span><span class=o>.</span><span class=na>getLastReceiveLSN</span><span class=o>());</span>
+    <span class=o>}</span>
+</code></pre></div><p>Where output looks like this, where each line is a separate message.</p><pre><code>BEGIN
+table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'
+COMMIT
+BEGIN
+table public.test_logic_table: UPDATE: pk[integer]:1 name[character varying]:'second tx change'
+COMMIT
+BEGIN
+table public.test_logic_table: DELETE: pk[integer]:1
+COMMIT
+</code></pre><h2 id=physical-replication>Physical replication <a class=header-link href=#physical-replication><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>API for physical replication looks like the API for logical replication. Physical replication does not require a replication
+slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change from version to version. That is why replication between different major PostgreSQL versions is not possible. But physical replication can contain many important data, that is not available via logical replication. That is why pgjdc contains an implementation for both.</p><p><strong>Example 9.15. Use physical replication</strong></p><div class=highlight><pre class=chroma><code class=language-java data-lang=java>    <span class=n>LogSequenceNumber</span> <span class=n>lsn</span> <span class=o>=</span> <span class=n>getCurrentLSN</span><span class=o>();</span>
+
+    <span class=n>Statement</span> <span class=n>st</span> <span class=o>=</span> <span class=n>sqlConnection</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>execute</span><span class=o>(</span><span class=s>&#34;insert into test_physic_table(name) values(&#39;previous value&#39;)&#34;</span><span class=o>);</span>
+    <span class=n>st</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+
+    <span class=n>PGReplicationStream</span> <span class=n>stream</span> <span class=o>=</span>
+        <span class=n>pgConnection</span>
+            <span class=o>.</span><span class=na>getReplicationAPI</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>replicationStream</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>physical</span><span class=o>()</span>
+            <span class=o>.</span><span class=na>withStartPosition</span><span class=o>(</span><span class=n>lsn</span><span class=o>)</span>
+            <span class=o>.</span><span class=na>start</span><span class=o>();</span>
+
+    <span class=n>ByteBuffer</span> <span class=n>read</span> <span class=o>=</span> <span class=n>stream</span><span class=o>.</span><span class=na>read</span><span class=o>();</span>
+</code></pre></div><h2 id=arrays>Arrays <a class=header-link href=#arrays><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>PostgreSQL™ provides robust support for array data types as column types, function arguments
+and criteria in where clauses. There are several ways to create arrays with pgjdbc.</p><p>The <a href=https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#createArrayOf-java.lang.String-java.lang.Object:A->java.sql.Connection.createArrayOf(String, Object[])</a> can be used to create an <a href=https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html>java.sql.Array</a> from <code>Object[]</code> instances (Note: this includes both primitive and object multi-dimensional arrays).
+A similar method <code>org.postgresql.PGConnection.createArrayOf(String, Object)</code> provides support for primitive array types.
+The <code>java.sql.Array</code> object returned from these methods can be used in other methods, such as <a href=https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#setArray-int-java.sql.Array->PreparedStatement.setArray(int, Array)</a>.</p><p>The following types of arrays support binary representation in requests and can be used in <code>PreparedStatement.setObject</code>:</p><table><thead><tr><th>Java Type</th><th>Supported binary PostgreSQL™ Types</th><th>Default PostgreSQL™ Type</th></tr></thead><tbody><tr><td><code>short[]</code>, <code>Short[]</code></td><td><code>int2[]</code></td><td><code>int2[]</code></td></tr><tr><td><code>int[]</code>, <code>Integer[]</code></td><td><code>int4[]</code></td><td><code>int4[]</code></td></tr><tr><td><code>long[]</code>, <code>Long[]</code></td><td><code>int8[]</code></td><td><code>int8[]</code></td></tr><tr><td><code>float[]</code>, <code>Float[]</code></td><td><code>float4[]</code></td><td><code>float4[]</code></td></tr><tr><td><code>double[]</code>, <code>Double[]</code></td><td><code>float8[]</code></td><td><code>float8[]</code></td></tr><tr><td><code>boolean[]</code>, <code>Boolean[]</code></td><td><code>bool[]</code></td><td><code>bool[]</code></td></tr><tr><td><code>String[]</code></td><td><code>varchar[]</code>, <code>text[]</code></td><td><code>varchar[]</code></td></tr><tr><td><code>byte[][]</code></td><td><code>bytea[]</code></td><td><code>bytea[]</code></td></tr></tbody></table><div class=pagination><p><a title="Next page in JDBC escapes" href=https://pgjdbc.github.io/pgjdbc/documentation/escapes/>JDBC escapes | 7</a></p><p><a title="Previous page in Using the Driver in a Multithreaded or a Servlet Environment" href=https://pgjdbc.github.io/pgjdbc/documentation/thread/>Using the Driver in a Multithreaded or a Servlet Environment | 9</a></p></div></article><aside class=toc><h4>PostgreSQL™ Extensions to the JDBC API</h4><nav id=TableOfContents><ul><li><a href=#accessing-the-extensions>Accessing the Extensions</a></li><li><a href=#geometric-data-types>Geometric Data Types</a></li><li><a href=#large-objects>Large Objects</a></li><li><a href=#listen--notify>Listen / Notify</a></li><li><a href=#server-prepared-statements>Server Prepared Statements</a><ul><li><a href=#motivation>Motivation</a></li><li><a href=#activation>Activation</a></li><li><a href=#deactivation>Deactivation</a></li><li><a href=#corner-cases>Corner cases</a></li></ul></li><li><a href=#parameter-status-messages>Parameter Status Messages</a></li><li><a href=#methods>Methods</a></li><li><a href=#example>Example</a></li><li><a href=#other-client-drivers>Other client drivers</a></li><li><a href=#physical-and-logical-replication-api>Physical and Logical replication API</a></li><li><a href=#configure-database>Configure database</a><ul><li><a href=#postgresqlconf>postgresql.conf</a></li><li><a href=#pg_hbaconf>pg_hba.conf</a></li><li><a href=#configuration-for-examples>Configuration for examples</a></li></ul></li><li><a href=#logical-replication>Logical replication</a></li><li><a href=#physical-replication>Physical replication</a></li><li><a href=#arrays>Arrays</a></li></ul></nav></aside></div></main><footer class=footer role=contentinfo><div class=footer__items><div class=footer__items__links><ul role=list><li>Pgjdbc</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Public API</a></li><li><a href=https://www.postgresql.org/>About PostgreSql</a></li></ul></div><div class=footer__items__links><ul role=list><li>Community</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Slack</a></li><li><a href=https://www.postgresql.org/>Twitter</a></li><li><a href=https://www.postgresql.org/>Mailing List</a></li></ul></div><div class=footer__items__links><ul role=list><li>More</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>FAQ</a></li><li><a href=https://www.postgresql.org/>Privacy</a></li><li><a href=https://www.postgresql.org/>License</a></li></ul></div></div><p class=copyright>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></footer></body></html>

@@ -1,0 +1,195 @@
+<!doctype html><html><head><meta charset=utf-8><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-300.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-300italic.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-regular.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-700.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-italic.woff2 as=font type=font/woff2 crossorigin><link rel=preload href=https://pgjdbc.github.io/pgjdbc/fonts/woff2/inria-sans-v14-latin-700italic.woff2 as=font type=font/woff2 crossorigin><title>Connection Pools and Data Sources | Pgjdbc</title><meta name=viewport content="width=device-width,minimum-scale=1"><link rel=stylesheet href=https://pgjdbc.github.io/pgjdbc/sass/main.ad8d39bcb73da9b9260850a40900e7af4477352c415da494ee27745e8ef7dc8f.css integrity="sha256-rY05vLc9qbkmCFCkCQDnr0R3NSxBXaSU7id0Xo733I8="><link rel=icon href=/pgjdbc/favicon.ico></head><body><nav class=navbar role=navigation><a href=/pgjdbc><img src=/pgjdbc/icons/postgreslogo.svg class=logo></a><div class=navbar__items><a href=/pgjdbc/download/ class=navbar__items__link>Download</a>
+<a href=/pgjdbc/documentation/ class=navbar__items__link>Documentation</a>
+<a href=/pgjdbc/community/ class=navbar__items__link>Community</a>
+<a href=/pgjdbc/development/ class=navbar__items__link>Development</a></div><a href=https://github.com/pgjdbc/pgjdbc target=_blank><img src=/pgjdbc/icons/github.svg class=github></a></nav><main role=main><div class=doc><nav role=navigation class=sidebar><ul role=list class=flow><li role=listitem><a href=/pgjdbc/documentation/setup/>Getting Started</a></li><li role=listitem><a href=/pgjdbc/documentation/use/>Initializing the Driver</a></li><li role=listitem><a href=/pgjdbc/documentation/ssl/>Using SSL</a></li><li role=listitem><a href=/pgjdbc/documentation/query/>Issuing a Query and Processing the Result</a></li><li role=listitem><a href=/pgjdbc/documentation/callproc/>Calling Stored Functions and Procedures</a></li><li role=listitem><a href=/pgjdbc/documentation/binary-data/>Storing Binary Data</a></li><li role=listitem><a href=/pgjdbc/documentation/escapes/>JDBC escapes</a></li><li role=listitem><a href=/pgjdbc/documentation/server-prepare/>PostgreSQL™ Extensions to the JDBC API</a></li><li role=listitem><a href=/pgjdbc/documentation/thread/>Using the Driver in a Multithreaded or a Servlet Environment</a></li><li role=listitem><a href=/pgjdbc/documentation/datasource/>Connection Pools and Data Sources</a></li><li role=listitem><a href=/pgjdbc/documentation/logging/>Logging using java.util.logging</a></li><li role=listitem><a href=/pgjdbc/documentation/reading/>Further Reading</a></li></ul></nav><article class="article flow"><h1 id=connection-pools-and-data-sources>Connection Pools and Data Sources</h1><p>JDBC 2 introduced standard connection pooling features in an add-on API known as
+the JDBC 2.0 Optional Package (also known as the JDBC 2.0 Standard Extension).
+These features have since been included in the core JDBC 3 API.</p><p>The JDBC API provides a client and a server interface for connection pooling.
+The client interface is <code>javax.sql.DataSource</code>, which is what application code
+will typically use to acquire a pooled database connection. The server interface
+is <code>javax.sql.ConnectionPoolDataSource</code>, which is how most application servers
+will interface with the PostgreSQL™ JDBC driver.</p><p>In an application server environment, the application server configuration will
+typically refer to the PostgreSQL™ <code>ConnectionPoolDataSource</code> implementation,
+while the application component code will typically acquire a <code>DataSource</code>
+implementation provided by the application server (not by PostgreSQL™).</p><p>For an environment without an application server, PostgreSQL™ provides two
+implementations of <code>DataSource</code> which an application can use directly. One
+implementation performs connection pooling, while the other simply provides
+access to database connections through the <code>DataSource</code> interface without any
+pooling. Again, these implementations should not be used in an application server
+environment unless the application server does not support the <code>ConnectionPoolDataSource</code>
+interface.</p><h2 id=application-servers-connectionpooldatasource>Application Servers ConnectionPoolDataSource <a class=header-link href=#application-servers-connectionpooldatasource><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>PostgreSQL™ includes one implementation of <code>ConnectionPoolDataSource</code> named
+<code>org.postgresql.ds.PGConnectionPoolDataSource</code>.</p><p>JDBC requires that a <code>ConnectionPoolDataSource</code> be configured via JavaBean
+properties, shown in <a href=ds-cpds.html#ds-cpds-props>Table 11.1, “<code>ConnectionPoolDataSource</code> Configuration Properties”</a>,
+so there are get and set methods for each of these properties.</p><p><strong>Table 11.1. <code>ConnectionPoolDataSource</code> Configuration Properties</strong></p><table><thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>serverName</td><td>STRING</td><td>PostgreSQL™ database server host name</td></tr><tr><td>databaseName</td><td>STRING</td><td>PostgreSQL™ database name</td></tr><tr><td>portNumber</td><td>INT</td><td>TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)</td></tr><tr><td>user</td><td>STRING</td><td>User used to make database connections</td></tr><tr><td>password</td><td>STRING</td><td>Password used to make database connections</td></tr><tr><td>ssl</td><td>BOOLEAN</td><td>If <code>true</code>, use SSL encrypted connections (default <code>false</code>)</td></tr><tr><td>sslfactory</td><td>STRING</td><td>Custom <code>javax.net.ssl.SSLSocketFactory</code> class name (see the section called [“Custom</td></tr><tr><td>SSLSocketFactory”](ssl-factory.html))</td><td></td><td></td></tr><tr><td>defaultAutoCommit</td><td>BOOLEAN</td><td>Whether connections should have autocommit enabled or disabled when they are supplied to the caller. The default is <code>false</code>, to disable autocommit.</td></tr></tbody></table><p>Many application servers use a properties-style syntax to configure these
+properties, so it would not be unusual to enter properties as a block of text.
+If the application server provides a single area to enter all the properties,
+they might be listed like this:</p><p><code>serverName=localhost</code>
+<code>databaseName=test</code>
+<code>user=testuser</code>
+<code>password=testpassword</code></p><p>Or, if semicolons are used as separators instead of newlines, it could look like
+this:</p><p><code>serverName=localhost;databaseName=test;user=testuser;password=testpassword</code></p><h2 id=applications-datasource>Applications DataSource <a class=header-link href=#applications-datasource><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>PostgreSQL™ includes two implementations of <code>DataSource</code>, as shown in <a href=ds-ds.html#ds-ds-imp>Table 11.2, “<code>DataSource</code> Implementations”</a>.
+One that does pooling and the other that does not. The pooling implementation
+does not actually close connections when the client calls the <code>close</code> method,
+but instead returns the connections to a pool of available connections for other
+clients to use. This avoids any overhead of repeatedly opening and closing
+connections, and allows a large number of clients to share a small number of
+database connections.</p><p>The pooling data-source implementation provided here is not the most feature-rich
+in the world. Among other things, connections are never closed until the pool
+itself is closed; there is no way to shrink the pool. As well, connections
+requested for users other than the default configured user are not pooled. Its
+error handling sometimes cannot remove a broken connection from the pool. In
+general it is not recommended to use the PostgreSQL™ provided connection pool.
+Check your application server or check out the excellent <a href=http://jakarta.apache.org/commons/dbcp/>jakarta commons DBCP</a>
+project.</p><p><strong>Table 11.2. <code>DataSource</code> Implementations</strong></p><table><thead><tr><th>Pooling</th><th>Implementation Class</th></tr></thead><tbody><tr><td>No</td><td>`org.postgresql.ds.PGSimpleDataSource|</td></tr><tr><td>Yes</td><td>`org.postgresql.ds.PGPoolingDataSource|</td></tr></tbody></table><p>Both implementations use the same configuration scheme. JDBC requires that a
+<code>DataSource</code> be configured via JavaBean properties, shown in <a href=ds-ds.html#ds-ds-props>Table 11.3, “<code>DataSource</code> Configuration Properties”</a>,
+so there are get and set methods for each of these properties.</p><p><strong>Table 11.3. <code>DataSource</code> Configuration Properties</strong></p><table><thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>serverName</td><td>STRING</td><td>PostgreSQL™ database server host name</td></tr><tr><td>databaseName</td><td>STRING</td><td>PostgreSQL™ database name</td></tr><tr><td>portNumber</td><td>INT</td><td>TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)</td></tr><tr><td>user</td><td>STRING</td><td>User used to make database connections</td></tr><tr><td>password</td><td>STRING</td><td>Password used to make database connections</td></tr><tr><td>ssl</td><td>BOOLEAN</td><td>If true, use SSL encrypted connections (default false)</td></tr><tr><td>sslfactory</td><td>STRING</td><td>Custom javax.net.ssl.SSLSocketFactory class name (see the section called <a href=ssl-factory.html>“Custom SSLSocketFactory”</a>)</td></tr></tbody></table><p>The pooling implementation requires some additional configuration properties,
+which are shown in <a href=ds-ds.html#ds-ds-xprops>Table 11.4, “Additional Pooling <code>DataSource</code> Configuration Properties</a>.</p><p><strong>Table 11.4. Additional Pooling <code>DataSource</code> Configuration Properties</strong></p><table><thead><tr><th>Property</th><th>Type</th><th>Description</th></tr></thead><tbody><tr><td>dataSourceName</td><td>STRING</td><td>Every pooling DataSource must have a unique name.</td></tr><tr><td>initialConnections</td><td>INT</td><td>The number of database connections to be created when the pool is initialized.</td></tr><tr><td>maxConnections</td><td>INT</td><td>The maximum number of open database connections to allow. When more connections are requested, the caller will hang until a connection is returned to the pool.</td></tr></tbody></table><p><a href=ds-ds.html#ds-example>Example 11.1, “<code>DataSource</code> Code Example”</a> shows an example
+of typical application code using a pooling <code>DataSource</code>.</p><p><strong>Example 11.1. <code>DataSource</code> Code Example</strong></p><p>Code to initialize a pooling <code>DataSource</code> might look like this:</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=n>PGPoolingDataSource</span> <span class=n>source</span> <span class=o>=</span> <span class=k>new</span> <span class=n>PGPoolingDataSource</span><span class=o>();</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setDataSourceName</span><span class=o>(</span><span class=s>&#34;A Data Source&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setServerNames</span><span class=o>(</span><span class=k>new</span> <span class=n>String</span><span class=o>[]</span> <span class=o>{</span><span class=s>&#34;localhost&#34;</span><span class=o>});</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setDatabaseName</span><span class=o>(</span><span class=s>&#34;test&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setUser</span><span class=o>(</span><span class=s>&#34;testuser&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setPassword</span><span class=o>(</span><span class=s>&#34;testpassword&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setMaxConnections</span><span class=o>(</span><span class=n>10</span><span class=o>);</span>
+</code></pre></div><p>note: setServerName has been deprecated in favour of setServerNames. This was
+done to support multiple hosts.</p><p>Then code to use a connection from the pool might look like this. Note that it
+is critical that the connections are eventually closed. Else the pool will
+“leak” connections and will eventually lock all the clients out.</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=k>try</span> <span class=o>(</span><span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>source</span><span class=o>.</span><span class=na>getConnection</span><span class=o>())</span>
+<span class=o>{</span>
+    <span class=c1>// use connection
+</span><span class=c1></span><span class=o>}</span>
+<span class=k>catch</span> <span class=o>(</span><span class=n>SQLException</span> <span class=n>e</span><span class=o>)</span>
+<span class=o>{</span>
+    <span class=c1>// log error
+</span><span class=c1></span><span class=o>}</span>
+</code></pre></div><h2 id=data-sources-and-jndi>Data Sources and JNDI <a class=header-link href=#data-sources-and-jndi><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><p>All the <code>ConnectionPoolDataSource</code> and <code>DataSource</code> implementations can be stored
+in JNDI. In the case of the nonpooling implementations, a new instance will be
+created every time the object is retrieved from JNDI, with the same settings as
+the instance that was stored. For the pooling implementations, the same instance
+will be retrieved as long as it is available (e.g., not a different JVM retrieving
+the pool from JNDI), or a new instance with the same settings created otherwise.</p><p>In the application server environment, typically the application server&rsquo;s
+<code>DataSource</code> instance will be stored in JNDI, instead of the PostgreSQL™
+<code>ConnectionPoolDataSource</code> implementation.</p><p>In an application environment, the application may store the <code>DataSource</code> in JNDI
+so that it doesn&rsquo;t have to make a reference to the <code>DataSource</code> available to all
+application components that may need to use it. An example of this is shown in
+<a href=jndi.html#ds-jndi>Example 11.2, “<code>DataSource</code> JNDI Code Example”</a>.</p><p><strong>Example 11.2. <code>DataSource</code> JNDI Code Example</strong></p><p>Application code to initialize a pooling <code>DataSource</code> and add it to JNDI might
+look like this:</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=n>PGPoolingDataSource</span> <span class=n>source</span> <span class=o>=</span> <span class=k>new</span> <span class=n>PGPoolingDataSource</span><span class=o>();</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setDataSourceName</span><span class=o>(</span><span class=s>&#34;A Data Source&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setServerName</span><span class=o>(</span><span class=s>&#34;localhost&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setDatabaseName</span><span class=o>(</span><span class=s>&#34;test&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setUser</span><span class=o>(</span><span class=s>&#34;testuser&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setPassword</span><span class=o>(</span><span class=s>&#34;testpassword&#34;</span><span class=o>);</span>
+<span class=n>source</span><span class=o>.</span><span class=na>setMaxConnections</span><span class=o>(</span><span class=n>10</span><span class=o>);</span>
+<span class=k>new</span> <span class=n>InitialContext</span><span class=o>().</span><span class=na>rebind</span><span class=o>(</span><span class=s>&#34;DataSource&#34;</span><span class=o>,</span> <span class=n>source</span><span class=o>);</span>
+</code></pre></div><p>Then code to use a connection from the pool might look like this:</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=kc>null</span><span class=o>;</span>
+<span class=k>try</span>
+<span class=o>{</span>
+    <span class=n>DataSource</span> <span class=n>source</span> <span class=o>=</span> <span class=o>(</span><span class=n>DataSource</span><span class=o>)</span><span class=k>new</span> <span class=n>InitialContext</span><span class=o>().</span><span class=na>lookup</span><span class=o>(</span><span class=s>&#34;DataSource&#34;</span><span class=o>);</span>
+    <span class=n>conn</span> <span class=o>=</span> <span class=n>source</span><span class=o>.</span><span class=na>getConnection</span><span class=o>();</span>
+    <span class=c1>// use connection
+</span><span class=c1></span><span class=o>}</span>
+<span class=k>catch</span> <span class=o>(</span><span class=n>SQLException</span> <span class=n>e</span><span class=o>)</span>
+<span class=o>{</span>
+    <span class=c1>// log error
+</span><span class=c1></span><span class=o>}</span>
+<span class=k>catch</span> <span class=o>(</span><span class=n>NamingException</span> <span class=n>e</span><span class=o>)</span>
+<span class=o>{</span>
+    <span class=c1>// DataSource wasn&#39;t found in JNDI
+</span><span class=c1></span><span class=o>}</span>
+<span class=k>finally</span>
+<span class=o>{</span>
+    <span class=k>if</span> <span class=o>(</span><span class=n>con</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+    <span class=o>{</span>
+        <span class=k>try</span> <span class=o>{</span> <span class=n>conn</span><span class=o>.</span><span class=na>close</span><span class=o>();</span> <span class=o>}</span> <span class=k>catch</span> <span class=o>(</span><span class=n>SQLException</span> <span class=n>e</span><span class=o>)</span> <span class=o>{}</span>
+    <span class=o>}</span>
+<span class=o>}</span>
+</code></pre></div><h2 id=tomcat-setup>Tomcat setup <a class=header-link href=#tomcat-setup><svg height="22" viewBox="0 0 24 24" width="22" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h24v24H0z" fill="none"/><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76.0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71.0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71.0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76.0 5-2.24 5-5s-2.24-5-5-5z"/></svg></a></h2><div class="admonition admonition--note"><div class=admonition__heading><h4><span class=admonition__icon><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16"><path fill-rule="evenodd" d="M6.3 5.69a.942.942.0 01-.28-.7c0-.28.09-.52.28-.7.19-.18.42-.28.7-.28s.52.09.7.28c.18.19.28.42.28.7s-.09.52-.28.7a1 1 0 01-.7.3c-.28.0-.52-.11-.7-.3zM8 7.99c-.02-.25-.11-.48-.31-.69-.2-.19-.42-.3-.69-.31H6c-.27.02-.48.13-.69.31-.2.2-.3.44-.31.69h1v3c.02.27.11.5.31.69.2.2.42.31.69.31h1c.27.0.48-.11.69-.31.2-.19.3-.42.31-.69H8V7.98v.01zM7 2.3c-3.14.0-5.7 2.54-5.7 5.68s2.56 5.7 5.7 5.7 5.7-2.55 5.7-5.7-2.56-5.69-5.7-5.69v.01zM7 .98c3.86.0 7 3.14 7 7s-3.14 7-7 7-7-3.12-7-7 3.14-7 7-7z"/></svg></span>NOTE</h4></div><div class=admonition__content><p>The postgresql.jar file must be placed in $CATALINA_HOME/common/lib in both Tomcat 4 and 5.</p></div></div><p>The absolute easiest way to set this up in either tomcat instance is to use the
+admin web application that comes with Tomcat, simply add the datasource to the
+context you want to use it in.</p><p>Setup for Tomcat 4 place the following inside the &lt;Context> tag inside
+conf/server.xml</p><div class=highlight><pre class=chroma><code class=language-xml data-lang=xml><span class=nt>&lt;Resource</span> <span class=na>name=</span><span class=s>&#34;jdbc/postgres&#34;</span> <span class=na>scope=</span><span class=s>&#34;Shareable&#34;</span> <span class=na>type=</span><span class=s>&#34;javax.sql.DataSource&#34;</span><span class=nt>/&gt;</span>
+<span class=nt>&lt;ResourceParams</span> <span class=na>name=</span><span class=s>&#34;jdbc/postgres&#34;</span><span class=nt>&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>validationQuery<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>select version();<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>url<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>jdbc:postgresql://localhost/davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>password<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxActive<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>4<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxWait<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>5000<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>driverClassName<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>org.postgresql.Driver<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>username<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>davec<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+	<span class=nt>&lt;parameter&gt;</span>
+		<span class=nt>&lt;name&gt;</span>maxIdle<span class=nt>&lt;/name&gt;</span>
+		<span class=nt>&lt;value&gt;</span>2<span class=nt>&lt;/value&gt;</span>
+	<span class=nt>&lt;/parameter&gt;</span>
+<span class=nt>&lt;/ResourceParams&gt;</span>
+</code></pre></div><p>Setup for Tomcat 5, you can use the above method, except that it goes inside the
+&lt;DefaultContext> tag inside the &lt;Host> tag. eg. &lt;Host> &mldr; &lt;DefaultContext> &mldr;</p><p>Alternatively there is a conf/Catalina/hostname/context.xml file. For example
+http://localhost:8080/servlet-example has a directory $CATALINA_HOME/conf/Catalina/localhost/servlet-example.xml file.
+Inside this file place the above xml inside the &lt;Context> tag</p><p>Then you can use the following code to access the connection.</p><div class=highlight><pre class=chroma><code class=language-java data-lang=java><span class=kn>import</span> <span class=nn>javax.naming.*</span><span class=o>;</span>
+<span class=kn>import</span> <span class=nn>javax.sql.*</span><span class=o>;</span>
+<span class=kn>import</span> <span class=nn>java.sql.*</span><span class=o>;</span>
+<span class=kd>public</span> <span class=kd>class</span> <span class=nc>DBTest</span>
+<span class=o>{</span>
+
+	<span class=n>String</span> <span class=n>foo</span> <span class=o>=</span> <span class=s>&#34;Not Connected&#34;</span><span class=o>;</span>
+	<span class=kt>int</span> <span class=n>bar</span> <span class=o>=</span> <span class=o>-</span><span class=n>1</span><span class=o>;</span>
+
+	<span class=kd>public</span> <span class=kt>void</span> <span class=nf>init</span><span class=o>()</span>
+	<span class=o>{</span>
+		<span class=k>try</span>
+		<span class=o>{</span>
+			<span class=n>Context</span> <span class=n>ctx</span> <span class=o>=</span> <span class=k>new</span> <span class=n>InitialContext</span><span class=o>();</span>
+			<span class=k>if</span><span class=o>(</span><span class=n>ctx</span> <span class=o>==</span> <span class=kc>null</span> <span class=o>)</span>
+				<span class=k>throw</span> <span class=k>new</span> <span class=n>Exception</span><span class=o>(</span><span class=s>&#34;Boom - No Context&#34;</span><span class=o>);</span>
+
+			<span class=c1>// /jdbc/postgres is the name of the resource above
+</span><span class=c1></span>			<span class=n>DataSource</span> <span class=n>ds</span> <span class=o>=</span> <span class=o>(</span><span class=n>DataSource</span><span class=o>)</span><span class=n>ctx</span><span class=o>.</span><span class=na>lookup</span><span class=o>(</span><span class=s>&#34;java:comp/env/jdbc/postgres&#34;</span><span class=o>);</span>
+
+			<span class=k>if</span> <span class=o>(</span><span class=n>ds</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+			<span class=o>{</span>
+				<span class=n>Connection</span> <span class=n>conn</span> <span class=o>=</span> <span class=n>ds</span><span class=o>.</span><span class=na>getConnection</span><span class=o>();</span>
+
+				<span class=k>if</span><span class=o>(</span><span class=n>conn</span> <span class=o>!=</span> <span class=kc>null</span><span class=o>)</span>
+				<span class=o>{</span>
+					<span class=n>foo</span> <span class=o>=</span> <span class=s>&#34;Got Connection &#34;</span><span class=o>+</span><span class=n>conn</span><span class=o>.</span><span class=na>toString</span><span class=o>();</span>
+					<span class=n>Statement</span> <span class=n>stmt</span> <span class=o>=</span> <span class=n>conn</span><span class=o>.</span><span class=na>createStatement</span><span class=o>();</span>
+					<span class=n>ResultSet</span> <span class=n>rst</span> <span class=o>=</span> <span class=n>stmt</span><span class=o>.</span><span class=na>executeQuery</span><span class=o>(</span><span class=s>&#34;select id, foo, bar from testdata&#34;</span><span class=o>);</span>
+
+					<span class=k>if</span><span class=o>(</span><span class=n>rst</span><span class=o>.</span><span class=na>next</span><span class=o>())</span>
+					<span class=o>{</span>
+						<span class=n>foo</span><span class=o>=</span><span class=n>rst</span><span class=o>.</span><span class=na>getString</span><span class=o>(</span><span class=n>2</span><span class=o>);</span>
+						<span class=n>bar</span><span class=o>=</span><span class=n>rst</span><span class=o>.</span><span class=na>getInt</span><span class=o>(</span><span class=n>3</span><span class=o>);</span>
+					<span class=o>}</span>
+					<span class=n>conn</span><span class=o>.</span><span class=na>close</span><span class=o>();</span>
+				<span class=o>}</span>
+			<span class=o>}</span>
+		<span class=o>}</span>
+		<span class=k>catch</span><span class=o>(</span><span class=n>Exception</span> <span class=n>e</span><span class=o>)</span>
+		<span class=o>{</span>
+			<span class=n>e</span><span class=o>.</span><span class=na>printStackTrace</span><span class=o>();</span>
+		<span class=o>}</span>
+	<span class=o>}</span>
+
+	<span class=kd>public</span> <span class=n>String</span> <span class=nf>getFoo</span><span class=o>()</span> <span class=o>{</span> <span class=k>return</span> <span class=n>foo</span><span class=o>;</span> <span class=o>}</span>
+
+	<span class=kd>public</span> <span class=kt>int</span> <span class=nf>getBar</span><span class=o>()</span> <span class=o>{</span> <span class=k>return</span> <span class=n>bar</span><span class=o>;}</span>
+<span class=o>}</span>
+</code></pre></div><div class=pagination><p><a title="Next page in Using the Driver in a Multithreaded or a Servlet Environment" href=https://pgjdbc.github.io/pgjdbc/documentation/thread/>Using the Driver in a Multithreaded or a Servlet Environment | 9</a></p><p><a title="Previous page in Logging using java.util.logging" href=https://pgjdbc.github.io/pgjdbc/documentation/logging/>Logging using java.util.logging | 11</a></p></div></article><aside class=toc><h4>Connection Pools and Data Sources</h4><nav id=TableOfContents><ul><li><a href=#application-servers-connectionpooldatasource>Application Servers ConnectionPoolDataSource</a></li><li><a href=#applications-datasource>Applications DataSource</a></li><li><a href=#data-sources-and-jndi>Data Sources and JNDI</a></li><li><a href=#tomcat-setup>Tomcat setup</a></li></ul></nav></aside></div></main><footer class=footer role=contentinfo><div class=footer__items><div class=footer__items__links><ul role=list><li>Pgjdbc</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Public API</a></li><li><a href=https://www.postgresql.org/>About PostgreSql</a></li></ul></div><div class=footer__items__links><ul role=list><li>Community</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>Slack</a></li><li><a href=https://www.postgresql.org/>Twitter</a></li><li><a href=https://www.postgresql.org/>Mailing List</a></li></ul></div><div class=footer__items__links><ul role=list><li>More</li><li><a href=https://jdbc.postgresql.org/documentation/publicapi/index.html>FAQ</a></li><li><a href=https://www.postgresql.org/>Privacy</a></li><li><a href=https://www.postgresql.org/>License</a></li></ul></div></div><p class=copyright>Copyright © 1996-2022 The PostgreSQL Global Development Group</p></footer></body></html>
