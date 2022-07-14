@@ -221,11 +221,11 @@ finally
 
 ##  Tomcat setup
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 The postgresql.jar file must be placed in $CATALINA_HOME/common/lib in both Tomcat 4 and 5.
 
-{{% /note %}}
+{{< /admonition >}}
 
 The absolute easiest way to set this up in either tomcat instance is to use the
 admin web application that comes with Tomcat, simply add the datasource to the

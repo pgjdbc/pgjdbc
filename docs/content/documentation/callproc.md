@@ -71,7 +71,7 @@ stmt.close();
 When calling a function that returns a refcursor you must cast the return type of
 `getObject` to a `ResultSet`
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 One notable limitation of the current support for a `ResultSet` created from
 a refcursor is that even though it is a cursor backed `ResultSet` , all data will
@@ -80,7 +80,7 @@ described in the section called [“Getting results based on a cursor”](query.
 is ignored. This limitation is a deficiency of the JDBC driver, not the server,
 and it is technically possible to remove it, we just haven't found the time.
 
-{{% /note %}}
+{{< /admonition >}}
 
 **Example 6.3. Getting refcursor Value From a Function**
 

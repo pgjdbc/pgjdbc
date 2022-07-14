@@ -59,7 +59,7 @@ a `ResultSet` on a database cursor and only fetching a small number of rows.
 A small number of rows are cached on the client side of the connection and when
 exhausted the next block of rows is retrieved by repositioning the cursor.
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 Cursor based `ResultSets` cannot be used in all situations. There a number of
 restrictions which will make the driver silently fall back to fetching the
@@ -80,7 +80,7 @@ whole `ResultSet` at once.
 * The query given must be a single statement, not multiple statements strung
 	together with semicolons.
 
-{{% /note %}}
+{{< /admonition >}}
 
 **Example 5.2. Setting fetch size to turn cursors on and off.**
 
