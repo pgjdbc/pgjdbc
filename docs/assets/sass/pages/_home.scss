@@ -1,12 +1,16 @@
 .home {
     max-width: 70rem;
     margin: 2rem auto;
+
+    & p {
+        max-width: 60ch;
+    }
 }
 
 // Hero Section
 
 .hero {
-    @include flexbox;
+    display: flex;
 
     height: 50vh;
 
@@ -15,10 +19,11 @@
     }
 
     &__content {
-        @include flexbox;
-        @include flex-direction(column);
-        @include justify-content(center);
-        @include align-items(center);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
         width: 50%;
 
         &__head {
@@ -38,16 +43,16 @@
 // Info Section
 
 .info {
-    @include flexbox;
-    @include justify-content(space-between);
 
+    display: flex;
+    justify-content: space-between;
 
     color: var(--clr-blue-400);
 
     &__about {
-        @include flexbox;
-        @include flex-direction(column);
-        @include align-items(center);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
 
         h3 {
             font-size: var(--fs-500);
@@ -56,9 +61,9 @@
     }
 
     &__release {
-        @include flexbox;
-        @include flex-direction(column);
-        @include align-items(center);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
 
         h3 {
             font-size: var(--fs-500);
@@ -70,14 +75,15 @@
 // Feature Section
 
 .feature {
-    @include flexbox;
-    @include justify-content(space-between);
+    display: flex;
+    justify-content: space-between;
     color: var(--clr-blue-400);
 
     &__item {
-        @include flexbox;
-        @include flex-direction(column);
-        @include align-items(center);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
         gap: 0 6em;
 
         &__media {
@@ -92,12 +98,12 @@
 .report {
 
     &__row {
-        @include flexbox;
-        @include justify-content(space-between);
+        display: flex;
+        justify-content: space-between;
         padding-block: 2rem;
 
         &__item {
-            @include flexbox;
+            display: flex;
             width: 30%
         }
     }

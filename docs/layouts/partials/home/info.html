@@ -17,9 +17,9 @@
         <p>
             Pgjdbc has released v42.3.6 on 24 May, 2022. Please see the release notes below.
         </p>
-        <ul>
+        <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
-            <li>
+            <li role="listitem">
                 {{ .version }} · {{ .date }} · <a href="{{ .url }}">Notes</a>
             </li>
             {{ end}}

@@ -1,7 +1,7 @@
 .navbar {
-  @include flexbox;
-  @include flex-direction(row);
-  @include justify-content(space-between);
+  display: flex;
+  justify-content: space-between;
+
   position: sticky;
   top: 0;
   z-index: 1;
@@ -19,8 +19,7 @@
   }
 
   &__item {
-    @include flexbox;
-    @include flex-direction(row);
+    display: flex;
 
     gap: 1rem 1rem;
 
