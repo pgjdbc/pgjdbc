@@ -112,6 +112,7 @@ find -type f \( -name "*.jar" -or -name "*.class" \) | xargs rm -f
 rm src/test/java/org/postgresql/test/jdbc2/DriverTest.java \
    src/test/java/org/postgresql/util/OSUtilTest.java \
    src/test/java/org/postgresql/util/StubEnvironmentAndProperties.java \
+   src/test/java/org/postgresql/jdbcurlresolver/JdbcUrlResolverTest.java \
    src/test/java/org/postgresql/jdbcurlresolver/PgPassParserTest.java \
    src/test/java/org/postgresql/jdbcurlresolver/PgServiceConfParserTest.java
 
