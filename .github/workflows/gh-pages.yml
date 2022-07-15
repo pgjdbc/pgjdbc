@@ -35,7 +35,7 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         env:
           ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
-          EXTERNAL_REPOSITORY: davecramer/pgjdbcdocs
+          EXTERNAL_REPOSITORY: pgjdbc/pgjdbcdocs
           PUBLISH_BRANCH: main
           PUBLISH_DIR: ./gh_pages
         # If you're changing the branch from master,
