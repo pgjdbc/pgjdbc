@@ -7,8 +7,10 @@ package org.postgresql.test.jdbc2.optional;
 
 import static org.junit.Assert.assertEquals;
 
+import org.postgresql.PGEnvironment;
 import org.postgresql.ds.common.BaseDataSource;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -20,7 +22,22 @@ import javax.naming.NamingException;
 */
 public class BaseDataSourceFailoverUrlsTest {
 
-  private static final String DEFAULT_PORT = "5432";
+  private String DEFAULT_PORT;
+
+  // setUp() is workaround and should be removed
+  // "building RPM" fails because they set environment variable PGPORT before tests
+  // PGPORT environment variable overrides default port 5432
+  // source code of "building RPM" is here? (https://copr-dist-git.fedorainfracloud.org/git/@pgjdbc/pgjdbc-ci/postgresql-jdbc)
+  @Before
+  public void setUp() throws Exception {
+    String port = PGEnvironment.PGPORT.readStringValue();
+    if (port == null || port.isEmpty()) {
+      DEFAULT_PORT = "5432";
+    } else {
+      DEFAULT_PORT = port;
+    }
+  }
+
 
   @Test
   public void testFullDefault() throws ClassNotFoundException, NamingException, IOException {
