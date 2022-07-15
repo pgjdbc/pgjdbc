@@ -10,14 +10,17 @@ url = "https://www.postgresql.org/"
 [[external]]
 title = "Community"
 [[external.links]]
+name = "Github"
+url = "https://github.com/pgjdbc/pgjdbc"
+[[external.links]]
 name = "Slack"
-url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
+url = "https://postgres-slack.herokuapp.com/"
 [[external.links]]
 name = "Twitter"
-url = "https://www.postgresql.org/"
+url = "https://twitter.com/PostgreSQL"
 [[external.links]]
 name = "Mailing List"
-url = "https://www.postgresql.org/"
+url = "https://www.postgresql.org/list/pgsql-jdbc/"
 
 [[external]]
 title = "More"
@@ -26,7 +29,7 @@ name = "FAQ"
 url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
 [[external.links]]
 name = "Privacy"
-url = "https://www.postgresql.org/"
+url = "https://www.postgresql.org/about/policies/privacy/"
 [[external.links]]
 name = "License"
 url = "https://www.postgresql.org/"
