@@ -766,23 +766,20 @@ li:not([class]) {
       color: var(--clr-white-400); }
 
 .pagination {
-  display: -webkit-box;
-  display: -moz-box;
-  display: -ms-flexbox;
-  display: -webkit-flex;
   display: flex;
-  -webkit-box-direction: normal;
-  -webkit-box-orient: horizontal;
-  -moz-box-direction: normal;
-  -moz-box-orient: horizontal;
-  -webkit-flex-direction: row;
-  -ms-flex-direction: row;
-  flex-direction: row;
-  -webkit-box-pack: justify;
-  -moz-box-pack: justify;
-  -ms-flex-pack: justify;
-  -webkit-justify-content: space-between;
-  justify-content: space-between; }
+  width: 100%;
+  text-transform: uppercase; }
+  .pagination__left {
+    width: 50%; }
+    .pagination__left a::before {
+      content: '\00AB';
+      font-size: 25px; }
+  .pagination__right {
+    text-align: right;
+    width: 50%; }
+    .pagination__right a::after {
+      content: '\00BB';
+      font-size: 25px; }
 
 .searchBox {
   background: var(--clr-blue-500);
