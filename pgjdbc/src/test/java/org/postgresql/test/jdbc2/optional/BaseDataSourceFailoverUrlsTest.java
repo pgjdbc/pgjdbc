@@ -22,7 +22,8 @@ import javax.naming.NamingException;
 */
 public class BaseDataSourceFailoverUrlsTest {
 
-  private String DEFAULT_PORT;
+  private static final String DEFAULT_PORT_GLOBAL = "5432";
+  private String defaultPort;
 
   // setUp() is workaround and should be removed
   // "building RPM" fails because they set environment variable PGPORT before tests
@@ -32,21 +33,20 @@ public class BaseDataSourceFailoverUrlsTest {
   public void setUp() throws Exception {
     String port = PGEnvironment.PGPORT.readStringValue();
     if (port == null || port.isEmpty()) {
-      DEFAULT_PORT = "5432";
+      defaultPort = "5432";
     } else {
-      DEFAULT_PORT = port;
+      defaultPort = port;
     }
   }
 
-
   @Test
   public void testFullDefault() throws ClassNotFoundException, NamingException, IOException {
-    roundTripFromUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:" + DEFAULT_PORT + "/database");
+    roundTripFromUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:" + defaultPort + "/database");
   }
 
   @Test
   public void testTwoNoPorts() throws ClassNotFoundException, NamingException, IOException {
-    roundTripFromUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:" + DEFAULT_PORT + "/database");
+    roundTripFromUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:" + DEFAULT_PORT_GLOBAL + ",server2:" + DEFAULT_PORT_GLOBAL + "/database");
   }
 
   @Test
@@ -56,12 +56,12 @@ public class BaseDataSourceFailoverUrlsTest {
 
   @Test
   public void testTwoFirstPort() throws ClassNotFoundException, NamingException, IOException {
-    roundTripFromUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:2345/database");
+    roundTripFromUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:" + DEFAULT_PORT_GLOBAL + ",server2:2345/database");
   }
 
   @Test
   public void testTwoLastPort() throws ClassNotFoundException, NamingException, IOException {
-    roundTripFromUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:" + DEFAULT_PORT + "/database");
+    roundTripFromUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:" + DEFAULT_PORT_GLOBAL + "/database");
   }
 
   @Test
