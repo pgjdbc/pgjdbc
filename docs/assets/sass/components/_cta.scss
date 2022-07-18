@@ -5,6 +5,8 @@
 
     &--dark {
         background-color: var(--clr-blue-400);
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
 
         a {
             color: var(--clr-white-400);
@@ -21,6 +23,8 @@
         border-color: var(--clr-blue-400);
         border-width: 1px;
         border-style: solid;
+        cursor: pointer;
+        transition: all 0.1s ease-in-out;
 
         &::after {
             display: inline-block;

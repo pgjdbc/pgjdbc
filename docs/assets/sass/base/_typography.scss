@@ -52,16 +52,16 @@ small,
 }
 
 strong {
-  font-weight: 500;
+  font-weight: 700;
 }
 
 a {
-  color: var(--clr-blue-400);
+  color: var(--clr-blue-300);
   text-decoration: none;
 
   &:hover,
   &:focus {
-    color: var(--clr-blue-500);
+    color: var(--clr-blue-400);
   }
 }
 

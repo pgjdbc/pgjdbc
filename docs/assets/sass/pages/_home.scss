@@ -68,7 +68,7 @@
             padding-inline: 0.5em;
         }
 
-        :nth-child(even) {
+        li:nth-child(even) {
             background-color: var(--clr-gray-100);
         }
     }
@@ -126,6 +126,10 @@
         &__item {
             display: flex;
             column-gap: 1rem;
+
+            h3 {
+                color: var(--clr-red-500);
+            }
         }
     }
 }

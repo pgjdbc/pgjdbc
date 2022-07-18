@@ -5,6 +5,8 @@
   border-right-width: 1px;
   border-color: #ccc;
   padding-right: 4rem;
+  margin-block: 2rem;
+
 
   align-self: start;
   position: sticky;
@@ -14,12 +16,7 @@
     font-weight: 900;
   }
 
-  ul,
-  li {
-
-    &:hover,
-    &:focus {
-      color: var(--clr-blue-400);
-    }
+  a {
+    color: var(--clr-blue-400);
   }
 }

@@ -8,10 +8,10 @@
   padding: 1rem 2rem;
   box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   background-color: var(--clr-white-400);
-  border: 0px;
-  border-bottom: 2px;
-  border-style: solid;
-  border-color: var(--clr-blue-300);
+  // border: 0px;
+  // border-bottom: 2px;
+  // border-style: solid;
+  // border-color: var(--clr-blue-300);
 
   .logo {
     width: 45px;
@@ -21,17 +21,19 @@
   &__item {
     display: flex;
 
-    gap: 1rem 1rem;
+    gap: 1rem 2rem;
 
-    &--active {
-      font-weight: 900;
-    }
 
     &__link {
-      color: var(--clr-blue-300);
+      color: var(--clr-black-100);
       text-decoration: none;
       font-size: var(--fs-400);
       position: relative;
+      font-weight: 600;
+
+      &--active {
+        color: var(--clr-blue-300);
+      }
 
       &::after {
         content: '';

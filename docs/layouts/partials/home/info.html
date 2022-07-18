@@ -20,7 +20,7 @@
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
             <li role="listitem">
-                {{ .version }} · {{ .date }} · <a href="{{ .url }}">Notes</a>
+                <strong>{{ .version }}</strong> · {{ .date }} · <a href="{{ .url }}">Notes</a>
             </li>
             {{ end}}
         </ul>
