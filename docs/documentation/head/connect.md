@@ -327,7 +327,7 @@ Connection conn = DriverManager.getConnection(url);
     detecting network problems. The timeout is specified in seconds and a
     value of zero means that it is disabled.
 
-* **sslResponseTikmeout** = int
+* **sslResponseTimeout** = int
     The timeout value in milliseconds that we wait for a response from the server
     after requesting the connection be upgraded to SSL.
 

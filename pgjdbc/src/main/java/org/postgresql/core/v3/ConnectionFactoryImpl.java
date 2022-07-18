@@ -535,6 +535,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getSocket().getSoTimeout();
 
+    // if the current timeout is less than sslTimeout then
+    // use the smaller timeout. We could do something tricky
+    // here to not set it in that case but this is pretty readable
+    if (currentTimeout > 0 && currentTimeout < sslTimeout) {
+      sslTimeout = currentTimeout;
+    }
+
     pgStream.getSocket().setSoTimeout(sslTimeout);
     // Send SSL request packet
     pgStream.sendInteger4(8);
