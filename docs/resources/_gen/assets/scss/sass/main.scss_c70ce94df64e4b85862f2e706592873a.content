@@ -20,7 +20,7 @@ pre,
 code {
   padding: 0.2em;
   margin: 0;
-  background-color: rgba(27, 31, 35, 0.05);
+  background-color: #f7f7f7;
   border-radius: 3px; }
 
 pre code {
@@ -543,7 +543,7 @@ body {
   font-size: 1.067rem;
   font-family: 'Inria Sans', sans-serif;
   color: var(--clr-black-300);
-  letter-spacing: 0.5px; }
+  letter-spacing: 1px; }
 
 h1,
 h2,
@@ -667,7 +667,7 @@ a {
   border-right-style: solid;
   border-right-width: 1px;
   border-color: #ccc;
-  padding-right: 4rem;
+  padding-right: 2rem;
   margin-block: 2rem;
   align-self: start;
   position: sticky;
@@ -676,6 +676,8 @@ a {
     font-weight: 900; }
   .sidebar a {
     color: var(--clr-blue-400); }
+    .sidebar a:hover {
+      font-weight: 900; }
 
 .admonition {
   border-style: solid;
@@ -706,7 +708,7 @@ a {
     box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
     border-radius: 10px;
     padding: 1.5em;
-    border-top: 5px navy solid; }
+    border-top: 5px var(--clr-blue-400) solid; }
 
 .cta {
   border-radius: 100vmax;
@@ -933,6 +935,10 @@ tbody tr {
 .article {
   width: 60%;
   padding: 2rem; }
+  .article a {
+    text-decoration: underline; }
+    .article a:hover {
+      text-decoration: none; }
   .article p {
     max-width: 100%; }
 
@@ -953,6 +959,8 @@ tbody tr {
     margin: 0.5rem;
     padding: 0;
     padding-left: 0.75rem; }
+    .toc ul li:not(last-child) {
+      margin-bottom: 0.5rem; }
 
 .container {
   padding: 0 1.5rem;
