@@ -23,6 +23,10 @@
 
     gap: 1rem 1rem;
 
+    &--active {
+      font-weight: 900;
+    }
+
     &__link {
       color: var(--clr-blue-300);
       text-decoration: none;

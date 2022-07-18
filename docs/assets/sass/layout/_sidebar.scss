@@ -10,6 +10,10 @@
   position: sticky;
   top: 5rem;
 
+  &--active {
+    font-weight: 900;
+  }
+
   ul,
   li {
 

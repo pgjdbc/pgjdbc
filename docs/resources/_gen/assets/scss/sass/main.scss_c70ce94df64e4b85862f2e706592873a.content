@@ -631,6 +631,8 @@ a {
   .navbar__item {
     display: flex;
     gap: 1rem 1rem; }
+    .navbar__item--active {
+      font-weight: 900; }
     .navbar__item__link {
       color: var(--clr-blue-300);
       text-decoration: none;
@@ -663,6 +665,8 @@ a {
   align-self: start;
   position: sticky;
   top: 5rem; }
+  .sidebar--active {
+    font-weight: 900; }
   .sidebar ul:hover, .sidebar ul:focus,
   .sidebar li:hover,
   .sidebar li:focus {
