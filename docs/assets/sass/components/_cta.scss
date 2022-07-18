@@ -5,15 +5,39 @@
 
     &--dark {
         background-color: var(--clr-blue-400);
-        color: var(--clr-white-400);
+
+        a {
+            color: var(--clr-white-400);
+        }
+
+        &:hover {
+            transform: scale(1.1);
+        }
     }
 
     &--light {
         color: var(--clr-blue-400);
         background-color: var(--clr-white-400);
         border-color: var(--clr-blue-400);
-        border-width: 2px;
+        border-width: 1px;
         border-style: solid;
+
+        &::after {
+            display: inline-block;
+            padding-left: 8px;
+            content: "\203A";
+            transition: transform 0.3s ease-out;
+        }
+
+        &:hover {
+            font-weight: 600;
+            border-width: 2px;
+            color: var(--clr-blue-400);
+
+            &::after {
+                transform: translateX(4px);
+            }
+        }
     }
 
     &--orange {

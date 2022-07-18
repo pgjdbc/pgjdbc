@@ -1,18 +1,30 @@
 .home {
     max-width: 70rem;
     margin: 2rem auto;
+    padding-inline: 2rem;
 
-    & p {
-        max-width: 60ch;
+    &>* {
+        margin-bottom: var(--section-spacing);
     }
+
+    h2 {
+        color: var(--clr-blue-400);
+    }
+
+    p {
+        color: var(--clr-black-400);
+    }
+
 }
 
 // Hero Section
 
 .hero {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    column-gap: 5rem;
 
-    height: 50vh;
 
     &__media {
         width: 50%;
@@ -21,21 +33,18 @@
     &__content {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
-
+        justify-content: space-between;
+        row-gap: 1rem;
         width: 50%;
 
         &__head {
             font-size: var(--fs-800);
         }
 
-        &__desc {
-            font-size: var(--fs-400);
-        }
-
         &__actions {
-            display: inline-block;
+            display: flex;
+            column-gap: 1rem;
+            font-size: var(--fs-400);
         }
     }
 }
@@ -48,27 +57,38 @@
     justify-content: space-between;
 
     color: var(--clr-blue-400);
+    text-align: justify;
+
+    ul {
+        margin: 0;
+        padding: 0;
+        color: var(--clr-black-400);
+
+        li {
+            padding-inline: 0.5em;
+        }
+
+        :nth-child(even) {
+            background-color: var(--clr-gray-100);
+        }
+    }
 
     &__about {
         display: flex;
         flex-direction: column;
         align-items: center;
-
-        h3 {
-            font-size: var(--fs-500);
-            color: var(--clr-blue-400);
-        }
+        max-width: 45%;
     }
 
     &__release {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        max-width: 45%;
 
-        h3 {
-            font-size: var(--fs-500);
-            color: var(--clr-blue-400);
+        h2 {
+            text-align: center;
         }
+
     }
 }
 
@@ -78,13 +98,14 @@
     display: flex;
     justify-content: space-between;
     color: var(--clr-blue-400);
+    column-gap: 5rem;
 
     &__item {
         display: flex;
         flex-direction: column;
         align-items: center;
-
-        gap: 0 6em;
+        text-align: justify;
+        row-gap: 1rem;
 
         &__media {
             width: 4rem;
@@ -100,11 +121,28 @@
     &__row {
         display: flex;
         justify-content: space-between;
-        padding-block: 2rem;
+        padding-top: 2rem;
 
         &__item {
             display: flex;
-            width: 30%
+            column-gap: 1rem;
         }
+    }
+}
+
+// Support Section
+
+.support {
+    position: relative;
+
+    &__desc {
+        position: absolute;
+        top: 25%;
+        bottom: 25%;
+        left: 50%;
+        background-color: hsla(0, 0%, 100%, 0.5);
+        padding: 2rem;
+        margin-left: 2rem;
+        border-radius: 0.5rem;
     }
 }
