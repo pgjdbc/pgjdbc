@@ -13,9 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGEnvironment;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
@@ -30,7 +28,7 @@ import java.util.Properties;
  *
  * @author Marek Läll
  */
-@ExtendWith(SystemStubsExtension.class)
+@StubEnvironmentAndProperties
 class PGPropertyServiceParserTest {
 
   // "org.postgresql.pgservicefile" : missing

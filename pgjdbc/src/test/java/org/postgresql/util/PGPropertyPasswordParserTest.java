@@ -26,6 +26,7 @@ import java.net.URL;
  *
  * @author Marek Läll
  */
+@StubEnvironmentAndProperties
 class PGPropertyPasswordParserTest {
 
   // "org.postgresql.pgpassfile" : missing

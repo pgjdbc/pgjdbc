@@ -17,12 +17,11 @@ import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.StubEnvironmentAndProperties;
 import org.postgresql.util.URLCoder;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
@@ -43,7 +42,7 @@ import java.util.Properties;
  * Tests the dynamically created class org.postgresql.Driver
  *
  */
-@ExtendWith(SystemStubsExtension.class)
+@StubEnvironmentAndProperties
 public class DriverTest {
 
   @Test
