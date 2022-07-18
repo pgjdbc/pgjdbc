@@ -931,6 +931,17 @@ tbody tr {
   align-self: start;
   position: sticky;
   top: 5rem; }
+  .toc nav {
+    border-left-style: solid;
+    border-left-width: 1px;
+    border-color: #ccc;
+    margin-inline: 1rem; }
+  .toc ul {
+    list-style: none;
+    font-size: var(--fs-300);
+    margin: 0.5rem;
+    padding: 0;
+    padding-left: 0.75rem; }
 
 .container {
   padding: 0 1.5rem;
