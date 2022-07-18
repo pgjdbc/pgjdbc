@@ -5,12 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
@@ -18,7 +19,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.URLCoder;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
@@ -56,11 +57,11 @@ public class DriverTest {
    * According to the javadoc of java.sql.Driver.connect(...), calling abort when the {@code executor} is {@code null}
    * results in SQLException
    */
-  @Test(expected = SQLException.class)
+  @Test
   public void urlIsNull() throws SQLException {
     Driver driver = new Driver();
 
-    driver.connect(null, new Properties());
+    assertThrows(SQLException.class, () -> driver.connect(null, new Properties()));
   }
 
   /*
@@ -136,14 +137,14 @@ public class DriverTest {
 
   private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
       throws Exception {
-    assertTrue(url, drv.acceptsURL(url));
+    assertTrue(drv.acceptsURL(url), url);
     Method parseMethod =
         drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
     Properties p = (Properties) parseMethod.invoke(drv, url, null);
-    assertEquals(url, dbName, p.getProperty(PGProperty.PG_DBNAME.getName()));
-    assertEquals(url, hosts, p.getProperty(PGProperty.PG_HOST.getName()));
-    assertEquals(url, ports, p.getProperty(PGProperty.PG_PORT.getName()));
+    assertEquals(dbName, p.getProperty(PGProperty.PG_DBNAME.getName()), url);
+    assertEquals(hosts, p.getProperty(PGProperty.PG_HOST.getName()), url);
+    assertEquals(ports, p.getProperty(PGProperty.PG_PORT.getName()), url);
   }
 
   /**
@@ -515,7 +516,7 @@ public class DriverTest {
       try {
         assertNotNull(con);
         System.err.println();
-        assertFalse("The System.err should not be closed.", System.err.checkError());
+        assertFalse(System.err.checkError(), "The System.err should not be closed.");
       } finally {
         con.close();
       }
