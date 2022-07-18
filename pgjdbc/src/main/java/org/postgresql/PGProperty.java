@@ -166,6 +166,15 @@ public enum PGProperty {
       "The timeout value used for socket connect operations."),
 
   /**
+   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after </p>
+   */
+  SSL_RESPONSE_TIMEOUT(
+      "sslResponseTimeout",
+      "5000",
+      "Time in milliseconds we wait for a response from the server after requesting SSL upgrade"),
+
+  /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
    * unqualified object names used in statements over this connection.
    */

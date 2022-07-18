@@ -532,9 +532,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
-    // set the time out to 2seconds
+    int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getSocket().getSoTimeout();
-    pgStream.getSocket().setSoTimeout(2000);
+
+    pgStream.getSocket().setSoTimeout(sslTimeout);
     // Send SSL request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
