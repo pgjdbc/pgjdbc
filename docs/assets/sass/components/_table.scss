@@ -5,10 +5,10 @@ table {
   min-width: 400px;
   border-radius: 5px 5px 0 0;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
 
   th,
   td {
+    border: 2px solid var(--clr-blue-100);
     padding: 12px 15px;
   }
 
@@ -26,10 +26,6 @@ tbody tr {
 
   &:nth-of-type(even) {
     background-color: #f3f3f3;
-  }
-
-  &:last-of-type {
-    border-bottom: 2px solid var(--clr-blue-400);
   }
 
   &:hover {
