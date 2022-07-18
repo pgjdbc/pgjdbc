@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 chore: skip publishing pgjdbc-osgi-test to Central
 chore: bump Gradle to 7.5
+test: update JUnit to 5.8.2
 
 ### Added
 chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
