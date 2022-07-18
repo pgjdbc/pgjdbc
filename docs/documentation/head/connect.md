@@ -71,271 +71,271 @@ Connection conn = DriverManager.getConnection(url);
 
 * **user** = String
 
-    The database user on whose behalf the connection is being made.
+        The database user on whose behalf the connection is being made.
 
 * **password** = String
 
-    The database user's password.
+        The database user's password.
 
 * **options** = String
 
-    Specify 'options' connection initialization parameter. For example setting this to `-c statement_timeout=5min` would set the statement timeout parameter for this session to 5 minutes.
+        Specify 'options' connection initialization parameter. For example setting this to `-c statement_timeout=5min` would set the statement timeout parameter for this session to 5 minutes.
 
-    The value of this property may contain spaces or other special characters,
-    and it should be properly encoded if provided in the connection URL. Spaces
-    are considered to separate command-line arguments, unless escaped with
-    a backslash (`\`); `\\` represents a literal backslash.
+        The value of this property may contain spaces or other special characters,
+        and it should be properly encoded if provided in the connection URL. Spaces
+        are considered to separate command-line arguments, unless escaped with
+        a backslash (`\`); `\\` represents a literal backslash.
 
-    ```java
-    Properties props = new Properties();
-    props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
-    Connection conn = DriverManager.getConnection(url, props);
+        ```java
+        Properties props = new Properties();
+        props.setProperty("options","-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+        Connection conn = DriverManager.getConnection(url, props);
 
-    String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
-    Connection conn = DriverManager.getConnection(url);
-    ```
+        String url = "jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000";
+        Connection conn = DriverManager.getConnection(url);
+        ```
 
 * **ssl** = boolean
 
-    Connect using SSL. The server must have been compiled with SSL support.
-    This property does not need a value associated with it. The mere presence
-    of it specifies a SSL connection. However, for compatibility with future
-    versions, the value "true" is preferred. For more information see [Chapter
-    4, *Using SSL*](ssl.html).
+        Connect using SSL. The server must have been compiled with SSL support.
+        This property does not need a value associated with it. The mere presence
+        of it specifies a SSL connection. However, for compatibility with future
+        versions, the value "true" is preferred. For more information see [Chapter
+        4, *Using SSL*](ssl.html).
 
-    Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
+        Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
  
 * **sslfactory** = String
-    
-    The provided value is a class name to use as the `SSLSocketFactory` when
-    establishing a SSL connection. For more information see the section
-    called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
+        
+        The provided value is a class name to use as the `SSLSocketFactory` when
+        establishing a SSL connection. For more information see the section
+        called [“Custom SSLSocketFactory”](ssl-factory.html).  defaults to LibPQFactory
 
 * **sslfactoryarg** (deprecated) = String
 
-    This value is an optional argument to the constructor of the sslfactory
-    class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
+        This value is an optional argument to the constructor of the sslfactory
+        class provided above. For more information see the section called [“Custom SSLSocketFactory”](ssl-factory.html). 
 
 * **sslmode** = String
 
-    possible values include `disable`, `allow`, `prefer`, `require`, `verify-ca` and `verify-full`
-    . `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
-    validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
-    verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
-    host connected to has the same hostname as the certificate. Default is `prefer`
+        possible values include `disable`, `allow`, `prefer`, `require`, `verify-ca` and `verify-full`
+        . `require`, `allow` and `prefer` all default to a non validating SSL factory and do not check the
+        validity of the certificate or the host name. `verify-ca` validates the certificate, but does not
+        verify the hostname. `verify-full`  will validate that the certificate is correct and verify the
+        host connected to has the same hostname as the certificate. Default is `prefer`
 
-    Setting these will necessitate storing the server certificate on the client machine see
-    ["Configuring the client"](ssl-client.html) for details.
+        Setting these will necessitate storing the server certificate on the client machine see
+        ["Configuring the client"](ssl-client.html) for details.
 
 * **sslcert** = String
 
-    Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt, where defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows.
+        Provide the full path for the certificate file. Defaults to /defaultdir/postgresql.crt, where defaultdir is ${user.home}/.postgresql/ in *nix systems and %appdata%/postgresql/ on windows.
 
-    It can be a PEM encoded X509v3 certificate
+        It can be a PEM encoded X509v3 certificate
 
-    *Note:* This parameter is ignored when using PKCS-12 keys, since in that case the certificate is also retrieved from the same keyfile.
+        *Note:* This parameter is ignored when using PKCS-12 keys, since in that case the certificate is also retrieved from the same keyfile.
 
 * **sslkey** = String
 
-    Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
+        Provide the full path for the key file. Defaults to /defaultdir/postgresql.pk8. 
 	
-    *Note:* The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
+        *Note:* The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command:
 	
-    `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+        `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
 
-    PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
+        PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
 
-    If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
+      If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
-    *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
-    by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
-    We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
-    the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
-    for a discussion of the problem and information on choosing a better cipher suite.
+      *Note:* The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected
+      by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels.
+      We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at
+      the time of writing. If you have stricter security needs, please see https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1
+      for a discussion of the problem and information on choosing a better cipher suite.
 
 * **sslrootcert** = String
 
-    File name of the SSL root certificate. Defaults to defaultdir/root.crt
+      File name of the SSL root certificate. Defaults to defaultdir/root.crt
 
-    It can be a PEM encoded X509v3 certificate
+      It can be a PEM encoded X509v3 certificate
 
 * **sslhostnameverifier** = String
 
-    Class name of hostname verifier. Defaults to using `org.postgresql.ssl.PGjdbcHostnameVerifier`
+      Class name of hostname verifier. Defaults to using `org.postgresql.ssl.PGjdbcHostnameVerifier`
 
 * **sslpasswordcallback** = String
 
-    Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.LibPQFactory.ConsoleCallbackHandler`
+      Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.LibPQFactory.ConsoleCallbackHandler`
 
 * **sslpassword** = String
 
-    If provided will be used by ConsoleCallbackHandler
+      If provided will be used by ConsoleCallbackHandler
 
 * **protocolVersion** = int
 
-    The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
-    the driver will by default try to	connect using the V3 protocol.
+      The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and
+      the driver will by default try to	connect using the V3 protocol.
  
 * **loggerLevel** = String
 
-    This property is no longer used by the driver and will be ignored.
-    All logging configuration is handled by java.util.logging.
+      This property is no longer used by the driver and will be ignored.
+      All logging configuration is handled by java.util.logging.
 
 * **loggerFile** = String
 
-    This property is no longer used by the driver and will be ignored.
-    All logging configuration is handled by java.util.logging.
+      This property is no longer used by the driver and will be ignored.
+      All logging configuration is handled by java.util.logging.
  
 * **allowEncodingChanges** = boolean
 
-    When using the V3 protocol the driver monitors changes in certain server
-    configuration parameters that should not be touched by end users. The
-    `client_encoding` setting is set by the driver and should not be altered.
-    If the driver detects a change it will abort the connection. There is
-    one legitimate exception to this behaviour though, using the `COPY` command
-    on a file residing on the server's filesystem. The only means of specifying
-    the encoding of this file is by altering the `client_encoding` setting.
-    The JDBC team considers this a failing of the `COPY` command and hopes to
-    provide an alternate means of specifying the encoding in the future, but
-    for now there is this URL parameter. Enable this only if you need to
-    override the client encoding when doing a copy.
+      When using the V3 protocol the driver monitors changes in certain server
+      configuration parameters that should not be touched by end users. The
+      `client_encoding` setting is set by the driver and should not be altered.
+      If the driver detects a change it will abort the connection. There is
+      one legitimate exception to this behaviour though, using the `COPY` command
+      on a file residing on the server's filesystem. The only means of specifying
+      the encoding of this file is by altering the `client_encoding` setting.
+      The JDBC team considers this a failing of the `COPY` command and hopes to
+      provide an alternate means of specifying the encoding in the future, but
+      for now there is this URL parameter. Enable this only if you need to
+      override the client encoding when doing a copy.
 
 * **logUnclosedConnections** = boolean
 
-    Clients may leak `Connection` objects by failing to call its `close()`
-    method. Eventually these objects will be garbage collected and the
-    `finalize()` method will be called which will close the `Connection` if
-    caller has neglected to do this himself. The usage of a finalizer is just
-    a stopgap solution. To help developers detect and correct the source of
-    these leaks the `logUnclosedConnections` URL parameter has been added.
-    It captures a stacktrace at each `Connection` opening and if the `finalize()`
-    method is reached without having been closed the stacktrace is printed
-    to the log.
+      Clients may leak `Connection` objects by failing to call its `close()`
+      method. Eventually these objects will be garbage collected and the
+      `finalize()` method will be called which will close the `Connection` if
+      caller has neglected to do this himself. The usage of a finalizer is just
+      a stopgap solution. To help developers detect and correct the source of
+      these leaks the `logUnclosedConnections` URL parameter has been added.
+      It captures a stacktrace at each `Connection` opening and if the `finalize()`
+      method is reached without having been closed the stacktrace is printed
+      to the log.
 	
 * **autosave** = String
 
-    Specifies what the driver should do if a query fails. In `autosave=always` mode, JDBC driver sets a savepoint before each query,
-    and rolls back to that savepoint in case of failure. In `autosave=never` mode (default), no savepoint dance is made ever.
-    In `autosave=conservative` mode, savepoint is set for each query, however the rollback is done only for rare cases
-    like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
+      Specifies what the driver should do if a query fails. In `autosave=always` mode, JDBC driver sets a savepoint before each query,
+      and rolls back to that savepoint in case of failure. In `autosave=never` mode (default), no savepoint dance is made ever.
+      In `autosave=conservative` mode, savepoint is set for each query, however the rollback is done only for rare cases
+      like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
 
-    The default is `never` 
+      The default is `never` 
 
 * **cleanupSavepoints** = boolean
 
-    Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
-    done to avoid running out of shared buffers on the server in the case where 1000's of queries are
-    performed.
-     
-    The default is 'false'
+      Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is
+      done to avoid running out of shared buffers on the server in the case where 1000's of queries are
+      performed.
+       
+      The default is 'false'
 
 * **binaryTransfer** = boolean
 
-    Use binary format for sending and receiving data if possible.
+      Use binary format for sending and receiving data if possible.
 
-    The default is 'true'
+      The default is 'true'
 
 * **binaryTransferEnable** = String
 
-    A comma separated list of types to enable binary transfer. Either OID numbers or names.
+      A comma separated list of types to enable binary transfer. Either OID numbers or names.
 
 * **binaryTransferDisable** = String
 
-    A comma separated list of types to disable binary transfer. Either OID numbers or names.
-    Overrides values in the driver default set and values set with binaryTransferEnable.
+      A comma separated list of types to disable binary transfer. Either OID numbers or names.
+      Overrides values in the driver default set and values set with binaryTransferEnable.
 
 * **databaseMetadataCacheFields** = int
 
-    Specifies the maximum number of fields to be cached per connection.
-    A value of 0 disables the cache.
+      Specifies the maximum number of fields to be cached per connection.
+      A value of 0 disables the cache.
 
-    Defaults to 65536.
+      Defaults to 65536.
 
 * **databaseMetadataCacheFieldsMiB** = int
 
-    Specifies the maximum size (in megabytes) of fields to be cached per connection.
-    A value of 0 disables the cache.
+      Specifies the maximum size (in megabytes) of fields to be cached per connection.
+      A value of 0 disables the cache.
 
-    Defaults to 5.
+      Defaults to 5.
 
 * **prepareThreshold** = int
 
-    Determine the number of `PreparedStatement` executions required before
-    switching over to use server side prepared statements. The default is
-    five, meaning start using server side prepared statements on the fifth
-    execution of the same `PreparedStatement` object. More information on
-    server side prepared statements is available in the section called
-    [“Server Prepared Statements”](server-prepare.html).
+      Determine the number of `PreparedStatement` executions required before
+      switching over to use server side prepared statements. The default is
+      five, meaning start using server side prepared statements on the fifth
+      execution of the same `PreparedStatement` object. More information on
+      server side prepared statements is available in the section called
+      [“Server Prepared Statements”](server-prepare.html).
 
 * **preparedStatementCacheQueries** = int
 
-    Determine the number of queries that are cached in each connection.
-    The default is 256, meaning if you use more than 256 different queries
-    in `prepareStatement()` calls, the least recently used ones
-    will be discarded. The cache allows application to benefit from 
-    [“Server Prepared Statements”](server-prepare.html)
-    (see `prepareThreshold`) even if the prepared statement is
-    closed after each execution. The value of 0 disables the cache.
+      Determine the number of queries that are cached in each connection.
+      The default is 256, meaning if you use more than 256 different queries
+      in `prepareStatement()` calls, the least recently used ones
+      will be discarded. The cache allows application to benefit from 
+      [“Server Prepared Statements”](server-prepare.html)
+      (see `prepareThreshold`) even if the prepared statement is
+      closed after each execution. The value of 0 disables the cache.
 
-    N.B.Each connection has its own statement cache.
+      N.B.Each connection has its own statement cache.
 
 * **preparedStatementCacheSizeMiB** = int
 
-    Determine the maximum size (in mebibytes) of the prepared queries cache
-    (see `preparedStatementCacheQueries`).
-    The default is 5, meaning if you happen to cache more than 5 MiB of queries
-    the least recently used ones will be discarded.
-    The main aim of this setting is to prevent `OutOfMemoryError`.
-    The value of 0 disables the cache.
+      Determine the maximum size (in mebibytes) of the prepared queries cache
+      (see `preparedStatementCacheQueries`).
+      The default is 5, meaning if you happen to cache more than 5 MiB of queries
+      the least recently used ones will be discarded.
+      The main aim of this setting is to prevent `OutOfMemoryError`.
+      The value of 0 disables the cache.
 
 * **preferQueryMode** = String
 
-    Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), 
-    extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, 
-    extendedCacheEverything means use extended protocol and try cache every statement 
-    (including Statement.execute(String sql)) in a query cache.
-    extended | extendedForPrepared | extendedCacheEverything | simple
+      Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), 
+      extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, 
+      extendedCacheEverything means use extended protocol and try cache every statement 
+      (including Statement.execute(String sql)) in a query cache.
+      extended | extendedForPrepared | extendedCacheEverything | simple
 
-    The default is extended
+      The default is extended
 
 * **defaultRowFetchSize** = int
 
-    Determine the number of rows fetched in `ResultSet`
-    by one fetch with trip to the database. Limiting the number of rows are fetch with 
-    each trip to the database allow avoids unnecessary memory consumption 
-    and as a consequence `OutOfMemoryError`.
+      Determine the number of rows fetched in `ResultSet`
+      by one fetch with trip to the database. Limiting the number of rows are fetch with 
+      each trip to the database allow avoids unnecessary memory consumption 
+      and as a consequence `OutOfMemoryError`.
 
-    The default is zero, meaning that in `ResultSet` will be fetch all rows at once. 
-    Negative number is not available.
+      The default is zero, meaning that in `ResultSet` will be fetch all rows at once. 
+      Negative number is not available.
 
 * **loginTimeout** = int
 
-    Specify how long to wait for establishment of a database connection. The
-    timeout is specified in seconds. 
+      Specify how long to wait for establishment of a database connection. The
+      timeout is specified in seconds. 
 
 * **connectTimeout** = int
 
-    The timeout value used for socket connect operations. If connecting to the server
-    takes longer than this value, the connection is broken. 
-    The timeout is specified in seconds and a value of zero means that it 	is disabled.
+      The timeout value used for socket connect operations. If connecting to the server
+      takes longer than this value, the connection is broken. 
+      The timeout is specified in seconds and a value of zero means that it 	is disabled.
 
 * **socketTimeout** = int
 
-    The timeout value used for socket read operations. If reading from the
-    server takes longer than this value, the connection is closed. This can
-    be used as both a brute force global query timeout and a method of
-    detecting network problems. The timeout is specified in seconds and a
-    value of zero means that it is disabled.
+      The timeout value used for socket read operations. If reading from the
+      server takes longer than this value, the connection is closed. This can
+      be used as both a brute force global query timeout and a method of
+      detecting network problems. The timeout is specified in seconds and a
+      value of zero means that it is disabled.
 
 * **sslResponseTimeout** = int
-    The timeout value in milliseconds that we wait for a response from the server
-    after requesting the connection be upgraded to SSL.
+      The timeout value in milliseconds that we wait for a response from the server
+      after requesting the connection be upgraded to SSL.
 
 * **cancelSignalTimeout** = int
 
-    Cancel command is sent out of band over its own connection, so cancel message can itself get
-    stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
-    The timeout is specified in seconds. Default value is 10 seconds.
+      Cancel command is sent out of band over its own connection, so cancel message can itself get
+      stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands.
+      The timeout is specified in seconds. Default value is 10 seconds.
 
 
 * **tcpKeepAlive** = boolean
@@ -369,9 +369,9 @@ Connection conn = DriverManager.getConnection(url);
 
 * **ApplicationName** = String
 
-    Specifies the name of the application that is using the connection.
-    This allows a database administrator to see what applications are
-    connected to the server and what resources they are using through views like pg_stat_activity.
+      Specifies the name of the application that is using the connection.
+      This allows a database administrator to see what applications are
+      connected to the server and what resources they are using through views like pg_stat_activity.
 
 * **kerberosServerName** = String
 
@@ -393,14 +393,14 @@ Connection conn = DriverManager.getConnection(url);
 
 * **gssEncMode** = String
 
-    PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
-    enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
-    `disable` is obvious and disables any attempt to connect using GSS encrypted mode
-    `allow` will connect in plain text then if the server requests it will switch to encrypted mode
-    `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
-    an encrypted connection
-    `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
-    The default is `allow`.
+      PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to
+      enforce using GSSAPI encryption or not. The options are `disable`, `allow`, `prefer` and `require`
+      `disable` is obvious and disables any attempt to connect using GSS encrypted mode
+      `allow` will connect in plain text then if the server requests it will switch to encrypted mode
+      `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire
+      an encrypted connection
+      `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
+      The default is `allow`.
 
 * **gsslib** = String
 
@@ -418,10 +418,10 @@ Connection conn = DriverManager.getConnection(url);
 
 	On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
 
-        To use SSPI with PgJDBC you must ensure that
-        [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
+            To use SSPI with PgJDBC you must ensure that
+            [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/)
 	and its dependencies are present on the `CLASSPATH`. PgJDBC does *not*
-        bundle `waffle-jna` in the PgJDBC jar.
+            bundle `waffle-jna` in the PgJDBC jar.
 
 	Since: 9.4
 
@@ -540,43 +540,43 @@ Connection conn = DriverManager.getConnection(url);
 
 * **maxResultBuffer** = String
 
-    Specifies size of result buffer in bytes, which can't be exceeded during reading result set. 
-    Property can be specified in two styles:
-    - as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
-    - as percent of max heap memory (i.e. 10p, 15pct, 20percent);
-    
-    A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
-    
+      Specifies size of result buffer in bytes, which can't be exceeded during reading result set. 
+      Property can be specified in two styles:
+      - as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
+      - as percent of max heap memory (i.e. 10p, 15pct, 20percent);
+      
+      A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
+      
 	By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
 	
 * **adaptiveFetch** = boolean	
 
-    Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
-    Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
-    Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
-    First fetch will have number of rows declared in `defaultRowFetchSize`.
-    Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. 
-    Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.	
-    
-    By default, adaptiveFetch is false.
-    
+      Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
+      Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
+      Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
+      First fetch will have number of rows declared in `defaultRowFetchSize`.
+      Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. 
+      Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.	
+      
+      By default, adaptiveFetch is false.
+      
 * **adaptiveFetchMinimum** = int
 
-    Specifies the lowest number of rows which can be calculated by `adaptiveFetch`.
-    Requires `adaptiveFetch` set to true to work.
-    
-    By default, minimum of rows calculated by `adaptiveFetch` is 0. 
+      Specifies the lowest number of rows which can be calculated by `adaptiveFetch`.
+      Requires `adaptiveFetch` set to true to work.
+      
+      By default, minimum of rows calculated by `adaptiveFetch` is 0. 
 
 * **adaptiveFetchMaximum** = int
 
 	Specifies the highest number of rows which can be calculated by `adaptiveFetch`.
-    Requires `adaptiveFetch` set to true to work.
+      Requires `adaptiveFetch` set to true to work.
 
-    By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
+      By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
 
 * **logServerErrorDetail** == boolean
 
-    Whether to include server error details in exceptions and log messages (for example inlined query parameters). 
+      Whether to include server error details in exceptions and log messages (for example inlined query parameters). 
 	Setting to false will only include minimal, not sensitive messages.
 
 	By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
