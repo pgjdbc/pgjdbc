@@ -4,14 +4,22 @@
   border-right-style: solid;
   border-right-width: 1px;
   border-color: #ccc;
-  padding-right: 4rem;
+  padding-right: 2rem;
+  margin-block: 2rem;
 
-  ul,
-  li {
 
-    &:hover,
-    &:focus {
-      color: var(--clr-blue-400);
+  align-self: start;
+  position: sticky;
+  top: 5rem;
+
+  &--active {
+    font-weight: 900;
+  }
+
+  a {
+    color: var(--clr-blue-400);
+    &:hover {
+      font-weight: 900;
     }
   }
 }

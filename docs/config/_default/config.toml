@@ -4,5 +4,5 @@ baseURL = "https://pgjdbc.github.io/pgjdbc/"
 languageCode = "en-us"
 title = "Pgjdbc"
 [permalinks]
-    posts = "/:year/:month/:slug/"
-    page = "/:slug/"
+page = "/:slug/"
+posts = "/:year/:month/:slug/"

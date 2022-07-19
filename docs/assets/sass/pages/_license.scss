@@ -1,0 +1,12 @@
+.license {
+    margin-block: 3rem;
+
+    &__page {
+        font-size: var(--fs-300);
+        padding: 1rem;
+        border-style: solid;
+        border-color: black;
+        border-width: 2px;
+        box-shadow: 10px 10px var(--clr-blue-100);
+    }
+}

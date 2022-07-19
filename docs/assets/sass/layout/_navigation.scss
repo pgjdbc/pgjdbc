@@ -1,27 +1,39 @@
 .navbar {
-  @include flexbox;
-  @include flex-direction(row);
-  @include justify-content(space-between);
+  display: flex;
+  justify-content: space-between;
 
-  padding: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 1rem 2rem;
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
+  background-color: var(--clr-white-400);
+  // border: 0px;
+  // border-bottom: 2px;
+  // border-style: solid;
+  // border-color: var(--clr-blue-300);
 
-  background-color: var(--clr-blue-400);
-
-  .logo, .github {
-    width: 2.5rem;
-    height: 2.5rem;
+  .logo {
+    width: 45px;
+    aspect-ratio: 1;
   }
 
-  &__items {
-    @include flexbox;
-    @include flex-direction(row);
-    gap: 1rem 1rem;
+  &__item {
+    display: flex;
+
+    gap: 1rem 2rem;
+
 
     &__link {
-      color: var(--clr-white-300);
+      color: var(--clr-black-100);
       text-decoration: none;
       font-size: var(--fs-400);
       position: relative;
+      font-weight: 600;
+
+      &--active {
+        color: var(--clr-blue-300);
+      }
 
       &::after {
         content: '';
@@ -31,7 +43,7 @@
         height: 2px;
         bottom: 0;
         left: 0;
-        background-color: white;
+        background-color: var(--clr-blue-300);
         transform-origin: bottom right;
         transition: transform 0.25s ease-out;
       }
@@ -43,7 +55,7 @@
 
       &:hover,
       &:focus {
-        color: var(--clr-white-400);
+        color: var(--clr-blue-400);
       }
     }
   }

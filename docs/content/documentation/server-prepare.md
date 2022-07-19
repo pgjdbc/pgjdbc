@@ -107,12 +107,12 @@ Standard `LISTEN`, `NOTIFY`, and `UNLISTEN` commands are issued via the standard
 `PGConnection`. From there the `getNotifications()` method can be used to retrieve
 any outstanding notifications.
 
-{{% note %}}
+{{< admonition type="note" >}}
 	A key limitation of the JDBC driver is that it cannot receive asynchronous
 	notifications and must poll the backend to check if any notifications were issued.
 	A timeout can be given to the poll function, but then the execution of statements
 	from other threads will block.
-{{% /note %}}
+{{< /admonition >}}
 
 
 **Example 9.2. Receiving Notifications**

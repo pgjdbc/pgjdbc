@@ -18,12 +18,12 @@ Any source that uses JDBC needs to import the `java.sql` package, using:
 import java.sql.*;
 ```
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 You should not import the `org.postgresql` package unless you are not using standard
 PostgreSQL™ extensions to the JDBC API.
 
-{{% /note %}}
+{{< /admonition >}}
 
 ##  Loading the Driver
 
@@ -33,11 +33,11 @@ mechanism. The driver will be loaded by the JVM when the application
 connects to PostgreSQL™ (as long as the driver's jar file is on the
 classpath).
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 Prior to Java 1.6, the driver had to be loaded by the application - either by calling
 
-{{% /note %}}
+{{< /admonition >}}
 
 ```java
 Class.forName("org.postgresql.Driver");

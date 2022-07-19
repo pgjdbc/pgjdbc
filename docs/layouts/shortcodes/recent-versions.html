@@ -1,8 +1,8 @@
 <div class="card">
     {{ range $ind, $ver := $.Site.Data.versions.recent }}
     <div class="card__item">
-        <h2>{{$ver.j_name}}</h2>
-        <h3>{{$ver.v_name}}</h3>
+        <h3>{{$ver.j_name}}</h2>
+        <h4>{{$ver.v_name}}</h4>
         <p>{{$ver.description}}</p>
         <button class="cta cta--orange">
             <a href="{{$ver.url}}">Download</a>

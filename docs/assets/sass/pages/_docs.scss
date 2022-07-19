@@ -1,10 +1,18 @@
 .doc {
-   @include flexbox;
+   display: flex;
 }
 
 .article {
    width: 60%;
    padding: 2rem;
+
+   a {
+      text-decoration: underline;
+
+      &:hover {
+         text-decoration: none;
+      }
+   }
 
    p {
       max-width: 100%;
@@ -14,4 +22,27 @@
 .toc {
    width: 20%;
    padding: 1rem;
+   align-self: start;
+   position: sticky;
+   top: 5rem;
+
+   nav {
+      border-left-style: solid;
+      border-left-width: 1px;
+      border-color: #ccc;
+      margin-inline: 1rem;
+   }
+
+
+   ul {
+      list-style: none;
+      font-size: var(--fs-300);
+      margin: 0.5rem;
+      padding: 0;
+      padding-left: 0.75rem;
+
+      li:not(last-child) {
+         margin-bottom: 0.5rem;
+      }
+   }
 }

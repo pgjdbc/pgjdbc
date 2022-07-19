@@ -1,5 +1,24 @@
 .pagination {
-    @include flexbox;
-    @include flex-direction(row);
-    @include justify-content(space-between);
+    display: flex;
+    width: 100%;
+    text-transform: uppercase;
+
+    &__left {
+        width: 50%;
+
+        & a::before {
+            content: '\00AB';
+            font-size: 25px;
+        }
+    }
+
+    &__right {
+        text-align: right;
+        width: 50%;
+
+        & a::after {
+            content: '\00BB';
+            font-size: 25px;
+        }
+    }
 }

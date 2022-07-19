@@ -1,26 +1,8 @@
 <section class="feature">
+    {{ range $.Site.Data.homepagedata.feature }}
     <div class="feature__item flow">
-        <img class="feature__item__media" src="{{"/icons/java-icon.svg" | relURL}}" />
-        <p>
-            Allows Java programs to connect
-            to a PostgreSQL database using
-            standard, database independent Java code
-        </p>
+        <img class="feature__item__media" src="{{ .path | relURL}}" />
+        <p> {{ .desc }} </p>
     </div>
-    <div class="feature__item flow">
-        <img class="feature__item__media" src="{{"/icons/api-icon.svg" | relURL}}" />
-        <p>
-            Provides complete implementation
-            of the JDBC specification in addition
-            to some PostgreSQL specific extensions
-        </p>
-    </div>
-    <div class="feature__item flow">
-        <img class="feature__item__media" src="{{"/icons/driver-icon.svg" | relURL}}" />
-        <p>
-            The current development driver
-            supports eleven server versions
-            and three java environments.
-        </p>
-    </div>
+    {{ end }}
 </section>

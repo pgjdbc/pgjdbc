@@ -99,13 +99,13 @@ following
 |verify-ca|	Yes|Depends on CA policy|I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server that I trust.|
 |verify-full|	Yes |Yes|I want my data encrypted, and I accept the overhead. I want to be sure that I connect to a server I trust, and that it's the one I specify.|
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 If you are using Java's default mechanism (not LibPQFactory) to create the SSL connection you will
 need to make the server certificate available to Java, the first step is to convert
 it to a form Java understands.
 
-{{% /note %}}
+{{< /admonition >}}
 
  `openssl x509 -in server.crt -out server.crt.der -outform der`
 

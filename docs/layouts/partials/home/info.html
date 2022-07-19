@@ -1,42 +1,28 @@
 <section class="info">
     <article class="info__about flow">
-        <h3>
+        <h2>
             <u>Why Pgjdbc ?</u>
-        </h3>
+        </h2>
         <p>
-            PostgreSQL JDBC Driver allows Java programs to
-            connect to a PostgreSQL database using standard,
-            database independent Java code. Is an open source
-            JDBC driver written in Pure Java (Type 4), and
-            communicates in the PostgreSQL native network protocol.
-            Because of this, the driver is platform independent;
-            once compiled, the driver can be used on any system.
+            PostgreSQL JDBC Driver allows Java programs to connect to a PostgreSQL database using standard, database
+            independent Java code. Is an open source JDBC driver written in Pure Java (Type 4), and communicates in the
+            PostgreSQL native network protocol. Because of this, the driver is platform independent; once compiled, the
+            driver can be used on any system.
         </p>
     </article>
     <article class="info__release flow">
-        <h3>
+        <h2>
             <u>Latest Releases</u>
-        </h3>
+        </h2>
         <p>
-            Pgjdbc has released v42.3.6 on 24 May, 2022.
-            Please see the release notes below.
+            Pgjdbc has released v42.3.6 on 24 May, 2022. Please see the release notes below.
         </p>
-        <ul>
-            <li>
-                42.3.6 · 24 May 2022 · Notes
+        <ul role="list">
+            {{ range $.Site.Data.homepagedata.info }}
+            <li role="listitem">
+                <strong>{{ .version }}</strong> · {{ .date }} · <a href="{{ .url }}">Notes</a>
             </li>
-            <li>
-                42.3.5 · 04 May 2022 · Notes
-            </li>
-            <li>
-                42.3.4 · 15 Apr 2022 · Notes
-            </li>
-            <li>
-                42.3.3 · 15 Feb 2022 · Notes
-            </li>
-            <li>
-                42.3.2 · 01 Feb 2022 · Notes
-            </li>
+            {{ end}}
         </ul>
     </article>
 </section>

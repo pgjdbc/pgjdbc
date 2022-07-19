@@ -1,0 +1,16 @@
+{{- $type := .Get "type" -}}
+{{- $path := printf "%s" ".svg" | printf "%s%s" $type | printf "%s%s" "/icons/" |  printf "%s" -}}
+
+<div class="admonition admonition--{{$type}}">
+    <div class="admonition__heading">
+        <h4>
+            <span class="admonition__icon">
+                <img src="{{ $path | relURL}}" />
+            </span>
+            {{ cond (eq $type "note") "NOTE" "IMPORTANT"}}
+        </h4>
+    </div>
+    <div class="admonition__content">
+        {{- .Inner -}}
+    </div>
+</div>

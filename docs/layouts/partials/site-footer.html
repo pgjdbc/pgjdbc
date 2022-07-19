@@ -1,17 +1,16 @@
 <footer class="footer" role="contentinfo">
-    <div class="footer__items">
+    <div class="footer__item">
         {{ range $.Site.Data.footer.external }}
-        <div class="footer__items__links">
-            <ul role="list">
-                <li>{{ .title }}</li>
-                {{ range .links}}
-                <li><a href="{{ .url }}">{{ .name }}</a></li>
-                {{end}}
-            </ul>
-        </div>
+        <ul role="list">
+            <li class="h3">{{ .title }}</li>
+            <br />
+            {{ range .links}}
+            <li class="h4"><a href="{{ .url | relURL }}">{{ .name }}</a></li>
+            {{end}}
+        </ul>
         {{ end }}
     </div>
-    <p class="copyright">
+    <div class="copyrights">
         Copyright © 1996-2022 The PostgreSQL Global Development Group
-    </p>
+    </div>
 </footer>

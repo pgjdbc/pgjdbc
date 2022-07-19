@@ -43,9 +43,9 @@ provided by the PostgreSQL™ JDBC driver, or by using the `getBLOB()` and `setB
 
 methods.
 
-{{% important %}}
+{{< admonition type="info" >}}
 You must access Large Objects within an SQL transaction block.  You can start a transaction block by calling `setAutoCommit(false)` .
-{{% /important %}}
+{{< /admonition >}}
 
 [Example 7.1, “Processing Binary Data in JDBC”](binary-data.html#binary-data-example)
 contains some examples on how to process binary data using the PostgreSQL™ JDBC
@@ -77,7 +77,7 @@ Here, `setBinaryStream()` transfers a set number of bytes from a stream into the
 column of type BYTEA. This also could have been done using the `setBytes()` method
 if the contents of the image was already in a `byte[]` .
 
-{{% note %}}
+{{< admonition type="note" >}}
 
 The length parameter to `setBinaryStream` must be correct. There is no way to
 indicate that the stream is of unknown length. If you are in this situation, you
@@ -85,7 +85,7 @@ must read the stream yourself into temporary storage and determine the length.
 Now with the correct length you may send the data from temporary storage on to
 the driver.
 
-{{% /note %}}
+{{< /admonition >}}
 
 Retrieving an image is even easier. (We use `PreparedStatement` here, but the
 `Statement` class can equally be used.)

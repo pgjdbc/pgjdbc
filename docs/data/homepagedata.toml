@@ -1,0 +1,35 @@
+# Features
+
+[[feature]]
+desc = "Allows Java programs to connect to a PostgreSQL database using standard, database independent Java code"
+path = "/icons/java-icon.svg"
+
+[[feature]]
+desc = "Provides complete implementation of the JDBC specification in addition to some PostgreSQL specific extensions"
+path = "/icons/api-icon.svg"
+
+[[feature]]
+desc = "The current development driver supports eleven server versions and three java environments"
+path = "/icons/driver-icon.svg"
+
+# Releases Info
+
+[[info]]
+date = "24 May 2022"
+url = "https://github.com/pgjdbc/pgjdbc/blob/master/CHANGELOG.md#4236-2022-05-24-085227--0400"
+version = "42.3.6"
+
+[[info]]
+date = "04 May 2022"
+url = "https://github.com/pgjdbc/pgjdbc/blob/master/CHANGELOG.md#4235-2022-05-04-084835--0400"
+version = "42.3.5"
+
+[[info]]
+date = "15 Apr 2022"
+url = "https://github.com/pgjdbc/pgjdbc/blob/master/CHANGELOG.md#4234-2022-04-01-141628--0400"
+version = "42.3.4"
+
+[[info]]
+date = "15 Feb 2022"
+url = "https://github.com/pgjdbc/pgjdbc/blob/master/CHANGELOG.md#4233-2022-02-15-113224--0500"
+version = "42.3.3"

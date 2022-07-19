@@ -1,99 +1,99 @@
 ### GLOBAL ITEMS
 
 [[global]]
-    name="Download"
-    weight=1
-    identifier="download"
-    url="/download/"
+identifier = "download"
+name = "Download"
+url = "/download/"
+weight = 1
 
 [[global]]
-    name="Documentation"
-    weight=2
-    identifier="document"
-    url="/documentation/"
+identifier = "document"
+name = "Documentation"
+url = "/documentation/"
+weight = 2
 
 [[global]]
-    name="Community"
-    weight=3
-    identifier="community"
-    url="/community/"
+identifier = "community"
+name = "Community"
+url = "/community/"
+weight = 3
 
 [[global]]
-    name="Development"
-    weight=4
-    identifier="development"
-    url="/development/"
+identifier = "development"
+name = "Development"
+url = "/development/"
+weight = 4
 
 ### DOCS ITEMS
 
 [[docs]]
-    name="Getting Started"
-    weight=2
-    identifier="setup"
-    url="/documentation/setup/"
+identifier = "setup"
+name = "Getting Started"
+url = "/documentation/setup/"
+weight = 2
 
 [[docs]]
-    name="Initializing the Driver"
-    weight=3
-    identifier="use"
-    url="/documentation/use/"
+identifier = "use"
+name = "Initializing the Driver"
+url = "/documentation/use/"
+weight = 3
 
 [[docs]]
-    name="Using SSL"
-    weight=4
-    identifier="ssl"
-    url="/documentation/ssl/"
+identifier = "ssl"
+name = "Using SSL"
+url = "/documentation/ssl/"
+weight = 4
 
 [[docs]]
-    name="Issuing a Query and Processing the Result"
-    weight=5
-    identifier="query"
-    url="/documentation/query/"
+identifier = "query"
+name = "Issuing a Query and Processing the Result"
+url = "/documentation/query/"
+weight = 5
 
 [[docs]]
-    name="Calling Stored Functions and Procedures"
-    weight=6
-    identifier="callproc"
-    url="/documentation/callproc/"
+identifier = "callproc"
+name = "Calling Stored Functions and Procedures"
+url = "/documentation/callproc/"
+weight = 6
 
 [[docs]]
-    name="Storing Binary Data"
-    weight=7
-    identifier="binary-data"
-    url="/documentation/binary-data/"
+identifier = "binary-data"
+name = "Storing Binary Data"
+url = "/documentation/binary-data/"
+weight = 7
 
 [[docs]]
-    name="JDBC escapes"
-    weight=8
-    identifier="escapes"
-    url="/documentation/escapes/"
+identifier = "escapes"
+name = "JDBC escapes"
+url = "/documentation/escapes/"
+weight = 8
 
 [[docs]]
-    name="PostgreSQL™ Extensions to the JDBC API"
-    weight=9
-    identifier="server-prepare"
-    url="/documentation/server-prepare/"
+identifier = "server-prepare"
+name = "PostgreSQL™ Extensions to the JDBC API"
+url = "/documentation/server-prepare/"
+weight = 9
 
 [[docs]]
-    name="Using the Driver in a Multithreaded or a Servlet Environment"
-    weight=10
-    identifier="thread"
-    url="/documentation/thread/"
+identifier = "thread"
+name = "Using the Driver in a Multithreaded or a Servlet Environment"
+url = "/documentation/thread/"
+weight = 10
 
 [[docs]]
-    name="Connection Pools and Data Sources"
-    weight=11
-    identifier="datasource"
-    url="/documentation/datasource/"
+identifier = "datasource"
+name = "Connection Pools and Data Sources"
+url = "/documentation/datasource/"
+weight = 11
 
 [[docs]]
-    name="Logging using java.util.logging"
-    weight=12
-    identifier="logging"
-    url="/documentation/logging/"
+identifier = "logging"
+name = "Logging using java.util.logging"
+url = "/documentation/logging/"
+weight = 12
 
 [[docs]]
-    name="Further Reading"
-    weight=13
-    identifier="reading"
-    url="/documentation/reading/"
+identifier = "reading"
+name = "Further Reading"
+url = "/documentation/reading/"
+weight = 13
