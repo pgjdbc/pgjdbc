@@ -869,6 +869,85 @@ tbody tr {
   .download p {
     max-width: 100%; }
 
+.faq {
+  margin-block: 3rem; }
+
+.accordion {
+  margin-block: 2rem; }
+  .accordion .accordion__item {
+    border-bottom: 1px solid var(--clr-gray-100); }
+    .accordion .accordion__item button[aria-expanded='true'] {
+      border-bottom: 1px solid var(--clr-blue-200); }
+  .accordion button {
+    position: relative;
+    display: block;
+    text-align: left;
+    width: 100%;
+    padding: 1em 0;
+    color: var(--clr-gray-400);
+    font-size: 1.15rem;
+    font-weight: 400;
+    border: none;
+    background: none;
+    outline: none; }
+    .accordion button:hover, .accordion button:focus {
+      cursor: pointer;
+      color: var(--clr-blue-200); }
+      .accordion button:hover::after, .accordion button:focus::after {
+        cursor: pointer;
+        color: var(--clr-blue-200);
+        border: 1px solid var(--clr-blue-200); }
+    .accordion button .accordion__title {
+      padding: 1em 1.5em 1em 0; }
+    .accordion button .icon {
+      display: inline-block;
+      position: absolute;
+      top: 18px;
+      right: 0;
+      width: 22px;
+      height: 22px;
+      border: 1px solid;
+      border-radius: 22px; }
+      .accordion button .icon::before {
+        display: block;
+        position: absolute;
+        content: '';
+        top: 9px;
+        left: 5px;
+        width: 10px;
+        height: 2px;
+        background: currentColor; }
+      .accordion button .icon::after {
+        display: block;
+        position: absolute;
+        content: '';
+        top: 5px;
+        left: 9px;
+        width: 2px;
+        height: 10px;
+        background: currentColor; }
+  .accordion button[aria-expanded='true'] {
+    color: var(--clr-blue-200); }
+    .accordion button[aria-expanded='true'] .icon::after {
+      width: 0; }
+    .accordion button[aria-expanded='true'] + .accordion__content {
+      opacity: 1;
+      max-height: 50em;
+      transition: all 200ms linear;
+      will-change: opacity, max-height; }
+  .accordion .accordion__content {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 200ms linear, max-height 200ms linear;
+    will-change: opacity, max-height; }
+    .accordion .accordion__content p,
+    .accordion .accordion__content ol,
+    .accordion .accordion__content li {
+      font-size: 1rem;
+      font-weight: 300;
+      margin: 2em 0; }
+
 .home {
   max-width: 70rem;
   margin: 2rem auto;

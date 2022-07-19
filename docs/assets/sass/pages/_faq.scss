@@ -1,0 +1,111 @@
+.faq {
+    margin-block: 3rem;
+}
+
+.accordion {
+    margin-block: 2rem;
+
+    .accordion__item {
+        border-bottom: 1px solid var(--clr-gray-100);
+
+        button[aria-expanded='true'] {
+            border-bottom: 1px solid var(--clr-blue-200);
+        }
+    }
+
+    button {
+        position: relative;
+        display: block;
+        text-align: left;
+        width: 100%;
+        padding: 1em 0;
+        color: var(--clr-gray-400);
+        font-size: 1.15rem;
+        font-weight: 400;
+        border: none;
+        background: none;
+        outline: none;
+
+        &:hover,
+        &:focus {
+            cursor: pointer;
+            color: var(--clr-blue-200);
+
+            &::after {
+                cursor: pointer;
+                color: var(--clr-blue-200);
+                border: 1px solid var(--clr-blue-200);
+            }
+        }
+
+        .accordion__title {
+            padding: 1em 1.5em 1em 0;
+        }
+
+        .icon {
+            display: inline-block;
+            position: absolute;
+            top: 18px;
+            right: 0;
+            width: 22px;
+            height: 22px;
+            border: 1px solid;
+            border-radius: 22px;
+
+            &::before {
+                display: block;
+                position: absolute;
+                content: '';
+                top: 9px;
+                left: 5px;
+                width: 10px;
+                height: 2px;
+                background: currentColor;
+            }
+
+            &::after {
+                display: block;
+                position: absolute;
+                content: '';
+                top: 5px;
+                left: 9px;
+                width: 2px;
+                height: 10px;
+                background: currentColor;
+            }
+        }
+    }
+
+    button[aria-expanded='true'] {
+        color: var(--clr-blue-200);
+
+        .icon {
+            &::after {
+                width: 0;
+            }
+        }
+
+        +.accordion__content {
+            opacity: 1;
+            max-height: 50em;
+            transition: all 200ms linear;
+            will-change: opacity, max-height;
+        }
+    }
+
+    .accordion__content {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: opacity 200ms linear, max-height 200ms linear;
+        will-change: opacity, max-height;
+
+        p,
+        ol,
+        li {
+            font-size: 1rem;
+            font-weight: 300;
+            margin: 2em 0;
+        }
+    }
+}

@@ -26,7 +26,7 @@ url = "https://www.postgresql.org/list/pgsql-jdbc/"
 title = "More"
 [[external.links]]
 name = "FAQ"
-url = "https://jdbc.postgresql.org/documentation/publicapi/index.html"
+url = "/faq/"
 [[external.links]]
 name = "Privacy"
 url = "https://www.postgresql.org/about/policies/privacy/"
