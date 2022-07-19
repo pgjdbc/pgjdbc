@@ -19,6 +19,10 @@ import java.lang.annotation.Target;
  * calls like {@code System#getProperty} and {@code System#getenv}.
  * <p>The tests should be run in isolation to prevent concurrent modification of properties and
  * the environment.</p>
+ * <p>Note: environment mocking works from a single thread only until
+ * <a href="https://github.com/webcompere/system-stubs/pull/46">Fix multi-threaded
+ * environment variable mocking</a>, and <a href="https://github.com/mockito/mockito/issues/2142">Mocked
+ * static methods are not available in other threads</a> are resolved</p>
  */
 @Isolated
 @ExtendWith(SystemStubsExtension.class)
