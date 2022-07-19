@@ -106,7 +106,8 @@ ol[role='list'] {
 
 /* Set core root defaults */
 html:focus-within {
-  scroll-behavior: smooth; }
+  scroll-behavior: smooth;
+  scroll-padding-top: 100px; }
 
 /* Set core body defaults */
 body {
