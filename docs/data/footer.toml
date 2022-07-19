@@ -32,4 +32,4 @@ name = "Privacy"
 url = "https://www.postgresql.org/about/policies/privacy/"
 [[external.links]]
 name = "License"
-url = "https://www.postgresql.org/"
+url = "/license/"
