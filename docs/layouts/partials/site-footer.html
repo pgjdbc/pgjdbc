@@ -5,7 +5,7 @@
             <li class="h3">{{ .title }}</li>
             <br />
             {{ range .links}}
-            <li class="h4"><a href="{{ .url }}">{{ .name }}</a></li>
+            <li class="h4"><a href="{{ .url | relURL }}">{{ .name }}</a></li>
             {{end}}
         </ul>
         {{ end }}

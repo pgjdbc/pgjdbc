@@ -2,6 +2,9 @@ body {
   display: flex;
   flex-direction: column; }
 
+html {
+  scroll-padding-top: 100px; }
+
 .chroma .lntable pre {
   padding: 0;
   margin: 0;
@@ -106,8 +109,7 @@ ol[role='list'] {
 
 /* Set core root defaults */
 html:focus-within {
-  scroll-behavior: smooth;
-  scroll-padding-top: 100px; }
+  scroll-behavior: smooth; }
 
 /* Set core body defaults */
 body {
