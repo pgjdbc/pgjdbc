@@ -14,12 +14,6 @@ html {
   padding: 0;
   margin: 0; }
 
-pre,
-.pre {
-  overflow-x: auto;
-  overflow-y: hidden;
-  overflow: scroll; }
-
 code {
   padding: 0.2em;
   margin: 0;
@@ -781,20 +775,21 @@ a {
   padding: 2.5px; }
 
 .searchBox:hover > .searchInput {
-  width: 240px;
+  width: auto;
   padding: 0 6px; }
 
 .searchBox:hover > .searchButton {
-  background: white; }
+  background: var(--clr-white-500); }
   .searchBox:hover > .searchButton svg {
     fill: var(--clr-blue-500); }
 
 .searchButton {
-  color: white;
+  color: var(--clr-white-500);
   float: right;
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  border-color: var(--clr-white-500);
   background: var(--clr-blue-500);
   display: flex;
   justify-content: center;
@@ -807,11 +802,13 @@ a {
   outline: none;
   float: left;
   padding: 0;
-  color: white;
+  color: var(--clr-white-500);
   font-size: 16px;
   transition: 0.4s;
   line-height: 40px;
   width: 0px; }
+  .searchInput input::placeholder, .searchInput input::-ms-input-placeholder {
+    color: var(--clr-white-500); }
 
 @media screen and (max-width: 620px) {
   .searchBox:hover > .searchInput {
