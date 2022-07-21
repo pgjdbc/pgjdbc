@@ -14,12 +14,6 @@ html {
   padding: 0;
   margin: 0; }
 
-pre,
-.pre {
-  overflow-x: auto;
-  overflow-y: hidden;
-  overflow: scroll; }
-
 code {
   padding: 0.2em;
   margin: 0;
@@ -40,6 +34,15 @@ pre {
   -ms-hyphens: none;
   hyphens: none;
   position: relative; }
+
+.search-list {
+  margin-bottom: 1rem; }
+
+.list-title {
+  padding: 0 1.5rem;
+  max-width: 62.5rem;
+  margin-inline: auto;
+  margin-block: 2rem; }
 
 /* inria-sans-300 - latin */
 @font-face {
@@ -772,20 +775,21 @@ a {
   padding: 2.5px; }
 
 .searchBox:hover > .searchInput {
-  width: 240px;
+  width: auto;
   padding: 0 6px; }
 
 .searchBox:hover > .searchButton {
-  background: white; }
+  background: var(--clr-white-500); }
   .searchBox:hover > .searchButton svg {
     fill: var(--clr-blue-500); }
 
 .searchButton {
-  color: white;
+  color: var(--clr-white-500);
   float: right;
   width: 40px;
   height: 40px;
   border-radius: 50%;
+  border-color: var(--clr-white-500);
   background: var(--clr-blue-500);
   display: flex;
   justify-content: center;
@@ -798,7 +802,7 @@ a {
   outline: none;
   float: left;
   padding: 0;
-  color: white;
+  color: var(--clr-white-500);
   font-size: 16px;
   transition: 0.4s;
   line-height: 40px;
@@ -961,6 +965,10 @@ tbody tr {
     color: var(--clr-blue-400); }
   .home p {
     color: var(--clr-black-400); }
+  .home a {
+    text-decoration: underline; }
+    .home a:hover {
+      text-decoration: none; }
 
 .hero {
   display: flex;
@@ -981,6 +989,8 @@ tbody tr {
       display: flex;
       column-gap: 1rem;
       font-size: var(--fs-400); }
+      .hero__content__actions a {
+        text-decoration: none; }
 
 .info {
   display: flex;
@@ -1029,8 +1039,6 @@ tbody tr {
   .report__row__item {
     display: flex;
     column-gap: 1rem; }
-    .report__row__item h3 {
-      color: var(--clr-red-500); }
 
 .support {
   position: relative; }
