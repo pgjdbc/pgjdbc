@@ -1,6 +1,5 @@
 # Production BaseURL
-# baseURL = "https://pgjdbc.github.io/pgjdbc/"
-baseURL = "/"
+baseURL = "https://pgjdbc.github.io/pgjdbc/"
 languageCode = "en-us"
 title = "Pgjdbc"
 [permalinks]
