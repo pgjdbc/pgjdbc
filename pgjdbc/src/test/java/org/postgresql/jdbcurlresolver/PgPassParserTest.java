@@ -20,7 +20,6 @@ import java.net.URL;
  *
  * @author Marek Läll
  */
-@StubEnvironmentAndProperties
 public class PgPassParserTest {
 
   @Test

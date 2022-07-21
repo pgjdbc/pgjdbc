@@ -30,7 +30,6 @@ import java.util.Properties;
  *
  * @author Marek Läll
  */
-@StubEnvironmentAndProperties
 public class PgServiceConfParserTest {
 
   // "org.postgresql.pgservicefile" : missing

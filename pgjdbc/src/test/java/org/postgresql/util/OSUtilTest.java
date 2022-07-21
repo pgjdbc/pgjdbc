@@ -14,7 +14,6 @@ import uk.org.webcompere.systemstubs.resource.Resources;
 
 import java.io.File;
 
-@StubEnvironmentAndProperties
 class OSUtilTest {
 
   @Test

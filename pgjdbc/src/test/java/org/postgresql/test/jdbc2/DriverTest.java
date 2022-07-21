@@ -17,9 +17,9 @@ import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.util.StubEnvironmentAndProperties;
 import org.postgresql.util.URLCoder;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
@@ -42,7 +42,6 @@ import java.util.Properties;
  * Tests the dynamically created class org.postgresql.Driver
  *
  */
-@StubEnvironmentAndProperties
 public class DriverTest {
 
   @Test
@@ -76,6 +75,8 @@ public class DriverTest {
 
     // These are always correct
     verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql:/test", "localhost", "5432", "/test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql:////", "localhost", "5432", "/", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432," + "5432", "test", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost:5433,locahost2:5434/test", "localhost,locahost2", "5433,5434", "test", "osUser", null);
@@ -114,8 +115,6 @@ public class DriverTest {
 
     // Badly formatted url's
     assertFalse(drv.acceptsURL("jdbc:postgres:test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql:/test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql:////"));
     assertFalse(drv.acceptsURL("jdbc:postgresql:///?service=my data#base%1"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://[::1]:5740/my data#base%1"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost/dbname?loggerFile=C%3A%5Cdir%5Cfile.%log"));
