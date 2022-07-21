@@ -807,8 +807,6 @@ a {
   transition: 0.4s;
   line-height: 40px;
   width: 0px; }
-  .searchInput input::placeholder, .searchInput input::-ms-input-placeholder {
-    color: var(--clr-white-500); }
 
 @media screen and (max-width: 620px) {
   .searchBox:hover > .searchInput {
@@ -967,6 +965,10 @@ tbody tr {
     color: var(--clr-blue-400); }
   .home p {
     color: var(--clr-black-400); }
+  .home a {
+    text-decoration: underline; }
+    .home a:hover {
+      text-decoration: none; }
 
 .hero {
   display: flex;
@@ -987,6 +989,8 @@ tbody tr {
       display: flex;
       column-gap: 1rem;
       font-size: var(--fs-400); }
+      .hero__content__actions a {
+        text-decoration: none; }
 
 .info {
   display: flex;
@@ -1035,8 +1039,6 @@ tbody tr {
   .report__row__item {
     display: flex;
     column-gap: 1rem; }
-    .report__row__item h3 {
-      color: var(--clr-red-500); }
 
 .support {
   position: relative; }
