@@ -5,12 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
@@ -19,10 +20,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
@@ -43,7 +42,6 @@ import java.util.Properties;
  * Tests the dynamically created class org.postgresql.Driver
  *
  */
-@ExtendWith(SystemStubsExtension.class)
 public class DriverTest {
 
   @Test
@@ -57,11 +55,11 @@ public class DriverTest {
    * According to the javadoc of java.sql.Driver.connect(...), calling abort when the {@code executor} is {@code null}
    * results in SQLException
    */
-  @Test(expected = SQLException.class)
+  @Test
   public void urlIsNull() throws SQLException {
     Driver driver = new Driver();
 
-    driver.connect(null, new Properties());
+    assertThrows(SQLException.class, () -> driver.connect(null, new Properties()));
   }
 
   /*
@@ -77,6 +75,8 @@ public class DriverTest {
 
     // These are always correct
     verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql:/test", "localhost", "5432", "/test", "osUser", null);
+    verifyUrl(drv, "jdbc:postgresql:////", "localhost", "5432", "/", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432," + "5432", "test", "osUser", null);
     verifyUrl(drv, "jdbc:postgresql://localhost:5433,locahost2:5434/test", "localhost,locahost2", "5433,5434", "test", "osUser", null);
@@ -139,17 +139,17 @@ public class DriverTest {
     defaults.setProperty("user", "osUser");
     Properties props = new Properties(defaults);
     // syntax check
-    assertTrue(url, drv.acceptsURL(url));
+    assertTrue(drv.acceptsURL(url), url);
     // invoke parseURL
     Method parseMethod = drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
     Properties p = (Properties) parseMethod.invoke(drv, url, props);
     //validate result
-    assertEquals(url, dbName, p.getProperty(PGProperty.DBNAME.getName()));
-    assertEquals(url, hosts, p.getProperty(PGProperty.HOST.getName()));
-    assertEquals(url, ports, p.getProperty(PGProperty.PORT.getName()));
-    assertEquals(url, user, p.getProperty(PGProperty.USER.getName()));
-    assertEquals(url, pass, p.getProperty(PGProperty.PASSWORD.getName()));
+    assertEquals(dbName, p.getProperty(PGProperty.DBNAME.getName()), url);
+    assertEquals(hosts, p.getProperty(PGProperty.HOST.getName()), url);
+    assertEquals(ports, p.getProperty(PGProperty.PORT.getName()), url);
+    assertEquals(user, p.getProperty(PGProperty.USER.getName()), url);
+    assertEquals(pass, p.getProperty(PGProperty.PASSWORD.getName()), url);
   }
 
   /**
@@ -531,7 +531,7 @@ public class DriverTest {
       try {
         assertNotNull(con);
         System.err.println();
-        assertFalse("The System.err should not be closed.", System.err.checkError());
+        assertFalse(System.err.checkError(), "The System.err should not be closed.");
       } finally {
         con.close();
       }

@@ -15,9 +15,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.util.OSUtil;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
@@ -32,7 +30,6 @@ import java.util.Properties;
  *
  * @author Marek Läll
  */
-@ExtendWith(SystemStubsExtension.class)
 public class PgServiceConfParserTest {
 
   // "org.postgresql.pgservicefile" : missing

@@ -683,6 +683,15 @@ public enum PGProperty {
       "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password."),
 
   /**
+   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after </p>
+   */
+  SSL_RESPONSE_TIMEOUT(
+      "sslResponseTimeout",
+      "5000",
+      "Time in milliseconds we wait for a response from the server after requesting SSL upgrade"),
+
+  /**
    * File containing the root certificate when validating server ({@code sslmode} = {@code
    * verify-ca} or {@code verify-full}). Default will be the file {@code root.crt} in {@code
    * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).

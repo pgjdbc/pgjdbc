@@ -532,6 +532,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
+    int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
+    int currentTimeout = pgStream.getSocket().getSoTimeout();
+
+    // if the current timeout is less than sslTimeout then
+    // use the smaller timeout. We could do something tricky
+    // here to not set it in that case but this is pretty readable
+    if (currentTimeout > 0 && currentTimeout < sslTimeout) {
+      sslTimeout = currentTimeout;
+    }
+
+    pgStream.getSocket().setSoTimeout(sslTimeout);
     // Send SSL request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
@@ -540,6 +551,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
+    pgStream.getSocket().setSoTimeout(currentTimeout);
+
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE SSLError");
