@@ -15,6 +15,14 @@
         color: var(--clr-black-400);
     }
 
+    a {
+        text-decoration: underline;
+
+        &:hover {
+            text-decoration: none;
+        }
+    }
+
 }
 
 // Hero Section
@@ -45,6 +53,10 @@
             display: flex;
             column-gap: 1rem;
             font-size: var(--fs-400);
+
+            a {
+                text-decoration: none;
+            }
         }
     }
 }
@@ -126,10 +138,6 @@
         &__item {
             display: flex;
             column-gap: 1rem;
-
-            h3 {
-                color: var(--clr-red-500);
-            }
         }
     }
 }
