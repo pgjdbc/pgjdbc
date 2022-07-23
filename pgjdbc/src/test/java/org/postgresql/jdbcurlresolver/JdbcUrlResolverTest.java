@@ -5,8 +5,8 @@
 
 package org.postgresql.jdbcurlresolver;
 
-import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.PGEnvironment;
@@ -15,9 +15,8 @@ import org.postgresql.core.JavaVersion;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
@@ -553,7 +552,7 @@ public class JdbcUrlResolverTest {
     Properties p = resolver.getResult();
     assertNull(p);
     JdbcUrlResolverFatalException e = resolver.getFailException();
-    Assert.assertNotNull(e);
+    assertNotNull(e);
     assertEquals(errorMessage, e.getMessage());
   }
 
