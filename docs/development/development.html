@@ -26,12 +26,11 @@ nav: /
 						<p>
 							The PostgreSQL JDBC driver has some unique properties that you
 							should be aware of before starting to develop any code for it.
-							The current development driver supports eleven server versions and
-							three java environments. This doesn't mean that every feature must
-							work in every combination, but a reasonable behaviour must be
-							provided for non-supported versions.  While this extra compatibility
-							sounds like a lot of work, the actual goal is to reduce the amount
-							of work by maintaining only one code base.
+							The current development driver supports a number of server versions. 
+							This doesn't mean that every feature must work in every combination,
+							but a reasonable behaviour must be provided for non-supported versions. 
+							While this extra compatibility sounds like a lot of work, the actual 
+							goal is to reduce the amount of work by maintaining only one code base.
 						</p>
 					</div>
 					<hr />
@@ -44,7 +43,7 @@ nav: /
 						</p>
 						<ul>
 							<li><a href="https://java.oracle.com" target="_blank">Java 8 Standard Edition Development Kit</a> At least JDK 1.8</li>
-							<li><a href="https://gradle.org" target="_blank">Gradle</a> At least 6.1</li>
+							<li><a href="https://gradle.org" target="_blank">Gradle</a> At least 7.5</li>
 							<li><a href="https://git-scm.com" target="_blank">Git SCM</a></li>
 							<li><a href="https://www.postgresql.org" target="_blank">A PostgreSQL instance</a> to run the tests.</li>
 						</ul>
@@ -57,8 +56,8 @@ nav: /
 						<p>
 							After retrieving the source from the <a href="../development/git.html">git repository</a>.
 							Move into the top level <span style="font-family: Courier New,Courier,monospace;">pgjdbc</span> directory and simply
-							type <span style="font-family: Courier New,Courier,monospace;">./gradlew build -DskipTests</span>.  This will build the appropriate driver for
-							your current Java version and place it into <span style="font-family: Courier New,Courier,monospace;">pgjdbc/build/distributions/postgresql-${version}.jar</span>.
+							type <span style="font-family: Courier New,Courier,monospace;">./gradlew build -DskipTests</span>.  This will build the driver
+							and place it into <span style="font-family: Courier New,Courier,monospace;">pgjdbc/build/distributions/postgresql-${version}.jar</span>.
 						</p>
 					</div>
 					<hr />
