@@ -49,6 +49,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 100;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-100.woff") format("woff"); }
 
 /* barlow-latin-100 */
@@ -56,6 +57,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 100;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-100italic.woff") format("woff"); }
 
 /* barlow-latin-200 */
@@ -63,6 +65,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 200;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-200.woff") format("woff"); }
 
 /* barlow-latin-200 */
@@ -70,6 +73,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 200;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-200italic.woff") format("woff"); }
 
 /* barlow-latin-300 */
@@ -77,6 +81,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 300;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-300.woff") format("woff"); }
 
 /* barlow-latin-300 */
@@ -84,6 +89,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 300;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-300italic.woff") format("woff"); }
 
 /* barlow-latin-400 */
@@ -91,6 +97,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 400;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-400.woff") format("woff"); }
 
 /* barlow-latin-400 */
@@ -98,6 +105,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 400;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-400italic.woff") format("woff"); }
 
 /* barlow-latin-500 */
@@ -105,6 +113,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 500;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-500.woff") format("woff"); }
 
 /* barlow-latin-500 */
@@ -112,6 +121,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 500;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-500italic.woff") format("woff"); }
 
 /* barlow-latin-600 */
@@ -119,6 +129,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 600;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-600.woff") format("woff"); }
 
 /* barlow-latin-600 */
@@ -126,6 +137,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 600;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-600italic.woff") format("woff"); }
 
 /* barlow-latin-700 */
@@ -133,6 +145,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 700;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-700.woff") format("woff"); }
 
 /* barlow-latin-700 */
@@ -140,6 +153,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 700;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-700italic.woff") format("woff"); }
 
 /* barlow-latin-800 */
@@ -147,6 +161,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 800;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-800.woff") format("woff"); }
 
 /* barlow-latin-800 */
@@ -154,6 +169,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 800;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-800italic.woff") format("woff"); }
 
 /* barlow-latin-900 */
@@ -161,6 +177,7 @@ pre {
   font-family: "Barlow";
   font-style: normal;
   font-weight: 900;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-900.woff") format("woff"); }
 
 /* barlow-latin-900 */
@@ -168,6 +185,7 @@ pre {
   font-family: "Barlow";
   font-style: italic;
   font-weight: 900;
+  font-display: swap;
   src: local(""), url("../fonts/barlow-latin-900italic.woff") format("woff"); }
 
 /* Box sizing rules */
