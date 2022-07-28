@@ -838,6 +838,9 @@ tbody tr {
   tbody tr:hover {
     color: var(--clr-blue-400); }
 
+.community {
+  margin-block: 2rem; }
+
 .development {
   margin-block: 2rem; }
 
