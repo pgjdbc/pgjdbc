@@ -838,6 +838,9 @@ tbody tr {
   tbody tr:hover {
     color: var(--clr-blue-400); }
 
+.development {
+  margin-block: 2rem; }
+
 .doc {
   display: flex; }
 
