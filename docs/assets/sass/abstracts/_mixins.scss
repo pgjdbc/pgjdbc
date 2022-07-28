@@ -16,8 +16,6 @@
     font-weight: $weight;
     src: local(''),
       /* Modern Browsers */
-      url("../fonts/woff/" +$path+".woff") format("woff"),
-      /* Super Modern Browsers */
-      url("../fonts/woff2/" +$path+".woff2") format("woff2");
+      url("../fonts/" +$path+".woff") format("woff");
   }
 }

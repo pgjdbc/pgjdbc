@@ -44,47 +44,131 @@ pre {
   margin-inline: auto;
   margin-block: 2rem; }
 
-/* inria-sans-300 - latin */
+/* barlow-latin-100 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 100;
+  src: local(""), url("../fonts/barlow-latin-100.woff") format("woff"); }
+
+/* barlow-latin-100 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 100;
+  src: local(""), url("../fonts/barlow-latin-100italic.woff") format("woff"); }
+
+/* barlow-latin-200 */
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 200;
+  src: local(""), url("../fonts/barlow-latin-200.woff") format("woff"); }
+
+/* barlow-latin-200 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 200;
+  src: local(""), url("../fonts/barlow-latin-200italic.woff") format("woff"); }
+
+/* barlow-latin-300 */
+@font-face {
+  font-family: "Barlow";
   font-style: normal;
   font-weight: 300;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-300.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-300.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-300.woff") format("woff"); }
 
-/* inria-sans-300italic - latin */
+/* barlow-latin-300 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
   font-style: italic;
   font-weight: 300;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-300italic.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-300italic.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-300italic.woff") format("woff"); }
 
-/* inria-sans-regular - latin */
+/* barlow-latin-400 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
   font-style: normal;
   font-weight: 400;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-regular.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-regular.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-400.woff") format("woff"); }
 
-/* inria-sans-italic - latin */
+/* barlow-latin-400 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
   font-style: italic;
   font-weight: 400;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-italic.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-italic.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-400italic.woff") format("woff"); }
 
-/* inria-sans-700 - latin */
+/* barlow-latin-500 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 500;
+  src: local(""), url("../fonts/barlow-latin-500.woff") format("woff"); }
+
+/* barlow-latin-500 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 500;
+  src: local(""), url("../fonts/barlow-latin-500italic.woff") format("woff"); }
+
+/* barlow-latin-600 */
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 600;
+  src: local(""), url("../fonts/barlow-latin-600.woff") format("woff"); }
+
+/* barlow-latin-600 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 600;
+  src: local(""), url("../fonts/barlow-latin-600italic.woff") format("woff"); }
+
+/* barlow-latin-700 */
+@font-face {
+  font-family: "Barlow";
   font-style: normal;
   font-weight: 700;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-700.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-700.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-700.woff") format("woff"); }
 
-/* inria-sans-700italic - latin */
+/* barlow-latin-700 */
 @font-face {
-  font-family: "Inria Sans";
+  font-family: "Barlow";
   font-style: italic;
   font-weight: 700;
-  src: local(""), url("../fonts/woff/inria-sans-v14-latin-700italic.woff") format("woff"), url("../fonts/woff2/inria-sans-v14-latin-700italic.woff2") format("woff2"); }
+  src: local(""), url("../fonts/barlow-latin-700italic.woff") format("woff"); }
+
+/* barlow-latin-800 */
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 800;
+  src: local(""), url("../fonts/barlow-latin-800.woff") format("woff"); }
+
+/* barlow-latin-800 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 800;
+  src: local(""), url("../fonts/barlow-latin-800italic.woff") format("woff"); }
+
+/* barlow-latin-900 */
+@font-face {
+  font-family: "Barlow";
+  font-style: normal;
+  font-weight: 900;
+  src: local(""), url("../fonts/barlow-latin-900.woff") format("woff"); }
+
+/* barlow-latin-900 */
+@font-face {
+  font-family: "Barlow";
+  font-style: italic;
+  font-weight: 900;
+  src: local(""), url("../fonts/barlow-latin-900italic.woff") format("woff"); }
 
 /* Box sizing rules */
 *,
@@ -547,7 +631,7 @@ select {
 
 body {
   font-size: 1.067rem;
-  font-family: 'Inria Sans', sans-serif;
+  font-family: 'Barlow', sans-serif;
   color: var(--clr-black-300);
   letter-spacing: 1px; }
 
