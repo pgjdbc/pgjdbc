@@ -13,7 +13,6 @@ test: update JUnit to 5.8.2
 chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
 chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
 chore: support building pgjdbc with Java 17
-feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
 ### Fixed
 

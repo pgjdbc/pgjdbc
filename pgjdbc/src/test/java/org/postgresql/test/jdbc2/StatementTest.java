@@ -939,43 +939,6 @@ public class StatementTest {
     }
   }
 
-  @Test(timeout = 10000)
-  public void testConcurrentIsValid() throws InterruptedException {
-    ExecutorService executor = Executors.newCachedThreadPool();
-    try {
-      Random rnd = new Random();
-      for (int i = 0; i < 10; i++) {
-        executor.submit(() -> {
-          try {
-            for (int j = 0; j < 50; j++) {
-              con.isValid(1);
-              try (PreparedStatement ps =
-                       con.prepareStatement("select * from generate_series(1,?) as x(id)")) {
-                int limit = rnd.nextInt(10);
-                ps.setInt(1, limit);
-                try (ResultSet r = ps.executeQuery()) {
-                  int cnt = 0;
-                  String callName = "generate_series(1, " + limit + ") in thread "
-                      + Thread.currentThread().getName();
-                  while (r.next()) {
-                    cnt++;
-                    assertEquals(callName + ", row " + cnt, cnt, r.getInt(1));
-                  }
-                  assertEquals(callName + " number of rows", limit, cnt);
-                }
-              }
-            }
-          } catch (SQLException e) {
-            throw new RuntimeException(e);
-          }
-        });
-      }
-    } finally {
-      executor.shutdown();
-      executor.awaitTermination(10, TimeUnit.SECONDS);
-    }
-  }
-
   @Test(timeout = 20000)
   public void testFastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
