@@ -327,10 +327,6 @@ Connection conn = DriverManager.getConnection(url);
 	detecting network problems. The timeout is specified in seconds and a
 	value of zero means that it is disabled.
 
-* **sslResponseTimeout** = int
-    The timeout value in milliseconds that we wait for a response from the server
-    after requesting the connection be upgraded to SSL.
-
 * **cancelSignalTimeout** = int
 
 	Cancel command is sent out of band over its own connection, so cancel message can itself get

@@ -118,7 +118,6 @@ In addition to the standard connection parameters the driver supports a number o
 | loginTimeout                  | Integer | 0       | Specify how long to wait for establishment of a database connection.|
 | connectTimeout                | Integer | 10      | The timeout value used for socket connect operations. |
 | socketTimeout                 | Integer | 0       | The timeout value used for socket read operations. |
-| sslResponseTimeout            | Integer | 5000    | Socket timeout waiting for a response from a request for SSL upgrade from the server. |                                                                                                                                                                        
 | tcpKeepAlive                  | Boolean | false   | Enable or disable TCP keep-alive. |
 | tcpNoDelay                    | Boolean | true    | Enable or disable TCP no delay. |
 | ApplicationName               | String  | PostgreSQL JDBC Driver    | The application name (require server version >= 9.0). If assumeMinServerVersion is set to >= 9.0 this will be sent in the startup packets, otherwise after the connection is made |
