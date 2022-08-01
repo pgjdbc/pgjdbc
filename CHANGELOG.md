@@ -4,15 +4,23 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Security
+- fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
+
+  Previously, the column names for both key and data columns in the table were copied as-is into the generated
+  SQL. This allowed a malicious table with column names that include statement terminator to be parsed and
+  executed as multiple separate commands.
+
+  Also adds a new test class ResultSetRefreshTest to verify this change.
 ### Changed
-chore: skip publishing pgjdbc-osgi-test to Central
-chore: bump Gradle to 7.5
-test: update JUnit to 5.8.2
+- chore: skip publishing pgjdbc-osgi-test to Central
+- chore: bump Gradle to 7.5
+- test: update JUnit to 5.8.2
 
 ### Added
-chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
-chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
-chore: support building pgjdbc with Java 17
+- chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
+- chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
+- chore: support building pgjdbc with Java 17
 
 ### Fixed
 
