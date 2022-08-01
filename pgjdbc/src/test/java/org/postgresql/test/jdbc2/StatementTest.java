@@ -32,9 +32,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -863,7 +861,7 @@ public class StatementTest {
   public void testCancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
     // check that stmt.cancel() doesn't hang forever if the network is broken
 
-    ExecutorService executor = Executors.newCachedThreadPool();
+    ExecutorService executor = Executors.newSingleThreadExecutor();
 
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       Properties props = new Properties();
@@ -877,9 +875,6 @@ public class StatementTest {
         proxyServer.stopForwardingAllClients();
 
         stmt.cancel();
-        // Note: network is still inaccessible, so the statement execution is still in progress.
-        // So we abort the connection to allow implicit conn.close()
-        conn.abort(executor);
       }
     }
 
@@ -945,13 +940,12 @@ public class StatementTest {
   }
 
   @Test(timeout = 10000)
-  public void testConcurrentIsValid() throws Throwable {
+  public void testConcurrentIsValid() throws InterruptedException {
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
-      List<Future<?>> results = new ArrayList<>();
       Random rnd = new Random();
       for (int i = 0; i < 10; i++) {
-        Future<?> future = executor.submit(() -> {
+        executor.submit(() -> {
           try {
             for (int j = 0; j < 50; j++) {
               con.isValid(1);
@@ -975,14 +969,7 @@ public class StatementTest {
             throw new RuntimeException(e);
           }
         });
-        results.add(future);
       }
-      for (Future<?> result : results) {
-        // Propagate exception if any
-        result.get();
-      }
-    } catch (ExecutionException e) {
-      throw e.getCause();
     } finally {
       executor.shutdown();
       executor.awaitTermination(10, TimeUnit.SECONDS);
