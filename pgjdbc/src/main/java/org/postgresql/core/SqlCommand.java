@@ -5,7 +5,10 @@
 
 package org.postgresql.core;
 
-import static org.postgresql.core.SqlCommandType.*;
+import static org.postgresql.core.SqlCommandType.INSERT;
+import static org.postgresql.core.SqlCommandType.MERGE;
+import static org.postgresql.core.SqlCommandType.SELECT;
+import static org.postgresql.core.SqlCommandType.WITH;
 
 /**
  * Data Modification Language inspection support.
