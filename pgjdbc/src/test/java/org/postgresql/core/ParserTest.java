@@ -213,6 +213,18 @@ public class ParserTest {
   }
 
   @Test
+  public void mergeBatchedReWrite() throws SQLException {
+    String query = "merge into test(id, name) t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, src.name)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    NativeQuery nativeQuery = qry.get(0);
+    SqlCommand command = nativeQuery.getCommand();
+    Assert.assertEquals(42, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(48, command.getBatchRewriteValuesBraceClosePosition());
+    Assert.assertTrue(command.isBatchedReWriteCompatible());
+    Assert.assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
   public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
