@@ -213,11 +213,18 @@ public class ParserTest {
   }
 
   @Test
+  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
+    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+  }
+
+  @Test
   public void mergeBatchedReWrite() throws SQLException {
     String query = "merge into test(id, name) t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, src.name)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
-    NativeQuery nativeQuery = qry.get(0);
-    SqlCommand command = nativeQuery.getCommand();
+    SqlCommand command = qry.get(0).getCommand();
     Assert.assertEquals(42, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(48, command.getBatchRewriteValuesBraceClosePosition());
     Assert.assertTrue(command.isBatchedReWriteCompatible());
@@ -225,11 +232,32 @@ public class ParserTest {
   }
 
   @Test
-  public void insertBatchedReWriteOnConflictUpdateConstant() throws SQLException {
-    String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
+  public void mergeBatchedReWriteInsertBind() throws SQLException {
+    String query = "merge into test(id, name) t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, ?)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertTrue("update set name='default' is compatible with insert rewrite", command.isBatchedReWriteCompatible());
+    Assert.assertFalse(command.isBatchedReWriteCompatible());
+    Assert.assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
+  public void mergeBatchedReWriteUpdateBind() throws SQLException {
+    String query = "merge into test(id, name) t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then update set t.name = ? when not matched then do nothing";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertFalse(command.isBatchedReWriteCompatible());
+    Assert.assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
+  public void mergeBatchedReWriteUsingSelect() throws SQLException {
+    String query = "merge into test(id, name) t using (select * from values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, src.name)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals(56, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(62, command.getBatchRewriteValuesBraceClosePosition());
+    Assert.assertTrue(command.isBatchedReWriteCompatible());
+    Assert.assertEquals(SqlCommandType.MERGE, command.getType());
   }
 
   @Test
