@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -1382,5 +1383,52 @@ Server SQLState: 25001)
     } finally {
       TestUtil.closeQuietly(ps);
     }
+  }
+
+  @Test
+  public void testMerge() throws Exception {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v15)) {
+      return;
+    }
+
+    con.setAutoCommit(true);
+    TestUtil.createTempTable(con, "batchingMerge", "id INT, col1 VARCHAR(20)");
+
+    String sql = "MERGE INTO batchingMerge AS t "
+        + "USING (VALUES (?, ?)) AS src (id, col1) "
+        + "ON t.id = src.id "
+        + "WHEN MATCHED THEN DELETE "
+        + "WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1)";
+
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "100, 'hello 100'"));
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "101, 'hello 102'"));
+    }
+
+    try (PreparedStatement stmt = con.prepareStatement(sql)) {
+      stmt.setInt(1, 100);
+      stmt.setString(2, "");
+      stmt.addBatch();
+
+      stmt.setInt(1, 101);
+      stmt.setString(2, "");
+      stmt.addBatch();
+
+      stmt.setInt(1, 102);
+      stmt.setString(2, "hello 102");
+      stmt.addBatch();
+
+      stmt.setInt(1, 103);
+      stmt.setString(2, "hello 103");
+      stmt.addBatch();
+
+      int[] results = stmt.executeBatch();
+      int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
+      Assert.assertArrayEquals(new int[]{rowsInserted, rowsInserted, rowsInserted, rowsInserted}, results);
+    }
+
+    TestUtil.assertNumberOfRows(con, "batchingMerge", 2, "2 rows expected");
+    Assert.assertEquals("hello 102", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 102"));
+    Assert.assertEquals("hello 103", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 103"));
   }
 }

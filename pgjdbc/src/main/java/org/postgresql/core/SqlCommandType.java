@@ -21,6 +21,7 @@ public enum SqlCommandType {
   INSERT,
   UPDATE,
   DELETE,
+  MERGE,
   MOVE,
   SELECT,
   WITH,
