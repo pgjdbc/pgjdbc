@@ -4,12 +4,13 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-### Changed
-
-### Added
-
-### Fixed
-
+### Security
+- fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
+  - Previously, the column names for both key and data columns in the table were copied as-is into the generated
+  SQL. This allowed a malicious table with column names that include statement terminator to be parsed and
+  executed as multiple separate commands.
+  - Also adds a new test class ResultSetRefreshTest to verify this change. 
+  - Reported by [Sho Kato](https://github.com/kato-sho)
 
 ## [42.2.24] (2021-09-23)
 ### Fixed
