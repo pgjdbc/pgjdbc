@@ -4,14 +4,21 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Changed
+
+### Added
+
+### Fixed
+
+[42.4.1] (2022-08-01 16:24:20 -0400)
 ### Security
 - fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
-
-  Previously, the column names for both key and data columns in the table were copied as-is into the generated
+  - Previously, the column names for both key and data columns in the table were copied as-is into the generated
   SQL. This allowed a malicious table with column names that include statement terminator to be parsed and
   executed as multiple separate commands.
+  - Also adds a new test class ResultSetRefreshTest to verify this change.
+  - Reported by [Sho Kato](https://github.com/kato-sho)
 
-  Also adds a new test class ResultSetRefreshTest to verify this change.
 ### Changed
 - chore: skip publishing pgjdbc-osgi-test to Central
 - chore: bump Gradle to 7.5
@@ -716,4 +723,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
 [42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
 [42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...HEAD
+[42.4.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...HEAD
