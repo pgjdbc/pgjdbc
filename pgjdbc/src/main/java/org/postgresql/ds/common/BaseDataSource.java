@@ -355,6 +355,24 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   *
+   * @return SSL ResponseTimeout
+   * @see PGProperty#SSL_RESPONSE_TIMEOUT
+   */
+  public int getSslResponseTimeout() {
+    return PGProperty.SSL_RESPONSE_TIMEOUT.getIntNoCheck(properties);
+  }
+
+  /**
+   *
+   * @param sslResponseTimeout ssl response timeout
+   * @see PGProperty#SSL_RESPONSE_TIMEOUT
+   */
+  public void setSslResponseTimeout(int sslResponseTimeout) {
+    PGProperty.SSL_RESPONSE_TIMEOUT.set(properties,sslResponseTimeout);
+  }
+
+  /**
    * @return protocol version
    * @see PGProperty#PROTOCOL_VERSION
    */
