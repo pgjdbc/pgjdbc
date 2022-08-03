@@ -520,9 +520,11 @@ Connection conn = DriverManager.getConnection(url);
  
 	This can provide 2-3x performance improvement. It plays nice with Spring's `JdbcTemplate#batchUpdate(String, List<Object[]>)`.
 
-	Note that not all forms of `INSERT` and `MERGE` are supported:
+	Not all forms of `INSERT` and `MERGE` are supported:
 	* bind parameters must be used in `VALUES` only.
 	* the statement can't use `RETURNING` keyword.
+
+	Note the batched statement does not return affected row count.    
 
 * **replication** = String
 
