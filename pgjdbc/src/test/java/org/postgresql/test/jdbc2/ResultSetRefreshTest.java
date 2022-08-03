@@ -19,8 +19,8 @@ public class ResultSetRefreshTest extends BaseTest4 {
   @Test
   public void testWithDataColumnThatRequiresEscaping() throws Exception {
     TestUtil.dropTable(con, "refresh_row_bad_ident");
-    TestUtil.execute(con, "CREATE TABLE refresh_row_bad_ident (id int PRIMARY KEY, \"1 FROM refresh_row_bad_ident; SELECT 2; SELECT *\" int)");
-    TestUtil.execute(con, "INSERT INTO refresh_row_bad_ident (id) VALUES (1), (2), (3)");
+    TestUtil.execute("CREATE TABLE refresh_row_bad_ident (id int PRIMARY KEY, \"1 FROM refresh_row_bad_ident; SELECT 2; SELECT *\" int)", con);
+    TestUtil.execute( "INSERT INTO refresh_row_bad_ident (id) VALUES (1), (2), (3)", con);
 
     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT * FROM refresh_row_bad_ident");
@@ -37,8 +37,8 @@ public class ResultSetRefreshTest extends BaseTest4 {
   @Test
   public void testWithKeyColumnThatRequiresEscaping() throws Exception {
     TestUtil.dropTable(con, "refresh_row_bad_ident");
-    TestUtil.execute(con, "CREATE TABLE refresh_row_bad_ident (\"my key\" int PRIMARY KEY)");
-    TestUtil.execute(con, "INSERT INTO refresh_row_bad_ident VALUES (1), (2), (3)");
+    TestUtil.execute("CREATE TABLE refresh_row_bad_ident (\"my key\" int PRIMARY KEY)", con);
+    TestUtil.execute( "INSERT INTO refresh_row_bad_ident VALUES (1), (2), (3)", con);
 
     Statement stmt = con.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs = stmt.executeQuery("SELECT * FROM refresh_row_bad_ident");
