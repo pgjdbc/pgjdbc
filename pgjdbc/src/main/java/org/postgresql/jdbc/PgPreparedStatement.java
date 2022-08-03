@@ -130,11 +130,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    */
   @Override
   public ResultSet executeQuery() throws SQLException {
-    if (!executeWithFlags(0)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
+    synchronized (this) {
+      if (!executeWithFlags(0)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
 
-    return getSingleResultSet();
+      return getSingleResultSet();
+    }
   }
 
   @Override
@@ -146,16 +148,20 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public int executeUpdate() throws SQLException {
-    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-    checkNoResultUpdate();
-    return getUpdateCount();
+    synchronized (this) {
+      executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+      checkNoResultUpdate();
+      return getUpdateCount();
+    }
   }
 
   @Override
   public long executeLargeUpdate() throws SQLException {
-    executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
-    checkNoResultUpdate();
-    return getLargeUpdateCount();
+    synchronized (this) {
+      executeWithFlags(QueryExecutor.QUERY_NO_RESULTS);
+      checkNoResultUpdate();
+      return getLargeUpdateCount();
+    }
   }
 
   @Override
@@ -167,20 +173,22 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public boolean execute() throws SQLException {
-    return executeWithFlags(0);
+    synchronized (this) {
+      return executeWithFlags(0);
+    }
   }
 
   public boolean executeWithFlags(int flags) throws SQLException {
     try {
-      checkClosed();
-
-      if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
-        flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
-      }
-
-      execute(preparedQuery, preparedParameters, flags);
-
       synchronized (this) {
+        checkClosed();
+
+        if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
+          flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
+        }
+
+        execute(preparedQuery, preparedParameters, flags);
+
         checkClosed();
         return (result != null && result.getResultSet() != null);
       }

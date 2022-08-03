@@ -80,79 +80,79 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public boolean executeWithFlags(int flags) throws SQLException {
-    boolean hasResultSet = super.executeWithFlags(flags);
-    int[] functionReturnType = this.functionReturnType;
-    if (!isFunction || !returnTypeSet || functionReturnType == null) {
-      return hasResultSet;
-    }
-
-    // If we are executing and there are out parameters
-    // callable statement function set the return data
-    if (!hasResultSet) {
-      throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
-          PSQLState.NO_DATA);
-    }
-
-    ResultSet rs = castNonNull(getResultSet());
-    if (!rs.next()) {
-      throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
-          PSQLState.NO_DATA);
-    }
-
-    // figure out how many columns
-    int cols = rs.getMetaData().getColumnCount();
-
-    int outParameterCount = preparedParameters.getOutParameterCount();
-
-    if (cols != outParameterCount) {
-      throw new PSQLException(
-          GT.tr("A CallableStatement was executed with an invalid number of parameters"),
-          PSQLState.SYNTAX_ERROR);
-    }
-
-    // reset last result fetched (for wasNull)
-    lastIndex = 0;
-
-    // allocate enough space for all possible parameters without regard to in/out
-    @Nullable Object[] callResult = new Object[preparedParameters.getParameterCount() + 1];
-    this.callResult = callResult;
-
-    // move them into the result set
-    for (int i = 0, j = 0; i < cols; i++, j++) {
-      // find the next out parameter, the assumption is that the functionReturnType
-      // array will be initialized with 0 and only out parameters will have values
-      // other than 0. 0 is the value for java.sql.Types.NULL, which should not
-      // conflict
-      while (j < functionReturnType.length && functionReturnType[j] == 0) {
-        j++;
-      }
-
-      callResult[j] = rs.getObject(i + 1);
-      int columnType = rs.getMetaData().getColumnType(i + 1);
-
-      if (columnType != functionReturnType[j]) {
-        // this is here for the sole purpose of passing the cts
-        if (columnType == Types.DOUBLE && functionReturnType[j] == Types.REAL) {
-          // return it as a float
-          Object result = callResult[j];
-          if (result != null) {
-            callResult[j] = ((Double) result).floatValue();
-          }
-        } else if (columnType == Types.REF_CURSOR && functionReturnType[j] == Types.OTHER) {
-          // For backwards compatibility reasons we support that ref cursors can be
-          // registered with both Types.OTHER and Types.REF_CURSOR so we allow
-          // this specific mismatch
-        } else {
-          throw new PSQLException(GT.tr(
-              "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
-              i + 1, "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j]),
-              PSQLState.DATA_TYPE_MISMATCH);
-        }
-      }
-
-    }
-    rs.close();
     synchronized (this) {
+      boolean hasResultSet = super.executeWithFlags(flags);
+      int[] functionReturnType = this.functionReturnType;
+      if (!isFunction || !returnTypeSet || functionReturnType == null) {
+        return hasResultSet;
+      }
+
+      // If we are executing and there are out parameters
+      // callable statement function set the return data
+      if (!hasResultSet) {
+        throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
+            PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getResultSet());
+      if (!rs.next()) {
+        throw new PSQLException(GT.tr("A CallableStatement was executed with nothing returned."),
+            PSQLState.NO_DATA);
+      }
+
+      // figure out how many columns
+      int cols = rs.getMetaData().getColumnCount();
+
+      int outParameterCount = preparedParameters.getOutParameterCount();
+
+      if (cols != outParameterCount) {
+        throw new PSQLException(
+            GT.tr("A CallableStatement was executed with an invalid number of parameters"),
+            PSQLState.SYNTAX_ERROR);
+      }
+
+      // reset last result fetched (for wasNull)
+      lastIndex = 0;
+
+      // allocate enough space for all possible parameters without regard to in/out
+      @Nullable Object[] callResult = new Object[preparedParameters.getParameterCount() + 1];
+      this.callResult = callResult;
+
+      // move them into the result set
+      for (int i = 0, j = 0; i < cols; i++, j++) {
+        // find the next out parameter, the assumption is that the functionReturnType
+        // array will be initialized with 0 and only out parameters will have values
+        // other than 0. 0 is the value for java.sql.Types.NULL, which should not
+        // conflict
+        while (j < functionReturnType.length && functionReturnType[j] == 0) {
+          j++;
+        }
+
+        callResult[j] = rs.getObject(i + 1);
+        int columnType = rs.getMetaData().getColumnType(i + 1);
+
+        if (columnType != functionReturnType[j]) {
+          // this is here for the sole purpose of passing the cts
+          if (columnType == Types.DOUBLE && functionReturnType[j] == Types.REAL) {
+            // return it as a float
+            Object result = callResult[j];
+            if (result != null) {
+              callResult[j] = ((Double) result).floatValue();
+            }
+          } else if (columnType == Types.REF_CURSOR && functionReturnType[j] == Types.OTHER) {
+            // For backwards compatibility reasons we support that ref cursors can be
+            // registered with both Types.OTHER and Types.REF_CURSOR so we allow
+            // this specific mismatch
+          } else {
+            throw new PSQLException(GT.tr(
+                "A CallableStatement function was executed and the out parameter {0} was of type {1} however type {2} was registered.",
+                i + 1, "java.sql.Types=" + columnType, "java.sql.Types=" + functionReturnType[j]),
+                PSQLState.DATA_TYPE_MISMATCH);
+          }
+        }
+
+      }
+      rs.close();
       result = null;
     }
     return false;

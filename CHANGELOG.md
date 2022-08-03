@@ -28,6 +28,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
 - chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
 - chore: support building pgjdbc with Java 17
+chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
+chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
+chore: support building pgjdbc with Java 17
+feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
 ### Fixed
 
