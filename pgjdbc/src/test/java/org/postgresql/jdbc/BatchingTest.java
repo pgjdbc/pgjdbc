@@ -82,11 +82,11 @@ public class BatchingTest {
     TestUtil.createSchema(conn, "batching");
     TestUtil.createTable(conn, "batching.Test", "id INT, name VARCHAR(20)");
 
-    String sql = "MERGE INTO batching.Test AS t " +
-        "USING (VALUES (?, ?)) AS src (id, name) " +
-        "ON t.id = src.id " +
-        "WHEN MATCHED THEN DELETE " +
-        "WHEN NOT MATCHED THEN INSERT (id, name) VALUES (src.id, src.name)";
+    String sql = "MERGE INTO batching.Test AS t "
+        + "USING (VALUES (?, ?)) AS src (id, name) "
+        + "ON t.id = src.id "
+        + "WHEN MATCHED THEN DELETE "
+        + "WHEN NOT MATCHED THEN INSERT (id, name) VALUES (src.id, src.name)";
 
     try (Statement stmt = conn.createStatement()) {
       stmt.executeUpdate(TestUtil.insertSQL("batching.Test", "100, 'hello 100'"));
