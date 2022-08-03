@@ -67,6 +67,10 @@ public class BatchingTest {
     }
 
     TestUtil.assertNumberOfRows(conn, "batching.Test", 4, "4 row expected");
+    assertEquals("hello 1", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 100"));
+    assertEquals("hello 2", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 101"));
+    assertEquals("hello 3", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 102"));
+    assertEquals("hello 4", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 103"));
   }
 
   @Test
@@ -115,5 +119,7 @@ public class BatchingTest {
     }
 
     TestUtil.assertNumberOfRows(conn, "batching.Test", 2, "2 row expected");
+    assertEquals("hello 102", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 102"));
+    assertEquals("hello 103", TestUtil.queryForString(conn, "SELECT name FROM batching.Test WHERE id = 103"));
   }
 }
