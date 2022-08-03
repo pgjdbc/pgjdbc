@@ -240,13 +240,11 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
-    synchronized (this) {
-      if (!executeWithFlags(sql, 0)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      return getSingleResultSet();
+    if (!executeWithFlags(sql, 0)) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
     }
+
+    return getSingleResultSet();
   }
 
   protected ResultSet getSingleResultSet() throws SQLException {
@@ -264,11 +262,9 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public int executeUpdate(String sql) throws SQLException {
-    synchronized (this) {
-      executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
-      checkNoResultUpdate();
-      return getUpdateCount();
-    }
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getUpdateCount();
   }
 
   protected final void checkNoResultUpdate() throws SQLException {
@@ -408,19 +404,17 @@ public class PgStatement implements Statement, BaseStatement {
   protected final void execute(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
-    synchronized (this) {
-      try {
-        executeInternal(cachedQuery, queryParameters, flags);
-      } catch (SQLException e) {
-        // Don't retry composite queries as it might get partially executed
-        if (cachedQuery.query.getSubqueries() != null
-            || !connection.getQueryExecutor().willHealOnRetry(e)) {
-          throw e;
-        }
-        cachedQuery.query.close();
-        // Execute the query one more time
-        executeInternal(cachedQuery, queryParameters, flags);
+    try {
+      executeInternal(cachedQuery, queryParameters, flags);
+    } catch (SQLException e) {
+      // Don't retry composite queries as it might get partially executed
+      if (cachedQuery.query.getSubqueries() != null
+          || !connection.getQueryExecutor().willHealOnRetry(e)) {
+        throw e;
       }
+      cachedQuery.query.close();
+      // Execute the query one more time
+      executeInternal(cachedQuery, queryParameters, flags);
     }
   }
 
@@ -520,10 +514,7 @@ public class PgStatement implements Statement, BaseStatement {
     // No-op.
   }
 
-  private volatile int isClosed = 0;
-  private static final AtomicIntegerFieldUpdater<PgStatement> IS_CLOSED_UPDATER =
-      AtomicIntegerFieldUpdater.newUpdater(
-          PgStatement.class, "isClosed");
+  private volatile boolean isClosed = false;
 
   @Override
   public int getUpdateCount() throws SQLException {
@@ -676,8 +667,11 @@ public class PgStatement implements Statement, BaseStatement {
    */
   public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
-    if (!IS_CLOSED_UPDATER.compareAndSet(this, 0, 1)) {
-      return;
+    synchronized (this) {
+      if (isClosed) {
+        return;
+      }
+      isClosed = true;
     }
 
     cancel();
@@ -1096,11 +1090,9 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public long executeLargeUpdate(String sql) throws SQLException {
-    synchronized (this) {
-      executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
-      checkNoResultUpdate();
-      return getLargeUpdateCount();
-    }
+    executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
+    checkNoResultUpdate();
+    return getLargeUpdateCount();
   }
 
   @Override
@@ -1124,21 +1116,19 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public long executeLargeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
-      if (columnNames != null && columnNames.length == 0) {
-        return executeLargeUpdate(sql);
-      }
-
-      wantsGeneratedKeysOnce = true;
-      if (!executeCachedSql(sql, 0, columnNames)) {
-        // no resultset returned. What's a pity!
-      }
-      return getLargeUpdateCount();
+    if (columnNames != null && columnNames.length == 0) {
+      return executeLargeUpdate(sql);
     }
+
+    wantsGeneratedKeysOnce = true;
+    if (!executeCachedSql(sql, 0, columnNames)) {
+      // no resultset returned. What's a pity!
+    }
+    return getLargeUpdateCount();
   }
 
   public boolean isClosed() throws SQLException {
-    return isClosed == 1;
+    return isClosed;
   }
 
   public void setPoolable(boolean poolable) throws SQLException {
@@ -1250,17 +1240,15 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int executeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
-      if (columnNames != null && columnNames.length == 0) {
-        return executeUpdate(sql);
-      }
-
-      wantsGeneratedKeysOnce = true;
-      if (!executeCachedSql(sql, 0, columnNames)) {
-        // no resultset returned. What's a pity!
-      }
-      return getUpdateCount();
+    if (columnNames != null && columnNames.length == 0) {
+      return executeUpdate(sql);
     }
+
+    wantsGeneratedKeysOnce = true;
+    if (!executeCachedSql(sql, 0, columnNames)) {
+      // no resultset returned. What's a pity!
+    }
+    return getUpdateCount();
   }
 
   public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
@@ -1280,14 +1268,12 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean execute(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
-      if (columnNames != null && columnNames.length == 0) {
-        return execute(sql);
-      }
-
-      wantsGeneratedKeysOnce = true;
-      return executeCachedSql(sql, 0, columnNames);
+    if (columnNames != null && columnNames.length == 0) {
+      return execute(sql);
     }
+
+    wantsGeneratedKeysOnce = true;
+    return executeCachedSql(sql, 0, columnNames);
   }
 
   public int getResultSetHoldability() throws SQLException {

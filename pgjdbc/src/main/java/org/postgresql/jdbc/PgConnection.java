@@ -1454,13 +1454,8 @@ public class PgConnection implements BaseConnection {
           statement.execute("IDENTIFY_SYSTEM");
           statement.close();
         } else {
-          PreparedStatement checkConnectionQuery;
-          synchronized (this) {
-            checkConnectionQuery = this.checkConnectionQuery;
-            if (checkConnectionQuery == null) {
-              checkConnectionQuery = prepareStatement("");
-              this.checkConnectionQuery = checkConnectionQuery;
-            }
+          if (checkConnectionQuery == null) {
+            checkConnectionQuery = prepareStatement("");
           }
           checkConnectionQuery.executeUpdate();
         }

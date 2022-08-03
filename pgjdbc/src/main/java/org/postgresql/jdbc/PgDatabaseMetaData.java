@@ -2696,11 +2696,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       long longTypOid = typeInfo.intOidToLong(typOid);
       int sqlType = typeInfo.getSQLType(typOid);
 
-      sqlwhen.append(" when base_type.oid = ").append(longTypOid).append(" then ").append(sqlType);
+      sqlwhen.append(" when oid = ").append(longTypOid).append(" then ").append(sqlType);
     }
     sql += sqlwhen.toString();
 
-    sql += " else " + java.sql.Types.OTHER + " end from pg_type base_type where base_type.oid=t.typbasetype) "
+    sql += " else " + java.sql.Types.OTHER + " end from pg_type where oid=t.typbasetype) "
         + "else null end as base_type "
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
 
