@@ -515,8 +515,8 @@ Connection conn = DriverManager.getConnection(url);
 * **reWriteBatchedInserts** = boolean
 
 	Rewrites single-valued `INSERT` and `MERGE` statements into multi-valued batched statements, where possible. For example,
-	instead of executing multiple consecutive `INSERT INTO foo (col1, col2) VALUES (?, ?, ?)` statements the driver will
-    execute a single `INSERT INTO foo (col1, col2) VALUES (?, ?, ?), (?, ?, ?), (?, ?, ?), ...` statement.
+	instead of executing multiple consecutive `INSERT INTO foo (col1, col2) VALUES (?, ?)` statements the driver will
+    execute a single `INSERT INTO foo (col1, col2) VALUES (?, ?), (?, ?), (?, ?), ...` statement.
  
 	This can provide 2-3x performance improvement. It plays nice with Spring's `JdbcTemplate#batchUpdate(String, List<Object[]>)`.
 
