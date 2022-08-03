@@ -520,7 +520,10 @@ public class PgStatement implements Statement, BaseStatement {
     // No-op.
   }
 
-  private volatile boolean isClosed = false;
+  private volatile int isClosed = 0;
+  private static final AtomicIntegerFieldUpdater<PgStatement> IS_CLOSED_UPDATER =
+      AtomicIntegerFieldUpdater.newUpdater(
+          PgStatement.class, "isClosed");
 
   @Override
   public int getUpdateCount() throws SQLException {
@@ -673,11 +676,8 @@ public class PgStatement implements Statement, BaseStatement {
    */
   public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
-    synchronized (this) {
-      if (isClosed) {
-        return;
-      }
-      isClosed = true;
+    if (!IS_CLOSED_UPDATER.compareAndSet(this, 0, 1)) {
+      return;
     }
 
     cancel();
@@ -1138,7 +1138,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean isClosed() throws SQLException {
-    return isClosed;
+    return isClosed == 1;
   }
 
   public void setPoolable(boolean poolable) throws SQLException {
