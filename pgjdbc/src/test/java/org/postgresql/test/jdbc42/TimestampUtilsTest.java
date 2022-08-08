@@ -93,8 +93,8 @@ public class TimestampUtilsTest {
     );
   }
 
-  private void assertToLocalTime(String inputTime) throws SQLException {
-    assertToLocalTime(inputTime, inputTime, null);
+  private void assertLocalDateTimeRounding(String message, String expected, String toRound) {
+    assertEquals(message + " in timestampUtils.round(LocalDateTime.parse(" + toRound + "))", LocalDateTime.parse(expected), timestampUtils.round(LocalDateTime.parse(toRound)));
   }
 
   private void assertToLocalTime(String expectedOutput, String inputTime, String message) throws SQLException {
