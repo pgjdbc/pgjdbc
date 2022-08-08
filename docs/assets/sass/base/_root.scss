@@ -1,6 +1,4 @@
 :root {
-  --section-spacing: 3.5rem;
-
   @include mq(medium) {
     --section-spacing: 7rem;
   }
@@ -12,6 +10,11 @@
     $value in $shade {
       --clr-#{$color}-#{$prop}: #{$value};
     }
+  }
+
+  @each $prop,
+  $value in $color {
+    --clr-#{$prop}: #{$value};
   }
 
   @each $screen-size,

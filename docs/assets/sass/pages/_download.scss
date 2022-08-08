@@ -1,6 +1,15 @@
 .download {
-    margin-block: 2rem;
+    margin-block: var(--container-spacing);
+
     p {
         max-width: 100%;
+    }
+
+    .custom-marker>::marker {
+        content: $link;
+        font-size: large;
+    }
+    .custom-marker>li {
+        padding-left: 0.5em;
     }
 }

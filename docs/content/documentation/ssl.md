@@ -6,8 +6,6 @@ weight: 3
 toc: true
 ---
 
-#  Configuring the Server
-
 Configuring the PostgreSQL™ server for SSL is covered in the [main
 documentation](https://www.postgresql.org/docs/current/ssl-tcp.html),
 so it will not be repeated here. There are also instructions in the source

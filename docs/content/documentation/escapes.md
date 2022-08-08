@@ -6,8 +6,6 @@ weight: 7
 toc: true
 ---
 
-#  JDBC escapes
-
 The JDBC specification (like the ODBC specification) acknowledges the fact that
 some vendor specific SQL may be required for certain RDBMS features. To aid
 developers in writing portable JDBC applications across multiple database products,

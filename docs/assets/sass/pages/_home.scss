@@ -1,26 +1,26 @@
 .home {
     max-width: 70rem;
-    margin: 2rem auto;
-    padding-inline: 2rem;
+    margin: var(--box-spacing) auto;
+    padding-inline: var(--box-spacing);
 
     &>* {
         margin-bottom: var(--section-spacing);
     }
 
+    h1,
     h2 {
-        color: var(--clr-blue-400);
+        color: var(--clr-primary-400);
     }
 
     p {
-        color: var(--clr-black-400);
+        font-weight: 600;
     }
 
-    a {
-        text-decoration: underline;
-
-        &:hover {
-            text-decoration: none;
-        }
+    .hero,
+    .info,
+    .feature {
+        display: flex;
+        justify-content: space-between;
     }
 
 }
@@ -28,31 +28,29 @@
 // Hero Section
 
 .hero {
-    display: flex;
     align-items: center;
-    justify-content: space-between;
-    column-gap: 5rem;
+    column-gap: 5em;
 
-
-    &__media {
-        width: 50%;
+    &__img {
+        width: 45%;
     }
 
     &__content {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        row-gap: 1rem;
-        width: 50%;
+        width: 45%;
 
         &__head {
-            font-size: var(--fs-800);
+            font-size: 5.4rem;
+        }
+
+        &__desc {
+            font-size: 1.25rem;
         }
 
         &__actions {
+            padding-top: 1.5rem;
             display: flex;
-            column-gap: 1rem;
-            font-size: var(--fs-400);
+            column-gap: var(--primary-spacing);
+            font-size: 1.25rem;
 
             a {
                 text-decoration: none;
@@ -64,24 +62,18 @@
 // Info Section
 
 .info {
-
-    display: flex;
-    justify-content: space-between;
-
-    color: var(--clr-blue-400);
     text-align: justify;
 
     ul {
         margin: 0;
         padding: 0;
-        color: var(--clr-black-400);
 
         li {
             padding-inline: 0.5em;
         }
 
         li:nth-child(even) {
-            background-color: var(--clr-gray-100);
+            background-color: var(--clr-neutral-200);
         }
     }
 
@@ -107,17 +99,12 @@
 // Feature Section
 
 .feature {
-    display: flex;
-    justify-content: space-between;
-    color: var(--clr-blue-400);
     column-gap: 5rem;
 
     &__item {
         display: flex;
         flex-direction: column;
         align-items: center;
-        text-align: justify;
-        row-gap: 1rem;
 
         &__media {
             width: 4rem;
@@ -129,16 +116,22 @@
 // Report Section
 
 .report {
-
     &__row {
         display: flex;
         justify-content: space-between;
-        padding-top: 2rem;
+        padding-top: var(--container-spacing);
+    }
 
-        &__item {
-            display: flex;
-            column-gap: 1rem;
-        }
+    &__item {
+        display: inline-flex;
+        column-gap: var(--primary-spacing);
+        align-items: center;
+    }
+
+    &__desc {
+        font-size: var(--fs-400);
+        font-stretch: 100%;
+        line-height: 1.3;
     }
 }
 
@@ -153,8 +146,8 @@
         bottom: 25%;
         left: 50%;
         background-color: hsla(0, 0%, 100%, 0.5);
-        padding: 2rem;
-        margin-left: 2rem;
+        padding: var(--container-spacing);
+        margin-left: var(--container-spacing);
         border-radius: 0.5rem;
     }
 }

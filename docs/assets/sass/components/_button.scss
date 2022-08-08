@@ -1,0 +1,43 @@
+.btn {
+    border-radius: 100vmax;
+    padding: 0.5rem var(--primary-spacing);
+    border-style: none;
+    cursor: pointer;
+    transition: 0.25s;
+
+    &--contained {
+        display: inline-flex;
+        align-items: start;
+        background-color: var(--clr-primary-400);
+
+        a {
+            color: var(--clr-white);
+            padding-left: 4px;
+        }
+
+        &:hover {
+            background-color: var(--clr-primary-300);
+        }
+    }
+
+    &--outlined {
+        color: var(--clr-primary-400);
+        background-color: transparent;
+        border: 1px solid var(--clr-primary-400);
+
+        &::after {
+            content: $single-left-arrow;
+            display: inline-block;
+            padding-left: 4px;
+            transition: transform 0.3s ease-out;
+        }
+
+        &:hover {
+            border-color: transparent;
+
+            &::after {
+                transform: translateX(4px);
+            }
+        }
+    }
+}

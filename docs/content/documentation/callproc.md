@@ -6,8 +6,6 @@ weight: 5
 toc: true
 ---
 
-#  Calling Stored Functions and Procedures
-
 PostgreSQL™ supports two types of stored objects, functions that can return a
 result value and - starting from v11 - procedures that can perform transaction
 control. Both types of stored objects are invoked using `CallableStatement` and

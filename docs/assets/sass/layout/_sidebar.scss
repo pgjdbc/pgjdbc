@@ -1,25 +1,23 @@
 .sidebar {
-  background-color: var(--clr-white-400);
+  background-color: var(--clr-bluishGray);
   width: 20%;
-  border-right-style: solid;
-  border-right-width: 1px;
-  border-color: #ccc;
-  padding-right: 2rem;
-  margin-block: 2rem;
-
+  margin-left: var(--primary-spacing);
 
   align-self: start;
   position: sticky;
-  top: 5rem;
 
-  &--active {
-    font-weight: 900;
+  &__wrapper {
+    padding-inline: var(--primary-spacing);
   }
 
-  a {
-    color: var(--clr-blue-400);
-    &:hover {
-      font-weight: 900;
+  &__links__link {
+    color: var(--clr--indigo);
+    text-decoration: none;
+
+    &--active {
+      color: var(--clr-primary-400);
+      font-weight: 700;
+      text-decoration: none;
     }
   }
 }

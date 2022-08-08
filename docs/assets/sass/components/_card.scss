@@ -1,17 +1,45 @@
 .card {
     display: flex;
-    gap: 0 2em;
+    justify-content: space-between;
 
     &__item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        width: 300px;
+        box-shadow: 0px 2px 1px -1px hsla(0, 0%, 0%, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, .12);
+        border-radius: 4px;
+        padding: var(--primary-spacing);
+        border-top: 4px solid var(--clr-primary-400);
 
-        gap: 1em 0;
-        box-sizing: border-box;
-        box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-        border-radius: 10px;
-        padding: 1.5em;
-        border-top: 5px var(--clr-blue-400) solid;
+        &>:not(:first-child) {
+            margin-top: 0.5em;
+        }
+    }
+
+    &__title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    &__subtitle {
+        font-weight: 600;
+        font-size: .875rem;
+    }
+
+    &__desc {
+        font-size: .875rem;
+    }
+
+    &__btn {
+        border: 0;
+        background-color: transparent;
+
+        &__link,
+        &__link:hover {
+            color: var(--clr-secondary-500);
+            text-decoration: none;
+        }
+
+        &:hover {
+            background-color: var(--clr-secondary-100);
+        }
     }
 }

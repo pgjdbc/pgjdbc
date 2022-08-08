@@ -1,11 +1,11 @@
 <footer class="footer" role="contentinfo">
     <div class="footer__item">
         {{ range $.Site.Data.footer.external }}
-        <ul role="list">
-            <li class="h3">{{ .title }}</li>
+        <ul role="list" class="list">
+            <li class="list__head">{{ .title }}</li>
             <br />
             {{ range .links}}
-            <li class="h4"><a href="{{ .url | relURL }}">{{ .name }}</a></li>
+            <li><a href="{{ .url | relURL }}" class="list__link">{{ .name }}</a></li>
             {{end}}
         </ul>
         {{ end }}

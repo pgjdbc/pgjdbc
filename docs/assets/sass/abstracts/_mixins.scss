@@ -9,7 +9,6 @@
 }
 
 // font-face mixin
-
 @mixin font-face($font-name, $path, $weight: normal, $style: normal) {
   @font-face {
     font-family: $font-name;

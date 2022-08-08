@@ -6,8 +6,6 @@ weight: 8
 toc: true
 ---
 
-#  PostgreSQL™ Extensions to the JDBC API
-
 PostgreSQL™ is an extensible database system. You can add your own functions to
 the server, which can then be called from queries, or even add your own data types.
 As these are facilities unique to PostgreSQL™, we support them from Java, with a

@@ -1,10 +1,12 @@
 {{ $currentPage := . }}
 
 <nav role="navigation" class="sidebar">
-  <ul role="list" class="flow">
+  <ul role="list" class="flow sidebar__wrapper">
     {{ range .Site.Menus.docs.ByWeight }}
-    <li role="listitem" class="{{ if eq $currentPage.RelPermalink .URL }} sidebar--active {{end}}">
-      <a href="{{ .URL }}">{{ .Name }}</a>
+    <li role="listitem" class="sidebar__links">
+      <a href="{{ .URL }}" class="sidebar__links__link{{ if eq $currentPage.RelPermalink .URL }}--active{{end}}">
+        {{.Name }}
+      </a>
     </li>
     {{- end}}
   </ul>

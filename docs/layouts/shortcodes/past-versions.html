@@ -1,4 +1,4 @@
-<ul>
+<ul class="custom-marker">
     {{ range $ind, $ver := $.Site.Data.versions.past }}
     <li><a href="{{$ver.url}}">{{$ver.v_name}}</a></li>
     {{end}}
