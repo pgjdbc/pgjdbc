@@ -1,11 +1,11 @@
 <div class="card">
     {{ range $ind, $ver := $.Site.Data.versions.recent }}
     <div class="card__item">
-        <h3>{{$ver.j_name}}</h2>
-        <h4>{{$ver.v_name}}</h4>
-        <p>{{$ver.description}}</p>
-        <button class="cta cta--orange">
-            <a href="{{$ver.url}}">Download</a>
+        <div class="card__title">{{$ver.j_name}}</div>
+        <div class="card__subtitle">{{$ver.v_name}}</div>
+        <p class="card__desc">{{$ver.description}}</p>
+        <button class="card__btn">
+            <a href="{{$ver.url}}" class="card__btn__link">Download</a>
         </button>
     </div>
     {{ end }}

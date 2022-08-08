@@ -1,17 +1,14 @@
 .navbar {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 
   position: sticky;
   top: 0;
   z-index: 1;
-  padding: 1rem 2rem;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
-  background-color: var(--clr-white-400);
-  // border: 0px;
-  // border-bottom: 2px;
-  // border-style: solid;
-  // border-color: var(--clr-blue-300);
+  padding: var(--primary-spacing) var(--container-spacing);
+  box-shadow: 0px 3px 3px hsla(0, 0%, 0%, 0.15);
+  background-color: var(--clr-white);
 
   .logo {
     width: 45px;
@@ -21,18 +18,16 @@
   &__item {
     display: flex;
 
-    gap: 1rem 2rem;
-
-
     &__link {
-      color: var(--clr-black-100);
+      color: var(--clr-indigo);
       text-decoration: none;
-      font-size: var(--fs-400);
+      font-size: 1.25rem;
       position: relative;
       font-weight: 600;
+      margin-inline: var(--primary-spacing);
 
       &--active {
-        color: var(--clr-blue-300);
+        color: var(--clr-primary-400);
       }
 
       &::after {
@@ -43,19 +38,18 @@
         height: 2px;
         bottom: 0;
         left: 0;
-        background-color: var(--clr-blue-300);
+        background-color: var(--clr-primary-100);
         transform-origin: bottom right;
         transition: transform 0.25s ease-out;
+      }
+
+      &:hover {
+        color: var(--clr-indigo);
       }
 
       &:hover::after {
         transform: scaleX(1);
         transform-origin: bottom left;
-      }
-
-      &:hover,
-      &:focus {
-        color: var(--clr-blue-400);
       }
     }
   }

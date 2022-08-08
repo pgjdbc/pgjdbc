@@ -4,8 +4,6 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 ---
 
-#   Document
-
 Java Database Connectivity (JDBC) is an application programming interface (API) for
 the programming language Java, which defines how a client may access a database.
 It is part of the Java Standard Edition platform and provides methods to query and

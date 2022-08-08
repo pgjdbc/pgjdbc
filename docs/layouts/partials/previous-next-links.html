@@ -3,7 +3,7 @@
 <div class="pagination">
 	<div class="pagination__left">
 		{{ with $pages.ByWeight.Next . }}
-		<a title="Previous page" href="{{ .Permalink }}">
+		<a class="pagination__left__link" title="Previous page" href="{{ .Permalink }}">
 			{{ .Title }}
 		</a>
 		{{ end }}
@@ -11,7 +11,7 @@
 
 	<div class="pagination__right">
 		{{ with $pages.ByWeight.Prev . }}
-		<a title="Next page" href="{{ .Permalink }}">
+		<a class="pagination__right__link" title="Next page" href="{{ .Permalink }}">
 			{{ .Title }}
 		</a>
 		{{ end }}

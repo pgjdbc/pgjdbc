@@ -6,8 +6,6 @@ weight: 1
 toc: true
 ---
 
-#   Setting up the JDBC Driver
-
 This section describes the steps you need to take before you can write or run
 programs that use the JDBC interface.
 

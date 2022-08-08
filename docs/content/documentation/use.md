@@ -6,8 +6,6 @@ weight: 2
 toc: true
 ---
 
-#	Initializing the Driver
-
 This section describes how to load and initialize the JDBC driver in your programs.
 
 ##  Importing JDBC

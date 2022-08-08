@@ -16,14 +16,4 @@ modification, are permitted provided that the following conditions are met:
    this list of conditions and the following disclaimer in the documentation
    and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
+This Software Is Provided By The Copyright Holders And Contributors "as Is" And Any Express Or Implied Warranties, Including, But Not Limited To, The Implied Warranties Of Merchantability And Fitness For A Particular Purpose Are Disclaimed. In No Event Shall The Copyright Owner Or Contributors Be Liable For Any Direct, Indirect, Incidental, Special, Exemplary, Or Consequential Damages (including, But Not Limited To, Procurement Of Substitute Goods Or Services; Loss Of Use, Data, Or Profits; Or Business Interruption) However Caused And On Any Theory Of Liability, Whether In Contract, Strict Liability, Or Tort (including Negligence Or Otherwise) Arising In Any Way Out Of The Use Of This Software, Even If Advised Of The Possibility Of Such Damage.

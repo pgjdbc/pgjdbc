@@ -1,48 +1,28 @@
-.faq {
-    margin-block: 3rem;
-}
-
 .accordion {
-    margin-block: 2rem;
+    margin-block: var(--container-spacing);
 
-    .accordion__item {
-        border-bottom: 1px solid var(--clr-gray-100);
-
-        button[aria-expanded='true'] {
-            border-bottom: 1px solid var(--clr-blue-200);
-        }
+    &__item {
+        border-bottom: 2px solid var(--clr-primary-200);
     }
 
-    button {
+    &__btn {
         position: relative;
         display: block;
         text-align: left;
         width: 100%;
-        padding: 1em 0;
-        color: var(--clr-gray-400);
-        font-size: 1.15rem;
-        font-weight: 400;
+        padding: var(--primary-spacing) 0;
+        font-size: var(--fs-400);
         border: none;
         background: none;
         outline: none;
+        cursor: pointer;
 
         &:hover,
         &:focus {
-            cursor: pointer;
-            color: var(--clr-blue-200);
-
-            &::after {
-                cursor: pointer;
-                color: var(--clr-blue-200);
-                border: 1px solid var(--clr-blue-200);
-            }
+            color: var(--clr-primary-200);
         }
 
-        .accordion__title {
-            padding: 1em 1.5em 1em 0;
-        }
-
-        .icon {
+        &__icon {
             display: inline-block;
             position: absolute;
             top: 18px;
@@ -76,10 +56,11 @@
         }
     }
 
-    button[aria-expanded='true'] {
-        color: var(--clr-blue-200);
+    &__btn[aria-expanded='true'] {
+        color: var(--clr-primary-200);
+        border-bottom: 2px solid var(--clr-primary-200);
 
-        .icon {
+        .accordion__btn__icon {
             &::after {
                 width: 0;
             }
@@ -93,19 +74,20 @@
         }
     }
 
-    .accordion__content {
+    &__content {
         opacity: 0;
         max-height: 0;
         overflow: hidden;
         transition: opacity 200ms linear, max-height 200ms linear;
         will-change: opacity, max-height;
 
-        p,
-        ol,
-        li {
-            font-size: 1rem;
-            font-weight: 300;
+        &__inner {
             margin: 2em 0;
+            font-size: var(--fs-300);
+
+            li:not(last-child) {
+                margin-bottom: 0.5em;
+            }
         }
     }
 }

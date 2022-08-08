@@ -6,8 +6,6 @@ weight: 9
 toc: true
 ---
 
-#  Using the Driver in a Multithreaded or a Servlet Environment
-
 The PostgreSQL™ JDBC driver is not thread safe.
 The PostgreSQL server is not threaded. Each connection creates a new process on the server;
 as such any concurrent requests to the process would have to be serialized.

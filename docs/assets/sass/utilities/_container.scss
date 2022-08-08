@@ -1,5 +1,9 @@
-.container {
+%container-style {
     padding: 0 1.5rem;
-    max-width: 62.5rem;
+    max-width: var(--container-width);
     margin-inline: auto;
+}
+
+.container {
+    @extend %container-style;
 }

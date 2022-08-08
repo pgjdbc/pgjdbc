@@ -6,8 +6,6 @@ weight: 11
 toc: true
 ---
 
-#   Logging using java.util.logging
-
 The PostgreSQL JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
 PgJDBC Driver when is used in your application.
 

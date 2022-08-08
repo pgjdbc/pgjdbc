@@ -1,3 +1,4 @@
+// media-query mixin
 @mixin mq($key) {
 
   $size: map-get($breakpoints, $key);
@@ -8,16 +9,14 @@
 }
 
 // font-face mixin
-
 @mixin font-face($font-name, $path, $weight: normal, $style: normal) {
   @font-face {
     font-family: $font-name;
     font-style: $style;
     font-weight: $weight;
+    font-display: swap;
     src: local(''),
       /* Modern Browsers */
-      url("../fonts/woff/" +$path+".woff") format("woff"),
-      /* Super Modern Browsers */
-      url("../fonts/woff2/" +$path+".woff2") format("woff2");
+      url("../fonts/" +$path+".woff") format("woff");
   }
 }

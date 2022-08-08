@@ -6,8 +6,6 @@ weight: 6
 toc: true
 ---
 
-#  Storing Binary Data
-
 PostgreSQL™ provides two distinct ways to store binary data.  Binary data can be
 stored in a table using the data type BYTEA or by using the Large Object feature
 which stores the binary data in a separate table in a special format and refers

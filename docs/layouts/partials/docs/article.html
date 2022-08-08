@@ -1,4 +1,11 @@
-<article class="article flow">
-    {{ .Content }}
+<article class="article">
+    <div class="flow">
+        <h1>{{ .Title }}
+            {{if eq .Title "Document"}}
+            <img src="{{"/icons/document.svg" | relURL}}" alt="document">
+            {{end}}
+        </h1>
+        {{ .Content }}
+    </div>
     {{- partial "previous-next-links.html" . -}}
 </article>

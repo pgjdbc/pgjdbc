@@ -1,32 +1,25 @@
-$base: 1rem;
-
-$minor-third: 1.200;
-$augumented-third: 1.414;
-
 $type-scale: (
-  // Minor third
   small:(
-    100: modular-scale(-2, $base, $minor-third),
-    200: modular-scale(-1, $base, $minor-third),
-    300: modular-scale(0, $base, $minor-third),
-    400: modular-scale(1, $base, $minor-third),
-    500: modular-scale(2, $base, $minor-third),
-    600: modular-scale(3, $base, $minor-third),
-    700: modular-scale(4, $base, $minor-third),
-    800: modular-scale(5, $base, $minor-third),
-    900: modular-scale(6, $base, $minor-third)
+    100: 0.25rem,
+    200: 0.55rem,
+    300: 0.85rem,
+    400: 1rem,
+    500: 1.15rem,
+    600: 1.65rem,
+    700: 1.75rem,
+    800: 2rem,
+    900: 2.25rem
     ),
 
-  // Augmented fourth
   big:(
-    100: modular-scale(-2, $base, $augumented-third),
-    200: modular-scale(-1, $base, $augumented-third),
-    300: modular-scale(0, $base, $augumented-third),
-    400: modular-scale(1, $base, $augumented-third),
-    500: modular-scale(2, $base, $augumented-third),
-    600: modular-scale(3, $base, $augumented-third),
-    700: modular-scale(4, $base, $augumented-third),
-    800: modular-scale(5, $base, $augumented-third),
-    900: modular-scale(6, $base, $augumented-third)
+    100: 0.55rem,
+    200: 0.85rem,
+    300: 1rem,
+    400: 1.15rem,
+    500: 1.65rem,
+    600: 1.75rem,
+    700: 2rem,
+    800: 2.25rem,
+    900: 3rem
     )
 )

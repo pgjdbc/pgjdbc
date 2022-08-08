@@ -1,10 +1,9 @@
 @import
   'abstracts/breakpoints',
   'abstracts/colors',
-  'abstracts/functions',
+  'abstracts/constants',
   'abstracts/mixins',
-  'abstracts/type',
-  'abstracts/variables';
+  'abstracts/type';
 
 @import
   'base/base',
@@ -23,13 +22,16 @@
 
 @import
   'components/admonition',
+  'components/button',
   'components/card',
-  'components/cta',
   'components/pagination',
   'components/search',
-  'components/table';
+  'components/table',
+  'components/toc';
 
 @import
+  'pages/community',
+  'pages/development',
   'pages/docs',
   'pages/download',
   'pages/faq',

@@ -6,8 +6,6 @@ weight: 4
 toc: true
 ---
 
-#  Issuing a Query and Processing the Result
-
 Any time you want to issue SQL statements to the database, you require a `Statement`
 
 or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement` ,
