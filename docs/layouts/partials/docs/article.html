@@ -2,7 +2,7 @@
     <div class="flow">
         <h1>{{ .Title }}
             {{if eq .Title "Document"}}
-            <img src="/icons/document.svg" alt="document">
+            <img src="{{"/icons/document.svg" | relURL}}" alt="document">
             {{end}}
         </h1>
         {{ .Content }}

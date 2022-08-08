@@ -1,7 +1,7 @@
 {{ define "main" }}
 <article class="development container flow">
     <h1>{{ .Title }}
-        <img src="/icons/development.svg" alt="development" >
+        <img src="{{"/icons/development.svg" | relURL}}" alt="development" >
     </h1>
     {{ .Content }}
 </article>
