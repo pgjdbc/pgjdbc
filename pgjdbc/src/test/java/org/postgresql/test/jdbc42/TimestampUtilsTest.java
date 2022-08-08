@@ -17,13 +17,14 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
+import java.util.TimeZone;
 
 public class TimestampUtilsTest {
   private TimestampUtils timestampUtils;
 
   @Before
   public void setUp() {
-    timestampUtils = createTimestampUtils();
+    timestampUtils = new TimestampUtils(false, TimeZone::getDefault);
   }
 
   @Test
@@ -84,8 +85,8 @@ public class TimestampUtilsTest {
   public void testLocalDateTimeRounding() {
 
     assertLocalDateTimeRounding("500 ns rounds up to the next micro", "2022-01-04T08:57:13.123457", "2022-01-04T08:57:13.123456500");
-    assertLocalDateTimeRounding("2022-01-04T08:57:13.123456", "2022-01-04T08:57:13.123456499");
-    assertLocalDateTimeRounding("2022-01-04T08:57:14","2022-01-04T08:57:13.999999501");
+    assertLocalDateTimeRounding("499 ns should not round up", "2022-01-04T08:57:13.123456", "2022-01-04T08:57:13.123456499");
+    assertLocalDateTimeRounding("999999501 ns rounds up the next second", "2022-01-04T08:57:14","2022-01-04T08:57:13.999999501");
 
     LocalDateTime unrounded = LocalDateTime.parse("2022-01-04T08:57:13.123456");
     assertSame(
@@ -97,6 +98,10 @@ public class TimestampUtilsTest {
 
   private void assertLocalDateTimeRounding(String message, String expected, String toRound) {
     assertEquals(message + " in timestampUtils.round(LocalDateTime.parse(" + toRound + "))", LocalDateTime.parse(expected), timestampUtils.round(LocalDateTime.parse(toRound)));
+  }
+
+  private void assertToLocalTime(String inputTime) throws SQLException {
+    assertToLocalTime(inputTime, inputTime, null);
   }
 
   private void assertToLocalTime(String expectedOutput, String inputTime, String message) throws SQLException {
