@@ -62,6 +62,7 @@ public class TimestampUtils {
   private static final char[][] NUMBERS;
   private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
   private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
+  private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
   // since PostgreSQL has microsecond resolution only
   private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));

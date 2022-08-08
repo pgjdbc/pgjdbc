@@ -17,7 +17,6 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
-import java.util.TimeZone;
 
 public class TimestampUtilsTest {
   private TimestampUtils timestampUtils;
@@ -79,6 +78,9 @@ public class TimestampUtilsTest {
     assertToLocalTime("23:59:59.99999999"); // 990 NanoSeconds
     assertToLocalTime("23:59:59.999999998"); // 998 NanoSeconds
     assertToLocalTime(LocalTime.MAX.toString(), "24:00:00", "LocalTime can't represent 24:00:00");
+  }
+
+  @Test
   public void testLocalDateTimeRounding() {
 
     assertLocalDateTimeRounding("500 ns rounds up to the next micro", "2022-01-04T08:57:13.123457", "2022-01-04T08:57:13.123456500");
