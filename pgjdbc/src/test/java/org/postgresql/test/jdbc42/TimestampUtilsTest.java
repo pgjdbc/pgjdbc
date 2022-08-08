@@ -81,7 +81,7 @@ public class TimestampUtilsTest {
     assertToLocalTime(LocalTime.MAX.toString(), "24:00:00", "LocalTime can't represent 24:00:00");
   public void testLocalDateTimeRounding() {
 
-    assertLocalDateTimeRounding("2022-01-04T08:57:13.123457", "2022-01-04T08:57:13.123456500");
+    assertLocalDateTimeRounding("500 ns rounds up to the next micro", "2022-01-04T08:57:13.123457", "2022-01-04T08:57:13.123456500");
     assertLocalDateTimeRounding("2022-01-04T08:57:13.123456", "2022-01-04T08:57:13.123456499");
     assertLocalDateTimeRounding("2022-01-04T08:57:14","2022-01-04T08:57:13.999999501");
 
