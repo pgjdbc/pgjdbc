@@ -5,7 +5,7 @@
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| 42.3.x   | security fixes, features, bug fixes |
+| latest 42.x | security fixes, features, bug fixes |
 | 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
 | < 42.2.x | security fixes (upon request) |
 
