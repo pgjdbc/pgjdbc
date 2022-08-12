@@ -269,17 +269,17 @@ select {
   --fs-600: 1.65rem;
   --fs-700: 1.75rem;
   --fs-800: 2rem;
-  --fs-900: 2.25rem; }
+  --fs-900: 2.5rem; }
   @media only screen and (min-width: 40em) {
     :root {
       --fs-100: 0.55rem;
       --fs-200: 0.85rem;
       --fs-300: 1rem;
       --fs-400: 1.15rem;
-      --fs-500: 1.65rem;
+      --fs-500: 1.45rem;
       --fs-600: 1.75rem;
       --fs-700: 2rem;
-      --fs-800: 2.25rem;
+      --fs-800: 2.5rem;
       --fs-900: 3rem; } }
 /* Background */
 .chroma {
@@ -639,11 +639,11 @@ h5 {
 
 h1,
 .h1 {
-  font-size: var(--fs-900); }
+  font-size: var(--fs-800); }
 
 h2,
 .h2 {
-  font-size: var(--fs-800); }
+  font-size: var(--fs-700); }
 
 h3,
 .h3 {
@@ -672,8 +672,8 @@ a {
     color: var(--clr-primary-300); }
 
 blockquote {
-  background-color: rgba(255, 229, 100, 0.3);
-  border-left-color: #ffe564;
+  background-color: rgba(255, 230, 102, 0.3);
+  border-left-color: #ffe666;
   border-left-width: 9px;
   border-left-style: solid;
   padding: 20px 45px 20px 26px;
@@ -968,6 +968,8 @@ tbody tr:hover {
       margin: 1.5em 0; }
     .doc .article li {
       margin: 1em 0; }
+    .doc .article > :is(h2, h3, h4) {
+      margin-top: 3rem; }
 
 .download {
   margin-block: var(--container-spacing); }

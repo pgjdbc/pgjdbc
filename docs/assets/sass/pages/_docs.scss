@@ -12,5 +12,9 @@
       li {
          margin: 1em 0;
       }
+
+      &>:is(h2, h3, h4) {
+         margin-top: 3rem;
+      }
    }
 }

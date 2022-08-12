@@ -7,11 +7,11 @@ toc: true
 ---
 
 The PostgreSQL JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
-PgJDBC Driver when is used in your application.
+pgJDBC Driver when is used in your application.
 
-The PgJDBC Driver uses the logging APIs of `java.util.logging` that is part of Java since JDK 1.4, which makes it a good choice for the driver since it doesn't add any external dependency for a logging framework. `java.util.logging` is a very rich and powerful tool, it's beyond the scope of these docs to explain how to use it to it's full potential, for that please refer to [Java Logging Overview](https://docs.oracle.com/javase/8/docs/technotes/guides/logging/overview.html).
+The pgJDBC Driver uses the logging APIs of `java.util.logging` that is part of Java since JDK 1.4, which makes it a good choice for the driver since it doesn't add any external dependency for a logging framework. `java.util.logging` is a very rich and powerful tool, it's beyond the scope of these docs to explain how to use it to it's full potential, for that please refer to [Java Logging Overview](https://docs.oracle.com/javase/8/docs/technotes/guides/logging/overview.html).
 
-This logging support was added since version 42.0.0 of the PgJDBC Driver, and previous versions uses a custom mechanism to enable logging that it is replaced by the use of `java.util.logging` in current versions, the old mechanism is no longer available.
+This logging support was added since version 42.0.0 of the pgJDBC Driver, and previous versions uses a custom mechanism to enable logging that it is replaced by the use of `java.util.logging` in current versions, the old mechanism is no longer available.
 
 > **NOTE**
 >
@@ -21,7 +21,7 @@ This logging support was added since version 42.0.0 of the PgJDBC Driver, and pr
 
 The Logging APIs offer both static and dynamic configuration control. Static control enables field service staff to set up a particular configuration and then re-launch the application with the new logging settings. Dynamic control allows for updates to the logging configuration within a currently running program.
 
-The root logger used by the PgJDBC driver is `org.postgresql` .
+The root logger used by the pgJDBC driver is `org.postgresql` .
 
 ## Enable logging by using logging.properties file
 

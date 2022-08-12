@@ -236,13 +236,13 @@ ps.setInt(1, 43);
 ps.executeQuery().close();
 ```
 
-however pgjdbc can use server side prepared statements in both cases.
+however pgJDBC can use server side prepared statements in both cases.
 
 > **Note**
 >
 > The `Statement` object is bound to a `Connection` , and it is not a good idea to access the same `Statement` and/or `Connection` from multiple concurrent threads (except `cancel()` , `close()` , and alike cases). It might be safer to just `close()` the statement rather than trying to cache it somehow.
 
-Server-prepared statements consume memory both on the client and the server, so pgjdbc limits the number of server-prepared statements per connection. It can be configured via `preparedStatementCacheQueries` (default `256` , the number of queries known to pgjdbc), and `preparedStatementCacheSizeMiB` (default `5` , that is the client side cache size in megabytes per connection). Only a subset of `statement cache` is server-prepared as some of the statements might fail to reach `prepareThreshold` .
+Server-prepared statements consume memory both on the client and the server, so pgJDBC limits the number of server-prepared statements per connection. It can be configured via `preparedStatementCacheQueries` (default `256` , the number of queries known to pgJDBC), and `preparedStatementCacheSizeMiB` (default `5` , that is the client side cache size in megabytes per connection). Only a subset of `statement cache` is server-prepared as some of the statements might fail to reach `prepareThreshold` .
 
 ### Deactivation
 
@@ -272,7 +272,7 @@ The recommendation is:
 
 #### DEALLOCATE ALL, DISCARD ALL
 
-There are explicit commands to deallocate all server side prepared statements. It would result in the following server-side error message: `prepared statement name is invalid`. Of course it could defeat pgjdbc, however there are cases when you need to discard statements (e.g. after lots of DDLs)
+There are explicit commands to deallocate all server side prepared statements. It would result in the following server-side error message: `prepared statement name is invalid`. Of course it could defeat pgJDBC, however there are cases when you need to discard statements (e.g. after lots of DDLs)
 
 The recommendation is:
 
@@ -290,19 +290,19 @@ set search_path='app_v2';
 SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
 ```
 
-Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table. It is hard to tell which behaviour is expected, however pgjdbc tries to track `search_path` changes, and it invalidates prepare cache accordingly.
+Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table. It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates prepare cache accordingly.
 
 The recommendation is:
 
 1. Avoid changing `search_path` often, as it invalidates server side prepared statements
-2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgjdbc won't be able to identify `search_path` change
+2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgJDBC won't be able to identify `search_path` change
 
 #### Re-execution of failed statements
 
 It is a pity that a single `cached plan must not change result type` could cause the whole transaction to fail. The driver could re-execute the statement automatically in certain cases.
 
-1. In case the transaction has not failed (e.g. the transaction did not exist before execution of the statement that caused `cached plan...` error), then pgjdbc re-executes the statement automatically. This makes the application happy, and avoids unnecessary errors.
-2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgjdbc does have "automatic savepoint" feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property (default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
+1. In case the transaction has not failed (e.g. the transaction did not exist before execution of the statement that caused `cached plan...` error), then pgJDBC re-executes the statement automatically. This makes the application happy, and avoids unnecessary errors.
+2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgJDBC does have "automatic savepoint" feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property (default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
 
 > **Note**
 >
@@ -310,12 +310,12 @@ It is a pity that a single `cached plan must not change result type` could cause
 
 #### Replication connection
 
-PostgreSQL replication connection does not allow to use server side prepared statements, so pgjdbc
+PostgreSQL replication connection does not allow to use server side prepared statements, so pgJDBC
 uses simple queries in the case where `replication` connection property is activated.
 
 #### Use of server-prepared statements for con.createStatement()
 
-By default, pgjdbc uses server-prepared statements for `PreparedStatement` only, however you might want
+By default, pgJDBC uses server-prepared statements for `PreparedStatement` only, however you might want
 to activate server side prepared statements for regular `Statement` as well. For instance, if you
 execute the same statement through `con.createStatement().executeQuery(...)` , then you might improve
 performance by caching the statement. Of course it is better to use `PreparedStatements` explicitly,
@@ -456,9 +456,9 @@ PostgreSQL supports server parameters, also called server variables or, internal
 
 For a subset of these variables the server will *automatically report changes to the value to the client driver and application*. These variables are known internally as `GUC_REPORT` variables after the name of the flag that enables the functionality.
 
-The server keeps track of all the variable scopes and reports when a variable reverts to a prior value, so the client doesn't have to guess what the current value is and whether some server-side function could've changed it.  Whenever the value changes, no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.  PgJDBC uses many of these reports internally.
+The server keeps track of all the variable scopes and reports when a variable reverts to a prior value, so the client doesn't have to guess what the current value is and whether some server-side function could've changed it.  Whenever the value changes, no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.  pgJDBC uses many of these reports internally.
 
-As of PgJDBC 42.2.6, it also exposes the parameter status information to user applications via the PGConnection extensions interface.
+As of pgJDBC 42.2.6, it also exposes the parameter status information to user applications via the PGConnection extensions interface.
 
 ## Methods
 
@@ -553,7 +553,7 @@ host    replication   all   ::1/128         md5
 
 ## Logical replication
 
-Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to  use the pgjdbc replication API we will use the `test_decoding` plugin that is include in the `postgresql-contrib` package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
+Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is include in the `postgresql-contrib` package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
 
 In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection is not available to
 execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL.
@@ -575,9 +575,9 @@ PGConnection replConnection = con.unwrap(PGConnection.class);
 
 The entire replication API is grouped in `org.postgresql.replication.PGReplicationConnection` and is available via `org.postgresql.PGConnection#getReplicationAPI` .
 
-Before you can start replication protocol, you need to have replication slot, which can be also created via pgjdbc API.
+Before you can start replication protocol, you need to have replication slot, which can be also created via pgJDBC API.
 
-##### Example 9.5. Create replication slot via pgjdbc API
+##### Example 9.5. Create replication slot via pgJDBC API
 
 ```java
 replConnection.getReplicationAPI()
@@ -665,7 +665,7 @@ After create `PGReplicationStream` , it's time to start receive changes in real-
 
 Changes can be received from stream as blocking( `org.postgresql.replication.PGReplicationStream#read` ) or as non-blocking (`org.postgresql.replication.PGReplicationStream#readPending` ).
 Both methods receive changes as a `java.nio.ByteBuffer` with the payload from the send output plugin. We can't receive
-part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That why pgjdbc returns the raw ByteBuffer instead of making assumptions.
+part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That why pgJDBC returns the raw ByteBuffer instead of making assumptions.
 
 ##### Example 9.11. Example send message from output plugin.
 
@@ -792,7 +792,7 @@ while (true) {
 
 Where output looks like this, where each line is a separate message.
 
-```
+```sql
 BEGIN
 table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'first tx changes'
 COMMIT
@@ -832,7 +832,7 @@ ByteBuffer read = stream.read();
 ## Arrays
 
 PostgreSQL™ provides robust support for array data types as column types, function arguments
-and criteria in where clauses. There are several ways to create arrays with pgjdbc.
+and criteria in where clauses. There are several ways to create arrays with pgJDBC.
 
 The [java.sql. Connection.createArrayOf(String, Object\[\])](https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#createArrayOf-java.lang.String-java.lang.Object:A-) can be used to create an [java.sql. Array](https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html) from `Object[]` instances (Note: this includes both primitive and object multi-dimensional arrays).
 A similar method `org.postgresql.PGConnection.createArrayOf(String, Object)` provides support for primitive array types.

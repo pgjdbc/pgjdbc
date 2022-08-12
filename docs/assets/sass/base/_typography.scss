@@ -17,12 +17,12 @@ h5 {
 
 h1,
 .h1 {
-  font-size: var(--fs-900);
+  font-size: var(--fs-800);
 }
 
 h2,
 .h2 {
-  font-size: var(--fs-800);
+  font-size: var(--fs-700);
 }
 
 h3,
@@ -61,8 +61,8 @@ a {
 }
 
 blockquote {
-  background-color: rgba(255, 229, 100, 0.3);
-  border-left-color: #ffe564;
+  background-color: hsla(50, 100%, 70%, 0.3);
+  border-left-color: hsl(50, 100%, 70%);
   border-left-width: 9px;
   border-left-style: solid;
   padding: 20px 45px 20px 26px;

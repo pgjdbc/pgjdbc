@@ -22,7 +22,7 @@ import java.sql.*;
 
 ## Loading the Driver
 
-Applications do not need to explicitly load the org.postgresql. Driver class because the pgjdbc driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL™ (as long as the driver's jar file is on the classpath).
+Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL™ (as long as the driver's jar file is on the classpath).
 
 > **NOTE**
 >
@@ -260,7 +260,7 @@ If this parameter is auto, SSPI is attempted if the server requests SSPI authent
 gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
 
 On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
-To use SSPI with PgJDBC you must ensure that[the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH` . PgJDBC does **not** bundle `waffle-jna` in the PgJDBC jar.
+To use SSPI with PgJDBC you must ensure that[the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH` . pgJDBC does **not** bundle `waffle-jna` in the pgJDBC jar.
 
 Since: 9.4
 
