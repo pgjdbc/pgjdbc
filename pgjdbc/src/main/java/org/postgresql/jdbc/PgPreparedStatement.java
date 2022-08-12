@@ -739,18 +739,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  private Class<?> getArrayType(Class<?> type) {
+    Class<?> subType = type.getComponentType();
+    while (subType != null) {
+      type = subType;
+      subType = type.getComponentType();
+    }
+    return type;
+  }
+
   private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
     final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
-    final int oid = arraySupport.getDefaultArrayTypeOid();
+    int oid = arraySupport.getDefaultArrayTypeOid();
 
     if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
     } else {
       if (oid == Oid.UNSPECIFIED) {
-        throw new SQLFeatureNotSupportedException();
+        Class<?> arrayType = getArrayType(in.getClass());
+        oid = typeInfo.getJavaArrayType(arrayType.getName());
+        if (oid == Oid.UNSPECIFIED) {
+          throw new SQLFeatureNotSupportedException();
+        }
       }
       final int baseOid = typeInfo.getPGArrayElement(oid);
       final String baseType = castNonNull(typeInfo.getPGType(baseOid));

@@ -36,6 +36,8 @@ public interface TypeInfo {
    */
   int getSQLType(String pgTypeName) throws SQLException;
 
+  int getJavaArrayType(String className) throws SQLException;
+
   /**
    * Look up the oid for a given postgresql type name. This is the inverse of
    * {@link #getPGType(int)}.
