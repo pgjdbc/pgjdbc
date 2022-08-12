@@ -4,5 +4,13 @@
    .article {
       width: 60%;
       padding-inline: var(--container-spacing);
+
+      &>p {
+         margin: 1.5em 0;
+      }
+
+      li {
+         margin: 1em 0;
+      }
    }
 }

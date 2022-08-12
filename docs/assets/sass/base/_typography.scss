@@ -3,7 +3,6 @@ body {
   font-weight: 500;
   font-family: 'Barlow', sans-serif;
   color: var(--clr-indigo);
-  letter-spacing: 1px;
 }
 
 h1,
@@ -12,7 +11,7 @@ h3,
 h4,
 h5 {
   font-stretch: 100%;
-  line-height: 1.3;
+  line-height: 1.2;
   font-weight: 700;
 }
 
@@ -47,7 +46,7 @@ small,
 }
 
 strong {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 a {
@@ -59,4 +58,13 @@ a {
     text-decoration: none;
     color: var(--clr-primary-300);
   }
+}
+
+blockquote {
+  background-color: rgba(255, 229, 100, 0.3);
+  border-left-color: #ffe564;
+  border-left-width: 9px;
+  border-left-style: solid;
+  padding: 20px 45px 20px 26px;
+  margin-block: 1.5em;
 }

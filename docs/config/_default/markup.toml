@@ -1,21 +1,21 @@
-# defaultMarkdownHandler = "goldmark"
+defaultMarkdownHandler = "goldmark"
 
-# [goldmark]
-# [goldmark.extensions]
-# definitionList = true
-# footnote = true
-# linkify = true
-# strikethrough = true
-# table = true
-# taskList = true
-# typographer = true
-# [goldmark.parser]
-# autoHeadingID = true
-# autoHeadingIDType = "github"
-# [goldmark.renderer]
-# hardWraps = false
-# unsafe = false
-# xhtml = false
+[goldmark]
+[goldmark.extensions]
+definitionList = true
+footnote = true
+linkify = true
+strikethrough = true
+table = true
+taskList = true
+typographer = true
+[goldmark.parser]
+autoHeadingID = true
+autoHeadingIDType = "github"
+[goldmark.renderer]
+hardWraps = false
+unsafe = false
+xhtml = false
 
 [highlight]
 anchorLineNos = false
@@ -27,12 +27,12 @@ lineNoStart = 1
 lineNos = false
 lineNumbersInTable = true
 noClasses = false
-style = "algol"
+style = "github"
 tabWidth = 4
 
 pygmentsCodeFences = true
 
-# [tableOfContents]
-# endLevel = 2
-# ordered = false
-# startLevel = 2
+[tableOfContents]
+endLevel = 3
+ordered = false
+startLevel = 2

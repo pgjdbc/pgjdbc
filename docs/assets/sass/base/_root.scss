@@ -1,7 +1,7 @@
 :root {
-  @include mq(medium) {
-    --section-spacing: 7rem;
-  }
+  // @include mq(medium) {
+  //   --section-spacing: 7rem;
+  // }
 
   @each $color,
   $shade in $colors {

@@ -21,18 +21,21 @@ code {
     margin: 0;
     background-color: var(--clr-neutral-100);
     border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 80%;
+    word-break: break-word;
 }
 
 pre code {
     display: block;
-    padding: 1.5em;
+    padding: 1em;
     line-height: 2;
     overflow-x: auto;
 }
 
 pre {
-    background-color: var(--clr-white);
-    color: var(--clr-neutral-500);
+    // background-color: var(--clr-white);
+    // color: var(--clr-neutral-500);
     white-space: pre;
     -webkit-hyphens: none;
     -ms-hyphens: none;

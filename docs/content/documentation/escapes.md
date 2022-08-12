@@ -6,24 +6,15 @@ weight: 7
 toc: true
 ---
 
-The JDBC specification (like the ODBC specification) acknowledges the fact that
-some vendor specific SQL may be required for certain RDBMS features. To aid
-developers in writing portable JDBC applications across multiple database products,
-a special escape syntax is used to specify the generic commands the developer
-wants to be run. The JDBC driver translates these escape sequences into native
-syntax for its specific database. For more information consult the
-[Java DB Technical Documentation](http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html).
+The JDBC specification (like the ODBC specification) acknowledges the fact that some vendor specific SQL may be required for certain RDBMS features. To aid developers in writing portable JDBC applications across multiple database products, a special escape syntax is used to specify the generic commands the developer wants to be run. The JDBC driver translates these escape sequences into native syntax for its specific database. For more information consult the [Java DB Technical Documentation](http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html).
 
-The parsing of the sql statements for these escapes can be disabled using
-`Statement.setEscapeProcessing(false)` .
+The parsing of the sql statements for these escapes can be disabled using `Statement.setEscapeProcessing(false)` .
 
-`Connection.nativeSQL(String sql)` provides another way to have escapes processed.
-It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.
+`Connection.nativeSQL(String sql)` provides another way to have escapes processed. It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.
 
-**Example 8.1. Using JDBC escapes**
+##### Example 8.1. Using JDBC escapes
 
-To use the JDBC escapes, you simply write your SQL replacing date/time literal
-values, outer join and functions by the JDBC escape syntax. For example :
+To use the JDBC escapes, you simply write your SQL replacing date/time literal values, outer join and functions by the JDBC escape syntax. For example :
 
 ```java
 ResultSet rs = st.executeQuery("SELECT {fn week({d '2005-01-24'})}");
@@ -37,10 +28,7 @@ ResultSet rs = st.executeQuery("SELECT extract(week from DATE '2005-01-24')");
 
 ## Escape for like escape character
 
-You can specify which escape character to use in strings comparison (with `LIKE` )
-to protect wildcards characters ('%' and '_') by adding the following escape :
-`{escape 'escape-character'}` . The driver supports this only at the end of the
-comparison expression.
+You can specify which escape character to use in strings comparison (with `LIKE` ) to protect wildcards characters ('%' and '_') by adding the following escape : `{escape 'escape-character'}` . The driver supports this only at the end of the comparison expression.
 
 For example, you can compare string values using '|' as escape character to protect '_' :
 
@@ -48,47 +36,31 @@ For example, you can compare string values using '|' as escape character to prot
 rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
 ```
 
-##  Escape for outer joins
+## Escape for outer joins
 
-You can specify outer joins using the following syntax: `{oj table (LEFT|RIGHT|FULL) OUTER JOIN (table | outer-join)
-ON search-condition  }`
+You can specify outer joins using the following syntax: `{oj table (LEFT|RIGHT|FULL) OUTER JOIN (table | outer-join) ON search-condition}`
 
 For example :
 
 ```java
-ResultSet rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
+ResultSet rs = stmt.executeQuery("select * from {oj a left outer join b on (a.i=b.i)} ");
 ```
 
-##  Date-time escapes
+## Date-time escapes
 
-The JDBC specification defines escapes for specifying date, time and timestamp
-values which are supported by the driver.
+The JDBC specification defines escapes for specifying date, time and timestamp values which are supported by the driver.
 
-> date
->> `{d 'yyyy-mm-dd'}` which is translated to `DATE 'yyyy-mm-dd'`
+* **date** :  `{d 'yyyy-mm-dd'}` which is translated to `DATE 'yyyy-mm-dd'`
+* **time** : `{t 'hh:mm:ss'}` which is translated to `TIME 'hh:mm:ss'`
+* **timestamp** : `{ts 'yyyy-mm-dd hh:mm:ss.f...'}` which is translated to `TIMESTAMP 'yyyy-mm-dd hh:mm:ss.f'` The fractional seconds (.f...) portion of the TIMESTAMP can be omitted.
 
-> time
->> `{t 'hh:mm:ss'}` which is translated to `TIME 'hh:mm:ss'`
+## Escaped scalar functions
 
-> timestamp
->> `{ts 'yyyy-mm-dd hh:mm:ss.f...'}` which is translated to `TIMESTAMP 'yyyy-mm-dd hh:mm:ss.f'` <br /><br />
->> The fractional seconds (.f...) portion of the TIMESTAMP can be omitted.
+The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}` . The following tables show which functions are supported by the PostgreSQL™ driver. The driver supports the nesting and the mixing of escaped functions and escaped values. The appendix C of the JDBC specification describes the functions.
 
-##  Escaped scalar functions
+Some functions in the following tables are translated but reported as not supported because they are duplicating or changing their order of the arguments. While this is harmless for literal values or columns, it will cause problems when using prepared statements. For example " `{fn right(?,?)}` " will be translated to " `substring(? from (length(?)+1-?))` ". As you can see the translated SQL requires more parameters than before the translation but the driver will not automatically handle this.
 
-The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}` .
-The following tables show which functions are supported by the PostgreSQL™ driver.
-The driver supports the nesting and the mixing of escaped functions and escaped
-values. The appendix C of the JDBC specification describes the functions.
-
-Some functions in the following tables are translated but reported as not supported
-because they are duplicating or changing their order of the arguments. While this
-is harmless for literal values or columns, it will cause problems when using
-prepared statements. For example " `{fn right(?,?)}` " will be translated to " `substring(? from (length(?)+1-?))` ".
-As you can see the translated SQL requires more parameters than before the
-translation but the driver will not automatically handle this.
-
-**Table 8.1. Supported escaped numeric functions**
+##### Table 8.1. Supported escaped numeric functions
 
 |function|reported as supported|translation|comments|
 |---|---|---|---|
@@ -118,7 +90,7 @@ translation but the driver will not automatically handle this.
 |tan(arg1)|yes|tan(arg1)||
 |truncate(arg1, arg2)|yes|trunc(arg1, arg2)||
 
-**Table 8.2. Supported escaped string functions**
+##### Table 8.2. Supported escaped string functions
 
 |function|reported as supported|translation|comments|
 |---|---|---|---|
@@ -146,7 +118,7 @@ statements by example).|
 |soundex(arg1)|no|soundex(arg1)|Not supported since it requires the fuzzystrmatch contrib module.|
 |difference(arg1, arg2)|no|difference(arg1, arg2)|Not supported since it requires the fuzzystrmatch contrib module.|
 
-**Table 8.3. Supported escaped date/time functions**
+##### Table 8.3. Supported escaped date/time functions
 
 |function|reported as supported|translation|comments|
 |---|---|---|---|
@@ -170,7 +142,7 @@ argCount)'+argTimeStamp)|an argIntervalType value of SQL_TSI_FRAC_SECOND
 is not implemented since backend does not support it|
 |timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not|extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 )|only an argIntervalType value of SQL_TSI_FRAC_SECOND, SQL_TSI_FRAC_MINUTE, SQL_TSI_FRAC_HOUR or SQL_TSI_FRAC_DAY is supported|
 
-**Table 8.4. Supported escaped misc functions**
+##### Table 8.4. Supported escaped misc functions
 
 |function|reported as supported|translation|comments|
 |---|---|---|---|

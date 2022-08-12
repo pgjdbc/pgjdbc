@@ -1,5 +1,5 @@
 <h{{ .Level }} id="{{ .Anchor | safeURL }}" class="self-link">{{ .Text | safeHTML }}
-    {{- if and (ge .Level 2) (le .Level 4) }}{{" " -}}
+    {{- if and (ge .Level 2) (le .Level 5) }}{{" " -}}
     <a class="header-link" href="#{{ .Anchor | safeURL }}">
         <svg height="25px" viewBox="0 0 24 24" width="25px" xmlns="http://www.w3.org/2000/svg">
             <path d="M0 0h24v24H0z" fill="none" />
