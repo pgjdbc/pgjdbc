@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.AccessControlContext;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
@@ -102,7 +103,7 @@ public class MakeGSS {
         return null;
       }
       return (Subject) SUBJECT_GET_SUBJECT.invoke(
-          ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
+          (AccessControlContext) ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
       );
     } catch (Throwable e) {
       if (e instanceof RuntimeException) {
