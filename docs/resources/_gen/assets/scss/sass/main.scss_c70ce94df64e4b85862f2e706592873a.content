@@ -846,7 +846,7 @@ blockquote {
   display: flex;
   width: 100%;
   text-transform: uppercase;
-  font-size: 80%;
+  font-size: 90%;
   margin-top: var(--box-spacing); }
   .pagination__left {
     width: 50%; }
@@ -1076,7 +1076,11 @@ tbody tr:hover {
     .hero__content__head {
       font-size: 5.4rem; }
     .hero__content__desc {
-      font-size: 1.25rem; }
+      font-size: 1.25rem;
+      padding-block: 0.5em;
+      font-weight: 600;
+      letter-spacing: 1px;
+      line-height: 1.5; }
     .hero__content__actions {
       padding-top: 1.5rem;
       display: flex;

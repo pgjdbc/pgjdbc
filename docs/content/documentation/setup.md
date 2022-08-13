@@ -26,7 +26,7 @@ To compile the driver simply run **`gradlew assemble`** or **`gradlew build`** i
 >
 > If you want to skip test execution, add the option `-DskipTests`. The compiled driver will be placed in `pgjdbc/build/libs postgresql-MM.nn.pp.jar`
 
-Where MM is the major version, nn is the minor version and pp is the patch version. Versions for JDBC3 and lower can be found [here](https://jdbc.postgresql.org/download.html#others)
+Where MM is the major version, nn is the minor version and pp is the patch version. Versions for JDBC3 and lower can be found [here](https://repo1.maven.org/maven2/org/postgresql/postgresql/9.2-1003-jdbc3/)
 
 This is a very brief outline of how to build the driver. Much more detailed information can be found on the [github repo](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md)
 
