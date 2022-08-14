@@ -524,7 +524,7 @@ Your database should be configured to enable logical or physical replication
 
 Enable connect user with replication privileges to replication stream.
 
-```
+```sql
 local   replication   all                   trust
 host    replication   all   127.0.0.1/32    md5
 host    replication   all   ::1/128         md5
@@ -543,7 +543,7 @@ max_replication_slots = 4       # max number of replication slots
 
 *pg_hba.conf*
 
-```
+```sql
 # Allow replication connections from localhost, by a user with the
 # replication privilege.
 local   replication   all                   trust
@@ -628,7 +628,7 @@ event.
 
 ##### Example 9.8. Example output with include-xids=true
 
-```
+```sql
 BEGIN 105779
 table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
 COMMIT 105779
@@ -636,7 +636,7 @@ COMMIT 105779
 
 ##### Example 9.9. Example output with include-xids=false
 
-```
+```sql
 BEGIN
 table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'previous value'
 COMMIT
@@ -669,7 +669,7 @@ part of message, only the full message that was sent by the output plugin. ByteB
 
 ##### Example 9.11. Example send message from output plugin.
 
-```
+```java
 OutputPluginPrepareWrite(ctx, true);
 appendStringInfo(ctx->out, "BEGIN %u", txn->xid);
 OutputPluginWrite(ctx, true);
