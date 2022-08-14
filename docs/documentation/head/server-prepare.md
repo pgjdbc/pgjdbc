@@ -165,7 +165,7 @@ performance by caching the statement. Of course it is better to use `PreparedSta
 however the driver has an option to cache simple statements as well.
 
 You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
-Note: the option is more of a diagnostinc/debugging sort, so be careful how you use it .
+Note: the option is more of a diagnostic/debugging sort, so be careful how you use it .
 
 #### Bind placeholder datatypes
 

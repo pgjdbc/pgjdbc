@@ -39,7 +39,7 @@ public class SharedTimer {
       final ClassLoader prevContextCL = Thread.currentThread().getContextClassLoader();
       try {
         /*
-         Scheduled tasks whould not need to use .getContextClassLoader, so we just reset it to null
+         Scheduled tasks should not need to use .getContextClassLoader, so we just reset it to null
          */
         Thread.currentThread().setContextClassLoader(null);
 

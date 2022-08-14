@@ -239,7 +239,7 @@ public class ConnectionTest {
     assertEquals(9876, rs.getInt(1)); // Should not change!
     rs.close();
 
-    // repeat attempt to chagne with auto commit true
+    // repeat attempt to change with auto commit true
     con.setAutoCommit(true);
 
     try {
@@ -357,7 +357,7 @@ public class ConnectionTest {
     assertEquals(9876, rs.getInt(1)); // Should not change!
     rs.close();
 
-    // repeat attempt to chagne with auto commit true
+    // repeat attempt to change with auto commit true
     con.setAutoCommit(true);
 
     assertEquals(1, st.executeUpdate("update test_a set image=1111 where id=5678"));

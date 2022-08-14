@@ -63,7 +63,7 @@ public abstract class AbstractArraysTest<A> {
    * @param testData
    *          3 dimensional array to use for testing.
    * @param binarySupported
-   *          Indicates if binary support is epxected for the type.
+   *          Indicates if binary support is expected for the type.
    */
   public AbstractArraysTest(A[][] testData, boolean binarySupported, int arrayTypeOid) {
     super();

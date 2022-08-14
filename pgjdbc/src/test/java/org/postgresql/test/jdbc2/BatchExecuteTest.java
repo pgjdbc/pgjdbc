@@ -500,7 +500,7 @@ public class BatchExecuteTest extends BaseTest4 {
    * The second bind identifies the object class as String so it calls setString internally. This
    * sets the type to 1043 (varchar).
    *
-   * The third and subsequent binds, whether null or non-null, will get type 1043, becaues there's
+   * The third and subsequent binds, whether null or non-null, will get type 1043, because there's
    * logic to avoid overwriting a known parameter type with the unknown type oid. This is why the
    * issue can only occur when null is the first entry.
    *

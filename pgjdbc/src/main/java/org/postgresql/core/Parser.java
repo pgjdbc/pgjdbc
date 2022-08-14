@@ -882,7 +882,7 @@ public class Parser {
    */
   public static boolean isIdentifierStartChar(char c) {
     /*
-     * PostgreSQL's implmementation is located in
+     * PostgreSQL's implementation is located in
      * pgsql/src/backend/parser/scan.l:
      * ident_start    [A-Za-z\200-\377_]
      * ident_cont     [A-Za-z\200-\377_0-9\$]

@@ -213,7 +213,7 @@ public class StatementTest {
 
     rs = stmt.executeQuery("select * from {oj test_statement a left outer join b on (a.i=b.i)} ");
     assertTrue(!rs.next());
-    // test escape escape character
+    // test escape character
     rs = stmt
         .executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
     assertTrue(rs.next());
@@ -435,7 +435,7 @@ public class StatementTest {
     // timestampadd(SQL_TSI_MONTH,3,{fn now()})})} ");
     // assertTrue(rs.next());
     // assertEquals(3,rs.getInt(1));
-    // QUARTER => backend assume there are 1 quater even in 270 days...
+    // QUARTER => backend assume there are 1 quarter even in 270 days...
     // rs = stmt.executeQuery("select {fn timestampdiff(SQL_TSI_QUARTER,{fn now()},{fn
     // timestampadd(SQL_TSI_QUARTER,3,{fn now()})})} ");
     // assertTrue(rs.next());
@@ -1091,7 +1091,7 @@ public class StatementTest {
    * @throws SQLException if something goes wrong
    */
   @Test
-  public void testJavascriptFunction() throws SQLException {
+  public void testJavaScriptFunction() throws SQLException {
     String str = "  var _modules = {};\n"
         + "  var _current_stack = [];\n"
         + "\n"
@@ -1107,7 +1107,7 @@ public class StatementTest {
       ps = con.prepareStatement("select $JAVASCRIPT$" + str + "$JAVASCRIPT$");
       ResultSet rs = ps.executeQuery();
       rs.next();
-      assertEquals("Javascript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
+      assertEquals("JavaScript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
     } finally {
       TestUtil.closeQuietly(ps);
     }

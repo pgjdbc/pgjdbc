@@ -375,7 +375,7 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Send a fixed-size array of bytes to the backend. If {@code buf.length < siz}, pad with zeros.
-   * If {@code buf.lengh > siz}, truncate the array.
+   * If {@code buf.length > siz}, truncate the array.
    *
    * @param buf the array of bytes to be sent
    * @param siz the number of bytes to be sent

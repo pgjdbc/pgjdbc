@@ -481,7 +481,7 @@ public class XADataSourceTest {
    * with error code {@link XAException#XAER_NOTA}.
    */
   @Test
-  public void testCommitingCommittedXid() throws Exception {
+  public void testCommittingCommittedXid() throws Exception {
     Xid xid = new CustomXid(1);
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
@@ -587,7 +587,7 @@ public class XADataSourceTest {
    * {@link XAException} being thrown with error code {@link XAException#XAER_NOTA}.
    */
   @Test
-  public void testOnePhaseCommitingCommittedXid() throws Exception {
+  public void testOnePhaseCommittingCommittedXid() throws Exception {
     Xid xid = new CustomXid(1);
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
@@ -793,7 +793,7 @@ public class XADataSourceTest {
   }
 
   /**
-   * When using deferred constraints a contraint violation can occur on prepare. This has to be
+   * When using deferred constraints a constraint violation can occur on prepare. This has to be
    * mapped to the correct XA Error Code
    */
   @Test

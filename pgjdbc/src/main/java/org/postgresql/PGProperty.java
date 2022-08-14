@@ -670,7 +670,7 @@ public enum PGProperty {
   SSL_PASSWORD_CALLBACK(
       "sslpasswordcallback",
       null,
-      "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password."),
+      "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PasswordCallback for the ssl password."),
 
   /**
    * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover

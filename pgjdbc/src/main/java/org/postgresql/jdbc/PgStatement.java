@@ -448,7 +448,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Only use named statements after we hit the threshold. Note that only
     // named statements can be transferred in binary format.
-    // isOneShotQuery will check to see if we have hith the prepareThreshold count
+    // isOneShotQuery will check to see if we have hit the prepareThreshold count
 
     if (isOneShotQuery(cachedQuery)) {
       flags |= QueryExecutor.QUERY_ONESHOT;

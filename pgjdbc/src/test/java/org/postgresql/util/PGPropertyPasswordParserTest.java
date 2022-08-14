@@ -35,8 +35,8 @@ class PGPropertyPasswordParserTest {
   @Test
   void getPassword11() throws Exception {
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-non-existent"),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",   "user.home", "/tmp/dir-non-existent")
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-nonexistent"),
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",   "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       String result = PGPropertyPasswordParser.getPassword("localhost", "5432", "postgres", "postgres");
       assertNull(result);

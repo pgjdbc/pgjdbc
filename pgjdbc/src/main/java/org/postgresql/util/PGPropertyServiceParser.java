@@ -85,7 +85,7 @@ public class PGPropertyServiceParser {
   // choose resource where to search for service description
   private @Nullable String findPgServiceConfResourceName() {
     // default file name
-    String pgServceConfFileDefaultName = PGEnvironment.PGSERVICEFILE.getDefaultValue();
+    String pgServiceConfFileDefaultName = PGEnvironment.PGSERVICEFILE.getDefaultValue();
 
     // if there is value, use it - 1st priority
     {
@@ -116,7 +116,7 @@ public class PGPropertyServiceParser {
      in the case that the file is in the user home directory it is prepended with '.'
      */
     {
-      String resourceName = "." + pgServceConfFileDefaultName;
+      String resourceName = "." + pgServiceConfFileDefaultName;
       File resourceFile = new File(OSUtil.getUserConfigRootDirectory(), resourceName);
       if (resourceFile.canRead()) {
         LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceFile.getAbsolutePath()});
@@ -129,13 +129,13 @@ public class PGPropertyServiceParser {
       String envVariableName = PGEnvironment.PGSYSCONFDIR.getName();
       String pgSysconfDir = System.getenv().get(envVariableName);
       if (pgSysconfDir != null && !pgSysconfDir.trim().isEmpty()) {
-        String resourceName = pgSysconfDir + File.separator + pgServceConfFileDefaultName;
+        String resourceName = pgSysconfDir + File.separator + pgServiceConfFileDefaultName;
         LOGGER.log(Level.FINE, "Value [{0}] selected using environment variable [{1}]", new Object[]{resourceName, envVariableName});
         return resourceName;
       }
     }
     // otherwise null
-    LOGGER.log(Level.FINE, "Value for resource [{0}] not found", pgServceConfFileDefaultName);
+    LOGGER.log(Level.FINE, "Value for resource [{0}] not found", pgServiceConfFileDefaultName);
     return null;
   }
 

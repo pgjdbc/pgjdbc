@@ -10,7 +10,7 @@ next: logging.html
 ---
 
 All the `ConnectionPoolDataSource` and `DataSource` implementations can be stored
-in JNDI. In the case of the nonpooling implementations, a new instance will be
+in JNDI. In the case of the non-pooling implementations, a new instance will be
 created every time the object is retrieved from JNDI, with the same settings as
 the instance that was stored. For the pooling implementations, the same instance
 will be retrieved as long as it is available (e.g., not a different JVM retrieving

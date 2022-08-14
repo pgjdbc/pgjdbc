@@ -717,12 +717,12 @@ public class Driver implements java.sql.Driver {
    * This method was added in v6.5, and simply throws an SQLException for an unimplemented method. I
    * decided to do it this way while implementing the JDBC2 extensions to JDBC, as it should help
    * keep the overall driver size down. It now requires the call Class and the function name to help
-   * when the driver is used with closed software that don't report the stack strace
+   * when the driver is used with closed software that don't report the stack trace
    *
    * @param callClass the call Class
    * @param functionName the name of the unimplemented function with the type of its arguments
    * @return PSQLException with a localized message giving the complete description of the
-   *         unimplemeted function
+   *         unimplemented function
    */
   public static SQLFeatureNotSupportedException notImplemented(Class<?> callClass,
       String functionName) {

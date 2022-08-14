@@ -278,7 +278,7 @@ public class Jdbc3BlobTest {
 
   @Test
   public void testPattern() throws SQLException {
-    byte[] data = "abcdefghijklmnopqrstuvwxyx0123456789".getBytes();
+    byte[] data = "abcdefghijklmnopqrstuvwxyz0123456789".getBytes();
     byte[] pattern = "def".getBytes();
 
     PreparedStatement ps = conn.prepareStatement(INSERT);

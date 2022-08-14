@@ -26,7 +26,7 @@ main () {
         add_pg_opt "-c full_page_writes=off"
     fi
 
-    if is_option_disabled "${AUTO_VACCUUM}"; then
+    if is_option_disabled "${AUTO_VACUUM}"; then
         add_pg_opt "-c autovacuum=off"
     fi
 
