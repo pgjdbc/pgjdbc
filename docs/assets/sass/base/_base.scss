@@ -45,7 +45,7 @@ pre {
 .main-inner {
     margin-block: var(--container-spacing);
 
-    :is(.article, .download, .community, .development) {
+    & :is(.article, .download, .community, .development) {
         &>p {
             margin: 1.5em 0;
         }
