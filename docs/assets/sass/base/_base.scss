@@ -34,8 +34,6 @@ pre code {
 }
 
 pre {
-    // background-color: var(--clr-white);
-    // color: var(--clr-neutral-500);
     white-space: pre;
     -webkit-hyphens: none;
     -ms-hyphens: none;
@@ -46,4 +44,18 @@ pre {
 
 .main-inner {
     margin-block: var(--container-spacing);
+
+    :is(.article, .download, .community, .development) {
+        &>p {
+            margin: 1.5em 0;
+        }
+
+        li {
+            margin: 1em 0;
+        }
+
+        &:is(h2, h3, h4) {
+            margin-top: 3rem;
+        }
+    }
 }

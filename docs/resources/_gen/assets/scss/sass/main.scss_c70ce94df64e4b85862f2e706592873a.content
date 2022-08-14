@@ -41,6 +41,12 @@ pre {
 
 .main-inner {
   margin-block: var(--container-spacing); }
+  .main-inner :is(.article, .download, .community, .development) > p {
+    margin: 1.5em 0; }
+  .main-inner :is(.article, .download, .community, .development) li {
+    margin: 1em 0; }
+  .main-inner :is(.article, .download, .community, .development):is(h2, h3, h4) {
+    margin-top: 3rem; }
 
 /* barlow-latin-100 */
 @font-face {
@@ -765,26 +771,6 @@ blockquote {
       font-weight: 700;
       text-decoration: none; }
 
-.admonition {
-  border: 0px solid;
-  border-left-width: 5px;
-  border-radius: 6px;
-  padding: 0.7em;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1); }
-  .admonition__heading {
-    display: inline-flex;
-    font-size: var(--fs-300);
-    margin-block: 0px 8px; }
-  .admonition__icon {
-    margin-right: 0.4em; }
-  .admonition__inner {
-    font-size: var(--fs-300);
-    font-weight: 600; }
-  .admonition--note {
-    border-color: var(--clr-neutral-300); }
-  .admonition--info {
-    border-color: var(--clr-primary-300); }
-
 .btn {
   border-radius: 100vmax;
   padding: 0.5rem var(--primary-spacing);
@@ -964,12 +950,6 @@ tbody tr:hover {
   .doc .article {
     width: 60%;
     padding-inline: var(--container-spacing); }
-    .doc .article > p {
-      margin: 1.5em 0; }
-    .doc .article li {
-      margin: 1em 0; }
-    .doc .article > :is(h2, h3, h4) {
-      margin-top: 3rem; }
 
 .download {
   margin-block: var(--container-spacing); }
