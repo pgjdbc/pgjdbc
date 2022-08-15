@@ -35,10 +35,10 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
   private final String user;
   private final String kerberosServerName;
   private final boolean useSpnego;
-  private final Subject subject;
+  private final @Nullable Subject subject;
   private final boolean logServerErrorDetail;
 
-  public GssEncAction(PGStream pgStream,  Subject subject,
+  public GssEncAction(PGStream pgStream,  @Nullable Subject subject,
       String host, String user,
       String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
