@@ -9,7 +9,7 @@ the programming language Java, which defines how a client may access a database.
 It is part of the Java Standard Edition platform and provides methods to query and
 update data in a database, and is oriented towards relational databases.
 
-PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a PostgreSQL
+PostgreSQL JDBC Driver (pgJDBC for short) allows Java programs to connect to a PostgreSQL
 database using standard, database independent Java code. Is an open source JDBC driver
 written in Pure Java (Type 4), and communicates in the PostgreSQL native network protocol.
 Because of this, the driver is platform independent; once compiled, the driver

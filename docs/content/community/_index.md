@@ -4,29 +4,29 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 ---
 
-##  Maintainers
+## Maintainers
 
 Please do not contact the maintainers directly unless you have a specific need to contact just them.  Please use the [Github discussions](https://github.com/pgjdbc/pgjdbc/discussions) if at all possible.
 
-*   Dave Cramer
-*   Vladimir Sitnikov
-*   Sehrope Sarkuni
-*   Brett Okken
-*   Jorge Solórzano
+* Dave Cramer ([@davecramer](https://github.com/davecramer))
+* Vladimir Sitnikov ([@vlsi](https://github.com/vlsi))
+* Sehrope Sarkuni ([@sehrope](https://github.com/sehrope))
+* Brett Okken ([@bokken](https://github.com/bokken))
+* Jorge Solórzano ([@jorsol](https://github.com/jorsol))
 
-##  Previous Maintainers
+## Previous Maintainers
 
 The original JDBC driver was written by Adrian Hall. Peter Mount and Barry Lind have maintained it in the past, but have since moved on to other things. We would also like to recognize the work previously done by the following
 
-*   Kris Jurka
-*   Oliver Jowett
-*   Craig Ringer
+* Kris Jurka ([@kjurka](https://github.com/kjurka))
+* Oliver Jowett
+* Craig Ringer ([@ringerc](https://github.com/ringerc))
 
-##  Developers
+## Developers
 
 Most recent contributors can be found [here](https://github.com/pgjdbc/pgjdbc/graphs/contributors)
 
-##  Translators
+## Translators
 
 | Language | Author |
 | ----------- | ----------- |

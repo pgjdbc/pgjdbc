@@ -2,7 +2,7 @@
 baseURL = "https://pgjdbc.github.io/pgjdbc/"
 # baseURL = "/"
 languageCode = "en-us"
-title = "Pgjdbc"
+title = "pgJDBC"
 [permalinks]
 page = "/:slug/"
 posts = "/:year/:month/:slug/"
