@@ -40,7 +40,7 @@ plugins {
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: props.bool("CI"))
 
-val lastEditYear = 2020 // TODO: by extra(lastEditYear("$rootDir/LICENSE"))
+val lastEditYear = 2022 // TODO: by extra(lastEditYear("$rootDir/LICENSE"))
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs", default = false)
