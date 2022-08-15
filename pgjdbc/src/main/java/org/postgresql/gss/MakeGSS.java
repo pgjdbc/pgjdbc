@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.security.AccessControlContext;
 import java.security.PrivilegedAction;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
@@ -31,6 +30,7 @@ import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
+
 
 public class MakeGSS {
   private static final Logger LOGGER = Logger.getLogger(MakeGSS.class.getName());
@@ -94,6 +94,7 @@ public class MakeGSS {
    * {@code Subject.getSubject(AccessController.getContext())} in Java before 18.
    * @return current Subject or null
    */
+  @SuppressWarnings("deprecation")
   private static @Nullable Subject getCurrentSubject() {
     try {
       if (SUBJECT_CURRENT != null) {
@@ -103,7 +104,7 @@ public class MakeGSS {
         return null;
       }
       return (Subject) SUBJECT_GET_SUBJECT.invoke(
-          (AccessControlContext) ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
+          (java.security.AccessControlContext) ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
       );
     } catch (Throwable e) {
       if (e instanceof RuntimeException) {
