@@ -23,23 +23,22 @@ import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 
-public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Callable<@Nullable Exception> {
+public class GssEncAction implements PrivilegedAction<@Nullable Exception> {
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
   private final String host;
   private final String user;
   private final String kerberosServerName;
   private final boolean useSpnego;
-  private final @Nullable Subject subject;
+  private final Subject subject;
   private final boolean logServerErrorDetail;
 
-  public GssEncAction(PGStream pgStream, @Nullable Subject subject,
+  public GssEncAction(PGStream pgStream,  Subject subject,
       String host, String user,
       String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
     this.pgStream = pgStream;
@@ -151,8 +150,4 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
     return null;
   }
 
-  @Override
-  public @Nullable Exception call() throws Exception {
-    return run();
-  }
 }
