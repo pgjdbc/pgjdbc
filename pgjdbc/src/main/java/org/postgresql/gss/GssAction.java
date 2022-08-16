@@ -169,7 +169,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
     }
     return null;
   }
-  
+
   @Override
   public @Nullable Exception call() throws Exception {
     return run();
