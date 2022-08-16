@@ -103,7 +103,7 @@ public class MakeGSS {
         return null;
       }
       return (Subject) SUBJECT_GET_SUBJECT.invoke(
-          (java.security.AccessControlContext) ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
+          ACCESS_CONTROLLER_GET_CONTEXT.invoke()
       );
     } catch (Throwable e) {
       if (e instanceof RuntimeException) {
