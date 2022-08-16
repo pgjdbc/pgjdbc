@@ -22,7 +22,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.security.PrivilegedAction;
-import java.security.PrivilegedExceptionAction;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
@@ -74,14 +73,14 @@ public class MakeGSS {
     MethodHandle subjectDoAs = null;
     try {
       subjectDoAs = MethodHandles.lookup().findStatic(Subject.class, "doAs",
-          MethodType.methodType(Object.class, Subject.class, PrivilegedExceptionAction.class));
+          MethodType.methodType(Object.class, Subject.class, PrivilegedAction.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
     }
     SUBJECT_DO_AS = subjectDoAs;
 
     MethodHandle subjectCallAs = null;
     try {
-      subjectDoAs = MethodHandles.lookup().findStatic(Subject.class, "callAs",
+      subjectCallAs = MethodHandles.lookup().findStatic(Subject.class, "callAs",
           MethodType.methodType(Object.class, Subject.class, Callable.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
     }
@@ -103,7 +102,7 @@ public class MakeGSS {
         return null;
       }
       return (Subject) SUBJECT_GET_SUBJECT.invoke(
-          (java.security.AccessControlContext) ACCESS_CONTROLLER_GET_CONTEXT.invokeExact()
+          ACCESS_CONTROLLER_GET_CONTEXT.invoke()
       );
     } catch (Throwable e) {
       if (e instanceof RuntimeException) {
@@ -164,7 +163,7 @@ public class MakeGSS {
         result = (Exception) SUBJECT_DO_AS.invoke(subject, action);
       } else if (SUBJECT_CALL_AS != null) {
         //noinspection ConstantConditions,unchecked
-        result = (Exception) SUBJECT_CALL_AS.invoke(subject, (Callable<Exception>) action);
+        result = (Exception) SUBJECT_CALL_AS.invoke(subject, action);
       } else {
         throw new PSQLException(
             GT.tr("Neither Subject.doAs (Java before 18) nor Subject.callAs (Java 18+) method found"),
