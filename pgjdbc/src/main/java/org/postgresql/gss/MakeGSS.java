@@ -74,14 +74,14 @@ public class MakeGSS {
     MethodHandle subjectDoAs = null;
     try {
       subjectDoAs = MethodHandles.lookup().findStatic(Subject.class, "doAs",
-          MethodType.methodType(Object.class, Subject.class, PrivilegedExceptionAction.class));
+          MethodType.methodType(Object.class, Subject.class, PrivilegedAction.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
     }
     SUBJECT_DO_AS = subjectDoAs;
 
     MethodHandle subjectCallAs = null;
     try {
-      subjectDoAs = MethodHandles.lookup().findStatic(Subject.class, "callAs",
+      subjectCallAs = MethodHandles.lookup().findStatic(Subject.class, "callAs",
           MethodType.methodType(Object.class, Subject.class, Callable.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
     }
@@ -164,7 +164,7 @@ public class MakeGSS {
         result = (Exception) SUBJECT_DO_AS.invoke(subject, action);
       } else if (SUBJECT_CALL_AS != null) {
         //noinspection ConstantConditions,unchecked
-        result = (Exception) SUBJECT_CALL_AS.invoke(subject, (Callable<Exception>) action);
+        result = (Exception) SUBJECT_CALL_AS.invoke(subject, action);
       } else {
         throw new PSQLException(
             GT.tr("Neither Subject.doAs (Java before 18) nor Subject.callAs (Java 18+) method found"),
