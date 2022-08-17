@@ -10,6 +10,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+[42.4.2] (2022-08-17 10:33:40 -0400)
+### Changed
+- fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] 
+
+### Added
+- fix: make setObject accept UUID array [PR #2587](https://github.com/pgjdbc/pgjdbc/pull/2587)
+
+### Fixed
+- fix: regression with GSS. Changes introduced to support building with Java 17 caused failures [Issue #2588](https://github.com/pgjdbc/pgjdbc/issues/2588)
+- fix: set a timeout to get the return from requesting SSL upgrade. [PR #2572](https://github.com/pgjdbc/pgjdbc/pull/2572)
+- feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
+
 [42.4.1] (2022-08-01 16:24:20 -0400)
 ### Security
 - fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
@@ -28,10 +40,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
 - chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
 - chore: support building pgjdbc with Java 17
-chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
-chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
-chore: support building pgjdbc with Java 17
-feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
+- feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
 ### Fixed
 
@@ -728,4 +737,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
 [42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
 [42.4.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...HEAD
+[42.4.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...REL42.4.2
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.2...HEAD
