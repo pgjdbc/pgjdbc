@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.4.2] (2022-08-16 11:40:40 -0400)
+[42.4.2] (2022-08-17 10:33:40 -0400)
 ### Changed
 - fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] 
 
@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Fixed
 - fix: regression with GSS. Changes introduced to support building with Java 17 caused failures [Issue #2588](https://github.com/pgjdbc/pgjdbc/issues/2588)
 - fix: set a timeout to get the return from requesting SSL upgrade. [PR #2572](https://github.com/pgjdbc/pgjdbc/pull/2572)
-- feat: feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
+- feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
 [42.4.1] (2022-08-01 16:24:20 -0400)
 ### Security
