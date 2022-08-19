@@ -128,7 +128,7 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("long", "int8");
     TYPE_ALIASES.put("int8", "int8");
     TYPE_ALIASES.put("bigint", "int8");
-    TYPE_ALIASES.put("float", "float4");
+    TYPE_ALIASES.put("float", "float8");
     TYPE_ALIASES.put("float4", "float4");
     TYPE_ALIASES.put("double", "float8");
     TYPE_ALIASES.put("float8", "float8");
