@@ -754,6 +754,51 @@ blockquote {
       .navbar__item__link:hover::after {
         transform: scaleX(1);
         transform-origin: bottom left; }
+    @media only screen and (max-width: 65em) {
+      .navbar__item {
+        display: none; } }
+.db {
+  display: block; }
+
+.dn {
+  display: none; }
+
+.nav-mob {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--clr-indigo);
+  padding: 1em 2em; }
+  .nav-mob ul,
+  .nav-mob li {
+    margin: 0;
+    padding: 0.5em; }
+  .nav-mob li {
+    width: 100%;
+    display: block;
+    text-align: left; }
+  .nav-mob .hover-bg-black:hover {
+    background-color: var(--clr-black); }
+  .nav-mob a {
+    text-decoration: none;
+    color: var(--clr-white); }
+  @media only screen and (min-width: 65em) {
+    .nav-mob {
+      display: none; } }
+.nav-inside {
+  display: flex;
+  justify-content: space-between;
+  width: 100%; }
+  .nav-inside .btn {
+    border-style: none;
+    border: 1px solid var(--clr-white);
+    background-color: transparent;
+    color: var(--clr-white);
+    border-radius: 0;
+    width: auto;
+    flex: 1 1 auto;
+    margin-inline: 0.25em; }
 
 .sidebar {
   background-color: var(--clr-bluishGray);
@@ -770,7 +815,9 @@ blockquote {
       color: var(--clr-primary-400);
       font-weight: 700;
       text-decoration: none; }
-
+  @media only screen and (max-width: 65em) {
+    .sidebar {
+      display: none; } }
 .btn {
   border-radius: 100vmax;
   padding: 0.5rem var(--primary-spacing);
@@ -938,18 +985,24 @@ tbody tr:hover {
       margin-bottom: 0.125em; }
   .toc a {
     text-decoration: none; }
-
+  @media only screen and (max-width: 65em) {
+    .toc {
+      display: none; } }
 .community ul ::marker {
   content: "👤"; }
 
 .community ul > li {
   padding-left: 0.5em; }
 
-.doc {
-  display: flex; }
-  .doc .article {
-    width: 60%;
-    padding-inline: var(--container-spacing); }
+.doc .article {
+  width: 100%;
+  padding-inline: var(--container-spacing); }
+  @media only screen and (min-width: 65em) {
+    .doc .article {
+      width: 60%; } }
+@media only screen and (min-width: 65em) {
+  .doc {
+    display: flex; } }
 
 .download {
   margin-block: var(--container-spacing); }
@@ -1055,12 +1108,18 @@ tbody tr:hover {
     width: 45%; }
     .hero__content__head {
       font-size: 5.4rem; }
+      @media only screen and (max-width: 65em) {
+        .hero__content__head {
+          font-size: 4.5rem; } }
     .hero__content__desc {
       font-size: 1.25rem;
       padding-block: 0.5em;
       font-weight: 600;
       letter-spacing: 1px;
       line-height: 1.5; }
+      @media only screen and (max-width: 65em) {
+        .hero__content__desc {
+          font-size: 1.05rem; } }
     .hero__content__actions {
       padding-top: 1.5rem;
       display: flex;

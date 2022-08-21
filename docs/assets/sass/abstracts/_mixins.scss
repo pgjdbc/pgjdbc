@@ -1,5 +1,14 @@
 // media-query mixin
-@mixin mq($key) {
+@mixin mq-max($key) {
+
+  $size: map-get($breakpoints, $key);
+
+  @media only screen and (max-width: $size) {
+    @content;
+  }
+}
+
+@mixin mq-min($key) {
 
   $size: map-get($breakpoints, $key);
 

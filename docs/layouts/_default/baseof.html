@@ -28,6 +28,7 @@
         {{ block "main" . }}{{ end }}
     </main>
     {{ block "footer" . }}{{ partialCached "site-footer.html" . }}{{ end }}
+    <div class="nav-mob">{{ partial "nav-mobile.html" . }}</div>
 </body>
 
 </html>

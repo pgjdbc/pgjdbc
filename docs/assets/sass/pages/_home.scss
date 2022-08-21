@@ -42,6 +42,10 @@
 
         &__head {
             font-size: 5.4rem;
+
+            @include mq-max(medium) {
+                font-size: 4.5rem;
+            }
         }
 
         &__desc {
@@ -50,6 +54,11 @@
             font-weight: 600;
             letter-spacing: 1px;
             line-height: 1.5;
+
+            @include mq-max(medium) {
+                font-size: 1.05rem;
+                // line-height: 1.25;
+            }
         }
 
         &__actions {
