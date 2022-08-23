@@ -1037,6 +1037,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (x instanceof InputStream) {
+      InputStream in = (InputStream) x;
+      try {
+        setBinaryStream(parameterIndex,in, in.available());
+      } catch (IOException e) {
+        throw new PSQLException(
+            GT.tr("Cannot get {0} input stream length to type {1}", x.getClass().getName(), "Types.InputStream"),
+            PSQLState.INVALID_PARAMETER_TYPE, e);
+      }
     } else if (x.getClass().isArray()) {
       try {
         setObjectArray(parameterIndex, x);
