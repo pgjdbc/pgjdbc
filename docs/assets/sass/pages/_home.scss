@@ -21,9 +21,22 @@
     .hero,
     .info,
     .feature {
-        display: flex;
-        justify-content: space-between;
+
+        @include mq-min(medium) {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @include mq-max(medium) {
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            align-items: center;
+        }
     }
+
+
 
 }
 
@@ -35,16 +48,29 @@
 
     &__img {
         width: 45%;
+
+        @include mq-max(medium) {
+            width: 70%
+        }
+
     }
 
     &__content {
         width: 45%;
+
+        @include mq-max(medium) {
+            width: 100%
+        }
 
         &__head {
             font-size: 5.4rem;
 
             @include mq-max(medium) {
                 font-size: 4.5rem;
+            }
+
+            @include mq-max(small) {
+                font-size: 3.5rem;
             }
         }
 
@@ -69,6 +95,10 @@
 
             a {
                 text-decoration: none;
+            }
+
+            @include mq-max(medium) {
+                justify-content: center;
             }
         }
     }
@@ -97,6 +127,10 @@
         flex-direction: column;
         align-items: center;
         max-width: 45%;
+
+        @include mq-max(medium) {
+            max-width: 100%
+        }
     }
 
     &__release {
@@ -106,6 +140,10 @@
 
         h2 {
             text-align: center;
+        }
+
+        @include mq-max(medium) {
+            max-width: 100%
         }
 
     }
@@ -128,13 +166,23 @@
     }
 }
 
+.example {
+    pre code {
+        @include mq-max(medium) {
+            display: block;
+        }
+    }
+}
+
 // Report Section
 
 .report {
     &__row {
-        display: flex;
-        justify-content: space-between;
-        padding-top: var(--primary-spacing);
+        @include mq-min(small) {
+            display: flex;
+            justify-content: space-between;
+            padding-top: var(--primary-spacing);
+        }
     }
 
     &__item {
@@ -164,5 +212,28 @@
         padding: var(--container-spacing);
         margin-left: var(--container-spacing);
         border-radius: 0.5rem;
+
+        @include mq-max(medium) {
+            top: 15%;
+            left: 0%;
+            bottom: 15%;
+            margin: var(--primary-spacing);
+            padding: var(--primary-spacing);
+
+        }
+
+        @include mq-max(x-small) {
+            top: 10%;
+            left: 0%;
+            bottom: 10%;
+
+            h2 {
+                font-size: 1rem;
+            }
+
+            .desc {
+                font-size: 0.65rem;
+            }
+        }
     }
 }

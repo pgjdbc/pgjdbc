@@ -5,6 +5,12 @@
     cursor: pointer;
     transition: 0.25s;
 
+    @include mq-max(small) {
+        a {
+            font-size: 1.15rem;
+        }
+    }
+
     &--contained {
         display: inline-flex;
         align-items: start;

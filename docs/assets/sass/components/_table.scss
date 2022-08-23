@@ -1,8 +1,11 @@
 table {
   border-collapse: collapse;
   font-size: 0.9em;
-  min-width: 400px;
-  overflow: hidden;
+  // min-width: 400px;
+  // overflow: hidden;
+  width: 100%;
+  border-collapse: collapse;
+  // table-layout: fixed;
 
   th,
   td {
