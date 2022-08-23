@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+- fix: revert change in PR#2597 where float was aliased to float4 from float8. float now aliases to float8 (#2598)
 ### Added
 
 ### Fixed
