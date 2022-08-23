@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-- fix: revert change in PR#2597 where float was aliased to float4 from float8. float now aliases to float8 (#2598)
+- fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8. 
+float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/2598) fixes [Issue #2597](https://github.com/pgjdbc/pgjdbc/issues/2597) 
+
 ### Added
 
 ### Fixed
