@@ -10,16 +10,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.5.0] (2022-08-23 11:20:11 -0400)
+## [42.5.0] (2022-08-23 11:20:11 -0400)
 ### Changed
 - fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8. 
 float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/2598) fixes [Issue #2597](https://github.com/pgjdbc/pgjdbc/issues/2597) 
 
-### Added
-
-### Fixed
-
-[42.4.2] (2022-08-17 10:33:40 -0400)
+## [42.4.2] (2022-08-17 10:33:40 -0400)
 ### Changed
 - fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] 
 
@@ -31,7 +27,7 @@ float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/259
 - fix: set a timeout to get the return from requesting SSL upgrade. [PR #2572](https://github.com/pgjdbc/pgjdbc/pull/2572)
 - feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
-[42.4.1] (2022-08-01 16:24:20 -0400)
+## [42.4.1] (2022-08-01 16:24:20 -0400)
 ### Security
 - fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
   - Previously, the column names for both key and data columns in the table were copied as-is into the generated
@@ -51,7 +47,6 @@ float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/259
 - chore: support building pgjdbc with Java 17
 - feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
 
-### Fixed
 
 ## [42.4.0] (2022-06-09 08:14:02 -0400)
 ### Changed
@@ -742,10 +737,10 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
 [42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
-[42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
-[42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
-[42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
-[42.4.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
-[42.4.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...REL42.4.2
-[42.4.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.2...REL42.5.0
+[42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
+[42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
+[42.4.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
+[42.4.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
+[42.4.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...REL42.4.2
+[42.5.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.2...REL42.5.0
 [Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.5.0...HEAD
