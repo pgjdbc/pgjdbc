@@ -9,6 +9,11 @@
 html {
   scroll-padding-top: 100px; }
 
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh; }
+
 .chroma .lntable pre, .chroma .lntable pre code {
   padding: 0;
   margin: 0; }
@@ -690,7 +695,8 @@ blockquote {
   flex-direction: column;
   align-items: center;
   background-color: var(--clr-primary-500);
-  color: var(--clr-white); }
+  color: var(--clr-white);
+  margin-top: auto; }
   .footer__item {
     display: flex;
     flex-wrap: wrap;
