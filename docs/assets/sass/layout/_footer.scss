@@ -5,6 +5,7 @@
     background-color: var(--clr-primary-500);
     color: var(--clr-white);
     margin-top: auto;
+
     &__item {
         display: flex;
         flex-wrap: wrap;
@@ -18,6 +19,7 @@
 
         &__head {
             font-weight: 700;
+            margin-bottom: 0.25em;
         }
 
         &__link {

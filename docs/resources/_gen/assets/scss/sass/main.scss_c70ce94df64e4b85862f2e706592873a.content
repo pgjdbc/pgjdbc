@@ -26,7 +26,7 @@ code {
   margin: 0;
   background-color: var(--clr-neutral-100);
   border-radius: 3px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: 'JetBrainsMono', monospace;
   font-size: 80%;
   word-break: break-word; }
 
@@ -196,6 +196,14 @@ pre {
   font-weight: 900;
   font-display: swap;
   src: local(""), url("../fonts/barlow-latin-900italic.woff") format("woff"); }
+
+/* jetbrains-mono-500 */
+@font-face {
+  font-family: "JetbrainsMono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: local(""), url("../fonts/jetbrains-mono-500.woff") format("woff"); }
 
 *,
 *::before,
@@ -684,9 +692,7 @@ a {
 
 blockquote {
   background-color: rgba(255, 230, 102, 0.3);
-  border-left-color: #ffe666;
-  border-left-width: 9px;
-  border-left-style: solid;
+  border-left: 9px solid #ffe666;
   padding: 20px 45px 20px 26px;
   margin-block: 1.5em; }
 
@@ -706,7 +712,8 @@ blockquote {
     font-size: 1.05rem;
     margin-inline: var(--box-spacing); }
     .footer .list__head {
-      font-weight: 700; }
+      font-weight: 700;
+      margin-bottom: 0.25em; }
     .footer .list__link {
       color: var(--clr-white);
       text-decoration: none; }
@@ -826,13 +833,13 @@ blockquote {
       display: none; } }
 .btn {
   border-radius: 100vmax;
-  padding: 0.5rem var(--primary-spacing);
+  padding: 0.5em var(--primary-spacing);
   border-style: none;
   cursor: pointer;
   transition: 0.25s; }
   @media only screen and (max-width: 40em) {
     .btn a {
-      font-size: 1.15rem; } }
+      font-size: 1.05rem; } }
   .btn--contained {
     display: inline-flex;
     align-items: start;
@@ -950,11 +957,13 @@ blockquote {
   margin-bottom: var(--primary-spacing); }
 
 .list-title {
-  margin-block: var(--container-spacing); }
+  margin-block: var(--primary-spacing); }
 
 table {
   border-collapse: collapse;
   font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
   width: 100%;
   border-collapse: collapse; }
   table th,
@@ -1051,7 +1060,7 @@ tbody tr:hover {
       right: 0;
       width: 22px;
       height: 22px;
-      border: 1px solid;
+      border: 2px solid;
       border-radius: 22px; }
       .accordion__btn__icon::before {
         display: block;
@@ -1152,7 +1161,7 @@ tbody tr:hover {
         .hero__content__desc {
           font-size: 1.05rem; } }
     .hero__content__actions {
-      padding-top: 1.5rem;
+      padding-top: 1.5em;
       display: flex;
       column-gap: var(--primary-spacing);
       font-size: 1.25rem; }
@@ -1226,7 +1235,7 @@ tbody tr:hover {
     background-color: rgba(255, 255, 255, 0.5);
     padding: var(--container-spacing);
     margin-left: var(--container-spacing);
-    border-radius: 0.5rem; }
+    border-radius: 3px; }
     @media only screen and (max-width: 65em) {
       .support__desc {
         top: 15%;

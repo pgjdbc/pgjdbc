@@ -1,4 +1,6 @@
 // media-query mixin
+
+// for max-width
 @mixin mq-max($key) {
 
   $size: map-get($breakpoints, $key);
@@ -8,6 +10,7 @@
   }
 }
 
+// for min-width
 @mixin mq-min($key) {
 
   $size: map-get($breakpoints, $key);

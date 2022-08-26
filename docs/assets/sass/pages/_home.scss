@@ -35,9 +35,6 @@
             align-items: center;
         }
     }
-
-
-
 }
 
 // Hero Section
@@ -88,7 +85,7 @@
         }
 
         &__actions {
-            padding-top: 1.5rem;
+            padding-top: 1.5em;
             display: flex;
             column-gap: var(--primary-spacing);
             font-size: 1.25rem;
@@ -107,7 +104,6 @@
 // Info Section
 
 .info {
-    // text-align: justify;
 
     ul {
         margin: 0;
@@ -211,7 +207,7 @@
         background-color: hsla(0, 0%, 100%, 0.5);
         padding: var(--container-spacing);
         margin-left: var(--container-spacing);
-        border-radius: 0.5rem;
+        border-radius: 3px;
 
         @include mq-max(medium) {
             top: 15%;

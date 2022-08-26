@@ -23,7 +23,7 @@ After retrieving the source from the [git repository](https://github.com/pgjdbc/
 
 ## Test Suite
 
-To make sure the driver is working as expected there are a set of JUnit tests that should be run.  These require a database to run against that has the plpgsql procedural language installed.  The default parameters for username and database are "test", and for password it's "test". so a sample interaction to set this up would look the following, if you enter "password" when asked for it:
+To make sure the driver is working as expected there are a set of JUnit tests that should be run.  These require a database to run against that has the plpgsql procedural language installed.  The default parameters for username and database are "test", and for password it's "test". So a sample interaction to set this up would look the following, if you enter "password" when asked for it:
 
 ```bash
 postgres@host:~$ createuser -d -A test -P
@@ -37,4 +37,4 @@ CREATE DATABASE
 postgres@host:~$ createlang plpgsql test
 ```
 
-Now we're ready to run the tests, we simply type `./gradlew clean test` , and it should be off and running.  To use non default values to runthe regression tests, you can create a `build.local.properties` in the top level directory. This properties file allows you to setvalues for host, database, user, password, and port with the standardproperties "key = value" usage.  The ability to set the port valuemakes it easy to run the tests against a number of different serverversions on the same machine.
+Now we're ready to run the tests, we simply type `./gradlew clean test` , and it should be off and running.  To use non default values to run the regression tests, you can create a `build.local.properties` in the top level directory. This properties file allows you to set values for host, database, user, password, and port with the standard properties "key = value" usage.  The ability to set the port value makes it easy to run the tests against a number of different server versions on the same machine.
