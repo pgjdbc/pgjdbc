@@ -62,9 +62,7 @@ a {
 
 blockquote {
   background-color: hsla(50, 100%, 70%, 0.3);
-  border-left-color: hsl(50, 100%, 70%);
-  border-left-width: 9px;
-  border-left-style: solid;
+  border-left: 9px solid hsl(50, 100%, 70%);
   padding: 20px 45px 20px 26px;
   margin-block: 1.5em;
 }

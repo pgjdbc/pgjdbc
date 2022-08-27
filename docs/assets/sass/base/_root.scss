@@ -1,7 +1,4 @@
 :root {
-  // @include mq(medium) {
-  //   --section-spacing: 7rem;
-  // }
 
   @each $color,
   $shade in $colors {
@@ -28,7 +25,7 @@
     }
 
     @else {
-      @include mq(small) {
+      @include mq-min(small) {
 
         @each $prop,
         $value in $property {

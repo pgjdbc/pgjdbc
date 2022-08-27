@@ -2,6 +2,12 @@ html {
     scroll-padding-top: 100px;
 }
 
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 %chroma-style {
     padding: 0;
     margin: 0;
@@ -21,7 +27,7 @@ code {
     margin: 0;
     background-color: var(--clr-neutral-100);
     border-radius: 3px;
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrainsMono', monospace;
     font-size: 80%;
     word-break: break-word;
 }

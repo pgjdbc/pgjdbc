@@ -24,6 +24,12 @@ name = "Development"
 url = "/development/"
 weight = 4
 
+[[global]]
+identifier = "changelogs"
+name = "Changelogs"
+url = "/changelogs/"
+weight = 5
+
 ### DOCS ITEMS
 
 [[docs]]

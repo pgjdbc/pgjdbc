@@ -3,7 +3,7 @@
         {{ range $.Site.Data.footer.external }}
         <ul role="list" class="list">
             <li class="list__head">{{ .title }}</li>
-            <br />
+            {{/*  <br />  */}}
             {{ range .links}}
             <li><a href="{{ .url | relURL }}" class="list__link">{{ .name }}</a></li>
             {{end}}

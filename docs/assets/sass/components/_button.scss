@@ -1,9 +1,15 @@
 .btn {
     border-radius: 100vmax;
-    padding: 0.5rem var(--primary-spacing);
+    padding: 0.5em var(--primary-spacing);
     border-style: none;
     cursor: pointer;
     transition: 0.25s;
+
+    @include mq-max(small) {
+        a {
+            font-size: 1.05rem;
+        }
+    }
 
     &--contained {
         display: inline-flex;

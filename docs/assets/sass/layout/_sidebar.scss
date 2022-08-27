@@ -20,4 +20,8 @@
       text-decoration: none;
     }
   }
+
+  @include mq-max(medium) {
+    display: none;
+  }
 }

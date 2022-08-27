@@ -1,0 +1,12 @@
+{{ define "main" }}
+<article class="container">
+    {{ range .Data.Pages.ByDate.Reverse }}
+    <ul>
+        <li>
+            <h5>{{.Title}}</h5>
+            <a href="{{.Permalink}}"> NOTES</a>
+        </li>
+    </ul>
+    {{ end }}
+</article>
+{{ end }}

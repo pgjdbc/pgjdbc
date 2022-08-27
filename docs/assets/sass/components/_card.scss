@@ -1,6 +1,7 @@
 .card {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
 
     &__item {
         width: 300px;
@@ -11,6 +12,10 @@
 
         &>:not(:first-child) {
             margin-top: 0.5em;
+        }
+
+        @include mq-max(medium) {
+            margin-top: 1em;
         }
     }
 
