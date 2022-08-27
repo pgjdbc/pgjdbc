@@ -12,4 +12,1753 @@ Accessing the Extensions To access some of the extensions, you need to use some 
 A notable exception is org/postgresql/jdbc/TimestampUtils.java which is threadsafe.</description></item><item><title>Connection Pools and Data Sources</title><link>https://pgjdbc.github.io/pgjdbc/documentation/datasource/</link><pubDate>Sun, 19 Jun 2022 22:46:55 +0530</pubDate><guid>https://pgjdbc.github.io/pgjdbc/documentation/datasource/</guid><description>JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package (also known as the JDBC 2.0 Standard Extension). These features have since been included in the core JDBC 3 API.
 The JDBC API provides a client and a server interface for connection pooling. The client interface is javax.sql.DataSource , which is what application code will typically use to acquire a pooled database connection.</description></item><item><title>Logging using java.util.logging</title><link>https://pgjdbc.github.io/pgjdbc/documentation/logging/</link><pubDate>Sun, 19 Jun 2022 22:46:55 +0530</pubDate><guid>https://pgjdbc.github.io/pgjdbc/documentation/logging/</guid><description>The PostgreSQL JDBC Driver supports the use of logging (or tracing) to help resolve issues with the pgJDBC Driver when is used in your application.
 The pgJDBC Driver uses the logging APIs of java.util.logging that is part of Java since JDK 1.4, which makes it a good choice for the driver since it doesn&amp;rsquo;t add any external dependency for a logging framework. java.util.logging is a very rich and powerful tool, it&amp;rsquo;s beyond the scope of these docs to explain how to use it to it&amp;rsquo;s full potential, for that please refer to Java Logging Overview.</description></item><item><title>Further Reading</title><link>https://pgjdbc.github.io/pgjdbc/documentation/reading/</link><pubDate>Sun, 19 Jun 2022 22:46:55 +0530</pubDate><guid>https://pgjdbc.github.io/pgjdbc/documentation/reading/</guid><description>If you have not yet read it, you are advised you read the JDBC API Documentation (supplied with Oracle&amp;rsquo;s JDK) and the JDBC Specification. Both are available from here.
-Docs contains updated information not included in this manual including Javadoc class documentation and a FAQ. Additionally it offers precompiled drivers.</description></item></channel></rss>
+Docs contains updated information not included in this manual including Javadoc class documentation and a FAQ. Additionally it offers precompiled drivers.</description></item><item><title>PostgreSQL JDBC Driver 42.5.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-24-42.5.0-release/</link><pubDate>Wed, 24 Aug 2022 08:30:09 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-24-42.5.0-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: revert change in &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1986">PR #1986&lt;/a> where float was aliased to float4 from float8.
+float now aliases to float8 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2598">PR #2598&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2597">Issue #2597&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.4.2 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-17-42.4.2-release/</link><pubDate>Wed, 17 Aug 2022 10:33:37 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-17-42.4.2-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: add alias to the generated getUDT() query for clarity &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2553">PR #2553&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: make setObject accept UUID array &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2587">PR #2587&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: regression with GSS. Changes introduced to support building with Java 17 caused failures &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2588">Issue #2588&lt;/a>&lt;/li>
+&lt;li>fix: set a timeout to get the return from requesting SSL upgrade. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2572">PR #2572&lt;/a>&lt;/li>
+&lt;li>feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.4.1 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-03-42.4.1-release/</link><pubDate>Wed, 03 Aug 2022 08:09:07 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-08-03-42.4.1-release/</guid><description>&lt;h4 id="security" class="self-link">Security &lt;a class="header-link" href="#security">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
+&lt;ul>
+&lt;li>Previously, the column names for both key and data columns in the table were copied as-is into the generated
+SQL. This allowed a malicious table with column names that include statement terminator to be parsed and
+executed as multiple separate commands.&lt;/li>
+&lt;li>Also adds a new test class ResultSetRefreshTest to verify this change.&lt;/li>
+&lt;li>Reported by &lt;a href="https://github.com/kato-sho">Sho Kato&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>chore: skip publishing pgjdbc-osgi-test to Central&lt;/li>
+&lt;li>chore: bump Gradle to 7.5&lt;/li>
+&lt;li>test: update JUnit to 5.8.2&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar&lt;/li>
+&lt;li>chore: added &amp;ldquo;permissions: contents: read&amp;rdquo; for GitHub Actions to avoid unintentional modifications by the CI&lt;/li>
+&lt;li>chore: support building pgjdbc with Java 17&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.4.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-06-09-42.4.0-release/</link><pubDate>Thu, 09 Jun 2022 08:14:50 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-06-09-42.4.0-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group
+startup parameters in a transaction (default=false like 42.2.x) fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2497">Issue #2425&lt;/a>
+pgbouncer cannot deal with transactions in statement pooling mode &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2425">PR #2425&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767)
+&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2525">PR #2525&lt;/a>, &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1311">Issue #1311&lt;/a>&lt;/li>
+&lt;li>fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings.
+Regression since 42.2.13. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2531">PR #2531&lt;/a>, &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2527">issue #2527&lt;/a>&lt;/li>
+&lt;li>fix: use Locale. ROOT for toUpperCase() toLowerCase() calls&lt;/li>
+&lt;li>doc: add Vladimir Sitnikov&amp;rsquo;s PGP key&lt;/li>
+&lt;li>fix: return correct base type for domain from getUDTs &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2520">PR #2520&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2522">Issue #2522&lt;/a>&lt;/li>
+&lt;li>perf: utcTz static and renamed to UTC_TIMEZONE &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2520">PR #2519&lt;/a>&lt;/li>
+&lt;li>doc: fix release version for #2377 (it should be 42.3.6, not 42.3.5)&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.6 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-05-24-42.3.6-release/</link><pubDate>Tue, 24 May 2022 08:52:25 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-05-24-42.3.6-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: close refcursors when underlying cursor==null instead of relying on defaultRowFetchSize &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PR #2377&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.5 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-05-04-42.3.5-release/</link><pubDate>Wed, 04 May 2022 08:48:32 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-05-04-42.3.5-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Regression since 42.3.2: &amp;ldquo;cursor &amp;lt;unnamed portal 1&amp;gt; does not exist&amp;rdquo; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377&lt;/a>)&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>test: polish TimestampUtilsTest&lt;/li>
+&lt;li>chore: use GitHub Action concurrency feature to terminate CI jobs on fast PR pushes&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Added KEYS file to allow for verifying artifacts &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2499">PR 2499&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>perf: enable tcpNoDelay by default &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495&lt;/a>.
+This is a regression from 42.2.x versions where tcpNoDelay defaulted to true&lt;/li>
+&lt;li>docs: fix readme.md after &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/249">PR 2496&lt;/a>&lt;/li>
+&lt;li>feat: targetServerType=preferPrimary connection parameter &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2483">PR 2483&lt;/a>&lt;/li>
+&lt;li>fix: revert removal of toOffsetDateTime(String timestamp) fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2497">Issue #2497&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2501">PR 2501&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.4 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-04-15-42.3.4-release/</link><pubDate>Fri, 15 Apr 2022 11:00:00 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-04-15-42.3.4-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Regression since 42.3.2: &amp;ldquo;cursor &amp;lt;unnamed portal 1&amp;gt; does not exist&amp;rdquo; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377&lt;/a>)&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: change name of build cache &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2471">PR 2471&lt;/a>&lt;/li>
+&lt;li>feat: add support for ResultSet#getObject(OffsetTime.class) and PreparedStatement#setObject(OffsetTime.class) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2467">PR 2467&lt;/a>&lt;/li>
+&lt;li>fix: Use non-synchronized getTimeZone in TimestampUtils &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2451">PR 2451&lt;/a>&lt;/li>
+&lt;li>docs: Fix CHANGELOG.md misformatted markdown headings &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2461">PR 2461&lt;/a>&lt;/li>
+&lt;li>docs: remove loggerLevel and loggerFile from docs and issues &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2489">#2489&lt;/a>&lt;/li>
+&lt;li>feat: use direct wire format -&amp;gt; LocalDate conversion without resorting to java.util. Date, java.util. Calendar,
+and default timezones &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2464">PR 2464&lt;/a> fixes Issue #2221&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>docs: Update testing documentation &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2446">PR 2446&lt;/a>&lt;/li>
+&lt;li>fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2421">Issue #2421&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2441">PR 2441&lt;/a>&lt;/li>
+&lt;li>fix: Use PGProperty instead of the property names directly &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2444">PR 2444&lt;/a>&lt;/li>
+&lt;li>docs: update changelog, missing links at bottom and formatting &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2460">PR 2460&lt;/a>&lt;/li>
+&lt;li>fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes #Issue 2479 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2480">PR 2480&lt;/a>&lt;/li>
+&lt;li>fix: change PGInterval parseISO8601Format to support fractional second &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2457">PR 2457&lt;/a>&lt;/li>
+&lt;li>fix: More test and fix for issues discovered by &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2476">PR #2476&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2488">PR #2488&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.3 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-02-15-42.3.3-release/</link><pubDate>Tue, 15 Feb 2022 11:32:22 -0500</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-02-15-42.3.3-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Regression since 42.3.2: &amp;ldquo;cursor &amp;lt;unnamed portal 1&amp;gt; does not exist&amp;rdquo; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377&lt;/a>)&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix: Removed loggerFile and loggerLevel configuration. While the properties still exist.
+They can no longer be used to configure the driver logging. Instead use java.util.logging
+configuration mechanisms such as &lt;code>logging.properties&lt;/code> .&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4></description></item><item><title>PostgreSQL JDBC Driver 42.2.25 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-02-01-42.2.25-release/</link><pubDate>Tue, 01 Feb 2022 07:35:28 -0500</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-02-01-42.2.25-release/</guid><description>&lt;h4 id="security" class="self-link">Security &lt;a class="header-link" href="#security">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName,
+sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
+However, the driver did not verify if the class implements the expected interface before instantiating the class. This
+would allow a malicious class to be instantiated that could execute arbitrary code from the JVM. Fixed in &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/f4d0ed69c0b3aae8531d83d6af4c57f22312c813">commit&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.2 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2022-02-01-42.3.2-release/</link><pubDate>Tue, 01 Feb 2022 07:35:28 -0500</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2022-02-01-42.3.2-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Regression since 42.3.2: &amp;ldquo;cursor &amp;lt;unnamed portal 1&amp;gt; does not exist&amp;rdquo; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377&lt;/a>)&lt;/li>
+&lt;/ul>
+&lt;h4 id="security" class="self-link">Security &lt;a class="header-link" href="#security">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName,
+sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
+However, the driver did not verify if the class implements the expected interface before instantiating the class. This
+would allow a malicious class to be instantiated that could execute arbitrary code from the JVM. Fixed in &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/f4d0ed69c0b3aae8531d83d6af4c57f22312c813">commit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>perf: read in_hot_standby GUC on connection &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2334">PR #2334&lt;/a>&lt;/li>
+&lt;li>test: materialized view privileges &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2209">PR #2209&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2060">Issue #2060&lt;/a>&lt;/li>
+&lt;li>docs: add info about convenience maven project &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2407">PR #2407&lt;/a>&lt;/li>
+&lt;li>docs: Document timezone reversal from POSIX to ISO &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2413">PR #2413&lt;/a>&lt;/li>
+&lt;li>fix: we will ask the server if it supports GSS Encryption if gssEncryption
+is prefer or require &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2396">PR #2396&lt;/a> remove the need to have a ticket in the cache before asking the server if gss encryptions are supported&lt;/li>
+&lt;li>docs: remove Java 6 and 7 references from contributing &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2385">PR #2385&lt;/a>&lt;/li>
+&lt;li>style: remove Java 8 / JDBC 4.2 checks &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2383">PR #2383&lt;/a> Remove all remaining checks whether the source is lower than Java 8
+or JDBC 4.2.&lt;/li>
+&lt;li>fix: throw SQLException for #getBoolean BIT(&amp;gt;1) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2386">PR #2386&lt;/a> Throw SQLException instead of ClassCastException when calling
+CallableStatement#getBoolean(int) on BIT(&amp;gt;1).&lt;/li>
+&lt;li>style: import java.time types in more classes &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2382">PR #2382&lt;/a> Use imports for java.time types in all remaining classes.&lt;/li>
+&lt;li>style: import java.time types in TimestampUtils &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2380">PR #2380&lt;/a> Use imports for java.time types in TimestampUtils.&lt;/li>
+&lt;li>refactor: Change internal constructors to pass only connection Properties
+Changes internal constructors for PgConnection and related classes to only accept the connection properties object and
+remove the user and password arguments. Any locations that required those fields can retrieve them from the properties map.&lt;/li>
+&lt;li>test: Fix DatabaseMetadataTest to perform mview tests only on 9.3+&lt;/li>
+&lt;li>perf: read in_hot_standby GUC on connection &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2334">PR #2334&lt;/a>&lt;/li>
+&lt;li>doc: improv doc around binary decoding of numeric data &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2331">#2331&lt;/a>&lt;/li>
+&lt;li>Add cert key type checking to chooseClientAlias &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2417">PR #2417&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>feat: Add authenticationPluginClassName option to provide passwords at runtime
+Adds authenticationPluginClassName connection property that allows end users to specify a class
+that will provide the connection passwords at runtime. Users implementing that interface must
+ensure that each invocation of the method provides a new char[] array as the contents
+will be filled with zeroes by the driver after use. Call sites within the driver have been updated to use the char[] directly wherever possible.
+This includes direct usage in the GSS authentication code paths that internally were already converting the String password into a char[] for internal usage.
+This allows configuring a connection with a password that must be generated on the fly or periodically changes. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR #2369&lt;/a> original issue &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2102">Issue #2102&lt;/a>&lt;/li>
+&lt;li>feat: add tcpNoDelay option &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2341">PR #2341&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2324">Issue #2324&lt;/a>&lt;/li>
+&lt;li>feat: pg_service.conf and .pgpass support (jdbc:postgresql://?service=my-service) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2260">PR #2260&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2278">Issue #2278&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Use local TimestampUtil in PgStatement and PgResultset for thread safety &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2291">PR #2291&lt;/a>
+fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/921">Issue #921&lt;/a> synchronize modification of shared calendar&lt;/li>
+&lt;li>fix: PgObject isNull() was reporting the opposite fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2411">Issue #2411&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2414">PR #2414&lt;/a>&lt;/li>
+&lt;li>fix: default file name is &amp;ldquo;.pg_service.conf&amp;rdquo; on Windows (not &amp;ldquo;pg_service.conf&amp;rdquo;) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2398">PR #2398&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2278">Issue #2278&lt;/a>&lt;/li>
+&lt;li>test: Fix RefCursorFetchTest on older platforms&lt;/li>
+&lt;li>fix: do not close refcursor after reading if fetchsize has been set fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2227">Issue #2227&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2371">PR #2371&lt;/a>&lt;/li>
+&lt;li>fix: rework gss authentication to use the principal name to get the credentials fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2235">Issue #2235&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2352">PR #2352&lt;/a>&lt;/li>
+&lt;li>fix: return getIndexInfo metadata columns in UPPER CASE &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2368">PR #2368&lt;/a>&lt;/li>
+&lt;li>fix: Connection leak in ConnectionFactoryImpl#tryConnect &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2350">PR #2350&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2351">Issue #2351&lt;/a>&lt;/li>
+&lt;li>fix: Fix For IS_AUTOGENERATED Flag &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2348">PR #2348&lt;/a>&lt;/li>
+&lt;li>fix: parsing service file tests for windows &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2347">PR #2347&lt;/a>&lt;/li>
+&lt;li>fix: The spec says that calling close() on a closed connection is a noop. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2345">PR #2345&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2300">Issue #2300&lt;/a>&lt;/li>
+&lt;li>fix: add microsecond precision to getTimestamp() called on sql TIME(6) Currently, &amp;ldquo;when fetching a value of type TIME(6) through
+resultSet.getTimestamp() only ms precision is retained, the microsecond fractional digits are lost.&amp;rdquo; This change will retain the microsecond
+precision when .getTimestamp() is called on TIME(6). &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2181">PR #2181&lt;/a> Closes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1537">Issue #1537&lt;/a>&lt;/li>
+&lt;li>test: materialized view privileges &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2209">PR #2209&lt;/a> add and drop a materialized view
+Add to TestUtil and also to DatabaseMetaData setup and teardown fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2060">Issue #2060&lt;/a>&lt;/li>
+&lt;li>fix: typo in connect.md &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2238">PR #2338&lt;/a> &lt;code>OutOfMemoryException&lt;/code> =&amp;gt; &lt;code>OutOfMemoryError&lt;/code>&lt;/li>
+&lt;li>fix: use local TimestampUtil in PgStatement and PgResultset for thread
+safety TimestampUtil is not thread safe. It raises exceptions when multiple threads use ResultSets of one connection. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2291">PR #2291&lt;/a>
+fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/921">Issue #921&lt;/a>
+If PgStatement and PgResultSet use their own TimestampUtil no synchronize is needed.&lt;/li>
+&lt;li>fix: typo in CONTRIBUTING.md &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2332">PR #2332&lt;/a> seccion =&amp;gt; section&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver Log4j CVE status</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-12-22-log4j/</link><pubDate>Wed, 22 Dec 2021 20:32:25 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-12-22-log4j/</guid><description>CVE-2021-44228 status The pgjdbc team is has reviewed the project and determined that the PostgreSQL JDBC driver is not effected by this CVE. The project has very few runtime dependencies and log4j is not one of them, therefore it does not expose the project to this security issue.
+The pgjdbc team</description></item><item><title>PostgreSQL JDBC Driver 42.3.1 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-10-29-42.3.1-release/</link><pubDate>Fri, 29 Oct 2021 15:09:25 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-10-29-42.3.1-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>improv: Arrays in Object[] &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2330">PR 2330&lt;/a> when an Object[] contains other arrays, treat as though it were a
+multi-dimensional array the one exception is byte[], which is not supported.&lt;/li>
+&lt;li>improv: Use jre utf-8 decoding &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2317">PR 2317&lt;/a> Remove use of custom utf-8 decoding.&lt;/li>
+&lt;li>perf: improve performance of bytea string decoding &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2320">PR 2320&lt;/a>
+improve the parsing of bytea hex encoded string by making a lookup table for each of the valid ascii code points to the 4 bit numeric value&lt;/li>
+&lt;li>feat: intern/canonicalize common strings &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2234">PR 2234&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>numeric binary decode for even 10 thousands &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2327">PR #2327&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2326">Issue 2326&lt;/a>
+binary numeric values which represented integers multiples of 10, 000 from 10, 000-9, 990, 000 were not decoded correctly&lt;/li>
+&lt;li>[typo] typo in certdir/README.md &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2309">PR #2309&lt;/a> certificatess =&amp;gt; certificates&lt;/li>
+&lt;li>[typo] typo in TimestampUtils.java &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2314">PR #2314&lt;/a> Change &lt;code>Greagorian&lt;/code> to &lt;code>Gregorian&lt;/code>.&lt;/li>
+&lt;li>remove check for negative pid in cancel request. Apparently pgbouncer can send one fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2317">Issue 2317&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2319">PR #2319&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.3.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-10-18-42.3.0-release/</link><pubDate>Mon, 18 Oct 2021 15:05:25 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-10-18-42.3.0-release/</guid><description>Changed No longer build for Java 6 or Java 7 If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR #1977 Added Fixed Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR #507 Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified PR #2174 Fix refreshRow made the row readOnly.</description></item><item><title>PostgreSQL JDBC Driver 42.2.24 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-09-22-42.2.24-release/</link><pubDate>Wed, 22 Sep 2021 15:30:49 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-09-22-42.2.24-release/</guid><description>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fix startup regressions caused by &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1949">PR #1949&lt;/a>. Instead of checking all types by OID, we can return types for well known types &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2257">PR #2257&lt;/a>&lt;/li>
+&lt;li>Backport &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2148">PR #2148&lt;/a>
+Avoid leaking server error details through BatchUpdateException when logServerErrorDetail &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2254">PR #2254&lt;/a>&lt;/li>
+&lt;li>Backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2247">PR #2247&lt;/a>
+QueryExecutorImpl.receiveFastpathResult did not properly handle ParameterStatus messages.
+This in turn caused failures for some LargeObjectManager operations. Closes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2237">Issue #2237&lt;/a>
+Fixed by adding the missing code path, based on the existing handling in processResults. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2253">PR #2253&lt;/a>&lt;/li>
+&lt;li>Backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2242">PR #2242&lt;/a> PgDatabaseMetaData.getIndexInfo() cast operands to smallint &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2253">PR#2253&lt;/a>
+It is possible to break method PgDatabaseMetaData.getIndexInfo() by adding certain custom operators. This PR fixes it.&lt;/li>
+&lt;li>Backpatching &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2251">PR #2251&lt;/a> into 42.2 Clean up open connections to fix test failures on omni and appveyor
+use older syntax for COMMENT ON FUNCTION with explicit no-arg parameter parentheses as it is required on server versions before v10.
+Handle cleanup of connection creation in StatementTest, handle cleanup of privileged connection in DatabaseMetaDataTest&lt;/li>
+&lt;li>Backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2245">PR #2245&lt;/a> fixes case where duplicate tables are returned if there are duplicate descriptions oids are not guaranteed to be unique in the catalog &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2248">PR #2248&lt;/a>&lt;/li>
+&lt;li>Change to updatable result set to use correctly primary or unique keys &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2228">PR #2228&lt;/a>
+fixes issues introduced in &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2199">PR #2199&lt;/a> closes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2196">Issue #2196&lt;/a>&lt;/li>
+&lt;li>Fix NPE calling getTypeInfo when alias is null &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2220">PR #2220&lt;/a>&lt;/li>
+&lt;li>Backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2217">PR #2217&lt;/a> to fix &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2215">Issue #2215&lt;/a>. OIDs are unsigned integers and were not being handled correctly when they exceeded the size of signed integers&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.23 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-07-06-42.2.23-release/</link><pubDate>Tue, 06 Jul 2021 09:17:31 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-07-06-42.2.23-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>renewed the SSL keys for testing&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>getColumnPrecision for Numeric when scale and precision not specified now returns 0 instead of 131089 fixes: Issue #2188&lt;/li>
+&lt;li>Calling refreshRow on an updateable resultset made the row readOnly. Fixes Issue #2193&lt;/li>
+&lt;li>results should be updateable if there is a unique index available PR#2199 Fixes Issue #2196&lt;/li>
+&lt;li>Rework sql type gathering to use OID instead of typname.
+This does not have the issue of name shadowing / qual-names, and has the added benefit of fixing #1948.&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.22 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-06-16-42.2.22-release/</link><pubDate>Wed, 16 Jun 2021 10:09:32 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-06-16-42.2.22-release/</guid><description>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Regression caused by &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/4fa2d5bc1ed8c0086a3a197fc1c28f7173d53cac">https://github.com/pgjdbc/pgjdbc/commit/4fa2d5bc1ed8c0086a3a197fc1c28f7173d53cac&lt;/a>. Unfortunately
+due to the blocking nature of the driver and issues with seeing if there is a byte available on a blocking stream when it is encrypted
+this introduces unacceptable delays in returning from peek(). At this time there is no simple solution to this.&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.21 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-06-10-42.2.21-release/</link><pubDate>Thu, 10 Jun 2021 10:08:20 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-06-10-42.2.21-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>update docs to reflect deprecated DataSource API setServerName backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2057">PR#2057&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2105">PR #2105&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>make sure the table has defined primary keys when using updateable resultset backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2101">PR#2101&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1975">Issue 1975&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2106">PR #2106&lt;/a>&lt;/li>
+&lt;li>backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2143">PR #2143&lt;/a> read notifies or errors that come in asynchronously after the ready for query &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2168">PR #2168&lt;/a>&lt;/li>
+&lt;li>backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/507">PR #507&lt;/a> which reworks OSGI bundle activator fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2133">ISSUE #2133&lt;/a>&lt;/li>
+&lt;li>Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified. backpatch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2148">PR #2174&lt;/a>
+fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2173">Issue 2173&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.20 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-04-19-42.2.20-release/</link><pubDate>Mon, 19 Apr 2021 15:38:28 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-04-19-42.2.20-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>
+&lt;p>fix: Partitioned indexes were not found fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/2078">#2078&lt;/a> PR &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2087">#2087&lt;/a>&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>isValid() timeout should not be blocked &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1943">#1943&lt;/a> Cherry-picked &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2076">#2076&lt;/a>
+The usage of &lt;code>setQueryTimeout();&lt;/code> with the same value as the &lt;code>setNetworkTimeout();&lt;/code> is blocking the current transaction timeout.
+The timeouts are blocking each other with this approach.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>DatabaseMetaData.getTables returns columns in UPPER case as per the spec &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2092">PR #2092&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/830">Issue #830&lt;/a>&lt;/p>
+&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.19 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2021-02-18-42.2.19-release/</link><pubDate>Thu, 18 Feb 2021 14:25:56 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2021-02-18-42.2.19-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.&lt;/li>
+&lt;li>Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
+There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2012">PR #2012&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fix: properly set cancel socket timeout (#2044)&lt;/li>
+&lt;li>Fix &amp;ldquo;Required class information missing&amp;rdquo; when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]&lt;/li>
+&lt;li>Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]&lt;/li>
+&lt;li>Fix Connnection.isValid() to not wait longer than existing network timeout &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2040">PR #2040&lt;/a>&lt;/li>
+&lt;li>Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2052">PR #2052&lt;/a>&lt;/li>
+&lt;li>Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/2049">PR #2049&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.18 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-10-15-42.2.18-release/</link><pubDate>Thu, 15 Oct 2020 14:10:20 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-10-15-42.2.18-release/</guid><description>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Unfortunately changing the default of gssEncMode to ALLOW was not enough. The GSSEncMode Enum was not changed as well
+fixed in #1920&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.17 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-10-09-42.2.17-release/</link><pubDate>Fri, 09 Oct 2020 14:24:57 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-10-09-42.2.17-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly. Libpq gets around this by checking for a GSS credential cache before attempting the connection. This is possible in JDK 8 and up, but not JDK6, or JDK7 fixes Issue #1868 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1913">PR #1913&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Add smallserial metadata [PR #899(&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/899">https://github.com/pgjdbc/pgjdbc/pull/899&lt;/a>)&lt;/li>
+&lt;/ul>
+&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney [PR 1873] (&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1873">https://github.com/pgjdbc/pgjdbc/pull/1873&lt;/a>)..&lt;/li>
+&lt;li>The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1879">PR 1879&lt;/a>.&lt;/li>
+&lt;li>PgTokenizer was ignoring last empty token &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1882">PR #1882&lt;/a>&lt;/li>
+&lt;li>Remove osgi from karaf fixes Issue #1891 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1902">PR #1902&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.16 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-08-20-42.2.16-release/</link><pubDate>Thu, 20 Aug 2020 15:10:04 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-08-20-42.2.16-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays.
+Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default
+for Postgres when sent as strings such as &amp;lsquo;{1, 2, 3}&amp;rsquo;.
+Fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1860">issue 1860&lt;/a> in &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1863">PR 1863&lt;/a>.&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.15 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-08-14-42.2.15-release/</link><pubDate>Fri, 14 Aug 2020 21:39:56 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-08-14-42.2.15-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Rename source distribution archive to &lt;code>postgresql-$version-jdbc-src.tar.gz&lt;/code>, and add top-level archive folder &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/ba0175072ee9c751c1496d2fe170f4af7256f1a5">ba017507&lt;/a>&lt;/li>
+&lt;li>Add the ability to connect with a GSSAPI encrypted connection. As of PostgreSQL version 12 GSSAPI encrypted connections
+are possible. Now the driver will attempt to connect to the server with a GSSAPI encrypted connection. If that fails then
+attempt an SSL connection, finally falling back to a plain text connection. All of this is controlled using both the gssEncMode
+and sslMode parameters which, in concert with pg_hba.conf, determine if a particular mode is allowed and or required. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1821">PR 1821&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/ad921b9e3563b28b9a03b1e2dfaad0e34efc02f1">ad921b9e&lt;/a>&lt;/li>
+&lt;li>Source release archive shades dependencies (scram) by default. It affects only postgresql-version-src.tar.gz release artifact &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/f0301eb901f880059b00b0fb0a3ee93ef7d749a8">f0301eb9&lt;/a>&lt;/li>
+&lt;li>Refactor decoding arrays &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1194">PR 1194&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/0fd0939696cc7020a98c8fc67471d6c5ce2b375f">0fd09396&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Verify nullness with CheckerFramework &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/6e524ae51cee67b25426c09a7083465c820c0a0d">6e524ae5&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Avoid preparedStatement leak when using updateable ResultSet via insert/update/refreshRow &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1815">PR 1815&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/9a0d2b18a81c7ec5974d4caf2ff2d218312da25f">9a0d2b18&lt;/a>&lt;/li>
+&lt;li>Change order of checks for oid vs primary keys. OID&amp;rsquo;s have been deprecated. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1613">PR 1613&lt;/a>&lt;/li>
+&lt;li>Close certificate file stream. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1837">PR 1837&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/a40052c9176afaf68c7c4637e604dc427c2e7335">a40052c9&lt;/a>&lt;/li>
+&lt;li>Make sure socketTimeout is enforced &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1831">PR 1831&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/210b27a62f39332d93e0b07b4bdc55b8a2ffebb7">210b27a6&lt;/a>&lt;/li>
+&lt;li>Assume PKCS-8 SSL key format by default &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1819">PR 1819&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/80d4ed34c99d51dd8b06df00baad0265fd620fec">80d4ed34&lt;/a>&lt;/li>
+&lt;li>Preserve unquoted unicode whitespace in array literals &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1266">PR 1266&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.14 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-06-10-42.2.14-release/</link><pubDate>Wed, 10 Jun 2020 17:08:52 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-06-10-42.2.14-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Reverted com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies to optional=true in Maven &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1797">PR 1797&lt;/a>.&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.13 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-06-04-42.2.13-release/</link><pubDate>Thu, 04 Jun 2020 08:24:40 -0400</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-06-04-42.2.13-release/</guid><description>&lt;p>The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken this is an XXE and more information can be found &lt;a href="https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html">here&lt;/a>
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit 14b62aca4
+The build system has been changed to Gradle thanks to Vladimir &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1627">PR 1627&lt;/a>
+Regression: com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies are listed as non-optional &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1795">issue 1975&lt;/a>.&lt;/p>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1787">PR 1787&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>I/O error ru translation &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1756">PR 1756&lt;/a>&lt;/li>
+&lt;li>Issue &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1771">1771&lt;/a> PgDatabaseMetaData.getFunctions() returns
+procedures fixed in &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1774">PR 1774&lt;/a>&lt;/li>
+&lt;li>getTypeMap() returning null &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1774">PR 1781&lt;/a>&lt;/li>
+&lt;li>Updated openssl example command &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1763">PR 1763&lt;/a>&lt;/li>
+&lt;li>fix documentation with ordered list to be displayed correctly &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1783">PR 1783&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.12 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-03-31-42.2.12-release/</link><pubDate>Tue, 31 Mar 2020 13:06:22 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-03-31-42.2.12-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>reverted &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1729">PR 1729&lt;/a> throw an error instead of silently rolling back a commit error.
+This change introduced a breaking change which will be moved to 42.3.0&lt;/li>
+&lt;li>reverted &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1719">PR 1719&lt;/a> add support for full names of data types (#1719)&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.11 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-03-10-42.2.11-release/</link><pubDate>Tue, 10 Mar 2020 00:00:00 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-03-10-42.2.11-release/</guid><description>&lt;p>We have released 42.2.12 to correct regressions in this version: Specifically&lt;/p>
+&lt;ul>
+&lt;li>&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1729">PR 1729&lt;/a> was reverted as this is a breaking change&lt;/li>
+&lt;li>&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1719">PR 1719&lt;/a> has been reverted as it introduced errors in the PgType Cache&lt;/li>
+&lt;/ul>
+&lt;p>We recommend that this version 42.2.11 not be used.&lt;/p>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Reverted &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1252">PR 1641&lt;/a>. The driver will now wait for EOF when sending cancel signals.&lt;/li>
+&lt;li>&lt;code>DatabaseMetaData#getProcedures&lt;/code> returns only procedures (not functions) for PostgreSQL 11+ &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1723">PR 1723&lt;/a>&lt;/li>
+&lt;li>Convert silent rollbacks into exception if application sends &lt;code>commit&lt;/code> or &lt;code>xa.prepare&lt;/code> command &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1729">PR 1729&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Convert silent rollbacks into exception if application sends &lt;code>commit&lt;/code> or &lt;code>xa.prepare&lt;/code> command &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1729">PR 1729&lt;/a>&lt;/li>
+&lt;li>feat: Expose &lt;code>ByteStreamWriter&lt;/code> in CopyManager &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1702">PR 1702&lt;/a>&lt;/li>
+&lt;li>feat: add way to distinguish base and partitioned tables in PgDatabaseMetaData.getTables &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1708">PR 1708&lt;/a>&lt;/li>
+&lt;li>refactor: introduce tuple abstraction (rebased) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1701">PR 1701&lt;/a>&lt;/li>
+&lt;li>refactor: make PSQLState enum consts for integrity constraint violations &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1699">PR 1699&lt;/a>&lt;/li>
+&lt;li>test: add makefile to create ssl certs &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1706">PR 1706&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>fix: Always use &lt;code>.&lt;/code> as decimal separator in PGInterval &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1705">PR 1705&lt;/a>&lt;/li>
+&lt;li>fix: allow DatabaseMetaData.getColumns to describe an unset scale &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1716">PR 1716&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.10 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2020-01-30-42.2.10-release/</link><pubDate>Thu, 30 Jan 2020 20:12:11 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2020-01-30-42.2.10-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>(!) Regression: remove receiving EOF from backend after cancel &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1252">PR 1641&lt;/a>. The regression is that the subsequent query might receive the cancel signal.&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Add maxResultBuffer property &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1657">PR 1657&lt;/a>&lt;/li>
+&lt;li>add caller push of binary data (rebase of #953) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1659">PR 1659&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Cleanup PGProperty, sort values, and add some missing to docs &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1686">PR 1686&lt;/a>&lt;/li>
+&lt;li>Fixing LocalTime rounding (losing precision) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1570">PR 1570&lt;/a>&lt;/li>
+&lt;li>Network Performance of PgDatabaseMetaData.getTypeInfo() method &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1668">PR 1668&lt;/a>&lt;/li>
+&lt;li>Issue #1680 updating a boolean field requires special handling to set it to t or f instead of true or false &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1682">PR 1682&lt;/a>&lt;/li>
+&lt;li>bug in pgstream for replication &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1681">PR 1681&lt;/a>&lt;/li>
+&lt;li>Issue #1677 NumberFormatException when fetching PGInterval with small value &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1678">PR 1678&lt;/a>&lt;/li>
+&lt;li>Metadata queries improvements with large schemas. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1673">PR 1673&lt;/a>&lt;/li>
+&lt;li>Utf 8 encoding optimizations &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1444">PR 1444&lt;/a>&lt;/li>
+&lt;li>interval overflow &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1658">PR 1658&lt;/a>&lt;/li>
+&lt;li>Issue #1482 where the port was being added to the GSSAPI service name &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1651">PR 1651&lt;/a>&lt;/li>
+&lt;li>remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1641">PR 1641&lt;/a>&lt;/li>
+&lt;li>Unable to register out parameter Issue #1646 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1648">PR 1648&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="4229-2019-12-06" class="self-link">[42.2.9] (2019-12-06) &lt;a class="header-link" href="#4229-2019-12-06">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="changed-1" class="self-link">Changed &lt;a class="header-link" href="#changed-1">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added-1" class="self-link">Added &lt;a class="header-link" href="#added-1">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>read only transactions &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1252">PR 1252&lt;/a>&lt;/li>
+&lt;li>pkcs12 key functionality &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1599">PR 1599&lt;/a>&lt;/li>
+&lt;li>new &amp;ldquo;escapeSyntaxCallMode&amp;rdquo; connection property &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1560">PR 1560&lt;/a>&lt;/li>
+&lt;li>connection property to limit server error detail in exception exceptions &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1579">PR 1579&lt;/a>&lt;/li>
+&lt;li>cancelQuery() to PGConnection public interface &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1157">PR 1157&lt;/a>&lt;/li>
+&lt;li>support for large update counts (JDBC 4.2) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/935">PR 935&lt;/a>&lt;/li>
+&lt;li>Add Binary Support for Oid. NUMERIC and Oid. NUMERIC_ARRAY &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1636">PR 1636&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed-1" class="self-link">Fixed &lt;a class="header-link" href="#fixed-1">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>issue 716 getTypeInfo() may not return data in the order specified in Oracle documentation &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1506">PR 1506&lt;/a>&lt;/li>
+&lt;li>PgSQLXML setCharacterStream() results in null value &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1608">PR 1608&lt;/a>&lt;/li>
+&lt;li>get correct column length for simple domains &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1605">PR 1605&lt;/a>&lt;/li>
+&lt;li>NPE as a result of calling executeQuery twice on a statement fixes issue &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/684">#684&lt;/a> [PR 1610] (&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1610">https://github.com/pgjdbc/pgjdbc/pull/1610&lt;/a>)&lt;/li>
+&lt;li>handle numeric domain types &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1611">PR 1611&lt;/a>&lt;/li>
+&lt;li>pginterval to take iso8601 strings &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1612">PR 1612&lt;/a>&lt;/li>
+&lt;li>remove currentTimeMillis from code, tests are OK &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1617">PR 1617&lt;/a>&lt;/li>
+&lt;li>NPE when calling setNull on a PreparedStatement with no parameters &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1620">PR 1620&lt;/a>&lt;/li>
+&lt;li>allow OUT parameter registration when using CallableStatement native CALL &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1561">PR 1561&lt;/a>&lt;/li>
+&lt;li>add release save point into execute with batch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1583">PR 1583&lt;/a>&lt;/li>
+&lt;li>Prevent use of extended query protocol for BEGIN before COPY &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1639">PR 1639&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.9 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2019-12-06-42.2.9-release/</link><pubDate>Fri, 06 Dec 2019 17:52:49 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2019-12-06-42.2.9-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>read only transactions &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1252">PR 1252&lt;/a>&lt;/li>
+&lt;li>pkcs12 key functionality &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1599">PR 1599&lt;/a>&lt;/li>
+&lt;li>new &amp;ldquo;escapeSyntaxCallMode&amp;rdquo; connection property &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1560">PR 1560&lt;/a>&lt;/li>
+&lt;li>connection property to limit server error detail in exception exceptions &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1579">PR 1579&lt;/a>&lt;/li>
+&lt;li>cancelQuery() to PGConnection public interface &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1157">PR 1157&lt;/a>&lt;/li>
+&lt;li>support for large update counts (JDBC 4.2) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/935">PR 935&lt;/a>&lt;/li>
+&lt;li>Add Binary Support for Oid. NUMERIC and Oid. NUMERIC_ARRAY &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1636">PR 1636&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>issue 716 getTypeInfo() may not return data in the order specified in Oracle documentation &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1506">PR 1506&lt;/a>&lt;/li>
+&lt;li>PgSQLXML setCharacterStream() results in null value &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1608">PR 1608&lt;/a>&lt;/li>
+&lt;li>get correct column length for simple domains &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1605">PR 1605&lt;/a>&lt;/li>
+&lt;li>NPE as a result of calling executeQuery twice on a statement fixes issue &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/684">#684&lt;/a> [PR 1610] (&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1610">https://github.com/pgjdbc/pgjdbc/pull/1610&lt;/a>)&lt;/li>
+&lt;li>handle numeric domain types &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1611">PR 1611&lt;/a>&lt;/li>
+&lt;li>pginterval to take iso8601 strings &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1612">PR 1612&lt;/a>&lt;/li>
+&lt;li>remove currentTimeMillis from code, tests are OK &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1617">PR 1617&lt;/a>&lt;/li>
+&lt;li>NPE when calling setNull on a PreparedStatement with no parameters &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1620">PR 1620&lt;/a>&lt;/li>
+&lt;li>allow OUT parameter registration when using CallableStatement native CALL &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1561">PR 1561&lt;/a>&lt;/li>
+&lt;li>add release save point into execute with batch &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1583">PR 1583&lt;/a>&lt;/li>
+&lt;li>Prevent use of extended query protocol for BEGIN before COPY &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1639">PR 1639&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.8 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2019-09-13-42.2.8-release/</link><pubDate>Fri, 13 Sep 2019 13:23:26 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2019-09-13-42.2.8-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3></description></item><item><title>PostgreSQL JDBC Driver 42.2.7 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2019-09-10-42.2.7-release/</link><pubDate>Tue, 10 Sep 2019 13:50:37 +0000</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2019-09-10-42.2.7-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Expose parameter status messages (GUC_REPORT) to the user &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1435">PR 1435&lt;/a>&lt;/li>
+&lt;li>Add automatic module name to manifest for jdk9+ &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1538">PR 1538&lt;/a>&lt;/li>
+&lt;li>Log ignoring rollback when no transaction in progress &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1549">PR 1549&lt;/a>&lt;/li>
+&lt;li>Map inet type to InetAddress &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1527">PR 1527&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1134">issue 1134&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>fix &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1547">issue 1547&lt;/a> As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1548">PR 1548&lt;/a>&lt;/li>
+&lt;li>fix: &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1466">issue 1466&lt;/a> In logical decoding the if the backend was requesting a reply we… &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1467">PR 1467&lt;/a>&lt;/li>
+&lt;li>fix: &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1534">issue 1534&lt;/a> Proleptic java.time support &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1539">PR 1539&lt;/a>&lt;/li>
+&lt;li>fix Ensure isValid() will not last more than timeout seconds &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1557">PR 1557&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.6 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2019-06-19-42.2.6-release/</link><pubDate>Wed, 19 Jun 2019 00:06:55 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2019-06-19-42.2.6-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Waffle has &lt;a href="https://github.com/Waffle/waffle/releases/tag/waffle-1.9.0">dropped support&lt;/a> for 1.6, 1.7 as such the new waffle 1.9.x is only available in jre8&lt;/li>
+&lt;li>Microseconds in timestamps might be truncated when transferred in binary mode&lt;/li>
+&lt;li>24:00 time handling is not consistent &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1385">issue 1385&lt;/a>&lt;/li>
+&lt;li>Unexpected packet type during stream replication &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1466">issue 1466&lt;/a>&lt;/li>
+&lt;li>Driver goes missing after OSGi bundle restart &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1476">issue 1476&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Change IS_GENERATED to IS_GENERATEDCOLUMN as per spec &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1485">PR 1485&lt;/a>&lt;/li>
+&lt;li>Fix missing metadata columns, and misspelled columns in PgDatabaseMetaData#getTables &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1323">PR 1323&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>CI tests with Java 11, and Java EA&lt;/li>
+&lt;li>Support temporary replication slots in ReplicationCreateSlotBuilder &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1306">PR 1306&lt;/a>&lt;/li>
+&lt;li>Support PostgreSQL 11, 12&lt;/li>
+&lt;li>Return function (PostgreSQL 11) columns in PgDatabaseMetaData#getFunctionColumns&lt;/li>
+&lt;li>Return information on create replication slot, now the snapshot_name is exported
+to allow a consistent snapshot in some uses cases. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1335">PR 1335&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fixed async copy performance (1ms per op) in SSL mode &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1314">PR 1314&lt;/a>&lt;/li>
+&lt;li>Return Double. NaN for &amp;lsquo;NaN&amp;rsquo;::numeric &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1304">PR 1304&lt;/a>&lt;/li>
+&lt;li>Performance issue in PgDatabaseMetaData#getTypeInfo with lots of types in DB &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1302">PR 1302&lt;/a>&lt;/li>
+&lt;li>PGCopyInputStream#read should cap values to [0, 255], -1 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1349">PR 1349&lt;/a>&lt;/li>
+&lt;li>Fixes LocalDateTime handling of BC dates &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1388">PR 1388&lt;/a>&lt;/li>
+&lt;li>Release savepoints in autosave mode to prevent out of shared memory errors at the server side &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1409">PR 1409&lt;/a>&lt;/li>
+&lt;li>Fix execution with big decimal in simple query mode. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1463">PR 1463&lt;/a>&lt;/li>
+&lt;li>Fix rounding for timestamps truncated to dates before 1970 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1502">PR 1502&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.5 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-08-27-42.2.5-release/</link><pubDate>Mon, 27 Aug 2018 18:21:38 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-08-27-42.2.5-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>1ms per async copy call &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1312">issue 1312&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>&lt;code>ssl=true&lt;/code> implies &lt;code>sslmode=verify-full&lt;/code>, that is it requires valid server certificate &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e">cdeeaca4&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Support for &lt;code>sslmode=allow/prefer/require&lt;/code> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e">cdeeaca4&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Security: added server hostname verification for non-default SSL factories in &lt;code>sslmode=verify-full&lt;/code> (CVE-2018-10936) &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/cdeeaca47dc3bc6f727c79a582c9e4123099526e">cdeeaca4&lt;/a>&lt;/li>
+&lt;li>Updated documentation on SSL configuration &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/fa032732acfe51c6e663ee646dd5c1beaa1af857">fa032732&lt;/a>&lt;/li>
+&lt;li>Updated Japanese translations &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1275">PR 1275&lt;/a>&lt;/li>
+&lt;li>IndexOutOfBounds on prepared multistatement with insert values &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/c2885dd0cfc793f81e5dd3ed2300bb32476eb14a">c2885dd0&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.4 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-07-14-42.2.4-release/</link><pubDate>Sat, 14 Jul 2018 19:02:04 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-07-14-42.2.4-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>PreparedStatement.setNull(int parameterIndex, int t, String typeName) no longer ignores the typeName
+argument if it is not null &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1160">PR 1160&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fix treatment of SQL_TSI_YEAR, SQL_TSI_WEEK, SQL_TSI_MINUTE &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1250">PR 1250&lt;/a>&lt;/li>
+&lt;li>Map integrity constraint violation to XA_RBINTEGRITY instead of XAER_RMFAIL &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1175">PR 1175&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/f2d1352c2b3ea98492beb6127cd6d95039a0b92f">f2d1352c&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.3 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-07-12-42.2.3-release/</link><pubDate>Thu, 12 Jul 2018 12:02:03 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-07-12-42.2.3-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as second (fixed in 42.2.4)&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Reduce the severity of the error log messages when an exception is re-thrown. The error will be thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1187">PR 1187&lt;/a>&lt;/li>
+&lt;li>Deprecate Fastpath API &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/903">PR 903&lt;/a>&lt;/li>
+&lt;li>Support parenthesis in {oj &amp;hellip;} JDBC escape syntax &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1204">PR 1204&lt;/a>&lt;/li>
+&lt;li>ubenchmark module moved pgjdbc/benchmarks repository due to licensing issues &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1215">PR 1215&lt;/a>&lt;/li>
+&lt;li>Include section on how to submit a bug report in CONTRIBUTING.md &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/951">PR 951&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>getString for PGObject-based types returned &amp;ldquo;null&amp;rdquo; string instead of null &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1154">PR 1154&lt;/a>&lt;/li>
+&lt;li>Field metadata cache can be disabled via databaseMetadataCacheFields=0 &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1052">PR 1052&lt;/a>&lt;/li>
+&lt;li>Properly encode special symbols in passwords in BaseDataSource &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1201">PR 1201&lt;/a>&lt;/li>
+&lt;li>Adjust date, hour, minute, second when rounding nanosecond part of a timestamp &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1212">PR 1212&lt;/a>&lt;/li>
+&lt;li>perf: reduce memory allocations in query cache &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1227">PR 1227&lt;/a>&lt;/li>
+&lt;li>perf: reduce memory allocations in SQL parser &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1230">PR 1230&lt;/a>, &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1233">PR 1233&lt;/a>&lt;/li>
+&lt;li>Encode URL parameters in BaseDataSource &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1201">PR 1201&lt;/a>&lt;/li>
+&lt;li>Improve JavaDoc formatting &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1236">PR 1236&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.2 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-03-15-42.2.2-release/</link><pubDate>Thu, 15 Mar 2018 18:55:14 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-03-15-42.2.2-release/</guid><description>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Documentation on server-side prepared statements &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1135">PR 1135&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Avoid failure for &lt;code>insert ... on conflict...update&lt;/code> for &lt;code>reWriteBatchedInserts=true&lt;/code> case &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1130">PR 1130&lt;/a>&lt;/li>
+&lt;li>fix: allowEncodingChanges should allow set client_encoding=&amp;hellip; &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1125">PR 1125&lt;/a>&lt;/li>
+&lt;li>Wrong data from Blob/Clob when mark/reset is used &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/971">PR 971&lt;/a>&lt;/li>
+&lt;li>Adjust XAException return codes for better compatibility with XA specification &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/782">PR 782&lt;/a>&lt;/li>
+&lt;li>Wrong results when single statement is used with different bind types&lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1137">PR 1137&lt;/a>&lt;/li>
+&lt;li>Support generated keys for WITH queries that miss RETURNING &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1138">PR 1138&lt;/a>&lt;/li>
+&lt;li>Support generated keys when INSERT/UPDATE/DELETE keyword is followed by a comment &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1138">PR 1138&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.1 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-01-25-42.2.1-release/</link><pubDate>Thu, 25 Jan 2018 19:30:35 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-01-25-42.2.1-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>client_encoding has to be UTF8 even with allowEncodingChanges=true&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>socksProxyHost is ignored in case it contains empty string &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1079">PR 1079&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Avoid connection failure when &lt;code>DateStyle&lt;/code> is set to &lt;code>ISO&lt;/code> (~PgBouncer) &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1080">Issue 1080&lt;/a>&lt;/li>
+&lt;li>Package scram:client classes, so SCRAM works when using a shaded jar &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1091">PR 1091&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/1a89290e110d5863b35e0a2ccf79e4292c1056f8">1a89290e&lt;/a>&lt;/li>
+&lt;li>reWriteBatchedInserts=true causes syntax error with ON CONFLICT &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/1045">Issue 1045&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1082">PR 1082&lt;/a>&lt;/li>
+&lt;li>Avoid failure in getPGArrayType when stringType=unspecified &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1036">PR 1036&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.2.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2018-01-17-42.2.0-release/</link><pubDate>Wed, 17 Jan 2018 20:11:10 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2018-01-17-42.2.0-release/</guid><description>&lt;h4 id="known-issues" class="self-link">Known issues &lt;a class="header-link" href="#known-issues">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>SCRAM authentication does not work as scram client classes are not packaged&lt;/li>
+&lt;li>client_encoding has to be UTF8 even with allowEncodingChanges=true&lt;/li>
+&lt;/ul>
+&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Support SCRAM-SHA-256 for PostgreSQL 10 in the JDBC 4.2 version (Java 8+) using the Ongres SCRAM library. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/842">PR 842&lt;/a>&lt;/li>
+&lt;li>Make SELECT INTO and CREATE TABLE AS return row counts to the client in their command tags. &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/958">Issue 958&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/962">PR 962&lt;/a>&lt;/li>
+&lt;li>Support Subject Alternative Names for SSL connections. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/952">PR 952&lt;/a>&lt;/li>
+&lt;li>Support isAutoIncrement metadata for PostgreSQL 10 IDENTITY column. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1004">PR 1004&lt;/a>&lt;/li>
+&lt;li>Support for primitive arrays &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/887">PR 887&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/3e0491ac3833800721b98e7437635cf6ab338162">3e0491a&lt;/a>&lt;/li>
+&lt;li>Implement support for get/setNetworkTimeout() in connections. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/849">PR 849&lt;/a>&lt;/li>
+&lt;li>Make GSS JAAS login optional, add an option &amp;ldquo;jaasLogin&amp;rdquo; &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/922">PR 922&lt;/a> see &lt;a href="https://jdbc.postgresql.org/documentation/head/connect.html">Connecting to the Database&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Improve behaviour of ResultSet.getObject(int, Class). &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/932">PR 932&lt;/a>&lt;/li>
+&lt;li>Parse CommandComplete message using a regular expression, allows complete catch of server returned commands for INSERT, UPDATE, DELETE, SELECT, FETCH, MOVE, COPY and future commands. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/962">PR 962&lt;/a>&lt;/li>
+&lt;li>Use &amp;lsquo;time with timezone&amp;rsquo; and &amp;lsquo;timestamp with timezone&amp;rsquo; as is and ignore the user provided Calendars, &amp;lsquo;time&amp;rsquo; and &amp;lsquo;timestamp&amp;rsquo; work as earlier except &amp;ldquo;00:00:00&amp;rdquo; now maps to 1970-01-01 and &amp;ldquo;24:00:00&amp;rdquo; uses the system provided Calendar ignoring the user-provided one &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1053">PR 1053&lt;/a>&lt;/li>
+&lt;li>Change behaviour of multihost connection. The new behaviour is to try all secondaries first before trying the master &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/844">PR 844&lt;/a>.&lt;/li>
+&lt;li>Avoid reflective access to TimeZone.defaultTimeZone in Java 9+ &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1002">PR 1002&lt;/a> fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/986">Issue 986&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>Make warnings available as soon as they are received from the server. This is useful for long running queries, where it can be beneficial to know about a warning before the query completes. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/857">PR 857&lt;/a>&lt;/li>
+&lt;li>Use 00:00:00 and 24:00:00 for LocalTime. MIN/MAX. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/992">PR 992&lt;/a>&lt;/li>
+&lt;li>Now the DatabaseMetaData.getFunctions() implementation complies with the JDBC docs. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/918">PR 918&lt;/a>&lt;/li>
+&lt;li>Execute autosave/rollback savepoint via simple queries always to prevent &amp;ldquo;statement S_xx not exists&amp;rdquo; when autosaving fixes &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/955">Issue #955&lt;/a>&lt;/li>
+&lt;li>Received resultset tuples, but no field structure for them&amp;quot; when bind failure happens on 5th execution of a statement &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/811">Issue 811&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="removed" class="self-link">Removed &lt;a class="header-link" href="#removed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Drop support for the (insecure) crypt authentication method. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/1026">PR 1026&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="deprecated" class="self-link">Deprecated &lt;a class="header-link" href="#deprecated">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Reintroduce Driver.getVersion for backward compatibility reasons, mark it as deprecated as application should not rely on it (regression since 42.0.0) &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/50d5dd3e708a92602e04d6b4aa0822ad3f110a78">50d5dd3e&lt;/a>&lt;/li>
+&lt;li>slave and preferSlave values for the targetServerType connection property have been deprecated in favour of secondary and preferSecondary respectively.&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.1.4 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-08-01-42.1.4-release/</link><pubDate>Tue, 01 Aug 2017 20:00:00 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-08-01-42.1.4-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Statements with non-zero fetchSize no longer require server-side named handle. This might cause issues when using old PostgreSQL versions (pre-8.4)+fetchSize+interleaved ResultSet processing combo. &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/869">Issue 869&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.1.3 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-07-14-42.1.3-release/</link><pubDate>Fri, 14 Jul 2017 10:49:13 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-07-14-42.1.3-release/</guid><description>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fix NPE in PreparedStatement.executeBatch in case of empty batch (regression since 42.1.2). &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/867">PR 867&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.1.2 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-07-12-42.1.2-release/</link><pubDate>Wed, 12 Jul 2017 18:11:06 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-07-12-42.1.2-release/</guid><description>&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Better logic for &lt;em>returning&lt;/em> keyword detection. Previously, pgjdbc could be defeated by column names that contain &lt;em>returning&lt;/em>, so pgjdbc failed to &amp;ldquo;return generated keys&amp;rdquo; as it considered statement as already having &lt;em>returning&lt;/em> keyword &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/824">PR 824&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc">201daf1d&lt;/a>&lt;/li>
+&lt;li>Use server-prepared statements for batch inserts when prepareThreshold&amp;gt;0. Note: this enables batch to use server-prepared from the first &lt;em>executeBatch()&lt;/em> execution (previously it waited for &lt;em>prepareThreshold&lt;/em> &lt;em>executeBatch()&lt;/em> calls) &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/abc3d9d7f34a001322fbbe53f25d5e77a33a667f">abc3d9d7&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Replication API: fix issue in #834 setting statusIntervalUpdate causes high CPU load. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/835">PR 835&lt;/a> &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/59236b74acdd400d9d91d3eb2bb07d70b15392e5">59236b74&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="regressions" class="self-link">Regressions &lt;a class="header-link" href="#regressions">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>NPE in PreparedStatement.executeBatch in case of empty batch. Fixed in 42.1.3&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.1.1 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-05-05-42.1.1-release/</link><pubDate>Fri, 05 May 2017 00:00:00 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-05-05-42.1.1-release/</guid><description>&lt;h4 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Fix infinite dates that might be corrupted when transferred in binary for certain JREs. For instance, 5881610-07-11 instead of infinity. &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/1e5bf563f41203417281117ed20b183cd295b4e0">1e5bf563&lt;/a>&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.1.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-05-04-42.1.0-release/</link><pubDate>Thu, 04 May 2017 00:00:00 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-05-04-42.1.0-release/</guid><description>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Support fetching a REF_CURSOR using getObject &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/809">PR 809&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h3 id="fixed" class="self-link">Fixed &lt;a class="header-link" href="#fixed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h3>&lt;ul>
+&lt;li>Fix data being truncated in setCharacterStream (bug introduced in 42.0.0) &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/802">PR 802&lt;/a>&lt;/li>
+&lt;li>Fix calculation of lastReceiveLSN for logical replication &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/801">PR 801&lt;/a>&lt;/li>
+&lt;li>Make sure org.postgresql. Driver is loaded when accessing though DataSource interface &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/768">Issue 768&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="regressions" class="self-link">Regressions &lt;a class="header-link" href="#regressions">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>There&amp;rsquo;s no 42.1.0.jre6 version due to infinity handling bug. Fixed in 42.1.1.jre6&lt;/li>
+&lt;/ul></description></item><item><title>PostgreSQL JDBC Driver 42.0.0 Released</title><link>https://pgjdbc.github.io/pgjdbc/changelogs/2017-02-20-42.0.0-release/</link><pubDate>Mon, 20 Feb 2017 00:00:00 +0300</pubDate><guid>https://pgjdbc.github.io/pgjdbc/changelogs/2017-02-20-42.0.0-release/</guid><description>&lt;h4 id="added" class="self-link">Added &lt;a class="header-link" href="#added">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Replication protocol API was added: &lt;a href="https://jdbc.postgresql.org//documentation/head/replication.html">replication API documentation&lt;/a>. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/550">PR 550&lt;/a>&lt;/li>
+&lt;li>java.util.logging is now used for logging: &lt;a href="https://jdbc.postgresql.org//documentation/head/logging.html">logging documentation&lt;/a>. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/722">PR 722&lt;/a>&lt;/li>
+&lt;li>Add support for PreparedStatement.setCharacterStream(int, Reader). &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/ee4c4265aebc1c73a1d1fabac5ba259d1fbfd1e4">ee4c4265&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="changed" class="self-link">Changed &lt;a class="header-link" href="#changed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Version bumped to 42.0.0 to avoid version clash with PostgreSQL version and follow a better semantic versioning. &lt;a href="https://github.com/pgjdbc/pgjdbc/commit/66349236622c6b03bb9cd8d7f517c3ce0586751">46634923&lt;/a>&lt;/li>
+&lt;li>Ensure executeBatch() can be used with pgbouncer. Previously pgjdbc could use server-prepared statements for batch execution even with prepareThreshold=0. &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/742">Issue 742&lt;/a>&lt;/li>
+&lt;li>Error position is displayed when SQL has unterminated literals, comments, etc. &lt;a href="https://github.com/pgjdbc/pgjdbc/issues/688">Issue 688&lt;/a>&lt;/li>
+&lt;li>Strict handling of accepted values in getBoolean and setObject(BOOLEAN), now it follows PostgreSQL accepted values, only 1 and 0 for numeric types are acepted (previusly !=0 was true). &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/732">PR 732&lt;/a>&lt;/li>
+&lt;li>Return correct versions and name of the driver. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/668">PR 668&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="removed" class="self-link">Removed &lt;a class="header-link" href="#removed">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Support for PostgreSQL versions below 8.2 was dropped. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/661">PR 661&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="deprecated" class="self-link">Deprecated &lt;a class="header-link" href="#deprecated">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Deprecated PGPoolingDataSource, instead of this class you should use a fully featured connection pool like HikariCP, vibur-dbcp, commons-dbcp, c3p0, etc. &lt;a href="https://github.com/pgjdbc/pgjdbc/pull/739">PR 739&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;h4 id="regressions" class="self-link">Regressions &lt;a class="header-link" href="#regressions">
+&lt;svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+style="fill: #0093AF;">
+&lt;path
+d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+&lt;/path>
+&lt;path
+d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+&lt;/path>
+&lt;/svg>
+&lt;/a>&lt;/h4>&lt;ul>
+&lt;li>Data truncated in setCharacterStream. Fixed in 42.1.0&lt;/li>
+&lt;li>No suitable driver found for jdbc:postgresql when using a DataSource implementation. Fixed in 42.1.0&lt;/li>
+&lt;/ul>
+&lt;p>You may have noticed the change in the versioning of the driver, you can &lt;a href="documentation/faq.html#versioning">read the FAQ&lt;/a> for more information.&lt;/p></description></item></channel></rss>
