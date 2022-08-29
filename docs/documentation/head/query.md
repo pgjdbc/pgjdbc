@@ -85,6 +85,7 @@ exhausted the next block of rows is retrieved by repositioning the cursor.
 	This is the default, so no code will need to be rewritten to take advantage
 	of this, but it also means that you cannot scroll backwards or otherwise
 	jump around in the `ResultSet`.
+* The `Statement` must be created with a `ResultSet` holdability of `ResultSet.CLOSE_CURSORS_AT_COMMIT`.
 * The query given must be a single statement, not multiple statements strung
 	together with semicolons.
 
@@ -96,28 +97,40 @@ Changing code to cursor mode is as simple as setting the fetch size of the
 all rows to be cached (the default behaviour).
 
 ```java
+import static java.sql.ResultSet.*;
 // make sure autocommit is off
 conn.setAutoCommit(false);
-Statement st = conn.createStatement();
+Statement st = conn.createStatement(TYPE_FORWARD_ONLY, CONCUR_READ_ONLY, CLOSE_CURSORS_AT_COMMIT);
 
 // Turn use of the cursor on.
-st.setFetchSize(50);
+st.setFetchSize(1);
 ResultSet rs = st.executeQuery("SELECT * FROM mytable");
-while (rs.next())
+boolean hasNext = rs.next();
+System.out.print("the first row was fetched.");
+int nRoundTrips = 1;
+while (hasNext)
 {
-    System.out.print("a row was returned.");
+    System.out.println("a row is available for processing.");
+    hasNext = rs.next();
+    System.out.print("another row was fetched.");
+    nRoundTrips++;
 }
 rs.close();
+System.out.println("result set complete - " + nRoundTrips + " to fetch all the rows.");
 
 // Turn the cursor off.
 st.setFetchSize(0);
 rs = st.executeQuery("SELECT * FROM mytable");
-while (rs.next())
+hasNext = rs.next();
+System.out.print("all the rows were fetched.");
+nRoundTrips = 1;
+while (hasNext)
 {
-    System.out.print("many rows were returned.");
+    System.out.print("a row is available for processing.");
+    hasNext = rs.next();
 }
 rs.close();
+System.out.println("result set complete - " + nRoundTrips + " to fetch all the rows.");
 
-// Close the statement.
 st.close();
 ```
