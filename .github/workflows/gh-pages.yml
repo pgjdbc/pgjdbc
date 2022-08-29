@@ -38,5 +38,6 @@ jobs:
         # below accordingly.
         if: ${{ github.ref == 'refs/heads/newdocs' }}
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deploy_key: ${{ secrets.ACTIONS_DOCS_DEPLOY_KEY }}
+          external_repository: pgjdbc/pgjdbcdocs
           publish_dir: ./docs/public
