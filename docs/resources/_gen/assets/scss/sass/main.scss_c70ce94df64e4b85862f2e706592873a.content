@@ -1259,6 +1259,9 @@ tbody tr:hover {
     border: 2px solid var(--clr-indigo);
     box-shadow: 10px 10px var(--clr-primary-100); }
 
+.security h4 {
+  color: var(--clr-primary-500); }
+
 .container, .list-title {
   padding: 0 1.5rem;
   max-width: var(--container-width);
