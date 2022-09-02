@@ -1,5 +1,9 @@
 {{ define "main" }}
 <article class="container">
+    <h1>
+        <img src="{{"/icons/changelogs.svg" | relURL}}" alt="changelogs">
+        {{ .Title }}
+    </h1>
     {{ range .Data.Pages.ByDate.Reverse }}
     <ul>
         <li>

@@ -30,6 +30,12 @@ name = "Changelogs"
 url = "/changelogs/"
 weight = 5
 
+[[global]]
+identifier = "security"
+name = "Security"
+url = "/security/"
+weight = 6
+
 ### DOCS ITEMS
 
 [[docs]]
