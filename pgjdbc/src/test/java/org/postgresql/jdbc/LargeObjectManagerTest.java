@@ -42,7 +42,7 @@ class LargeObjectManagerTest {
         LargeObjectManager loManager = con.getLargeObjectAPI();
         try {
           loManager.open(0, false);
-          fail("Succeeded in opening a non-existent large object");
+          fail("Succeeded in opening a nonexistent large object");
         } catch (PSQLException e) {
           assertEquals(PSQLState.UNDEFINED_OBJECT.getState(), e.getSQLState());
         }

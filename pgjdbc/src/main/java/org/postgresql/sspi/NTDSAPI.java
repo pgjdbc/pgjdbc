@@ -33,7 +33,7 @@ interface NTDSAPI extends StdCallLibrary {
    * @param instanceName SPN instance name (in, null ok)
    * @param instancePort SPN port number (in, 0 to omit)
    * @param referrer SPN referer (in, null ok)
-   * @param spnLength Size of 'spn' buffer (in), actul length of spn created including null
+   * @param spnLength Size of 'spn' buffer (in), actual length of spn created including null
    *        terminator (out)
    * @param spn SPN buffer (in/out)
    * @return Error code ERROR_SUCCESS, ERROR_BUFFER_OVERFLOW or ERROR_INVALID_PARAMETER

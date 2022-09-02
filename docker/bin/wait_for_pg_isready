@@ -46,7 +46,7 @@ main () {
             exit 0
         fi
         local elapsed=$(( $(utc_seconds) - ${started_at} ))
-        [[ "${elapsed}" -le "${max_wait_seconds}" ]] || err "Max wait time exceeeded"
+        [[ "${elapsed}" -le "${max_wait_seconds}" ]] || err "Max wait time exceeded"
         sleep "${sleep_seconds}"
     done
 }

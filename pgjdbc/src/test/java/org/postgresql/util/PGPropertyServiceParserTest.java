@@ -39,9 +39,9 @@ class PGPropertyServiceParserTest {
   void pgService11() throws Exception {
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PGPropertyServiceParser.getServiceProperties("service-nonexistent");
       assertNull(result);
     });
   }
@@ -57,9 +57,9 @@ class PGPropertyServiceParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PGPropertyServiceParser.getServiceProperties("service-nonexistent");
       assertNull(result);
       result = PGPropertyServiceParser.getServiceProperties("empty-service1");
       assertNotNull(result);
@@ -78,7 +78,7 @@ class PGPropertyServiceParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNotNull(result);
@@ -100,7 +100,7 @@ class PGPropertyServiceParserTest {
     String nonExistingDir = "non-existing-dir";
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), nonExistingDir),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       Properties result = PGPropertyServiceParser.getServiceProperties("test-service1");
       assertNull(result);
@@ -121,7 +121,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PGPropertyServiceParser.getServiceProperties("service-nonexistent");
       assertNull(result);
       result = PGPropertyServiceParser.getServiceProperties("empty-service1");
       assertNotNull(result);
@@ -168,7 +168,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PGPropertyServiceParser.getServiceProperties("service-nonexistent");
       assertNull(result);
       result = PGPropertyServiceParser.getServiceProperties("empty-service1");
       assertNotNull(result);
@@ -239,7 +239,7 @@ class PGPropertyServiceParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
-      Properties result = PGPropertyServiceParser.getServiceProperties("service-non-existent");
+      Properties result = PGPropertyServiceParser.getServiceProperties("service-nonexistent");
       assertNull(result);
       result = PGPropertyServiceParser.getServiceProperties("empty-service1");
       assertNotNull(result);

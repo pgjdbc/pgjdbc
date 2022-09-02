@@ -1417,7 +1417,7 @@ public class TimestampUtils {
    */
   public Date convertToDate(long millis, @Nullable TimeZone tz) {
 
-    // no adjustments for the inifity hack values
+    // no adjustments for the infinity hack values
     if (millis <= PGStatement.DATE_NEGATIVE_INFINITY
         || millis >= PGStatement.DATE_POSITIVE_INFINITY) {
       return new Date(millis);

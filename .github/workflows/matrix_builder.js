@@ -9,7 +9,7 @@ class Axis {
     this.values = values;
     // If all entries have same weight, the axis has uniform distribution
     this.uniform = values.reduce((a, b) => a === (b.weight || 1) ? a : 0, values[0].weight || 1) !== 0
-    this.totalWeigth = this.uniform ? values.length : values.reduce((a, b) => a + (b.weight || 1), 0);
+    this.totalWeight = this.uniform ? values.length : values.reduce((a, b) => a + (b.weight || 1), 0);
   }
 
   static matches(row, filter) {
@@ -47,7 +47,7 @@ class Axis {
     if (this.uniform) {
       return values[Math.floor(Math.random() * values.length)];
     }
-    const totalWeight = !filter ? this.totalWeigth : values.reduce((a, b) => a + (b.weight || 1), 0);
+    const totalWeight = !filter ? this.totalWeight : values.reduce((a, b) => a + (b.weight || 1), 0);
     let weight = Math.random() * totalWeight;
     for (let i = 0; i < values.length; i++) {
       const value = values[i];

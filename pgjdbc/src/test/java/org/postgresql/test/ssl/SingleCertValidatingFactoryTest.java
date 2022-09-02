@@ -28,7 +28,7 @@ public class SingleCertValidatingFactoryTest {
     TestUtil.assumeSslTestsEnabled();
   }
 
-  // The valid and invalid server SSL certfiicates:
+  // The valid and invalid server SSL certificates:
   private static final String goodServerCertPath = "../certdir/goodroot.crt";
   private static final String badServerCertPath = "../certdir/badroot.crt";
 

@@ -955,7 +955,7 @@ public class TimezoneTest {
    *
    * @param t The time of day. Must be within -24 and + 24 hours of epoc.
    * @param tz The timezone to normalize to.
-   * @return the Time nomralized to 0 to 24 hours of epoc adjusted with given timezone.
+   * @return the Time normalized to 0 to 24 hours of epoc adjusted with given timezone.
    */
   private Timestamp normalizeTimeOfDayPart(Timestamp t, Calendar tz) {
     return new Timestamp(normalizeTimeOfDayPart(t.getTime(), tz.getTimeZone()));

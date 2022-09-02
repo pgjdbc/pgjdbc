@@ -412,7 +412,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * <p>Don't use this string for logic, only use it when displaying the server version to the user.
    * Prefer getServerVersionNum() for all logic purposes.</p>
    *
-   * @return the server version string from the server_version guc
+   * @return the server version string from the server_version GUC
    */
   String getServerVersion();
 

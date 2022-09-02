@@ -114,7 +114,7 @@ public class LogicalReplicationTest {
   }
 
   @Test(timeout = 1000)
-  public void testReceiveChangesOccursBeforStartReplication() throws Exception {
+  public void testReceiveChangesOccursBeforeStartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -678,7 +678,7 @@ public class LogicalReplicationTest {
 
     assertThat(
         "If was consume message via logical replication stream but wasn't send feedback about apply and flush "
-            + "consumed LSN, if replication crash, server should restart from last success apllyed lsn, "
+            + "consumed LSN, if replication crash, server should restart from last success applied lsn, "
             + "in this case it lsn of start replication slot, so we should consume first 3 message twice",
         result, equalTo(wait)
     );

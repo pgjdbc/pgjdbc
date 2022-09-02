@@ -57,7 +57,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
      * Executes DEALLOCATE ALL.
      * Mitigation:
      *  1) QueryExecutor tracks "DEALLOCATE ALL" responses ({@see org.postgresql.core.QueryExecutor#setFlushCacheOnDeallocate(boolean)}
-     *  2) QueryExecutor tracks "prepared statement name is invalid" and unprepares relevant statements ({@link org.postgresql.core.v3.QueryExecutorImpl#processResults(ResultHandler, int)}
+     *  2) QueryExecutor tracks "prepared statement name is invalid" and unprepared relevant statements ({@link org.postgresql.core.v3.QueryExecutorImpl#processResults(ResultHandler, int)}
      *  3) "autosave in (always, conservative)"
      *  4) Non-transactional cases are healed by retry (when no transaction present, just retry is possible)
      */

@@ -282,7 +282,7 @@ George Kankava (1):
 
 Jeremy Whiting (3):
 
-* perf: Add optimization to re-write batched insert stataments. [ac8abf3](https://github.com/pgjdbc/pgjdbc/commit/ac8abf3f2acbef3f52eb7874b6815d1adc974299)
+* perf: Add optimization to re-write batched insert statements. [ac8abf3](https://github.com/pgjdbc/pgjdbc/commit/ac8abf3f2acbef3f52eb7874b6815d1adc974299)
 * fix: Change optimization to delay parameter and statement re-write to immediately before execution. [e591577](https://github.com/pgjdbc/pgjdbc/commit/e59157742c77769cc19e14aeb5aebd9c042e2050)
 * feat: Added to SQL parser to allow inspection of Statement attributes and Command. [4ddb693](https://github.com/pgjdbc/pgjdbc/commit/4ddb693ff073c128116b0d79f5aeb45c5ae7307c)
 
@@ -385,7 +385,7 @@ John Harvey (1):
 
 Dave Cramer (3):
 
-* fix:regression from previous behaviour where setObject(index,object,VARHCAR) should call getString if it can't cast it to a string [PR#482](https://github.com/pgjdbc/pgjdbc/pull/482) [9d6389c](https://github.com/pgjdbc/pgjdbc/commit/9d6389c57906c9d491087f8db9fa011d8308f8c2)
+* fix:regression from previous behaviour where setObject(index,object,VARCHAR) should call getString if it can't cast it to a string [PR#482](https://github.com/pgjdbc/pgjdbc/pull/482) [9d6389c](https://github.com/pgjdbc/pgjdbc/commit/9d6389c57906c9d491087f8db9fa011d8308f8c2)
 * fix:correct comment [PR#482](https://github.com/pgjdbc/pgjdbc/pull/482) [bfd73c7](https://github.com/pgjdbc/pgjdbc/commit/bfd73c72d3f59af3674e078e0e7c4b227207985d)
 * Update README.md [PR#482](https://github.com/pgjdbc/pgjdbc/pull/482) [5a956a3](https://github.com/pgjdbc/pgjdbc/commit/5a956a3720546086b3bb7dd156d1d2e3cdd1ee5a)
 
@@ -489,7 +489,7 @@ Stephen Nelson (1):
 Vladimir Sitnikov (12):
 
 * doc: add coding guidelines to readme [PR#442](https://github.com/pgjdbc/pgjdbc/pull/442) [af62c6d](https://github.com/pgjdbc/pgjdbc/commit/af62c6d211097b7e39c04f6293c6d0f60f817adf)
-* chore: remove docbkx/pgjdbc.xml from reposiory [PR#435](https://github.com/pgjdbc/pgjdbc/pull/435) [92b65f0](https://github.com/pgjdbc/pgjdbc/commit/92b65f04de1240b24bd4f71e34903422656660c5)
+* chore: remove docbkx/pgjdbc.xml from repository [PR#435](https://github.com/pgjdbc/pgjdbc/pull/435) [92b65f0](https://github.com/pgjdbc/pgjdbc/commit/92b65f04de1240b24bd4f71e34903422656660c5)
 * chore: move files to "pgjdbc" maven module to prepare for pre-processor fix [PR#435](https://github.com/pgjdbc/pgjdbc/pull/435) [f95b44e](https://github.com/pgjdbc/pgjdbc/commit/f95b44ece4450ac22e98e9c3ef4b1d3ba531698f)
 * chore: use java comment preprocessor to build jre6/jre7/jre8 jars from the same sources [PR#435](https://github.com/pgjdbc/pgjdbc/pull/435) [42c2e3b](https://github.com/pgjdbc/pgjdbc/commit/42c2e3b7953b2e68281c4ec269bd9749e135065b)
 * doc: fix javadocs warnings when building via java 8 [PR#435](https://github.com/pgjdbc/pgjdbc/pull/435) [3b10873](https://github.com/pgjdbc/pgjdbc/commit/3b10873496c7e7cbd88a748a296c0f04dbce489a)
@@ -1166,7 +1166,7 @@ Author: Dave Cramer <davecramer@gmail.com>
 
 Author: Dave Cramer <davecramer@gmail.com>
 
-    add functions to allow LargeObjectMaager to commit on close from Marc Cousin
+    add functions to allow LargeObjectManager to commit on close from Marc Cousin
 
 Author: tminglei <tmlneu@gmail.com>
 
@@ -1200,7 +1200,7 @@ Date:   Thu Oct 17 08:29:07 2013 -0400
 Author: Dave Cramer <davecramer@gmail.com>
 Date:   Tue Oct 15 06:51:45 2013 -0400
 
-    add functions to allow LargeObjectMaager to commit on close from Marc Cousin
+    add functions to allow LargeObjectManager to commit on close from Marc Cousin
 
 Author: halset <halset@ecc.no>
 Date:   Mon Sep 9 12:12:26 2013 +0200
@@ -1237,7 +1237,7 @@ Date:   Tue May 21 21:03:21 2013 -0400
 Author: Dave Cramer <davecramer@gmail.com>
 Date:   Tue May 21 20:23:00 2013 -0400
 
-    initialize binaryTranferEnable to null
+    initialize binaryTransferEnable to null
 
 Author: Dave Cramer <davecramer@gmail.com>
 Date:   Tue May 21 20:08:27 2013 -0400
@@ -1487,7 +1487,7 @@ Date:   Mon Mar 12 17:33:27 2012 -0700
 Author: Dave Cramer <davecramer@gmail.com>
 Date:   Mon Feb 13 16:43:57 2012 -0500
 
-    resolve ACL getTablePriveledges for later servers
+    resolve ACL getTablePrivileges for later servers
 
 Author: Kris Jurka <jurka@ejurka.com>
 Date:   Fri Feb 10 01:13:48 2012 -0800
@@ -1696,7 +1696,7 @@ Date:   Thu Oct 17 08:29:07 2013 -0400
 Author: Dave Cramer <davecramer@gmail.com>
 Date:   Tue Oct 15 06:51:45 2013 -0400
 
-    add functions to allow LargeObjectMaager to commit on close from Marc Cousin
+    add functions to allow LargeObjectManager to commit on close from Marc Cousin
 
 Author: Dave Cramer <davec@postgresintl.com>
 Date:   Tue Sep 10 07:25:06 2013 -0700
@@ -1841,7 +1841,7 @@ Date:   Mon May 20 16:57:37 2013 -0700
 Author: Dave Cramer 
 Date:   Mon May 20 19:56:30 2013 -0400
 
-    support for materialized views from Thomas Kelllerer
+    support for materialized views from Thomas Kellerer
 
 Author: Dave Cramer 
 Date:   Mon May 20 11:46:52 2013 -0700
@@ -1863,7 +1863,7 @@ Date:   Fri Apr 12 17:05:00 2013 +0200
 Author: Valentine Gogichashvili 
 Date:   Fri Apr 12 03:31:40 2013 +0200
 
-    Test is checking search_path usage dirctly on TypeInfo methods
+    Test is checking search_path usage directly on TypeInfo methods
 
 Author: Valentine Gogichashvili 
 Date:   Fri Apr 12 02:35:27 2013 +0200
@@ -1874,7 +1874,7 @@ Date:   Fri Apr 12 02:35:27 2013 +0200
     TypeInfoCache did not consider the current search_path and was choosing
     an OID of a type not deterministically. These change will make
     the type from the current schema to be chosen. Also this change remains
-    backwards compatible with the previous implementation, still being anble
+    backwards compatible with the previous implementation, still being able
     to find a type, that is not included into the current search_path.
     
     Provided test fails now, as it does not TypeInfoCache
@@ -1987,7 +1987,7 @@ Date:   Thu Feb 7 08:55:06 2013 -0500
 
     log can not be output when using DataSource
     property settings were not being copied to the datasource
-    these included logLevel, binaryTranfer, sslfactory, applicationName
+    these included logLevel, binaryTransfer, sslfactory, applicationName
     patch provided by Chen Huajun
 
 Author: Kris Jurka 
@@ -2362,7 +2362,7 @@ jurka.
 	default transaction isolation level. Committed by jurka. Thanks to Kevin Grittner.
 * ![update](../media/img/update.jpg) Update default permissions to account for changes in
 	different server versions.  8.2 removed the rule permission while 8.4 added a
-	trunctate permission. Committed by jurka.
+	truncate permission. Committed by jurka.
 * ![update](../media/img/update.jpg) Newer server versions (9.0+) allow extra_float_digits
 	to be set to 3 instead of the old limit of 2 to get the maximum precision of
 	floating point values out of the server. Committed by jurka.

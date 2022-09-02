@@ -45,7 +45,7 @@ public interface PGResultSetMetaData {
    * Is a column Text or Binary?
    *
    * @param column column position (1-based)
-   * @return 0 if column data foramt is TEXT, or 1 if BINARY
+   * @return 0 if column data format is TEXT, or 1 if BINARY
    * @throws SQLException if something wrong happens
    * @see Field#BINARY_FORMAT
    * @see Field#TEXT_FORMAT

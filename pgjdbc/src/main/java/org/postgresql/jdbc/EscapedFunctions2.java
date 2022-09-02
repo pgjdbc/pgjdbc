@@ -682,7 +682,7 @@ public final class EscapedFunctions2 {
       String end, List<? extends CharSequence> args) {
     int size = begin.length();
     // Typically just-in-time compiler would eliminate Iterator in case foreach is used,
-    // however the code below uses indexed iteration to keep the conde independent from
+    // however the code below uses indexed iteration to keep the code independent from
     // various JIT implementations (== avoid Iterator allocations even for not-so-smart JITs)
     // see https://bugs.openjdk.java.net/browse/JDK-8166840
     // see http://2016.jpoint.ru/talks/cheremin/ (video and slides)

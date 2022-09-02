@@ -493,7 +493,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    // Version 7.2 supports BinaryStream for for the PG bytea type
+    // Version 7.2 supports BinaryStream for the PG bytea type
     // As the spec/javadoc for this method indicate this is to be used for
     // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
     // long binary datatype, but with toast the bytea datatype is capable of
@@ -1278,7 +1278,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    // Version 7.2 supports CharacterStream for for the PG text types
+    // Version 7.2 supports CharacterStream for the PG text types
     // As the spec/javadoc for this method indicate this is to be used for
     // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
     // long varchar datatype, but with toast all the text datatypes are capable of
