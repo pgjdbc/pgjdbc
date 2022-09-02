@@ -1,7 +1,8 @@
 {{ define "main" }}
 <article class="download container flow">
-    <h1 >{{ .Title }}
+    <h1>
         <img src="{{"/icons/download.svg" | relURL}}" alt="download" >
+        {{ .Title }}
     </h1>
     {{ .Content }}
 </article>
