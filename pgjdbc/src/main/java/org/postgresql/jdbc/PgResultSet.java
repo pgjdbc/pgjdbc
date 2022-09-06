@@ -1418,7 +1418,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (i > 1) {
         selectSQL.append(", ");
       }
-      selectSQL.append(pgmd.getBaseColumnName(i));
+      Utils.escapeIdentifier(selectSQL, pgmd.getBaseColumnName(i));
     }
     selectSQL.append(" from ").append(onlyTable).append(tableName).append(" where ");
 
@@ -1428,7 +1428,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
 
       PrimaryKey primaryKey = primaryKeys.get(i);
-      selectSQL.append(primaryKey.name).append(" = ?");
+      Utils.escapeIdentifier(selectSQL, primaryKey.name);
+      selectSQL.append(" = ?");
 
       if (i < numKeys - 1) {
         selectSQL.append(" and ");

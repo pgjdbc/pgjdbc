@@ -118,6 +118,7 @@ import org.junit.runners.Suite;
     ReplaceProcessingTest.class,
     ResultSetMetaDataTest.class,
     ResultSetTest.class,
+    ResultSetRefreshTest.class,
     ReturningParserTest.class,
     SearchPathLookupTest.class,
     ServerCursorTest.class,
