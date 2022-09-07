@@ -47,7 +47,7 @@ There are also available (snapshot) binary RPMs in [Fedora's Copr repository](ht
 
 ----------------------------------------------------
 ## Documentation
-For more information you can read [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/head/) or for general JDBC documentation please refer to [The Java™ Tutorials](http://docs.oracle.com/javase/tutorial/jdbc/).
+For more information you can read [the PgJDBC driver documentation](https://jdbc.postgresql.org/documentation/) or for general JDBC documentation please refer to [The Java™ Tutorials](http://docs.oracle.com/javase/tutorial/jdbc/).
 
 ### Driver and DataSource class
 
