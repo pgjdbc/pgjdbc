@@ -2,21 +2,25 @@
 
 [[recent]]
 j_name= "Java 8"
-v_name= "v42.4.0"
+v_name= "v42.5.0"
 description= "If you are using Java 8 or newer then you should use the  JDBC 4.2 version."
-url= "/download/postgresql-42.4.0.jar"
+url= "/download/postgresql-42.5.0.jar"
 
 [[recent]]
 j_name= "Java 7"
-v_name= "v42.2.25"
+v_name= "v42.2.26"
 description= "If you are using Java 7  then you should use the  JDBC 4.1 version."
-url= "/download/postgresql-42.2.25.jar.jre7"
+url= "/download/postgresql-42.2.26.jar.jre7"
 
 [[recent]]
 j_name= "Java 6"
-v_name= "v42.2.25"
+v_name= "v42.2.26"
 description= "If you are using Java 6  then you should use the  JDBC 4.0 version."
-url= "/download/postgresql-42.2.25.jar.jre6"
+url= "/download/postgresql-42.2.26.jar.jre6"
+
+[[recent]]
+v_name= "Postgresql JDBC 42.3.7"
+url= "/download/postgresql-42.3.7.jar"
 
 # Past Versions
 
