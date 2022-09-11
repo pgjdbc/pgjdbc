@@ -52,6 +52,8 @@ public class TypeInfoCache implements TypeInfo {
   // pgname (String) -> oid (Integer)
   private Map<String, Integer> pgNameToOid;
 
+  private Map<String, Integer> javaArrayTypeToOid;
+
   // pgname (String) -> extension pgobject (Class)
   private Map<String, Class<? extends PGobject>> pgNameToPgObject;
 
@@ -126,7 +128,7 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("long", "int8");
     TYPE_ALIASES.put("int8", "int8");
     TYPE_ALIASES.put("bigint", "int8");
-    TYPE_ALIASES.put("float", "float4");
+    TYPE_ALIASES.put("float", "float8");
     TYPE_ALIASES.put("float4", "float4");
     TYPE_ALIASES.put("double", "float8");
     TYPE_ALIASES.put("float8", "float8");
@@ -140,6 +142,7 @@ public class TypeInfoCache implements TypeInfo {
     this.unknownLength = unknownLength;
     oidToPgName = new HashMap<Integer, String>((int) Math.round(types.length * 1.5));
     pgNameToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
+    javaArrayTypeToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
     pgNameToJavaClass = new HashMap<String, String>((int) Math.round(types.length * 1.5));
     pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>((int) Math.round(types.length * 1.5));
     pgArrayToPgType = new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5));
@@ -168,6 +171,7 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToJavaClass.put(pgTypeName, javaClass);
     pgNameToOid.put(pgTypeName, oid);
     oidToPgName.put(oid, pgTypeName);
+    javaArrayTypeToOid.put(javaClass, arrayOid);
     pgArrayToPgType.put(arrayOid, oid);
     pgNameToSQLType.put(pgTypeName, sqlType);
     oidToSQLType.put(oid, sqlType);
@@ -317,6 +321,15 @@ public class TypeInfoCache implements TypeInfo {
 
     pgNameToSQLType.put(pgTypeName, i);
     return i;
+  }
+
+  @Override
+  public synchronized int getJavaArrayType(String className) throws SQLException {
+    Integer oid = javaArrayTypeToOid.get(className);
+    if (oid == null) {
+      return Oid.UNSPECIFIED;
+    }
+    return oid;
   }
 
   public synchronized int getSQLType(int typeOid) throws SQLException {

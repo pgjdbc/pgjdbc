@@ -59,7 +59,7 @@ public interface PGConnection {
    * method. Returns null if there have been no notifications. A timeout can be specified so the
    * driver waits for notifications.
    *
-   * @param timeoutMillis when 0, blocks forever. when &gt; 0, blocks up to the specified number of millies
+   * @param timeoutMillis when 0, blocks forever. when &gt; 0, blocks up to the specified number of millis
    *        or until at least one notification has been received. If more than one notification is
    *        about to be received, these will be returned in one batch.
    * @return notifications that have been received
@@ -253,7 +253,7 @@ public interface PGConnection {
    * applications via <code>getParameterStatuses()</code>.</p>
    *
    * <p>PgJDBC exposes individual accessors for some of these parameters as
-   * listed below. They are more backwarrds-compatible and should be preferred
+   * listed below. They are more backwards-compatible and should be preferred
    * where possible.</p>
    *
    * <p>Not all parameters are reported, only those marked
@@ -270,7 +270,7 @@ public interface PGConnection {
    *
    * <p>
    *  As of PostgreSQL 11 the reportable parameter list, and related PgJDBC
-   *  interfaces or accesors, are:
+   *  interfaces or assessors, are:
    * </p>
    *
    * <ul>

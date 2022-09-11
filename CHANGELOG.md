@@ -12,11 +12,46 @@ chore: bump Gradle to 7.4.2
 - Parsing and resolving JDBC URL is more compliant with libpq. "user" and "password" are supported: "jdbc:postgresql://[[user][:password]@][host1]...". Connection properties come from different sources. Override order is more clear: 1) URL arguments (values after "?" mark) 2) URL values (values before "?" mark) 3) Properties given to DriverManager.getConnection() 4) values provided by "service" (from resource .pg_service.conf) 5) values in Java System Properties 6) values in Operating System environment 7) values from driverconfig file(s) (org/postgresql/driverconfig.properties) 8) global defaults (four: host, port, user, dbname)
 
 ### Added
-chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
-chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
-chore: support building pgjdbc with Java 17
 
 ### Fixed
+
+## [42.5.0] (2022-08-23 11:20:11 -0400)
+### Changed
+- fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8. 
+float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/2598) fixes [Issue #2597](https://github.com/pgjdbc/pgjdbc/issues/2597) 
+
+## [42.4.2] (2022-08-17 10:33:40 -0400)
+### Changed
+- fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] 
+
+### Added
+- fix: make setObject accept UUID array [PR #2587](https://github.com/pgjdbc/pgjdbc/pull/2587)
+
+### Fixed
+- fix: regression with GSS. Changes introduced to support building with Java 17 caused failures [Issue #2588](https://github.com/pgjdbc/pgjdbc/issues/2588)
+- fix: set a timeout to get the return from requesting SSL upgrade. [PR #2572](https://github.com/pgjdbc/pgjdbc/pull/2572)
+- feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
+
+## [42.4.1] (2022-08-01 16:24:20 -0400)
+### Security
+- fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
+  - Previously, the column names for both key and data columns in the table were copied as-is into the generated
+  SQL. This allowed a malicious table with column names that include statement terminator to be parsed and
+  executed as multiple separate commands.
+  - Also adds a new test class ResultSetRefreshTest to verify this change.
+  - Reported by [Sho Kato](https://github.com/kato-sho)
+
+### Changed
+- chore: skip publishing pgjdbc-osgi-test to Central
+- chore: bump Gradle to 7.5
+- test: update JUnit to 5.8.2
+
+### Added
+- chore: added Gradle Wrapper Validation for verifying gradle-wrapper.jar
+- chore: added "permissions: contents: read" for GitHub Actions to avoid unintentional modifications by the CI
+- chore: support building pgjdbc with Java 17
+- feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)
+
 
 ## [42.4.0] (2022-06-09 08:14:02 -0400)
 ### Changed
@@ -271,7 +306,7 @@ is executed a second time it will fail.
 - Fix: properly set cancel socket timeout (#2044)
 - Fix "Required class information missing" when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]
 - Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]
-- Fix Connnection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
+- Fix Connection.isValid() to not wait longer than existing network timeout [PR #2040](https://github.com/pgjdbc/pgjdbc/pull/2040)
 - Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) [PR #2052](https://github.com/pgjdbc/pgjdbc/pull/2052)
 - Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables [PR #2049](https://github.com/pgjdbc/pgjdbc/pull/2049)
 - Fix Resolve ParseError in PGtokenizer fixes #2050
@@ -296,7 +331,7 @@ fixed in #1920
 - The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) [PR 1879](https://github.com/pgjdbc/pgjdbc/pull/1879).
 - PgTokenizer was ignoring last empty token [PR #1882](https://github.com/pgjdbc/pgjdbc/pull/1882)
 - Remove osgi from karaf fixes Issue #1891 [PR #1902](https://github.com/pgjdbc/pgjdbc/pull/1902)
-- Handle nulls when the following clasess are used: PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
+- Handle nulls when the following classes are used: PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney.
 
 ## [42.2.16] (2020-08-20)
 ### Known issues
@@ -593,7 +628,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 
 ### Changed
 - Improve behaviour of ResultSet.getObject(int, Class). [PR 932](https://github.com/pgjdbc/pgjdbc/pull/932)
-- Parse CommandComplete message using a regular expresion, allows complete catch of server returned commands for INSERT, UPDATE, DELETE, SELECT, FETCH, MOVE, COPY and future commands. [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
+- Parse CommandComplete message using a regular expression, allows complete catch of server returned commands for INSERT, UPDATE, DELETE, SELECT, FETCH, MOVE, COPY and future commands. [PR 962](https://github.com/pgjdbc/pgjdbc/pull/962)
 - Use 'time with timezone' and 'timestamp with timezone' as is and ignore the user provided Calendars, 'time' and 'timestamp' work as earlier except "00:00:00" now maps to 1970-01-01 and "24:00:00" uses the system provided Calendar ignoring the user-provided one [PR 1053](https://github.com/pgjdbc/pgjdbc/pull/1053)
 - Change behaviour of multihost connection. The new behaviour is to try all secondaries first before trying the master [PR 844](https://github.com/pgjdbc/pgjdbc/pull/844).
 - Avoid reflective access to TimeZone.defaultTimeZone in Java 9+ [PR 1002](https://github.com/pgjdbc/pgjdbc/pull/1002) fixes [Issue 986](https://github.com/pgjdbc/pgjdbc/issues/986)
@@ -627,7 +662,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 ### Fixed
 - Replication API: fix issue in #834 setting statusIntervalUpdate causes high CPU load. [PR 835](https://github.com/pgjdbc/pgjdbc/pull/835) [59236b74](https://github.com/pgjdbc/pgjdbc/commit/59236b74acdd400d9d91d3eb2bb07d70b15392e5)
 
-### Regresions
+### Regressions
 - NPE in PreparedStatement.executeBatch in case of empty batch. Fixed in 42.1.3
 
 ## [42.1.1] (2017-05-05)
@@ -707,7 +742,10 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.3.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.1...REL42.3.2
 [42.3.3]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.2...REL42.3.3
 [42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.3...REL42.3.4
-[42.3.4]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
-[42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
-[42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...HEAD
+[42.3.5]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.4...REL42.3.5
+[42.3.6]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.5...REL42.3.6
+[42.4.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.3.6...REL42.4.0
+[42.4.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
+[42.4.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...REL42.4.2
+[42.5.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.2...REL42.5.0
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.5.0...HEAD

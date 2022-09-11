@@ -198,7 +198,7 @@ public class DriverTest {
       // consume service
       Resources.with(
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), tempFile.toString(), PGEnvironment.PGSYSCONFDIR.getName(), ""),
-          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
       ).execute(() -> {
         //
         // testing that properties overriding priority is correct (POSITIVE cases)
@@ -282,7 +282,7 @@ public class DriverTest {
       // ignore pg_service.conf, use .pgpass
       Resources.with(
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
-          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent",
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent",
               PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), tempPgPassFile.toString())
       ).execute(() -> {
         // password from .pgpass (correct)

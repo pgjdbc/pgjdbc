@@ -116,7 +116,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
 
   protected @Nullable List<Tuple> rows; // Current page of results.
-  protected int currentRow = -1; // Index into 'rows' of our currrent row (0-based)
+  protected int currentRow = -1; // Index into 'rows' of our current row (0-based)
   protected int rowOffset; // Offset of row 0 in the actual resultset
   protected @Nullable Tuple thisRow; // copy of the current result row
   protected @Nullable SQLWarning warnings = null; // The warning chain
@@ -1418,7 +1418,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (i > 1) {
         selectSQL.append(", ");
       }
-      selectSQL.append(pgmd.getBaseColumnName(i));
+      Utils.escapeIdentifier(selectSQL, pgmd.getBaseColumnName(i));
     }
     selectSQL.append(" from ").append(onlyTable).append(tableName).append(" where ");
 
@@ -1428,7 +1428,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     for (int i = 0; i < numKeys; i++) {
 
       PrimaryKey primaryKey = primaryKeys.get(i);
-      selectSQL.append(primaryKey.name).append(" = ?");
+      Utils.escapeIdentifier(selectSQL, primaryKey.name);
+      selectSQL.append(" = ?");
 
       if (i < numKeys - 1) {
         selectSQL.append(" and ");
@@ -3986,7 +3987,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       @Nullable Reader reader, long length)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
-        "updateCharaceterStream(int, Reader, long)");
+        "updateCharacterStream(int, Reader, long)");
   }
 
   public void updateCharacterStream(String columnName,
@@ -3998,7 +3999,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
-        "updateCharaceterStream(int, Reader)");
+        "updateCharacterStream(int, Reader)");
   }
 
   public void updateCharacterStream(String columnName,

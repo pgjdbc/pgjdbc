@@ -135,11 +135,11 @@ public class PGbytea {
         elementAsInt = 256 + elementAsInt;
       }
       // we escape the same non-printable characters as the backend
-      // we must escape all 8bit characters otherwise when convering
+      // we must escape all 8bit characters otherwise when converting
       // from java unicode to the db character set we may end up with
       // question marks if the character set is SQL_ASCII
       if (elementAsInt < 040 || elementAsInt > 0176) {
-        // escape charcter with the form \000, but need two \\ because of
+        // escape character with the form \000, but need two \\ because of
         // the Java parser
         stringBuilder.append("\\");
         stringBuilder.append((char) (((elementAsInt >> 6) & 0x3) + 48));

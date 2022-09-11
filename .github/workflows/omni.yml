@@ -52,7 +52,7 @@ jobs:
       MATRIX_SCRAM: '${{ github.event.inputs.matrix_scram }}'
       MATRIX_SSL: '${{ github.event.inputs.matrix_ssl }}'
       MATRIX_DEFAULT_TEST_GROUP: '${{ github.event.inputs.matrix_default_test_group }}'
-      # Script as an environment variable so we don't have to worry shell substitions
+      # Script as an environment variable so we don't have to worry shell substitutions
       MATRIX_GENERATION_NODE_JS_SCRIPT: |
         const DEFAULT_TEST_GROUP = process.env.MATRIX_DEFAULT_TEST_GROUP || 'fast';
 

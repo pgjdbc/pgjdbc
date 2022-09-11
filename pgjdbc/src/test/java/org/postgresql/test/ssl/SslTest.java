@@ -386,7 +386,7 @@ public class SslTest {
     // message) discovers the alert message (e.g. "Received fatal alert: decrypt_error")
     // and converts that to exception.
     // That is why "CONNECTION_UNABLE_TO_CONNECT" is listed here for BAD client cert.
-    // Ideally, hanshake failure should be detected during the handshake, not after sending the startup
+    // Ideally, handshake failure should be detected during the handshake, not after sending the startup
     // message
     if (!PSQLState.CONNECTION_FAILURE.getState().equals(e.getSQLState())
         && !(clientCertificate == ClientCertificate.BAD

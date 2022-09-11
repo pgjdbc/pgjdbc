@@ -5,9 +5,9 @@
 
 | Version  | Supported          |
 | -------- | ------------------ |
-| 42.3.x   | security fixes, features, bug fixes |
+| latest 42.x | security fixes, features, bug fixes |
 | 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
-| < 42.2.x | security fixes (upon request) |
+| all the other versions | security fixes (upon request) |
 
 The intention is to separate «we are eager fixing bugs» from «we can roll security releases».
 It would not be impossible for us to roll security fixes even for 9.4 versions if necessary.

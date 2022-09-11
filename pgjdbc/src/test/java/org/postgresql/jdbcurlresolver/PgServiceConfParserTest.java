@@ -40,9 +40,9 @@ public class PgServiceConfParserTest {
   public void pgService11() throws Exception {
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
-      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-non-existent"));
+      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-nonexistent"));
       assertEquals("Resource file [.pg_service.conf] not found", exception.getMessage());
     });
   }
@@ -58,10 +58,10 @@ public class PgServiceConfParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
-      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-non-existent"));
-      assertEquals("Definition of service [service-non-existent] not found", exception.getMessage());
+      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-nonexistent"));
+      assertEquals("Definition of service [service-nonexistent] not found", exception.getMessage());
       Properties result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
@@ -79,7 +79,7 @@ public class PgServiceConfParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       Properties result = PgServiceConfParser.getServiceProperties("test-service1");
       assertNotNull(result);
@@ -101,7 +101,7 @@ public class PgServiceConfParserTest {
     String nonExistingDir = "non-existing-dir";
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), nonExistingDir),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("test-service1"));
       if (OSUtil.isWindows()) {
@@ -126,8 +126,8 @@ public class PgServiceConfParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-non-existent"));
-      assertEquals("Definition of service [service-non-existent] not found", exception.getMessage());
+      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-nonexistent"));
+      assertEquals("Definition of service [service-nonexistent] not found", exception.getMessage());
       Properties result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
@@ -173,8 +173,8 @@ public class PgServiceConfParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
-      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-non-existent"));
-      assertEquals("Definition of service [service-non-existent] not found", exception.getMessage());
+      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-nonexistent"));
+      assertEquals("Definition of service [service-nonexistent] not found", exception.getMessage());
       Properties result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
@@ -248,8 +248,8 @@ public class PgServiceConfParserTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), urlFileEnv.getFile(), PGEnvironment.PGSYSCONFDIR.getName(), urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
-      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-non-existent"));
-      assertEquals("Definition of service [service-non-existent] not found", exception.getMessage());
+      JdbcUrlResolverFatalException exception = assertThrows(JdbcUrlResolverFatalException.class, () -> PgServiceConfParser.getServiceProperties("service-nonexistent"));
+      assertEquals("Definition of service [service-nonexistent] not found", exception.getMessage());
       Properties result = PgServiceConfParser.getServiceProperties("empty-service1");
       assertNotNull(result);
       assertTrue(result.isEmpty());
