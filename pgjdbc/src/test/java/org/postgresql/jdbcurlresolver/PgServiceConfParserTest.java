@@ -26,7 +26,7 @@ import java.util.Properties;
  * Service resource location used is decided based on availability of different environment
  * variables and file existence in user home directory. Tests verify selection of proper resource.
  * Also, resource content (section headers, comments, key-value pairs etc) can be written
- * creatively. Test verify several cases.
+ * creatively. Test verifies several cases.
  *
  * @author Marek Läll
  */
