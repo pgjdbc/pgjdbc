@@ -14,9 +14,9 @@
             margin-top: 0.5em;
         }
 
-        @include mq-max(medium) {
+        // @include mq-max(medium) {
             margin-top: 1em;
-        }
+        // }
     }
 
     &__title {
@@ -33,7 +33,7 @@
         font-size: .875rem;
     }
 
-    &__btn {
+    &__btn__left {
         border: 0;
         background-color: transparent;
 
@@ -46,5 +46,23 @@
         &:hover {
             background-color: var(--clr-secondary-100);
         }
+    }
+
+    &__btn__right {
+        float: right;
+        border: 0;
+        border-radius: 5px;
+        padding-inline: 10px;
+        color: var(--clr-white);
+        background-color: var(--clr-primary-400);
+
+        &:hover {
+            background-color: var(--clr-primary-300);
+        }
+    }
+
+    .maven {
+        // visibility: hidden;
+        display: none;
     }
 }
