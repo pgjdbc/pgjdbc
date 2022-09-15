@@ -1,0 +1,12 @@
+.community {
+
+    ul {
+        ::marker {
+            content: $user;
+        }
+
+        >li {
+            padding-left: 0.5em;
+        }
+    }
+}

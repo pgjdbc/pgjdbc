@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Chapter 5. Issuing a Query and Processing the Result</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 5. Issuing a Query and Processing the Result</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Custom SSLSocketFactory" href="ssl-factory.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Using the Statement or PreparedStatement Interface" href="statement.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Chapter 5. Issuing a Query and Processing the Result</h1>
+					
+					<p><strong>Table of Contents</strong></p>
+
+<ul>
+<li><a href="query.html#query-with-cursor">Getting results based on a cursor</a></li>
+<li><a href="statement.html">Using the <code>Statement</code> or <code>PreparedStatement</code> Interface</a></li>
+<li><a href="resultset.html">Using the <code>ResultSet</code> Interface</a></li>
+<li><a href="update.html">Performing Updates</a></li>
+<li><a href="ddl.html">Creating and Modifying Database Objects</a></li>
+<li><a href="java8-date-time.html">Using Java 8 Date and Time classes</a></li>
+</ul>
+
+<p>Any time you want to issue SQL statements to the database, you require a <code>Statement</code>
+or <code>PreparedStatement</code> instance. Once you have a <code>Statement</code> or <code>PreparedStatement</code>,
+you can use issue a query. This will return a <code>ResultSet</code> instance, which contains
+the entire result (see the section called <a href="query.html#query-with-cursor">“Getting results based on a cursor”</a>
+here for how to alter this behaviour). <a href="query.html#query-example">Example 5.1, “Processing a Simple Query in JDBC”</a>
+illustrates this process.</p>
+
+<p><a name="query-example"></a>
+<strong>Example 5.1. Processing a Simple Query in JDBC</strong></p>
+
+<p>This example will issue a simple query and print out the first column of each
+row using a <code>Statement</code>.</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+<span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT * FROM mytable WHERE columnfoo = 500&quot;</span><span class="o">);</span>
+<span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span>
+<span class="o">{</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&quot;Column 1 returned &quot;</span><span class="o">);</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+<span class="o">}</span>
+<span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</code></pre></div>
+<p>This example issues the same query as before but uses a <code>PreparedStatement</code> and
+a bind value in the query.</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="kt">int</span> <span class="n">foovalue</span> <span class="o">=</span> <span class="mi">500</span><span class="o">;</span>
+<span class="n">PreparedStatement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;SELECT * FROM mytable WHERE columnfoo = ?&quot;</span><span class="o">);</span>
+<span class="n">st</span><span class="o">.</span><span class="na">setInt</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">foovalue</span><span class="o">);</span>
+<span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">();</span>
+<span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span>
+<span class="o">{</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&quot;Column 1 returned &quot;</span><span class="o">);</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="mi">1</span><span class="o">));</span>
+<span class="o">}</span>
+<span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+<span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</code></pre></div>
+<p><a name="query-with-cursor"></a></p>
+
+<h1>Getting results based on a cursor</h1>
+
+<p>By default the driver collects all the results for the query at once. This can
+be inconvenient for large data sets so the JDBC driver provides a means of basing
+a <code>ResultSet</code> on a database cursor and only fetching a small number of rows.</p>
+
+<p>A small number of rows are cached on the client side of the connection and when
+exhausted the next block of rows is retrieved by repositioning the cursor.</p>
+
+<h3>Note</h3>
+
+<blockquote>
+<p>Cursor based <code>ResultSets</code> cannot be used in all situations. There a number of
+  restrictions which will make the driver silently fall back to fetching the
+  whole <code>ResultSet</code> at once.</p>
+</blockquote>
+
+<ul>
+<li>The connection to the server must be using the V3 protocol. This is the default
+for (and is only supported by) server versions 7.4 and later.</li>
+<li>The <code>Connection</code> must not be in autocommit mode. The backend closes cursors at
+the end of transactions, so in autocommit mode the backend will have
+closed the cursor before anything can be fetched from it.</li>
+<li>The <code>Statement</code> must be created with a <code>ResultSet</code> type of <code>ResultSet.TYPE_FORWARD_ONLY</code>.
+This is the default, so no code will need to be rewritten to take advantage
+of this, but it also means that you cannot scroll backwards or otherwise
+jump around in the <code>ResultSet</code>.</li>
+<li>The query given must be a single statement, not multiple statements strung
+together with semicolons.</li>
+</ul>
+
+<p><a name="fetchsize-example"></a>
+<strong>Example 5.2. Setting fetch size to turn cursors on and off.</strong></p>
+
+<p>Changing code to cursor mode is as simple as setting the fetch size of the
+<code>Statement</code> to the appropriate size. Setting the fetch size back to 0 will cause
+all rows to be cached (the default behaviour).</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="c1">// make sure autocommit is off</span>
+<span class="n">conn</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="kc">false</span><span class="o">);</span>
+<span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+
+<span class="c1">// Turn use of the cursor on.</span>
+<span class="n">st</span><span class="o">.</span><span class="na">setFetchSize</span><span class="o">(</span><span class="mi">50</span><span class="o">);</span>
+<span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT * FROM mytable&quot;</span><span class="o">);</span>
+<span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span>
+<span class="o">{</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&quot;a row was returned.&quot;</span><span class="o">);</span>
+<span class="o">}</span>
+<span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+
+<span class="c1">// Turn the cursor off.</span>
+<span class="n">st</span><span class="o">.</span><span class="na">setFetchSize</span><span class="o">(</span><span class="mi">0</span><span class="o">);</span>
+<span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT * FROM mytable&quot;</span><span class="o">);</span>
+<span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span>
+<span class="o">{</span>
+    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&quot;many rows were returned.&quot;</span><span class="o">);</span>
+<span class="o">}</span>
+<span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+
+<span class="c1">// Close the statement.</span>
+<span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</code></pre></div>
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="ssl-factory.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="statement.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Custom SSLSocketFactory</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Using the Statement or PreparedStatement Interface</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

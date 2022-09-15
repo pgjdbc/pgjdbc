@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>The PostgreSQL JDBC Interface</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="media/css/syntax.css">
+
+	<link rel="shortcut icon" href="media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="http://www.postgresql.org/" title="PostgreSQL"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+				<div class="BOOK">
+					<a name="POSTGRES" id="POSTGRES"></a>
+  					<div class="TITLEPAGE">
+						<h1 class="TITLE">The PostgreSQL JDBC Interface</h1>
+    						<hr />
+  					</div>
+
+					<div class="TOC">
+						<h3 class="c2">Table of Contents</h3>
+						<dl>
+							<!-- <dt class="c1">Table of Contents</dt> -->
+
+							<dt>1. <a href="intro.html">Introduction</a></dt>
+
+							<dt>2. <a href="setup.html">Setting up the JDBC Driver</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="setup.html#build">Getting the Driver</a></dt>
+									<dt><a href="classpath.html">Setting up the Class Path</a></dt>
+									<dt><a href="prepare.html">Preparing the Database Server for <acronym class="ACRONYM">JDBC</acronym></a></dt>
+									<dt><a href="your-database.html">Creating a Database</a></dt>
+								</dl>
+							</dd>
+
+							<dt>3. <a href="use.html">Initializing the Driver</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="use.html#import">Importing <acronym class="ACRONYM">JDBC</acronym></a></dt>
+									<dt><a href="load.html">Loading the Driver</a></dt>
+									<dt><a href="connect.html">Connecting to the Database</a></dt>
+										<dd>
+											<dl>
+												<dt><a href="connect.html#connection-parameters">Connection Parameters</a></dt>
+											</dl>
+										</dd>
+								</dl>
+							</dd>
+
+							<dt>4. <a href="ssl.html">Using <acronym class="ACRONYM">SSL</acronym></a></dt>
+							<dd>
+								<dl>
+									<dt><a href="ssl.html#ssl-server">Configuring the Server</a></dt>
+									<dt><a href="ssl-client.html">Configuring the Client</a></dt>
+										<dd>
+											<dl>
+												<dt><a href="ssl-client.html#nonvalidating">Using SSL without Certificate Validation</a></dt>
+											</dl>
+										</dd>
+									<dt><a href="ssl-factory.html">Custom SSLSocketFactory</a></dt>
+								</dl>
+							</dd>
+
+							<dt>5. <a href="query.html">Issuing a Query and Processing the Result</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="query.html#query-with-cursor">Getting results based on a cursor</a></dt>
+									<dt><a href="statement.html">Using the Statement or PreparedStatement Interface</a></dt>
+									<dt><a href="resultset.html">Using the ResultSet Interface</a></dt>
+									<dt><a href="update.html">Performing Updates</a></dt>
+									<dt><a href="ddl.html">Creating and Modifying Database Objects</a></dt>
+									<dt><a href="java8-date-time.html">Using Java 8 Date and Time classes</a></dt>
+								</dl>
+							</dd>
+
+							<dt>6. <a href="callproc.html">Calling Stored Functions and Procedures</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="callproc.html#callfunc-resultset">Obtaining a ResultSet from a stored function</a></dt>
+										<dd>
+											<dl>
+												<dt><a href="callproc.html#callfunc-resultset-setof">From a Function Returning SETOF type</a></dt>
+												<dt><a href="callproc.html#callfunc-resultset-refcursor">From a Function Returning a <span class="type">refcursor</span></a></dt>
+											</dl>
+										</dd>
+									<dt><a href="callproc.html#call-procedure-example">Calling stored procedure with transaction control</a></dt>
+								</dl>
+							</dd>
+
+							<dt>7. <a href="binary-data.html">Storing Binary Data</a></dt>
+
+							<dt>8. <a href="escapes.html"><acronym class="ACRONYM">JDBC</acronym> escapes</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="escapes.html#like-escape">Escape for like escape character</a></dt>
+									<dt><a href="outer-joins-escape.html">Escape for outer joins</a></dt>
+									<dt><a href="escapes-datetime.html">Date-time escapes</a></dt>
+									<dt><a href="escaped-functions.html">Escaped scalar functions</a></dt>
+								</dl>
+							</dd>
+
+							<dt>9. <a href="ext.html">PostgreSQL™ Extensions to the <acronym class="ACRONYM">JDBC</acronym> <acronym class="ACRONYM">API</acronym></a></dt>
+							<dd>
+								<dl>
+									<dt><a href="ext.html#extensions">Accessing the Extensions</a></dt>
+									<dt><a href="geometric.html">Geometric Data Types</a></dt>
+									<dt><a href="largeobjects.html">Large Objects</a></dt>
+									<dt><a href="listennotify.html">Listen / Notify</a></dt>
+									<dt><a href="server-prepare.html">Server Prepared Statements</a></dt>
+									<dt><a href="parameterstatus.html">Parameter Status Messages</a></dt>
+									<dt><a href="replication.html">Physical and Logical replication API</a></dt>
+									<dt><a href="arrays.html">Arrays</a></dt>
+								</dl>
+							</dd>
+
+							<dt>10. <a href="thread.html">Using the Driver in a Multithreaded or a Servlet Environment</a></dt>
+
+							<dt>11. <a href="datasource.html">Connection Pools and Data Sources</a></dt>
+							<dd>
+								<dl>
+									<dt><a href="datasource.html#ds-intro">Overview</a></dt>
+									<dt><a href="ds-cpds.html">Application Servers: ConnectionPoolDataSource</a></dt>
+									<dt><a href="ds-ds.html">Applications: DataSource</a></dt>
+									<dt><a href="tomcat.html">Tomcat setup</a></dt>
+									<dt><a href="jndi.html">Data Sources and <acronym class="ACRONYM">JNDI</acronym></a></dt>
+								</dl>
+							</dd>
+
+							<dt>12. <a href="logging.html">Logging with java.util.logging</a></dt>
+
+							<dt>13. <a href="reading.html">Further Reading</a></dt>
+						</dl>
+					</div>
+
+					<div class="LOT">
+						<h3 class="c2">List of Tables</h3>
+						<dl class="LOT">
+							<!-- <dt class="c1">List of Tables</dt> -->
+							<dt>
+								8.1. <a href="escaped-functions.html#escape-numeric-functions-table">Supported escaped numeric functions</a>
+							</dt>
+							<dt>
+								8.2. <a href="escaped-functions.html#escape-string-functions-table">Supported escaped string functions</a>
+							</dt>
+							<dt>
+								8.3. <a href="escaped-functions.html#escape-datetime-functions-table">Supported escaped date/time functions</a>
+							</dt>
+							<dt>
+								8.4. <a href="escaped-functions.html#escape-misc-functions-table">Supported escaped misc functions</a>
+							</dt>
+							<dt>
+								11.1. <a href="ds-cpds.html#ds-cpds-props">ConnectionPoolDataSource Configuration Properties</a>
+							</dt>
+							<dt>
+								11.2. <a href="ds-ds.html#ds-ds-imp">DataSource Implementations</a>
+							</dt>
+							<dt>
+								11.3. <a href="ds-ds.html#ds-ds-props">DataSource Configuration Properties</a>
+							</dt>
+							<dt>
+								11.4. <a href="ds-ds.html#ds-ds-xprops">Additional Pooling DataSource Configuration Properties</a>
+							</dt>
+						</dl>
+					</div>
+
+					<div class="LOT">
+						<h3 class="c2">List of Examples</h3>
+						<dl class="LOT">
+							<!-- <dt class="c1">List of Examples</dt> -->
+      							<dt>
+								5.1. <a href="query.html#query-example">Processing a Simple Query in <acronym class="ACRONYM">JDBC</acronym></a>
+							</dt>
+							<dt>
+								5.2. <a href="query.html#fetchsize-example">Setting fetch size to turn cursors on and off.</a>
+							</dt>
+							<dt>
+								5.3. <a href="update.html#delete-example">Deleting Rows in <acronym class="ACRONYM">JDBC</acronym></a>
+							</dt>
+							<dt>
+								5.4. <a href="ddl.html#drop-table-example">Dropping a Table in <acronym class="ACRONYM">JDBC</acronym></a>
+							</dt>
+							<dt>
+								6.1. <a href="callproc.html#call-function-example">Calling a built in stored function</a>
+								</dt>
+							<dt>
+								6.2. <a href="callproc.html#setof-resultset"> Getting SETOF type values from a function</a>
+							</dt>
+							<dt>
+								6.3. <a href="callproc.html#get-refcursor-from-function-call"> Getting <span class="type">refcursor</span> Value From a Function</a>
+							</dt>
+							<dt>
+								6.4. <a href="callproc.html#refcursor-string-example">Treating <span class="type">refcursor</span> as a cursor name</a>
+							</dt>
+							<dt>
+								7.1. <a href="binary-data.html#binary-data-example">Processing Binary Data in <acronym class="ACRONYM">JDBC</acronym></a>
+							</dt>
+							<dt>
+								8.1. <a href="escapes.html#escape-use-example">Using jdbc escapes</a>
+							</dt>
+							<dt>
+								9.1. <a href="geometric.html#geometric-circle-example">Using the CIRCLE datatype from <acronym class="ACRONYM">JDBC</acronym></a>
+							</dt>
+							<dt>
+								9.2. <a href="listennotify.html#listen-notify-example">Receiving Notifications</a>
+							</dt>
+							<dt>
+								9.3. <a href="server-prepare.html#server-prepared-statement-example">Using server side prepared statements</a>
+							</dt>
+							<dt>
+								11.1. <a href="ds-ds.html#ds-example">DataSource Code Example</a>
+							</dt>
+							<dt>
+								11.2. <a href="jndi.html#ds-jndi">DataSource <acronym class="ACRONYM">JNDI</acronym> Code Example</a>
+							</dt>
+    						</dl>
+  					</div>
+				</div> <!-- BOOK -->
+
+				<div class="NAVFOOTER">
+					<hr class="c2" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+    					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">&nbsp;</td>
+      							<td valign="top" width="34%" align="center">&nbsp;</td>
+      							<td valign="top" width="33%" align="right"><a href="intro.html" accesskey="N">Next</a></td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">&nbsp;</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Chapter 1. Introduction</td>
+						</tr>
+					</tbody>
+					</table>
+				</div>
+			</div> <!--docContent -->
+
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="http://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="http://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2021 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainerWrap -->
+</body>

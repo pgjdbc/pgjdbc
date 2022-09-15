@@ -1,0 +1,99 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>client_encoding has to be UTF8 even with allowEncodingChanges=true</li>
+</ul>
+
+<h3>Changed</h3>
+
+<ul>
+<li>socksProxyHost is ignored in case it contains empty string <a href="https://github.com/pgjdbc/pgjdbc/pull/1079">PR 1079</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Avoid connection failure when <code>DateStyle</code> is set to <code>ISO</code> (~PgBouncer) <a href="https://github.com/pgjdbc/pgjdbc/issues/1080">Issue 1080</a></li>
+<li>Package scram:client classes, so SCRAM works when using a shaded jar <a href="https://github.com/pgjdbc/pgjdbc/pull/1091">PR 1091</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/1a89290e110d5863b35e0a2ccf79e4292c1056f8">1a89290e</a></li>
+<li>reWriteBatchedInserts=true causes syntax error with ON CONFLICT <a href="https://github.com/pgjdbc/pgjdbc/issues/1045">Issue 1045</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/1082">PR 1082</a></li>
+<li>Avoid failure in getPGArrayType when stringType=unspecified <a href="https://github.com/pgjdbc/pgjdbc/pull/1036">PR 1036</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>AlexElin (1):</p>
+
+<ul>
+<li>test: check if url is not for PostgreSQL <a href="https://github.com/pgjdbc/pgjdbc/pull/1077">PR 1077</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/fe463bceb3d6449443bd5e6abf2929516effccff">fe463bce</a></li>
+</ul>
+
+<p>Alexander Kjäll (1):</p>
+
+<ul>
+<li>feat: add support for fetching &#39;TIMESTAMP(6) WITHOUT TIME ZONE&#39; as LocalDate to getObject() <a href="https://github.com/pgjdbc/pgjdbc/pull/1083">PR 1083</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/09af4b23ad589e3691314e955c130a8755436e2d">09af4b23</a></li>
+</ul>
+
+<p>Dave Cramer (1):</p>
+
+<ul>
+<li>fix: package scram:client classes, so SCRAM works when using a shaded jar <a href="https://github.com/pgjdbc/pgjdbc/pull/1091">PR 1091</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/1a89290e110d5863b35e0a2ccf79e4292c1056f8">1a89290e</a></li>
+</ul>
+
+<p>Ivan (2):</p>
+
+<ul>
+<li>chore: remove braces for LeftCurlyCheck checkstyle <a href="https://github.com/pgjdbc/pgjdbc/pull/1075">PR 1075</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/c2664b444ffa1390d0dd5e4104d4200823d145ba">c2664b44</a></li>
+<li>chore: remove additional braces for LeftCurlyCheck checkstyle <a href="https://github.com/pgjdbc/pgjdbc/pull/1076">PR 1076</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/975aaf5ae489b3efeda3fd0241a4d39d260105cd">975aaf5a</a></li>
+</ul>
+
+<p>JCzogalla (1):</p>
+
+<ul>
+<li>Fixes issue #1078 <a href="https://github.com/pgjdbc/pgjdbc/pull/1079">PR 1079</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/0d51370b68cd26ccfa92b0bae4a66da1015cf9ee">0d51370b</a></li>
+</ul>
+
+<p>Jamie Pullar (1):</p>
+
+<ul>
+<li>fix: getPGArrayType fails in when stringType=unspecified <a href="https://github.com/pgjdbc/pgjdbc/pull/1036">PR 1036</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/d5f1cf7c35b05318947021d41e73b6953f623256">d5f1cf7c</a></li>
+</ul>
+
+<p>Jorge Solorzano (1):</p>
+
+<ul>
+<li>Fix style changelog <a href="https://github.com/pgjdbc/pgjdbc/pull/1089">PR 1089</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/5ebd20900ebf7af5b55c56eac7f2fae6d40d9f5c">5ebd2090</a></li>
+</ul>
+
+<p>Pavel Raiskup (1):</p>
+
+<ul>
+<li>packaging: update Fedora&#39;s CI <a href="https://github.com/pgjdbc/pgjdbc/commit/dcbf70bc071fe9d602f7c87918982b01452da9ba">dcbf70bc</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (3):</p>
+
+<ul>
+<li>docs: reflect 42.2.0 release in readme.md <a href="https://github.com/pgjdbc/pgjdbc/commit/6d02e9587e47921e66d8d029e5056bab72f15565">6d02e958</a></li>
+<li>fix: avoid connection failure when DateStyle is set to ISO <a href="https://github.com/pgjdbc/pgjdbc/pull/1081">PR 1081</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e442db1f064c78372f8312d65faee30842a68aea">e442db1f</a></li>
+<li>fix: reWriteBatchedInserts=true causes syntax error with ON CONFLICT <a href="https://github.com/pgjdbc/pgjdbc/pull/1082">PR 1082</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e133510e70114db128784911b6790b5690d77320">e133510e</a></li>
+</ul>
+
+<p><a name="contributors_42.2.1"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/AlexElin">AlexElin</a><br>
+<a href="https://github.com/alexanderkjall">Alexander Kjäll</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/vaano94">Ivan</a><br>
+<a href="https://github.com/JCzogalla">JCzogalla</a><br>
+<a href="https://github.com/JamiePullar">Jamie Pullar</a><br>
+<a href="https://github.com/jorsol">Jorge Solorzano</a><br>
+<a href="https://github.com/praiskup">Pavel Raiskup</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>

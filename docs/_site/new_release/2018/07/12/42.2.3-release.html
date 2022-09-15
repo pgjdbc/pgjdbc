@@ -1,0 +1,199 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as second (fixed in 42.2.4)</li>
+</ul>
+
+<h3>Changed</h3>
+
+<ul>
+<li>Reduce the severity of the error log messages when an exception is re-thrown. The error will be thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc  <a href="https://github.com/pgjdbc/pgjdbc/pull/1187">PR 1187</a></li>
+<li>Deprecate Fastpath API <a href="https://github.com/pgjdbc/pgjdbc/pull/903">PR 903</a></li>
+<li>Support parenthesis in {oj ...} JDBC escape syntax <a href="https://github.com/pgjdbc/pgjdbc/pull/1204">PR 1204</a></li>
+<li>ubenchmark module moved pgjdbc/benchmarks repository due to licensing issues <a href="https://github.com/pgjdbc/pgjdbc/pull/1215">PR 1215</a></li>
+<li>Include section on how to submit a bug report in CONTRIBUTING.md <a href="https://github.com/pgjdbc/pgjdbc/pull/951">PR 951</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>getString for PGObject-based types returned &quot;null&quot; string instead of null <a href="https://github.com/pgjdbc/pgjdbc/pull/1154">PR 1154</a></li>
+<li>Field metadata cache can be disabled via databaseMetadataCacheFields=0 <a href="https://github.com/pgjdbc/pgjdbc/pull/1052">PR 1052</a></li>
+<li>Properly encode special symbols in passwords in BaseDataSource <a href="https://github.com/pgjdbc/pgjdbc/pull/1201">PR 1201</a></li>
+<li>Adjust date, hour, minute, second when rounding nanosecond part of a timestamp <a href="https://github.com/pgjdbc/pgjdbc/pull/1212">PR 1212</a></li>
+<li>perf: reduce memory allocations in query cache <a href="https://github.com/pgjdbc/pgjdbc/pull/1227">PR 1227</a></li>
+<li>perf: reduce memory allocations in SQL parser <a href="https://github.com/pgjdbc/pgjdbc/pull/1230">PR 1230</a>, <a href="https://github.com/pgjdbc/pgjdbc/pull/1233">PR 1233</a></li>
+<li>Encode URL parameters in BaseDataSource <a href="https://github.com/pgjdbc/pgjdbc/pull/1201">PR 1201</a></li>
+<li>Improve JavaDoc formatting <a href="https://github.com/pgjdbc/pgjdbc/pull/1236">PR 1236</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>AlBundy33 (1):</p>
+
+<ul>
+<li>fix: support parenthesis in {oj ...} JDBC escape syntax <a href="https://github.com/pgjdbc/pgjdbc/pull/865">PR 865</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/38356e6889613a65fc48a455495f18dbb3565731">38356e68</a></li>
+</ul>
+
+<p>AlexElin (3):</p>
+
+<ul>
+<li>refactor: deprecate Fastpath API <a href="https://github.com/pgjdbc/pgjdbc/pull/903">PR 903</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f8e21b63071f39f7f7754bfbfd051828884c1fd5">f8e21b63</a></li>
+<li>refactor: migrate MultiHostsConnectionTest to JUnit4 <a href="https://github.com/pgjdbc/pgjdbc/pull/886">PR 886</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/17a4d6a500d4456c8bcac63d3d0cbb282fc99bea">17a4d6a5</a></li>
+<li>refactor: simplify PgConnection.java <a href="https://github.com/pgjdbc/pgjdbc/pull/1047">PR 1047</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/ba360f731cb9a2eca9924b700cee234aba572fe5">ba360f73</a></li>
+</ul>
+
+<p>Dave Cramer (3):</p>
+
+<ul>
+<li>fixed spelling mistake in PostgreSQL <a href="https://github.com/pgjdbc/pgjdbc/pull/1202">PR 1202</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/b92bd65a0860cc9f34b667a9fa34d7acca6aac5d">b92bd65a</a></li>
+<li>docs: improve javadocs in PgResultSetMetaData <a href="https://github.com/pgjdbc/pgjdbc/pull/792">PR 792</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/825c092483aa8a4ea1d0937cd081f1657983aa6d">825c0924</a></li>
+<li>minor language updates <a href="https://github.com/pgjdbc/pgjdbc/pull/1241">PR 1241</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e19ee7ae5742ec0cd8976c66ae22e7e500e0107b">e19ee7ae</a></li>
+</ul>
+
+<p>Hari Babu Kommi (2):</p>
+
+<ul>
+<li>spelling mistake correction <a href="https://github.com/pgjdbc/pgjdbc/pull/1181">PR 1181</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e88abd79bae4eab71561539784ccdb6b04d52cee">e88abd79</a></li>
+<li>fix: set the loggerName in ConnectionFactoryImpl.log <a href="https://github.com/pgjdbc/pgjdbc/pull/1188">PR 1188</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f78a639d1ed3c64e80e1fa107691b4af5945cb84">f78a639d</a></li>
+</ul>
+
+<p>Jesper Pedersen (1):</p>
+
+<ul>
+<li>perf: guard logging statements <a href="https://github.com/pgjdbc/pgjdbc/pull/1112">PR 1112</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/7a0b7d65582a21376fc114eb197b5bae1fe1ea00">7a0b7d65</a></li>
+</ul>
+
+<p>Jorge Solorzano (6):</p>
+
+<ul>
+<li>fix: error on Travis build head <a href="https://github.com/pgjdbc/pgjdbc/pull/1186">PR 1186</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/354d2857664559636a4d3b18568cb69adc47f349">354d2857</a></li>
+<li>test: add coverage for extendedCacheEverything <a href="https://github.com/pgjdbc/pgjdbc/pull/1062">PR 1062</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f4d503c2ef449e8c2db0c23c27aedb09af30df62">f4d503c2</a></li>
+<li>Update after_n_builds to 10 <a href="https://github.com/pgjdbc/pgjdbc/pull/1193">PR 1193</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/2f9fed45104b56d7e2b2802359a04321755266a6">2f9fed45</a></li>
+<li>test: drop OpenJ9 CI tests <a href="https://github.com/pgjdbc/pgjdbc/pull/1196">PR 1196</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9b6506dfa1076ad27a16de8fc3e85bc23f1a5b97">9b6506df</a></li>
+<li>fix: logger should be generally quiet <a href="https://github.com/pgjdbc/pgjdbc/pull/1187">PR 1187</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/30f06e1411373d72ab59debc352ddf746f6812da">30f06e14</a></li>
+<li>docs: improve CONTRIBUTING.md <a href="https://github.com/pgjdbc/pgjdbc/pull/951">PR 951</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/38c8845e645cabce89e7610d1d5e735cc30543b1">38c8845e</a></li>
+</ul>
+
+<p>KimBisgaardDmi (1):</p>
+
+<ul>
+<li>fix: getString for PGObject columns returns null <a href="https://github.com/pgjdbc/pgjdbc/pull/1154">PR 1154</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/bbb6c1f8ac395fa793e09216ba3b710b0f6a2077">bbb6c1f8</a></li>
+</ul>
+
+<p>Marc Slemko (1):</p>
+
+<ul>
+<li>fix: allow disabling field metadata cache <a href="https://github.com/pgjdbc/pgjdbc/pull/1052">PR 1052</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/6ce91721048dea0e73231fa50c365108e9b9d49d">6ce91721</a></li>
+</ul>
+
+<p>Michele Mancioppi (1):</p>
+
+<ul>
+<li>docs: clarify database and username for the build <a href="https://github.com/pgjdbc/pgjdbc/pull/859">PR 859</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/83f2e385947c56376a03fc14178f5d28e427c832">83f2e385</a></li>
+</ul>
+
+<p>Pavel Raiskup (1):</p>
+
+<ul>
+<li>packaging: fix RPM build requirements <a href="https://github.com/pgjdbc/pgjdbc/commit/6bb72e69ee274e55a5ec08aec3316aa78aa3fab4">6bb72e69</a></li>
+</ul>
+
+<p>Sidi Mohamed EL AATIFI (1):</p>
+
+<ul>
+<li>Fix typos in java8-date-time.md <a href="https://github.com/pgjdbc/pgjdbc/pull/1174">PR 1174</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/dde8c0200c409a525ef3bfc7a0aa81e7cd458a59">dde8c020</a></li>
+</ul>
+
+<p>Stephen Nelson (2):</p>
+
+<ul>
+<li>chore: add missing javadoc tags to avoid warnings <a href="https://github.com/pgjdbc/pgjdbc/pull/1164">PR 1164</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e9ced455fd118731eb7dea38a63e0b400df32a1b">e9ced455</a></li>
+<li>docs: correct the Javadoc and enforce with Checkstyle <a href="https://github.com/pgjdbc/pgjdbc/pull/1236">PR 1236</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/08631ccdabdb8ba6d52f398e2b0b46a9cf0cafbf">08631ccd</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (19):</p>
+
+<ul>
+<li>reflect 42.2.2 release in readme.md <a href="https://github.com/pgjdbc/pgjdbc/commit/b1581e99b6da96b6e44753ce231ec3acf9869fea">b1581e99</a></li>
+<li>fix: avoid NPE in PgConnection.finalize <a href="https://github.com/pgjdbc/pgjdbc/pull/1206">PR 1206</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/03a1441bbe98525412df754d3934141bc3b12168">03a1441b</a></li>
+<li>chore: update gettext plugin, sort po files <a href="https://github.com/pgjdbc/pgjdbc/commit/eb5c8fdd6b37eb29262713584d01d73b8b7d299a">eb5c8fdd</a></li>
+<li>chore: sort messages in *.po files <a href="https://github.com/pgjdbc/pgjdbc/commit/10fc2fbb35537e4f75c22dc7614f76b376e3f0d8">10fc2fbb</a></li>
+<li>chore: remove obsolete translations <a href="https://github.com/pgjdbc/pgjdbc/commit/ed1eab9ef70e499310f6730ce7ef0d5bf7bfb3ae">ed1eab9e</a></li>
+<li>doc: add Russian translation to &quot;No IOException expected...&quot; <a href="https://github.com/pgjdbc/pgjdbc/commit/eaa0acad343027bf8be48b3229ef9f6386d67810">eaa0acad</a></li>
+<li>fix: adjust date, hour, minute, second when rounding timestamp <a href="https://github.com/pgjdbc/pgjdbc/pull/1212">PR 1212</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/4dc98be81829bbff3bb00c23214606757df16fab">4dc98be8</a></li>
+<li>chore: remove ubenchmark module due to licensing issues <a href="https://github.com/pgjdbc/pgjdbc/pull/1215">PR 1215</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/88ec13bb67d5bb2dbd2fc57046e05f9a3eb66abb">88ec13bb</a></li>
+<li>chore: remove ubenchmark from packaging/rpm as well <a href="https://github.com/pgjdbc/pgjdbc/commit/a699965ae209c32ce234fb455f04ffe6b1d1e0e5">a699965a</a></li>
+<li>fix: support query timeouts exceeding 2147483 seconds (~25 days) <a href="https://github.com/pgjdbc/pgjdbc/pull/1224">PR 1224</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/b7fd9f3cef734b4c219e2f6bc6c19acf68b2990b">b7fd9f3c</a></li>
+<li>perf: improve performance of replacing JDBC {...} escapes <a href="https://github.com/pgjdbc/pgjdbc/pull/1230">PR 1230</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/177f63be788a80529bfa7c2234cfabb039cc29b4">177f63be</a></li>
+<li>docs: use union merge strategy for CHANGELOG <a href="https://github.com/pgjdbc/pgjdbc/pull/1107">PR 1107</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/70189203574d9f0faf37b8a9bcee1d76ffa6b676">70189203</a></li>
+<li>chore: use 5432 as default port when running code from IDE <a href="https://github.com/pgjdbc/pgjdbc/commit/5dc03f63f170ed371a4f4ba06d491be489627b11">5dc03f63</a></li>
+<li>docs: use &quot;PR 42&quot; references instead of &quot;PR<a href="https://github.com/pgjdbc/pgjdbc/pull/42">PR 42</a>&quot; in the changelog (#1239) <a href="https://github.com/pgjdbc/pgjdbc/commit/f4ae60eca7b6dd8828f9e1b7a53c1dfee38f8201">f4ae60ec</a></li>
+<li>test: close of replication connection has not been fixed at backend side, so disable the test till 12.1 <a href="https://github.com/pgjdbc/pgjdbc/pull/1243">PR 1243</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/481460a32426c3d3a532f2a9a1b078ed9e98129a">481460a3</a></li>
+<li>perf: avoid string allocation for oid/rows parsing in command tag <a href="https://github.com/pgjdbc/pgjdbc/pull/1232">PR 1232</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/da831de521953aa1c168928173c9e75336682e29">da831de5</a></li>
+<li>docs: prepare changelog for 42.2.3 release <a href="https://github.com/pgjdbc/pgjdbc/commit/c5f5d8d28f34ad9acaa58b241ad4a265547c990b">c5f5d8d2</a></li>
+<li>chore: fetch contributors&#39; URL via GitHub API <a href="https://github.com/pgjdbc/pgjdbc/commit/d7297984a27c5a033571fbfcece62a1c849e2ec0">d7297984</a></li>
+<li>docs: update site for 42.2.3</li>
+</ul>
+
+<p>bazzargh (1):</p>
+
+<ul>
+<li>fix: encode url query parameters DataSource <a href="https://github.com/pgjdbc/pgjdbc/pull/1201">PR 1201</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9f3838f749d370a13a2fcef8e3ef67062d6e35eb">9f3838f7</a></li>
+</ul>
+
+<p>benbenw (2):</p>
+
+<ul>
+<li>refactor: remove obsolete outParmBeforeFunc <a href="https://github.com/pgjdbc/pgjdbc/pull/1234">PR 1234</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/71028532bcbc36e8239a4a7f9ad87e1acd070dc9">71028532</a></li>
+<li>perf: improve parsing performance of JDBC-style { call ...} calls <a href="https://github.com/pgjdbc/pgjdbc/pull/1233">PR 1233</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/435e2f791bc848494b4f08c5d0b90ecf520ae5fe">435e2f79</a></li>
+</ul>
+
+<p>benoit (3):</p>
+
+<ul>
+<li>perf: reduce memory allocations when JDBC escapes ({fn ...}) are used <a href="https://github.com/pgjdbc/pgjdbc/commit/2a1e09100c4d56a37c84668135ec7fe3e05962cb">2a1e0910</a></li>
+<li>refactor: use singleArgumentFunctionCall in EscapedFunctions <a href="https://github.com/pgjdbc/pgjdbc/commit/191d84eb7541a0eba0a0f0eaac0f45e6e0c80ce4">191d84eb</a></li>
+<li>perf: avoid BaseQueryKey.toString in CachedQuery.getSize <a href="https://github.com/pgjdbc/pgjdbc/pull/1227">PR 1227</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/669fc31ec187b27d15ee24f84c389260c54ddf25">669fc31e</a></li>
+</ul>
+
+<p>bpd0018 (1):</p>
+
+<ul>
+<li>style: rephrase comment on named portals <a href="https://github.com/pgjdbc/pgjdbc/pull/1129">PR 1129</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/86c46f94535823ab7f6edde25f38d6e1182272a0">86c46f94</a></li>
+</ul>
+
+<p>Étienne BERSAC (1):</p>
+
+<ul>
+<li>docs: fix link to GitHub documentation <a href="https://github.com/pgjdbc/pgjdbc/pull/1191">PR 1191</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/655b6e70b471da29b49124399eb0dab607dfc221">655b6e70</a></li>
+</ul>
+
+<p><a name="contributors_42.2.3"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/AlBundy33">AlBundy33</a><br>
+<a href="https://github.com/AlexElin">AlexElin</a><br>
+<a href="https://github.com/bazzargh">bazzargh</a><br>
+<a href="https://github.com/benbenw">benbenw</a><br>
+<a href="https://github.com/benbenw">benoit</a><br>
+<a href="https://github.com/bpd0018">bpd0018</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/bersace">Étienne BERSAC</a><br>
+<a href="https://github.com/kommiharibabu">Hari Babu Kommi</a><br>
+<a href="https://github.com/jesperpedersen">Jesper Pedersen</a><br>
+<a href="https://github.com/jorsol">Jorge Solorzano</a><br>
+<a href="https://github.com/KimBisgaardDmi">KimBisgaardDmi</a><br>
+<a href="https://github.com/znep">Marc Slemko</a><br>
+<a href="https://github.com/michele-mancioppi">Michele Mancioppi</a><br>
+<a href="https://github.com/praiskup">Pavel Raiskup</a><br>
+<a href="https://github.com/elaatifi">Sidi Mohamed EL AATIFI</a><br>
+<a href="https://github.com/lordnelson">Stephen Nelson</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>

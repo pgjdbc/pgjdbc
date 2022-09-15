@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Preparing the Database Server for JDBC</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 2. Setting up the JDBC Driver</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Setting up the Class Path" href="classpath.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Creating a Database" href="your-database.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Preparing the Database Server for JDBC</h1>
+					
+					<p>Out of the box, Java does not support unix sockets so the PostgreSQL server must be 
+configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP
+connections are allowed from <code>localhost</code>. To allow connections to other interfaces
+than the loopback interface, you must modify the <code>postgresql.conf</code> file&#39;s <code>listen_addresses</code>
+setting.</p>
+
+<p>Once you have made sure the server is correctly listening for TCP/IP connections
+the next step is to verify that users are allowed to connect to the server. Client
+authentication is setup in <code>pg_hba.conf</code>. Refer to the main PostgreSQL™ <a href="https://www.postgresql.org/docs/current/auth-pg-hba-conf.html">documentation</a>
+for details . </p>
+
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="classpath.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="your-database.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Setting up the Class Path</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Creating a Database</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

@@ -1,0 +1,8 @@
+<section class="feature">
+    {{ range $.Site.Data.homepagedata.feature }}
+    <div class="feature__item flow">
+        <img class="feature__item__media" src="{{ .path | relURL}}" alt="feature"/>
+        <p> {{ .desc }} </p>
+    </div>
+    {{ end }}
+</section>

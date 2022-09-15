@@ -1,0 +1,50 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>Regression since 42.3.2: &quot;cursor <unnamed portal 1> does not exist&quot; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see <a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377</a>)</li>
+</ul>
+
+<h3>Changed</h3>
+
+<ul>
+<li>test: polish TimestampUtilsTest</li>
+<li>chore: use GitHub Action concurrency feature to terminate CI jobs on fast PR pushes</li>
+</ul>
+
+<h3>Added</h3>
+
+<ul>
+<li>Added KEYS file to allow for verifying artifacts <a href="https://github.com/pgjdbc/pgjdbc/pull/2499">PR 2499</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>perf: enable tcpNoDelay by default <a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495</a>.
+This is a regression from 42.2.x versions where tcpNoDelay defaulted to true</li>
+<li>docs: fix readme.md after <a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/249">PR 2496</a></li>
+<li>feat: targetServerType=preferPrimary connection parameter <a href="https://github.com/pgjdbc/pgjdbc/pull/2483">PR 2483</a></li>
+<li>fix: revert removal of toOffsetDateTime(String timestamp)  fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2497">Issue #2497</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/2501">PR 2501</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Dave Cramer (4):
+      move version to 42.3.5 <a href="https://github.com/pgjdbc/pgjdbc/pull/2493">PR 2493</a>
+      Added KEYS file to allow for verifying artifacts <a href="https://github.com/pgjdbc/pgjdbc/pull/2499">PR 2499</a>
+      fix: revert removal of toOffsetDateTime(String timestamp)  fixes #Issue 2497 <a href="https://github.com/pgjdbc/pgjdbc/pull/2501">PR 2501</a></p>
+
+<p>Dmitriy Mukhin (1):
+      feat: targetServerType=preferPrimary connection parameter <a href="https://github.com/pgjdbc/pgjdbc/pull/2483">PR 2483</a></p>
+
+<p>Olivier Bourgain (2):
+      perf: enable tcpNoDelay by default <a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495</a>
+      docs: fix readme.md after <a href="https://github.com/pgjdbc/pgjdbc/pull/2495">PR 2495</a> (#2496)</p>
+
+<p>Vladimir Sitnikov (1):
+      test: polish TimestampUtilsTest
+      chore: use GitHub Action concurrency feature to terminate CI jobs on fast PR pushes</p>

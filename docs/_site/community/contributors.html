@@ -1,0 +1,246 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en" dir="ltr">
+<head>
+	<title>PostgreSQL JDBC Contributors</title>
+	<meta http-equiv="Content-Type" content="text/xhtml; charset=utf-8" />
+	<meta name="description" content="The official site for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("/media/css/base.css");</style>
+
+	<link rel="shortcut icon" href="/media/favicon.ico" />
+
+	<!--
+	<script type="text/javascript">
+		var _gaq = _gaq || [];
+		_gaq.push(['_setAccount', 'UA-1345454-1']);
+		_gaq.push(['_trackPageview']);
+		(function() {
+			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+			})();
+	</script>
+	-->
+</head>
+
+<body>
+	<div id="pgContainerWrap">
+		<div id="pgContainer">
+
+			<span class="txtOffScreen"><a href="#pgContent" title="Skip site navigation" accesskey="1">Skip site navigation</a> (1)</span>
+			<span class="txtOffScreen"><a href="#pgContentWrap" title="Skip section navigation" accesskey="2">Skip section navigation</a> (2)</span>
+
+			<div id="pgHeaderContainer">
+
+				<div id="pgSearch">
+
+					<!-- Old pgjdbc form -->
+					<form action="https://www.google.com/search" method="get">
+						<input value="jdbc.postgresql.org" name="sitesearch" type="hidden" />
+						<input id="q" name="q" type="text" size="20" maxlength="255" onfocus="if( this.value==this.defaultValue ) this.value='';" value="Google Search" accesskey="s" />
+						<!-- <input onFocus="getBlank (this, 'Search the site with google');" size="25" name="q" id="query" type="text" value="Search the site with google">&nbsp; -->
+                    				<input name="Search" value="Search" type="submit" />
+					</form>
+
+					<!-- New PostgreSQL form
+					<form method="get" action="search/">
+					<div>
+						<h2 class="pgBlockHide"><label for="q">Search</label></h2>
+						<input id="q" name="q" type="text" size="20" maxlength="255" onfocus="if( this.value==this.defaultValue ) this.value='';" value="Search" accesskey="s" />
+						<input name="a" type="hidden" value="1"/>
+						<input id="submit" name="submit" type="submit" value="Search" />
+					</div>
+					</form>
+					-->
+
+				</div> <!-- pgSearch -->
+				<br />
+
+				<div id="pgHeader">
+					<div id="pgHeaderLogoLeft">
+						<img alt="PostgreSQL" height="80" width="390" src="/media/img/layout/hdr_left3.png" usemap="#maplinks" />
+						<map name="maplinks">
+							<area shape="rect" coords="0,0,231,80" alt="PostgreSQL" href="https://postgresql.org" />
+							<area shape="rect" coords="232,0,390,80" alt="PostgreSQL JDBC Driver" href="https://jdbc.postgresql.org" />
+						</map>
+					</div>
+					<div id="pgHeaderLogoRight">
+						<a href="https://postgresql.org">
+							<img width="210" height="80" alt="The world's most advanced open source database." src="/media/img/layout/hdr_right.png" />
+						</a>
+					</div>
+				</div> <!-- pgHeader -->
+
+				<div id="pgTopNav">
+					<div id="pgTopNavLeft">
+						<img width="7" style="height: 100%;" alt="" src="/media/img/layout/nav_lft.png" />
+					</div>
+					<div id="pgTopNavRight">
+						<img width="7" style="height: 100%;" alt="" src="/media/img/layout/nav_rgt.png" />
+					</div>
+					<ul id="pgTopNavList">
+						<li><a href="/index.html" title="Home">Home</a></li>
+						<li><a href="/about/about.html" title="About">About</a></li>
+						<li><a href="/download.html" title="Download">Download</a></li>
+						<li><a href="/documentation/documentation.html" title="Documentation">Documentation</a></li>
+						<li><a href="/community/community.html" title="Community">Community</a></li>
+						<li><a href="/development/development.html" title="Development">Development</a></li>
+					</ul>
+				</div> <!-- pgTopNav -->
+			</div> <!-- pgHeaderContainer -->
+
+			<div id="pgContent">
+				<div id="pgSideWrap">
+					<div id="pgSideNav">
+						<ul>
+							<li><a href="community.html">Community</a></li>
+							<li><a href="github.html">Github</a></li>
+							<li><a href="contributors.html">Contributors</a></li>
+						</ul>
+					</div> <!-- pgSideNam -->
+				</div> <!-- pgSideWrap -->
+
+				<div id="pgContentWrap">
+					<h1>Contributors</h1>
+					<hr />
+					<div>
+						<ul>
+							<li><a href="#maintainers">Maintainers</a></li>
+							<li><a href="#authors">Previous Maintainers</a></li>
+							<li><a href="#developers">Developers</a></li>
+							<li><a href="#translators">Translators</a></li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="maintainers"></a>
+					<h2 class="underlined_10">Maintainers</h2>
+					<div>
+						<p>
+							Please do not contact the maintainers directly unless you have
+							a specific need to contact just them.  Please use the
+							<a href="https://github.com/pgjdbc/pgjdbc/discussions">Github discussions</a>
+							if at all possible.
+						</p>
+						<ul>
+							<li>Dave Cramer</li>
+							<li>Vladimir Sitnikov</li>
+							<li>Sehrope Sarkuni</li>
+							<li>Brett Okken</li>
+							<li>Jorge Solórzano</li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="authors"></a>
+					<h2 class="underlined_10">Previous Maintainers</h2>
+					<div>
+						<p>
+							The original JDBC driver was written by Adrian Hall.  Peter Mount
+							and Barry Lind have maintained it in the past, but have
+							since moved on to other things.
+							We would also like to recognize the work previously done by the following
+						</p>
+						<ul>
+							<li>Kris Jurka</li>
+							<li>Oliver Jowett</li>
+							<li>Craig Ringer</li>
+						</ul>
+					</div>
+					<hr />
+
+					<a name="developers"></a>
+					<h2 class="underlined_10">Developers</h2>
+					<div>
+						<p>
+							Most recent contributors can be found <a href="https://github.com/pgjdbc/pgjdbc/graphs/contributors">here</a>
+						</p>
+					</div>
+					<hr />
+
+					<a name="translators"></a>
+					<h2 class="underlined_10">Translators</h2>
+					<div>
+						<ul>
+							<li>cs - Czech
+								<ul>
+									<li>Petr Dittrich</li>
+								</ul>
+							</li>
+							<li>de - German
+								<ul>
+									<li>Andre Bialojahn</li>
+								</ul>
+							</li>
+							<li>es - Spanish
+								<ul>
+									<li>Diego A. Gil</li>
+								</ul>
+							</li>
+							<li>fr - French
+								<ul>
+									<li>Xavier Poinsard</li>
+								</ul>
+							</li>
+							<li>it - Italian
+								<ul>
+									<li>Giuseppe Sacco</li>
+								</ul>
+							</li>
+							<li>pl - Polish
+								<ul>
+									<li>Jaroslaw Pyszny</li>
+								</ul>
+							</li>
+							<li>pt_BR - Brazilian Portuguese
+								<ul>
+									<li>Euler Taveira de Oliveira</li>
+								</ul>
+							</li>
+							<li>ru - Russian
+								<ul>
+									<li>Serguei Mokhov</li>
+								</ul>
+							</li>
+							<li>sr - Serbian
+								<ul>
+									<li>Bojan Skaljac</li>
+								</ul>
+							</li>
+							<li>tr - Turkish
+								<ul>
+									<li>Devrim Gunduz</li>
+									<li>Nicolai Tufar</li>
+								</ul>
+							</li>
+							<li>zh_CN - Simplified Chinese
+								<ul>
+									<li>Weiping</li>
+									<li>Kuo ChaoYi</li>
+								</ul>
+							</li>
+							<li>zh_TW - Traditional Chinese
+								<ul>
+									<li>Zhenbang Wei</li>
+									<li>Kuo ChaoYi</li>
+								</ul>
+							</li>
+						</ul>
+					</div>
+				</div> <!-- pgContentWrap -->
+
+
+				<br class="pgClearBoth" />
+			</div> <!-- pgContent -->
+			<hr />
+
+			<div id="pgFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- pgContainer -->
+	</div> <!-- pgContainerWrap -->
+</body>
+</html>
