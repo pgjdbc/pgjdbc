@@ -872,12 +872,10 @@ blockquote {
     box-shadow: 0px 2px 1px -1px rgba(0, 0, 0, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, 0.12);
     border-radius: 4px;
     padding: var(--primary-spacing);
-    border-top: 4px solid var(--clr-primary-400); }
+    border-top: 4px solid var(--clr-primary-400);
+    margin-top: 1em; }
     .card__item > :not(:first-child) {
       margin-top: 0.5em; }
-    @media only screen and (max-width: 65em) {
-      .card__item {
-        margin-top: 1em; } }
   .card__title {
     font-size: 1.25rem;
     font-weight: 600; }
@@ -886,14 +884,25 @@ blockquote {
     font-size: .875rem; }
   .card__desc {
     font-size: .875rem; }
-  .card__btn {
+  .card__btn__left {
     border: 0;
     background-color: transparent; }
-    .card__btn__link, .card__btn__link:hover {
+    .card__btn__left__link, .card__btn__left__link:hover {
       color: var(--clr-secondary-500);
       text-decoration: none; }
-    .card__btn:hover {
+    .card__btn__left:hover {
       background-color: var(--clr-secondary-100); }
+  .card__btn__right {
+    float: right;
+    border: 0;
+    border-radius: 5px;
+    padding-inline: 10px;
+    color: var(--clr-white);
+    background-color: var(--clr-primary-400); }
+    .card__btn__right:hover {
+      background-color: var(--clr-primary-300); }
+  .card .maven {
+    display: none; }
 
 .pagination {
   display: flex;
@@ -1155,7 +1164,6 @@ tbody tr:hover {
       font-size: 1.25rem;
       padding-block: 0.5em;
       font-weight: 600;
-      letter-spacing: 1px;
       line-height: 1.5; }
       @media only screen and (max-width: 65em) {
         .hero__content__desc {
