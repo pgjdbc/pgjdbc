@@ -21,10 +21,10 @@ url= "/download/postgresql-42.2.26.jar.jre6"
 # Past Versions
 
 [[past]]
-
 v_name= "Postgresql JDBC 42.4.0"
 url= "/download/postgresql-42.4.0.jar"
 
+[[past]]
 v_name= "Postgresql JDBC 42.3.6"
 url= "/download/postgresql-42.3.6.jar"
 
