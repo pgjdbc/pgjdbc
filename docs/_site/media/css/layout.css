@@ -1,0 +1,688 @@
+/*
+  PostgreSQL.org - Layout Styles
+*/
+
+/* Container Definitions */
+
+/* Page Container */
+
+#pgContainerWrap {
+  text-align: center; /* Win IE5 */
+}
+
+#pgContainer {
+  margin: 0em auto;
+  width: 765px;
+  padding: 0;
+  padding-top: 4px;
+  padding-bottom: 10px;
+  text-align: left; /* Win IE5 */
+}
+
+
+/* Header Container */
+#pgHeaderContainer {
+  padding-bottom: 2px;
+}
+
+#pgHeader {
+  position: relative;
+  background: url("/media/img/layout/hdr_fill.png") repeat-x;
+  height: 80px;
+  margin: 0;
+  padding: 0;
+  clear: both;
+}
+
+#pgHeaderLogoLeft {
+  position: relative;
+  width: 390px;
+  height: 80px;
+  border: 0px;
+  padding: 0px;
+  margin: 0px;
+  float: left;
+}
+
+#pgHeaderLogoLeft img {
+  border: 0px;
+}
+
+#pgHeaderLogoRight {
+  position: relative;
+  width: 210px;
+  height: 80px;
+  border: 0px;
+  padding: 0px;
+  margin: 0px;
+  float: right;
+}
+
+#pgHeaderLogoRight img {
+  border: 0px;
+}
+
+#pgSearch {
+  position: relative;
+  text-align: right;
+  padding: 0;
+  margin: 0;
+  color: #666;
+}
+
+#pgSearch form {
+  position: relative;
+  top: 5px;
+  right: 0;
+  margin: 0; /* need for IE Mac */
+  text-align: right; /* need for IE Mac */
+  white-space: nowrap; /* for Opera */
+}
+
+#pgSearch form label {
+  color: #666;
+  font-size: 0.8em;
+}
+
+#pgSearch form input {
+  font-size: 0.8em;
+}
+
+#pgSearch form #submit,
+#pgSearch form #q {
+  font-size: 0.8em;
+  background: #FFFFFF;
+  color: #000000;
+  border: 1px solid #7A7A7A;
+}
+
+#pgSearch form #submit {
+
+  padding: 1px 4px;
+}
+
+#pgSearch form #q {
+  width: 140px;
+  padding: 2px;
+}
+
+/* Content Container */
+#pgContent {
+  clear: both;
+  display: block;
+}
+
+#pgFrontContainer {
+  width: 100%;
+  float: left;
+  margin-right: -220px;
+}
+
+#pgFrontMain {
+  margin-right: 220px;
+  margin-top: 10px;
+}
+
+#pgFrontFeature {
+  position: relative;
+  background: #F5F5F5 url(/media/img/feature/feature_gears.png) right bottom no-repeat;
+  /* Also see pgFrontFeatureContent for image size */
+  padding: 15px;
+  margin-bottom: 1em;
+  font-size: 1.0em;
+}
+
+#pgFrontFeature:before {
+  line-height: 0.1;
+  font-size: 1px;
+  background: transparent url("/media/img/layout/feature_tr.gif") no-repeat top right;
+  margin: -15px -15px 0 -15px;
+  height: 15px;
+  display: block;
+  border: none;
+  content: url("/media/img/layout/feature_tl.gif");
+}
+
+#pgFrontFeature:after {
+  display: block;
+  clear: both;
+  padding-top: 15px;
+  line-height: 0.1;
+  font-size: 1px;
+  content:  url("/media/img/layout/feature_bl.gif");
+  margin: -15px;
+  height: 8px;
+  background: transparent url("/media/img/layout/feature_br.gif") scroll no-repeat bottom right ;
+}
+
+#pgFrontFeature h2{
+  border: none;
+  margin-top: 0;
+}
+
+#pgFrontFeature p {
+  margin: 0 0 1em 0;
+}
+
+#pgFrontFeature #pgFrontFeatureContent {
+    /* This padding controls the size of the text in the front blurb, and needs to be
+     * adjusted whenever the image is changed. */
+  padding: 6px 16px 16px 10px;
+}
+
+#pgFrontRightContainer {
+  float: right;
+  width: 200px;
+/*  border-left: 1px solid #E1E1E1;*/
+  margin: 0;
+  padding: 0;
+
+  padding-left: 10px;
+}
+
+#pgFrontBottomContainer {
+  clear: both;
+  width: 100%;
+  padding-top: 0.7em;
+  margin-bottom: 15px;
+}
+
+#pgFrontNews {
+  float:left;
+  width: 230px;
+  margin-right: 10px;
+}
+
+#pgFrontEvents {
+  width: 240px;
+  border-left: 1px solid #E1E1E1;
+  margin: 0;
+  padding: 0;
+  padding-left: 10px;
+  margin-left: 250px;
+  margin-right: 250px;
+}
+
+.pgNewsEventsWrap {
+  padding-left: 5px;
+}
+
+.pgRSSBottomList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+.pgRSSBottomList img.pgRSSImage {
+  display: inline;
+  border: 0;
+  vertical-align: bottom;
+}
+
+.pgRSSBottomList li {
+  padding: 0 0.5em 0 0.5em;
+  display: inline;
+  border-right: 1px solid #E1E1E1;
+}
+
+.pgRSSBottomList li a {
+}
+
+/* Uncomment when IE/Validator supports last-child
+
+.pgRSSBottomList li:last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+*/
+
+.pgRSSBottomList li.last-child {
+  border-right: 0;
+  padding-right: 0;
+}
+
+/* Used in pgRSSBottomList */
+img.pgArrowImage {
+  padding: 0;
+  margin: 0;
+  display: inline;
+  border: 0;
+}
+
+#pgFrontUSSContainer {
+}
+
+/* Featured User Box */
+
+#pgFrontUser {
+  width: 545px;
+  padding-top: 7px;
+  float: left;
+  background: url(/media/img/layout/usr_tbl_top.png) top right no-repeat;
+  margin-bottom: 15px;
+}
+
+#pgFrontUserInner {
+  background: url(/media/img/layout/usr_tbl_btm.png) bottom left no-repeat;
+  width: 100%;
+  padding-bottom: 7px;
+}
+
+#pgFrontUserWrap {
+  padding: 11px 14px 12px 15px;
+  border-left: 1px solid #DADADA;
+  border-right: 1px solid #DADADA;
+}
+
+#pgFrontUserContent {
+  margin-left: 4px;
+}
+
+#pgFrontSupportUs {
+}
+
+#pgFrontSupportUs h2 {
+   margin-bottom: 0.7em;
+}
+
+#pgFrontSupportUsWrap {
+  margin-left: 8px;
+  color: #666;
+}
+
+#pgFrontShortcuts h2 {
+   margin-bottom: 0.7em;
+}
+
+#pgFrontShortcutsWrap {
+  font-size: 0.9em;
+  margin-left: 12px;
+  margin-top: 10px;
+  color: #666;
+}
+
+#pgFrontShortcutsWrap img {
+  padding-right: 7px;
+}
+
+#pgFrontShortcutsList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pgFrontShortcutsList li {
+  margin: 0;
+  padding-left: 12px;
+  background-image: url(/media/img/layout/blt_blu_arrow.png);
+  background-repeat: no-repeat;
+  background-position: 0px 0.5em;
+}
+
+#pgFrontPlanet {
+  float: right;
+  width: 230px;
+  border-left: 1px solid #E1E1E1;
+  margin: 0;
+  padding: 0;
+  padding-left: 10px;
+}
+
+#pgFrontPlanetWrap {
+  margin-left: 8px;
+  font-size: 0.9em;
+}
+
+#pgFrontPlanetList {
+  margin: 0;
+  padding: 0;
+}
+
+#pgFrontLatestReleases h2 {
+   margin-bottom: 0.7em;
+}
+
+#pgFrontLatestReleasesWrap {
+  font-size: 0.9em;
+  margin-left: 12px;
+  margin-top: 10px;
+  color: #666;
+}
+
+#pgFrontLatestReleasesNote {
+  font-size: 0.9em;
+  margin-left: 12px;
+  margin-top: 10px;
+  color: #666;
+  vertical-align: bottom;
+}
+
+#pgFrontLatestReleasesNote IMG {
+    vertical-align: bottom;
+}
+
+#pgFrontTrainingSummary {
+  font-size: 1.1em;
+  color: #666;
+}
+
+/* Secondary Pages */
+
+#pgSideWrap {
+  float: left;
+  width: 166px;
+  margin-top: 10px;
+  margin-right: -165px;
+}
+
+#pgContentWrap {
+  margin-left: 165px;
+  padding-top: 10px;
+}
+
+#pgContentWrap dd.quote_source {
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+#pgAdminWrap {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+#pgCommunityWrap {
+  margin-right: -420px;
+  float: left;
+  width: 100%;
+}
+
+#pgCommunity {
+  margin-right: 210px;
+}
+
+#pgSurveyWrap {
+  float: right;
+  width: 200px;
+  margin-left: 210px;
+  padding: 0;
+  border: 0;
+  top: 0px;
+
+  padding-left: 10px;
+}
+
+#pgSurvey dl {
+  width: 200px;
+  margin: 0;
+  padding: 0;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
+  padding-bottom: 10px;
+}
+
+#pgSurvey dt {
+  margin: 0 0 10px 0;
+  padding: 10px;
+  font-weight: bold;
+  color: #666;
+  border-bottom: 1px solid #EFEFEF;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
+}
+
+#pgSurvey dd {
+  margin: 0 0 0 10px;
+  padding: 0 10px 0 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+#pgSurvey form #surveySubmit {
+  font-size: 0.9em;
+  background: #F5F5F5;
+  color: #000000;
+  border: 1px solid #7A7A7A;
+  padding: 1px 4px;
+}
+
+#pgPlanetWrap {
+  float: right;
+  width: 200px;
+  margin-left: 210px;
+  padding: 0;
+  border: 0;
+  margin-top: 10px;
+
+  padding-left: 5px;
+}
+
+#pgPlanet dl {
+  width: 200px;
+  margin: 0;
+  padding: 0;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
+  padding-bottom: 10px;
+}
+
+#pgPlanet dt {
+  margin: 0 0 10px 0;
+  padding: 10px;
+  font-weight: bold;
+  color: #666;
+  border-bottom: 1px solid #EFEFEF;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
+}
+
+#pgPlanet dd {
+  margin: 0 0 0 10px;
+  padding: 0 10px 0 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+#pgPlanet dd ul {
+   margin-left: 0px;
+   padding-left: 10px;
+   margin-bottom: 10px;
+}
+
+#pgDocsWrap {
+  margin-right: -420px;
+  float: left;
+  width: 100%;
+}
+
+#pgDocs {
+  margin-right: 210px;
+}
+
+#pgQuickDocsWrap {
+  float: right;
+  width: 200px;
+  margin-left: 210px;
+  padding: 0;
+  border: 0;
+  top: 0px;
+
+  padding-left: 10px;
+}
+
+#pgQuickDocs dl {
+  width: 200px;
+  margin: 0;
+  padding: 0;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
+  padding-bottom: 10px;
+}
+
+#pgQuickDocs dt {
+  margin: 0 0 10px 0;
+  padding: 10px;
+  font-weight: bold;
+  color: #666;
+  border-bottom: 1px solid #EFEFEF;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
+}
+
+#pgQuickDocs dd {
+  margin: 0 0 0 10px;
+  padding: 0 10px 0 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+#pgCommunityDocsFooter table tr td ul {
+  padding-left: 0px;
+  list-style: none;
+}
+
+#pgCommunityDocsHeader table tr.firstrow td {
+  border-bottom: none;
+}
+
+#pgCommunityDocsHeader table tr.lastrow {
+  height: 1px;
+}
+
+#pgCommunityDocsBreadcrumbs {
+  margin-left: 10px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+
+#pgCommunityDocsPageContent {
+  margin-top: 5px;
+  margin-bottom: 20px;
+}
+
+.pgCommunityDocsCurrentMenu {
+  font-weight: bold;
+}
+
+#pgDownloadsWrap {
+  margin-right: -420px;
+  float: left;
+  width: 100%;
+}
+
+#pgDownloads {
+  margin-right: 210px;
+}
+
+#pgQuickDownloadsWrap {
+  float: right;
+  width: 200px;
+  margin-left: 210px;
+  padding: 0;
+  border: 0;
+  top: 0px;
+
+  padding-left: 10px;
+}
+
+#pgQuickDownloads dl {
+  width: 200px;
+  margin: 0;
+  padding: 0;
+  background: #F5F5F5 url(/media/img/layout/box_bottom.gif) no-repeat bottom left;
+  padding-bottom: 10px;
+}
+
+#pgQuickDownloads dt {
+  margin: 0 0 10px 0;
+  padding: 10px;
+  font-weight: bold;
+  color: #666;
+  border-bottom: 1px solid #EFEFEF;
+  background: #F5F5F5 url(/media/img/layout/box_top.gif) no-repeat top left;
+}
+
+#pgQuickDownloads dd {
+  margin: 0 0 0 10px;
+  padding: 0 10px 0 0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+#pgFtpContent table tr td {
+  vertical-align: bottom;
+}
+
+#pgProfPage div.tblBasic table td {
+  color: black;
+  padding: 3px 5px;
+}
+
+#pgPressContacts dt {
+  font-weight: bold;
+}
+
+#pgPressContacts dd {
+  margin-bottom: 10px;
+
+}
+
+#pgArchiveWrap {
+  margin-top: 13px;
+}
+
+/* Footer Container */
+#pgFooter {
+  font-size: 0.9em;
+  color: #666;
+  line-height: 1.3em;
+  padding-top: 5px;
+  clear: both;
+}
+
+/* Generic forms class */
+TABLE.pgGenericFormTable TR {
+   vertical-align: top;
+}
+
+TABLE.pgGenericFormTable TR TD INPUT,
+TABLE.pgGenericFormTable TR TD SELECT,
+TABLE.pgGenericFormTable TR TD TEXTAREA,
+TABLE.pgGenericFormTable TR TD DIV.markdownpreview {
+   width: 100%;
+}
+
+TABLE.pgGenericFormTable TR.error {
+   background-color: red;
+   color: white;
+}
+
+TABLE.pgGenericFormTable TR.errorinfo {
+   background-color: #FFFFCC;
+}
+
+TABLE.pgGenericFormTable TR.errorheader TD {
+   background-color: #FFFFCC;
+   border: 1px solid red;
+   padding: 2px;
+}
+
+TABLE.pgGenericFormTable TR TH SPAN.formfieldhelp {
+   font-weight: normal;
+   font-style: italic;
+}
+
+/* Misc Classes */
+
+.pgClearBoth {
+  clear: both;
+  margin: 0;
+  padding: 0;
+}
+
+.pgBlockHide {
+	display: none;
+	height: 0;
+	width: 0;
+	overflow: hidden;
+	position: absolute;  /* IE5 Mac */
+}
+
+img {
+  border: 0;
+}

@@ -1,0 +1,21 @@
+{{ define "main" }}
+<section class="faq container">
+    <h2>Frequently Asked Questions</h2>
+    {{ range $.Site.Data.faqs.faq }}
+    <div class="accordion">
+        <h4>{{ .title }}</h4>
+        {{ range $ind, $item := .item}}
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">{{ $item.ques}}</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">{{ $item.ans | safeHTML }}</div>
+            </div>
+        </div>
+        {{ end }}
+    </div>
+    {{ end }}
+</section>
+{{ end }}

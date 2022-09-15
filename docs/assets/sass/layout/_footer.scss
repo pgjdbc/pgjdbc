@@ -1,0 +1,35 @@
+.footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: var(--clr-primary-500);
+    color: var(--clr-white);
+    margin-top: auto;
+
+    &__item {
+        display: flex;
+        flex-wrap: wrap;
+        margin-top: var(--container-spacing);
+    }
+
+    .list {
+        color: var(--clr-white);
+        font-size: 1.05rem;
+        margin-inline: var(--box-spacing);
+
+        &__head {
+            font-weight: 700;
+            margin-bottom: 0.25em;
+        }
+
+        &__link {
+            color: var(--clr-white);
+            text-decoration: none;
+        }
+    }
+
+    .copyrights {
+        text-align: center;
+        margin-block: var(--primary-spacing);
+    }
+}

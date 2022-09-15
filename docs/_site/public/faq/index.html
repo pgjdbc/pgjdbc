@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900italic.woff" as="font" type="font/woff" crossorigin>
+
+
+    <title>faq | pgJDBC</title>
+
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+
+    
+    
+    <link rel="stylesheet" href="https://pgjdbc.github.io/pgjdbc/sass/main.3e2ef319edd90653f8f3c003aab570b6599427631bb60f5e8a9682732adca2ca.css" integrity="sha256-Pi7zGe3ZBlP488ADqrVwtlmUJ2Mbtg9eipaCcyrcoso=">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="icon" href="/pgjdbc/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js"
+    integrity="sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script defer language="javascript" type="module" src="/pgjdbc/js/index.js"></script>
+
+</head>
+
+<body>
+    
+
+<nav class="navbar" role="navigation">
+
+    <a href="/pgjdbc" id="host">
+        <img class="logo" src="/pgjdbc/icons/postgreslogo.svg"  alt="logo" />
+    </a>
+
+    <div class="navbar__item">
+        
+        <a href="/pgjdbc/download/" title="" class="navbar__item__link ">Download</a>
+        
+        <a href="/pgjdbc/documentation/" title="" class="navbar__item__link ">Documentation</a>
+        
+        <a href="/pgjdbc/community/" title="" class="navbar__item__link ">Community</a>
+        
+        <a href="/pgjdbc/development/" title="" class="navbar__item__link ">Development</a>
+        
+    </div>
+
+    <form id="search" class="searchBox" role="search">
+    <input class="searchInput" type="search" name="" placeholder="Search" id="search-input" autocomplete="off">
+    <button class="searchButton" for="search-input">
+        <svg fill="#ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24px" height="24px">
+            <path
+                d="M 24 2.8886719 C 12.365714 2.8886719 2.8886719 12.365723 2.8886719 24 C 2.8886719 35.634277 12.365714 45.111328 24 45.111328 C 29.036552 45.111328 33.664698 43.331333 37.298828 40.373047 L 52.130859 58.953125 C 52.130859 58.953125 55.379484 59.435984 57.396484 57.333984 C 59.427484 55.215984 58.951172 52.134766 58.951172 52.134766 L 40.373047 37.298828 C 43.331332 33.664697 45.111328 29.036548 45.111328 24 C 45.111328 12.365723 35.634286 2.8886719 24 2.8886719 z M 24 7.1113281 C 33.352549 7.1113281 40.888672 14.647457 40.888672 24 C 40.888672 33.352543 33.352549 40.888672 24 40.888672 C 14.647451 40.888672 7.1113281 33.352543 7.1113281 24 C 7.1113281 14.647457 14.647451 7.1113281 24 7.1113281 z" />
+        </svg>
+    </button>
+</form>
+
+<template id="search-result" hidden>
+    <article class="search-list container flow">
+        <h2><a class="summary-title-link"></a></h2>
+        <summary class="summary"></summary>
+        <div class="read-more-container">
+            <a class="read-more-link">Read More »</a>
+        </div>
+    </article>
+</template>
+
+</nav>
+    <main role="main" class="main-inner">
+        
+<section class="faq container">
+    <h2>Frequently Asked Questions</h2>
+    
+    <div class="accordion">
+        <h4>New versioning policy</h4>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">Why the versioning change from 9.4.xxxx to 42.x.x?</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">We have three issues we are trying to address here.<ol><li>We do not want to be tied to the server release schedule. Previously the version was based on the server release to declare some kind of compatibility, from 9.4.xxxx this was no longer the case and the increments was just in the last 4 digits, this leads us to the second issue. </li> <li> Avoid confusion as to which version to use with which server version. The naming scheme previously has 9.4 in it which leads people to believe it is for server version 9.4 only, when in fact it support PostgreSQL 8.2 and higher. That means that some users looking for PostgreSQL 9.5 were asking what is the version to use, and some users that still use PostgreSQL 8.4 were using the JDBC driver 8.4 Build 703. The driver is version agnostic for the most point so there is no reason to tie it to a specific server version. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. </li> <li> The previous version policy don't leave room for differentiate from bug fixes releases and feature releases.</li></ol>The new version policy will allow us to use more or less Semantic Versioning, and have a more clear understanding of the versions.</div>
+            </div>
+        </div>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">Why the number 42?</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">42 was more or less chosen at random. But it is large enough to avoid any future conflicts with the server. Given current server project policies, server version 42 should come out in 2049, plus or minus a bit. Some say that 'The answer to the ultimate question of life, the universe and everything is 42.'</div>
+            </div>
+        </div>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">What is not the 42.0.0 release?</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">This release is not a rewrite of the driver, is not using a new architecture, nor is using something special, it's the continuation of the same driver following a better versioning policy.</div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="accordion">
+        <h4>XA</h4>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">Does the driver have XA support?</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">Yes, starting with the 8.1dev-403 driver. However, transaction interleaving is not supported.</div>
+            </div>
+        </div>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">What is &#39;transaction interleaving&#39;?</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">Transaction interleaving means that one database connection can be used for multiple transactions at the same time, switching between the transactions. Transaction interleaving is mostly useless, but it's a required part of the JTA specification. Some application servers use it to allow a bit more concurrency without allocating a bigger jdbc connection pool. Few JDBC drivers support transaction interleaving properly. Some fake it by issuing early prepare commands, risking transaction integrity, some give strange error messages, some fail in other, subtle ways. The PostgreSQL JDBC driver does it's best to detect interleaving and throws a proper error message when it can't do what's requested. Because of the lack of driver support, all of the popular application servers provide options to work around it, or don't use it at all. Therefore, lack of transaction interleaving shouldn't affect your application or data integrity. See the JTA specification, section 3.4.4, or search the pgsql-jdbc mailing list archives for more information.</div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="accordion">
+        <h4>Problems</h4>
+        
+        <div class="accordion__item">
+            <button id="accordion__button" class="accordion__btn" aria-expanded="false">
+                <span class="accordion__btn__title">executeBatch hangs without error Possible solutions</span>
+                <span class="accordion__btn__icon" aria-hidden="true"></span>
+            </button>
+            <div class="accordion__content">
+                <div class="accordion__content__inner">This is related to batched queries and synchronous TCP. The thing to look at is setting the network buffer sizes to use to large values to avoid the deadlock. The default values are machine dependent which also explains it working or not on different machines (credit to Kris Jurka)</div>
+            </div>
+        </div>
+        
+    </div>
+    
+</section>
+
+    </main>
+    <footer class="footer" role="contentinfo">
+    <div class="footer__item">
+        
+        <ul role="list" class="list">
+            <li class="list__head">pgJDBC</li>
+            <br />
+            
+            <li><a href="https://jdbc.postgresql.org/documentation/publicapi/index.html" class="list__link">Public API</a></li>
+            
+            <li><a href="https://www.postgresql.org/" class="list__link">About PostgreSQL</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">Community</li>
+            <br />
+            
+            <li><a href="https://github.com/pgjdbc/pgjdbc" class="list__link">Github</a></li>
+            
+            <li><a href="https://postgres-slack.herokuapp.com/" class="list__link">Slack</a></li>
+            
+            <li><a href="https://twitter.com/PostgreSQL" class="list__link">Twitter</a></li>
+            
+            <li><a href="https://www.postgresql.org/list/pgsql-jdbc/" class="list__link">Mailing List</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">More</li>
+            <br />
+            
+            <li><a href="/pgjdbc/faq/" class="list__link">FAQ</a></li>
+            
+            <li><a href="https://www.postgresql.org/about/policies/privacy/" class="list__link">Privacy</a></li>
+            
+            <li><a href="/pgjdbc/license/" class="list__link">License</a></li>
+            
+        </ul>
+        
+    </div>
+    <div class="copyrights">
+        Copyright © 1996-2022 The PostgreSQL Global Development Group
+    </div>
+</footer>
+</body>
+
+</html>

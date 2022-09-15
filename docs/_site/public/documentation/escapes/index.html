@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900italic.woff" as="font" type="font/woff" crossorigin>
+
+
+    <title>JDBC escapes | pgJDBC</title>
+
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+
+    
+    
+    <link rel="stylesheet" href="https://pgjdbc.github.io/pgjdbc/sass/main.3e2ef319edd90653f8f3c003aab570b6599427631bb60f5e8a9682732adca2ca.css" integrity="sha256-Pi7zGe3ZBlP488ADqrVwtlmUJ2Mbtg9eipaCcyrcoso=">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="icon" href="/pgjdbc/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js"
+    integrity="sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script defer language="javascript" type="module" src="/pgjdbc/js/index.js"></script>
+
+</head>
+
+<body>
+    
+
+<nav class="navbar" role="navigation">
+
+    <a href="/pgjdbc" id="host">
+        <img class="logo" src="/pgjdbc/icons/postgreslogo.svg"  alt="logo" />
+    </a>
+
+    <div class="navbar__item">
+        
+        <a href="/pgjdbc/download/" title="" class="navbar__item__link ">Download</a>
+        
+        <a href="/pgjdbc/documentation/" title="" class="navbar__item__link ">Documentation</a>
+        
+        <a href="/pgjdbc/community/" title="" class="navbar__item__link ">Community</a>
+        
+        <a href="/pgjdbc/development/" title="" class="navbar__item__link ">Development</a>
+        
+    </div>
+
+    <form id="search" class="searchBox" role="search">
+    <input class="searchInput" type="search" name="" placeholder="Search" id="search-input" autocomplete="off">
+    <button class="searchButton" for="search-input">
+        <svg fill="#ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24px" height="24px">
+            <path
+                d="M 24 2.8886719 C 12.365714 2.8886719 2.8886719 12.365723 2.8886719 24 C 2.8886719 35.634277 12.365714 45.111328 24 45.111328 C 29.036552 45.111328 33.664698 43.331333 37.298828 40.373047 L 52.130859 58.953125 C 52.130859 58.953125 55.379484 59.435984 57.396484 57.333984 C 59.427484 55.215984 58.951172 52.134766 58.951172 52.134766 L 40.373047 37.298828 C 43.331332 33.664697 45.111328 29.036548 45.111328 24 C 45.111328 12.365723 35.634286 2.8886719 24 2.8886719 z M 24 7.1113281 C 33.352549 7.1113281 40.888672 14.647457 40.888672 24 C 40.888672 33.352543 33.352549 40.888672 24 40.888672 C 14.647451 40.888672 7.1113281 33.352543 7.1113281 24 C 7.1113281 14.647457 14.647451 7.1113281 24 7.1113281 z" />
+        </svg>
+    </button>
+</form>
+
+<template id="search-result" hidden>
+    <article class="search-list container flow">
+        <h2><a class="summary-title-link"></a></h2>
+        <summary class="summary"></summary>
+        <div class="read-more-container">
+            <a class="read-more-link">Read More »</a>
+        </div>
+    </article>
+</template>
+
+</nav>
+    <main role="main" class="main-inner">
+        
+<div class="doc">
+    
+
+<nav role="navigation" class="sidebar">
+  <ul role="list" class="flow sidebar__wrapper">
+    
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/setup/" class="sidebar__links__link">
+        Getting Started
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/use/" class="sidebar__links__link">
+        Initializing the Driver
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/ssl/" class="sidebar__links__link">
+        Using SSL
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/query/" class="sidebar__links__link">
+        Issuing a Query and Processing the Result
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/callproc/" class="sidebar__links__link">
+        Calling Stored Functions and Procedures
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/binary-data/" class="sidebar__links__link">
+        Storing Binary Data
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/escapes/" class="sidebar__links__link--active">
+        JDBC escapes
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/server-prepare/" class="sidebar__links__link">
+        PostgreSQL™ Extensions to the JDBC API
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/thread/" class="sidebar__links__link">
+        Using the Driver in a Multithreaded or a Servlet Environment
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/datasource/" class="sidebar__links__link">
+        Connection Pools and Data Sources
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/logging/" class="sidebar__links__link">
+        Logging using java.util.logging
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/reading/" class="sidebar__links__link">
+        Further Reading
+      </a>
+    </li>
+  </ul>
+</nav>
+    <article class="article">
+    <h1>JDBC escapes
+        
+    </h1>
+    <p>The JDBC specification (like the ODBC specification) acknowledges the fact that some vendor specific SQL may be required for certain RDBMS features. To aid developers in writing portable JDBC applications across multiple database products, a special escape syntax is used to specify the generic commands the developer wants to be run. The JDBC driver translates these escape sequences into native syntax for its specific database. For more information consult the <a href="http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html">Java DB Technical Documentation</a>.</p>
+<p>The parsing of the sql statements for these escapes can be disabled using <code>Statement.setEscapeProcessing(false)</code> .</p>
+<p><code>Connection.nativeSQL(String sql)</code> provides another way to have escapes processed. It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.</p>
+<h5 id="example81using-jdbc-escapes" class="self-link">Example 8.1. Using JDBC escapes <a class="header-link" href="#example81using-jdbc-escapes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><p>To use the JDBC escapes, you simply write your SQL replacing date/time literal values, outer join and functions by the JDBC escape syntax. For example :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT {fn week({d &#39;2005-01-24&#39;})}&#34;</span><span class="o">);</span>
+</span></span></code></pre></div><p>is the portable version for</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT extract(week from DATE &#39;2005-01-24&#39;)&#34;</span><span class="o">);</span>
+</span></span></code></pre></div><h2 id="escape-for-like-escape-character" class="self-link">Escape for like escape character <a class="header-link" href="#escape-for-like-escape-character">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>You can specify which escape character to use in strings comparison (with <code>LIKE</code> ) to protect wildcards characters (&rsquo;%&rsquo; and &lsquo;_&rsquo;) by adding the following escape : <code>{escape 'escape-character'}</code> . The driver supports this only at the end of the comparison expression.</p>
+<p>For example, you can compare string values using &lsquo;|&rsquo; as escape character to protect &lsquo;_&rsquo; :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">rs</span> <span class="o">=</span> <span class="n">stmt</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;select str2 from comparisontest where str1 like &#39;|_abcd&#39; {escape &#39;|&#39;} &#34;</span><span class="o">);</span>
+</span></span></code></pre></div><h2 id="escape-for-outer-joins" class="self-link">Escape for outer joins <a class="header-link" href="#escape-for-outer-joins">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>You can specify outer joins using the following syntax: <code>{oj table (LEFT|RIGHT|FULL) OUTER JOIN (table | outer-join) ON search-condition}</code></p>
+<p>For example :</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">stmt</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;select * from {oj a left outer join b on (a.i=b.i)} &#34;</span><span class="o">);</span>
+</span></span></code></pre></div><h2 id="date-time-escapes" class="self-link">Date-time escapes <a class="header-link" href="#date-time-escapes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>The JDBC specification defines escapes for specifying date, time and timestamp values which are supported by the driver.</p>
+<ul>
+<li><strong>date</strong> :  <code>{d 'yyyy-mm-dd'}</code> which is translated to <code>DATE 'yyyy-mm-dd'</code></li>
+<li><strong>time</strong> : <code>{t 'hh:mm:ss'}</code> which is translated to <code>TIME 'hh:mm:ss'</code></li>
+<li><strong>timestamp</strong> : <code>{ts 'yyyy-mm-dd hh:mm:ss.f...'}</code> which is translated to <code>TIMESTAMP 'yyyy-mm-dd hh:mm:ss.f'</code> The fractional seconds (.f&hellip;) portion of the TIMESTAMP can be omitted.</li>
+</ul>
+<h2 id="escaped-scalar-functions" class="self-link">Escaped scalar functions <a class="header-link" href="#escaped-scalar-functions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>The JDBC specification defines functions with an escape call syntax : <code>{fn function_name(arguments)}</code> . The following tables show which functions are supported by the PostgreSQL™ driver. The driver supports the nesting and the mixing of escaped functions and escaped values. The appendix C of the JDBC specification describes the functions.</p>
+<p>Some functions in the following tables are translated but reported as not supported because they are duplicating or changing their order of the arguments. While this is harmless for literal values or columns, it will cause problems when using prepared statements. For example &quot; <code>{fn right(?,?)}</code> &quot; will be translated to &quot; <code>substring(? from (length(?)+1-?))</code> &ldquo;. As you can see the translated SQL requires more parameters than before the translation but the driver will not automatically handle this.</p>
+<h5 id="table81supported-escaped-numeric-functions" class="self-link">Table 8.1. Supported escaped numeric functions <a class="header-link" href="#table81supported-escaped-numeric-functions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><table>
+<thead>
+<tr>
+<th>function</th>
+<th>reported as supported</th>
+<th>translation</th>
+<th>comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>abs(arg1)</td>
+<td>yes</td>
+<td>abs(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>acos(arg1)</td>
+<td>yes</td>
+<td>acos(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>asin(arg1)</td>
+<td>yes</td>
+<td>asin(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>atan(arg1)</td>
+<td>yes</td>
+<td>atan(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>atan2(arg1, arg2)</td>
+<td>yes</td>
+<td>atan2(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>ceiling(arg1)</td>
+<td>yes</td>
+<td>ceil(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>cos(arg1)</td>
+<td>yes</td>
+<td>cos(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>cot(arg1)</td>
+<td>yes</td>
+<td>cot(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>degrees(arg1)</td>
+<td>yes</td>
+<td>degrees(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>exp(arg1)</td>
+<td>yes</td>
+<td>exp(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>floor(arg1)</td>
+<td>yes</td>
+<td>floor(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>log(arg1)</td>
+<td>yes</td>
+<td>ln(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>log10(arg1)</td>
+<td>yes</td>
+<td>log(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>mod(arg1, arg2)</td>
+<td>yes</td>
+<td>mod(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>pi(arg1)</td>
+<td>yes</td>
+<td>pi(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>power(arg1, arg2)</td>
+<td>yes</td>
+<td>pow(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>radians(arg1)</td>
+<td>yes</td>
+<td>radians(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>rand()</td>
+<td>yes</td>
+<td>random()</td>
+<td></td>
+</tr>
+<tr>
+<td>rand(arg1)</td>
+<td>yes</td>
+<td>setseed(arg1)*0+random()</td>
+<td>The seed is initialized with the given argument and a new random value is returned.</td>
+</tr>
+<tr>
+<td>round(arg1, arg2)</td>
+<td>yes</td>
+<td>round(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>sign(arg1)</td>
+<td>yes</td>
+<td>sign(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>sin(arg1)</td>
+<td>yes</td>
+<td>sin(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>sqrt(arg1)</td>
+<td>yes</td>
+<td>sqrt(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>tan(arg1)</td>
+<td>yes</td>
+<td>tan(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>truncate(arg1, arg2)</td>
+<td>yes</td>
+<td>trunc(arg1, arg2)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h5 id="table82supported-escaped-string-functions" class="self-link">Table 8.2. Supported escaped string functions <a class="header-link" href="#table82supported-escaped-string-functions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><table>
+<thead>
+<tr>
+<th>function</th>
+<th>reported as supported</th>
+<th>translation</th>
+<th>comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ascii(arg1)</td>
+<td>yes</td>
+<td>ascii(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>char(arg1)</td>
+<td>yes</td>
+<td>chr(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>concat(arg1, arg2&hellip;)</td>
+<td>yes</td>
+<td>(arg1</td>
+<td></td>
+</tr>
+<tr>
+<td>only require the two arguments version, but supporting more arguments</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>was so easy&hellip;</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>insert(arg1, arg2, arg3, arg4)</td>
+<td>no</td>
+<td>overlay(arg1 placing arg4 from arg2 for arg3)</td>
+<td>This function is not supported since it changes the order of the arguments which can be a problem (for prepared</td>
+</tr>
+<tr>
+<td>statements by example).</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>lcase(arg1)</td>
+<td>yes</td>
+<td>lower(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>left(arg1, arg2)</td>
+<td>yes</td>
+<td>substring(arg1 for arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>length(arg1)</td>
+<td>yes</td>
+<td>length(trim(trailing from arg1))</td>
+<td></td>
+</tr>
+<tr>
+<td>locate(arg1, arg2)</td>
+<td>no</td>
+<td>position(arg1 in arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>locate(arg1, arg2, arg3)</td>
+<td>no</td>
+<td>(arg2*sign(position(arg1 in substring(arg2 from arg3)+position(arg1 in substring(arg2 from arg3))</td>
+<td>Not supported since the three arguments version duplicate and change the order of the arguments.</td>
+</tr>
+<tr>
+<td>ltrim(arg1)</td>
+<td>yes</td>
+<td>trim(leading from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>repeat(arg1, arg2)</td>
+<td>yes</td>
+<td>repeat(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>replace(arg1, arg2, arg3)</td>
+<td>yes</td>
+<td>replace(arg1, arg2, arg3)</td>
+<td>Only reported as supported by 7.3 and above servers.</td>
+</tr>
+<tr>
+<td>right(arg1, arg2)</td>
+<td>no</td>
+<td>substring(arg1 from (length(arg1)+1-arg2))</td>
+<td>Not supported since arg2 is duplicated.</td>
+</tr>
+<tr>
+<td>rtrim(arg1)</td>
+<td>yes</td>
+<td>trim(trailing from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>space(arg1)</td>
+<td>yes</td>
+<td>repeat(&rsquo; &lsquo;, arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>substring(arg1, arg2)</td>
+<td>yes</td>
+<td>substr(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>substring(arg1, arg2, arg3)</td>
+<td>yes</td>
+<td>substr(arg1, arg2, arg3)</td>
+<td></td>
+</tr>
+<tr>
+<td>ucase(arg1)</td>
+<td>yes</td>
+<td>upper(arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>soundex(arg1)</td>
+<td>no</td>
+<td>soundex(arg1)</td>
+<td>Not supported since it requires the fuzzystrmatch contrib module.</td>
+</tr>
+<tr>
+<td>difference(arg1, arg2)</td>
+<td>no</td>
+<td>difference(arg1, arg2)</td>
+<td>Not supported since it requires the fuzzystrmatch contrib module.</td>
+</tr>
+</tbody>
+</table>
+<h5 id="table83supported-escaped-datetime-functions" class="self-link">Table 8.3. Supported escaped date/time functions <a class="header-link" href="#table83supported-escaped-datetime-functions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><table>
+<thead>
+<tr>
+<th>function</th>
+<th>reported as supported</th>
+<th>translation</th>
+<th>comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>curdate()</td>
+<td>yes</td>
+<td>current_date</td>
+<td></td>
+</tr>
+<tr>
+<td>curtime()</td>
+<td>yes</td>
+<td>current_time</td>
+<td></td>
+</tr>
+<tr>
+<td>dayname(arg1)</td>
+<td>yes</td>
+<td>to_char(arg1, &lsquo;Day&rsquo;)</td>
+<td></td>
+</tr>
+<tr>
+<td>dayofmonth(arg1)</td>
+<td>yes</td>
+<td>extract(day from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>dayofweek(arg1)</td>
+<td>yes</td>
+<td>extract(dow from arg1)+1</td>
+<td>We must add 1 to be in the expected 1-7 range.</td>
+</tr>
+<tr>
+<td>dayofyear(arg1)</td>
+<td>yes</td>
+<td>extract(doy from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>hour(arg1)</td>
+<td>yes</td>
+<td>extract(hour from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>minute(arg1)</td>
+<td>yes</td>
+<td>extract(minute from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>month(arg1)</td>
+<td>yes</td>
+<td>extract(month from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>monthname(arg1)</td>
+<td>yes</td>
+<td>to_char(arg1, &lsquo;Month&rsquo;)</td>
+<td></td>
+</tr>
+<tr>
+<td>now()</td>
+<td>yes</td>
+<td>now()</td>
+<td></td>
+</tr>
+<tr>
+<td>quarter(arg1)</td>
+<td>yes</td>
+<td>extract(quarter from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>second(arg1)</td>
+<td>yes</td>
+<td>extract(second from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>week(arg1)</td>
+<td>yes</td>
+<td>extract(week from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>year(arg1)</td>
+<td>yes</td>
+<td>extract(year from arg1)</td>
+<td></td>
+</tr>
+<tr>
+<td>timestampadd(argIntervalType, argCount, argTimeStamp)</td>
+<td>yes</td>
+<td>(&rsquo;(interval according to argIntervalType and</td>
+<td></td>
+</tr>
+<tr>
+<td>argCount)&rsquo;+argTimeStamp)</td>
+<td>an argIntervalType value of SQL_TSI_FRAC_SECOND</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>is not implemented since backend does not support it</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)</td>
+<td>not</td>
+<td>extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 )</td>
+<td>only an argIntervalType value of SQL_TSI_FRAC_SECOND, SQL_TSI_FRAC_MINUTE, SQL_TSI_FRAC_HOUR or SQL_TSI_FRAC_DAY is supported</td>
+</tr>
+</tbody>
+</table>
+<h5 id="table84supported-escaped-misc-functions" class="self-link">Table 8.4. Supported escaped misc functions <a class="header-link" href="#table84supported-escaped-misc-functions">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><table>
+<thead>
+<tr>
+<th>function</th>
+<th>reported as supported</th>
+<th>translation</th>
+<th>comments</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>database()</td>
+<td>yes</td>
+<td>current_database()</td>
+<td>Only reported as supported by 7.3 and above servers.</td>
+</tr>
+<tr>
+<td>ifnull(arg1, arg2)</td>
+<td>yes</td>
+<td>coalesce(arg1, arg2)</td>
+<td></td>
+</tr>
+<tr>
+<td>user()</td>
+<td>yes</td>
+<td>user</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+
+<div class="pagination">
+	<div class="pagination__left">
+		
+		<a class="pagination__left__link" title="Previous page" href="https://pgjdbc.github.io/pgjdbc/documentation/binary-data/">
+			Storing Binary Data
+		</a>
+		
+	</div>
+
+	<div class="pagination__right">
+		
+		<a class="pagination__right__link" title="Next page" href="https://pgjdbc.github.io/pgjdbc/documentation/server-prepare/">
+			PostgreSQL™ Extensions to the JDBC API
+		</a>
+		
+	</div>
+</div></article>
+<aside class="toc">
+    <div class="toc__head">JDBC escapes</div>
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#escape-for-like-escape-character">Escape for like escape character</a></li>
+    <li><a href="#escape-for-outer-joins">Escape for outer joins</a></li>
+    <li><a href="#date-time-escapes">Date-time escapes</a></li>
+    <li><a href="#escaped-scalar-functions">Escaped scalar functions</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</aside>
+</div>
+
+    </main>
+    <footer class="footer" role="contentinfo">
+    <div class="footer__item">
+        
+        <ul role="list" class="list">
+            <li class="list__head">pgJDBC</li>
+            <br />
+            
+            <li><a href="https://jdbc.postgresql.org/documentation/publicapi/index.html" class="list__link">Public API</a></li>
+            
+            <li><a href="https://www.postgresql.org/" class="list__link">About PostgreSQL</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">Community</li>
+            <br />
+            
+            <li><a href="https://github.com/pgjdbc/pgjdbc" class="list__link">Github</a></li>
+            
+            <li><a href="https://postgres-slack.herokuapp.com/" class="list__link">Slack</a></li>
+            
+            <li><a href="https://twitter.com/PostgreSQL" class="list__link">Twitter</a></li>
+            
+            <li><a href="https://www.postgresql.org/list/pgsql-jdbc/" class="list__link">Mailing List</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">More</li>
+            <br />
+            
+            <li><a href="/pgjdbc/faq/" class="list__link">FAQ</a></li>
+            
+            <li><a href="https://www.postgresql.org/about/policies/privacy/" class="list__link">Privacy</a></li>
+            
+            <li><a href="/pgjdbc/license/" class="list__link">License</a></li>
+            
+        </ul>
+        
+    </div>
+    <div class="copyrights">
+        Copyright © 1996-2022 The PostgreSQL Global Development Group
+    </div>
+</footer>
+</body>
+
+</html>

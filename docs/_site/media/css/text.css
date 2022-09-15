@@ -1,0 +1,162 @@
+/*
+  PostgreSQL.org - Text Styles
+*/
+
+/* Heading Definitions */
+
+h1 {
+  color: #EC5800;
+}
+
+h2 {
+  color: #666; 
+}
+
+h3 { 
+  color: #666; 
+}
+
+h4 { 
+  color: #666; 
+}
+
+/* Text Styles */
+
+.txtColumn1 {
+  width: 50%;
+  line-height: 1.3em;
+}
+
+.txtColumn2 {
+  width: 50%;
+  line-height: 1.5em;
+}
+
+.txtCurrentLocation {
+  font-weight: bold;
+}
+
+.txtDivider { 
+  font-size: 0.8em; 
+  color: #E1E1E1; 
+  padding-left: 4px; 
+  padding-right: 4px; 
+}
+
+.txtNewsEvent { 
+  font-size: 0.9em; 
+  color: #0094C7; 
+}
+
+.txtDate { 
+  font-size: 0.9em;
+  color: #333;
+}
+
+.txtMediumGrey { 
+  color: #666; 
+}
+
+.txtFormLabel { 
+  color: #666; 
+  font-weight: bold; 
+  text-align: right; 
+  vertical-align: top;
+}
+
+.txtRequiredField {
+  color: #EC5800;
+}
+
+.txtImportant {
+  color: #EC5800;
+}
+
+.txtOffScreen {
+  position: absolute;
+  left: -1999px;
+  width: 1990px;
+}
+
+#txtFrontFeatureHeading {
+  padding-bottom: 1.1em;
+}
+
+#txtFrontFeatureLink a {
+  font-size: 1.2em;
+  font-weight: bold;
+  padding-left: 5px;
+}
+
+#txtFrontUserText {
+  font-size: 1.0em; 
+  color: #666; 
+  margin-top: 12px; 
+}
+
+#txtFrontUserName { 
+  font-size: 0.9em; 
+  color: #666; 
+  margin-top: 9px; 
+  font-weight: bold; 
+}
+
+#txtFrontUserLink { 
+  font-size: 0.9em; 
+  color: #666; 
+  margin-top: 11px; 
+  margin-left: 1px; 
+}
+
+#txtFrontUserLink img {
+  padding-right: 5px;
+}
+
+#txtFrontSupportUsText { 
+  font-size: 1.0em;
+  margin-top: 9px; 
+}
+
+#txtFrontSupportUsLink { 
+  font-size: 0.9em;
+  margin-top: 6px; 
+}
+
+#txtFrontSupportUsLink img {
+  padding-right: 7px;
+} 
+
+/* Link Styles */
+
+a:link                          { color:#0085B0; text-decoration: underline; }
+a:visited                       { color:#004E66; text-decoration: underline; }
+a:active                        { color:#0085B0; text-decoration: underline; }
+a:hover                         { color:#000000; text-decoration: underline; }
+
+#pgFooter a:link                { color:#666; text-decoration: underline; }
+#pgFooter a:visited             { color:#666; text-decoration: underline; }
+#pgFooter a:active              { color:#666; text-decoration: underline; }
+#pgFooter a:hover               { color:#000000; text-decoration: underline; }
+
+#txtFrontUserName a:link                { color:#666; text-decoration: underline; }
+#txtFrontUserName a:visited             { color:#666; text-decoration: underline; }
+#txtFrontUserName a:active              { color:#666; text-decoration: underline; }
+#txtFrontUserName a:hover               { color:#000; text-decoration: underline; }
+
+#txtArchives a:visited	{ color:#00536E; text-decoration: underline; }
+#txtArchives pre 	{ word-wrap: break-word; font-size: 150%; }
+#txtArchives tt 	{ word-wrap: break-word; font-size: 150%; }
+
+#pgFrontUSSContainer h2, #pgFrontUSSContainer h3 {
+  margin: 0;
+  padding: 0;
+}
+
+#pgFrontNewsEventsContainer h2, #pgFrontNewsEventsContainer h3 {
+  margin: 0;
+  padding: 0;
+}
+
+#pgFrontNewsEventsContainer h3 img {
+  margin-bottom: 10px;
+}

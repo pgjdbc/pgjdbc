@@ -1,0 +1,37 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] </li>
+</ul>
+
+<h3>Added</h3>
+
+<ul>
+<li>fix: make setObject accept UUID array <a href="https://github.com/pgjdbc/pgjdbc/pull/2587">PR #2587</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>fix: regression with GSS. Changes introduced to support building with Java 17 caused failures <a href="https://github.com/pgjdbc/pgjdbc/issues/2588">Issue #2588</a></li>
+<li>fix: set a timeout to get the return from requesting SSL upgrade. <a href="https://github.com/pgjdbc/pgjdbc/pull/2572">PR #2572</a></li>
+<li>feat: synchronize statement executions (e.g. avoid deadlock when Connection.isValid is executed from concurrent threads)</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Dave Cramer (7):
+      Revert revert commits made in PR 2580 <a href="https://github.com/pgjdbc/pgjdbc/pull/2583">PR 2583</a>
+      fix mismatched types for invokeExact. Have to tell invokeExact what type we are expecting <a href="https://github.com/pgjdbc/pgjdbc/pull/2589">PR 2589</a>
+      update last copyright year <a href="https://github.com/pgjdbc/pgjdbc/pull/2593">PR 2593</a>
+      fix erroneous method signature and null subjectCallAs <a href="https://github.com/pgjdbc/pgjdbc/pull/2595">PR 2595</a></p>
+
+<p>Sasa Vilic (1):
+      fix: make setObject accept UUID array <a href="https://github.com/pgjdbc/pgjdbc/pull/2587">PR 2587</a></p>
+
+<p>Andrei Lurie (1):
+      fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] </p>

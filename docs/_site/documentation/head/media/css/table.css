@@ -1,0 +1,107 @@
+/*
+  PostgreSQL.org - Table Styles
+*/
+
+div.tblBasic h2 {
+        margin: 25px 0 .5em 0;
+}
+
+div.tblBasic table {
+        background: #F5F5F5 url(/media/img/layout/nav_tbl_top_lft.png) top left no-repeat;
+	margin-left: 2ex;
+        margin-bottom: 15px;
+}
+
+div.tblBasic table th {
+        padding-top: 20px;
+        border-bottom: 1px solid #F0F8FF;
+        vertical-align: bottom;
+}
+
+div.tblBasic table td {
+        border-bottom: 1px solid #EFEFEF;
+}
+
+div.tblBasic table th,
+div.tblBasic table td {
+        padding: 8px 11px;
+        color: #555555;
+}
+
+div.tblBasic table td.indented {
+        text-indent: 30px;
+}
+
+div.tblBasic table.tblCompact td {
+        padding: 3px 3px;
+}
+
+div.tblBasic table tr.lastrow td {
+        border-bottom: none;
+        padding-bottom: 13px;
+}
+
+div.tblBasic table.tblCompact tr.lastrow td {
+        padding-bottom: 3px;
+}
+
+div.tblBasic table tr.lastrow td.colFirstT,
+div.tblBasic table tr.lastrow td.colFirst {
+        background: url(../img/layout/nav_tbl_btm_lft.png) bottom left no-repeat;
+}
+
+div.tblBasic table.tblBasicGrey th.colLast,
+div.tblBasic table.tblCompact th.colLast {
+        background: #F5F5F5 url(../img/layout/nav_tbl_top_rgt.png) top right no-repeat;
+}
+
+div.tblBasic table.tblBasicGrey tr.lastrow td.colLastT,
+div.tblBasic table.tblBasicGrey tr.lastrow td.colLast,
+div.tblBasic table.tblCompact tr.lastrow td.colLast,
+div.tblBasic table.tblCompact tr.lastrow td.colLastT{
+        background: #F5F5F5 url(../img/layout/nav_tbl_btm_rgt.png) bottom right no-repeat;
+}
+
+div.tblBasic table.tblBasicGrey tr.firstrow td.colLastT,
+div.tblBasic table.tblBasicGrey tr.firstrow td.colLast,
+div tblBasic table.tblCompact tr.firstrow td.colLast {
+        background: #F5F5F5 url(../img/layout/nav_tbl_top_rgt.png) top right no-repeat;
+}
+
+div.tblBasic table th.colMid,
+div.tblBasic table td.colMid,
+div.tblBasic table th.colLast,
+div.tblBasic table td.colLast {
+        background-color: #F5F5F5 ;
+}
+
+div.tblBasic table th.colLastC,
+div.tblBasic table td.colFirstC,
+div.tblBasic table td.colLastC {
+        text-align: center;
+}
+
+div.tblBasic table th.colLastR,
+div.tblBasic table td.colFirstR,
+div.tblBasic table td.colLastR {
+        text-align: right;
+}
+
+div.tblBasic table td.colFirstT,
+div.tblBasic table td.colMidT,
+div.tblBasic table td.colLastT {
+        vertical-align: top;
+}
+
+div.tblBasic table th.colLastRT,
+div.tblBasic table td.colFirstRT,
+div.tblBasic table td.colLastRT {
+        text-align: right;
+        vertical-align: top;
+}
+div.tblBasic table.tblBasicWhite th {
+        background-color: aliceblue;
+}
+div.tblBasic table.tblBasicWhite td {
+        background-color: white;
+}

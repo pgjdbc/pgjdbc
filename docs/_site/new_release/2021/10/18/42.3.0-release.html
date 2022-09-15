@@ -1,0 +1,63 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>No longer build for Java 6 or Java 7 </li>
+<li>If assumeMinServerVersion is not defined and server is at least 9.0, group startup statements into a single transaction PR <a href="https://github.com/pgjdbc/pgjdbc/pull/1977">#1977</a></li>
+</ul>
+
+<h3>Added</h3>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Rework OSGi bundle activator so it does not rely on exception message to check DataSourceFactory presence PR <a href="https://github.com/pgjdbc/pgjdbc/pull/507">#507</a></li>
+<li>Fix database metadata getFunctions() and getProcedures() to ignore search_path when no schema pattern is specified <a href="https://github.com/pgjdbc/pgjdbc/pull/2174">PR #2174</a></li>
+<li>Fix refreshRow made the row readOnly. [PR #2195](https://github.com/pgjdbc/pgjdbc/pull/2195 Fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2193">Issue #2193</a></li>
+<li>Fix do not add double quotes to identifiers already double quoted <a href="https://github.com/pgjdbc/pgjdbc/pull/2224">PR #2224</a> Fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2223">Issue #2223</a>
+Add a property <code>QUOTE_RETURNING_IDENTIFIERS</code> which determines if we put double quotes
+around identifiers that are provided in the returning array.</li>
+<li>Fix Provide useful error message for empty or missing passwords for SCRAM auth <a href="https://github.com/pgjdbc/pgjdbc/pull/2290">PR #2290</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2288">Issue #2288</a></li>
+</ul>
+
+<p><a name="contributors_42.3.0"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/Abhishek-kumar09">Abhishek-kumar09</a><br>
+<a href="https://github.com/adrklos">adrklos</a><br>
+<a href="https://github.com/agatan">Agata Naomichi</a><br>
+<a href="https://github.com/adunstan">Andrew Dunstan</a><br>
+<a href="https://github.com/bokken">Brett Okken</a><br>
+<a href="https://github.com/costa100">costa100</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/davidradernj">David Rader</a><br>
+<a href="https://github.com/elpete">Eric Peterson</a><br>
+<a href="https://github.com/Fzhlib">Feng zhihao</a><br>
+<a href="https://github.com/frode-carlsen">Frode Carlsen</a><br>
+<a href="6619758+hugomiguelabreu@users.noreply.github.com">Hugo Abreu</a><br>
+<a href="https://github.com/iceback">iceback</a><br>
+<a href="https://github.com/jeremymailen">Jeremy Mailen</a><br>
+<a href="https://github.com/jesperpedersen">Jesper Pedersen</a><br>
+<a href="https://github.com/jorsol">Jorge Solorzano</a><br>
+<a href="https://github.com/jorsol">Jorge Solórzano</a><br>
+<a href="https://github.com/jsyrjala">Juha Syrjälä</a><br>
+<a href="https://github.com/jycr">JY Cr</a><br>
+<a href="https://github.com/laurenz">Laurenz Albe</a><br>
+<a href="https://github.com/mernst">Michael Ernst</a><br>
+<a href="https://github.com/MMeent">MMeent</a><br>
+<a href="https://github.com/odubaj">odubaj</a><br>
+<a href="https://github.com/pbludov">Pavel Bludov</a><br>
+<a href="https://github.com/petere">Peter Eisentraut</a><br>
+<a href="https://github.com/plan3d">plan3d</a><br>
+<a href="https://github.com/Powerrr">Power</a><br>
+<a href="https://github.com/rtrier">rtrier</a><br>
+<a href="https://github.com/sehrope">Sehrope Sarkuni</a><br>
+<a href="https://github.com/strassl">Simon Strassl</a><br>
+<a href="https://github.com/Tomtomgo">Tom Aizenberg</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a><br>
+<a href="https://github.com/Vyom-Yadav">Vyom Yadav</a><br>
+<a href="https://github.com/xpoinsard">xpoinsard</a>  </p>

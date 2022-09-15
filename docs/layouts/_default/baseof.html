@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    {{ partial "font-preload.html" . }}
+
+    <title>{{ block "title" . }}{{ with .Title }}{{ . }} | {{ end }}{{ .Site.Title }}{{ end }}</title>
+
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+
+    {{ $sass := resources.Get "sass/main.scss" }}
+    {{ $style := $sass | resources.ToCSS | resources.Fingerprint }}
+    <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
+    {{ partial "site-manifest.html" . }}
+    {{ partial "scripts.html" . }}
+
+</head>
+
+<body>
+    {{ block "nav" . }}{{ partial "site-nav.html" . }}{{ end }}
+    <main role="main" class="main-inner">
+        {{ block "main" . }}{{ end }}
+    </main>
+    {{ block "footer" . }}{{ partialCached "site-footer.html" . }}{{ end }}
+    <div class="nav-mob">{{ partial "nav-mobile.html" . }}</div>
+</body>
+
+</html>

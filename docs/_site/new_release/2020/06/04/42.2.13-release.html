@@ -1,0 +1,117 @@
+<p><strong>Notable changes</strong></p>
+
+<p>The primary reason to release this version and to continue the 42.2.x branch is for CVE-2020-13692.
+Reported by David Dworken this is an XXE and more information can be found <a href="https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html">here</a>
+Sehrope Sarkuni reworked the XML parsing to provide a solution in commit 14b62aca4 
+The build system has been changed to Gradle thanks to Vladimir <a href="https://github.com/pgjdbc/pgjdbc/pull/1627">PR 1627</a>
+Regression: com.github.waffle:waffle-jna, org.osgi:org.osgi.core, org.osgi:org.osgi.enterprise dependencies are listed as non-optional <a href="https://github.com/pgjdbc/pgjdbc/issues/1795">issue 1975</a>.</p>
+
+<h3>Added</h3>
+
+<ul>
+<li>jre-6 was added back to allow us to release fixes for all artifacts in the 42.2.x branch <a href="https://github.com/pgjdbc/pgjdbc/pull/1787">PR 1787</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>I/O error ru translation <a href="https://github.com/pgjdbc/pgjdbc/pull/1756">PR 1756</a></li>
+<li>Issue <a href="https://github.com/pgjdbc/pgjdbc/issues/1771">1771</a>  PgDatabaseMetaData.getFunctions() returns
+procedures fixed in <a href="https://github.com/pgjdbc/pgjdbc/pull/1774">PR 1774</a></li>
+<li>getTypeMap() returning null <a href="https://github.com/pgjdbc/pgjdbc/pull/1774">PR 1781</a></li>
+<li>Updated openssl example command <a href="https://github.com/pgjdbc/pgjdbc/pull/1763">PR 1763</a></li>
+<li>fix documentation with ordered list to be displayed correctly <a href="https://github.com/pgjdbc/pgjdbc/pull/1783">PR 1783</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Andrei Arkaev (1):</p>
+
+<ul>
+<li>Fix I/O error message in ru translation <a href="https://github.com/pgjdbc/pgjdbc/pull/1756">PR 1756</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f6731dfc771b9dd7e1cdbbf75baa35bf7afdecc8">f6731dfc</a></li>
+</ul>
+
+<p>Benjamin van der Veen (1):</p>
+
+<ul>
+<li>Updated openssl example command <a href="https://github.com/pgjdbc/pgjdbc/pull/1763">PR 1763</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e19d45879f9d93dc86d3d888659480aeffc0aedc">e19d4587</a></li>
+</ul>
+
+<p>Dave Cramer (6):</p>
+
+<ul>
+<li>remove 9.4 and 9.5 <a href="https://github.com/pgjdbc/pgjdbc/pull/1753">PR 1753</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/2aa49c05962d147e075434abf9adb8f9461bfd52">2aa49c05</a></li>
+<li>Update issue templates <a href="https://github.com/pgjdbc/pgjdbc/pull/1765">PR 1765</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/139eb54e672a5e9c54434706a94489fbb49bbffe">139eb54e</a></li>
+<li>refer to current versions in maven <a href="https://github.com/pgjdbc/pgjdbc/pull/1769">PR 1769</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/302046f219e25bacb351c8f49bb2c3a49c8b1ca5">302046f2</a></li>
+<li>fix: getTypeMap() returning null <a href="https://github.com/pgjdbc/pgjdbc/pull/1781">PR 1781</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f3abb4eb19357ac353d4a1e59d2920135619ad9a">f3abb4eb</a></li>
+<li>create changelog and prepare release <a href="https://github.com/pgjdbc/pgjdbc/pull/1790">PR 1790</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/bb3c5ca848cf0c4f080f87994b9636755c52a710">bb3c5ca8</a></li>
+<li>change release date to june 4 <a href="https://github.com/pgjdbc/pgjdbc/pull/1792">PR 1792</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e63584cfb2bbb904a971a0b19cb4857249e0b8e2">e63584cf</a></li>
+</ul>
+
+<p>ItaiFonio (1):</p>
+
+<ul>
+<li>docs: remove Supported Versions from downloads page <a href="https://github.com/pgjdbc/pgjdbc/pull/1761">PR 1761</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/5e97af326e68af74452e284d85a541dd623b07c1">5e97af32</a></li>
+</ul>
+
+<p>Jean-Christophe Arnu (1):</p>
+
+<ul>
+<li>fix numbered list to be displayed correctly <a href="https://github.com/pgjdbc/pgjdbc/pull/1783">PR 1783</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/fda4299e1e3b76aa7e0c0031f3e11c61dd05c64b">fda4299e</a></li>
+</ul>
+
+<p>Kim Johan Andersson (1):</p>
+
+<ul>
+<li>Use generatedKeys to fetch sequence values on insertRow() <a href="https://github.com/pgjdbc/pgjdbc/pull/1743">PR 1743</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9f398c537447d7773971ff0e1a93ed75f5b01122">9f398c53</a></li>
+</ul>
+
+<p>Sehrope Sarkuni (2):</p>
+
+<ul>
+<li>fix: Update checkstyle command in PR template to reference gradle <a href="https://github.com/pgjdbc/pgjdbc/pull/1780">PR 1780</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/4ddbcb7dd083652fda080ccc958dda17842f7a99">4ddbcb7d</a></li>
+<li>Merge pull request from GHSA-37xm-4h3m-5w3v <a href="https://github.com/pgjdbc/pgjdbc/commit/14b62aca4764d496813f55a43d050b017e01eb65">14b62aca</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (14):</p>
+
+<ul>
+<li>chore: migrate build scripts to Gradle <a href="https://github.com/pgjdbc/pgjdbc/commit/9f396707b8e00c32433dd1a859004e901d6aa013">9f396707</a></li>
+<li>Add source distribution <a href="https://github.com/pgjdbc/pgjdbc/commit/d2e4f5859affc14762bdb20cd386055aac71e265">d2e4f585</a></li>
+<li>Re-add benchmarks module <a href="https://github.com/pgjdbc/pgjdbc/commit/409bd25a576afab463857d0ada7c7fc86b97560f">409bd25a</a></li>
+<li>Fix comparisons in travis_build.sh <a href="https://github.com/pgjdbc/pgjdbc/commit/b80ebcef33f9c3801f01e28994746bc36abb2d21">b80ebcef</a></li>
+<li>Configure core.autocrlf in AppVeyor <a href="https://github.com/pgjdbc/pgjdbc/commit/cb37010619e3fa7cb0937509de8fe924a77c45c7">cb370106</a></li>
+<li>Inline COPY<em>ERROR</em>MESSAGE so it can be localized properly <a href="https://github.com/pgjdbc/pgjdbc/commit/9a0dbf1b7cceb5e751fe83f6fec99790b13ff57c">9a0dbf1b</a></li>
+<li>chore: update po files with the current messages <a href="https://github.com/pgjdbc/pgjdbc/commit/bb36e36282775a4384845b320cd4841cb23b0314">bb36e362</a></li>
+<li>chore: make benchmarks executable from IDEA <a href="https://github.com/pgjdbc/pgjdbc/commit/99ba94ece16181eeb224048fa1bce5aaed0fb7cf">99ba94ec</a></li>
+<li>chore: move code style verification to GitHub Actions job <a href="https://github.com/pgjdbc/pgjdbc/commit/9da29740caf0f8a8469da762e7070090d10cb49d">9da29740</a></li>
+<li>chore: show the current PostgreSQL HEAD commit id in Travis log <a href="https://github.com/pgjdbc/pgjdbc/commit/332b071928babd1e446f1b0872658a0316617d2e">332b0719</a></li>
+<li>chore: re-add pgjdbc-jre6 build <a href="https://github.com/pgjdbc/pgjdbc/pull/1787">PR 1787</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/d224acd095c1697f3503c8fbf73f7b22828b5720">d224acd0</a></li>
+<li>chore: use REL$buildVersion for the release version as it was previously <a href="https://github.com/pgjdbc/pgjdbc/commit/148840d3f2f99e7f54d829aed8e70b4be39139f8">148840d3</a></li>
+<li>chore: fix artifactid and version for -jre6 and -jre7 artifacts <a href="https://github.com/pgjdbc/pgjdbc/commit/97e2e8f5bb325841f7a9d20c22eee1a419c3abdc">97e2e8f5</a></li>
+<li>chore: include META-INF/services/java.sql.Driver for jre7 and jre6 jars <a href="https://github.com/pgjdbc/pgjdbc/commit/5ca2b9e732022c1852b829227a303edff83a09fc">5ca2b9e7</a></li>
+</ul>
+
+<p>kili668 (1):</p>
+
+<ul>
+<li>Fix: issue PgDatabaseMetaData.getFunctions() <a href="https://github.com/pgjdbc/pgjdbc/pull/1774">PR 1774</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/0eb5eea99d46e49c92b24776a9cd782b7fa8b57b">0eb5eea9</a></li>
+</ul>
+
+<p><a name="contributors_42.2.13"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/arkaev">Andrei Arkaev</a>
+<a href="https://github.com/bvanderveen">Benjamin van der Veen</a>
+<a href="davec@postgresintl.com">Dave Cramer</a>
+<a href="https://github.com/ItaiFonio">ItaiFonio</a>
+<a href="https://github.com/jcarnu">Jean-Christophe Arnu</a>
+<a href="https://github.com/kili668">kili668</a>
+<a href="https://github.com/kimjand">Kim Johan Andersson</a>
+<a href="https://github.com/sehrope">Sehrope Sarkuni</a>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a></p>

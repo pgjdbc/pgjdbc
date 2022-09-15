@@ -1,0 +1,237 @@
+/*
+  PostgreSQL.org - Navigation (and List) Styles
+*/
+
+/* Site Navigation */
+
+#pgTopNav {
+  text-align: left;
+  color: #666;
+  font-size: 0.9em;
+  margin: 0;
+  padding: 0;
+  height: 23px;
+  background: #B7B7B7 url("/media/img/layout/nav_fill.png") top left repeat-x;
+  overflow: visible;
+  margin-top: 2px;
+}
+
+#pgTopNavLeft {
+  width: 7px;
+  height: 23px;
+  border: 0px;
+  padding-right: 10px;
+  margin: 0px;
+  float: left;
+}
+
+#pgTopNavLeft img {
+  border: 0px;
+  margin: 0;
+  padding: 0;
+}
+
+#pgTopNavRight {
+  width: 7px;
+  height: 23px;
+  border: 0px;
+  padding: 0px;
+  margin: 0px;
+  float: right;
+}
+
+#pgTopNavRight img {
+  border: 0px;
+  margin: 0;
+  padding: 0;
+}
+
+#pgTopNavList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  height: 23px;
+  padding-top: 5px;
+}
+
+#pgTopNavList li {
+  padding: 0 1em 0 1.2em;
+  display: inline;
+  border-left: 1px solid #C8C8C8;
+}
+
+#pgTopNavList li a {
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+#pgTopNavList li:first-child {
+  border-left: 0;
+  padding-left: 0;
+}
+
+#pgLoginLink {
+  margin: 0;
+  padding: 0;
+}
+#pgLoginlink a {
+  float: right;
+  color: #fff;
+  font-weight: bold;
+  text-decoration: none;
+  padding: 5px 1em 0 1.2em;
+  margin: 0;
+  height: 23px;
+}
+
+/* The search navigation is the list of links next to the search box. */
+
+#pgSearchNav {
+  position: relative;
+  float: right;
+  text-align: right;
+  color: #666;
+  font-size: 0.9em;
+  margin: 0px 0px 0px 0px;
+  top: -11px;
+  right: 209px;
+  padding: 0;
+}
+
+#pgSearchNavList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+#pgSearchNavList li {
+  padding: 0 0.5em 0 0.5em;
+  display: inline;
+  border-right: 1px solid #C8C8C8;
+}
+
+#pgSearchNavList li a {
+  color: #666;
+  text-decoration: none;
+}
+
+#pgSearchNavList li a:hover {
+  color: #000;
+}
+
+/* Category Navigation */
+
+#pgSideNav:before {
+  line-height: 0.1;
+  font-size: 1px;
+  margin: 0;
+  display: block;
+}
+
+#pgSideNav:after {
+  line-height: 0.1;
+  font-size: 1px;
+  margin: 0;
+  display: block;
+}
+
+#pgSideNav, #pgSideNav ul, #pgSideNav ul ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 1.0em;
+}
+
+#pgSideNav {
+  width: 150px;
+  background-color: #F5F5F5;
+  background-image: url(../img/layout/nav_tbl_top.png);
+  background-position: top right;
+  background-repeat: no-repeat;
+}
+
+#pgSideNav ul {
+  background-image: url(../img/layout/nav_tbl_btm.png);
+  background-position: bottom left;
+  background-repeat: no-repeat;
+  padding: 10px 0 10px 0;
+}
+
+#pgSideNav ul ul {
+  background: none;
+  background-color: #F5F5F5;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#pgSideNav ul ul li {
+  background: none;
+  border: none;
+}
+
+#pgSideNav ul li {
+  border-bottom: 1px solid #EFEFEF;
+  margin: 0;
+  padding-left: 12px;
+  background-image: url(../img/layout/blt_gry_arrow.png);
+  background-repeat: no-repeat;
+  background-position: 12px 0.65em;
+}
+
+/* Uncomment when IE/Validator supports last-child
+
+#pgSideNav ul li:last-child {
+  border-bottom: 1px solid #F5F5F5;
+}
+
+*/
+
+#pgSideNav ul li.last-child {
+  border-bottom: 1px solid #F5F5F5;
+}
+
+#pgSideNav ul li.active {
+  font-weight: bold;
+}
+
+#pgSideNav ul li.active span {
+  display: none;
+}
+
+#pgSideNav ul li a {
+  display: block;
+  color: #666;
+  text-decoration: none;
+  padding: 3px 5px 3px 15px;
+  margin: 0;
+}
+
+#pgSideNav ul ul li a.active {
+  font-weight: bold;
+}
+
+/* Uncomment when IE/Validator supports last-child
+
+#pgSideNav ul ul li:last-child {
+  border-bottom: none;
+}
+
+*/
+
+#pgSideNav ul ul li.last-child {
+  border-bottom: none;
+}
+
+#pgSideNav ul ul li a {
+  display: block;
+  /* padding: 3px 5px 3px 12px; */
+  padding-left: 12px;
+  margin: 0;
+}
+
+#pgSideNav ul li a:hover {
+  color: #333;
+}

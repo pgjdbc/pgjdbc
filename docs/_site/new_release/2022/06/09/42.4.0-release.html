@@ -1,0 +1,42 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>fix: added GROUP<em>STARTUP</em>PARAMETERS boolean property to determine whether or not to group 
+startup parameters in a transaction (default=false like 42.2.x) fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2497">Issue #2425</a> 
+pgbouncer cannot deal with transactions in statement pooling mode <a href="https://github.com/pgjdbc/pgjdbc/pull/2425">PR #2425</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767)
+<a href="https://github.com/pgjdbc/pgjdbc/pull/2525">PR #2525</a>, <a href="https://github.com/pgjdbc/pgjdbc/issues/1311">Issue #1311</a></li>
+<li>fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings.
+Regression since 42.2.13. <a href="https://github.com/pgjdbc/pgjdbc/pull/2531">PR #2531</a>, <a href="https://github.com/pgjdbc/pgjdbc/issues/2527">issue #2527</a></li>
+<li>fix: use Locale.ROOT for toUpperCase() toLowerCase() calls</li>
+<li>doc: add Vladimir Sitnikov&#39;s PGP key</li>
+<li>fix: return correct base type for domain from getUDTs <a href="https://github.com/pgjdbc/pgjdbc/pull/2520">PR #2520</a> <a href="https://github.com/pgjdbc/pgjdbc/issues/2522">Issue #2522</a></li>
+<li>perf: utcTz static and renamed to UTC_TIMEZONE <a href="https://github.com/pgjdbc/pgjdbc/pull/2520">PR #2519</a></li>
+<li>doc: fix release version for #2377 (it should be 42.3.6, not 42.3.5)</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Andrei Lurie (1):
+      fix: return correct base type for domain from getUDTs <a href="https://github.com/pgjdbc/pgjdbc/pull/2520">PR 2520</a> (#2522)</p>
+
+<p>Dave Cramer (3):
+      fix: added GROUP<em>STARTUP</em>PARAMETERS boolean property to determine whether or not to group startup parameters in a transaction or not fixes Issue 2423 pgbouncer cannot deal with transactions in statement pooling mode <a href="https://github.com/pgjdbc/pgjdbc/pull/2425">PR 2425</a></p>
+
+<p>Jorge Solórzano (1):
+      chore: Make the readme version agnostic <a href="https://github.com/pgjdbc/pgjdbc/pull/2540">PR 2540</a></p>
+
+<p>Sven Diedrichsen (1):
+      Made utcTz static and renamed to UTC_TIMEZONE <a href="https://github.com/pgjdbc/pgjdbc/pull/2519">PR 2519</a></p>
+
+<p>Vladimir Sitnikov (24):
+      doc: fix release version for <a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PR 2377</a> (it should be 42.3.6, not 42.3.5)</p>
