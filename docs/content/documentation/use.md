@@ -18,7 +18,7 @@ import java.sql.*;
 
 > **NOTE**
 >
-> You should not import the `org.postgresql` package unless you are using standard PostgreSQL™ extensions to the JDBC API.
+> You should not import the `org.postgresql` package unless you are using PostgreSQL™ extensions to the JDBC API.
 
 ## Loading the Driver
 
@@ -28,7 +28,7 @@ Applications do not need to explicitly load the org.postgresql. Driver class bec
 >
 > Prior to Java 1.6, the driver had to be loaded by the application - either by calling `Class.forName("org.postgresql.Driver");` or by passing the driver class name as a JVM parameter `java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer`
 
-These older methods of loading the driver are still supported but they are no longer necessary.
+These older methods of loading the driver are still supported, but they are no longer necessary.
 
 ## Connecting to the Database
 
