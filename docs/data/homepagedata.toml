@@ -1,15 +1,15 @@
 # Features
 
 [[feature]]
-desc = "Allows Java programs to connect to a PostgreSQL database using standard, database independent Java code"
+desc = "pgJDBC allows Java programs to connect to a PostgreSQL database using standard, database independent Java code."
 path = "/icons/java-icon.svg"
 
 [[feature]]
-desc = "Provides complete implementation of the JDBC specification in addition to some PostgreSQL specific extensions"
+desc = "pgJDBC provides a reasonably complete implementation of the JDBC specification in addition to some PostgreSQL specific extensions."
 path = "/icons/api-icon.svg"
 
 [[feature]]
-desc = "The current development driver supports eleven server versions and three java environments"
+desc = "The current development driver supports eleven server versions and three java environments."
 path = "/icons/driver-icon.svg"
 
 # Releases Info
