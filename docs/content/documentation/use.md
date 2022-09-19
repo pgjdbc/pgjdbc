@@ -18,7 +18,7 @@ import java.sql.*;
 
 > **NOTE**
 >
-> You should not import the `org.postgresql` package unless you are not using standard PostgreSQL™ extensions to the JDBC API.
+> You should not import the `org.postgresql` package unless you are using standard PostgreSQL™ extensions to the JDBC API.
 
 ## Loading the Driver
 

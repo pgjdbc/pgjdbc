@@ -10,13 +10,13 @@ url= "/download/postgresql-42.5.0.jar"
 j_name= "Java 7"
 v_name= "v42.2.26"
 description= "If you are using Java 7  then you should use the  JDBC 4.1 version."
-url= "/download/postgresql-42.2.26.jar.jre7"
+url= "/download/postgresql-42.2.26.jre7.jar"
 
 [[recent]]
 j_name= "Java 6"
 v_name= "v42.2.26"
 description= "If you are using Java 6  then you should use the  JDBC 4.0 version."
-url= "/download/postgresql-42.2.26.jar.jre6"
+url= "/download/postgresql-42.2.26.jre6.jar"
 
 # Past Versions
 

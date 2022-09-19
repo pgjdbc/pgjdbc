@@ -665,7 +665,7 @@ After create `PGReplicationStream` , it's time to start receive changes in real-
 
 Changes can be received from stream as blocking( `org.postgresql.replication.PGReplicationStream#read` ) or as non-blocking (`org.postgresql.replication.PGReplicationStream#readPending` ).
 Both methods receive changes as a `java.nio.ByteBuffer` with the payload from the send output plugin. We can't receive
-part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That why pgJDBC returns the raw ByteBuffer instead of making assumptions.
+part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That's why pgJDBC returns the raw ByteBuffer instead of making assumptions.
 
 ##### Example 9.11. Example send message from output plugin.
 
