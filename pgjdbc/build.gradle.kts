@@ -56,6 +56,7 @@ dependencies {
     shaded("com.ongres.scram:client")
 
     implementation("org.checkerframework:checker-qual")
+    implementation("org.json:json:20171018")
     testImplementation("se.jiderhamn:classloader-leak-test-framework")
 }
 

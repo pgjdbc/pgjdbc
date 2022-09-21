@@ -41,7 +41,11 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
-public class PgStatement implements Statement, BaseStatement {
+import org.json.*;
+import java.sql.*;
+import p1.NewStatement;
+
+public class PgStatement implements NewStatement, BaseStatement {
   private static final String[] NO_RETURNING_COLUMNS = new String[0];
 
   /**
@@ -249,6 +253,54 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
+  public String executeQueryStringJson(String sql) throws SQLException 
+  {
+    ResultSet rs = null;
+    ResultSetMetaData rsmd=null;
+    
+    JSONObject jsonObject=new JSONObject();
+    JSONArray array = new JSONArray();
+    rs=executeQuery(sql);
+    
+    if(rs!=null)
+    {
+      rsmd = rs.getMetaData();
+      jsonObject.put("status",200);
+
+      while(rs.next())
+      {
+        JSONObject item = new JSONObject();
+        for(int x=0;x<rsmd.getColumnCount();x++)
+        {
+          String columnName=rsmd.getColumnName(x+1); 
+          int type = rsmd.getColumnType(x+1);
+          if (type == Types.VARCHAR || type == Types.CHAR) 
+          {
+            String data=rs.getString(x+1);
+            item.put(columnName,data);
+          } 
+          else 
+          {
+            long data=rs.getLong(x+1);
+            item.put(columnName,data);
+          }
+        }
+        array.put(item);
+      }
+
+      jsonObject.put("data",array);
+      String sJson=jsonObject.toString();
+      return sJson;
+    }
+    else
+    {
+      jsonObject.put("status",500);
+      jsonObject.put("data",array);
+      String sJson=jsonObject.toString();
+      return sJson;
+    }
+  }
   protected ResultSet getSingleResultSet() throws SQLException {
     synchronized (this) {
       checkClosed();
