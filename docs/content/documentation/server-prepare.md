@@ -191,7 +191,7 @@ The PostgreSQL™ server allows clients to compile sql statements that are expec
 
 > **NOTE**
 >
-> PostgreSQL 9.2 release notes: prepared statements used to be optimized once, without any knowledgeof the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
+> PostgreSQL 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
 
@@ -202,11 +202,16 @@ Server side prepared statements can improve execution speed as
 
 ### Activation
 
-Previous versions of the driver used PREPARE and EXECUTE to implement server-prepared statements.  This is supported on all server versions beginning with 7.3, but produced application-visible changes in query results, such as missing ResultSet metadata and row update counts. The current driver uses the V3 protocol-level equivalents which avoid these changes in query results.
+Previous versions of the driver used PREPARE and EXECUTE to implement server-prepared statements.  
+This is supported on all server versions beginning with 7.3, but produced application-visible changes in query results, 
+such as missing ResultSet metadata and row update counts. The current driver uses the V3 protocol-level equivalents 
+which avoid these changes in query results. The Extended Query protocol prepares a temporary "unnamed statement". 
+See [Extended Query](https://www.postgresql.org/docs/current/protocol-flow.html) Section 53.2.3 for details.
 
-The driver uses server side prepared statements **by default** when `PreparedStatement` API is used. In order to get to server-side prepare, you need to execute the query 5 times (that can be configured via `prepareThreshold` connection property).
+The driver uses the Extended Protocol **by default** when the `PreparedStatement` API is used. 
 
-An internal counter keeps track of how many times the statement has been executed and when it reaches the threshold it will start to use server side prepared statements.
+An internal counter keeps track of how many times the statement has been executed and when it reaches the `prepareThreshold` (default 5)
+the driver will switch to creating a named statement and using `Prepare` and `Execute`.
 
 It is generally a good idea to reuse the same `PreparedStatement` object for performance reasons, however the driver is able to server-prepare statements automatically across `connection.prepareStatement(...)` calls.
 
