@@ -149,6 +149,7 @@ public class JdbcUrlResolverTest {
     failUrl("jdbc:postgresql://:0", "invalid port number: [0]");
     failUrl("jdbc:postgresql://:65536", "invalid port number: [65536]");
     failUrl("jdbc:postgresql://:2222a", "invalid integer value [2222a] for connection option 'port'");
+    failUrl("jdbc:postgresql://:22 22", "invalid integer value [22 22] for connection option 'port'");
     failUrl("jdbc:postgresql://:5%1", "url [5%1] parsing failed [URLDecoder: Incomplete trailing escape (%) pattern]");
     // db
     verifyUrl("jdbc:postgresql:///urlDb", "localhost", "5432", "urlDb", "osUser", null);

@@ -250,7 +250,7 @@ public class JdbcUrlResolver {
     if (portString == null) {
       throw new RuntimeException("bug in code, portString is null");
     }
-    String portStringNew = portString.replaceAll(" ", "");
+    String portStringNew = portString.trim();
     if (!portString.equals(portStringNew)) {
       PGProperty.PORT.set(result, portStringNew);
     }
