@@ -1,0 +1,59 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>The driver returns enum and jsonb arrays elements are returned as PGobject instances (fixed in 42.2.17)</li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Arrays sent in binary format are now sent as 1 based. This was a regression for multi-dimensional arrays as well as text/varchar, oid and bytea arrays. 
+Since 42.2.0 single dimensional arrays were stored 0 based. They are now sent 1 based which is the SQL standard, and the default 
+for Postgres when sent as strings such as &#39;{1,2,3}&#39;.
+Fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/1860">issue 1860</a> in <a href="https://github.com/pgjdbc/pgjdbc/pull/1863">PR 1863</a>.</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Brett Okken (3):</p>
+
+<ul>
+<li>Binary array index <a href="https://github.com/pgjdbc/pgjdbc/pull/1863">PR 1863</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/a0babeb3461a32788cced6f8641e4e2a89df472d">a0babeb3</a></li>
+<li>fix: preserve unquoted unicode whitespace in array literals <a href="https://github.com/pgjdbc/pgjdbc/pull/1266">PR 1266</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e8923c71597f844f07ef1b123d704d0a3b332a38">e8923c71</a></li>
+</ul>
+
+<p>Dave Cramer (3):</p>
+
+<ul>
+<li>move fix to correct place and remove duplicate <a href="https://github.com/pgjdbc/pgjdbc/pull/1859">PR 1859</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/ffd428f1e0ceeeff1f2c7835a8e165e055e4bf77">ffd428f1</a></li>
+</ul>
+
+<p>Sehrope Sarkuni (1):</p>
+
+<ul>
+<li>fix: Remove unused .ratignore <a href="https://github.com/pgjdbc/pgjdbc/pull/1857">PR 1857</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/aa4cb6d81c83ee7ce4d246b7113eb717b4179cf8">aa4cb6d8</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (3):</p>
+
+<ul>
+<li><p>docs: add release notes for 42.2.15 <a href="https://github.com/pgjdbc/pgjdbc/pull/1858">PR 1858</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/0c162bc036072d46f3a6adf2cc7bd66fe304c012">0c162bc0</a>
+draderaws (1):</p></li>
+<li><p>Fix header on existing Parameter Status doc page, and include entry in the index html page. <a href="https://github.com/pgjdbc/pgjdbc/pull/1845">PR 1845</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/99623077ed3ced321937f21323f33c674a9a5a31">99623077</a></p></li>
+</ul>
+
+<p><a name="contributors_42.2.16"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/bokken">Brett Okken</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/draderaws">draderaws</a><br>
+<a href="https://github.com/sehrope">Sehrope Sarkuni</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>

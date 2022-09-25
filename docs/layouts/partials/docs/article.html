@@ -1,0 +1,10 @@
+<article class="article">
+    <h1>
+        {{if eq .Title "Documentation"}}
+        <img src="{{"/icons/document.svg" | relURL}}" alt="document">
+        {{end}}
+        {{ .Title }}
+    </h1>
+    {{ .Content }}
+    {{- partial "previous-next-links.html" . -}}
+</article>

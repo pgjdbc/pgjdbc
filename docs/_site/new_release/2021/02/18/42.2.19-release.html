@@ -1,0 +1,131 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>Now the driver uses SASLprep normalization for SCRAM authentication fixing some issues with spaces in passwords.</li>
+<li>Fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes #1903 (#1905)
+There is a small behaviour change here as a result. If closeOnCompletion is called on an existing statement and the statement
+is executed a second time it will fail.</li>
+</ul>
+
+<h3>Added</h3>
+
+<ul>
+<li>Verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) <a href="https://github.com/pgjdbc/pgjdbc/pull/2012">PR #2012</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Fix: properly set cancel socket timeout (#2044)</li>
+<li>Fix &quot;Required class information missing&quot; when old org.jboss:jandex parses pgjdbc classes [issue 2008][https://github.com/pgjdbc/pgjdbc/issues/2008]</li>
+<li>Fix PGCopyInputStream returning the last row twice when reading with CopyOut API [issue 2016][https://github.com/pgjdbc/pgjdbc/issues/2016]</li>
+<li>Fix Connnection.isValid() to not wait longer than existing network timeout <a href="https://github.com/pgjdbc/pgjdbc/pull/2040">PR #2040</a></li>
+<li>Fix Passwords with spaces (ASCII and non-ASCII) now work with SCRAM authentication (driver now uses SASLprep normalization) <a href="https://github.com/pgjdbc/pgjdbc/pull/2052">PR #2052</a></li>
+<li>Fix DatabaseMetaData.getTablePrivileges() to include views, materialized views, and foreign tables <a href="https://github.com/pgjdbc/pgjdbc/pull/2049">PR #2049</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Dave Cramer (5):</p>
+
+<ul>
+<li>remove gssEncMode to test default in tests, should default to allow now <a href="https://github.com/pgjdbc/pgjdbc/pull/1927">PR 1927</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/013ba2730848ba43762d85d3a36a487cf2ea0ad0">013ba273</a></li>
+<li>Fixsite release42.2 <a href="https://github.com/pgjdbc/pgjdbc/pull/2032">PR 2032</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9fcfd76e7b3cf53acf7f247b4965272ad7a21b13">9fcfd76e</a></li>
+<li>chore: More42.2 site fixes <a href="https://github.com/pgjdbc/pgjdbc/pull/2035">PR 2035</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/411f39d61f6f874a1d0c8940fe72da4ed8416c3d">411f39d6</a></li>
+<li>fix: Actually close unclosed results. Previously was not closing the first unclosed result fixes <a href="https://github.com/pgjdbc/pgjdbc/pull/1903">PR 1903</a> (#1905) <a href="https://github.com/pgjdbc/pgjdbc/commit/fc25aebcec1b8abf7628bccd8cf565107afd85b1">fc25aebc</a></li>
+</ul>
+
+<p>Jeremy Mailen (3):</p>
+
+<ul>
+<li>fix: return metadata privileges for views and foreign tables <a href="https://github.com/pgjdbc/pgjdbc/commit/66690817f4b8926f8ab47a104538970c6c5e0dd3">66690817</a></li>
+<li>refactor: consolidate repeated drop code in TestUtil <a href="https://github.com/pgjdbc/pgjdbc/commit/f5abc65c813f6564a7b9c5a6a2a96a9ccc2f8dde">f5abc65c</a></li>
+<li>test: Add test for ACLs returned from metadata getTablePrivileges() for views <a href="https://github.com/pgjdbc/pgjdbc/commit/a6cf67d24bc698f62e43867f5aa61383b386e74c">a6cf67d2</a></li>
+</ul>
+
+<p>Jorge Solórzano (1):</p>
+
+<ul>
+<li>fix: Use SASLprep normalization for SCRAM authentication <a href="https://github.com/pgjdbc/pgjdbc/pull/2052">PR 2052</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/b4800044b3db9aef0d264baef2a95355c9059a1f">b4800044</a></li>
+</ul>
+
+<p>Pavel Bludov (2):</p>
+
+<ul>
+<li>chore: javadoc changes in PgResultSet.java to pass upcoming checkstyle version <a href="https://github.com/pgjdbc/pgjdbc/commit/70471c25dbc6e64b5ed7a3c9db8bce26fe27e94d">70471c25</a></li>
+<li>chore: javadoc changes in Driver.java to pass upcoming checkstyle version <a href="https://github.com/pgjdbc/pgjdbc/commit/c57ac5eb5dec170a24f833c64f74a63fd7b53940">c57ac5eb</a></li>
+</ul>
+
+<p>Power (1):</p>
+
+<ul>
+<li>fix: isValid() should not wait longer than network timeout <a href="https://github.com/pgjdbc/pgjdbc/commit/0dbc6078b98215f11413a8b0f3a15a7c08180a29">0dbc6078</a></li>
+</ul>
+
+<p>Roman Kozlov (1):</p>
+
+<ul>
+<li>fix: properly set cancel socket timeout <a href="https://github.com/pgjdbc/pgjdbc/pull/2044">PR 2044</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e551d1a6b41adbca8c905762bd24299a29463db2">e551d1a6</a></li>
+</ul>
+
+<p>Sehrope Sarkuni (5):</p>
+
+<ul>
+<li>test: Add tests for broken PGCopyInputStream.readFromCopy() <a href="https://github.com/pgjdbc/pgjdbc/commit/c6794f09572c51bceb284e38b14c07a999d1aab9">c6794f09</a></li>
+<li>fix: Fix last row duplicated in PGCopyInputStream.readFromCopy() <a href="https://github.com/pgjdbc/pgjdbc/commit/6c296a52d5437c318ad3a1a40af4046ce7d1ac3f">6c296a52</a></li>
+<li>test: Add TestUtils.closeQuietly(...) <a href="https://github.com/pgjdbc/pgjdbc/commit/c152f7f0639391f180a74b31b3527b213818b0d0">c152f7f0</a></li>
+<li>test: Add StrangeProxyServer <a href="https://github.com/pgjdbc/pgjdbc/commit/8f773a15ec4898af66806e851090e62d38edfb88">8f773a15</a></li>
+<li>docs: Add getTablePrivileges() fix to changelog <a href="https://github.com/pgjdbc/pgjdbc/commit/444cb1b17b17bcde378e97805b3ee61c50eba0be">444cb1b1</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (14):</p>
+
+<ul>
+<li>chore: make javadoc optional for building from a reduced-pom.xml <a href="https://github.com/pgjdbc/pgjdbc/commit/736eb70d76549afc3906362ffd3747cb6a311443">736eb70d</a></li>
+<li>chore: make buildSrc.jar reproducible <a href="https://github.com/pgjdbc/pgjdbc/commit/ff0774da883287e9f012dd09f510e062167143e3">ff0774da</a></li>
+<li>chore: use cleanup-gradle-cache for Travis cache cleanup <a href="https://github.com/pgjdbc/pgjdbc/commit/0e0ae208e50de479c64e4afd25e5b3c1e5874d68">0e0ae208</a></li>
+<li>fix: allow specifying binaryTransferEnable even for those types that are not enabled by default <a href="https://github.com/pgjdbc/pgjdbc/commit/ed5891e3f019977ee0a999c7e572ace34b3bd918">ed5891e3</a></li>
+<li>fix: binary transfer for numeric <a href="https://github.com/pgjdbc/pgjdbc/pull/1935">PR 1935</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/a4173079dfd35c95de984f369cab0d5e7f951ed7">a4173079</a></li>
+<li>chore: update Gradle 6.3 -&gt; 6.7.1 <a href="https://github.com/pgjdbc/pgjdbc/pull/2011">PR 2011</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/dbb12e41390054ee8a58508e4004e3834a86a7ea">dbb12e41</a></li>
+<li>chore: verify code via forbidden-apis (jdk-internal and jdk-non-portable signatures) <a href="https://github.com/pgjdbc/pgjdbc/commit/991a9c0b4d2eea6bbbccc0afd2aa5d63b804e306">991a9c0b</a></li>
+<li>chore: add org.postgresql.util.internal.Unsafe for forbidden-apis suppressions <a href="https://github.com/pgjdbc/pgjdbc/commit/6e3be12203fd4f76992d2ab88bcdb4a21a0b44d0">6e3be122</a></li>
+<li>fix: &quot;Required class information missing&quot; when old org.jboss:jandex parses pgjdbc classes (PR <a href="https://github.com/pgjdbc/pgjdbc/pull/2010">PR 2010</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/2df6c97b6b4a1c39d03099efa62e85bbc907723f">2df6c97b</a></li>
+<li>test: set gssEncMode only in case it is not already present in Properties <a href="https://github.com/pgjdbc/pgjdbc/commit/97f6abd1c8cc16af4056bceccc3c1f52faa27c02">97f6abd1</a></li>
+<li>test: temporarily allow CONNECTION<em>UNABLE</em>TO_CONNECT in SslTest for bad client certificates <a href="https://github.com/pgjdbc/pgjdbc/commit/5f584cd4a5c2f19a526874e14c66fad4ab1b2d79">5f584cd4</a></li>
+<li>perf: avoid duplicate PGStream#changeSocket calls <a href="https://github.com/pgjdbc/pgjdbc/commit/b7e70d856276ff75dc487bc20694c7ff5ddebbaa">b7e70d85</a></li>
+<li>chore: cancel stale workflows in GitHub Actions CI <a href="https://github.com/pgjdbc/pgjdbc/commit/d255bd21778c00dafa40e6b096f052aea61d29a8">d255bd21</a></li>
+<li>doc: update README link from travis-ci.org to travis-ci.com <a href="https://github.com/pgjdbc/pgjdbc/commit/1bd679e84edf854df92d1bd7d1cd006cc0360c61">1bd679e8</a></li>
+</ul>
+
+<p>odubaj (1):</p>
+
+<ul>
+<li>Remove dependency on java-comment-preprocesor <a href="https://github.com/pgjdbc/pgjdbc/commit/df2297ef6b4d26c1de9a5c90e0f8c524dd437425">df2297ef</a></li>
+</ul>
+
+<p>rtrier (1):</p>
+
+<ul>
+<li>* Fix resolve ParseError in PGtokenizer fixes <a href="https://github.com/pgjdbc/pgjdbc/pull/2050">PR 2050</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9d6ab68ebfaba68244a49c86186021d32f93ff2f">9d6ab68e</a></li>
+</ul>
+
+<p><a name="contributors_42.2.19"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/jeremymailen">Jeremy Mailen</a><br>
+<a href="https://github.com/jorsol">Jorge Solórzano</a><br>
+<a href="https://github.com/odubaj">odubaj</a><br>
+<a href="https://github.com/pbludov">Pavel Bludov</a><br>
+<a href="https://github.com/Powerrr">Power</a><br>
+<a href="https://github.com/Powerrr">Roman Kozlov</a><br>
+<a href="https://github.com/rtrier">rtrier</a><br>
+<a href="https://github.com/sehrope">Sehrope Sarkuni</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>
