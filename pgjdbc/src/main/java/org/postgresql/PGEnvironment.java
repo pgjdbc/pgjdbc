@@ -17,7 +17,7 @@ import java.util.Map;
 public enum PGEnvironment {
 
   /**
-   * The connection user.
+   * The database name.
    */
   ORG_POSTGRESQL_PGDATABASE(
       "org.postgresql.pgdatabase",
@@ -25,7 +25,7 @@ public enum PGEnvironment {
       "Specifies the database of instance."),
 
   /**
-   * The connection user.
+   * The database name.
    */
   PGDATABASE(
       "PGDATABASE",
@@ -33,7 +33,7 @@ public enum PGEnvironment {
       "Specifies the database of instance."),
 
   /**
-   * The connection user.
+   * Name of host to connect to.
    */
   ORG_POSTGRESQL_PGHOST(
       "org.postgresql.pghost",
@@ -41,7 +41,7 @@ public enum PGEnvironment {
       "Specifies the host of instance."),
 
   /**
-   * The connection user.
+   * Name of host to connect to.
    */
   PGHOST(
       "PGHOST",
@@ -65,7 +65,7 @@ public enum PGEnvironment {
       "Specified location of password file."),
 
   /**
-   * The connection user.
+   * The password of user.
    */
   ORG_POSTGRESQL_PGPASSWORD(
       "org.postgresql.pgpassword",
@@ -73,7 +73,7 @@ public enum PGEnvironment {
       "Specifies the password of instance."),
 
   /**
-   * The connection user.
+   * The password of user.
    */
   PGPASSWORD(
       "PGPASSWORD",
@@ -81,7 +81,7 @@ public enum PGEnvironment {
       "Specifies the password of instance."),
 
   /**
-   * The connection user.
+   * Port number to connect to at the server host.
    */
   ORG_POSTGRESQL_PGPORT(
       "org.postgresql.pgport",
@@ -89,7 +89,7 @@ public enum PGEnvironment {
       "Specifies the port of instance."),
 
   /**
-   * The connection user.
+   * Port number to connect to at the server host.
    */
   PGPORT(
       "PGPORT",
