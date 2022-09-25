@@ -83,7 +83,7 @@ public class JdbcUrlResolver {
       // priority 7: default values of Properties given as argument to DriverManager.getConnection()
       //             source: org/postgresql/driverconfig.properties by classloader
       // argument "defaults" ONLY defaults
-      parse7DraiverconfigProperties(p7);
+      parse7DriverconfigProperties(p7);
       // load service properties (file .pg_service.conf) if requested
       parse4Service(p4, p0);
       // priority 8: PGProperty defaults for PGHOST, PGPORT, user, PGDBNAME
@@ -160,7 +160,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse7DraiverconfigProperties(Properties result) throws JdbcUrlResolverFatalException {
+  private void parse7DriverconfigProperties(Properties result) throws JdbcUrlResolverFatalException {
     // clone and clear. goal is to get only defaults
     Properties clone = (Properties) defaults.clone();
     clone.clear();
