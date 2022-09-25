@@ -101,7 +101,9 @@ public class JdbcUrlResolver {
       // copy result
       copyProperties(p0, result);
       // debug log
-      dumpStructures(result, p8, p7, p6, p5, p4, p3, p2, p1, p0);
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        dumpStructures(result, p8, p7, p6, p5, p4, p3, p2, p1, p0);
+      }
     } catch (JdbcUrlResolverFatalException e) {
       failException = e;
       LOGGER.warning(e.getMessage());
