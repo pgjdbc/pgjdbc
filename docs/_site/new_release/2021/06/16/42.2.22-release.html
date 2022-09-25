@@ -1,0 +1,13 @@
+<h3>Fixed</h3>
+
+<ul>
+<li>Regression caused by https://github.com/pgjdbc/pgjdbc/commit/4fa2d5bc1ed8c0086a3a197fc1c28f7173d53cac. Unfortunately
+due to the blocking nature of the driver and issues with seeing if there is a byte available on a blocking stream when it is encrypted
+this introduces unacceptable delays in returning from peek(). At this time there is no simple solution to this.</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Dave Cramer (1):</p>

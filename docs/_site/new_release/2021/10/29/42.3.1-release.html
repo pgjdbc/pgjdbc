@@ -1,0 +1,71 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>improv: Arrays in Object[] <a href="https://github.com/pgjdbc/pgjdbc/pull/2330">PR 2330</a> when an Object[] contains other arrays, treat as though it were a
+multi-dimensional array the one exception is byte[], which is not supported.</li>
+<li>improv: Use jre utf-8 decoding <a href="https://github.com/pgjdbc/pgjdbc/pull/2317">PR 2317</a> Remove use of custom utf-8 decoding.</li>
+<li>perf: improve performance of bytea string decoding <a href="https://github.com/pgjdbc/pgjdbc/pull/2320">PR 2320</a>
+improve the parsing of bytea hex encoded string by making a lookup table for each of the valid ascii code points to the 4 bit numeric value</li>
+<li>feat: intern/canonicalize common strings <a href="https://github.com/pgjdbc/pgjdbc/pull/2234">PR 2234</a>
+### Added</li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>numeric binary decode for even 10 thousands <a href="https://github.com/pgjdbc/pgjdbc/pull/2327">PR #2327</a> fixes  <a href="https://github.com/pgjdbc/pgjdbc/issues/2326">Issue 2326</a>
+binary numeric values which represented integers multiples of 10,000 from 10,000-9,990,000 were not decoded correctly</li>
+<li>[typo] typo in certdir/README.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2309">PR #2309</a> certificatess =&gt; certificates</li>
+<li>[typo] typo in TimestampUtils.java <a href="https://github.com/pgjdbc/pgjdbc/pull/2314">PR #2314</a> Change <code>Greagorian</code> to <code>Gregorian</code>.</li>
+<li>remove check for negative pid in cancel request. Apparently pgbouncer can send one fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2317">Issue 2317</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/2319">PR #2319</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Brett Okken (6):</p>
+
+<ul>
+<li>improv: Arrays in Object[] <a href="https://github.com/pgjdbc/pgjdbc/pull/2230">PR 2230</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/538c79f560097e0fc8fef460477fbaeaa71ebb19">538c79f5</a></li>
+<li>improv: Use jre utf-8 decoding <a href="https://github.com/pgjdbc/pgjdbc/pull/2317">PR 2317</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/a57860377053bd44008ae47453381b9e78442891">a5786037</a></li>
+<li>perf: improve performance of bytea string decoding <a href="https://github.com/pgjdbc/pgjdbc/pull/2320">PR 2320</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/f2a24d37363b59279290ef16767047bf65b3694c">f2a24d37</a></li>
+<li>feat: intern/canonicalize common strings <a href="https://github.com/pgjdbc/pgjdbc/pull/2234">PR 2234</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/a024cd5187a7aa5843058fb825680a78ad047ca3">a024cd51</a></li>
+<li>fix: numeric binary decode for even 10 thousands <a href="https://github.com/pgjdbc/pgjdbc/pull/2327">PR 2327</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/b3050e60f81b4e43fae452bcf6df297df2048ae4">b3050e60</a></li>
+<li>fix: remove unused OptimizedUTF8Encoder <a href="https://github.com/pgjdbc/pgjdbc/pull/2329">PR 2329</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/515ea066d2af84cbd98ab840457934df5596acfe">515ea066</a></li>
+</ul>
+
+<p>Dave Cramer (5):</p>
+
+<ul>
+<li>Update debezium.yml <a href="https://github.com/pgjdbc/pgjdbc/commit/84f1057d2b735b51c7ad8456f395c03104004867">84f1057d</a></li>
+<li>update release date to Oct 18 <a href="https://github.com/pgjdbc/pgjdbc/pull/2308">PR 2308</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/5fc1976d4b3f3be2f62ede74497a5f7432647930">5fc1976d</a></li>
+<li>remove check for negative pid in cancel request. Apparently pgbouncer can send one fixes Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/2318">PR 2318</a> (#2319) <a href="https://github.com/pgjdbc/pgjdbc/commit/c9be5c0f855bfbda1a481cd8b469210d13b2e553">c9be5c0f</a></li>
+<li>move version to 42.3.0 <a href="https://github.com/pgjdbc/pgjdbc/pull/2322">PR 2322</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/1b8629b24e1851311df98bb390480dc7cbcdfb52">1b8629b2</a></li>
+<li>Remove references to JAVA 6 and 7 <a href="https://github.com/pgjdbc/pgjdbc/pull/2312">PR 2312</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/67113020ac79dbad41d2aaf4f0cf6a9e0de4ef02">67113020</a></li>
+</ul>
+
+<p>Sergey Nuyanzin (1):</p>
+
+<ul>
+<li>[typo] typo in certdir/README.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2309">PR 2309</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/e5e36bd3e8ac87ae554ac5cd1ac664fcd0010073">e5e36bd3</a></li>
+</ul>
+
+<p>吴伟杰 (1):</p>
+
+<ul>
+<li>Fix typo in TimestampUtils.java <a href="https://github.com/pgjdbc/pgjdbc/pull/2314">PR 2314</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/4293a790d5fdea0c2c94b2911ce0da53539c85f2">4293a790</a></li>
+</ul>
+
+<p><a name="contributors_42.3.1"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/bokken">Brett Okken</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/snuyanzin">Sergey Nuyanzin</a><br>
+<a href="https://github.com/TeslaCN">吴伟杰</a>  </p>

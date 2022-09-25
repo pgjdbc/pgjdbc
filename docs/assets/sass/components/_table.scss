@@ -1,0 +1,33 @@
+table {
+  border-collapse: collapse;
+  font-size: 0.9em;
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  border-collapse: collapse;
+
+  th,
+  td {
+    border: 2px solid var(--clr-primary-200);
+    padding: 12px 15px;
+  }
+
+}
+
+thead tr {
+  background-color: var(--clr-primary-400);
+  color: var(--clr-white);
+  text-align: left;
+  font-weight: 600;
+}
+
+tbody tr {
+
+  &:nth-of-type(even) {
+    background-color: var(--clr-neutral-100);
+  }
+
+  &:hover {
+    color: var(--clr-secondary-500);
+  }
+}

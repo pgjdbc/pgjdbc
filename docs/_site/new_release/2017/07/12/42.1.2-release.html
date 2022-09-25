@@ -1,0 +1,88 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>Better logic for <em>returning</em> keyword detection. Previously, pgjdbc could be defeated by column names that contain <em>returning</em>, so pgjdbc failed to &quot;return generated keys&quot; as it considered statement as already having <em>returning</em> keyword <a href="https://github.com/pgjdbc/pgjdbc/pull/824">PR 824</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc">201daf1d</a> </li>
+<li>Use server-prepared statements for batch inserts when prepareThreshold&gt;0. Note: this enables batch to use server-prepared from the first <em>executeBatch()</em> execution (previously it waited for <em>prepareThreshold</em> <em>executeBatch()</em> calls) <a href="https://github.com/pgjdbc/pgjdbc/commit/abc3d9d7f34a001322fbbe53f25d5e77a33a667f">abc3d9d7</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Replication API: fix issue in #834 setting statusIntervalUpdate causes high CPU load. <a href="https://github.com/pgjdbc/pgjdbc/pull/835">PR 835</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/59236b74acdd400d9d91d3eb2bb07d70b15392e5">59236b74</a></li>
+</ul>
+
+<h3>Regressions</h3>
+
+<ul>
+<li>NPE in PreparedStatement.executeBatch in case of empty batch. Fixed in 42.1.3</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>AlexElin (1):</p>
+
+<ul>
+<li>refactor: make PSQLState as enum <a href="https://github.com/pgjdbc/pgjdbc/pull/837">PR 837</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/fb5df7fee1d3568356e680c6ac5a62336ec7bf6e">fb5df7fe</a></li>
+</ul>
+
+<p>Dave Cramer (8):</p>
+
+<ul>
+<li>Initial support of partitioned tables via JDBC metadata API <a href="https://github.com/pgjdbc/pgjdbc/pull/823">PR 823</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9c3471f21f6ac9cf1a5e5700115ac7d0d55e0ad9">9c3471f2</a></li>
+<li>fix javadoc complaints and some small edits to replication comments <a href="https://github.com/pgjdbc/pgjdbc/pull/832">PR 832</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/2d0bfcebb0641ddb73d9297e6211f75537238b15">2d0bfceb</a></li>
+<li>fix issue #834 setting statusIntervalUpdate causes high CPU load \ <a href="https://github.com/pgjdbc/pgjdbc/pull/835">PR 835</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/59236b74acdd400d9d91d3eb2bb07d70b15392e5">59236b74</a></li>
+<li>fix issue #838 make sure we don&#39;t get columns that are dropped <a href="https://github.com/pgjdbc/pgjdbc/pull/840">PR 840</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/464a2d43519004174f1b530a595ee0ad9ffda870">464a2d43</a></li>
+<li>add missing connection documentation, fix spelling <a href="https://github.com/pgjdbc/pgjdbc/pull/846">PR 846</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/cd400f6f39d3c062fc94fa97b33b4d272a829a24">cd400f6f</a></li>
+<li>more spelling mistakes for preferQueryMode <a href="https://github.com/pgjdbc/pgjdbc/pull/850">PR 850</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/73bc3c1b7acda676f366631ff7e28f09a3399f37">73bc3c1b</a></li>
+<li>fix formatting of section on failover, still not perfect but better <a href="https://github.com/pgjdbc/pgjdbc/pull/852">PR 852</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/9f72201458d1ce0837e9525d947dcea2828b9475">9f722014</a></li>
+<li>small reformat to clarify read and write connections <a href="https://github.com/pgjdbc/pgjdbc/pull/854">PR 854</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/551d71b6a513c223d8d8d8d75afbe8b5d42ce783">551d71b6</a></li>
+</ul>
+
+<p>Jorge Solorzano (3):</p>
+
+<ul>
+<li>test: yet another rename to use &quot;lsn&quot; not &quot;location&quot; in Pg10. <a href="https://github.com/pgjdbc/pgjdbc/pull/822">PR 822</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/902286212df19b1eda9310c4174756786ad249c7">90228621</a></li>
+<li>use zulu-9 <a href="https://github.com/pgjdbc/pgjdbc/pull/828">PR 828</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/4ac74886e54e7689035be00c417a536717a45318">4ac74886</a></li>
+<li>fix: remove type name from cast exception of getBoolean and setObject <a href="https://github.com/pgjdbc/pgjdbc/pull/781">PR 781</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/394b3a2f4d93e9ca701d8c31b4b66fa25fca8945">394b3a2f</a></li>
+</ul>
+
+<p>Robert &#39;Bobby&#39; Zenz (1):</p>
+
+<ul>
+<li>fix: Add fallback to setObject(int, Object) for Number <a href="https://github.com/pgjdbc/pgjdbc/pull/812">PR 812</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/5b9edb7dfb1b281bffedf7c9f2583f2df354c0ea">5b9edb7d</a></li>
+</ul>
+
+<p>Vladimir Gordiychuk (1):</p>
+
+<ul>
+<li>bug: floating logical replcation test <a href="https://github.com/pgjdbc/pgjdbc/pull/829">PR 829</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/2d3e8972a0b34106a8b7426619cabf852c38ddaa">2d3e8972</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (7):</p>
+
+<ul>
+<li>chore: implement a script to stage pgjdbc, pgdjbc-jre7, pgjdbc-jre6 artifacts <a href="https://github.com/pgjdbc/pgjdbc/commit/15d7883987d2de4b662aa8cd81c6de5be0257153">15d78839</a></li>
+<li>doc: fix 42.1.0.jre8-&gt;jre6 typo <a href="https://github.com/pgjdbc/pgjdbc/pull/42">PR 42</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/88942b58637afbea16102a6a77d922914fd27562">88942b58</a></li>
+<li>fix: use server-prepared statements for batch inserts when prepareThreshold&gt;0 <a href="https://github.com/pgjdbc/pgjdbc/commit/abc3d9d7f34a001322fbbe53f25d5e77a33a667f">abc3d9d7</a></li>
+<li>fix: better parsing for returning keyword <a href="https://github.com/pgjdbc/pgjdbc/pull/824">PR 824</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc">201daf1d</a></li>
+<li>docs: build index, changelog pages from _posts/... to reduce release overhead <a href="https://github.com/pgjdbc/pgjdbc/commit/d6fe07d7bb613d7b8fb06ace64b9b37d3f23bbfe">d6fe07d7</a></li>
+<li>chore: make ./release_notes.sh create docs/_posts/$DATE_YMD-$VERS-release.md file <a href="https://github.com/pgjdbc/pgjdbc/commit/e00d4571bb6ca24c8f93956b59fd1c9a14131394">e00d4571</a></li>
+<li>docs: add 42.1.2 release notes <a href="https://github.com/pgjdbc/pgjdbc/commit/6f127a61eed5317133ea80f0a06f9441b170a17a">6f127a61</a></li>
+</ul>
+
+<p><a name="contributors_42.1.2"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/AlexElin">AlexElin</a><br>
+<a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/jorsol">Jorge Solorzano</a><br>
+<a href="https://github.com/RobertZenz">Robert &#39;Bobby&#39; Zenz</a><br>
+<a href="https://github.com/Gordiychuk">Vladimir Gordiychuk</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>

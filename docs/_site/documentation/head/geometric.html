@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Geometric Data Types</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 9. PostgreSQL™ Extensions to the JDBC API</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Chapter 9. PostgreSQL™ Extensions to the JDBC API" href="ext.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Large Objects" href="largeobjects.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Geometric Data Types</h1>
+					
+					<p>PostgreSQL™ has a set of data types that can store geometric features into a
+table. These include single points, lines, and polygons.  We support these types
+in Java with the org.postgresql.geometric package. Please consult the Javadoc
+mentioned in <a href="reading.html">Chapter 13, <em>Further Reading</em></a> for details of
+available classes and features.</p>
+
+<p><a name="geometric-circle-example"></a>
+<strong>Example 9.1. Using the CIRCLE datatype JDBC</strong></p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="kn">import</span> <span class="nn">java.sql.*</span><span class="o">;</span>
+
+<span class="kn">import</span> <span class="nn">org.postgresql.geometric.PGpoint</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">org.postgresql.geometric.PGcircle</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">GeometricTest</span> <span class="o">{</span>
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span> <span class="n">args</span><span class="o">[])</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="n">String</span> <span class="n">url</span> <span class="o">=</span> <span class="s">&quot;jdbc:postgresql://localhost:5432/test&quot;</span><span class="o">;</span>
+        <span class="k">try</span> <span class="o">(</span><span class="n">Connection</span> <span class="n">conn</span> <span class="o">=</span> <span class="n">DriverManager</span><span class="o">.</span><span class="na">getConnection</span><span class="o">(</span><span class="n">url</span><span class="o">,</span> <span class="s">&quot;test&quot;</span><span class="o">,</span> <span class="s">&quot;&quot;</span><span class="o">))</span> <span class="o">{</span>
+            <span class="k">try</span> <span class="o">(</span><span class="n">Statement</span> <span class="n">stmt</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">())</span> <span class="o">{</span>
+                <span class="n">stmt</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="s">&quot;CREATE TEMP TABLE geomtest(mycirc circle)&quot;</span><span class="o">);</span>
+            <span class="o">}</span>
+            <span class="n">insertCircle</span><span class="o">(</span><span class="n">conn</span><span class="o">);</span>
+            <span class="n">retrieveCircle</span><span class="o">(</span><span class="n">conn</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">insertCircle</span><span class="o">(</span><span class="n">Connection</span> <span class="n">conn</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
+        <span class="n">PGpoint</span> <span class="n">center</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PGpoint</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="mf">2.5</span><span class="o">);</span>
+        <span class="kt">double</span> <span class="n">radius</span> <span class="o">=</span> <span class="mi">4</span><span class="o">;</span>
+        <span class="n">PGcircle</span> <span class="n">circle</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PGcircle</span><span class="o">(</span><span class="n">center</span><span class="o">,</span> <span class="n">radius</span><span class="o">);</span>
+        <span class="k">try</span> <span class="o">(</span><span class="n">PreparedStatement</span> <span class="n">ps</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&quot;INSERT INTO geomtest(mycirc) VALUES (?)&quot;</span><span class="o">))</span> <span class="o">{</span>
+            <span class="n">ps</span><span class="o">.</span><span class="na">setObject</span><span class="o">(</span><span class="mi">1</span><span class="o">,</span> <span class="n">circle</span><span class="o">);</span>
+            <span class="n">ps</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">retrieveCircle</span><span class="o">(</span><span class="n">Connection</span> <span class="n">conn</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">SQLException</span> <span class="o">{</span>
+        <span class="k">try</span> <span class="o">(</span><span class="n">Statement</span> <span class="n">stmt</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">())</span> <span class="o">{</span>
+            <span class="k">try</span> <span class="o">(</span><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">stmt</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT mycirc, area(mycirc) FROM geomtest&quot;</span><span class="o">))</span> <span class="o">{</span>
+                <span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+                    <span class="n">PGcircle</span> <span class="n">circle</span> <span class="o">=</span> <span class="o">(</span><span class="n">PGcircle</span><span class="o">)</span><span class="n">rs</span><span class="o">.</span><span class="na">getObject</span><span class="o">(</span><span class="mi">1</span><span class="o">);</span>
+                    <span class="kt">double</span> <span class="n">area</span> <span class="o">=</span> <span class="n">rs</span><span class="o">.</span><span class="na">getDouble</span><span class="o">(</span><span class="mi">2</span><span class="o">);</span>
+
+                    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Center (X, Y) = (&quot;</span> <span class="o">+</span> <span class="n">circle</span><span class="o">.</span><span class="na">center</span><span class="o">.</span><span class="na">x</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span> <span class="o">+</span> <span class="n">circle</span><span class="o">.</span><span class="na">center</span><span class="o">.</span><span class="na">y</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span><span class="o">);</span>
+                    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Radius = &quot;</span> <span class="o">+</span> <span class="n">circle</span><span class="o">.</span><span class="na">radius</span><span class="o">);</span>
+                    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="s">&quot;Area = &quot;</span> <span class="o">+</span> <span class="n">area</span><span class="o">);</span>
+                <span class="o">}</span>
+            <span class="o">}</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="ext.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="largeobjects.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Chapter 9. PostgreSQL™ Extensions to the JDBC API</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Large Objects</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

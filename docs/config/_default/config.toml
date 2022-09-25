@@ -1,0 +1,18 @@
+# Production BaseURL
+#baseURL = "https://pgjdbc.github.io/pgjdbcdocs/"
+baseURL = "https://jdbc.postgresql.org/"
+languageCode = "en-us"
+title = "pgJDBC"
+[permalinks]
+page = "/:slug/"
+posts = "/:year/:month/:slug/"
+
+# Search index for lunr.js
+[outputFormats.SearchIndex]
+baseName = "search"
+mediaType = "application/json"
+
+[outputs]
+home = ["HTML", "RSS", "SearchIndex"]
+# section = ["HTML", "RSS", "SearchIndex"]
+page = ["HTML"]

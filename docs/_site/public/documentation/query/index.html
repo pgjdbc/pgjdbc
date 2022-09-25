@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <meta charset="utf-8">
+
+    <link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-100italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-200italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-300italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-400italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-500italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-600italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-700italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-800italic.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="https://pgjdbc.github.io/pgjdbc/fonts/barlow-latin-900italic.woff" as="font" type="font/woff" crossorigin>
+
+
+    <title>Issuing a Query and Processing the Result | pgJDBC</title>
+
+    <meta name="viewport" content="width=device-width,minimum-scale=1">
+
+    
+    
+    <link rel="stylesheet" href="https://pgjdbc.github.io/pgjdbc/sass/main.3e2ef319edd90653f8f3c003aab570b6599427631bb60f5e8a9682732adca2ca.css" integrity="sha256-Pi7zGe3ZBlP488ADqrVwtlmUJ2Mbtg9eipaCcyrcoso=">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <link rel="icon" href="/pgjdbc/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lunr.js/2.3.9/lunr.min.js"
+    integrity="sha512-4xUl/d6D6THrAnXAwGajXkoWaeMNwEKK4iNfq5DotEbLPAfk6FSxSP3ydNxqDgCw1c/0Z1Jg6L8h2j+++9BZmg=="
+    crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script defer language="javascript" type="module" src="/pgjdbc/js/index.js"></script>
+
+</head>
+
+<body>
+    
+
+<nav class="navbar" role="navigation">
+
+    <a href="/pgjdbc" id="host">
+        <img class="logo" src="/pgjdbc/icons/postgreslogo.svg"  alt="logo" />
+    </a>
+
+    <div class="navbar__item">
+        
+        <a href="/pgjdbc/download/" title="" class="navbar__item__link ">Download</a>
+        
+        <a href="/pgjdbc/documentation/" title="" class="navbar__item__link ">Documentation</a>
+        
+        <a href="/pgjdbc/community/" title="" class="navbar__item__link ">Community</a>
+        
+        <a href="/pgjdbc/development/" title="" class="navbar__item__link ">Development</a>
+        
+    </div>
+
+    <form id="search" class="searchBox" role="search">
+    <input class="searchInput" type="search" name="" placeholder="Search" id="search-input" autocomplete="off">
+    <button class="searchButton" for="search-input">
+        <svg fill="#ffffff" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="24px" height="24px">
+            <path
+                d="M 24 2.8886719 C 12.365714 2.8886719 2.8886719 12.365723 2.8886719 24 C 2.8886719 35.634277 12.365714 45.111328 24 45.111328 C 29.036552 45.111328 33.664698 43.331333 37.298828 40.373047 L 52.130859 58.953125 C 52.130859 58.953125 55.379484 59.435984 57.396484 57.333984 C 59.427484 55.215984 58.951172 52.134766 58.951172 52.134766 L 40.373047 37.298828 C 43.331332 33.664697 45.111328 29.036548 45.111328 24 C 45.111328 12.365723 35.634286 2.8886719 24 2.8886719 z M 24 7.1113281 C 33.352549 7.1113281 40.888672 14.647457 40.888672 24 C 40.888672 33.352543 33.352549 40.888672 24 40.888672 C 14.647451 40.888672 7.1113281 33.352543 7.1113281 24 C 7.1113281 14.647457 14.647451 7.1113281 24 7.1113281 z" />
+        </svg>
+    </button>
+</form>
+
+<template id="search-result" hidden>
+    <article class="search-list container flow">
+        <h2><a class="summary-title-link"></a></h2>
+        <summary class="summary"></summary>
+        <div class="read-more-container">
+            <a class="read-more-link">Read More »</a>
+        </div>
+    </article>
+</template>
+
+</nav>
+    <main role="main" class="main-inner">
+        
+<div class="doc">
+    
+
+<nav role="navigation" class="sidebar">
+  <ul role="list" class="flow sidebar__wrapper">
+    
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/setup/" class="sidebar__links__link">
+        Getting Started
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/use/" class="sidebar__links__link">
+        Initializing the Driver
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/ssl/" class="sidebar__links__link">
+        Using SSL
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/query/" class="sidebar__links__link--active">
+        Issuing a Query and Processing the Result
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/callproc/" class="sidebar__links__link">
+        Calling Stored Functions and Procedures
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/binary-data/" class="sidebar__links__link">
+        Storing Binary Data
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/escapes/" class="sidebar__links__link">
+        JDBC escapes
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/server-prepare/" class="sidebar__links__link">
+        PostgreSQL™ Extensions to the JDBC API
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/thread/" class="sidebar__links__link">
+        Using the Driver in a Multithreaded or a Servlet Environment
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/datasource/" class="sidebar__links__link">
+        Connection Pools and Data Sources
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/logging/" class="sidebar__links__link">
+        Logging using java.util.logging
+      </a>
+    </li>
+    <li role="listitem" class="sidebar__links">
+      <a href="/pgjdbc/documentation/reading/" class="sidebar__links__link">
+        Further Reading
+      </a>
+    </li>
+  </ul>
+</nav>
+    <article class="article">
+    <h1>Issuing a Query and Processing the Result
+        
+    </h1>
+    <p>Any time you want to issue SQL statements to the database, you require a <code>Statement</code> or <code>PreparedStatement</code> instance. Once you have a <code>Statement</code> or <code>PreparedStatement</code> , you can use issue a query. This will return a <code>ResultSet</code> instance, which contains the entire result (see the section called <a href="/documentation/query/#getting-results-based-on-a-cursor">Getting results based on a cursor</a> here for how to alter this behaviour). <a href="/documentation/query/#example51processing-a-simple-query-in-jdbc">Example 5.1, “Processing a Simple Query in JDBC”</a> illustrates this process.</p>
+<h5 id="example51processing-a-simple-query-in-jdbc" class="self-link">Example 5.1. Processing a Simple Query in JDBC <a class="header-link" href="#example51processing-a-simple-query-in-jdbc">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><p>This example will issue a simple query and print out the first column of each row using a <code>Statement</code> .</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT * FROM mytable WHERE columnfoo = 500&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;Column 1 returned &#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="n">1</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><p>This example issues the same query as before but uses a <code>PreparedStatement</code> and a bind value in the query.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">foovalue</span> <span class="o">=</span> <span class="n">500</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">PreparedStatement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&#34;SELECT * FROM mytable WHERE columnfoo = ?&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">setInt</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">foovalue</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;Column 1 returned &#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">getString</span><span class="o">(</span><span class="n">1</span><span class="o">));</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><h2 id="getting-results-based-on-a-cursor" class="self-link">Getting results based on a cursor <a class="header-link" href="#getting-results-based-on-a-cursor">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>By default the driver collects all the results for the query at once. This can be inconvenient for large data sets so the JDBC driver provides a means of basing a <code>ResultSet</code> on a database cursor and only fetching a small number of rows.</p>
+<p>A small number of rows are cached on the client side of the connection and when exhausted the next block of rows is retrieved by repositioning the cursor.</p>
+<blockquote>
+<p><strong>NOTE</strong></p>
+<p>Cursor based <code>ResultSets</code> cannot be used in all situations. There a number of restrictions which will make the driver silently fall back to fetching the whole <code>ResultSet</code> at once.</p>
+<ul>
+<li>
+<p>The connection to the server must be using the V3 protocol. This is the default for (and is only supported by) server versions 7.4 and later.</p>
+</li>
+<li>
+<p>The <code>Connection</code> must not be in autocommit mode. The backend closes cursors at the end of transactions, so in autocommit mode the backend will have closed the cursor before anything can be fetched from it.</p>
+</li>
+<li>
+<p>The <code>Statement</code> must be created with a <code>ResultSet</code> type of <code>ResultSet.TYPE_FORWARD_ONLY</code>. This is the default, so no code will need to be rewritten to take advantage of this, but it also means that you cannot scroll backwards or otherwise jump around in the <code>ResultSet</code>.</p>
+</li>
+<li>
+<p>The query given must be a single statement, not multiple statements strung together with semicolons.</p>
+</li>
+</ul>
+</blockquote>
+<h5 id="example52setting-fetch-size-to-turn-cursors-on-and-off" class="self-link">Example 5.2. Setting fetch size to turn cursors on and off. <a class="header-link" href="#example52setting-fetch-size-to-turn-cursors-on-and-off">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><p>Changing code to cursor mode is as simple as setting the fetch size of the <code>Statement</code> to the appropriate size. Setting the fetch size back to 0 will cause all rows to be cached (the default behaviour).</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="c1">// make sure autocommit is off
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">conn</span><span class="o">.</span><span class="na">setAutoCommit</span><span class="o">(</span><span class="kc">false</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Turn use of the cursor on.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">st</span><span class="o">.</span><span class="na">setFetchSize</span><span class="o">(</span><span class="n">50</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT * FROM mytable&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;a row was returned.&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Turn the cursor off.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">st</span><span class="o">.</span><span class="na">setFetchSize</span><span class="o">(</span><span class="n">0</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT * FROM mytable&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;many rows were returned.&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">// Close the statement.
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><h2 id="using-the-statement-or-preparedstatement-interface" class="self-link">Using the Statement or PreparedStatement Interface <a class="header-link" href="#using-the-statement-or-preparedstatement-interface">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>The following must be considered when using the <code>Statement</code> or <code>PreparedStatement</code> interface:</p>
+<ul>
+<li>
+<p>You can use a single <code>Statement</code> instance as many times as you want. You could create one as soon as you open the connection and use it for the connection&rsquo;s lifetime. But you have to remember that only one <code>ResultSet</code> can exist per <code>Statement</code> or <code>PreparedStatement</code> at a given time.</p>
+</li>
+<li>
+<p>If you need to perform a query while processing a <code>ResultSet</code>, you can simply create and use another <code>Statement</code> .</p>
+</li>
+<li>
+<p>If you are using threads, and several are using the database, you must use a separate <code>Statement</code> for each thread. Refer to <a href="/documentation/thread/">Using the Driver in a Multithreaded or a Servlet Environment</a> if you are thinking of using threads, as it covers some important points.</p>
+</li>
+<li>
+<p>When you are done using the <code>Statement</code> or <code>PreparedStatement</code> you should close it.</p>
+</li>
+<li>
+<p>In JDBC, the question mark (<code>?</code>) is the placeholder for the positional parameters of a <code>PreparedStatement</code>. There are, however, a number of PostgreSQL operators that contain a question mark. To keep such question marks in a SQL statement from being interpreted as positional parameters, use two question marks ( <code>??</code> ) as escape sequence. You can also use this escape sequence in a <code>Statement</code> , but that is not required. Specifically only in a <code>Statement</code> a single ( <code>?</code> ) can be used as an operator.</p>
+</li>
+</ul>
+<h2 id="using-the-resultset-interface" class="self-link">Using the ResultSet Interface <a class="header-link" href="#using-the-resultset-interface">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>The following must be considered when using the <code>ResultSet</code> interface:</p>
+<ul>
+<li>
+<p>Before reading any values, you must call <code>next()</code>. This returns true if there is a result, but more importantly, it prepares the row for processing.</p>
+</li>
+<li>
+<p>You must close a <code>ResultSet</code> by calling <code>close()</code> once you have finished using it.</p>
+</li>
+<li>
+<p>Once you make another query with the <code>Statement</code> used to create a <code>ResultSet</code>, the currently open <code>ResultSet</code> instance is closed automatically.</p>
+</li>
+<li>
+<p>When PreparedStatement API is used,  <code>ResultSet</code> switches to binary mode after five query executions (this default is set by the <code>prepareThreshold</code> connection property, see <a href="/documentation/server-prepare/#server-prepared-statements">Server Prepared Statements</a>. This may cause unexpected behavior when some methods are called. For example, results on method calls such as <code>getString()</code> on non-string data types, while logically equivalent, may be formatted differently after execution exceeds the set <code>prepareThreshold</code> when conversion to object method switches to one matching the return mode.</p>
+</li>
+</ul>
+<h2 id="performing-updates" class="self-link">Performing Updates <a class="header-link" href="#performing-updates">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>To change data (perform an <code>INSERT</code> , <code>UPDATE</code> , or <code>DELETE</code> ) you use the <code>executeUpdate()</code> method. This method is similar to the method <code>executeQuery()</code></p>
+<p>used to issue a <code>SELECT</code> statement, but it doesn&rsquo;t return a <code>ResultSet</code> instead it returns the number of rows affected by the <code>INSERT</code> , <code>UPDATE</code> , or <code>DELETE</code> statement. <a href="/documentation/query/#example53deleting-rows-in-jdbc">Example 5.3, “Deleting Rows in JDBC”</a> illustrates the usage.</p>
+<h5 id="example53deleting-rows-in-jdbc" class="self-link">Example 5.3. Deleting Rows in JDBC <a class="header-link" href="#example53deleting-rows-in-jdbc">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><p>This example will issue a simple <code>DELETE</code> statement and print out the number of rows deleted.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">foovalue</span> <span class="o">=</span> <span class="n">500</span><span class="o">;</span>
+</span></span><span class="line"><span class="cl"><span class="n">PreparedStatement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&#34;DELETE FROM mytable WHERE columnfoo = ?&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">setInt</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">foovalue</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="kt">int</span> <span class="n">rowsDeleted</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">rowsDeleted</span> <span class="o">+</span> <span class="s">&#34; rows deleted&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><h2 id="creating-and-modifying-database-objects" class="self-link">Creating and Modifying Database Objects <a class="header-link" href="#creating-and-modifying-database-objects">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>To create, modify or drop a database object like a table or view you use the <code>execute()</code> method.  This method is similar to the method <code>executeQuery()</code> , but it doesn&rsquo;t return a result.<a href="/documentation/query/#example54dropping-a-table-in-jdbc">Example 5.4, “Dropping a Table in JDBC</a> illustrates the usage.</p>
+<h5 id="example54dropping-a-table-in-jdbc" class="self-link">Example 5.4. Dropping a Table in JDBC <a class="header-link" href="#example54dropping-a-table-in-jdbc">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><p>This example will drop a table.</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">execute</span><span class="o">(</span><span class="s">&#34;DROP TABLE mytable&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><h2 id="using-java-8-date-and-time-classes" class="self-link">Using Java 8 Date and Time classes <a class="header-link" href="#using-java-8-date-and-time-classes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h2><p>The PostgreSQL™ JDBC driver implements native support for the <a href="http://www.oracle.com/technetwork/articles/java/jf14-date-time-2125367.html">Java 8 Date and Time API</a>(JSR-310) using JDBC 4.2.</p>
+<h5 id="table51-supportedjava-8-date-and-time-classes" class="self-link">Table 5.1. Supported Java 8 Date and Time classes <a class="header-link" href="#table51-supportedjava-8-date-and-time-classes">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><table>
+<thead>
+<tr>
+<th>PostgreSQL™</th>
+<th>Java SE 8</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DATE</td>
+<td>LocalDate</td>
+</tr>
+<tr>
+<td>TIME [ WITHOUT TIME ZONE ]</td>
+<td>LocalTime</td>
+</tr>
+<tr>
+<td>TIMESTAMP [ WITHOUT TIME ZONE ]</td>
+<td>LocalDateTime</td>
+</tr>
+<tr>
+<td>TIMESTAMP WITH TIME ZONE</td>
+<td>OffsetDateTime</td>
+</tr>
+</tbody>
+</table>
+<p>This is closely aligned with tables B-4 and B-5 of the JDBC 4.2 specification.</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p><code>ZonedDateTime</code> , <code>Instant</code> and <code>OffsetTime / TIME WITH TIME ZONE</code> are not supported. Also note that all <code>OffsetDateTime</code> instances will have be in UTC (have offset 0). This is because the backend stores them as UTC.</p>
+</blockquote>
+<p><strong>Example 5.2. Reading Java 8 Date and Time values using JDBC</strong></p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">Statement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">createStatement</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&#34;SELECT * FROM mytable WHERE columnfoo = 500&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="k">while</span> <span class="o">(</span><span class="n">rs</span><span class="o">.</span><span class="na">next</span><span class="o">())</span> <span class="o">{</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">print</span><span class="o">(</span><span class="s">&#34;Column 1 returned &#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">LocalDate</span> <span class="n">localDate</span> <span class="o">=</span> <span class="n">rs</span><span class="o">.</span><span class="na">getObject</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">class</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl">    <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">println</span><span class="o">(</span><span class="n">localDate</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="o">}</span>
+</span></span><span class="line"><span class="cl"><span class="n">rs</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div><p>For other data types simply pass other classes to <code>#getObject</code> .</p>
+<blockquote>
+<p><strong>Note</strong></p>
+<p>The Java data types needs to match the SQL data types in table 7.1.</p>
+</blockquote>
+<h5 id="example53writing-java-8-date-and-time-values-using-jdbc" class="self-link">Example 5.3. Writing Java 8 Date and Time values using JDBC <a class="header-link" href="#example53writing-java-8-date-and-time-values-using-jdbc">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+            style="fill: #0093AF;">
+            <path
+                d="M8.465 11.293c1.133-1.133 3.109-1.133 4.242 0l.707.707 1.414-1.414-.707-.707c-.943-.944-2.199-1.465-3.535-1.465s-2.592.521-3.535 1.465L4.929 12a5.008 5.008 0 0 0 0 7.071 4.983 4.983 0 0 0 3.535 1.462A4.982 4.982 0 0 0 12 19.071l.707-.707-1.414-1.414-.707.707a3.007 3.007 0 0 1-4.243 0 3.005 3.005 0 0 1 0-4.243l2.122-2.121z">
+            </path>
+            <path
+                d="m12 4.929-.707.707 1.414 1.414.707-.707a3.007 3.007 0 0 1 4.243 0 3.005 3.005 0 0 1 0 4.243l-2.122 2.121c-1.133 1.133-3.109 1.133-4.242 0L10.586 12l-1.414 1.414.707.707c.943.944 2.199 1.465 3.535 1.465s2.592-.521 3.535-1.465L19.071 12a5.008 5.008 0 0 0 0-7.071 5.006 5.006 0 0 0-7.071 0z">
+            </path>
+        </svg>
+    </a></h5><div class="highlight"><pre tabindex="0" class="chroma"><code class="language-java" data-lang="java"><span class="line"><span class="cl"><span class="n">LocalDate</span> <span class="n">localDate</span> <span class="o">=</span> <span class="n">LocalDate</span><span class="o">.</span><span class="na">now</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">PreparedStatement</span> <span class="n">st</span> <span class="o">=</span> <span class="n">conn</span><span class="o">.</span><span class="na">prepareStatement</span><span class="o">(</span><span class="s">&#34;INSERT INTO mytable (columnfoo) VALUES (?)&#34;</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">setObject</span><span class="o">(</span><span class="n">1</span><span class="o">,</span> <span class="n">localDate</span><span class="o">);</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">executeUpdate</span><span class="o">();</span>
+</span></span><span class="line"><span class="cl"><span class="n">st</span><span class="o">.</span><span class="na">close</span><span class="o">();</span>
+</span></span></code></pre></div>
+
+<div class="pagination">
+	<div class="pagination__left">
+		
+		<a class="pagination__left__link" title="Previous page" href="https://pgjdbc.github.io/pgjdbc/documentation/ssl/">
+			Using SSL
+		</a>
+		
+	</div>
+
+	<div class="pagination__right">
+		
+		<a class="pagination__right__link" title="Next page" href="https://pgjdbc.github.io/pgjdbc/documentation/callproc/">
+			Calling Stored Functions and Procedures
+		</a>
+		
+	</div>
+</div></article>
+<aside class="toc">
+    <div class="toc__head">Issuing a Query and Processing the Result</div>
+    <nav id="TableOfContents">
+  <ul>
+    <li>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#getting-results-based-on-a-cursor">Getting results based on a cursor</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#using-the-statement-or-preparedstatement-interface">Using the Statement or PreparedStatement Interface</a></li>
+    <li><a href="#using-the-resultset-interface">Using the ResultSet Interface</a></li>
+    <li><a href="#performing-updates">Performing Updates</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#creating-and-modifying-database-objects">Creating and Modifying Database Objects</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+    <li><a href="#using-java-8-date-and-time-classes">Using Java 8 Date and Time classes</a>
+      <ul>
+        <li></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+</aside>
+</div>
+
+    </main>
+    <footer class="footer" role="contentinfo">
+    <div class="footer__item">
+        
+        <ul role="list" class="list">
+            <li class="list__head">pgJDBC</li>
+            <br />
+            
+            <li><a href="https://jdbc.postgresql.org/documentation/publicapi/index.html" class="list__link">Public API</a></li>
+            
+            <li><a href="https://www.postgresql.org/" class="list__link">About PostgreSQL</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">Community</li>
+            <br />
+            
+            <li><a href="https://github.com/pgjdbc/pgjdbc" class="list__link">Github</a></li>
+            
+            <li><a href="https://postgres-slack.herokuapp.com/" class="list__link">Slack</a></li>
+            
+            <li><a href="https://twitter.com/PostgreSQL" class="list__link">Twitter</a></li>
+            
+            <li><a href="https://www.postgresql.org/list/pgsql-jdbc/" class="list__link">Mailing List</a></li>
+            
+        </ul>
+        
+        <ul role="list" class="list">
+            <li class="list__head">More</li>
+            <br />
+            
+            <li><a href="/pgjdbc/faq/" class="list__link">FAQ</a></li>
+            
+            <li><a href="https://www.postgresql.org/about/policies/privacy/" class="list__link">Privacy</a></li>
+            
+            <li><a href="/pgjdbc/license/" class="list__link">License</a></li>
+            
+        </ul>
+        
+    </div>
+    <div class="copyrights">
+        Copyright © 1996-2022 The PostgreSQL Global Development Group
+    </div>
+</footer>
+</body>
+
+</html>

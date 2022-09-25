@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Data Sources and JNDI</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 11. Connection Pools and Data Sources</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Tomcat setup" href="tomcat.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Chapter 12. Logging with java.util.logging" href="logging.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Data Sources and JNDI</h1>
+					
+					<p>All the <code>ConnectionPoolDataSource</code> and <code>DataSource</code> implementations can be stored
+in JNDI. In the case of the nonpooling implementations, a new instance will be
+created every time the object is retrieved from JNDI, with the same settings as
+the instance that was stored. For the pooling implementations, the same instance
+will be retrieved as long as it is available (e.g., not a different JVM retrieving
+the pool from JNDI), or a new instance with the same settings created otherwise.</p>
+
+<p>In the application server environment, typically the application server&#39;s
+<code>DataSource</code> instance will be stored in JNDI, instead of the PostgreSQL™
+<code>ConnectionPoolDataSource</code> implementation.</p>
+
+<p>In an application environment, the application may store the <code>DataSource</code> in JNDI
+so that it doesn&#39;t have to make a reference to the <code>DataSource</code> available to all
+application components that may need to use it. An example of this is shown in
+<a href="jndi.html#ds-jndi">Example 11.2, “<code>DataSource</code> JNDI Code Example”</a>.</p>
+
+<p><a name="ds-jndi"></a>
+<strong>Example 11.2. <code>DataSource</code> JNDI Code Example</strong></p>
+
+<p>Application code to initialize a pooling <code>DataSource</code> and add it to JNDI might
+look like this:</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">PGPoolingDataSource</span> <span class="n">source</span> <span class="o">=</span> <span class="k">new</span> <span class="n">PGPoolingDataSource</span><span class="o">();</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setDataSourceName</span><span class="o">(</span><span class="s">&quot;A Data Source&quot;</span><span class="o">);</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setServerName</span><span class="o">(</span><span class="s">&quot;localhost&quot;</span><span class="o">);</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setDatabaseName</span><span class="o">(</span><span class="s">&quot;test&quot;</span><span class="o">);</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setUser</span><span class="o">(</span><span class="s">&quot;testuser&quot;</span><span class="o">);</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setPassword</span><span class="o">(</span><span class="s">&quot;testpassword&quot;</span><span class="o">);</span>
+<span class="n">source</span><span class="o">.</span><span class="na">setMaxConnections</span><span class="o">(</span><span class="mi">10</span><span class="o">);</span>
+<span class="k">new</span> <span class="n">InitialContext</span><span class="o">().</span><span class="na">rebind</span><span class="o">(</span><span class="s">&quot;DataSource&quot;</span><span class="o">,</span> <span class="n">source</span><span class="o">);</span>
+</code></pre></div>
+<p>Then code to use a connection from the pool might look like this:</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">Connection</span> <span class="n">conn</span> <span class="o">=</span> <span class="kc">null</span><span class="o">;</span>
+<span class="k">try</span>
+<span class="o">{</span>
+    <span class="n">DataSource</span> <span class="n">source</span> <span class="o">=</span> <span class="o">(</span><span class="n">DataSource</span><span class="o">)</span><span class="k">new</span> <span class="n">InitialContext</span><span class="o">().</span><span class="na">lookup</span><span class="o">(</span><span class="s">&quot;DataSource&quot;</span><span class="o">);</span>
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">source</span><span class="o">.</span><span class="na">getConnection</span><span class="o">();</span>
+    <span class="c1">// use connection</span>
+<span class="o">}</span>
+<span class="k">catch</span> <span class="o">(</span><span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span>
+<span class="o">{</span>
+    <span class="c1">// log error</span>
+<span class="o">}</span>
+<span class="k">catch</span> <span class="o">(</span><span class="n">NamingException</span> <span class="n">e</span><span class="o">)</span>
+<span class="o">{</span>
+    <span class="c1">// DataSource wasn&#39;t found in JNDI</span>
+<span class="o">}</span>
+<span class="k">finally</span>
+<span class="o">{</span>
+    <span class="k">if</span> <span class="o">(</span><span class="n">con</span> <span class="o">!=</span> <span class="kc">null</span><span class="o">)</span>
+    <span class="o">{</span>
+        <span class="k">try</span> <span class="o">{</span> <span class="n">conn</span><span class="o">.</span><span class="na">close</span><span class="o">();</span> <span class="o">}</span> <span class="k">catch</span> <span class="o">(</span><span class="n">SQLException</span> <span class="n">e</span><span class="o">)</span> <span class="o">{}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="tomcat.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="logging.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Tomcat setup</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Chapter 12. Logging with java.util.logging</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

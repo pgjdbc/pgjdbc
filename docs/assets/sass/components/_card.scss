@@ -1,0 +1,68 @@
+.card {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+    &__item {
+        width: 300px;
+        box-shadow: 0px 2px 1px -1px hsla(0, 0%, 0%, 0.2), 0px 1px 1px 0px rgba(0, 0, 0, 0.14), 0px 1px 3px 0px rgba(0, 0, 0, .12);
+        border-radius: 4px;
+        padding: var(--primary-spacing);
+        border-top: 4px solid var(--clr-primary-400);
+
+        &>:not(:first-child) {
+            margin-top: 0.5em;
+        }
+
+        // @include mq-max(medium) {
+            margin-top: 1em;
+        // }
+    }
+
+    &__title {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+
+    &__subtitle {
+        font-weight: 600;
+        font-size: .875rem;
+    }
+
+    &__desc {
+        font-size: .875rem;
+    }
+
+    &__btn__left {
+        border: 0;
+        background-color: transparent;
+
+        &__link,
+        &__link:hover {
+            color: var(--clr-secondary-500);
+            text-decoration: none;
+        }
+
+        &:hover {
+            background-color: var(--clr-secondary-100);
+        }
+    }
+
+    &__btn__right {
+        float: right;
+        border: 0;
+        border-radius: 5px;
+        padding-inline: 10px;
+        color: var(--clr-white);
+        background-color: var(--clr-primary-400);
+
+        &:hover {
+            background-color: var(--clr-primary-300);
+        }
+    }
+
+    .maven {
+        // visibility: hidden;
+        display: none;
+    }
+}

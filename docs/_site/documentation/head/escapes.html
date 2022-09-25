@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Chapter 8. JDBC escapes</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 8. JDBC escapes</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Chapter 7. Storing Binary Data" href="binary-data.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Escape for outer joins" href="outer-joins-escape.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Chapter 8. JDBC escapes</h1>
+					
+					<p><strong>Table of Contents</strong></p>
+
+<ul>
+<li><a href="escapes.html#like-escape">Escape for like escape character</a></li>
+<li><a href="outer-joins-escape.html">Escape for outer joins</a></li>
+<li><a href="escapes-datetime.html">Date-time escapes</a></li>
+<li><a href="escaped-functions.html">Escaped scalar functions</a></li>
+</ul>
+
+<p>The JDBC specification (like the ODBC specification) acknowledges the fact that
+some vendor specific SQL may be required for certain RDBMS features. To aid
+developers in writing portable JDBC applications across multiple database products,
+a special escape syntax is used to specify the generic commands the developer
+wants to be run. The JDBC driver translates these escape sequences into native
+syntax for its specific database. For more information consult the 
+<a href="http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html">Java DB Technical Documentation</a>.</p>
+
+<p>The parsing of the sql statements for these escapes can be disabled using
+<code>Statement.setEscapeProcessing(false)</code>. </p>
+
+<p><code>Connection.nativeSQL(String sql)</code> provides another way to have escapes processed.
+It translates the given SQL to a SQL suitable for the PostgreSQL™ backend.</p>
+
+<p><a name="escape-use-example"></a>
+<strong>Example 8.1. Using JDBC escapes</strong></p>
+
+<p>To use the JDBC escapes, you simply write your SQL replacing date/time literal
+values, outer join and functions by the JDBC escape syntax. For example :</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT {fn week({d &#39;2005-01-24&#39;})}&quot;</span><span class="o">);</span>
+</code></pre></div>
+<p>is the portable version for</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">ResultSet</span> <span class="n">rs</span> <span class="o">=</span> <span class="n">st</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;SELECT extract(week from DATE &#39;2005-01-24&#39;)&quot;</span><span class="o">);</span>
+</code></pre></div>
+<p><a name="like-escape"></a></p>
+
+<h1>Escape for like escape character</h1>
+
+<p>You can specify which escape character to use in strings comparison (with <code>LIKE</code>)
+to protect wildcards characters (&#39;%&#39; and &#39;_&#39;) by adding the following escape :
+<code>{escape &#39;escape-character&#39;}</code>. The driver supports this only at the end of the
+comparison expression.</p>
+
+<p>For example, you can compare string values using &#39;|&#39; as escape character to protect &#39;_&#39; :</p>
+<div class="highlight"><pre><code class="language-java" data-lang="java"><span></span><span class="n">rs</span> <span class="o">=</span> <span class="n">stmt</span><span class="o">.</span><span class="na">executeQuery</span><span class="o">(</span><span class="s">&quot;select str2 from comparisontest where str1 like &#39;|_abcd&#39; {escape &#39;|&#39;} &quot;</span><span class="o">);</span>
+</code></pre></div>
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="binary-data.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="outer-joins-escape.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Chapter 7. Storing Binary Data</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Escape for outer joins</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

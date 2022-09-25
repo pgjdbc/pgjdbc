@@ -1,0 +1,228 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Known issues</h3>
+
+<ul>
+<li>Regression since 42.3.2: &quot;cursor <unnamed portal 1> does not exist&quot; when using ResultSet.setFetchSize from CallableStatement, fixed in 42.3.6 (see <a href="https://github.com/pgjdbc/pgjdbc/pull/2377">PG #2377</a>)</li>
+</ul>
+
+<h3>Security</h3>
+
+<ul>
+<li>CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName,
+sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
+However, the driver did not verify if the class implements the expected interface before instantiating the class. This
+would allow a malicious class to be instantiated that could execute arbitrary code from the JVM. Fixed in <a href="https://github.com/pgjdbc/pgjdbc/commit/f4d0ed69c0b3aae8531d83d6af4c57f22312c813">commit</a></li>
+</ul>
+
+<h3>Changed</h3>
+
+<ul>
+<li>perf: read in<em>hot</em>standby GUC on connection <a href="https://github.com/pgjdbc/pgjdbc/pull/2334">PR #2334</a></li>
+<li>test: materialized view privileges <a href="https://github.com/pgjdbc/pgjdbc/pull/2209">PR #2209</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2060">Issue #2060</a></li>
+<li>docs: add info about convenience maven project <a href="https://github.com/pgjdbc/pgjdbc/pull/2407">PR #2407</a></li>
+<li>docs: Document timezone reversal from POSIX to ISO <a href="https://github.com/pgjdbc/pgjdbc/pull/2413">PR #2413</a></li>
+<li>fix: we will ask the server if it supports GSS Encryption if gssEncryption 
+is prefer or require <a href="https://github.com/pgjdbc/pgjdbc/pull/2396">PR #2396</a> remove the need to have a ticket in the cache before asking the server if gss encryptions are supported</li>
+<li>docs: remove Java 6 and 7 references from contributing <a href="https://github.com/pgjdbc/pgjdbc/pull/2385">PR #2385</a></li>
+<li>style: remove Java 8 / JDBC 4.2 checks <a href="https://github.com/pgjdbc/pgjdbc/pull/2383">PR #2383</a> Remove all remaining checks whether the source is lower than Java 8
+or JDBC 4.2.</li>
+<li>fix: throw SQLException for #getBoolean BIT(&gt;1) <a href="https://github.com/pgjdbc/pgjdbc/pull/2386">PR #2386</a> Throw SQLException instead of ClassCastException when calling
+CallableStatement#getBoolean(int) on BIT(&gt;1).</li>
+<li>style: import java.time types in more classes <a href="https://github.com/pgjdbc/pgjdbc/pull/2382">PR #2382</a> Use imports for java.time types in all remaining classes.</li>
+<li>style: import java.time types in TimestampUtils <a href="https://github.com/pgjdbc/pgjdbc/pull/2380">PR #2380</a> Use imports for java.time types in TimestampUtils.</li>
+<li>refactor: Change internal constructors to pass only connection Properties
+Changes internal constructors for PgConnection and related classes to only accept the connection properties object and 
+remove the user and password arguments. Any locations that required those fields can retrieve them from the properties map.</li>
+<li>test: Fix DatabaseMetadataTest to perform mview tests only on 9.3+</li>
+<li>perf: read in<em>hot</em>standby GUC on connection <a href="https://github.com/pgjdbc/pgjdbc/pull/2334">PR #2334</a></li>
+<li>doc: improv doc around binary decoding of numeric data <a href="https://github.com/pgjdbc/pgjdbc/pull/2331">#2331</a></li>
+<li>Add cert key type checking to chooseClientAlias <a href="https://github.com/pgjdbc/pgjdbc/pull/2417">PR #2417</a></li>
+</ul>
+
+<h3>Added</h3>
+
+<ul>
+<li>feat: Add authenticationPluginClassName option to provide passwords at runtime
+Adds authenticationPluginClassName connection property that allows end users to specify a class
+that will provide the connection passwords at runtime. Users implementing that interface must
+ensure that each invocation of the method provides a new char[] array as the contents
+will be filled with zeroes by the driver after use.Call sites within the driver have been updated to use the char[] directly wherever possible.
+This includes direct usage in the GSS authentication code paths that internally were already converting the String password into a char[] for internal usage.
+This allows configuring a connection with a password that must be generated on the fly or periodically changes. <a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR #2369</a> original issue <a href="https://github.com/pgjdbc/pgjdbc/issues/2102">Issue #2102</a></li>
+<li>feat: add tcpNoDelay option <a href="https://github.com/pgjdbc/pgjdbc/pull/2341">PR #2341</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2324">Issue #2324</a></li>
+<li>feat: pg_service.conf and .pgpass support (jdbc:postgresql://?service=my-service) <a href="https://github.com/pgjdbc/pgjdbc/pull/2260">PR #2260</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2278">Issue #2278</a></li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Use local TimestampUtil in PgStatement and PgResultset for thread safety <a href="https://github.com/pgjdbc/pgjdbc/pull/2291">PR #2291</a>
+fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/921">Issue #921</a> synchronize modification of shared calendar</li>
+<li>fix: PgObject isNull() was reporting the opposite fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2411">Issue #2411</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/2414">PR #2414</a></li>
+<li>fix: default file name is &quot;.pg<em>service.conf&quot; on Windows (not &quot;pg</em>service.conf&quot;) <a href="https://github.com/pgjdbc/pgjdbc/pull/2398">PR #2398</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2278">Issue #2278</a></li>
+<li>test: Fix RefCursorFetchTest on older platforms</li>
+<li>fix: do not close refcursor after reading if fetchsize has been set fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2227">Issue #2227</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/2371">PR #2371</a></li>
+<li>fix: rework gss authentication to use the principal name to get the credentials fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2235">Issue #2235</a> <a href="https://github.com/pgjdbc/pgjdbc/pull/2352">PR #2352</a></li>
+<li>fix: return getIndexInfo metadata columns in UPPER CASE <a href="https://github.com/pgjdbc/pgjdbc/pull/2368">PR #2368</a></li>
+<li>fix: Connection leak in ConnectionFactoryImpl#tryConnect <a href="https://github.com/pgjdbc/pgjdbc/pull/2350">PR #2350</a> <a href="https://github.com/pgjdbc/pgjdbc/issues/2351">Issue #2351</a></li>
+<li>fix: Fix For IS_AUTOGENERATED Flag <a href="https://github.com/pgjdbc/pgjdbc/pull/2348">PR #2348</a></li>
+<li>fix: parsing service file tests for windows <a href="https://github.com/pgjdbc/pgjdbc/pull/2347">PR #2347</a></li>
+<li>fix: The spec says that calling close() on a closed connection is a noop. <a href="https://github.com/pgjdbc/pgjdbc/pull/2345">PR #2345</a> fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2300">Issue #2300</a></li>
+<li>fix: add microsecond precision to getTimestamp() called on sql TIME(6) Currently, &quot;when fetching a value of type TIME(6) through
+resultSet.getTimestamp() only ms precision is retained, the microsecond fractional digits are lost.&quot; This change will retain the microsecond
+precision when .getTimestamp() is called on TIME(6). <a href="https://github.com/pgjdbc/pgjdbc/pull/2181">PR #2181</a> Closes <a href="https://github.com/pgjdbc/pgjdbc/issues/1537">Issue #1537</a></li>
+<li>test: materialized view privileges <a href="https://github.com/pgjdbc/pgjdbc/pull/2209">PR #2209</a> add and drop a materialized view
+Add to TestUtil and also to DatabaseMetaData setup and teardown fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/2060">Issue #2060</a></li>
+<li>fix: typo in connect.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2238">PR #2338</a> <code>OutOfMemoryException</code> =&gt; <code>OutOfMemoryError</code></li>
+<li>fix: use local TimestampUtil in PgStatement and PgResultset for thread
+safety TimestampUtil is not thread safe. It raises exceptions when multiple threads use ResultSets of one connection. <a href="https://github.com/pgjdbc/pgjdbc/pull/2291">PR #2291</a> 
+fixes <a href="https://github.com/pgjdbc/pgjdbc/issues/921">Issue #921</a>
+If PgStatement and PgResultSet use their own TimestampUtil no synchronize is needed.</li>
+<li>fix: typo in CONTRIBUTING.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2332">PR #2332</a> seccion =&gt; section</li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Andrei Paikin (1):</p>
+
+<ul>
+<li>minor: fix checkstyle violations for empty lines in enum <a href="https://github.com/pgjdbc/pgjdbc/pull/2426">PR 2426</a></li>
+</ul>
+
+<p>Brett Okken (1):</p>
+
+<ul>
+<li>doc: improv doc around binary decoding of numeric data <a href="https://github.com/pgjdbc/pgjdbc/pull/2331">PR 2331</a></li>
+</ul>
+
+<p>Dave Cramer (21):</p>
+
+<ul>
+<li>move comment to appropriate place and add explanation <a href="https://github.com/pgjdbc/pgjdbc/pull/2336">PR 2336</a></li>
+<li>bump version in readme and gradle.properties <a href="https://github.com/pgjdbc/pgjdbc/pull/2335">PR 2335</a></li>
+<li>add entries for latest changes <a href="https://github.com/pgjdbc/pgjdbc/pull/2339">PR 2339</a></li>
+<li>Ms goodman time gettimestamp micros <a href="https://github.com/pgjdbc/pgjdbc/pull/2181">PR 2181</a></li>
+<li>add TCP No Delay option fixes Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/2324">PR 2324</a> (#2341)</li>
+<li>fix Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/2300">PR 2300</a>. The spec says that calling close() on a closed connection is a noop. (#2345)</li>
+<li>fix: parsing service file tests for windows <a href="https://github.com/pgjdbc/pgjdbc/pull/2347">PR 2347</a></li>
+<li>fix: return getIndexInfo metadata columns in UPPER CASE <a href="https://github.com/pgjdbc/pgjdbc/pull/2368">PR 2368</a></li>
+<li>fix: rework gss authentication to use the principal name to get the credentials fixes Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/2235">PR 2235</a> (#2352)</li>
+<li>Removed unsafe package and native kerberos ticket check <a href="https://github.com/pgjdbc/pgjdbc/pull/2363">PR 2363</a></li>
+<li>log4jmessage <a href="https://github.com/pgjdbc/pgjdbc/pull/2370">PR 2370</a></li>
+<li>Put back GSSCallbackHandler. Avoid using forbidden api <a href="https://github.com/pgjdbc/pgjdbc/pull/2373">PR 2373</a></li>
+<li>fix: do not close refcursor after reading if fetchsize has been set fixes ISSUE <a href="https://github.com/pgjdbc/pgjdbc/pull/2227">PR 2227</a> (#2371)</li>
+<li>perf: add read(b,o,l) to BlobInputStream <a href="https://github.com/pgjdbc/pgjdbc/pull/2376">PR 2376</a></li>
+<li>change the default directory returned on windows to APPDATA/postgresql since that is what we end up using anyway <a href="https://github.com/pgjdbc/pgjdbc/pull/2402">PR 2402</a></li>
+<li>fix: we will ask the server if it supports GSS Encryption if gssEncryption is prefer or require <a href="https://github.com/pgjdbc/pgjdbc/pull/2396">PR 2396</a></li>
+<li>docs: Document timezone reversal from POSIX to ISO <a href="https://github.com/pgjdbc/pgjdbc/pull/2413">PR 2413</a></li>
+<li>fix: PgObject isNull() was reporting the opposite fixes Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/2411">PR 2411</a> (#2414)</li>
+<li>remove skipjre6 and skipjre7 <a href="https://github.com/pgjdbc/pgjdbc/pull/2415">PR 2415</a></li>
+<li>Revert &quot;perf: add read(b,o,l) to BlobInputStream <a href="https://github.com/pgjdbc/pgjdbc/pull/2376">PR 2376</a>&quot; (#2422)</li>
+<li>Changelog42.3.2 <a href="https://github.com/pgjdbc/pgjdbc/pull/2418">PR 2418</a></li>
+</ul>
+
+<p>JoelRabinovitch (1):</p>
+
+<ul>
+<li>fixForIsAutoGenerated Fix For IS_AUTOGENERATED Flag <a href="https://github.com/pgjdbc/pgjdbc/pull/2348">PR 2348</a></li>
+</ul>
+
+<p>Marek Läll (2):</p>
+
+<ul>
+<li>Issue 2278 ; jdbc:postgresql://?service= ; pg_service.conf ; .pgpass <a href="https://github.com/pgjdbc/pgjdbc/pull/2282">PR 2282</a></li>
+<li>fix: default file name is &quot;.pg<em>service.conf&quot; on Windows (not &quot;pg</em>service.conf&quot;) <a href="https://github.com/pgjdbc/pgjdbc/pull/2398">PR 2398</a></li>
+</ul>
+
+<p>Mark Grobaker (1):</p>
+
+<ul>
+<li>test: materialized view privileges <a href="https://github.com/pgjdbc/pgjdbc/pull/2209">PR 2209</a></li>
+</ul>
+
+<p>Michał Wyrzykowski (1):</p>
+
+<ul>
+<li>fix: Connection leak in ConnectionFactoryImpl#tryConnect <a href="https://github.com/pgjdbc/pgjdbc/pull/2350">PR 2350</a> (#2351)</li>
+</ul>
+
+<p>Nick Burgan (1):</p>
+
+<ul>
+<li>Add cert key type checking to chooseClientAlias <a href="https://github.com/pgjdbc/pgjdbc/pull/2417">PR 2417</a></li>
+</ul>
+
+<p>Philippe Marschall (6):</p>
+
+<ul>
+<li>style: fix typos in pgobject javadoc <a href="https://github.com/pgjdbc/pgjdbc/pull/2379">PR 2379</a></li>
+<li>style: import java.time types in TimestampUtils <a href="https://github.com/pgjdbc/pgjdbc/pull/2380">PR 2380</a></li>
+<li>style: import java.time types in more classes <a href="https://github.com/pgjdbc/pgjdbc/pull/2382">PR 2382</a></li>
+<li>fix: throw SQLException for #getBoolean BIT(&gt;1) <a href="https://github.com/pgjdbc/pgjdbc/pull/2386">PR 2386</a></li>
+<li>style: remove Java 8 / JDBC 4.2 checks <a href="https://github.com/pgjdbc/pgjdbc/pull/2383">PR 2383</a></li>
+<li>docs: remove Java 6 and 7 references from contributing <a href="https://github.com/pgjdbc/pgjdbc/pull/2385">PR 2385</a></li>
+</ul>
+
+<p>Sehrope Sarkuni (9):</p>
+
+<ul>
+<li>feat: Change AuthenticationPlugin interface to use char[] rather than String <a href="https://github.com/pgjdbc/pgjdbc/pull/2420">PR 2420</a></li>
+<li>test: Disable no-arg callable statement tests in simple query mode <a href="https://github.com/pgjdbc/pgjdbc/pull/2419">PR 2419</a></li>
+<li>test: Remove extra catch-fail in RefCursorFetchTest <a href="https://github.com/pgjdbc/pgjdbc/pull/2391">PR 2391</a></li>
+<li>test: Fix RefCursorFetchTest on older platforms <a href="https://github.com/pgjdbc/pgjdbc/pull/2391">PR 2391</a></li>
+<li>feat: Add authenticationPluginClassName option to provide passwords at runtime <a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR 2369</a></li>
+<li>test: Add TestUtil.assumeHaveMinimumServerVersion(...) helper <a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR 2369</a></li>
+<li>refactor: Change internal constructors to pass only connection Properties <a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR 2369</a></li>
+<li>refactor: Use multi-catch for exceptions in ConnectionFactoryImpl <a href="https://github.com/pgjdbc/pgjdbc/pull/2369">PR 2369</a></li>
+<li>test: Fix DatabaseMetadataTest to perform mview tests only on 9.3+ <a href="https://github.com/pgjdbc/pgjdbc/pull/2340">PR 2340</a></li>
+</ul>
+
+<p>Sergey Nuyanzin (4):</p>
+
+<ul>
+<li>[typo] typo in CONTRIBUTING.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2332">PR 2332</a></li>
+<li>[typo] in connect.md <a href="https://github.com/pgjdbc/pgjdbc/pull/2338">PR 2338</a></li>
+<li>Misprint in messages_ru.java <a href="https://github.com/pgjdbc/pgjdbc/pull/2358">PR 2358</a></li>
+</ul>
+
+<p>Sergey Prytkov (1):</p>
+
+<ul>
+<li>perf: read in<em>hot</em>standby GUC on connection <a href="https://github.com/pgjdbc/pgjdbc/pull/2334">PR 2334</a></li>
+</ul>
+
+<p>Zuzana Miklankova (1):</p>
+
+<ul>
+<li>docs: add info about convenience maven project <a href="https://github.com/pgjdbc/pgjdbc/pull/2407">PR 2407</a></li>
+</ul>
+
+<p>marcmuel (1):</p>
+
+<ul>
+<li>fix: use local TimestampUtil in PgStatement and PgResultset for thread safety <a href="https://github.com/pgjdbc/pgjdbc/pull/2291">PR 2291</a></li>
+</ul>
+
+<p><a name="contributors_42.3.2"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="https://github.com/praiskup">Pavel Raiskup</a><br>
+<a href="https://github.com/sehrope">Sehrope Sarkuni</a><br>
+<a href="https://github.com/strkkk">Andrei Paikin</a><br>
+<a href="https://github.com/nmburgan">Nick Burgan</a><br>
+<a href="https://github.com/zmiklank">Zuzana Miklankova</a><br>
+<a href="https://github.com/MarekUniq">Marek Läll</a><br>
+<a href="https://github.com/marschall">Philippe Marschall</a><br>
+<a href="https://github.com/snuyanzin">Sergey Nuyanzin</a><br>
+<a href="https://github.com/wyrzyk">Michał Wyrzykowski</a><br>
+<a href="https://github.com/JoelRabinovitch">JoelRabinovitch</a><br>
+<a href="https://github.com/mgrobaker">Mark Grobaker</a><br>
+<a href="https://github.com/Rattenkrieg">Sergey Prytkov</a><br>
+<a href="https://github.com/marcmuel">marcmuel</a><br>
+<a href="https://github.com/bokken">Brett Okken</a>  </p>

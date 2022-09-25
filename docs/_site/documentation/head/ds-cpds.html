@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Application Servers ConnectionPoolDataSource</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 11. Connection Pools and Data Sources</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Chapter 11. Connection Pools and Data Sources" href="datasource.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Applications DataSource" href="ds-ds.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Application Servers ConnectionPoolDataSource</h1>
+					
+					<p>PostgreSQL™ includes one implementation of <code>ConnectionPoolDataSource</code> named
+<code>org.postgresql.ds.PGConnectionPoolDataSource</code>.</p>
+
+<p>JDBC requires that a <code>ConnectionPoolDataSource</code> be configured via JavaBean
+properties, shown in <a href="ds-cpds.html#ds-cpds-props">Table 11.1, “<code>ConnectionPoolDataSource</code> Configuration Properties”</a>,
+so there are get and set methods for each of these properties.</p>
+
+<p><a name="ds-cpds-props"></a>
+<strong>Table 11.1. <code>ConnectionPoolDataSource</code> Configuration Properties</strong></p>
+
+<table summary="ConnectionPoolDataSource Configuration Properties" class="CALSTABLE" border="1">
+  <tr>
+    <th>Property</th>
+    <th>Type</th>
+    <th>Description</th>
+  </tr>
+  <tbody>
+    <tr>
+      <td>serverName</td>
+      <td>STRING</td>
+      <td>PostgreSQL™ database server
+host name</td>
+    </tr>
+    <tr>
+      <td>databaseName</td>
+      <td>STRING</td>
+      <td>PostgreSQL™ database name</td>
+    </tr>
+    <tr>
+      <td>portNumber</td>
+      <td>INT</td>
+      <td> TCP port which the PostgreSQL™
+
+database server is listening on (or 0 to use the default port) </td>
+    </tr>
+    <tr>
+      <td>user</td>
+      <td>STRING</td>
+      <td>User used to make database connections</td>
+    </tr>
+    <tr>
+      <td>password</td>
+      <td>STRING</td>
+      <td>Password used to make database connections</td>
+    </tr>
+    <tr>
+      <td>ssl</td>
+      <td>BOOLEAN</td>
+      <td> If `true`, use SSL encrypted
+connections (default `false`) </td>
+    </tr>
+    <tr>
+      <td>sslfactory</td>
+      <td>STRING</td>
+      <td> Custom `javax.net.ssl.SSLSocketFactory`
+class name (see the section called [“Custom
+SSLSocketFactory”](ssl-factory.html)) </td>
+    </tr>
+    <tr>
+      <td>defaultAutoCommit</td>
+      <td>BOOLEAN</td>
+      <td> Whether connections should have autocommit enabled or
+disabled when they are supplied to the caller. The default is `false`, to disable autocommit. </td>
+    </tr>
+  </tbody>
+</table>
+
+<p>Many application servers use a properties-style syntax to configure these
+properties, so it would not be unusual to enter properties as a block of text.
+If the application server provides a single area to enter all the properties,
+they might be listed like this:</p>
+
+<p><code>serverName=localhost</code><br>
+<code>databaseName=test</code><br>
+<code>user=testuser</code><br>
+<code>password=testpassword</code></p>
+
+<p>Or, if semicolons are used as separators instead of newlines, it could look like
+this:</p>
+
+<p><code>serverName=localhost;databaseName=test;user=testuser;password=testpassword</code></p>
+
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="datasource.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="ds-ds.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Chapter 11. Connection Pools and Data Sources</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Applications DataSource</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>

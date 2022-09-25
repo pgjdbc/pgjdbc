@@ -1,0 +1,11 @@
+.self-link {
+    .header-link {
+        opacity: 0;
+    }
+
+    &:hover {
+        .header-link {
+            opacity: 1;
+        }
+    }
+}

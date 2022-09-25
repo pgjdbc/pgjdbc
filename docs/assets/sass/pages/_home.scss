@@ -1,0 +1,235 @@
+.home {
+    max-width: 70rem;
+    margin: var(--box-spacing) auto;
+    padding-inline: var(--box-spacing);
+
+    &>* {
+        margin-bottom: var(--section-spacing);
+    }
+
+    h1,
+    h2 {
+        color: var(--clr-primary-400);
+    }
+
+    p {
+        font-weight: 600;
+        letter-spacing: 1px;
+        margin: 1em 0;
+    }
+
+    .hero,
+    .info,
+    .feature {
+
+        @include mq-min(medium) {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        @include mq-max(medium) {
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+            align-items: center;
+        }
+    }
+}
+
+// Hero Section
+
+.hero {
+    align-items: center;
+    column-gap: 5em;
+
+    &__img {
+        width: 45%;
+
+        @include mq-max(medium) {
+            width: 70%
+        }
+
+    }
+
+    &__content {
+        width: 45%;
+
+        @include mq-max(medium) {
+            width: 100%
+        }
+
+        &__head {
+            font-size: 5.4rem;
+
+            @include mq-max(medium) {
+                font-size: 4.5rem;
+            }
+
+            @include mq-max(small) {
+                font-size: 3.5rem;
+            }
+        }
+
+        &__desc {
+            font-size: 1.25rem;
+            padding-block: 0.5em;
+            font-weight: 600;
+            // letter-spacing: 1px;
+            line-height: 1.5;
+
+            @include mq-max(medium) {
+                font-size: 1.05rem;
+                // line-height: 1.25;
+            }
+        }
+
+        &__actions {
+            padding-top: 1.5em;
+            display: flex;
+            column-gap: var(--primary-spacing);
+            font-size: 1.25rem;
+
+            a {
+                text-decoration: none;
+            }
+
+            @include mq-max(medium) {
+                justify-content: center;
+            }
+        }
+    }
+}
+
+// Info Section
+
+.info {
+
+    ul {
+        margin: 0;
+        padding: 0;
+
+        li {
+            padding-inline: 0.5em;
+        }
+
+        li:nth-child(even) {
+            background-color: var(--clr-neutral-200);
+        }
+    }
+
+    &__about {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 45%;
+
+        @include mq-max(medium) {
+            max-width: 100%
+        }
+    }
+
+    &__release {
+        display: flex;
+        flex-direction: column;
+        max-width: 45%;
+
+        h2 {
+            text-align: center;
+        }
+
+        @include mq-max(medium) {
+            max-width: 100%
+        }
+
+    }
+}
+
+// Feature Section
+
+.feature {
+    column-gap: 5rem;
+
+    &__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        &__media {
+            width: 4rem;
+            aspect-ratio: 1;
+        }
+    }
+}
+
+.example {
+    pre code {
+        @include mq-max(medium) {
+            display: block;
+        }
+    }
+}
+
+// Report Section
+
+.report {
+    &__row {
+        @include mq-min(small) {
+            display: flex;
+            justify-content: space-between;
+            padding-top: var(--primary-spacing);
+        }
+    }
+
+    &__item {
+        display: inline-flex;
+        column-gap: var(--primary-spacing);
+        align-items: center;
+    }
+
+    &__desc {
+        font-size: var(--fs-400);
+        font-stretch: 100%;
+        line-height: 1.3;
+    }
+}
+
+// Support Section
+
+.support {
+    position: relative;
+
+    &__desc {
+        position: absolute;
+        top: 25%;
+        bottom: 25%;
+        left: 50%;
+        background-color: hsla(0, 0%, 100%, 0.5);
+        padding: var(--container-spacing);
+        margin-left: var(--container-spacing);
+        border-radius: 3px;
+
+        @include mq-max(medium) {
+            top: 15%;
+            left: 0%;
+            bottom: 15%;
+            margin: var(--primary-spacing);
+            padding: var(--primary-spacing);
+
+        }
+
+        @include mq-max(x-small) {
+            top: 10%;
+            left: 0%;
+            bottom: 10%;
+
+            h2 {
+                font-size: 1rem;
+            }
+
+            .desc {
+                font-size: 0.65rem;
+            }
+        }
+    }
+}

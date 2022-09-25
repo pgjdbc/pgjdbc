@@ -1,0 +1,15 @@
+.doc {
+
+   .article {
+      width: 100%;
+      padding-inline: var(--container-spacing);
+
+      @include mq-min(medium) {
+         width: 60%;
+      }
+   }
+
+   @include mq-min(medium) {
+      display: flex;
+   }
+}

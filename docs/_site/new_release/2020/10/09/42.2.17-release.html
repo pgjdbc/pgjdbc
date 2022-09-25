@@ -1,0 +1,65 @@
+<p><strong>Notable changes</strong></p>
+
+<h3>Changed</h3>
+
+<ul>
+<li>Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly. Libpq gets around this by checking for a GSS credential cache before attempting the connection. This is possible in JDK 8 and up, but not JDK6, or JDK7 fixes Issue #1868 <a href="https://github.com/pgjdbc/pgjdbc/pull/1913">PR #1913</a></li>
+</ul>
+
+<h3>Added</h3>
+
+<ul>
+<li>Add smallserial metadata [PR #899(https://github.com/pgjdbc/pgjdbc/pull/899)</li>
+</ul>
+
+<h3>Fixed</h3>
+
+<ul>
+<li>Avoid NullPointerException when receiving PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney <a href="https://github.com/pgjdbc/pgjdbc/pull/1873">PR 1873</a>..</li>
+<li>The driver returns enum and jsonb arrays elements as String objects (like in 42.2.14 and earlier versions) <a href="https://github.com/pgjdbc/pgjdbc/pull/1879">PR 1879</a>. </li>
+<li>PgTokenizer was ignoring last empty token <a href="https://github.com/pgjdbc/pgjdbc/pull/1882">PR #1882</a></li>
+<li>Remove osgi from karaf fixes Issue #1891 <a href="https://github.com/pgjdbc/pgjdbc/pull/1902">PR #1902</a></li>
+</ul>
+
+<!--more-->
+
+<p><strong>Commits by author</strong></p>
+
+<p>Dave Cramer (5):</p>
+
+<ul>
+<li>fix: PgTokenizer was ignoring last empty token <a href="https://github.com/pgjdbc/pgjdbc/pull/1882">PR 1882</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/a6e833429303acf330b9ff512df55e1c3c158ee2">a6e83342</a></li>
+<li>fix checkstyle <a href="https://github.com/pgjdbc/pgjdbc/pull/1888">PR 1888</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/70b02c55233bec6ea87286b4fb80ac60a0ebd76f">70b02c55</a></li>
+<li>fix: handle smallserial correctly fixes <a href="https://github.com/pgjdbc/pgjdbc/pull/1897">PR 1897</a> (#1899) <a href="https://github.com/pgjdbc/pgjdbc/commit/d4a4b2d643547e89fc349847d8d0c098108270ab">d4a4b2d6</a></li>
+<li>fix:remove osgi from karaf fixes Issue <a href="https://github.com/pgjdbc/pgjdbc/pull/1891">PR 1891</a> (#1902) <a href="https://github.com/pgjdbc/pgjdbc/commit/0c2858e9cabb1209c2b30cf03c07a30b8051cf4c">0c2858e9</a></li>
+<li>Change default of gssEncMode to ALLOW. PostgreSQL can deal with PREFER but there are cloud providers that did not implement the protocol properly <a href="https://github.com/pgjdbc/pgjdbc/commit/14c4173ca6719a8dea8539621583d785bbd8f632">14c4173c</a></li>
+</ul>
+
+<p>Jorge Solorzano (1):</p>
+
+<ul>
+<li>feat: add smallserial metadata <a href="https://github.com/pgjdbc/pgjdbc/pull/899">PR 899</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/05403bd02ed40e4f029f19800b32af9f96637e34">05403bd0</a></li>
+</ul>
+
+<p>Vladimir Sitnikov (8):</p>
+
+<ul>
+<li>fix: handle nulls when the following clasess are used: PGbox, PGcircle, PGline, PGlseg, PGpath, PGpoint, PGpolygon, and PGmoney <a href="https://github.com/pgjdbc/pgjdbc/commit/c745f4e549b119b8332ef48bbc8b8525ccba0f21">c745f4e5</a></li>
+<li>chore: fix compileJava7 and compileJava6 <a href="https://github.com/pgjdbc/pgjdbc/commit/0308ffcafa49271d1dabd001404b955c5e8bbe28">0308ffca</a></li>
+<li>chore: run GitHub actions when branch name has slash <a href="https://github.com/pgjdbc/pgjdbc/commit/433817d606c42e897ee4b37baf7b50eda5ab3356">433817d6</a></li>
+<li>chore: seed build cache only when credentials exist (==skip on forks) <a href="https://github.com/pgjdbc/pgjdbc/commit/eec708a80ad17f5a17bba5cdbcdcb640b094a965">eec708a8</a></li>
+<li>test: add GitHub CI for testing source distribution <a href="https://github.com/pgjdbc/pgjdbc/commit/44d0923fa85e159ac937277767b4dfe2a67df28c">44d0923f</a></li>
+<li>test: add tests for enum, json, and jsonb array <a href="https://github.com/pgjdbc/pgjdbc/commit/1bec402208eef17fd81f5dd7cca1d1a36e1466da">1bec4022</a></li>
+<li>fix: make enum, json, and jsonb array result classes to be the same as 42.2.14 and earlier <a href="https://github.com/pgjdbc/pgjdbc/pull/1876">PR 1876</a> <a href="https://github.com/pgjdbc/pgjdbc/commit/41855018a0371ea6c36d1c88e3a33402f44f53eb">41855018</a></li>
+<li>fix: avoid removal type annotations on &quot;this&quot; so the source archive is buildable <a href="https://github.com/pgjdbc/pgjdbc/commit/832bf21c3ac37691dc71f6ee6bc1e3da34c7d746">832bf21c</a></li>
+</ul>
+
+<p><a name="contributors_42.2.17"></a></p>
+
+<h3>Contributors to this release</h3>
+
+<p>We thank the following people for their contributions to this release.</p>
+
+<p><a href="davec@postgresintl.com">Dave Cramer</a><br>
+<a href="https://github.com/jorsol">Jorge Solorzano</a><br>
+<a href="https://github.com/vlsi">Vladimir Sitnikov</a>  </p>

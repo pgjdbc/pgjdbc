@@ -1,0 +1,26 @@
+.pagination {
+    display: flex;
+    width: 100%;
+    text-transform: uppercase;
+    font-size: 90%;
+    margin-top: var(--box-spacing);
+
+    &__left {
+        width: 50%;
+
+        &__link::before {
+            content: $double-left-arrow;
+            font-size: var(--fs-300);
+        }
+    }
+
+    &__right {
+        text-align: right;
+        width: 50%;
+
+        &__link::after {
+            content: $double-right-arrow;
+            font-size: var(--fs-300);
+        }
+    }
+}

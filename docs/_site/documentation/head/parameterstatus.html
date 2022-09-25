@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Parameter Status Messages</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="The official documentation for the PostgreSQL JDBC Driver" />
+	<meta name="copyright" content="The PostgreSQL Global Development Group" />
+
+	<style type="text/css" media="screen" title="Normal Text">@import url("media/css/docs.css");</style>
+	<link rel="stylesheet" type="text/css" href="/documentation/head/media/css/syntax.css">
+
+	<link rel="shortcut icon" href="/documentation/head/media/favicon.ico" />
+</head>
+
+<body>
+	<div id="docHeader">
+		<div id="docHeaderLogo">
+			<a href="https://jdbc.postgresql.org/" title="PostgreSQL JDBC Driver"><img src="media/img/layout/hdr_left3a.png" alt="PostgreSQL" height="80" width="390" /></a>
+		</div>
+	</div>
+
+	<div id="docContainerWrap">
+		<div id="docContainer">
+			<div id="docContent">
+
+				<div class="NAVHEADER">
+					<table summary="Header navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+						<tbody>
+						<tr>
+							<th colspan="3" valign="bottom" align="center">
+								<h2 class="TITLE">Chapter 9. PostgreSQL™ Extensions to the JDBC API</h2>
+							</th>
+						</tr>
+						<tr>
+							<td valign="top" width="20%" align="left">
+								<a title="Parameter Status Messages" href="server-prepare.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="bottom" width="60%" align="center">&nbsp;</td>
+							<td valign="top" width="20%" align="right">
+								<a title="Physical and Logical replication API" href="replication.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+  					</tbody>
+					</table>
+					<hr class="c1" width="100%" />
+				</div> <!-- NAVHEADER -->
+
+				<div class="CHAPTER">
+  					<h1>Parameter Status Messages</h1>
+					
+					<h1>Parameter Status Messages</h1>
+
+<p>PostgreSQL supports server parameters, also called server variables or,
+internally, Grand Unified Configuration (GUC) variables. These variables are
+manipulated by the <code>SET</code> command, <code>postgresql.conf</code>, <code>ALTER SYSTEM SET</code>, <code>ALTER
+USER SET</code>, <code>ALTER DATABASE SET</code>, the <code>set_config(...)</code> SQL-callable function,
+etc. See <a href="https://www.postgresql.org/docs/current/config-setting.html">the PostgreSQL manual</a>.</p>
+
+<p>For a subset of these variables the server will <em>automatically report changes
+to the value to the client driver and application</em>. These variables are known
+internally as <code>GUC_REPORT</code> variables after the name of the flag that enables
+the functionality.</p>
+
+<p>The server keeps track of all the variable scopes and reports when a variable
+reverts to a prior value, so the client doesn&#39;t have to guess what the current
+value is and whether some server-side function could&#39;ve changed it.  Whenever
+the value changes, no matter why or how it changes, the server reports the new
+effective value in a <em>Parameter Status</em> protocol message to the client.  PgJDBC
+uses many of these reports internally.</p>
+
+<p>As of PgJDBC 42.2.6, it also exposes the parameter status information to user
+applications via the PGConnection extensions interface.</p>
+
+<h2>Methods</h2>
+
+<p>Two methods on <code>org.postgresql.PGConnection</code> provide the client interface to
+reported parameters. Parameter names are case-insensitive and case-preserving.</p>
+
+<ul>
+<li><p><code>Map PGConnection.getParameterStatuses()</code> - return a map of all reported
+parameters and their values.</p></li>
+<li><p><code>String PGConnection.getParameterStatus()</code> - shorthand to retrieve one
+value by name, or null if no value has been reported.</p></li>
+</ul>
+
+<p>See the <code>PGConnection</code> JavaDoc for details.</p>
+
+<h2>Example</h2>
+
+<p>If you&#39;re working directly with a <code>java.sql.Connection</code> you can</p>
+<div class="highlight"><pre><code class="language-text" data-lang="text"><span></span>import org.postgresql.PGConnection;
+
+void my_function(Connection conn) {
+
+    System.out.println(&quot;My application name is &quot; +
+        ((PGConnection)conn).getParameterStatus(&quot;application_name&quot;));
+
+}
+</code></pre></div>
+<h2>Other client drivers</h2>
+
+<p>The <code>libpq</code> equivalent is the <code>PQparameterStatus(...)</code> API function.</p>
+
+				</div>
+
+				<div class="NAVFOOTER">
+					<hr class="c1" width="100%" />
+					<table summary="Footer navigation table" width="100%" border="0" cellpadding="0" cellspacing="0">
+					<tbody>
+						<tr>
+							<td valign="top" width="33%" align="left">
+								<a href="server-prepare.html" accesskey="P">Prev</a>
+							</td>
+							<td valign="top" width="34%" align="center">
+								<a href="index.html" accesskey="H">Home</a>
+							</td>
+							<td valign="top" width="33%" align="right">
+								<a href="replication.html" accesskey="N">Next</a>
+							</td>
+    						</tr>
+						<tr>
+							<td valign="top" width="33%" align="left">Parameter Status Messages</td>
+							<td valign="top" width="34%" align="center">&nbsp;</td>
+							<td valign="top" width="33%" align="right">Physical and Logical replication API</td>
+						</tr>
+					</tbody>
+					</table>
+				</div> <!-- NAVFOOTER -->
+
+
+			</div> <!-- docContent -->
+			
+			<div id="docComments"></div>
+
+			<div id="docFooter">
+				<a class="navFooter" href="https://www.postgresql.org/about/privacypolicy">Privacy Policy</a> |
+				<a class="navFooter" href="https://www.postgresql.org/about/">About PostgreSQL</a><br/>
+				Copyright &copy; 1996-2022 The PostgreSQL Global Development Group
+			</div> <!-- pgFooter -->
+		</div> <!-- docContainer -->
+	</div> <!-- docContainer -->
+</body>
+</html>
