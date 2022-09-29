@@ -191,7 +191,7 @@ The PostgreSQL™ server allows clients to compile sql statements that are expec
 
 > **NOTE**
 >
-> PostgreSQL 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
+> PostgreSQL™ 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
 
@@ -286,7 +286,7 @@ The recommendation is:
 
 #### set search_path = ...
 
-PostgreSQL allows to customize `search_path` , and it provides great power to the developer. With great power the following case could happen:
+PostgreSQL™ allows to customize `search_path` , and it provides great power to the developer. With great power the following case could happen:
 
 ```sql
 set search_path='app_v1';
@@ -311,11 +311,11 @@ It is a pity that a single `cached plan must not change result type` could cause
 
 > **Note**
 >
-> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL backend is not optimized for the case of long transactions and lots of savepoints.
+> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL™ backend is not optimized for the case of long transactions and lots of savepoints.
 
 #### Replication connection
 
-PostgreSQL replication connection does not allow to use server side prepared statements, so pgJDBC
+PostgreSQL™ replication connection does not allow to use server side prepared statements, so pgJDBC
 uses simple queries in the case where `replication` connection property is activated.
 
 #### Use of server-prepared statements for con.createStatement()
@@ -457,7 +457,7 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
 
 ## Parameter Status Messages
 
-PostgreSQL supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables. These variables are manipulated by the `SET` command, `postgresql.conf` , `ALTER SYSTEM SET` , `ALTER USER SET`, ` ALTER DATABASE SET `, the `set_config(...)` SQL-callable function, etc. See [The PostgreSQL manual](https://www.postgresql.org/docs/current/config-setting.html).
+PostgreSQL™ supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables. These variables are manipulated by the `SET` command, `postgresql.conf` , `ALTER SYSTEM SET` , `ALTER USER SET`, ` ALTER DATABASE SET `, the `set_config(...)` SQL-callable function, etc. See [The PostgreSQL manual](https://www.postgresql.org/docs/current/config-setting.html).
 
 For a subset of these variables the server will *automatically report changes to the value to the client driver and application*. These variables are known internally as `GUC_REPORT` variables after the name of the flag that enables the functionality.
 
@@ -506,12 +506,12 @@ every time a row in a table is inserted, updated or deleted, that’s an event. 
 and appear in the order in which they were committed to the database. Aborted/rolled-back transactions
 do not appear in the stream. Thus, if you apply the change events in the same order, you end up with an exact,
 transactionally consistent copy of the database. It's looks like the Event Sourcing pattern that you previously implemented
-in your application, but now it's available out of the box from the PostgreSQL database.
+in your application, but now it's available out of the box from the PostgreSQL™ database.
 
-For access to real-time changes PostgreSQL provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
+For access to real-time changes PostgreSQL™ provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
 to stream changes to an external system.
 
-Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL API
+Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL™ API
 
 ## Configure database
 
@@ -561,7 +561,7 @@ host    replication   all   ::1/128         md5
 Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is include in the `postgresql-contrib` package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
 
 In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection is not available to
-execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL.
+execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL™.
 
 ##### Example 9.4. Create replication connection.
 
@@ -648,7 +648,7 @@ COMMIT
 ```
 
 During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
-ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and the database will free resources. In PostgreSQL the ping timeout is configured by the property `wal_sender_timeout` (default = 60 seconds).
+ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and the database will free resources. In PostgreSQL™ the ping timeout is configured by the property `wal_sender_timeout` (default = 60 seconds).
 Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
 It is recommended to send feedback(ping) to the database more often than configured `wal_sender_timeout` . In production I use value equal to `wal_sender_timeout / 3` . It's avoids a potential problems with networks and changes to be streamed without disconnects by timeout. To specify the feedback interval use `withStatusInterval` method.
 
@@ -812,7 +812,7 @@ COMMIT
 ## Physical replication
 
 API for physical replication looks like the API for logical replication. Physical replication does not require a replication
-slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change from version to version. That is why replication between different major PostgreSQL versions is not possible. But physical replication can contain many important data, that is not available via logical replication. That is why pgjdc contains an implementation for both.
+slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change from version to version. That is why replication between different major PostgreSQL™ versions is not possible. But physical replication can contain many important data, that is not available via logical replication. That is why pgjdc contains an implementation for both.
 
 **Example 9.15. Use physical replication**
 

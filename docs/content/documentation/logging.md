@@ -6,7 +6,7 @@ weight: 11
 toc: true
 ---
 
-The PostgreSQL JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
+The PostgreSQL™ JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
 pgJDBC Driver when is used in your application.
 
 The pgJDBC Driver uses the logging APIs of `java.util.logging` that is part of Java since JDK 1.4, which makes it a good choice for the driver since it doesn't add any external dependency for a logging framework. `java.util.logging` is a very rich and powerful tool, it's beyond the scope of these docs to explain how to use it to it's full potential, for that please refer to [Java Logging Overview](https://docs.oracle.com/javase/8/docs/technotes/guides/logging/overview.html).
