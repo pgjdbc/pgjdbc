@@ -1,12 +1,12 @@
 ---
-title: "PostgreSQL™ Extensions to the JDBC API"
+title: "PostgreSQL® Extensions to the JDBC API"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 8
 toc: true
 ---
 
-PostgreSQL™ is an extensible database system. You can add your own functions to the server, which can then be called from queries, or even add your own data types. As these are facilities unique to PostgreSQL™, we support them from Java, with a set of extension APIs. Some features within the core of the standard driver actually use these extensions to implement Large Objects, etc.
+PostgreSQL® is an extensible database system. You can add your own functions to the server, which can then be called from queries, or even add your own data types. As these are facilities unique to PostgreSQL®, we support them from Java, with a set of extension APIs. Some features within the core of the standard driver actually use these extensions to implement Large Objects, etc.
 
 ## Accessing the Extensions
 
@@ -21,7 +21,7 @@ Fastpath fp = db.unwrap(org.postgresql.PGConnection.class).getFastpathAPI();
 
 ## Geometric Data Types
 
-PostgreSQL™ has a set of data types that can store geometric features into a table. These include single points, lines, and polygons.  We support these types in Java with the org.postgresql.geometric package. Please consult the Javadoc mentioned in [Further Reading](/documentation/reading) for details of available classes and features.
+PostgreSQL® has a set of data types that can store geometric features into a table. These include single points, lines, and polygons.  We support these types in Java with the org.postgresql.geometric package. Please consult the Javadoc mentioned in [Further Reading](/documentation/reading) for details of available classes and features.
 
 ##### Example 9.1. Using the CIRCLE datatype JDBC
 
@@ -73,7 +73,7 @@ public class GeometricTest {
 ## Large Objects
 
 Large objects are supported in the standard JDBC specification. However, that
-interface is limited, and the API provided by PostgreSQL™ allows for random
+interface is limited, and the API provided by PostgreSQL® allows for random
 access to the objects contents, as if it was a local file.
 
 The org.postgresql.largeobject package provides to Java the libpq C interface's
@@ -84,9 +84,9 @@ with an individual object.  For an example usage of this API, please see
 
 ## Listen / Notify
 
-Listen and Notify provide a simple form of signal or interprocess communication mechanism for a collection of processes accessing the same PostgreSQL™ database. For more information on notifications consult the main server documentation. This section only deals with the JDBC specific aspects of notifications.
+Listen and Notify provide a simple form of signal or interprocess communication mechanism for a collection of processes accessing the same PostgreSQL® database. For more information on notifications consult the main server documentation. This section only deals with the JDBC specific aspects of notifications.
 
-Standard `LISTEN` , `NOTIFY` , and `UNLISTEN` commands are issued via the standard `Statement` interface. To retrieve and process retrieved notifications the `Connection` must be cast to the PostgreSQL™ specific extension interface `PGConnection` . From there the `getNotifications()` method can be used to retrieve any outstanding notifications.
+Standard `LISTEN` , `NOTIFY` , and `UNLISTEN` commands are issued via the standard `Statement` interface. To retrieve and process retrieved notifications the `Connection` must be cast to the PostgreSQL® specific extension interface `PGConnection` . From there the `getNotifications()` method can be used to retrieve any outstanding notifications.
 
 > **NOTE**
 >
@@ -187,11 +187,11 @@ class Notifier extends Thread {
 
 ### Motivation
 
-The PostgreSQL™ server allows clients to compile sql statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution. This functionality is available at the SQL level via PREPARE and EXECUTE beginning with server version 7.3, and at the protocol level beginning with server version 7.4, but as Java developers we really just want to use the standard `PreparedStatement` interface.
+The PostgreSQL® server allows clients to compile sql statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution. This functionality is available at the SQL level via PREPARE and EXECUTE beginning with server version 7.3, and at the protocol level beginning with server version 7.4, but as Java developers we really just want to use the standard `PreparedStatement` interface.
 
 > **NOTE**
 >
-> PostgreSQL™ 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
+> PostgreSQL® 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
 
@@ -295,7 +295,7 @@ The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalid
 
 #### set search_path = ...
 
-PostgreSQL™ allows to customize `search_path` , and it provides great power to the developer. With great power the 
+PostgreSQL® allows to customize `search_path` , and it provides great power to the developer. With great power the 
 following case could happen:
 
 ```sql
@@ -329,12 +329,12 @@ feature, and it could automatically rollback and retry the statement. The behavi
 
 > **Note**
 >
-> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL™ backend is not optimized
+> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL® backend is not optimized
 > for the case of long transactions and lots of savepoints.
 
 #### Replication connection
 
-PostgreSQL™ replication connection does not allow to use server side prepared statements, so pgJDBC
+PostgreSQL® replication connection does not allow to use server side prepared statements, so pgJDBC
 uses simple queries in the case where `replication` connection property is activated.
 
 #### Use of server-prepared statements for con.createStatement()
@@ -450,7 +450,7 @@ the third execution.
 |4|true|4|
 |5|true|5|
 
-The example shown above requires the programmer to use PostgreSQL™ specific code in a supposedly portable API which is not ideal.
+The example shown above requires the programmer to use PostgreSQL® specific code in a supposedly portable API which is not ideal.
 Also it sets the threshold only for that particular statement which is some extra typing if we wanted to use that threshold for
 every statement. Let's take a look at the other ways to set the threshold to enable server side prepared statements.
 There is already a hierarchy in place above a `PreparedStatement` , the `Connection` it was created from, and above that
@@ -484,7 +484,7 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
 
 ## Parameter Status Messages
 
-PostgreSQL™ supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables.
+PostgreSQL® supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables.
 These variables are manipulated by the `SET` command, `postgresql.conf` , `ALTER SYSTEM SET` , `ALTER USER SET`, ` ALTER DATABASE SET `,
 the `set_config(...)` SQL-callable function, etc. See [The PostgreSQL manual](https://www.postgresql.org/docs/current/config-setting.html).
 
@@ -547,13 +547,13 @@ every time a row in a table is inserted, updated or deleted, that’s an event. 
 and appear in the order in which they were committed to the database. Aborted/rolled-back transactions
 do not appear in the stream. Thus, if you apply the change events in the same order, you end up with an exact,
 transactionally consistent copy of the database. It's looks like the Event Sourcing pattern that you previously implemented
-in your application, but now it's available out of the box from the PostgreSQL™ database.
+in your application, but now it's available out of the box from the PostgreSQL® database.
 
-For access to real-time changes PostgreSQL™ provides the streaming replication protocol. Replication protocol can be physical
+For access to real-time changes PostgreSQL® provides the streaming replication protocol. Replication protocol can be physical
 or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
 to stream changes to an external system.
 
-Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL™ API
+Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL® API
 
 ## Configure database
 
@@ -606,7 +606,7 @@ how to  use the pgJDBC replication API we will use the `test_decoding` plugin th
 package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
 
 In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection
-is not available to execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL™.
+is not available to execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL®.
 
 ##### Example 9.4. Create replication connection.
 
@@ -696,7 +696,7 @@ COMMIT
 
 During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
 ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and
-the database will free resources. In PostgreSQL™ the ping timeout is configured by the property `wal_sender_timeout`
+the database will free resources. In PostgreSQL® the ping timeout is configured by the property `wal_sender_timeout`
 (default = 60 seconds). Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
 It is recommended to send feedback(ping) to the database more often than configured `wal_sender_timeout` . In production systems
 I use value equal to `wal_sender_timeout / 3` . It's avoids a potential problems with networks and changes to be
@@ -870,7 +870,7 @@ COMMIT
 
 API for physical replication looks like the API for logical replication. Physical replication does not require a replication
 slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change
-from version to version. That is why replication between different major PostgreSQL™ versions is not possible. But physical
+from version to version. That is why replication between different major PostgreSQL® versions is not possible. But physical
 replication can contain many important data, that is not available via logical replication. That is why pgJDBC contains an
 implementation for both.
 
@@ -896,7 +896,7 @@ ByteBuffer read = stream.read();
 
 ## Arrays
 
-PostgreSQL™ provides robust support for array data types as column types, function arguments
+PostgreSQL® provides robust support for array data types as column types, function arguments
 and criteria in where clauses. There are several ways to create arrays with pgJDBC.
 
 The [java.sql. Connection.createArrayOf(String, Object\[\])](https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#createArrayOf-java.lang.String-java.lang.Object:A-) can be used to create an [java.sql. Array](https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html) from `Object[]` instances (Note: this includes both primitive and object multi-dimensional arrays).
@@ -906,7 +906,7 @@ The `java.sql.Array` object returned from these methods can be used in other met
 
 The following types of arrays support binary representation in requests and can be used in `PreparedStatement.setObject`
 
-|Java Type | Supported binary PostgreSQL™ Types | Default PostgreSQL™ Type|
+|Java Type | Supported binary PostgreSQL® Types | Default PostgreSQL® Type|
 |--- | --- | ---|
 |`short[]` , `Short[]` | `int2[]` | `int2[]`|
 |`int[]` , `Integer[]` | `int4[]` | `int4[]`|

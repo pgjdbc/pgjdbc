@@ -6,7 +6,7 @@ weight: 3
 toc: true
 ---
 
-Configuring the PostgreSQL™ server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
+Configuring the PostgreSQL® server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
 Before trying to access your SSL enabled server from Java, make sure
 you can get to it via **psql**. You should see output like the following
 if you have established a SSL  connection.
@@ -22,7 +22,7 @@ postgres=#
 
 ## Custom SSLSocketFactory
 
-PostgreSQL™ provides a way for developers to customize how an SSL connection is established. This may be used to provide
+PostgreSQL® provides a way for developers to customize how an SSL connection is established. This may be used to provide
 a custom certificate source or other extensions by allowing the developer to create their own `SSLContext` instance.
 The connection URL parameters `sslfactory` allow the user to specify which custom class to use for creating the 
 `SSLSocketFactory` . The class name specified by `sslfactory` must extend `javax.net.ssl.SSLSocketFactory` and be 

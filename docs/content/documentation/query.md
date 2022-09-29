@@ -110,7 +110,7 @@ using threads, as it covers some important points.
 * When you are done using the `Statement` or `PreparedStatement` you should close it.
 
 * In JDBC, the question mark (`?`) is the placeholder for the positional parameters of a `PreparedStatement`. 
-There are, however, a number of PostgreSQL™ operators that contain a question mark. To keep such question marks in an SQL 
+There are, however, a number of PostgreSQL® operators that contain a question mark. To keep such question marks in an SQL 
 statement from being interpreted as positional parameters, use two question marks ( `??` ) as escape sequence. 
 You can also use this escape sequence in a `Statement` , but that is not required. Specifically only in a `Statement` 
 a single ( `?` ) can be used as an operator.
@@ -173,11 +173,11 @@ st.close();
 
 ## Using Java 8 Date and Time classes
 
-The PostgreSQL™ JDBC driver implements native support for the [Java 8 Date and Time API](http://www.oracle.com/technetwork/articles/java/jf14-date-time-2125367.html)(JSR-310) using JDBC 4.2.
+The PostgreSQL® JDBC driver implements native support for the [Java 8 Date and Time API](http://www.oracle.com/technetwork/articles/java/jf14-date-time-2125367.html)(JSR-310) using JDBC 4.2.
 
 ##### Table 5.1. Supported Java 8 Date and Time classes
 
-|PostgreSQL™|Java SE 8|
+|PostgreSQL®|Java SE 8|
 |---|---|
 |DATE|LocalDate|
 |TIME [ WITHOUT TIME ZONE ]|LocalTime|

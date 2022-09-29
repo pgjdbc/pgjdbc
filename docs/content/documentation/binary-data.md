@@ -6,7 +6,7 @@ weight: 6
 toc: false
 ---
 
-PostgreSQL™ provides two distinct ways to store binary data.  Binary data can be stored in a table using the data type
+PostgreSQL® provides two distinct ways to store binary data.  Binary data can be stored in a table using the data type
 BYTEA or by using the Large Object feature which stores the binary data in a separate table in a special format and refers
 to that table by storing a value of type OID in your table.
 
@@ -28,7 +28,7 @@ More details on connection properties are available in the section called [Conne
 
 To use the BYTEA data type you should simply use the `getBytes()` , `setBytes()` , `getBinaryStream()` , or `setBinaryStream()` methods.
 
-To use the Large Object functionality you can use either the `LargeObject` class provided by the PostgreSQL™ JDBC driver,
+To use the Large Object functionality you can use either the `LargeObject` class provided by the PostgreSQL® JDBC driver,
 or by using the `getBLOB()` and `setBLOB()` methods.
 
 > **IMPORTANT**
@@ -36,7 +36,7 @@ or by using the `getBLOB()` and `setBLOB()` methods.
 > You must access Large Objects within an SQL transaction block.  You can start a transaction block by calling `setAutoCommit(false)` .
 
 [Example 7.1, “Processing Binary Data in JDBC”](/documentation/binary-data/#example71processing-binary-data-in-jdbc)
-contains some examples on how to process binary data using the PostgreSQL™ JDBC driver.
+contains some examples on how to process binary data using the PostgreSQL® JDBC driver.
 
 ##### Example 7.1. Processing Binary Data in JDBC
 

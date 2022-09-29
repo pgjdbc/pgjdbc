@@ -10,7 +10,7 @@ This section describes the steps you need to take before you can write or run pr
 
 ## Getting the Driver
 
-Precompiled versions of the driver can be downloaded from the [PostgreSQL™ JDBC web site](https://jdbc.postgresql.org).
+Precompiled versions of the driver can be downloaded from the [PostgreSQL® JDBC web site](https://jdbc.postgresql.org).
 
 Alternatively you can build the driver from source, but you should only need to do this if you are making changes to the source code. To build the JDBC driver, you need gradle and a JDK (currently at least jdk1.8).
 
@@ -36,7 +36,7 @@ Even though the JDBC driver should be built with Gradle, for situations, where u
 
 To use the driver, the JAR archive named `postgresql-MM.nn.pp.jar` needs to be included in the class path, either by putting it in the `CLASSPATH` environment variable, or by using flags on the **java** command line.
 
-For instance, assume we have an application that uses the JDBC driver to access a database, and that application is installed as `/usr/local/lib/myapp.jar` . The PostgreSQL™ JDBC driver installed as `/usr/local/pgsql/share/java/postgresql-MM.nn.pp.jar` .
+For instance, assume we have an application that uses the JDBC driver to access a database, and that application is installed as `/usr/local/lib/myapp.jar` . The PostgreSQL® JDBC driver installed as `/usr/local/pgsql/share/java/postgresql-MM.nn.pp.jar` .
 To run the application, we would use:
 
 ```bash
@@ -49,10 +49,10 @@ Loading the driver from within the application is covered in [Initializing the D
 
 ## Preparing the Database Server for JDBC
 
-Out of the box, Java does not support unix sockets so the PostgreSQL™ server must be configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP connections are allowed from `localhost` . To allow connections to other interfaces
+Out of the box, Java does not support unix sockets so the PostgreSQL® server must be configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP connections are allowed from `localhost` . To allow connections to other interfaces
 than the loopback interface, you must modify the `postgresql.conf` file's `listen_addresses` setting.
 
-Once you have made sure the server is correctly listening for TCP/IP connections the next step is to verify that users are allowed to connect to the server. Client authentication is setup in `pg_hba.conf` . Refer to the main PostgreSQL™ [documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html) for details .
+Once you have made sure the server is correctly listening for TCP/IP connections the next step is to verify that users are allowed to connect to the server. Client authentication is setup in `pg_hba.conf` . Refer to the main PostgreSQL® [documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html) for details .
 
 ## Creating a Database
 

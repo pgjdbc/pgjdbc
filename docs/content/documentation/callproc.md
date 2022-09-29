@@ -6,7 +6,7 @@ weight: 5
 toc: true
 ---
 
-PostgreSQL™ supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures
+PostgreSQL® supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures
 that can perform transaction control. Both types of stored objects are invoked using `CallableStatement` and the standard
 JDBC escape call syntax `{call storedobject(?)}` . The `escapeSyntaxCallMode` connection property controls how the driver
 transforms the call syntax to invoke functions or procedures.
@@ -19,7 +19,7 @@ functions and `CallableStatements` without return values to stored procedures.
 
 ##### Example 6.1. Calling a built-in stored function
 
-This example shows how to call the PostgreSQL™ built-in function, `upper`, which simply converts the supplied string
+This example shows how to call the PostgreSQL® built-in function, `upper`, which simply converts the supplied string
 argument to uppercase.
 
 ```java
@@ -113,7 +113,7 @@ func.close();
 
 ##### Example 6.5. Calling a stored procedure
 
-This example shows how to call a PostgreSQL™ procedure that uses transaction control.
+This example shows how to call a PostgreSQL® procedure that uses transaction control.
 
 ```java
 // set up a connection

@@ -18,11 +18,11 @@ import java.sql.*;
 
 > **NOTE**
 >
-> You should not import the `org.postgresql` package unless you are using PostgreSQL™ extensions to the JDBC API.
+> You should not import the `org.postgresql` package unless you are using PostgreSQL® extensions to the JDBC API.
 
 ## Loading the Driver
 
-Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL™ (as long as the driver's jar file is on the classpath).
+Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
 
 > **NOTE**
 >
@@ -32,7 +32,7 @@ These older methods of loading the driver are still supported, but they are no l
 
 ## Connecting to the Database
 
-With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL™, this takes one of the following forms:
+With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
 
 * jdbc:postgresql:database
 * jdbc:postgresql:/
@@ -45,7 +45,7 @@ The parameters have the following meanings:
 
 * **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address your must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
 
-* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL™ standard port number (5432).
+* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL® standard port number (5432).
 
 * **`database`** = The database name. The default is to connect to a database with the same name as the user name used to connect to the server.
 
@@ -54,7 +54,7 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 
 ### Connection Parameters
 
-In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection
+In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection
 URL or an additional `Properties` object parameter to `DriverManager.getConnection` . The following examples illustrate the use of both methods to establish a SSL connection.
 
 If a property is specified both in URL and in `Properties` object, the value from `Properties` object is ignored.
@@ -242,7 +242,7 @@ Specifies the name of the JAAS system or application login configuration.
 Specifies whether to perform a JAAS login before authenticating with GSSAPI. If set to `true` (the default), the driver will attempt to obtain GSS credentials using the configured JAAS login module(s) (e.g. `Krb5LoginModule` ) before authenticating. To skip the JAAS login, for example if the native GSS implementation is being used to obtain credentials, set this to `false` .
 
 * **`gssEncMode (`*String*`)`**\
-PostgreSQL™ 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
+PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
   * `disable` is obvious and disables any attempt to connect using GSS encrypted mode
   * `allow` will connect in plain text then if the server requests it will switch to encrypted mode
   * `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire an encrypted connection

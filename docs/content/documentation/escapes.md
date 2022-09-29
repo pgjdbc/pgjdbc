@@ -15,7 +15,7 @@ these escape sequences into native syntax for its specific database. For more in
 The parsing of the sql statements for these escapes can be disabled using `Statement.setEscapeProcessing(false)` .
 
 `Connection.nativeSQL(String sql)` provides another way to have escapes processed. It translates the given SQL to SQL
-suitable for the PostgreSQL™ backend.
+suitable for the PostgreSQL® backend.
 
 ##### Example 8.1. Using JDBC escapes
 
@@ -65,7 +65,7 @@ seconds (.f...) portion of the TIMESTAMP can be omitted.
 ## Escaped scalar functions
 
 The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}` . The following tables
-show which functions are supported by the PostgreSQL™ driver. The driver supports the nesting and the mixing of escaped
+show which functions are supported by the PostgreSQL® driver. The driver supports the nesting and the mixing of escaped
 functions and escaped values. The appendix C of the JDBC specification describes the functions.
 
 Some functions in the following tables are translated but reported as not supported because they are duplicating or changing
