@@ -245,13 +245,19 @@ however pgJDBC can use server side prepared statements in both cases.
 
 > **Note**
 >
-> The `Statement` object is bound to a `Connection` , and it is not a good idea to access the same `Statement` and/or `Connection` from multiple concurrent threads (except `cancel()` , `close()` , and alike cases). It might be safer to just `close()` the statement rather than trying to cache it somehow.
+> The `Statement` object is bound to a `Connection` , and it is not a good idea to access the same `Statement` and/or
+> `Connection` from multiple concurrent threads (except `cancel()` , `close()` , and alike cases). It might be safer to
+> just `close()` the statement rather than trying to cache it somehow.
 
-Server-prepared statements consume memory both on the client and the server, so pgJDBC limits the number of server-prepared statements per connection. It can be configured via `preparedStatementCacheQueries` (default `256` , the number of queries known to pgJDBC), and `preparedStatementCacheSizeMiB` (default `5` , that is the client side cache size in megabytes per connection). Only a subset of `statement cache` is server-prepared as some of the statements might fail to reach `prepareThreshold` .
+Server-prepared statements consume memory both on the client and the server, so pgJDBC limits the number of server-prepared
+statements per connection. It can be configured via `preparedStatementCacheQueries` (default `256` , the number of queries
+known to pgJDBC), and `preparedStatementCacheSizeMiB` (default `5` , that is the client side cache size in megabytes per
+connection). Only a subset of `statement cache` is server-prepared as some statements might fail to reach `prepareThreshold` .
 
 ### Deactivation
 
-There might be cases when you would want to disable use of server-prepared statements. For instance, if you route connections through a balancer that is incompatible with server-prepared statements, you have little choice.
+There might be cases when you would want to disable use of server-prepared statements. For instance, if you route
+connections through a balancer that is incompatible with server-prepared statements, you have little choice.
 
 You can disable usage of server side prepared statements by setting `prepareThreshold=0`
 
@@ -277,16 +283,20 @@ The recommendation is:
 
 #### DEALLOCATE ALL, DISCARD ALL
 
-There are explicit commands to deallocate all server side prepared statements. It would result in the following server-side error message: `prepared statement name is invalid`. Of course it could defeat pgJDBC, however there are cases when you need to discard statements (e.g. after lots of DDLs)
+There are explicit commands to deallocate all server side prepared statements. It would result in the following server-side
+error message: `prepared statement name is invalid`. Of course, it could defeat pgJDBC, however there are cases when you need
+to discard statements (e.g. after lots of DDLs)
 
 The recommendation is:
 
-1. Use simple `DEALLOCATE ALL` and/or `DISCARD ALL` commands, avoid nesting the commands into pl/pgsql or alike. The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalidates client-side cache as well
+1. Use simple `DEALLOCATE ALL` and/or `DISCARD ALL` commands, avoid nesting the commands into pl/pgsql or alike. 
+The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalidates client-side cache as well
 2. Reconnect. The cache is per connection, so it would get invalidated if you reconnect
 
 #### set search_path = ...
 
-PostgreSQL™ allows to customize `search_path` , and it provides great power to the developer. With great power the following case could happen:
+PostgreSQL™ allows to customize `search_path` , and it provides great power to the developer. With great power the 
+following case could happen:
 
 ```sql
 set search_path='app_v1';
@@ -295,23 +305,32 @@ set search_path='app_v2';
 SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
 ```
 
-Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table. It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates prepare cache accordingly.
+Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table.
+It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
+prepare cache accordingly.
 
 The recommendation is:
 
 1. Avoid changing `search_path` often, as it invalidates server side prepared statements
-2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgJDBC won't be able to identify `search_path` change
+2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgJDBC won't
+be able to identify `search_path` change
 
 #### Re-execution of failed statements
 
-It is a pity that a single `cached plan must not change result type` could cause the whole transaction to fail. The driver could re-execute the statement automatically in certain cases.
+It is a pity that a single `cached plan must not change result type` could cause the whole transaction to fail. The driver
+could re-execute the statement automatically in certain cases.
 
-1. In case the transaction has not failed (e.g. the transaction did not exist before execution of the statement that caused `cached plan...` error), then pgJDBC re-executes the statement automatically. This makes the application happy, and avoids unnecessary errors.
-2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgJDBC does have "automatic savepoint" feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property (default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
+1. In case the transaction has not failed (e.g. the transaction did not exist before execution of the statement that caused
+`cached plan...` error), then pgJDBC re-executes the statement automatically. This makes the application happy, and avoids
+unnecessary errors.
+2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgJDBC does have "automatic savepoint"
+feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property
+(default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
 
 > **Note**
 >
-> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL™ backend is not optimized for the case of long transactions and lots of savepoints.
+> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL™ backend is not optimized
+> for the case of long transactions and lots of savepoints.
 
 #### Replication connection
 
@@ -323,7 +342,7 @@ uses simple queries in the case where `replication` connection property is activ
 By default, pgJDBC uses server-prepared statements for `PreparedStatement` only, however you might want
 to activate server side prepared statements for regular `Statement` as well. For instance, if you
 execute the same statement through `con.createStatement().executeQuery(...)` , then you might improve
-performance by caching the statement. Of course it is better to use `PreparedStatements` explicitly,
+performance by caching the statement. Of course, it is better to use `PreparedStatements` explicitly,
 however the driver has an option to cache simple statements as well.
 
 You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
@@ -346,9 +365,11 @@ ps.setString(1, "42");
 
 It works as expected, however what would happen if one uses `setInt` instead? `ps.setInt(1, 42);`
 
-Even though the result would be identical, the first variation ( `setString` case) enables the database to use index `name__rooms` , and the latter does not. In case the database gets `42` as integer, it uses the plan like `where cast(name as int4) = ?` .
+Even though the result would be identical, the first variation ( `setString` case) enables the database to use index
+`name__rooms` , and the latter does not. In case the database gets `42` as integer, it uses the plan like `where cast(name as int4) = ?`.
 
-The plan has to be specific for the ( `SQL text` ; `parameter types` ) combination, so the driver has to invalidate server side prepared statements in case the statement is used with different parameter types.
+The plan has to be specific for the ( `SQL text` ; `parameter types` ) combination, so the driver has to invalidate
+server side prepared statements in case the statement is used with different parameter types.
 
 This gets especially painful for batch operations as you don't want to interrupt the batch by using alternating datatypes.
 
@@ -376,7 +397,8 @@ Check out `org.postgresql.test.jdbc2.PreparedStatementTest.testAlternatingBindTy
 
 #### Debugging
 
-In case you run into `cached plan must not change result type` or `prepared statement \"S_2\" does not exist` the following might be helpful to debug the case.
+In case you run into `cached plan must not change result type` or `prepared statement \"S_2\" does not exist` the
+following might be helpful to debug the case.
 
 1. Client logging. If you add `loggerLevel=TRACE&loggerFile=pgjdbc-trace.log`, you would get trace
 of the messages send between the driver and the backend
@@ -428,7 +450,12 @@ the third execution.
 |4|true|4|
 |5|true|5|
 
-The example shown above requires the programmer to use PostgreSQL™ specific code in a supposedly portable API which is not ideal. Also it sets the threshold only for that particular statement which is some extra typing if we wanted to use that threshold for every statement. Let's take a look at the other ways to set the threshold to enable server side prepared statements.  There is already a hierarchy in place above a `PreparedStatement` , the `Connection` it was created from, and above that the source of the connection be it a `Datasource` or a URL. The server side prepared statement threshold can be set at any of these levels such that the value will be the default for all of it's children.
+The example shown above requires the programmer to use PostgreSQL™ specific code in a supposedly portable API which is not ideal.
+Also it sets the threshold only for that particular statement which is some extra typing if we wanted to use that threshold for
+every statement. Let's take a look at the other ways to set the threshold to enable server side prepared statements.
+There is already a hierarchy in place above a `PreparedStatement` , the `Connection` it was created from, and above that
+the source of the connection be it a `Datasource` or a URL. The server side prepared statement threshold can be set at any
+of these levels such that the value will be the default for all of its children.
 
 ```java
 // pg extension interfaces
@@ -457,17 +484,24 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
 
 ## Parameter Status Messages
 
-PostgreSQL™ supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables. These variables are manipulated by the `SET` command, `postgresql.conf` , `ALTER SYSTEM SET` , `ALTER USER SET`, ` ALTER DATABASE SET `, the `set_config(...)` SQL-callable function, etc. See [The PostgreSQL manual](https://www.postgresql.org/docs/current/config-setting.html).
+PostgreSQL™ supports server parameters, also called server variables or, internally, Grand Unified Configuration (GUC) variables.
+These variables are manipulated by the `SET` command, `postgresql.conf` , `ALTER SYSTEM SET` , `ALTER USER SET`, ` ALTER DATABASE SET `,
+the `set_config(...)` SQL-callable function, etc. See [The PostgreSQL manual](https://www.postgresql.org/docs/current/config-setting.html).
 
-For a subset of these variables the server will *automatically report changes to the value to the client driver and application*. These variables are known internally as `GUC_REPORT` variables after the name of the flag that enables the functionality.
+For a subset of these variables the server will *automatically report changes to the value to the client driver and application*.
+These variables are known internally as `GUC_REPORT` variables after the name of the flag that enables the functionality.
 
-The server keeps track of all the variable scopes and reports when a variable reverts to a prior value, so the client doesn't have to guess what the current value is and whether some server-side function could've changed it.  Whenever the value changes, no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.  pgJDBC uses many of these reports internally.
+The server keeps track of all the variable scopes and reports when a variable reverts to a prior value, so the client doesn't
+have to guess what the current value is and whether some server-side function could've changed it.  Whenever the value changes,
+no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.
+pgJDBC uses many of these reports internally.
 
 As of pgJDBC 42.2.6, it also exposes the parameter status information to user applications via the PGConnection extensions interface.
 
 ## Methods
 
-Two methods on `org.postgresql.PGConnection` provide the client interface to reported parameters. Parameter names are case-insensitive and case-preserving.
+Two methods on `org.postgresql.PGConnection` provide the client interface to reported parameters. Parameter names are
+case-insensitive and case-preserving.
 
 * `Map PGConnection.getParameterStatuses()` - return a map of all reported parameters and their values.
 
@@ -495,11 +529,18 @@ The `libpq` equivalent is the `PQparameterStatus(...)` API function.
 
 Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
 changes from a database to be streamed in real-time to an external system. The difference between physical replication and
-logical replication is that logical replication sends data over in a logical format whereas physical replication sends data over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication
+logical replication is that logical replication sends data over in a logical format whereas physical replication sends data
+over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication
+replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or
+database using binary replication
 
-Prior to logical replication keeping an external system synchronized in real time was problematic. The application would have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics system, and so on.
+Prior to logical replication keeping an external system synchronized in real time was problematic. The application would
+have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics
+system, and so on.
 
-This suffers from race conditions and reliability problems. For example if slightly different data gets written to two different datastores (perhaps due to a bug or a race condition), the contents of the datastores will gradually drift apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.
+This suffers from race conditions and reliability problems. For example if slightly different data gets written to two
+different datastores (perhaps due to a bug or a race condition), the contents of the datastores will gradually drift
+apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.
 
 Logical decoding takes the database’s write-ahead log (WAL), and gives us access to row-level change events:
 every time a row in a table is inserted, updated or deleted, that’s an event. Those events are grouped by transaction,
@@ -508,7 +549,8 @@ do not appear in the stream. Thus, if you apply the change events in the same or
 transactionally consistent copy of the database. It's looks like the Event Sourcing pattern that you previously implemented
 in your application, but now it's available out of the box from the PostgreSQL™ database.
 
-For access to real-time changes PostgreSQL™ provides the streaming replication protocol. Replication protocol can be physical or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
+For access to real-time changes PostgreSQL™ provides the streaming replication protocol. Replication protocol can be physical
+or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
 to stream changes to an external system.
 
 Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL™ API
@@ -558,10 +600,13 @@ host    replication   all   ::1/128         md5
 
 ## Logical replication
 
-Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is include in the `postgresql-contrib` package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
+Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to
+use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate
+how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is included in the `postgresql-contrib`
+package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
 
-In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection is not available to
-execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL™.
+In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection
+is not available to execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL™.
 
 ##### Example 9.4. Create replication connection.
 
@@ -578,7 +623,8 @@ Connection con = DriverManager.getConnection(url, props);
 PGConnection replConnection = con.unwrap(PGConnection.class);
 ```
 
-The entire replication API is grouped in `org.postgresql.replication.PGReplicationConnection` and is available via `org.postgresql.PGConnection#getReplicationAPI` .
+The entire replication API is grouped in `org.postgresql.replication.PGReplicationConnection` and is available via
+`org.postgresql.PGConnection#getReplicationAPI` .
 
 Before you can start replication protocol, you need to have replication slot, which can be also created via pgJDBC API.
 
@@ -609,7 +655,8 @@ PGReplicationStream stream =
 ```
 
 The replication stream will send all changes since the creation of the replication slot or from replication slot
-restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position, in that case LSN position should be specified when you create the replication stream.
+restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position,
+in that case LSN position should be specified when you create the replication stream.
 
 ##### Example 9.7. Create logical replication stream from particular position.
 
@@ -627,8 +674,8 @@ PGReplicationStream stream =
         .start();
 ```
 
-Via `withSlotOption` we also can specify options that will be sent to our output plugin, this allows customize decoding.
-For example I have my own output plugin that has a property `sensitive=true` which will include changes by sensitive columns to change
+Via `withSlotOption` we also can specify options that will be sent to our output plugin, this allows the user to customize decoding.
+For example, I have my own output plugin that has a property `sensitive=true` which will include changes by sensitive columns to change
 event.
 
 ##### Example 9.8. Example output with include-xids=true
@@ -648,9 +695,12 @@ COMMIT
 ```
 
 During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
-ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and the database will free resources. In PostgreSQL™ the ping timeout is configured by the property `wal_sender_timeout` (default = 60 seconds).
-Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
-It is recommended to send feedback(ping) to the database more often than configured `wal_sender_timeout` . In production I use value equal to `wal_sender_timeout / 3` . It's avoids a potential problems with networks and changes to be streamed without disconnects by timeout. To specify the feedback interval use `withStatusInterval` method.
+ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and
+the database will free resources. In PostgreSQL™ the ping timeout is configured by the property `wal_sender_timeout`
+(default = 60 seconds). Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
+It is recommended to send feedback(ping) to the database more often than configured `wal_sender_timeout` . In production systems
+I use value equal to `wal_sender_timeout / 3` . It's avoids a potential problems with networks and changes to be
+streamed without disconnects by timeout. To specify the feedback interval use `withStatusInterval` method.
 
 ##### Example 9.10. Replication stream with configured feedback interval equal to 20 sec
 
@@ -668,9 +718,12 @@ PGReplicationStream stream =
 
 After create `PGReplicationStream` , it's time to start receive changes in real-time.
 
-Changes can be received from stream as blocking( `org.postgresql.replication.PGReplicationStream#read` ) or as non-blocking (`org.postgresql.replication.PGReplicationStream#readPending` ).
+Changes can be received from stream as blocking( `org.postgresql.replication.PGReplicationStream#read` ) or as
+non-blocking (`org.postgresql.replication.PGReplicationStream#readPending` ).
 Both methods receive changes as a `java.nio.ByteBuffer` with the payload from the send output plugin. We can't receive
-part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That's why pgJDBC returns the raw ByteBuffer instead of making assumptions.
+part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is
+defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That's why
+pgJDBC returns the raw ByteBuffer instead of making assumptions.
 
 ##### Example 9.11. Example send message from output plugin.
 
@@ -700,10 +753,14 @@ while (true) {
 ```
 
 As mentioned previously, replication stream should periodically send feedback to the database to prevent disconnect via
-timeout. Feedback is automatically sent when `read` or `readPending` are called if it's time to send feedback. Feedback can also be sent via `org.postgresql.replication.PGReplicationStream#forceUpdateStatus()` regardless of the timeout. Another important duty of feedback is to provide the  server with the Logial Sequence Number (LSN) that has been successfully received and applied to consumer, it is necessary for monitoring and to truncate/archive WAL's that that are no longer needed. In the event that replication has been restarted, it's will start from last successfully processed LSN that was sent via feedback to database.
+timeout. Feedback is automatically sent when `read` or `readPending` are called if it's time to send feedback. Feedback
+can also be sent via `org.postgresql.replication.PGReplicationStream#forceUpdateStatus()` regardless of the timeout. Another
+important duty of feedback is to provide the  server with the Logial Sequence Number (LSN) that has been successfully received
+and applied to consumer, it is necessary for monitoring and to truncate/archive WAL's that that are no longer needed. In the
+event that replication has been restarted, it's will start from last successfully processed LSN that was sent via feedback to database.
 
-The API provides the following feedback mechanism to indicate the successfully applied LSN by the current consumer. LSN's before this can be truncated or archived.
-`org.postgresql.replication.PGReplicationStream#setFlushedLSN` and
+The API provides the following feedback mechanism to indicate the successfully applied LSN by the current consumer. LSN's
+before this can be truncated or archived. `org.postgresql.replication.PGReplicationStream#setFlushedLSN` and
 `org.postgresql.replication.PGReplicationStream#setAppliedLSN` . You always can get last receive LSN via
 `org.postgresql.replication.PGReplicationStream#getLastReceiveLSN` .
 
@@ -812,7 +869,10 @@ COMMIT
 ## Physical replication
 
 API for physical replication looks like the API for logical replication. Physical replication does not require a replication
-slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change from version to version. That is why replication between different major PostgreSQL™ versions is not possible. But physical replication can contain many important data, that is not available via logical replication. That is why pgjdc contains an implementation for both.
+slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change
+from version to version. That is why replication between different major PostgreSQL™ versions is not possible. But physical
+replication can contain many important data, that is not available via logical replication. That is why pgJDBC contains an
+implementation for both.
 
 **Example 9.15. Use physical replication**
 
@@ -841,7 +901,8 @@ and criteria in where clauses. There are several ways to create arrays with pgJD
 
 The [java.sql. Connection.createArrayOf(String, Object\[\])](https://docs.oracle.com/javase/8/docs/api/java/sql/Connection.html#createArrayOf-java.lang.String-java.lang.Object:A-) can be used to create an [java.sql. Array](https://docs.oracle.com/javase/8/docs/api/java/sql/Array.html) from `Object[]` instances (Note: this includes both primitive and object multi-dimensional arrays).
 A similar method `org.postgresql.PGConnection.createArrayOf(String, Object)` provides support for primitive array types.
-The `java.sql.Array` object returned from these methods can be used in other methods, such as [PreparedStatement.setArray(int, Array)](https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#setArray-int-java.sql.Array-).
+The `java.sql.Array` object returned from these methods can be used in other methods, such as
+[PreparedStatement.setArray(int, Array)](https://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#setArray-int-java.sql.Array-).
 
 The following types of arrays support binary representation in requests and can be used in `PreparedStatement.setObject`
 

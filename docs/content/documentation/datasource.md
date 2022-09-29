@@ -6,35 +6,46 @@ weight: 10
 toc: true
 ---
 
-JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package (also known as the JDBC 2.0 Standard Extension). These features have since been included in the core JDBC 3 API.
+JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package
+(also known as the JDBC 2.0 Standard Extension). These features have since been included in the core JDBC 3 API.
 
-The JDBC API provides a client and a server interface for connection pooling. The client interface is `javax.sql.DataSource` , which is what application code will typically use to acquire a pooled database connection. The server interface is `javax.sql.ConnectionPoolDataSource` , which is how most application servers will interface with the PostgreSQL™ JDBC driver.
+The JDBC API provides a client and a server interface for connection pooling. The client interface is `javax.sql.DataSource`,
+which is what application code will typically use to acquire a pooled database connection. The server interface is
+`javax.sql.ConnectionPoolDataSource` , which is how most application servers will interface with the PostgreSQL™ JDBC driver.
 
-In an application server environment, the application server configuration will typically refer to the PostgreSQL™ `ConnectionPoolDataSource` implementation, while the application component code will typically acquire a `DataSource` implementation provided by the application server (not by PostgreSQL™).
+In an application server environment, the application server configuration will typically refer to the PostgreSQL™
+`ConnectionPoolDataSource` implementation, while the application component code will typically acquire a `DataSource`
+implementation provided by the application server (not by PostgreSQL™).
 
-For an environment without an application server, PostgreSQL™ provides two implementations of `DataSource` which an application can use directly. One implementation performs connection pooling, while the other simply provides access to database connections through the `DataSource` interface without any pooling. Again, these implementations should not be used in an application server environment unless the application server does not support the `ConnectionPoolDataSource` interface.
+For an environment without an application server, PostgreSQL™ provides two implementations of `DataSource` which an
+application can use directly. One implementation performs connection pooling, while the other simply provides access to
+database connections through the `DataSource` interface without any pooling. Again, these implementations should not be
+used in an application server environment unless the application server does not support the `ConnectionPoolDataSource` interface.
 
 ## Application Servers ConnectionPoolDataSource
 
 PostgreSQL™ includes one implementation of `ConnectionPoolDataSource` named `org.postgresql.ds.PGConnectionPoolDataSource` .
 
-JDBC requires that a `ConnectionPoolDataSource` be configured via JavaBean properties, shown in [Table 11.1, “`ConnectionPoolDataSource` Configuration Properties”](/documentation/datasource/#table111-connectionpooldatasource-configuration-properties), so there are get and set methods for each of these properties.
+JDBC requires that a `ConnectionPoolDataSource` be configured via JavaBean properties, shown in
+[Table 11.1, “`ConnectionPoolDataSource` Configuration Properties”](/documentation/datasource/#table111-connectionpooldatasource-configuration-properties),
+so there are get and set methods for each of these properties.
 
 ##### Table 11.1.  `ConnectionPoolDataSource` Configuration Properties
 
-|Property|Type|Description|
-|---|---|---|
-|serverName|STRING|PostgreSQL™ database server host name|
-|databaseName|STRING|PostgreSQL™ database name|
-|portNumber|INT|TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)|
-|user|STRING|User used to make database connections|
-|password|STRING|Password used to make database connections|
-|ssl|BOOLEAN|If `true` , use SSL encrypted connections (default `false` )|
-|sslfactory|STRING|Custom `javax.net.ssl.SSLSocketFactory` class name (see the section called [“Custom
-SSLSocketFactory”](ssl-factory.html))|
-|defaultAutoCommit|BOOLEAN|Whether connections should have autocommit enabled or disabled when they are supplied to the caller. The default is `false` , to disable autocommit.|
+|Property|Type| Description                                                                                                                                          |
+|---|---|------------------------------------------------------------------------------------------------------------------------------------------------------|
+|serverName|STRING| PostgreSQL™ database server host name                                                                                                                |
+|databaseName|STRING| PostgreSQL™ database name                                                                                                                            |
+|portNumber|INT| TCP port which the PostgreSQL™ database server is listening on (or 0 to use the default port)                                                        |
+|user|STRING| User used to make database connections                                                                                                               |
+|password|STRING| Password used to make database connections                                                                                                           |
+|ssl|BOOLEAN| If `true` , use SSL encrypted connections (default `false` )                                                                                         |
+|sslfactory|STRING| Custom `javax.net.ssl.SSLSocketFactory` class name (see the section called [“Custom SSLSocketFactory”](ssl-factory.html))                            |
+|defaultAutoCommit|BOOLEAN| Whether connections should have autocommit enabled or disabled when they are supplied to the caller. The default is `false` , to disable autocommit. |
 
-Many application servers use a properties-style syntax to configure these properties, so it would not be unusual to enter properties as a block of text. If the application server provides a single area to enter all the properties, they might be listed like this:
+Many application servers use a properties-style syntax to configure these properties, so it would not be unusual to enter
+properties as a block of text. If the application server provides a single area to enter all the properties, they might
+be listed like this:
 
  `serverName=localhost`
 
@@ -52,10 +63,16 @@ Or, if semicolons are used as separators instead of newlines, it could look like
 
 PostgreSQL™ includes two implementations of `DataSource` , as shown in [Table 11.2, “`DataSource` Implementations”](/documentation/datasource/#table112datasource-implementations).
 
-One that does pooling and the other that does not. The pooling implementation does not actually close connections when the client calls the `close` method, but instead returns the connections to a pool of available connections for other clients to use.  This avoids any overhead of repeatedly opening and closing connections, and allows a large number of clients to share a small number of database connections.
+One that does pooling and the other that does not. The pooling implementation does not actually close connections when
+the client calls the `close()` method, but instead returns the connections to a pool of available connections for other
+clients to use.  This avoids any overhead of repeatedly opening and closing connections, and allows a large number of
+clients to share a small number of database connections.
 
-The pooling data-source implementation provided here is not the most feature-rich in the world. Among other things, connections are never closed until the pool itself is closed; there is no way to shrink the pool.  As well, connections requested for users other than the default configured user are not pooled. Its error handling sometimes cannot remove a broken connection from the pool. In general it is not recommended to use the PostgreSQL™ provided connection pool. Check your application server or check out the excellent [jakarta commons DBCP](http://jakarta.apache.org/commons/dbcp/)
-project.
+The pooling data-source implementation provided here is not the most feature-rich in the world. Among other things,
+connections are never closed until the pool itself is closed; there is no way to shrink the pool.  As well, connections
+requested for users other than the default configured user are not pooled. Its error handling sometimes cannot remove a
+broken connection from the pool. In general it is not recommended to use the PostgreSQL™ provided connection pool. Check
+your application server or check out the excellent [jakarta commons DBCP](http://jakarta.apache.org/commons/dbcp/) project.
 
 ##### Table 11.2. `DataSource` Implementations
 
@@ -64,7 +81,9 @@ project.
 |No|`org.postgresql.ds. PGSimpleDataSource|
 |Yes|`org.postgresql.ds. PGPoolingDataSource|
 
-Both implementations use the same configuration scheme. JDBC requires that a `DataSource` be configured via JavaBean properties, shown in [Table 11.3, “`DataSource` Configuration Properties”](/documentation/datasource/#table113-datasource-configuration-properties), so there are get and set methods for each of these properties.
+Both implementations use the same configuration scheme. JDBC requires that a `DataSource` be configured via JavaBean properties,
+shown in [Table 11.3, “`DataSource` Configuration Properties”](/documentation/datasource/#table113-datasource-configuration-properties),
+so there are get and set methods for each of these properties.
 
 ##### Table 11.3.  `DataSource` Configuration Properties
 
@@ -78,7 +97,8 @@ Both implementations use the same configuration scheme. JDBC requires that a `Da
 |ssl|BOOLEAN|If true, use SSL encrypted connections (default false)|
 |sslfactory|STRING|Custom javax.net.ssl. SSLSocketFactory class name (see the section called [“Custom SSLSocketFactory”](ssl-factory.html))|
 
-The pooling implementation requires some additional configuration properties, which are shown in [Table 11.4, “Additional Pooling `DataSource` Configuration Properties](/documentation/datasource/#table114additional-pooling-datasource-configuration-properties).
+The pooling implementation requires some additional configuration properties, which are shown in
+[Table 11.4, “Additional Pooling `DataSource` Configuration Properties](/documentation/datasource/#table114additional-pooling-datasource-configuration-properties).
 
 ##### Table 11.4. Additional Pooling `DataSource` Configuration Properties
 
@@ -115,7 +135,8 @@ Then code to use a connection from the pool might look like this.
 
 > **Note**
 >
-> it is critical that the connections are eventually closed.  Else the pool will “leak” connections and will eventually lock all the clients out.
+> it is critical that the connections are eventually closed. Otherwise, the pool will “leak” connections and will eventually
+> lock all the clients out.
 
 ```java
 try (Connection conn = source.getConnection()) {
@@ -127,11 +148,17 @@ try (Connection conn = source.getConnection()) {
 
 ## Data Sources and JNDI
 
-All the `ConnectionPoolDataSource` and `DataSource` implementations can be stored in JNDI. In the case of the nonpooling implementations, a new instance will be created every time the object is retrieved from JNDI, with the same settings as the instance that was stored. For the pooling implementations, the same instance will be retrieved as long as it is available (e.g., not a different JVM retrieving the pool from JNDI), or a new instance with the same settings created otherwise.
+All the `ConnectionPoolDataSource` and `DataSource` implementations can be stored in JNDI. In the case of the non-pooling
+implementations, a new instance will be created every time the object is retrieved from JNDI, with the same settings as
+the instance that was stored. For the pooling implementations, the same instance will be retrieved as long as it is available
+(e.g., not a different JVM retrieving the pool from JNDI), or a new instance with the same settings created otherwise.
 
-In the application server environment, typically the application server's `DataSource` instance will be stored in JNDI, instead of the PostgreSQL™ `ConnectionPoolDataSource` implementation.
+In the application server environment, typically the application server's `DataSource` instance will be stored in JNDI,
+instead of the PostgreSQL™ `ConnectionPoolDataSource` implementation.
 
-In an application environment, the application may store the `DataSource` in JNDI so that it doesn't have to make a reference to the `DataSource` available to all application components that may need to use it. An example of this is shown in [Example 11.2, “`DataSource` JNDI Code Example”](/documentation/datasource/#example112-datasource-jndi-code-example).
+In an application environment, the application may store the `DataSource` in JNDI so that it doesn't have to make a reference
+to the `DataSource` available to all application components that may need to use it. An example of this is shown in
+[Example 11.2, “`DataSource` JNDI Code Example”](/documentation/datasource/#example112-datasource-jndi-code-example).
 
 ##### Example 11.2.  `DataSource` JNDI Code Example
 

@@ -6,15 +6,21 @@ weight: 5
 toc: true
 ---
 
-PostgreSQL™ supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures that can perform transaction control. Both types of stored objects are invoked using `CallableStatement` and the standard JDBC escape call syntax `{call storedobject(?)}` . The `escapeSyntaxCallMode` connection property controls how the driver transforms the call syntax to invoke functions or procedures.
+PostgreSQL™ supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures
+that can perform transaction control. Both types of stored objects are invoked using `CallableStatement` and the standard
+JDBC escape call syntax `{call storedobject(?)}` . The `escapeSyntaxCallMode` connection property controls how the driver
+transforms the call syntax to invoke functions or procedures.
 
-The default mode, `select` , supports backwards compatibility for existing applications and supports function invocation only. This is required to invoke a void returning function.
+The default mode, `select` , supports backwards compatibility for existing applications and supports function invocation
+only. This is required to invoke a function returning void.
 
-For new applications, use `escapeSyntaxCallMode=callIfNoReturn` to map `CallableStatements` with return values to stored functions and `CallableStatements` without return values to stored procedures.
+For new applications, use `escapeSyntaxCallMode=callIfNoReturn` to map `CallableStatements` with return values to stored
+functions and `CallableStatements` without return values to stored procedures.
 
-##### Example 6.1. Calling a built in stored function
+##### Example 6.1. Calling a built-in stored function
 
-This example shows how to call a PostgreSQL™ built in function, `upper`, which simply converts the supplied string argument to uppercase.
+This example shows how to call the PostgreSQL™ built-in function, `upper`, which simply converts the supplied string
+argument to uppercase.
 
 ```java
 CallableStatement upperFunc = conn.prepareCall("{? = call upper( ? ) }");
@@ -27,11 +33,13 @@ upperFunc.close();
 
 ## Obtaining a `ResultSet` from a stored function
 
-PostgreSQL's™ stored functions can return results in two different ways. The function may return either a refcursor value or a `SETOF` some datatype. Depending on which of these return methods are used determines how the function should be called.
+PostgreSQL's™ stored functions can return results in two different ways. The function may return either a refcursor value
+or a `SETOF` some datatype. Depending on which of these return methods are used determines how the function should be called.
 
 ### From a Function Returning `SETOF` type
 
-Functions that return data as a set should not be called via the `CallableStatement` interface, but instead should use the normal `Statement` or `PreparedStatement` interfaces.
+Functions that return data as a set should not be called via the `CallableStatement` interface, but instead should use
+the normal `Statement` or `PreparedStatement` interfaces.
 
 ##### Example 6.2. Getting `SETOF` type values from a function
 
@@ -53,7 +61,11 @@ When calling a function that returns a refcursor you must cast the return type o
 
 > **NOTE**
 >
-> One notable limitation of the current support for a `ResultSet` created from a refcursor is that even though it is a cursor backed `ResultSet` , all data will be retrieved and cached on the client. The `Statement` fetch size parameter described in the section called [Getting results based on a cursor](/documentation/query/#getting-results-based-on-a-cursor) is ignored. This limitation is a deficiency of the JDBC driver, not the server, and it is technically possible to remove it, we just haven't found the time.
+> One notable limitation of the current support for a `ResultSet` created from a refcursor is that even though it is a
+> cursor backed `ResultSet` , all data will be retrieved and cached on the client. The `Statement` fetch size parameter
+> described in the section called [Getting results based on a cursor](/documentation/query/#getting-results-based-on-a-cursor)
+> is ignored. This limitation is a deficiency of the JDBC driver, not the server, and it is technically possible to remove
+> it, we just haven't found the time.
 
 ##### Example 6.3. Getting refcursor Value From a Function
 
