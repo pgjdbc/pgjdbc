@@ -10,7 +10,7 @@ This section describes how to load and initialize the JDBC driver in your progra
 
 ## Importing JDBC
 
-Any source that uses JDBC needs to import the `java.sql` package, using:
+Any source file that uses JDBC needs to import the `java.sql` package, using:
 
 ```java
 import java.sql.*;
@@ -18,21 +18,21 @@ import java.sql.*;
 
 > **NOTE**
 >
-> You should not import the `org.postgresql` package unless you are using PostgreSQL™ extensions to the JDBC API.
+> You should not import the `org.postgresql` package unless you are using PostgreSQL® extensions to the JDBC API.
 
 ## Loading the Driver
 
-Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL™ (as long as the driver's jar file is on the classpath).
+Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
 
 > **NOTE**
 >
-> Prior to Java 1.6, the driver had to be loaded by the application - either by calling `Class.forName("org.postgresql.Driver");` or by passing the driver class name as a JVM parameter `java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer`
+> Prior to Java 1.6, the driver had to be loaded by the application: either by calling `Class.forName("org.postgresql.Driver");` or by passing the driver class name as a JVM parameter `java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer`
 
 These older methods of loading the driver are still supported, but they are no longer necessary.
 
 ## Connecting to the Database
 
-With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL, this takes one of the following forms:
+With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
 
 * jdbc:postgresql:database
 * jdbc:postgresql:/
@@ -45,16 +45,16 @@ The parameters have the following meanings:
 
 * **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address your must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
 
-* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL™ standard port number (5432).
+* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL® standard port number (5432).
 
-* **`database`** = The database name. The default is to connect to a database with the same name as the user name.
+* **`database`** = The database name. The default is to connect to a database with the same name as the user name used to connect to the server.
 
 To connect, you need to get a `Connection` instance from JDBC. To do this, you use the `DriverManager.getConnection()` method:
  `Connection db = DriverManager.getConnection(url, username, password)`
 
 ### Connection Parameters
 
-In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection
+In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection
 URL or an additional `Properties` object parameter to `DriverManager.getConnection` . The following examples illustrate the use of both methods to establish a SSL connection.
 
 If a property is specified both in URL and in `Properties` object, the value from `Properties` object is ignored.
@@ -242,7 +242,7 @@ Specifies the name of the JAAS system or application login configuration.
 Specifies whether to perform a JAAS login before authenticating with GSSAPI. If set to `true` (the default), the driver will attempt to obtain GSS credentials using the configured JAAS login module(s) (e.g. `Krb5LoginModule` ) before authenticating. To skip the JAAS login, for example if the native GSS implementation is being used to obtain credentials, set this to `false` .
 
 * **`gssEncMode (`*String*`)`**\
-PostgreSQL 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
+PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
   * `disable` is obvious and disables any attempt to connect using GSS encrypted mode
   * `allow` will connect in plain text then if the server requests it will switch to encrypted mode
   * `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire an encrypted connection
@@ -260,7 +260,7 @@ If this parameter is auto, SSPI is attempted if the server requests SSPI authent
 gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
 
 On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
-To use SSPI with PgJDBC you must ensure that[the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH` . pgJDBC does **not** bundle `waffle-jna` in the pgJDBC jar.
+To use SSPI with PgJDBC you must ensure that [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH` . pgJDBC does **not** bundle `waffle-jna` in the pgJDBC jar.
 
 Since: 9.4
 
@@ -282,23 +282,31 @@ Sets SO_RCVBUF on the connection stream
 Put the connection in read-only mode
 
 * **`readOnlyMode (`*String*`)`**\
-One of 'ignore', 'transaction', or 'always'.  Controls the behavior when a connection is set to read only, When set to 'ignore' then the `readOnly` setting has no effect.  When set to 'transaction' and `readOnly` is set to 'true' and autocommit is 'false' the driver will set the transaction to readonly by sending `BEGIN READ ONLY` . When set to 'always' and `readOnly` is set to 'true' the session will be set to READ ONLY if autoCommit is 'true'. If autocommit is false the driver will set the transaction to read only by sending `BEGIN READ ONLY` .
-The default the value is 'transaction'
+One of `ignore`, `transaction`, or `always`.  Controls the behaviour when a connection is set to read only,
+When set to `ignore` then the `readOnly` setting has no effect.  When set to `transaction` and `readOnly` is set to `true` 
+and autocommit is `false` the driver will set the transaction to readonly by sending `BEGIN READ ONLY`.
+When set to `always` and `readOnly` is set to `true` the session will be set to READ ONLY if autoCommit is `true`.
+If autocommit is `false` the driver will set the transaction to read only by sending `BEGIN READ ONLY`.
+The default the value is `transaction`
 
 * **`disableColumnSanitiser (`*boolean*`)`**\
-Setting this to true disables column name sanitiser. The sanitiser folds columns in the resultset to lowercase. The default is to sanitise the columns (off).
+Setting this to `true` disables column name sanitiser. The sanitiser folds columns in the ResultSet to lowercase.
+The default is to sanitise the columns (off).
 
 * **`assumeMinServerVersion (`*String*`)`**\
-Assume that the server is at least the given version, thus enabling to some optimization at connection time instead of trying to be version blind.
+Assume that the server is at least the given version, thus enabling to some optimization at connection time instead of
+trying to be version blind.
 
 * **`currentSchema (`*String*`)`**\
-Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve unqualified object names used in statements over this connection.
+Specify the schema (or several schema separated by commas) to be set in the search-path. 
+This schema will be used to resolve unqualified object names used in statements over this connection.
 
 * **`targetServerType (`*String*`)`**\
-Allows opening connections to only servers with required state, the allowed values are any, primary, master, slave, secondary, preferSlave, preferSecondary and preferPrimary.
+Allows opening connections to only servers with required state, the allowed values are `any`, `primary`, `master`, 
+`slave`, `secondary`, `preferSlave`, `preferSecondary` and `preferPrimary`.
 The primary/secondary distinction is currently done by observing if the server allows writes.
-The value preferSecondary tries to connect to secondary if any are available, otherwise allows falls back to connecting also to primary.
-The value preferPrimary tries to connect to primary if it is available, otherwise allows falls back to connecting to secondaries available.
+The value `preferSecondary` tries to connect to secondary if any are available, otherwise allows falls back to connecting also to `primary`.
+The value `preferPrimary` tries to connect to primary if it is available, otherwise allows falls back to connecting to secondaries available.
 
   * **N. B.** the words master and slave are being deprecated. We will silently accept them, but primary and secondary are encouraged.
 
@@ -306,11 +314,16 @@ The value preferPrimary tries to connect to primary if it is available, otherwis
 Controls how long in seconds the knowledge about a host state is cached in JVM wide global cache. The default value is 10 seconds.
 
 * **`loadBalanceHosts (`*boolean*`)`**\
-In default mode (disabled) hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates.
+In default mode (`disabled`) hosts are connected in the given order. If enabled hosts are chosen randomly from the set 
+of suitable candidates.
 
 * **`socketFactory (`*String*`)`**\
-The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend `javax.net.SocketFactory` and be available to the driver's classloader.
-This class must have a zero-argument constructor, a single-argument constructor taking a String argument, or a single-argument constructor taking a Properties argument. The Properties object will contain all the connection parameters. The String argument will have the value of the `socketFactoryArg` connection parameter.
+The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
+This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend
+`javax.net.SocketFactory` and be available to the driver's classloader. This class must have a zero-argument constructor,
+a single-argument constructor taking a String argument, or a single-argument constructor taking a Properties argument. 
+The Properties object will contain all the connection parameters. The String argument will have the value of the `socketFactoryArg`
+connection parameter.
 
 * **`socketFactoryArg (`*String*`)`** : (deprecated)\
 This value is an optional argument to the constructor of the socket factory class provided above.
@@ -319,55 +332,58 @@ This value is an optional argument to the constructor of the socket factory clas
 This will change batch inserts from insert into foo (col1, col2, col3) values (1, 2, 3) into insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6) this provides 2-3x performance improvement
 
 * **`replication (`*String*`)`**\
-Connection parameter passed in the startup message. This parameter accepts two values; "true" and `database` . Passing `true` tells the backend to go into walsender mode, wherein a small set of replication commands can be issued instead of SQL statements. Only the simple query protocol can be used in walsender mode. Passing "database" as the value instructs walsender to connect to the database specified in the dbname parameter, which will allow the connection to be used for logical replication from that database.
+Connection parameter passed in the startup message. This parameter accepts two values; `true` and `database` . Passing `true` tells the backend to go into walsender mode, wherein a small set of replication commands can be issued instead of SQL statements. Only the simple query protocol can be used in walsender mode. Passing "database" as the value instructs walsender to connect to the database specified in the dbname parameter, which will allow the connection to be used for logical replication from that database.
 Parameter should be use together with `assumeMinServerVersion` with parameter >= 9.4 (backend >= 9.4)
 
 * **`escapeSyntaxCallMode (`*String*`)`**\
 Specifies how the driver transforms JDBC escape call syntax into underlying SQL, for invoking procedures or functions.
-In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only). In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement.
-In `escapeSyntaxCallMode=call` mode, the driver always uses a CALL statement (allowing procedure invocation only).
-The default is `select`
+In `escapeSyntaxCallMode=select` mode (the default), the driver always uses a SELECT statement (allowing function invocation only). 
+In `escapeSyntaxCallMode=callIfNoReturn` mode, the driver uses a CALL statement (allowing procedure invocation) if there
+is no return parameter specified, otherwise the driver uses a SELECT statement. In `escapeSyntaxCallMode=call` mode, 
+the driver always uses a CALL statement (allowing procedure invocation only). The default is `select`
 
 * **`maxResultBuffer (`*String*`)`**\
 Specifies size of result buffer in bytes, which can't be exceeded during reading result set. Property can be specified in two styles:
   * as size of bytes (i.e. 100, 150M, 300K, 400G, 1T);
   * as percent of max heap memory (i.e. 10p, 15pct, 20percent);
-A limit during setting of property is 90% of max heap memory. All given values, which gonna be higher than limit, gonna lowered to the limit.
-By default, maxResultBuffer is not set (is null), what means that reading of results gonna be performed without limits.
+A limit during setting of property is 90% of max heap memory. All given values, which are going to be higher than the limit,
+will be lowered to the limit. By default, maxResultBuffer is not set (is null), which means that reading of results will
+be performed without limits.
 
 * **`adaptiveFetch (`*boolean*`)`**\
-Specifies if number of rows, fetched in `ResultSet` by one fetch with trip to the database, should be dynamic.
-Using dynamic number of rows, computed by adaptive fetch, allows to use most of the buffer declared in `maxResultBuffer` property.
-Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed so far, rounded down.
-First fetch will have number of rows declared in `defaultRowFetchSize` .
-Number of rows can be limited by `adaptiveFetchMinimum` and `adaptiveFetchMaximum` .
-Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.
-By default, adaptiveFetch is false.
+Specifies if the number of rows, fetched in `ResultSet` per request from the database, should be dynamic.
+Using dynamic number of rows, computed by adaptive fetch, will attempt to use maximize the use of the buffer declared in 
+`maxResultBuffer` property. Number of rows would be calculated by dividing `maxResultBuffer` size into max row size observed 
+so far, rounded down. First fetch will have number of rows declared in `defaultRowFetchSize`. Number of rows can be limited
+by `adaptiveFetchMinimum` and `adaptiveFetchMaximum`. Requires declaring of `maxResultBuffer` and `defaultRowFetchSize` to work.
+By default, `adaptiveFetch` is `false`.
 
 * **`adaptiveFetchMinimum (`*int*`)`**\
-Specifies the lowest number of rows which can be calculated by `adaptiveFetch`. Requires `adaptiveFetch` set to true to work.
+Specifies the lowest number of rows which can be calculated by `adaptiveFetch`. Requires `adaptiveFetch` set to `true` to work.
 By default, minimum of rows calculated by `adaptiveFetch` is 0.
 
 * **`adaptiveFetchMaximum (`*int*`)`**\
-Specifies the highest number of rows which can be calculated by `adaptiveFetch`. Requires `adaptiveFetch` set to true to work.
+Specifies the highest number of rows which can be calculated by `adaptiveFetch`. Requires `adaptiveFetch` set to `true` to work.
 By default, maximum of rows calculated by `adaptiveFetch` is -1, which is understood as infinite.
 
 * **`logServerErrorDetail (`*boolean*`)`**\
 Whether to include server error details in exceptions and log messages (for example inlined query parameters).
-Setting to false will only include minimal, not sensitive messages.
-By default this is set to true, server error details are propagated. This may include sensitive details such as query parameters.
+Setting to `false` will only include minimal, not sensitive messages.
+By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
 * **`quoteReturningIdentifiers (`*boolean*`)`**\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
 If we quote them, then we end up sending ""colname"" to the backend instead of "colname" which will not be found.
 
 * **`authenticationPluginClassName (`*String*`)`**\
-Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password value in the connection properties will be used.
+Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password 
+value in the connection properties will be used.
 
 ### Unix sockets
 
 By adding junixsocket you can obtain a socket factory that works with the driver.
-Code can be found at [here](https://github.com/kohlschutter/junixsocket) and instructions at [here](https://kohlschutter.github.io/junixsocket/dependency.html)
+Code can be found [here](https://github.com/kohlschutter/junixsocket) and instructions 
+[here](https://kohlschutter.github.io/junixsocket/dependency.html)
 
 Dependencies for junixsocket are :
 
@@ -375,27 +391,31 @@ Dependencies for junixsocket are :
 <dependency>
   <groupId>com.kohlschutter.junixsocket</groupId>
   <artifactId>junixsocket-core</artifactId>
-  <version>2.3.3</version>
+  <version>2.5.1</version>
 </dependency>
 ```
 
-Simply add  `?socketFactory=org.newsclub.net.unix.AFUNIXSocketFactory$FactoryArg&socketFactoryArg=[path-to-the-unix-socket]` to the connection URL.
+Simply add  `?socketFactory=org.newsclub.net.unix.AFUNIXSocketFactory$FactoryArg&socketFactoryArg=[path-to-the-unix-socket]` 
+to the connection URL.
 
-For many distros the default path is /var/run/postgresql/.s. PGSQL.5432
+For many distros the default path is /var/run/postgresql/.s.PGSQL.5432
 
 ### Connection Fail-over
 
-To support simple connection fail-over it is possible to define multiple endpoints (host and port pairs) in the connection url separated by commas. The driver will try once to connect to each of them in order until the connection succeeds.
+To support simple connection fail-over it is possible to define multiple endpoints (host and port pairs) in the connection 
+url separated by commas. The driver will try once to connect to each of them in order until the connection succeeds.
 If none succeeds a normal connection exception is thrown.
 
 The syntax for the connection url is: `jdbc:postgresql://host1:port1,host2:port2/database`
 
-The simple connection fail-over is useful when running against a high availability postgres installation that has identical data on each node. For example streaming replication postgres or postgres-xc cluster.
+The simple connection fail-over is useful when running against a high availability postgres installation that has identical 
+data on each node. For example streaming replication postgres or postgres-xc cluster.
 
 For example an application can create two connection pools.
 One data source is for writes, another for reads. The write pool limits connections only to a primary node:`jdbc:postgresql://node1,node2,node3/accounting?targetServerType=primary` .
 
-And read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries are available: `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
+And the read pool balances connections between secondary nodes, but allows connections also to a primary if no secondaries
+are available: `jdbc:postgresql://node1,node2,node3/accounting?targetServerType=preferSecondary&loadBalanceHosts=true`
 
 If a secondary fails, all secondaries in the list will be tried first. In the case that there are no available secondaries
 the primary will be tried. If all the servers are marked as "can't connect" in the cache then an attempt
