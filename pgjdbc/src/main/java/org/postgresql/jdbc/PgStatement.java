@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 
@@ -52,6 +53,7 @@ public class PgStatement implements Statement, BaseStatement {
   // only for testing purposes. even single shot statements will use binary transfers
   private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
+  protected final ResourceLock lock = new ResourceLock();
   protected @Nullable ArrayList<Query> batchStatements = null;
   protected @Nullable ArrayList<@Nullable ParameterList> batchParameters = null;
   protected final int resultsettype; // the resultset type to return (ResultSet.TYPE_xxx)
@@ -104,7 +106,7 @@ public class PgStatement implements Statement, BaseStatement {
   public boolean wantsGeneratedKeysAlways = false;
 
   // The connection who created us
-  protected final BaseConnection connection;
+  protected final PgConnection connection;
 
   /**
    * The warnings chain.
@@ -240,7 +242,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (!executeWithFlags(sql, 0)) {
         throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
       }
@@ -250,7 +252,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected ResultSet getSingleResultSet() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       ResultWrapper result = castNonNull(this.result);
       if (result.getNext() != null) {
@@ -264,7 +266,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public int executeUpdate(String sql) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
       checkNoResultUpdate();
       return getUpdateCount();
@@ -272,7 +274,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected final void checkNoResultUpdate() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       ResultWrapper iter = result;
       while (iter != null) {
@@ -331,7 +333,7 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
     execute(simpleQuery, null, flags);
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       return (result != null && result.getResultSet() != null);
     }
@@ -348,7 +350,7 @@ public class PgStatement implements Statement, BaseStatement {
   by the client.
    */
   private void closeUnclosedProcessedResults() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       ResultWrapper resultWrapper = this.firstUnclosedResult;
       ResultWrapper currentResult = this.result;
       for (; resultWrapper != currentResult && resultWrapper != null;
@@ -368,7 +370,7 @@ public class PgStatement implements Statement, BaseStatement {
     clearWarnings();
 
     // Close any existing resultsets associated with this statement.
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       closeUnclosedProcessedResults();
 
       if ( this.result != null && this.result.getResultSet() != null ) {
@@ -408,7 +410,7 @@ public class PgStatement implements Statement, BaseStatement {
   protected final void execute(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       try {
         executeInternal(cachedQuery, queryParameters, flags);
       } catch (SQLException e) {
@@ -488,7 +490,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     StatementResultHandler handler = new StatementResultHandler();
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       result = null;
     }
     try {
@@ -498,7 +500,7 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
     }
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
 
       ResultWrapper currentResult = handler.getResults();
@@ -527,7 +529,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public int getUpdateCount() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       if (result == null || result.getResultSet() != null) {
         return -1;
@@ -657,7 +659,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public @Nullable ResultSet getResultSet() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
 
       if (result == null) {
@@ -701,7 +703,7 @@ public class PgStatement implements Statement, BaseStatement {
    */
 
   public long getLastOID() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       if (result == null) {
         return 0;
@@ -884,7 +886,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       result = null;
     }
 
@@ -895,7 +897,7 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
       // There might be some rows generated even in case of failures
-      synchronized (this) {
+      try (ResourceLock ignore = lock.obtain()) {
         checkClosed();
         if (wantsGeneratedKeysAlways) {
           generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
@@ -925,13 +927,13 @@ public class PgStatement implements Statement, BaseStatement {
       // Not in query, there's nothing to cancel
       return;
     }
-    // Synchronize on connection to avoid spinning in killTimerTask
-    synchronized (connection) {
+    // Use connection lock to avoid spinning in killTimerTask
+    try (ResourceLock connectionLock = connection.obtainLock()) {
       try {
         connection.cancelQuery();
       } finally {
         STATE_UPDATER.set(this, StatementCancelState.CANCELLED);
-        connection.notifyAll(); // wake-up killTimerTask
+        connection.lockCondition().signalAll(); // wake-up killTimerTask
       }
     }
   }
@@ -1039,14 +1041,14 @@ public class PgStatement implements Statement, BaseStatement {
     // "timeout error"
     // We wait till state becomes "cancelled"
     boolean interrupted = false;
-    synchronized (connection) {
-      // state check is performed under synchronized so it detects "cancelled" state faster
+    try (ResourceLock connectionLock = connection.obtainLock()) {
+      // state check is performed with connection lock so it detects "cancelled" state faster
       // In other words, it prevents unnecessary ".wait()" call
       while (!STATE_UPDATER.compareAndSet(this, StatementCancelState.CANCELLED, StatementCancelState.IDLE)) {
         try {
-          // Note: wait timeout here is irrelevant since synchronized(connection) would block until
+          // Note: wait timeout here is irrelevant since connection.obtainLock() would block until
           // .cancel finishes
-          connection.wait(10);
+          connection.lockCondition().await(10, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) { // NOSONAR
           // Either re-interrupt this method or rethrow the "InterruptedException"
           interrupted = true;
@@ -1064,7 +1066,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public long getLargeUpdateCount() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       if (result == null || result.getResultSet() != null) {
         return -1;
@@ -1096,7 +1098,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public long executeLargeUpdate(String sql) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       executeWithFlags(sql, QueryExecutor.QUERY_NO_RESULTS);
       checkNoResultUpdate();
       return getLargeUpdateCount();
@@ -1124,7 +1126,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public long executeLargeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (columnNames != null && columnNames.length == 0) {
         return executeLargeUpdate(sql);
       }
@@ -1175,7 +1177,7 @@ public class PgStatement implements Statement, BaseStatement {
       return;
     }
 
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       ResultWrapper result = firstUnclosedResult;
       while (result != null) {
         ResultSet resultSet = result.getResultSet();
@@ -1197,7 +1199,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean getMoreResults(int current) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       // CLOSE_CURRENT_RESULT
       if (current == Statement.CLOSE_CURRENT_RESULT && result != null
@@ -1222,7 +1224,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public ResultSet getGeneratedKeys() throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       if (generatedKeys == null || generatedKeys.getResultSet() == null) {
         return createDriverResultSet(new Field[0], new ArrayList<Tuple>());
@@ -1250,7 +1252,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public int executeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (columnNames != null && columnNames.length == 0) {
         return executeUpdate(sql);
       }
@@ -1280,7 +1282,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   public boolean execute(String sql, String @Nullable [] columnNames) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (columnNames != null && columnNames.length == 0) {
         return execute(sql);
       }

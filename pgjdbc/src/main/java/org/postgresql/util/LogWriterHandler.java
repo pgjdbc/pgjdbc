@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.postgresql.jdbc.ResourceLock;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Writer;
@@ -18,7 +20,7 @@ import java.util.logging.SimpleFormatter;
 public class LogWriterHandler extends Handler {
 
   private @Nullable Writer writer;
-  private final Object lock = new Object();
+  private final ResourceLock lock = new ResourceLock();
 
   @SuppressWarnings("method.invocation.invalid")
   public LogWriterHandler(Writer inWriter) {
@@ -45,7 +47,7 @@ public class LogWriterHandler extends Handler {
       return;
     }
     try {
-      synchronized (lock) {
+      try (ResourceLock ignore = lock.obtain()) {
         Writer writer = this.writer;
         if (writer != null) {
           writer.write(formatted);
@@ -58,7 +60,7 @@ public class LogWriterHandler extends Handler {
 
   @Override
   public void flush() {
-    try {
+    try (ResourceLock ignore = lock.obtain()) {
       Writer writer = this.writer;
       if (writer != null) {
         writer.flush();
@@ -70,7 +72,7 @@ public class LogWriterHandler extends Handler {
 
   @Override
   public void close() throws SecurityException {
-    try {
+    try (ResourceLock ignore = lock.obtain()) {
       Writer writer = this.writer;
       if (writer != null) {
         writer.close();
@@ -81,15 +83,17 @@ public class LogWriterHandler extends Handler {
   }
 
   private void setWriter(Writer writer) throws IllegalArgumentException {
-    if (writer == null) {
-      throw new IllegalArgumentException("Writer cannot be null");
-    }
-    this.writer = writer;
+    try (ResourceLock ignore = lock.obtain()) {
+      if (writer == null) {
+        throw new IllegalArgumentException("Writer cannot be null");
+      }
+      this.writer = writer;
 
-    try {
-      writer.write(getFormatter().getHead(this));
-    } catch ( Exception ex) {
-      reportError("Error writing head section", ex, ErrorManager.WRITE_FAILURE);
+      try {
+        writer.write(getFormatter().getHead(this));
+      } catch (Exception ex) {
+        reportError("Error writing head section", ex, ErrorManager.WRITE_FAILURE);
+      }
     }
   }
 }

@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import org.postgresql.jdbc.ResourceLock;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -19,6 +21,7 @@ public class BlobInputStream extends InputStream {
    * The parent LargeObject.
    */
   private @Nullable LargeObject lo;
+  private final ResourceLock lock = new ResourceLock();
 
   /**
    * The absolute position.
@@ -152,8 +155,10 @@ public class BlobInputStream extends InputStream {
    *        invalid.
    * @see java.io.InputStream#reset()
    */
-  public synchronized void mark(int readlimit) {
-    mpos = apos;
+  public void mark(int readlimit) {
+    try (ResourceLock ignore = lock.obtain()) {
+      mpos = apos;
+    }
   }
 
   /**
@@ -163,18 +168,20 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#mark(int)
    * @see java.io.IOException
    */
-  public synchronized void reset() throws IOException {
-    LargeObject lo = getLo();
-    try {
-      if (mpos <= Integer.MAX_VALUE) {
-        lo.seek((int)mpos);
-      } else {
-        lo.seek64(mpos, LargeObject.SEEK_SET);
+  public void reset() throws IOException {
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = getLo();
+      try {
+        if (mpos <= Integer.MAX_VALUE) {
+          lo.seek((int) mpos);
+        } else {
+          lo.seek64(mpos, LargeObject.SEEK_SET);
+        }
+        buffer = null;
+        apos = mpos;
+      } catch (SQLException se) {
+        throw new IOException(se.toString());
       }
-      buffer = null;
-      apos = mpos;
-    } catch (SQLException se) {
-      throw new IOException(se.toString());
     }
   }
 

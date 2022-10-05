@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.postgresql.jdbc.ResourceLock;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
@@ -41,6 +43,7 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
   private final long maxSizeBytes;
   private long currentSize;
   private final Map<Key, Value> cache;
+  private final ResourceLock lock = new ResourceLock();
 
   private class LimitedMap extends LinkedHashMap<Key, Value> {
     LimitedMap(int initialCapacity, float loadFactor, boolean accessOrder) {
@@ -103,8 +106,10 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param key cache key
    * @return entry from cache or null if cache does not contain given key.
    */
-  public synchronized @Nullable Value get(Key key) {
-    return cache.get(key);
+  public @Nullable Value get(Key key) {
+    try (ResourceLock ignore = lock.obtain()) {
+      return cache.get(key);
+    }
   }
 
   /**
@@ -114,16 +119,18 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @return entry from cache or newly created entry if cache does not contain given key.
    * @throws SQLException if entry creation fails
    */
-  public synchronized Value borrow(Key key) throws SQLException {
-    Value value = cache.remove(key);
-    if (value == null) {
-      if (createAction == null) {
-        throw new UnsupportedOperationException("createAction == null, so can't create object");
+  public Value borrow(Key key) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      Value value = cache.remove(key);
+      if (value == null) {
+        if (createAction == null) {
+          throw new UnsupportedOperationException("createAction == null, so can't create object");
+        }
+        return createAction.create(key);
       }
-      return createAction.create(key);
+      currentSize -= value.getSize();
+      return value;
     }
-    currentSize -= value.getSize();
-    return value;
   }
 
   /**
@@ -132,23 +139,25 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param key key
    * @param value value
    */
-  public synchronized void put(Key key, Value value) {
-    long valueSize = value.getSize();
-    if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
-      // Just destroy the value if cache is disabled or if entry would consume more than a half of
-      // the cache
-      evictValue(value);
-      return;
-    }
-    currentSize += valueSize;
-    @Nullable Value prev = cache.put(key, value);
-    if (prev == null) {
-      return;
-    }
-    // This should be a rare case
-    currentSize -= prev.getSize();
-    if (prev != value) {
-      evictValue(prev);
+  public void put(Key key, Value value) {
+    try (ResourceLock ignore = lock.obtain()) {
+      long valueSize = value.getSize();
+      if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
+        // Just destroy the value if cache is disabled or if entry would consume more than a half of
+        // the cache
+        evictValue(value);
+        return;
+      }
+      currentSize += valueSize;
+      @Nullable Value prev = cache.put(key, value);
+      if (prev == null) {
+        return;
+      }
+      // This should be a rare case
+      currentSize -= prev.getSize();
+      if (prev != value) {
+        evictValue(prev);
+      }
     }
   }
 
@@ -157,9 +166,11 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    *
    * @param m The map containing entries to put into the cache
    */
-  public synchronized void putAll(Map<Key, Value> m) {
-    for (Map.Entry<Key, Value> entry : m.entrySet()) {
-      this.put(entry.getKey(), entry.getValue());
+  public void putAll(Map<Key, Value> m) {
+    try (ResourceLock ignore = lock.obtain()) {
+      for (Map.Entry<Key, Value> entry : m.entrySet()) {
+        this.put(entry.getKey(), entry.getValue());
+      }
     }
   }
 }
