@@ -2327,6 +2327,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           Byte.MAX_VALUE, "byte");
     }
 
+    Encoding encoding = connection.getEncoding();
+    if (encoding.hasAsciiNumbers()) {
+      try {
+        return (byte) getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+      }
+    }
+
     String s = getString(columnIndex);
 
     if (s != null) {
@@ -2376,7 +2384,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       return (short) readLongValue(value, oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
     }
-
+    Encoding encoding = connection.getEncoding();
+    if (encoding.hasAsciiNumbers()) {
+      try {
+        return (short) getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+      }
+    }
     return toShort(getFixedString(columnIndex));
   }
 
@@ -2401,7 +2415,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastInt(value);
+        return (int) getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2429,7 +2443,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastLong(value);
+        return getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2463,7 +2477,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toLong(String)}.
    */
-  private long getFastLong(byte[] bytes) throws NumberFormatException {
+  private long getFastLong(byte[] bytes, long minVal, long maxVal) throws NumberFormatException {
     if (bytes.length == 0) {
       throw FAST_NUMBER_FAILED;
     }
@@ -2485,68 +2499,35 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
+    int periodsSeen = 0;
     while (start < bytes.length) {
       byte b = bytes[start++];
       if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
+        if (b == '.' && periodsSeen == 0) {
+          periodsSeen++;
+          continue;
+        } else {
+          throw FAST_NUMBER_FAILED;
+        }
       }
-
-      val *= 10;
-      val += b - '0';
+      if (periodsSeen == 0) {
+        val *= 10;
+        val += b - '0';
+      }
     }
 
-    if (neg) {
-      val = -val;
-    }
-
-    return val;
-  }
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param bytes integer represented as a sequence of ASCII bytes
-   * @return The parsed number.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toInt(String)}.
-   */
-  private int getFastInt(byte[] bytes) throws NumberFormatException {
-    if (bytes.length == 0) {
+    int numNonSignChars = neg ? bytes.length - 1 : bytes.length;
+    if (periodsSeen > 1 || periodsSeen == numNonSignChars) {
       throw FAST_NUMBER_FAILED;
     }
 
-    int val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 10) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 9) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
-      }
-
-      val *= 10;
-      val += b - '0';
-    }
-
     if (neg) {
       val = -val;
     }
 
+    if (val < minVal || val > maxVal) {
+      throw FAST_NUMBER_FAILED;
+    }
     return val;
   }
 
@@ -2586,7 +2567,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     while (start < bytes.length) {
       byte b = bytes[start++];
       if (b < '0' || b > '9') {
-        if (b == '.') {
+        if (b == '.' && periodsSeen == 0) {
           scale = bytes.length - start;
           periodsSeen++;
           continue;
