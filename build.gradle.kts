@@ -348,7 +348,7 @@ allprojects {
                 header = "<b>PostgreSQL JDBC</b>"
                 bottom =
                     "Copyright &copy; 1997-$lastEditYear PostgreSQL Global Development Group. All Rights Reserved."
-                if  (JavaVersion.current() >= JavaVersion.VERSION_17) {
+                if (JavaVersion.current() >= JavaVersion.VERSION_17) {
                     addBooleanOption("html5", true)
                 } else if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
