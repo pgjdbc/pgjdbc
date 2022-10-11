@@ -40,7 +40,7 @@ public class BaseTest4 {
   }
 
   protected Connection con;
-  private BinaryMode binaryMode;
+  protected BinaryMode binaryMode;
   private ReWriteBatchedInserts reWriteBatchedInserts;
   protected PreferQueryMode preferQueryMode;
   private StringType stringType;
