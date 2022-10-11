@@ -508,14 +508,14 @@ public class PreparedStatementTest extends BaseTest4 {
     // Bool values in binary mode are first converted to their Java type (Boolean), and then
     // converted to String, which means that we receive 'true'. Bool values in text mode are
     // returned as the same text value that was returned by the server, i.e. 't'.
-    assertEquals(binaryMode == BinaryMode.FORCE ? "true" : "t", rs.getString(1));
+    assertEquals(binaryMode == BinaryMode.FORCE && preferQueryMode != PreferQueryMode.SIMPLE ? "true" : "t", rs.getString(1));
     assertFalse(rs.next());
     st.close();
 
     st = con.prepareStatement("select lseg '((-1,0),(1,0))' ??# box '((-2,-2),(2,2))';");
     rs = st.executeQuery();
     assertTrue(rs.next());
-    assertEquals(binaryMode == BinaryMode.FORCE ? "true" : "t", rs.getString(1));
+    assertEquals(binaryMode == BinaryMode.FORCE && preferQueryMode != PreferQueryMode.SIMPLE ? "true" : "t", rs.getString(1));
     assertFalse(rs.next());
     st.close();
   }
