@@ -11,7 +11,6 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -72,6 +71,10 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testint VALUES (12345)");
 
     // Boolean Tests
+    TestUtil.createTable(con, "testbool", "a boolean, b int");
+    stmt.executeUpdate("INSERT INTO testbool VALUES(true, 1)");
+    stmt.executeUpdate("INSERT INTO testbool VALUES(false, 0)");
+
     TestUtil.createTable(con, "testboolstring", "a varchar(30), b boolean");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1 ', true)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0', false)");
@@ -285,6 +288,14 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testBooleanBool() throws SQLException {
+    testBoolean("testbool", 0);
+    testBoolean("testbool", 1);
+    testBoolean("testbool", 5);
+    testBoolean("testbool", -1);
+  }
+
+  @Test
   public void testBooleanString() throws SQLException {
     testBoolean("testboolstring", 0);
     testBoolean("testboolstring", 1);
@@ -332,7 +343,7 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
-  public void testgetBooleanJDBCCompliance() throws SQLException {
+  public void testGetBooleanJDBCCompliance() throws SQLException {
     // The JDBC specification in Table B-6 "Use of ResultSet getter Methods to Retrieve JDBC Data Types"
     // the getBoolean have this Supported JDBC Type: TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT,
     // DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR

@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.Oid;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -58,6 +59,7 @@ public class BaseTest4 {
 
   protected void forceBinary(Properties props) {
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
+    PGProperty.BINARY_TRANSFER_ENABLE.set(props, Oid.BOOL);
   }
 
   public final void setBinaryMode(BinaryMode binaryMode) {
