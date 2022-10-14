@@ -334,9 +334,9 @@ public class TestUtil {
     Properties properties = new Properties();
 
     PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
-    properties.setProperty("user", getPrivilegedUser());
-    properties.setProperty("password", getPrivilegedPassword());
-    properties.setProperty("options", "-c synchronous_commit=on");
+    PGProperty.USER.set(properties, getPrivilegedUser());
+    PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
+    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
     return DriverManager.getConnection(getURL(), properties);
 
   }
@@ -348,9 +348,9 @@ public class TestUtil {
     PGProperty.REPLICATION.set(properties, "database");
     //Only simple query protocol available for replication connection
     PGProperty.PREFER_QUERY_MODE.set(properties, "simple");
-    properties.setProperty("username", TestUtil.getPrivilegedUser());
-    properties.setProperty("password", TestUtil.getPrivilegedPassword());
-    properties.setProperty("options", "-c synchronous_commit=on");
+    PGProperty.USER.set(properties, TestUtil.getPrivilegedUser());
+    PGProperty.PASSWORD.set(properties, TestUtil.getPrivilegedPassword());
+    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
     return TestUtil.openDB(properties);
   }
 
@@ -371,7 +371,7 @@ public class TestUtil {
     initDriver();
 
     // Allow properties to override the user name.
-    String user = props.getProperty("username");
+    String user = PGProperty.USER.get(props);
     if (user == null) {
       user = getUser();
     }
@@ -379,14 +379,14 @@ public class TestUtil {
       throw new IllegalArgumentException(
           "user name is not specified. Please specify 'username' property via -D or build.properties");
     }
-    props.setProperty("user", user);
+    PGProperty.USER.set(props, user);
 
     // Allow properties to override the password.
-    String password = props.getProperty("password");
+    String password = PGProperty.PASSWORD.get(props);
     if (password == null) {
       password = getPassword() != null ? getPassword() : "";
     }
-    props.setProperty("password", password);
+    PGProperty.PASSWORD.set(props, password);
 
     String sslPassword = getSslPassword();
     if (sslPassword != null) {
@@ -1102,8 +1102,8 @@ public class TestUtil {
   private static Connection createPrivilegedConnection(Connection conn) throws SQLException {
     String url = conn.getMetaData().getURL();
     Properties props = new Properties(conn.getClientInfo());
-    props.setProperty("user", getPrivilegedUser());
-    props.setProperty("password", getPrivilegedPassword());
+    PGProperty.USER.set(props, getPrivilegedUser());
+    PGProperty.PASSWORD.set(props, getPrivilegedPassword());
     return DriverManager.getConnection(url, props);
   }
 
