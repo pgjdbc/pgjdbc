@@ -855,8 +855,18 @@ public enum PGProperty {
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
    */
-  public @Nullable String get(Properties properties) {
+  public @Nullable String getOrDefault(Properties properties) {
     return properties.getProperty(name, defaultValue);
+  }
+
+  /**
+   * Returns the value of the connection parameters according to the given {@code Properties}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter or null
+   */
+  public @Nullable String get(Properties properties) {
+    return properties.getProperty(name);
   }
 
   /**
@@ -880,7 +890,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to boolean
    */
   public boolean getBoolean(Properties properties) {
-    return Boolean.parseBoolean(get(properties));
+    return Boolean.parseBoolean(getOrDefault(properties));
   }
 
   /**
@@ -893,7 +903,7 @@ public enum PGProperty {
    */
   @SuppressWarnings("nullness:argument.type.incompatible")
   public int getIntNoCheck(Properties properties) {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     //noinspection ConstantConditions
     return Integer.parseInt(value);
   }
@@ -907,7 +917,7 @@ public enum PGProperty {
    */
   @SuppressWarnings("nullness:argument.type.incompatible")
   public int getInt(Properties properties) throws PSQLException {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     try {
       //noinspection ConstantConditions
       return Integer.parseInt(value);
@@ -925,7 +935,7 @@ public enum PGProperty {
    * @throws PSQLException if unable to parse property as integer
    */
   public @Nullable Integer getInteger(Properties properties) throws PSQLException {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     if (value == null) {
       return null;
     }
@@ -975,7 +985,7 @@ public enum PGProperty {
    * @return a DriverPropertyInfo representing this connection parameter
    */
   public DriverPropertyInfo toDriverPropertyInfo(Properties properties) {
-    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(name, get(properties));
+    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(name, getOrDefault(properties));
     propertyInfo.required = required;
     propertyInfo.description = description;
     propertyInfo.choices = choices;

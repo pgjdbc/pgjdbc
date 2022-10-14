@@ -371,7 +371,7 @@ public class TestUtil {
     initDriver();
 
     // Allow properties to override the user name.
-    String user = PGProperty.USER.get(props);
+    String user = PGProperty.USER.getOrDefault(props);
     if (user == null) {
       user = getUser();
     }
@@ -382,7 +382,7 @@ public class TestUtil {
     PGProperty.USER.set(props, user);
 
     // Allow properties to override the password.
-    String password = PGProperty.PASSWORD.get(props);
+    String password = PGProperty.PASSWORD.getOrDefault(props);
     if (password == null) {
       password = getPassword() != null ? getPassword() : "";
     }

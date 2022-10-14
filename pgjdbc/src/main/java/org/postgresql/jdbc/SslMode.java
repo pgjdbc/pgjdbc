@@ -61,10 +61,10 @@ public enum SslMode {
   }
 
   public static SslMode of(Properties info) throws PSQLException {
-    String sslmode = PGProperty.SSL_MODE.get(info);
+    String sslmode = PGProperty.SSL_MODE.getOrDefault(info);
     // If sslmode is not set, fallback to ssl parameter
     if (sslmode == null) {
-      if (PGProperty.SSL.getBoolean(info) || "".equals(PGProperty.SSL.get(info))) {
+      if (PGProperty.SSL.getBoolean(info) || "".equals(PGProperty.SSL.getOrDefault(info))) {
         return VERIFY_FULL;
       }
       return PREFER;
