@@ -609,7 +609,7 @@ public enum PGProperty {
       "The location of the client's SSL certificate"),
 
   /**
-   * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
+   * Classname of the SSL Factory to use (instance of {@link javax.net.ssl.SSLSocketFactory}).
    */
   SSL_FACTORY(
       "sslfactory",
@@ -627,8 +627,7 @@ public enum PGProperty {
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
   /**
-   * Classname of the SSL HostnameVerifier to use (instance of {@code
-   * javax.net.ssl.HostnameVerifier}).
+   * Classname of the SSL HostnameVerifier to use (instance of {@link javax.net.ssl.HostnameVerifier}).
    */
   SSL_HOSTNAME_VERIFIER(
       "sslhostnameverifier",
@@ -636,8 +635,8 @@ public enum PGProperty {
       "A class, implementing javax.net.ssl.HostnameVerifier that can verify the server"),
 
   /**
-   * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code
-   * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).
+   * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code $HOME/.postgresql} (*nix)
+   * or {@code %APPDATA%\postgresql} (windows).
    */
   SSL_KEY(
       "sslkey",
@@ -667,7 +666,7 @@ public enum PGProperty {
 
 
   /**
-   * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use.
+   * The classname instantiating {@link javax.security.auth.callback.CallbackHandler} to use.
    */
   SSL_PASSWORD_CALLBACK(
       "sslpasswordcallback",
@@ -762,7 +761,7 @@ public enum PGProperty {
    * Factory class to instantiate factories for XML processing.
    * The default factory disables external entity processing.
    * Legacy behavior with external entity processing can be enabled by specifying a value of LEGACY_INSECURE.
-   * Or specify a custom class that implements {@code org.postgresql.xml.PGXmlFactoryFactory}.
+   * Or specify a custom class that implements {@link org.postgresql.xml.PGXmlFactoryFactory}.
    */
   XML_FACTORY_FACTORY(
       "xmlFactoryFactory",
@@ -851,7 +850,7 @@ public enum PGProperty {
   }
 
   /**
-   * Returns the value of the connection parameters according to the given {@code Properties} or the
+   * Returns the value of the connection parameter from the given {@link Properties} or the
    * default value.
    *
    * @param properties properties to take actual value from
@@ -862,17 +861,29 @@ public enum PGProperty {
   }
 
   /**
-   * Returns the value of the connection parameters according to the given {@code Properties}
-   *
+   * Returns the value of the connection parameter from the given {@link Properties} or the
+   * default value
+   * @deprecated use {@link #getOrDefault(Properties)} instead
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter or null
    */
+  @Deprecated
   public @Nullable String get(Properties properties) {
+    return getOrDefault(properties);
+  }
+
+  /**
+   * Returns the value of the connection parameter from the given {@link Properties} or null if there
+   * is no default value
+   * @param properties properties object to get value from
+   * @return evaluated value for this connection parameter
+   */
+  public @Nullable String getOrNull(Properties properties) {
     return properties.getProperty(name);
   }
 
   /**
-   * Set the value for this connection parameter in the given {@code Properties}.
+   * Set the value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value value for this connection parameter
@@ -886,7 +897,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the boolean value for this connection parameter in the given {@code Properties}.
+   * Return the boolean value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to boolean
@@ -896,7 +907,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}. Prefer the
+   * Return the int value for this connection parameter in the given {@link Properties}. Prefer the
    * use of {@link #getInt(Properties)} anywhere you can throw an {@link java.sql.SQLException}.
    *
    * @param properties properties to take actual value from
@@ -911,7 +922,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}.
+   * Return the int value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
@@ -930,7 +941,7 @@ public enum PGProperty {
   }
 
   /**
-   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}.
+   * Return the {@link Integer} value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to Integer or null
@@ -950,7 +961,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the boolean value for this connection parameter in the given {@code Properties}.
+   * Set the boolean value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value boolean value for this connection parameter
@@ -960,7 +971,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the int value for this connection parameter in the given {@code Properties}.
+   * Set the int value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value int value for this connection parameter
@@ -970,7 +981,7 @@ public enum PGProperty {
   }
 
   /**
-   * Test whether this property is present in the given {@code Properties}.
+   * Test whether this property is present in the given {@link Properties}.
    *
    * @param properties set of properties to check current in
    * @return true if the parameter is specified in the given properties
@@ -980,8 +991,8 @@ public enum PGProperty {
   }
 
   /**
-   * Convert this connection parameter and the value read from the given {@code Properties} into a
-   * {@code DriverPropertyInfo}.
+   * Convert this connection parameter and the value read from the given {@link Properties} into a
+   * {@link DriverPropertyInfo}.
    *
    * @param properties properties to take actual value from
    * @return a DriverPropertyInfo representing this connection parameter
