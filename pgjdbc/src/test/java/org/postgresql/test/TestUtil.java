@@ -63,16 +63,6 @@ public class TestUtil {
   }
 
   public static String getURL(String hostport, String database) {
-    String logLevel = "";
-    if (getLogLevel() != null && !getLogLevel().equals("")) {
-      logLevel = "&loggerLevel=" + getLogLevel();
-    }
-
-    String logFile = "";
-    if (getLogFile() != null && !getLogFile().equals("")) {
-      logFile = "&loggerFile=" + getLogFile();
-    }
-
     String protocolVersion = "";
     if (getProtocolVersion() != 0) {
       protocolVersion = "&protocolVersion=" + getProtocolVersion();
@@ -107,8 +97,6 @@ public class TestUtil {
         + hostport + "/"
         + database
         + "?ApplicationName=Driver Tests"
-        + logLevel
-        + logFile
         + protocolVersion
         + options
         + binaryTransfer
@@ -197,20 +185,6 @@ public class TestUtil {
 
   public static String getPrivilegedPassword() {
     return System.getProperty("privilegedPassword");
-  }
-
-  /*
-   * Returns the log level to use
-   */
-  public static String getLogLevel() {
-    return System.getProperty("loggerLevel");
-  }
-
-  /*
-   * Returns the log file to use
-   */
-  public static String getLogFile() {
-    return System.getProperty("loggerFile");
   }
 
   /*

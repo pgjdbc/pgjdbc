@@ -317,8 +317,9 @@ public enum PGProperty {
 
   /**
    * This property is no longer used by the driver and will be ignored.
-   * Logging is configured via java.util.logging.
+   * @deprecated Logging is configured via java.util.logging.
    */
+  @Deprecated
   LOGGER_FILE(
       "loggerFile",
       null,
@@ -326,8 +327,9 @@ public enum PGProperty {
 
   /**
    * This property is no longer used by the driver and will be ignored.
-   * Logging is configured via java.util.logging.
+   * @deprecated Logging is configured via java.util.logging.
    */
+  @Deprecated
   LOGGER_LEVEL(
       "loggerLevel",
       null,

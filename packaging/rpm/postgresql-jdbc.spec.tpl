@@ -145,7 +145,6 @@ password=test
 privilegedUser=$PGTESTS_ADMIN
 privilegedPassword=$PGTESTS_ADMINPASS
 preparethreshold=5
-loglevel=0
 protocolVersion=0
 EOF
 

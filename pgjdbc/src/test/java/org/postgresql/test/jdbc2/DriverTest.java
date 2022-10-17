@@ -496,12 +496,6 @@ public class DriverTest {
   public void testSystemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
     TestUtil.initDriver();
     PrintStream err = System.err;
-    String loggerLevel = System.getProperty("loggerLevel");
-    String loggerFile = System.getProperty("loggerFile");
-
-    System.clearProperty("loggerLevel");
-    System.clearProperty("loggerFile");
-    System.setProperty("loggerLevel", "INFO");
     PrintStream buffer = new PrintStream(new ByteArrayOutputStream());
     System.setErr(buffer);
     try {
@@ -520,8 +514,6 @@ public class DriverTest {
         con.close();
       }
     } finally {
-      System.setProperty("loggerLevel", loggerLevel);
-      System.setProperty("loggerFile", loggerFile);
       System.setErr(err);
     }
   }

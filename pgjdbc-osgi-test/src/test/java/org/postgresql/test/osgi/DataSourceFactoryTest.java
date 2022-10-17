@@ -120,7 +120,6 @@ public class DataSourceFactoryTest {
         + p.get("server") + ":"
         + p.get("port") + "/"
         + p.get("database")
-        + "?loggerLevel=" + p.get("loggerLevel")
         ;
   }
 
