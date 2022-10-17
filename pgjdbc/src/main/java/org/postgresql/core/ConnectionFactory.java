@@ -42,7 +42,7 @@ public abstract class ConnectionFactory {
    */
   public static QueryExecutor openConnection(HostSpec[] hostSpecs,
       Properties info) throws SQLException {
-    String protoName = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
+    String protoName = PGProperty.PROTOCOL_VERSION.get(info);
 
     if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();

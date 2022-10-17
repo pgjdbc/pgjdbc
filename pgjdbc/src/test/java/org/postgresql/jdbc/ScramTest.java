@@ -12,7 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
@@ -64,8 +63,8 @@ class ScramTest {
     createRole(passwd); // Create role password with spaces.
 
     Properties props = new Properties();
-    PGProperty.USER.set(props, ROLE_NAME);
-    PGProperty.PASSWORD.set(props, passwd);
+    props.setProperty("username", ROLE_NAME);
+    props.setProperty("password", passwd);
 
     try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB(props));
         Statement stmt = c.createStatement();
@@ -93,8 +92,8 @@ class ScramTest {
     createRole(passwdNoSpaces); // Create role password without spaces.
 
     Properties props = new Properties();
-    PGProperty.USER.set(props, ROLE_NAME);
-    PGProperty.PASSWORD.set(props, passwd); // Open connection with spaces
+    props.setProperty("username", ROLE_NAME);
+    props.setProperty("password", passwd); // Open connection with spaces
 
     SQLException ex = assertThrows(SQLException.class, () -> TestUtil.openDB(props));
     assertEquals(PSQLState.INVALID_PASSWORD.getState(), ex.getSQLState());
@@ -114,9 +113,9 @@ class ScramTest {
     createRole("anything_goes_here");
 
     Properties props = new Properties();
-    PGProperty.USER.set(props, ROLE_NAME);
+    props.setProperty("user", ROLE_NAME);
     if (password != null) {
-      PGProperty.PASSWORD.set(props, password);
+      props.setProperty("password", password);
     }
     try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
       fail("SCRAM connection attempt with invalid password should fail");

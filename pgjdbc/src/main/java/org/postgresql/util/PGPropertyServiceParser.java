@@ -3,12 +3,10 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.jdbcurlresolver;
+package org.postgresql.util;
 
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
-import org.postgresql.util.OSUtil;
-import org.postgresql.util.PGPropertyUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -33,13 +31,13 @@ import java.util.stream.Collectors;
  * helps to read Connection Service File.
  * https://www.postgresql.org/docs/current/libpq-pgservice.html
  */
-public class PgServiceConfParser {
+public class PGPropertyServiceParser {
 
-  private static final Logger LOGGER = Logger.getLogger(PgServiceConfParser.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(PGPropertyServiceParser.class.getName());
   private final String serviceName;
   private boolean ignoreIfOpenFails = true;
 
-  private PgServiceConfParser(String serviceName) {
+  private PGPropertyServiceParser(String serviceName) {
     this.serviceName = serviceName;
   }
 
@@ -50,8 +48,8 @@ public class PgServiceConfParser {
    * @return key value pairs
    */
   public static @Nullable Properties getServiceProperties(String serviceName) {
-    PgServiceConfParser pgServiceConfParser = new PgServiceConfParser(serviceName);
-    return pgServiceConfParser.findServiceDescription();
+    PGPropertyServiceParser pgPropertyServiceParser = new PGPropertyServiceParser(serviceName);
+    return pgPropertyServiceParser.findServiceDescription();
   }
 
   private @Nullable Properties findServiceDescription() {
