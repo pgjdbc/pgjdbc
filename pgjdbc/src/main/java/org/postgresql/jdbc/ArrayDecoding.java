@@ -232,7 +232,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return PgResultSet.toDouble(stringVal);
+      return PgResultSet.toDoubleReference(stringVal);
     }
   };
 

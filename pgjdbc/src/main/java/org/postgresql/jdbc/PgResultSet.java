@@ -3286,10 +3286,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return 0; // SQL NULL
   }
 
-  public static double toDouble(@Nullable String s) throws SQLException {
+
+  public double toDouble(@Nullable String s) throws SQLException {
+    return toDoubleReference(s);
+  }
+
+  public static double toDoubleReference(@Nullable String s) throws SQLException {
     if (s != null) {
       try {
-        s = s.trim();
         return Double.parseDouble(s);
       } catch (NumberFormatException e) {
         throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "double", s),
