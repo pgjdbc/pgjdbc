@@ -55,11 +55,11 @@ class AuthenticationPluginManager {
       PasswordAction<char @Nullable [], T> action) throws PSQLException, IOException {
     char[] password = null;
 
-    String authPluginClassName = PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getOrDefault(info);
+    String authPluginClassName = PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.get(info);
 
     if (authPluginClassName == null || authPluginClassName.equals("")) {
       // Default auth plugin simply pulls password directly from connection properties
-      String passwordText = PGProperty.PASSWORD.getOrDefault(info);
+      String passwordText = PGProperty.PASSWORD.get(info);
       if (passwordText != null) {
         password = passwordText.toCharArray();
       }
@@ -108,7 +108,7 @@ class AuthenticationPluginManager {
       if (password == null) {
         throw new PSQLException(
             GT.tr("The server requested password-based authentication, but no password was provided by plugin {0}",
-                PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getOrDefault(info)),
+                PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.get(info)),
             PSQLState.CONNECTION_REJECTED);
       }
       ByteBuffer buf = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password));

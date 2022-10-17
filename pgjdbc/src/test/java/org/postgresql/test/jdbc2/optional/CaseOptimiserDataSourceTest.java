@@ -97,6 +97,8 @@ public class CaseOptimiserDataSourceTest {
     bds.setUser(TestUtil.getUser());
     bds.setPassword(TestUtil.getPassword());
     bds.setPrepareThreshold(TestUtil.getPrepareThreshold());
+    bds.setLoggerLevel(TestUtil.getLogLevel());
+    bds.setLoggerFile(TestUtil.getLogFile());
     bds.setProtocolVersion(TestUtil.getProtocolVersion());
   }
 }

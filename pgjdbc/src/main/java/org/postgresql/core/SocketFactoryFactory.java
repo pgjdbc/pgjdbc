@@ -31,13 +31,13 @@ public class SocketFactoryFactory {
    */
   public static SocketFactory getSocketFactory(Properties info) throws PSQLException {
     // Socket factory
-    String socketFactoryClassName = PGProperty.SOCKET_FACTORY.getOrDefault(info);
+    String socketFactoryClassName = PGProperty.SOCKET_FACTORY.get(info);
     if (socketFactoryClassName == null) {
       return SocketFactory.getDefault();
     }
     try {
       return ObjectFactory.instantiate(SocketFactory.class, socketFactoryClassName, info, true,
-          PGProperty.SOCKET_FACTORY_ARG.getOrDefault(info));
+          PGProperty.SOCKET_FACTORY_ARG.get(info));
     } catch (Exception e) {
       throw new PSQLException(
           GT.tr("The SocketFactory class provided {0} could not be instantiated.",
@@ -54,7 +54,7 @@ public class SocketFactoryFactory {
    * @throws PSQLException if something goes wrong
    */
   public static SSLSocketFactory getSslSocketFactory(Properties info) throws PSQLException {
-    String classname = PGProperty.SSL_FACTORY.getOrDefault(info);
+    String classname = PGProperty.SSL_FACTORY.get(info);
     if (classname == null
         || "org.postgresql.ssl.jdbc4.LibPQFactory".equals(classname)
         || "org.postgresql.ssl.LibPQFactory".equals(classname)) {
@@ -62,7 +62,7 @@ public class SocketFactoryFactory {
     }
     try {
       return ObjectFactory.instantiate(SSLSocketFactory.class, classname, info, true,
-          PGProperty.SSL_FACTORY_ARG.getOrDefault(info));
+          PGProperty.SSL_FACTORY_ARG.get(info));
     } catch (Exception e) {
       throw new PSQLException(
           GT.tr("The SSLSocketFactory class provided {0} could not be instantiated.", classname),

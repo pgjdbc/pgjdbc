@@ -58,7 +58,7 @@ public class MakeSSL extends ObjectFactory {
   private static void verifyPeerName(PGStream stream, Properties info, SSLSocket newConnection)
       throws PSQLException {
     HostnameVerifier hvn;
-    String sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.getOrDefault(info);
+    String sslhostnameverifier = PGProperty.SSL_HOSTNAME_VERIFIER.get(info);
     if (sslhostnameverifier == null) {
       hvn = PGjdbcHostnameVerifier.INSTANCE;
       sslhostnameverifier = "PgjdbcHostnameVerifier";

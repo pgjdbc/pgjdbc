@@ -45,7 +45,7 @@ public class AuthenticationPluginTest {
     try {
       Properties props = new Properties();
       props.setProperty(PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getName(), DummyAuthenticationPlugin.class.getName());
-      PGProperty.USER.set(props, username);
+      props.setProperty("username", username);
 
       boolean[] wasCalled = { false };
       DummyAuthenticationPlugin.onGetPassword = type -> {
