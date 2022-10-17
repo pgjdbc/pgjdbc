@@ -222,6 +222,9 @@ public class Driver implements java.sql.Driver {
    * probably want to have set up the Postgres database itself to use the same encoding, with the
    * {@code -E <encoding>} argument to createdb.</p>
    *
+   * <p>If the "loginTimeout" is not present in properties, then it will default to
+   * DriverManager#loginTimeout value.</p>
+   *
    * <p>Our protocol takes the forms:</p>
    *
    * <pre>
@@ -701,16 +704,20 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the timeout from the URL, in milliseconds
    */
-  private static long timeout(Properties props) {
-    String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
-    if (timeout != null) {
-      try {
-        return (long) (Float.parseFloat(timeout) * 1000);
-      } catch (NumberFormatException e) {
-        LOGGER.log(Level.WARNING, "Couldn't parse loginTimeout value: {0}", timeout);
-      }
+  private static long timeout(Properties props) throws PSQLException {
+    // Note that PGProperty.LOGIN_TIMEOUT.isPresent() will not work here becuase props may contains
+    // the "loginTimeout" as defaults value, which will fail. We need to get the Props string value and compare
+    // to PGProperty.LOGIN_TIMEOUT default manually in order to simulate isPresent() flag.
+    String timeoutVal = props.getProperty(PGProperty.LOGIN_TIMEOUT.getName());
+    boolean isPresent = (timeoutVal != null) && !timeoutVal.equals(PGProperty.LOGIN_TIMEOUT.getDefaultValue());
+    long result;
+    if (isPresent) {
+      // The PGProperty.LOGIN_TIMEOUT.getFloat should throw proper exception if value is bad.
+      result = (long) PGProperty.LOGIN_TIMEOUT.getFloat(props) * 1000L;
+    } else {
+      result = DriverManager.getLoginTimeout() * 1000L;
     }
-    return (long) DriverManager.getLoginTimeout() * 1000;
+    return result;
   }
 
   /**

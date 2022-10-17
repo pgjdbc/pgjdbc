@@ -918,7 +918,24 @@ public enum PGProperty {
   }
 
   /**
-   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}.
+   * Return the float value for this connection parameter in the given {@code Properties}
+   *
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter converted to float
+   * @throws PSQLException if it cannot be converted to float.
+   */
+  public float getFloat(Properties properties) throws PSQLException {
+    String value = get(properties);
+    try {
+      return Float.parseFloat(value);
+    } catch (NumberFormatException nfe) {
+      throw new PSQLException(GT.tr("{0} parameter value must be an float but was: {1}",
+              getName(), value), PSQLState.INVALID_PARAMETER_VALUE, nfe);
+    }
+  }
+
+  /**
+   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to Integer or null
