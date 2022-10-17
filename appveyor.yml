@@ -69,6 +69,7 @@ before_build:
 - psql -U postgres -c "alter user test with replication" postgres
 - createuser -U postgres testsspi
 - createdb -U postgres -O test test
+- psql -U postgres -t -c "select version()" postgres
 
 build_script:
   - gradlew assemble
