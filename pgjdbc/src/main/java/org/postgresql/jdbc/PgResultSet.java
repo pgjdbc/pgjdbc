@@ -3286,7 +3286,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return 0; // SQL NULL
   }
 
-
   public double toDouble(@Nullable String s) throws SQLException {
     return toDoubleReference(s);
   }
