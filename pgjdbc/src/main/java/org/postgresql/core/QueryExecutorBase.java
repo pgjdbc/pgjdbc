@@ -69,17 +69,17 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
-    this.user = PGProperty.USER.get(info);
-    this.database = PGProperty.PG_DBNAME.get(info);
+    this.user = PGProperty.USER.getOrDefault(info);
+    this.database = PGProperty.PG_DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
-    String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.get(info);
+    String callMode = PGProperty.ESCAPE_SYNTAX_CALL_MODE.getOrDefault(info);
     this.escapeSyntaxCallMode = EscapeSyntaxCallMode.of(callMode);
     this.quoteReturningIdentifiers = PGProperty.QUOTE_RETURNING_IDENTIFIERS.getBoolean(info);
-    String preferMode = PGProperty.PREFER_QUERY_MODE.get(info);
+    String preferMode = PGProperty.PREFER_QUERY_MODE.getOrDefault(info);
     this.preferQueryMode = PreferQueryMode.of(preferMode);
-    this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.get(info));
+    this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.getOrDefault(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     // assignment.type.incompatible, argument.type.incompatible
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);

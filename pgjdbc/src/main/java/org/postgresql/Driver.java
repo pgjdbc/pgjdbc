@@ -8,11 +8,11 @@ package org.postgresql;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbcurlresolver.PgPassParser;
+import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PGPropertyPasswordParser;
-import org.postgresql.util.PGPropertyServiceParser;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -629,7 +629,7 @@ public class Driver implements java.sql.Driver {
     // load pg_service.conf
     if (serviceName != null) {
       LOGGER.log(Level.FINE, "Processing option [?service={0}]", serviceName);
-      Properties result = PGPropertyServiceParser.getServiceProperties(serviceName);
+      Properties result = PgServiceConfParser.getServiceProperties(serviceName);
       if (result == null) {
         LOGGER.log(Level.WARNING, "Definition of service [{0}] not found", serviceName);
         return null;
@@ -652,8 +652,8 @@ public class Driver implements java.sql.Driver {
     // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
     result.putIfAbsent(PGProperty.PG_PORT.getName(), castNonNull(PGProperty.PG_PORT.getDefaultValue()));
     result.putIfAbsent(PGProperty.PG_HOST.getName(), castNonNull(PGProperty.PG_HOST.getDefaultValue()));
-    if (PGProperty.USER.get(result) != null) {
-      result.putIfAbsent(PGProperty.PG_DBNAME.getName(), castNonNull(PGProperty.USER.get(result)));
+    if (PGProperty.USER.getOrDefault(result) != null) {
+      result.putIfAbsent(PGProperty.PG_DBNAME.getName(), castNonNull(PGProperty.USER.getOrDefault(result)));
     }
 
     // consistency check
@@ -662,9 +662,9 @@ public class Driver implements java.sql.Driver {
     }
 
     // try to load .pgpass if password is missing
-    if (PGProperty.PASSWORD.get(result) == null) {
-      String password = PGPropertyPasswordParser.getPassword(
-          PGProperty.PG_HOST.get(result), PGProperty.PG_PORT.get(result), PGProperty.PG_DBNAME.get(result), PGProperty.USER.get(result)
+    if (PGProperty.PASSWORD.getOrDefault(result) == null) {
+      String password = PgPassParser.getPassword(
+          PGProperty.PG_HOST.getOrDefault(result), PGProperty.PG_PORT.getOrDefault(result), PGProperty.PG_DBNAME.getOrDefault(result), PGProperty.USER.getOrDefault(result)
       );
       if (password != null && !password.isEmpty()) {
         PGProperty.PASSWORD.set(result, password);
@@ -688,9 +688,9 @@ public class Driver implements java.sql.Driver {
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = castNonNull(PGProperty.PG_HOST.get(props)).split(",");
-    String[] ports = castNonNull(PGProperty.PG_PORT.get(props)).split(",");
-    String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.get(props);
+    String[] hosts = castNonNull(PGProperty.PG_HOST.getOrDefault(props)).split(",");
+    String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
+    String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; ++i) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
@@ -702,7 +702,7 @@ public class Driver implements java.sql.Driver {
    * @return the timeout from the URL, in milliseconds
    */
   private static long timeout(Properties props) {
-    String timeout = PGProperty.LOGIN_TIMEOUT.get(props);
+    String timeout = PGProperty.LOGIN_TIMEOUT.getOrDefault(props);
     if (timeout != null) {
       try {
         return (long) (Float.parseFloat(timeout) * 1000);

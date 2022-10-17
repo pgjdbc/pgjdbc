@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -49,7 +50,7 @@ public class SSPITest {
   @Ignore
   public void testAuthorized() throws Exception {
     Properties props = new Properties();
-    props.setProperty("username", TestUtil.getSSPIUser());
+    PGProperty.USER.set(props, TestUtil.getSSPIUser());
 
     Connection con = TestUtil.openDB(props);
 
@@ -66,7 +67,7 @@ public class SSPITest {
   @Test
   public void testUnauthorized() throws Exception {
     Properties props = new Properties();
-    props.setProperty("username", "invalid" + TestUtil.getSSPIUser());
+    PGProperty.USER.set(props, "invalid" + TestUtil.getSSPIUser());
 
     try {
       Connection con = TestUtil.openDB(props);

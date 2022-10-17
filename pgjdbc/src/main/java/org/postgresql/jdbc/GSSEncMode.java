@@ -47,7 +47,7 @@ public enum GSSEncMode {
   }
 
   public static GSSEncMode of(Properties info) throws PSQLException {
-    String gssEncMode = PGProperty.GSS_ENC_MODE.get(info);
+    String gssEncMode = PGProperty.GSS_ENC_MODE.getOrDefault(info);
     // If gssEncMode is not set, fallback to allow
     if (gssEncMode == null) {
       return ALLOW;

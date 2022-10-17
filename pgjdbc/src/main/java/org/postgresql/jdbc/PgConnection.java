@@ -234,7 +234,7 @@ public class PgConnection implements BaseConnection {
 
     this.creatingURL = url;
 
-    this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.get(info));
+    this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
@@ -287,7 +287,7 @@ public class PgConnection implements BaseConnection {
     // String -> text or unknown?
     //
 
-    String stringType = PGProperty.STRING_TYPE.get(info);
+    String stringType = PGProperty.STRING_TYPE.getOrDefault(info);
     if (stringType != null) {
       if (stringType.equalsIgnoreCase("unspecified")) {
         bindStringAsVarchar = false;
@@ -331,7 +331,7 @@ public class PgConnection implements BaseConnection {
 
     this.clientInfo = new Properties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
-      String appName = PGProperty.APPLICATION_NAME.get(info);
+      String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
       if (appName == null) {
         appName = "";
       }
@@ -343,9 +343,9 @@ public class PgConnection implements BaseConnection {
             Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L),
         false);
 
-    replicationConnection = PGProperty.REPLICATION.get(info) != null;
+    replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
-    xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.get(info);
+    xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
@@ -396,11 +396,11 @@ public class PgConnection implements BaseConnection {
       binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
 
-    String oids = PGProperty.BINARY_TRANSFER_ENABLE.get(info);
+    String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
     if (oids != null) {
       binaryOids.addAll(getOidSet(oids));
     }
-    oids = PGProperty.BINARY_TRANSFER_DISABLE.get(info);
+    oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
     if (oids != null) {
       binaryOids.removeAll(getOidSet(oids));
     }
