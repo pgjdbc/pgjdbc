@@ -3,9 +3,10 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.util;
+package org.postgresql.jdbcurlresolver;
 
 import org.postgresql.PGEnvironment;
+import org.postgresql.util.OSUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -26,9 +27,9 @@ import java.util.logging.Logger;
  * helps to read Password File.
  * https://www.postgresql.org/docs/current/libpq-pgpass.html
  */
-public class PGPropertyPasswordParser {
+public class PgPassParser {
 
-  private static final Logger LOGGER = Logger.getLogger(PGPropertyPasswordParser.class.getName());
+  private static final Logger LOGGER = Logger.getLogger(PgPassParser.class.getName());
   private static final char SEPARATOR = ':';
   //
   private final String hostname;
@@ -37,7 +38,7 @@ public class PGPropertyPasswordParser {
   private final String user;
 
   //
-  private PGPropertyPasswordParser(String hostname, String port, String database, String user) {
+  private PgPassParser(String hostname, String port, String database, String user) {
     this.hostname = hostname;
     this.port = port;
     this.database = database;
@@ -66,8 +67,8 @@ public class PGPropertyPasswordParser {
     if (user == null || user.isEmpty()) {
       return null;
     }
-    PGPropertyPasswordParser pgPropertyPasswordParser = new PGPropertyPasswordParser(hostname, port, database, user);
-    return pgPropertyPasswordParser.findPassword();
+    PgPassParser pgPassParser = new PgPassParser(hostname, port, database, user);
+    return pgPassParser.findPassword();
   }
 
   private @Nullable String findPassword() {

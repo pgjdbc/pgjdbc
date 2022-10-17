@@ -27,8 +27,7 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
   protected void initializeDataSource() {
     if (bds == null) {
       bds = new SimpleDataSource();
-      bds.setURL(String.format("jdbc:postgresql://%s:%d/%s?prepareThreshold=%d&loggerLevel=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold(),
-              TestUtil.getLogLevel()));
+      bds.setURL(String.format("jdbc:postgresql://%s:%d/%s?prepareThreshold=%d", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold()));
       bds.setUser(TestUtil.getUser());
       bds.setPassword(TestUtil.getPassword());
       bds.setProtocolVersion(TestUtil.getProtocolVersion());
@@ -46,7 +45,6 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
     assertEquals(Integer.toString(TestUtil.getPort()), properties.getProperty(PGProperty.PG_PORT.getName()));
     assertEquals(TestUtil.getDatabase(), properties.getProperty(PGProperty.PG_DBNAME.getName()));
     assertEquals(Integer.toString(TestUtil.getPrepareThreshold()), properties.getProperty(PGProperty.PREPARE_THRESHOLD.getName()));
-    assertEquals(TestUtil.getLogLevel(), properties.getProperty(PGProperty.LOGGER_LEVEL.getName()));
   }
 
   @Test
@@ -57,6 +55,5 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
     assertEquals(TestUtil.getPort(), bds.getPortNumber());
     assertEquals(TestUtil.getDatabase(), bds.getDatabaseName());
     assertEquals(TestUtil.getPrepareThreshold(), bds.getPrepareThreshold());
-    assertEquals(TestUtil.getLogLevel(), bds.getLoggerLevel());
   }
 }

@@ -5,8 +5,6 @@ configuration: Release
 clone_depth: 1
 environment:
   JAVA_HOME: 'C:\Program Files\Java\jdk1.8.0'
-  PGUSER: postgres
-  PGPASSWORD: Password12!
   matrix:
   - pg: 9.6.11-1
     PlatformToolset: v120
@@ -62,13 +60,14 @@ before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
 - net start postgresql%x64%-%pgversion%
 - path %pgroot%\bin;%PATH%
-- SET PGUSER=postgres
-- SET PGPASSWORD=Password12!
+- mkdir %APPDATA%\postgresql
+- echo *:*:*:postgres:Password12!> %APPDATA%\postgresql\pgpass.conf
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
 - psql -U postgres -c "alter user test with replication" postgres
 - createuser -U postgres testsspi
 - createdb -U postgres -O test test
+- del %APPDATA%\postgresql\pgpass.conf
 
 build_script:
   - gradlew assemble
@@ -76,15 +75,6 @@ build_script:
 test_script:
   - echo redirect escape ^> foo.bar
   - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
-  - set PGDATABASE=
-  - set PGHOST=
-  - set PGPASSFILE=
-  - set PGPASSWORD=
-  - set PGPORT=
-  - set PGSERVICE=
-  - set PGSERVICEFILE=
-  - set PGSYSCONFDIR=
-  - set PGUSER=
   - gradlew test
 
 cache:
