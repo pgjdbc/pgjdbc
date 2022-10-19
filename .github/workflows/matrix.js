@@ -200,7 +200,7 @@ matrix.exclude(row => row.ssl.value === 'yes' && isLessThan(row.pg_version, '9.3
 matrix.exclude(row => row.scram.value === 'yes' && isLessThan(row.pg_version, '10'));
 matrix.exclude(row => row.replication.value === 'yes' && isLessThan(row.pg_version, '9.6'));
 //org.postgresql.test.jdbc2.ArrayTest fails using simple mode for versions less than 9.0 with malformed Array literal
-matrix.exclude( row => row.query_mode == 'simple' && isLessThan(row.pg_version, '9.1'));
+matrix.exclude( row => row.query_mode.value == 'simple' && isLessThan(row.pg_version, '9.1'));
 //matrix.exclude({query_mode: {value: 'simple'}, pg_version: '8.4'});
 // Microsoft Java has no distribution for 8
 matrix.exclude({java_distribution: 'microsoft', java_version: '8'});
