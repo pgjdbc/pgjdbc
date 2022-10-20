@@ -218,7 +218,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  // Goal: to support multiple hosts and on port option
+  // Goal: to support multiple hosts and one port option
   // Examples:
   //   jdbc:postgresql://host1,host2,host3?port=2222  -> host1:2222,host2:2222,host3:2222
   private void adjust92HostPort(Properties result) throws JdbcUrlResolverFatalException {
