@@ -62,7 +62,7 @@ public class ConnectionUtil {
 
     PGProperty.USER.set(properties, getUser());
     PGProperty.PASSWORD.set(properties, getPassword());
-    PGProperty.PG_PORT.set(properties, getPort());
+    PGProperty.PORT.set(properties, getPort());
     properties.setProperty("database", getDatabase());
     properties.setProperty("server", getServer());
 

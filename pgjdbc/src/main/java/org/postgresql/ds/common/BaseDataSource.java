@@ -1434,10 +1434,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       return;
     }
     switch (property) {
-      case PG_HOST:
+      case HOST:
         setServerNames(value.split(","));
         break;
-      case PG_PORT:
+      case PORT:
         String[] ps = value.split(",");
         int[] ports = new int[ps.length];
         for (int i = 0 ; i < ps.length; i++) {
@@ -1449,7 +1449,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
         setPortNumbers(ports);
         break;
-      case PG_DBNAME:
+      case DBNAME:
         setDatabaseName(value);
         break;
       case USER:

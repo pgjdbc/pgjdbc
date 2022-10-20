@@ -138,7 +138,7 @@ public class PGPropertyTest {
     // test for the existence of all read methods (getXXX/isXXX) and write methods (setXXX) for all
     // known properties
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
+      if (isNotInExclusionList(property)) {
         assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
             + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
 
@@ -154,12 +154,28 @@ public class PGPropertyTest {
 
     // test readability/writability of default value
     for (PGProperty property : PGProperty.values()) {
-      if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
+      if (isNotInExclusionList(property)) {
         Object propertyValue =
             propertyDescriptors.get(property.getName()).getReadMethod().invoke(dataSource);
         propertyDescriptors.get(property.getName()).getWriteMethod().invoke(dataSource,
             propertyValue);
       }
+    }
+  }
+
+  private boolean isNotInExclusionList(PGProperty property) {
+    switch (property) {
+      case PG_HOST:
+      case HOST:
+      case PG_PORT:
+      case PORT:
+      case PG_DBNAME:
+      case DBNAME:
+      case PASSFILE:
+      case SERVICE:
+        return false;
+      default:
+        return true;
     }
   }
 
@@ -188,19 +204,23 @@ public class PGPropertyTest {
     sysProperties.remove("ssl");
     System.setProperties(sysProperties);
     Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+    assertNotNull(parsedProperties);
     assertFalse("SSL property should not be present",
         PGProperty.SSL.isPresent(parsedProperties));
 
     System.setProperty("ssl", "true");
     givenProperties.setProperty("ssl", "true");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+    assertNotNull(parsedProperties);
     assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
 
     givenProperties.setProperty("ssl", "anotherValue");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
+    assertNotNull(parsedProperties);
     assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
 
     parsedProperties = Driver.parseURL(TestUtil.getURL() + "&ssl=true", null);
+    assertNotNull(parsedProperties);
     assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
   }
 
@@ -226,8 +246,9 @@ public class PGPropertyTest {
         + "?user=" + URLCoder.encode(userName)
         + "&password=" + URLCoder.encode(password);
     Properties parsed = Driver.parseURL(url, new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
-    assertEquals("user", userName, PGProperty.USER.getOrDefault(parsed));
+    assertNotNull(parsed);
+    assertEquals("dbname", databaseName, PGProperty.DBNAME.getOrDefault(parsed));
+    assertEquals("user", userName, PGProperty.USER.getOrNull(parsed));
     assertEquals("password", password, PGProperty.PASSWORD.getOrDefault(parsed));
   }
 
@@ -235,7 +256,6 @@ public class PGPropertyTest {
   public void testLowerCamelCase() {
     // These are legacy properties excluded for backward compatibility.
     ArrayList<String> excluded = new ArrayList<String>();
-    excluded.add("LOG_LEVEL"); // Remove with PR #722
     excluded.add("PREPARED_STATEMENT_CACHE_SIZE_MIB"); // preparedStatementCacheSizeMi[B]
     excluded.add("DATABASE_METADATA_CACHE_FIELDS_MIB"); // databaseMetadataCacheFieldsMi[B]
     excluded.add("STRING_TYPE"); // string[t]ype
@@ -253,7 +273,7 @@ public class PGPropertyTest {
     excluded.add("REWRITE_BATCHED_INSERTS"); // re[W]riteBatchedInserts
 
     for (PGProperty property : PGProperty.values()) {
-      if (!property.name().startsWith("PG")) { // Ignore all properties that start with PG
+      if (!property.name().startsWith("PG_")) { // Ignore all properties that start with PG
         String[] words = property.name().split("_");
         if (words.length == 1) {
           assertEquals(words[0].toLowerCase(Locale.ROOT), property.getName());
@@ -264,7 +284,8 @@ public class PGPropertyTest {
               if (i == 0) {
                 word = words[i].toLowerCase(Locale.ROOT);
               } else {
-                word += words[i].substring(0, 1).toUpperCase(Locale.ROOT) + words[i].substring(1).toLowerCase(Locale.ROOT);
+                word += words[i].substring(0, 1).toUpperCase(Locale.ROOT) + words[i].substring(1)
+                    .toLowerCase(Locale.ROOT);
               }
             }
             assertEquals(word, property.getName());
@@ -288,9 +309,10 @@ public class PGPropertyTest {
     dataSource.setApplicationName(applicationName);
 
     Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
+    assertNotNull(parsed);
+    assertEquals("dbname", databaseName, PGProperty.DBNAME.getOrDefault(parsed));
     // datasources do not pass username and password as URL parameters
-    assertFalse("user", PGProperty.USER.isPresent(parsed));
+    assertEquals("user", PGProperty.USER.getDefaultValue(), PGProperty.USER.getOrNull(parsed));
     assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));
     assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed));
   }

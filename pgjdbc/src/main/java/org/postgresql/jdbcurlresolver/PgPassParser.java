@@ -5,9 +5,6 @@
 
 package org.postgresql.jdbcurlresolver;
 
-import org.postgresql.PGEnvironment;
-import org.postgresql.util.OSUtil;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.BufferedReader;
@@ -27,18 +24,20 @@ import java.util.logging.Logger;
  * helps to read Password File.
  * https://www.postgresql.org/docs/current/libpq-pgpass.html
  */
-public class PgPassParser {
+class PgPassParser {
 
   private static final Logger LOGGER = Logger.getLogger(PgPassParser.class.getName());
   private static final char SEPARATOR = ':';
   //
+  private final String fileName;
   private final String hostname;
   private final String port;
   private final String database;
   private final String user;
 
   //
-  private PgPassParser(String hostname, String port, String database, String user) {
+  private PgPassParser(String fileName, String hostname, String port, String database, String user) {
+    this.fileName = fileName;
     this.hostname = hostname;
     this.port = port;
     this.database = database;
@@ -54,7 +53,7 @@ public class PgPassParser {
    * @param user     username or *
    * @return password or null
    */
-  public static @Nullable String getPassword(@Nullable String hostname, @Nullable String port, @Nullable String database, @Nullable String user) {
+  static @Nullable String getPassword(String fileName, @Nullable String hostname, @Nullable String port, @Nullable String database, @Nullable String user) {
     if (hostname == null || hostname.isEmpty()) {
       return null;
     }
@@ -67,21 +66,17 @@ public class PgPassParser {
     if (user == null || user.isEmpty()) {
       return null;
     }
-    PgPassParser pgPassParser = new PgPassParser(hostname, port, database, user);
+    PgPassParser pgPassParser = new PgPassParser(fileName, hostname, port, database, user);
     return pgPassParser.findPassword();
   }
 
   private @Nullable String findPassword() {
-    String resourceName = findPgPasswordResourceName();
-    if (resourceName == null) {
-      return null;
-    }
-    //
     String result = null;
-    try (InputStream inputStream = openInputStream(resourceName)) {
+    try (InputStream inputStream = openInputStream(fileName)) {
+      LOGGER.log(Level.FINE, "Resource [{0}] is used for passwords (.pgpass)", new Object[]{fileName});
       result = parseInputStream(inputStream);
     } catch (IOException e) {
-      LOGGER.log(Level.FINE, "Failed to handle resource [{0}] with error [{1}]", new Object[]{resourceName, e.getMessage()});
+      LOGGER.log(Level.FINE, "Failed to read resource [{0}] with error [{1}]", new Object[]{fileName, e.getMessage()});
     }
     //
     return result;
@@ -98,53 +93,6 @@ public class PgPassParser {
       File file = new File(resourceName);
       return new FileInputStream(file);
     }
-  }
-
-  // choose resource where to search for service description
-  private @Nullable String findPgPasswordResourceName() {
-    // default file name
-    String pgPassFileDefaultName = PGEnvironment.PGPASSFILE.getDefaultValue();
-
-    // if there is value, use it - 1st priority
-    {
-      String propertyName = PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName();
-      String resourceName = System.getProperty(propertyName);
-      if (resourceName != null && !resourceName.trim().isEmpty()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected from property [{1}]", new Object[]{resourceName, propertyName});
-        return resourceName;
-      }
-    }
-
-    // if there is value, use it - 2nd priority
-    {
-      String envVariableName = PGEnvironment.PGPASSFILE.getName();
-      String resourceName = System.getenv().get(envVariableName);
-      if (resourceName != null && !resourceName.trim().isEmpty()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected from environment variable [{1}]", new Object[]{resourceName, envVariableName});
-        return resourceName;
-      }
-    }
-
-    // if file in user home is readable, use it, otherwise continue - 3rd priority
-    {
-      String resourceName = "";
-      if ( !OSUtil.isWindows() ) {
-        resourceName += ".";
-      }
-      resourceName += pgPassFileDefaultName;
-      if (OSUtil.isWindows()) {
-        resourceName += ".conf";
-      }
-      File resourceFile = new File(OSUtil.getUserConfigRootDirectory(), resourceName);
-      if (resourceFile.canRead()) {
-        LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceFile.getAbsolutePath()});
-        return resourceFile.getAbsolutePath();
-      }
-    }
-
-    // otherwise null
-    LOGGER.log(Level.FINE, "Value for resource [{0}] not found", pgPassFileDefaultName);
-    return null;
   }
 
   //
