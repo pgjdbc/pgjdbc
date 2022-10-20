@@ -60,49 +60,49 @@ public class JdbcUrlResolver {
     Properties result = new Properties();
     try {
       // override hierarchy
-      Properties p8 = new Properties(); // global defaults
-      Properties p7 = new Properties(p8); // org/postgresql/driverconfig.properties by classloader
-      Properties p6 = new Properties(p7); // os env
-      Properties p5 = new Properties(p6); // java env
-      Properties p4 = new Properties(p5); // service
-      Properties p3 = new Properties(p4); // Properties given to getConnection()
-      Properties p2 = new Properties(p3); // URL values
-      Properties p1 = new Properties(p2); // URL arguments
-      Properties p0 = new Properties(p1); // Calculated overrides
+      Properties p8GlobalDefaults = new Properties(); // global defaults
+      Properties p7DriverconfigProperties = new Properties(p8GlobalDefaults); // org/postgresql/driverconfig.properties by classloader
+      Properties p6OsEnvironment = new Properties(p7DriverconfigProperties); // os env
+      Properties p5JavaEnvironment = new Properties(p6OsEnvironment); // java env
+      Properties p4ServiceResource = new Properties(p5JavaEnvironment); // service
+      Properties p3GetConnetionProperties = new Properties(p4ServiceResource); // Properties given to getConnection()
+      Properties p2UrlValues = new Properties(p3GetConnetionProperties); // URL values
+      Properties p1UrlArguments = new Properties(p2UrlValues); // URL arguments
+      Properties p0CalculatedOverrides = new Properties(p1UrlArguments); // Calculated overrides
       // priority 1: URL arguments
       // priority 2: URL values
       JdbcUrlParser parser = new JdbcUrlParser(url);
-      parser.parse(p1, p2);
+      parser.parse(p1UrlArguments, p2UrlValues);
       // priority 3: Properties given as argument to DriverManager.getConnection()
       // argument "defaults" EXCLUDING defaults
-      parse3GetConnectionProperties(p3);
+      parse3GetConnectionProperties(p3GetConnetionProperties);
       // priority 5: Java PGEnvironment values
-      parse5JavaEnvironment(p5);
+      parse5JavaEnvironment(p5JavaEnvironment);
       // priority 6: OS PGEnvironment values
-      parse6OsEnvironment(p6);
+      parse6OsEnvironment(p6OsEnvironment);
       // priority 7: default values of Properties given as argument to DriverManager.getConnection()
       //             source: org/postgresql/driverconfig.properties by classloader
       // argument "defaults" ONLY defaults
-      parse7DriverconfigProperties(p7);
+      parse7DriverconfigProperties(p7DriverconfigProperties);
       // load service properties (file .pg_service.conf) if requested
-      parse4Service(p4, p0);
+      parse4ServiceResource(p4ServiceResource, p0CalculatedOverrides);
       // priority 8: PGProperty defaults for PGHOST, PGPORT, user, PGDBNAME
-      parse8GlobalDefaults(p8, p0);
+      parse8GlobalDefaults(p8GlobalDefaults, p0CalculatedOverrides);
       // post-processing: fill in blanks with defaults
-      adjust91HostPort(p0);
+      adjust91HostPort(p0CalculatedOverrides);
       // post-processing: adjust hosts and ports to match (or fail)
-      adjust92HostPort(p0);
+      adjust92HostPort(p0CalculatedOverrides);
       // post-processing: adjust ports
-      adjust93Port(p0);
+      adjust93Port(p0CalculatedOverrides);
       // verify: check that port numbers are in correct range
-      verify94Port(p0);
+      verify94Port(p0CalculatedOverrides);
       // post-processing: find passwords (load .pgpass)
-      parse9Pgpass(p0);
+      parse9Pgpass(p0CalculatedOverrides);
       // copy result
-      copyProperties(p0, result);
+      copyProperties(p0CalculatedOverrides, result);
       // debug log
       if (LOGGER.isLoggable(Level.FINEST)) {
-        dumpStructures(result, p8, p7, p6, p5, p4, p3, p2, p1, p0);
+        dumpStructures(result, p8GlobalDefaults, p7DriverconfigProperties, p6OsEnvironment, p5JavaEnvironment, p4ServiceResource, p3GetConnetionProperties, p2UrlValues, p1UrlArguments, p0CalculatedOverrides);
       }
     } catch (JdbcUrlResolverFatalException e) {
       failException = e;
@@ -172,7 +172,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse4Service(Properties p4, Properties p0) throws JdbcUrlResolverFatalException {
+  private void parse4ServiceResource(Properties p4, Properties p0) throws JdbcUrlResolverFatalException {
     String service = PGProperty.SERVICE.getOrNull(p0);
     if (service != null) {
       // read service properties
