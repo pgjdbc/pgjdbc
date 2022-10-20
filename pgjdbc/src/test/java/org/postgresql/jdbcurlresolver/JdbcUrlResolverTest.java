@@ -177,22 +177,22 @@ public class JdbcUrlResolverTest {
     verifyUrl("jdbc:postgresql://?host=argsHost&port=2222&dbname=argDb&user=argUser", "argsHost", "2222", "argDb", "argUser", null);
     verifyUrl("jdbc:postgresql://?host=argsHost&port=2222&dbname=argDb&user=argUser&password=argPass", "argsHost", "2222", "argDb", "argUser", "argPass");
     verifyUrl("jdbc:postgresql://?host=args%2Dhost&user=arg%23%24User&password=%21%22%23%24%25%26%27%28%29", "args-host", "5432", "arg#$User", "arg#$User", "!\"#$%&'()");
-    verifyUrl("jdbc:postgresql://?loggerLevel=OFF", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "OFF");
-    verifyUrl("jdbc:postgresql://?loggerLevel", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "");
-    verifyUrl("jdbc:postgresql://?loggerLevel=", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "");
-    verifyUrl("jdbc:postgresql://?loggerLevel= ", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", " ");
-    verifyUrl("jdbc:postgresql://?loggerLevel=OFF&binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "OFF", "binaryTransfer", "false");
-    verifyUrl("jdbc:postgresql://?loggerLevel&binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "", "binaryTransfer", "false");
-    verifyUrl("jdbc:postgresql://?loggerLevel= &binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", " ", "binaryTransfer", "false");
+    verifyUrl("jdbc:postgresql://?currentSchema=OFF", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "OFF");
+    verifyUrl("jdbc:postgresql://?currentSchema", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "");
+    verifyUrl("jdbc:postgresql://?currentSchema=", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "");
+    verifyUrl("jdbc:postgresql://?currentSchema= ", "localhost", "5432", "osUser", "osUser", null, "currentSchema", " ");
+    verifyUrl("jdbc:postgresql://?currentSchema=OFF&binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "OFF", "binaryTransfer", "false");
+    verifyUrl("jdbc:postgresql://?currentSchema&binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "", "binaryTransfer", "false");
+    verifyUrl("jdbc:postgresql://?currentSchema= &binaryTransfer=false", "localhost", "5432", "osUser", "osUser", null, "currentSchema", " ", "binaryTransfer", "false");
     failUrl("jdbc:postgresql://?database=urlDb", "Unsupported property name: [database]");
-    failUrl("jdbc:postgresql://? loggerLevel", "Unsupported property name: [ loggerLevel]");
-    failUrl("jdbc:postgresql://?loggerLevel ", "Unsupported property name: [loggerLevel ]");
+    failUrl("jdbc:postgresql://? currentSchema", "Unsupported property name: [ currentSchema]");
+    failUrl("jdbc:postgresql://?currentSchema ", "Unsupported property name: [currentSchema ]");
     if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
       failUrl("jdbc:postgresql://?logger%1Level=OFF", "url [logger%1Level] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - For input string: \"1L\"]");
     } else {
       failUrl("jdbc:postgresql://?logger%1Level=OFF", "url [logger%1Level] parsing failed [URLDecoder: Illegal hex characters in escape (%) pattern - Error at index 1 in: \"1L\"]");
     }
-    failUrl("jdbc:postgresql://?loggerLevel=%1", "url [%1] parsing failed [URLDecoder: Incomplete trailing escape (%) pattern]");
+    failUrl("jdbc:postgresql://?currentSchema=%1", "url [%1] parsing failed [URLDecoder: Incomplete trailing escape (%) pattern]");
     failUrl("jdbc:postgresql://? ", "Unsupported property name: [ ]");
     failUrl("jdbc:postgresql:///? ", "Unsupported property name: [ ]");
     failUrl("jdbc:postgresql://?& ", "Unsupported property name: [ ]");
@@ -201,7 +201,7 @@ public class JdbcUrlResolverTest {
     failUrl("jdbc:postgresql://?&& ", "Unsupported property name: [ ]");
     // args override
     verifyUrl("jdbc:postgresql://?user=argUser1&user=argUser2", "localhost", "5432", "argUser2", "argUser2", null);
-    verifyUrl("jdbc:postgresql://?loggerLevel=OFF&loggerLevel=FINE", "localhost", "5432", "osUser", "osUser", null, "loggerLevel", "FINE");
+    verifyUrl("jdbc:postgresql://?currentSchema=OFF&currentSchema=FINE", "localhost", "5432", "osUser", "osUser", null, "currentSchema", "FINE");
     verifyUrl("jdbc:postgresql://urlUser@?user=argUser1&user=argUser2", "localhost", "5432", "argUser2", "argUser2", null);
     // combined tests
     verifyUrl("jdbc:postgresql:// : @ : / ?loggerFile= ", " ", "5432", " ", " ", " ", "loggerFile", " ");
@@ -251,35 +251,35 @@ public class JdbcUrlResolverTest {
       verifyUrl("jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5444", "testdb1", "osUser", null);
       verifyUrl("jdbc:postgresql://:5789/?service=driverTestService2", "test-host1,[::1],test-host2", "5789,5789,5789", "testdb1", "osUser", null);
       //
-      verifyUrl("jdbc:postgresql://?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://urlUser@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "urlUser", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://:urlPass@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "urlPass", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://urlUser:urlPass@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "urlUser", "urlPass", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://localhost1?service=driverTestService3", "localhost1", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://:/?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://localhost1/?service=driverTestService3", "localhost1", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://:5789/?service=driverTestService3", "serv-host3", "5789", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://localhost1:5789/?service=driverTestService3", "localhost1", "5789", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://localhost1,/?service=driverTestService3", "localhost1,localhost", "5432,5432", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://localhost1,:5888/?service=driverTestService3", "localhost1,localhost", "5432,5888", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://,/?service=driverTestService3", "localhost,localhost", "5432,5432", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
-      verifyUrl("jdbc:postgresql://,:5888/?service=driverTestService3", "localhost,localhost", "5432,5888", "serv_db3", "usr3@comp.org", "serv_pass3", "loggerLevel", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://urlUser@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "urlUser", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://:urlPass@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "urlPass", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://urlUser:urlPass@?service=driverTestService3", "serv-host3", "3555", "serv_db3", "urlUser", "urlPass", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://localhost1?service=driverTestService3", "localhost1", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://:/?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://localhost1/?service=driverTestService3", "localhost1", "3555", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://:5789/?service=driverTestService3", "serv-host3", "5789", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://localhost1:5789/?service=driverTestService3", "localhost1", "5789", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://localhost1,/?service=driverTestService3", "localhost1,localhost", "5432,5432", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://localhost1,:5888/?service=driverTestService3", "localhost1,localhost", "5432,5888", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://,/?service=driverTestService3", "localhost,localhost", "5432,5432", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
+      verifyUrl("jdbc:postgresql://,:5888/?service=driverTestService3", "localhost,localhost", "5432,5888", "serv_db3", "usr3@comp.org", "serv_pass3", "currentSchema", "OFF", "defaultRowFetchSize", "300");
       //
-      verifyUrl("jdbc:postgresql://?service=driverTestService4", "serv1-host4,serv2-host4", "4555,4556", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
-      verifyUrl("jdbc:postgresql://:?service=driverTestService4", "serv1-host4,serv2-host4", "4555,4556", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
-      verifyUrl("jdbc:postgresql://,?service=driverTestService4", "localhost,localhost", "5432,5432", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
-      verifyUrl("jdbc:postgresql://,?service=driverTestService4", "localhost,localhost", "5432,5432", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://?service=driverTestService4", "serv1-host4,serv2-host4", "4555,4556", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://:?service=driverTestService4", "serv1-host4,serv2-host4", "4555,4556", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://,?service=driverTestService4", "localhost,localhost", "5432,5432", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://,?service=driverTestService4", "localhost,localhost", "5432,5432", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
       failUrl("jdbc:postgresql://localhost1?service=driverTestService4", "could not match [2] port numbers to [1] hosts");
-      verifyUrl("jdbc:postgresql://localhost1:3333?service=driverTestService4", "localhost1", "3333", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
-      verifyUrl("jdbc:postgresql://:3333?service=driverTestService4", "serv1-host4,serv2-host4", "3333,3333", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
-      verifyUrl("jdbc:postgresql://localhost1,[::1]:3333?service=driverTestService4", "localhost1,[::1]", "5432,3333", "serv_db4", "usr4@comp.org", "serv_pass4", "loggerLevel", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://localhost1:3333?service=driverTestService4", "localhost1", "3333", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://:3333?service=driverTestService4", "serv1-host4,serv2-host4", "3333,3333", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
+      verifyUrl("jdbc:postgresql://localhost1,[::1]:3333?service=driverTestService4", "localhost1,[::1]", "5432,3333", "serv_db4", "usr4@comp.org", "serv_pass4", "currentSchema", "FINE", "defaultRowFetchSize", "400");
       // fail cases
       failUrl("jdbc:postgresql://?service=driverTestService2", "could not match [2] port numbers to [3] hosts");
       failUrl("jdbc:postgresql://localhost/?service=driverTestService2", "could not match [2] port numbers to [1] hosts");
       failUrl("jdbc:postgresql://?service=driverTestService5", "key 'service' is not allowed: line number [50], value [service=next-service]");
       failUrl("jdbc:postgresql://?service=driverTestService6", "Got invalid key: line number [53], value [invalid-key=value]");
       // space
-      verifyUrl("jdbc:postgresql://?service= ", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "loggerLevel", " SPACE");
+      verifyUrl("jdbc:postgresql://?service= ", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "currentSchema", " SPACE");
     });
     //
     // tests for service syntax (service name comes from property)
@@ -321,7 +321,7 @@ public class JdbcUrlResolverTest {
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICE.getName(), " ", PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile())
     ).execute(() -> {
       // correct cases
-      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "loggerLevel", " SPACE");
+      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "currentSchema", " SPACE");
       verifyUrl("jdbc:postgresql://?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3");
     });
     //
@@ -332,7 +332,7 @@ public class JdbcUrlResolverTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICE.getName(), " ")
     ).execute(() -> {
       // correct cases
-      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "loggerLevel", " SPACE");
+      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "currentSchema", " SPACE");
       verifyUrl("jdbc:postgresql://?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3");
     });
     //
@@ -343,7 +343,7 @@ public class JdbcUrlResolverTest {
         new EnvironmentVariables(PGEnvironment.PGSERVICE.getName(), "non-existing-service")
     ).execute(() -> {
       // correct cases
-      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "loggerLevel", " SPACE");
+      verifyUrl("jdbc:postgresql://", " spacehost", "556", " spacedb", " spaceuser", " spacepass", "currentSchema", " SPACE");
       verifyUrl("jdbc:postgresql://?service=driverTestService3", "serv-host3", "3555", "serv_db3", "usr3@comp.org", "serv_pass3");
     });
   }
