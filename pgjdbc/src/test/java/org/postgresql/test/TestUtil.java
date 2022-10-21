@@ -632,7 +632,18 @@ public class TestUtil {
    * Drops a function with a given signature.
    */
   public static void dropFunction(Connection con, String name, String arguments) throws SQLException {
-    dropObject(con, "FUNCTION", name + "(" + arguments + ")");
+    if (arguments == null) {
+      dropObject(con, "FUNCTION", name + "()");
+    } else {
+      dropObject(con, "FUNCTION", name + "(" + arguments + ")");
+    }
+  }
+
+  /*
+  Drops a procedure
+   */
+  public static void dropProcedure(Connection con, String name ) throws SQLException {
+    dropObject(con, "PROCEDURE", name +"()");
   }
 
   private static void dropObject(Connection con, String type, String name) throws SQLException {
