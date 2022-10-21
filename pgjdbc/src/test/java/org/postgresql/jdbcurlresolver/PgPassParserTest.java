@@ -11,10 +11,21 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.util.StubEnvironmentAndProperties;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Resource content (* matching, escape character handling, comments etc) can be written
@@ -24,6 +35,14 @@ import java.net.URL;
  */
 @StubEnvironmentAndProperties
 public class PgPassParserTest {
+
+  private static final String PGPASS_FILE_NAME = "/pgpass/.pgpass";
+
+  @BeforeAll
+  public static void setUp() throws Exception {
+    // fix pgpass file permissions
+    Utils.setPgpassFilePermissions(PGPASS_FILE_NAME);
+  }
 
   @Test
   public void getPassword11() {
@@ -36,7 +55,7 @@ public class PgPassParserTest {
 
   @Test
   public void getPassword22() {
-    URL urlPath = getClass().getResource("/pgpass/.pgpass");
+    URL urlPath = getClass().getResource(PGPASS_FILE_NAME);
     assertNotNull(urlPath);
     String existingFile = urlPath.getPath();
     String result = PgPassParser.getPassword(existingFile, "localhost", "5432", "postgres", "postgres");
@@ -76,6 +95,51 @@ public class PgPassParserTest {
     //
     result = PgPassParser.getPassword(existingFile, "anyhost", "6544", "anydb", "anyuser");
     assertEquals("absolute-any", result);
+  }
+
+  @Test
+  public void getPassword30() throws IOException {
+    //
+    List<PosixFilePermission> permissionList = Arrays.asList(
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.GROUP_WRITE,
+        PosixFilePermission.GROUP_EXECUTE,
+        PosixFilePermission.OTHERS_READ,
+        PosixFilePermission.OTHERS_WRITE,
+        PosixFilePermission.OTHERS_EXECUTE
+    );
+    //
+    File file = null;
+    try {
+      file = File.createTempFile("pgpass_with_different_rights", ".tmp");
+      Path path = file.toPath();
+      FileSystem fileSystem = path.getFileSystem();
+      if (fileSystem.supportedFileAttributeViews().contains("posix")) {
+        // write one line to temp file
+        Files.write(path, "*:*:*:*:pass".getBytes(StandardCharsets.UTF_8));
+        // test
+        for (PosixFilePermission permission : permissionList) {
+          // set permissions
+          Set<PosixFilePermission> newPermissions = new HashSet<>();
+          newPermissions.add(PosixFilePermission.OWNER_READ);
+          newPermissions.add(permission);
+          Files.setPosixFilePermissions(path, newPermissions);
+          // verify result
+          String result = PgPassParser.getPassword(file.getPath(), "x", "x", "x", "x");
+          if (permission.name().startsWith("OWNER_")) {
+            assertEquals("pass", result);
+          } else {
+            assertNull(result);
+          }
+        }
+      }
+    } finally {
+      if (file != null) {
+        file.delete();
+      }
+    }
   }
 
 }

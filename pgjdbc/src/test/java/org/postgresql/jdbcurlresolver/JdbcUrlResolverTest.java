@@ -15,7 +15,7 @@ import org.postgresql.core.JavaVersion;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
@@ -31,8 +31,13 @@ import java.util.Properties;
  */
 public class JdbcUrlResolverTest {
 
-  @Before
-  public void setUp() throws Exception {
+  private static final String PGPASS_FILE_NAME = "/pgpass/.pgpass";
+
+  @BeforeAll
+  public static void setUp() throws Exception {
+    // fix pgpass file permissions
+    Utils.setPgpassFilePermissions(PGPASS_FILE_NAME);
+    //
     // Verify that related properties and environment variables are not set. Fail, if any is set.
     // If they are set then test cases will fail.
     // Alternative would be clearing environment before tests, but it needs ugly hacking
@@ -496,7 +501,7 @@ public class JdbcUrlResolverTest {
 
   @Test
   public void testCaseSet6() throws Exception {
-    URL pgpass = getClass().getResource("/pgpass/.pgpass");
+    URL pgpass = getClass().getResource(PGPASS_FILE_NAME);
     assertNotNull(pgpass);
     Properties props = new Properties();
     // passfile as URL Argument

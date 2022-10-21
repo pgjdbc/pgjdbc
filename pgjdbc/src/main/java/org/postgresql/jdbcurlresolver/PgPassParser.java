@@ -9,14 +9,16 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,10 +49,11 @@ class PgPassParser {
   /**
    * Read .pgpass resource
    *
-   * @param hostname hostname or *
-   * @param port     port or *
-   * @param database database or *
-   * @param user     username or *
+   * @param fileName fileName
+   * @param hostname hostname
+   * @param port     port
+   * @param database database
+   * @param user     username
    * @return password or null
    */
   static @Nullable String getPassword(String fileName, @Nullable String hostname, @Nullable String port, @Nullable String database, @Nullable String user) {
@@ -73,8 +76,10 @@ class PgPassParser {
   private @Nullable String findPassword() {
     String result = null;
     try (InputStream inputStream = openInputStream(fileName)) {
-      LOGGER.log(Level.FINE, "Resource [{0}] is used for passwords (.pgpass)", new Object[]{fileName});
-      result = parseInputStream(inputStream);
+      if (inputStream != null) {
+        LOGGER.log(Level.FINE, "Resource [{0}] is used for passwords (.pgpass)", new Object[]{fileName});
+        result = parseInputStream(inputStream);
+      }
     } catch (IOException e) {
       LOGGER.log(Level.FINE, "Failed to read resource [{0}] with error [{1}]", new Object[]{fileName, e.getMessage()});
     }
@@ -82,17 +87,32 @@ class PgPassParser {
     return result;
   }
 
-  // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  // open File
+  private @Nullable InputStream openInputStream(String resourceName) throws IOException {
+    Path path = new File(resourceName).toPath();
+    return checkFilePermissions(path) ? Files.newInputStream(path) : null;
+  }
 
-    try {
-      URL url = new URL(resourceName);
-      return url.openStream();
-    } catch ( MalformedURLException ex ) {
-      // try file
-      File file = new File(resourceName);
-      return new FileInputStream(file);
+  // in case there are permissions for "group" or "other" then return false
+  private boolean checkFilePermissions(Path path) throws IOException {
+    FileSystem fileSystem = path.getFileSystem();
+    // check works for posix filesystems
+    if (fileSystem.supportedFileAttributeViews().contains("posix")) {
+      Set<PosixFilePermission> posixFilePermissions = Files.getPosixFilePermissions(path);
+      for (PosixFilePermission filePermission : posixFilePermissions) {
+        switch (filePermission) {
+          case GROUP_READ:
+          case GROUP_WRITE:
+          case GROUP_EXECUTE:
+          case OTHERS_READ:
+          case OTHERS_WRITE:
+          case OTHERS_EXECUTE:
+            LOGGER.log(Level.WARNING, "password file [{0}] has group or world access; permissions should be u=rw (0600) or less", new Object[]{fileName});
+            return false;
+        }
+      }
     }
+    return true;
   }
 
   //
