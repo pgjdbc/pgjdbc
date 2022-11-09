@@ -21,8 +21,7 @@ import java.sql.SQLException;
  * disconnect by timeout from server.
  */
 public interface PGReplicationStream
-    extends AutoCloseable
-    /* hi, checkstyle */ {
+    extends AutoCloseable {
 
   /**
    * <p>Read next wal record from backend. It method can be block until new message will not get
