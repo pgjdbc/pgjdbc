@@ -863,9 +863,9 @@ public enum PGProperty {
   /**
    * Returns the value of the connection parameter from the given {@link Properties} or the
    * default value
-   * @deprecated use {@link #getOrDefault(Properties)} instead
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter or null
+   * @deprecated use {@link #getOrDefault(Properties)} instead
    */
   @Deprecated
   public @Nullable String get(Properties properties) {
