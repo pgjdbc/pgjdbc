@@ -124,6 +124,10 @@ val osgiJar by tasks.registering(Bundle::class) {
     }
 }
 
+tasks.build {
+    dependsOn(osgiJar)
+}
+
 val extraMavenPublications by configurations.getting
 
 (artifacts) {
