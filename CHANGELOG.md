@@ -10,6 +10,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+[42.5.1] (2022-11-21 15:21:59 -0500)
+### Security
+- security: StreamWrapper spills to disk if setText, or setBytea sends very large Strings or arrays to the server. createTempFile creates a file which can be read by other users on unix like systems (Not macos).
+This has been fixed in this version fixes CVE-2022-41946 see the [security advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-562r-vg33-8x8h) for more details. Reported by [Jonathan Leitschuh](https://github.com/JLLeitschuh) This has been fixed in versions 42.5.1, 42.4.3 42.3.8, 42.2.27.jre7. Note there is no fix for 42.2.26.jre6. See the security advisory for work arounds.
+
+### Fixed
+
+- fix: make sure we select array_in from pg_catalog to avoid duplicate array_in functions fixes [#Issue 2548](https://github.com/pgjdbc/pgjdbc/issues/2548) [PR #2552](https://github.com/pgjdbc/pgjdbc/issues/2552)
+- fix: binary decoding of bool values [PR #2640](https://github.com/pgjdbc/pgjdbc/pull/2640)
+- perf: improve performance of PgResultSet getByte/getShort/getInt/getLong for float-typed columns [PR #2634](https://github.com/pgjdbc/pgjdbc/pull/2634)
+- chore: fix various spelling errors [PR #2592](https://github.com/pgjdbc/pgjdbc/pull/2592)
+- chore: Feature/urlparser improve URLParser [PR #2641](https://github.com/pgjdbc/pgjdbc/pull/2592)
+
 ## [42.5.0] (2022-08-23 11:20:11 -0400)
 ### Changed
 - fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8. 
@@ -743,4 +756,5 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 [42.4.1]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.0...REL42.4.1
 [42.4.2]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.1...REL42.4.2
 [42.5.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.4.2...REL42.5.0
-[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.5.0...HEAD
+[42.5.0]: https://github.com/pgjdbc/pgjdbc/compare/REL42.5.0...REL42.5.1
+[Unreleased]: https://github.com/pgjdbc/pgjdbc/compare/REL42.5.1...HEAD

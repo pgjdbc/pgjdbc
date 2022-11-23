@@ -15,6 +15,11 @@ path = "/icons/driver-icon.svg"
 # Releases Info
 
 [[info]]
+date = "21 October 2022"
+url = "/changelogs/2022-11-21-42.5.1-release/"
+version = "42.5.1"
+
+[[info]]
 date = "24 August 2022"
 url = "/changelogs/2022-08-24-42.5.0-release/"
 version = "42.5.0"
@@ -30,6 +35,6 @@ url = "/changelogs/2022-08-03-42.4.1-release/"
 version = "42.4.1"
 
 [[info]]
-date = "09 JUne 2022"
+date = "09 June 2022"
 url = "/changelogs/2022-06-09-42.4.0-release/"
 version = "42.4.0"
