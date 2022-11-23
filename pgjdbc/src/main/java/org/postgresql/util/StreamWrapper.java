@@ -17,6 +17,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+//#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+import java.nio.file.Files;
+//#endif
 
 /**
  * Wrapper around a length-limited InputStream.
@@ -51,7 +54,12 @@ public class StreamWrapper {
 
       if (memoryLength == -1) {
         final int diskLength;
-        final File tempFile = File.createTempFile(TEMP_FILE_PREFIX, null);
+        final File tempFile =
+            //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
+            Files.createTempFile(TEMP_FILE_PREFIX, null).toFile();
+            //#else
+            File.createTempFile(TEMP_FILE_PREFIX, null);
+            //#endif
         FileOutputStream diskOutputStream = new FileOutputStream(tempFile);
         diskOutputStream.write(rawData);
         try {
