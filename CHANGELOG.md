@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
-[42.5.1] (2022-11-21 15:21:59 -0500)
+[42.5.1] (2022-11-23 10:14:59 -0500)
 ### Security
 - security: StreamWrapper spills to disk if setText, or setBytea sends very large Strings or arrays to the server. createTempFile creates a file which can be read by other users on unix like systems (Not macos).
 This has been fixed in this version fixes CVE-2022-41946 see the [security advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-562r-vg33-8x8h) for more details. Reported by [Jonathan Leitschuh](https://github.com/JLLeitschuh) This has been fixed in versions 42.5.1, 42.4.3 42.3.8, 42.2.27.jre7. Note there is no fix for 42.2.26.jre6. See the security advisory for work arounds.
