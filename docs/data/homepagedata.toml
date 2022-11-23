@@ -20,21 +20,16 @@ url = "/changelogs/2022-11-23-42.5.1-release/"
 version = "42.5.1"
 
 [[info]]
-date = "24 August 2022"
-url = "/changelogs/2022-08-24-42.5.0-release/"
-version = "42.5.0"
+date = "23 October 2022"
+url = "/changelogs/2022-11-23-42.5.1-release/"
+version = "42.4.3"
 
 [[info]]
-date = "17 August 2022"
-url = "/changelogs/2022-08-17-42.4.2-release/"
-version = "42.4.2"
+date = "23 October 2022"
+url = "/changelogs/2022-11-23-42.5.1-release/"
+version = "42.3.8"
 
 [[info]]
-date = "03 August 2022"
-url = "/changelogs/2022-08-03-42.4.1-release/"
-version = "42.4.1"
-
-[[info]]
-date = "09 June 2022"
-url = "/changelogs/2022-06-09-42.4.0-release/"
-version = "42.4.0"
+date = "23 October 2022"
+url = "/changelogs/2022-11-23-42.5.1-release/"
+version = "42.2.27"
