@@ -238,7 +238,13 @@ public class PGStream implements Closeable, Flushable {
       InetSocketAddress address = hostSpec.shouldResolve()
           ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
           : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
+      try {
+        socket.connect(address, timeout);
+      } catch (Exception e){
+        socket.close();
+        throw e;
+      }
+      
     }
     return socket;
   }
