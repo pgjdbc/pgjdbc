@@ -7,13 +7,13 @@
         <button class="card__btn__left">
             <a href="{{$ver.url}}" class="card__btn__left__link">Download</a>
         </button>
-        <div class="maven" id="coordinates-{{$ind}}">
+        <script class="maven" id="coordinates-{{$ind}}" type="application/xml">
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</version>
             </dependency>
-        </div>
+        </script>
         <button class="card__btn__right" id="copyBtn-{{$ind}}" data="{{$ind}}">Copy Maven</button>
     </div>
     {{ end }}
