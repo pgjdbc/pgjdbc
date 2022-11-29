@@ -245,7 +245,11 @@ public class PGStream implements Closeable, Flushable {
       return socket;
     } catch ( Exception ex ) {
       if (socket != null) {
-        socket.close();
+        try {
+          socket.close();
+        } catch (Exception ex1 ) {
+          ex.addSuppressed(ex1);
+        }
       }
       throw ex;
     }
