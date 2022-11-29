@@ -226,21 +226,29 @@ public class PGStream implements Closeable, Flushable {
   }
 
   private Socket createSocket(int timeout) throws IOException {
-    Socket socket = socketFactory.createSocket();
-    String localSocketAddress = hostSpec.getLocalSocketAddress();
-    if (localSocketAddress != null) {
-      socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+    Socket socket = null;
+    try {
+      socket = socketFactory.createSocket();
+      String localSocketAddress = hostSpec.getLocalSocketAddress();
+      if (localSocketAddress != null) {
+        socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
+      }
+      if (!socket.isConnected()) {
+        // When using a SOCKS proxy, the host might not be resolvable locally,
+        // thus we defer resolution until the traffic reaches the proxy. If there
+        // is no proxy, we must resolve the host to an IP to connect the socket.
+        InetSocketAddress address = hostSpec.shouldResolve()
+            ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
+            : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
+        socket.connect(address, timeout);
+      }
+      return socket;
+    } catch ( Exception ex ) {
+      if (socket != null) {
+        socket.close();
+      }
+      throw ex;
     }
-    if (!socket.isConnected()) {
-      // When using a SOCKS proxy, the host might not be resolvable locally,
-      // thus we defer resolution until the traffic reaches the proxy. If there
-      // is no proxy, we must resolve the host to an IP to connect the socket.
-      InetSocketAddress address = hostSpec.shouldResolve()
-          ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
-          : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
-      socket.connect(address, timeout);
-    }
-    return socket;
   }
 
   /**
