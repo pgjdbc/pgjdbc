@@ -461,6 +461,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // attempt to acquire a GSS encrypted connection
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
+    int gssTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
+    int currentTimeout = pgStream.getNetworkTimeout();
+
+    // if the current timeout is less than sslTimeout then
+    // use the smaller timeout. We could do something tricky
+    // here to not set it in that case but this is pretty readable
+    if (currentTimeout > 0 && currentTimeout < gssTimeout) {
+      gssTimeout = currentTimeout;
+    }
+
+    pgStream.setNetworkTimeout(gssTimeout);
+
     // Send GSSEncryption request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
@@ -468,6 +480,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
+    pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");

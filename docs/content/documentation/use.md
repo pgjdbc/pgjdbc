@@ -139,6 +139,11 @@ Class name of the SSL password provider. Defaults to `org.postgresql.ssl.jdbc4.L
 * **`sslpassword (`*String*`)`**\
 If provided will be used by ConsoleCallbackHandler
 
+* **`sslResponseTimeout (`*Integer*`)`**\
+Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
+Default is 5000ms
+
+
 * **`protocolVersion (`*int*`)`**\
 The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and the driver will by default try to connect using the V3 protocol.
 
@@ -203,7 +208,7 @@ The default is extended
 
 * **`defaultRowFetchSize (`*int*`)`**\
 Determine the number of rows fetched in `ResultSet` by one fetch with trip to the database. Limiting the number of rows are fetch with each trip to the database allow avoids unnecessary memory consumption and as a consequence `OutOfMemoryError` .
-The default is zero, meaning that in `ResultSet` will be fetch all rows at once. Negative number is not available.
+The default is zero, meaning that in `ResultSet` will fetch all rows at once. Negative number is not available.
 
 * **`loginTimeout (`*int*`)`**\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
@@ -245,13 +250,17 @@ Specifies whether to perform a JAAS login before authenticating with GSSAPI. If 
 PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
   * `disable` is obvious and disables any attempt to connect using GSS encrypted mode
   * `allow` will connect in plain text then if the server requests it will switch to encrypted mode
-  * `prefer` will attempt connect in encrypted mode and fall back to plain text if it fails to acquire an encrypted connection
+  * `prefer` will attempt to connect in encrypted mode and fall back to plain text if it fails to acquire an encrypted connection
   * `require` attempts to connect in encrypted mode and will fail to connect if that is not possible.
 The default is `allow` .
 
 * **`gsslib (`*String*`)`**\
 Force either SSPI (Windows transparent single-sign-on) or GSSAPI (Kerberos, via JSSE) to be used when the server requests Kerberos or SSPI authentication. Permissible values are auto (default, see below), sspi (force SSPI) or gssapi (force GSSAPI-JSSE).
 If this parameter is auto, SSPI is attempted if the server requests SSPI authentication, the JDBC client is running on Windows, and the Waffle libraries required for SSPI are on the CLASSPATH. Otherwise Kerberos/GSSAPI via JSSE is used.
+
+* **`gssResponseTimeout (`*Integer*`)`**\
+Time in milliseconds to wait for a response after requesting a GSS encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used. 
+Default is 5000ms
 
 > **Note**
 >
