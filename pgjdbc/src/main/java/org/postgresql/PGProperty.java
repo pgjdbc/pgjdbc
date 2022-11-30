@@ -261,6 +261,17 @@ public enum PGProperty {
       new String[] {"auto", "sspi", "gssapi"}),
 
   /**
+   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
+   * timeout mechanism This timeout will be set before the request and reset after </p>
+   */
+  GSS_RESPONSE_TIMEOUT(
+      "gssResponseTimeout",
+      "5000",
+      "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
+
+
+  /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
    * granted from appearing in the DatabaseMetaData returned by the driver.
    */
