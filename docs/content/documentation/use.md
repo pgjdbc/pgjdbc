@@ -206,13 +206,13 @@ Determine the number of rows fetched in `ResultSet` by one fetch with trip to th
 The default is zero, meaning that in `ResultSet` will be fetch all rows at once. Negative number is not available.
 
 * **`loginTimeout (`*int*`)`**\
-Specify how long to wait for establishment of a database connection. The timeout is specified in seconds.
+Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
 
 * **`connectTimeout (`*int*`)`**\
-The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. The timeout is specified in seconds and a value of zero means that it is disabled.
+The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. The timeout is specified in seconds max(2147484) and a value of zero means that it is disabled.
 
 * **`socketTimeout (`*int*`)`**\
-The timeout value used for socket read operations. If reading from the server takes longer than this value, the connection is closed. This can be used as both a brute force global query timeout and a method of detecting network problems. The timeout is specified in seconds and a value of zero means that it is disabled.
+The timeout value used for socket read operations. If reading from the server takes longer than this value, the connection is closed. This can be used as both a brute force global query timeout and a method of detecting network problems. The timeout is specified in seconds max(2147484) and a value of zero means that it is disabled.
 
 * **`cancelSignalTimeout (`*int*`)`**\
 Cancel command is sent out of band over its own connection, so cancel message can itself get stuck. This property controls "connect timeout" and "socket timeout" used for cancel commands. The timeout is specified in seconds. Default value is 10 seconds.
