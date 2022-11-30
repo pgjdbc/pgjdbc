@@ -208,7 +208,7 @@ The default is extended
 
 * **`defaultRowFetchSize (`*int*`)`**\
 Determine the number of rows fetched in `ResultSet` by one fetch with trip to the database. Limiting the number of rows are fetch with each trip to the database allow avoids unnecessary memory consumption and as a consequence `OutOfMemoryError` .
-The default is zero, meaning that in `ResultSet` will fetch all rows at once. Negative number is not available.
+The default is zero, meaning that `ResultSet` will fetch all rows at once. Must be > 0.
 
 * **`loginTimeout (`*int*`)`**\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
@@ -229,7 +229,7 @@ Enable or disable TCP keep-alive probe. The default is `false` .
 Enable or disable TCP nodelay. The default is `true` .
 
 * **`unknownLength (`*int*`)`**\
-Certain postgresql types such as `TEXT` do not have a well defined length. When returning meta-data about these types through functions like `ResultSetMetaData.getColumnDisplaySize` and `ResultSetMetaData.getPrecision` we must provide a value and various client tools have different ideas about what they would like to see. This parameter specifies the length to return for types of unknown length.
+Certain postgresql types such as `TEXT` do not have a well-defined length. When returning meta-data about these types through functions like `ResultSetMetaData.getColumnDisplaySize` and `ResultSetMetaData.getPrecision` we must provide a value and various client tools have different ideas about what they would like to see. This parameter specifies the length to return for types of unknown length.
 
 * **`stringtype (`*String*`)`**\
 Specify the type to use when binding `PreparedStatement` parameters set via `setString()` . If `stringtype` is set to `VARCHAR` (the default), such parameters will be sent to the server as varchar parameters. If `stringtype` is set to `unspecified` , parameters will be sent to the server as untyped values, and the server will attempt to infer an appropriate type. This is useful if you have an existing application that uses `setString()` to set parameters that are actually some other type, such as integers, and you are unable to change the application to use an appropriate method such as `setInt()` .
