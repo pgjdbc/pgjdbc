@@ -163,7 +163,7 @@ public enum PGProperty {
   CONNECT_TIMEOUT(
       "connectTimeout",
       "10",
-      "The timeout value used for socket connect operations."),
+      "The timeout value in seconds used for socket connect operations."),
 
   /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
@@ -344,7 +344,7 @@ public enum PGProperty {
   LOGIN_TIMEOUT(
       "loginTimeout",
       "0",
-      "Specify how long to wait for establishment of a database connection."),
+      "Specify how long in seconds to wait for establishment of a database connection."),
 
   /**
    * Whether to include full server error detail in exception messages.
@@ -589,7 +589,7 @@ public enum PGProperty {
   SOCKET_TIMEOUT(
       "socketTimeout",
       "0",
-      "The timeout value used for socket read operations."),
+      "The timeout value in seconds max(2147484) used for socket read operations."),
 
   /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
