@@ -43,8 +43,8 @@ import java.sql.SQLException;
  * @see java.sql.PreparedStatement#setUnicodeStream
  */
 public class LargeObject
-    implements AutoCloseable
-    /* hi, checkstyle */ {
+    implements AutoCloseable {
+
   /**
    * Indicates a seek from the beginning of a file.
    */

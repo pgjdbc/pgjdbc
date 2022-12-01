@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assume;
@@ -34,10 +35,10 @@ public class ConnectTimeoutTest {
   @Test
   public void testTimeout() {
     final Properties props = new Properties();
-    props.setProperty("user", "test");
-    props.setProperty("password", "test");
+    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
     // with 0 (default value) it hangs for about 60 seconds (platform dependent)
-    props.setProperty("connectTimeout", Integer.toString(CONNECT_TIMEOUT));
+    PGProperty.CONNECT_TIMEOUT.set(props, CONNECT_TIMEOUT);
 
     final long startTime = System.currentTimeMillis();
     try {

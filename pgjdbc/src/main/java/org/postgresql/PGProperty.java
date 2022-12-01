@@ -163,7 +163,7 @@ public enum PGProperty {
   CONNECT_TIMEOUT(
       "connectTimeout",
       "10",
-      "The timeout value used for socket connect operations."),
+      "The timeout value in seconds used for socket connect operations."),
 
   /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
@@ -270,6 +270,17 @@ public enum PGProperty {
       new String[] {"auto", "sspi", "gssapi"}),
 
   /**
+   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
+   * timeout mechanism This timeout will be set before the request and reset after </p>
+   */
+  GSS_RESPONSE_TIMEOUT(
+      "gssResponseTimeout",
+      "5000",
+      "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
+
+
+  /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
    * granted from appearing in the DatabaseMetaData returned by the driver.
    */
@@ -362,7 +373,7 @@ public enum PGProperty {
   LOGIN_TIMEOUT(
       "loginTimeout",
       "0",
-      "Specify how long to wait for establishment of a database connection."),
+      "Specify how long in seconds to wait for establishment of a database connection."),
 
   /**
    * Whether to include full server error detail in exception messages.
@@ -631,7 +642,7 @@ public enum PGProperty {
   SOCKET_TIMEOUT(
       "socketTimeout",
       "0",
-      "The timeout value used for socket read operations."),
+      "The timeout value in seconds max(2147484) used for socket read operations."),
 
   /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
@@ -905,9 +916,9 @@ public enum PGProperty {
   /**
    * Returns the value of the connection parameter from the given {@link Properties} or the
    * default value
-   * @deprecated use {@link #getOrDefault(Properties)} instead
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter or null
+   * @deprecated use {@link #getOrDefault(Properties)} instead
    */
   @Deprecated
   public @Nullable String get(Properties properties) {

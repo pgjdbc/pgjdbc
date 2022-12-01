@@ -17,6 +17,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 
 /**
  * Wrapper around a length-limited InputStream.
@@ -51,7 +52,7 @@ public class StreamWrapper {
 
       if (memoryLength == -1) {
         final int diskLength;
-        final File tempFile = File.createTempFile(TEMP_FILE_PREFIX, null);
+        final File tempFile = Files.createTempFile(TEMP_FILE_PREFIX, ".tmp").toFile();
         FileOutputStream diskOutputStream = new FileOutputStream(tempFile);
         diskOutputStream.write(rawData);
         try {
