@@ -91,8 +91,8 @@ public class Oid {
   public static final int TSVECTOR = 3614;
   public static final int TSQUERY = 3615;
 
-  private static final Map<Integer, String> OID_TO_NAME = new HashMap<Integer, String>(100);
-  private static final Map<String, Integer> NAME_TO_OID = new HashMap<String, Integer>(100);
+  private static final Map<Integer, String> OID_TO_NAME = new HashMap<>(100);
+  private static final Map<String, Integer> NAME_TO_OID = new HashMap<>(100);
 
   static {
     for (Field field : Oid.class.getFields()) {
