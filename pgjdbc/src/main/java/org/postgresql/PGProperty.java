@@ -804,7 +804,7 @@ public enum PGProperty {
     this.choices = choices;
   }
 
-  private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
+  private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<>();
 
   static {
     for (PGProperty prop : PGProperty.values()) {
