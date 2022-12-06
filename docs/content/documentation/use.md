@@ -169,7 +169,7 @@ Determines if the SAVEPOINT created in autosave mode is released prior to the st
 The default is 'false'
 
 * **`binaryTransfer (`*boolean*`)`**\
-Use binary format for sending and receiving data if possible.
+Use binary format for sending and receiving data if possible. Setting this to false disables any binary transfer
 The default is 'true'
 
 * **`binaryTransferEnable (`*String*`)`**\
