@@ -127,8 +127,8 @@ public class ByteConverter {
       throw new IllegalArgumentException("number of bytes should be at-least 8");
     }
 
-    //number of 2-byte shorts representing 4 decimal digits
-    short len = ByteConverter.int2(bytes, pos);
+    //number of 2-byte shorts representing 4 decimal digits - should be treated as unsigned
+    int len = (ByteConverter.int2(bytes, pos) & 0xFFFF);
     //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
     //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
