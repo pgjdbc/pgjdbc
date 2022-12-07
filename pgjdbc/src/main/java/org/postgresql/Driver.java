@@ -548,11 +548,6 @@ public class Driver implements java.sql.Driver {
       urlServer = "";
     } else if (urlServer.startsWith("//")) {
       urlServer = urlServer.substring(2);
-      long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
-      if (slashCount > 1) {
-        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}", url);
-        return null;
-      }
       int slash = urlServer.indexOf('/');
       if (slash == -1) {
         LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);

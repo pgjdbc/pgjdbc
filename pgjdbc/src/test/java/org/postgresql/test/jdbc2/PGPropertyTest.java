@@ -232,6 +232,13 @@ public class PGPropertyTest {
   }
 
   @Test
+  public void testSlashPath() {
+    String databaseName = "aaa/bbb";
+    String url = "jdbc:postgresql://localhost/" + databaseName;
+    Properties parsed = Driver.parseURL(url, new Properties());
+    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
+  }
+  @Test
   public void testLowerCamelCase() {
     // These are legacy properties excluded for backward compatibility.
     ArrayList<String> excluded = new ArrayList<String>();
