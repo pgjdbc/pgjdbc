@@ -632,6 +632,7 @@ public class Parser {
         && (query[offset + 4] | 32) == 'i'
         && (query[offset + 5] | 32) == 'c';
   }
+  
   /**
    * Parse string to check presence of MOVE keyword regardless of case.
    *
