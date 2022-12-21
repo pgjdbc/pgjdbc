@@ -72,6 +72,7 @@ public class Parser {
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
+    boolean isAtomicPresent = false;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
@@ -139,7 +140,7 @@ public class Parser {
           break;
 
         case ';':
-          if (inParen == 0) {
+          if (!isAtomicPresent && inParen == 0) {
             if (!whitespaceOnly) {
               numberOfStatements++;
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -238,11 +239,16 @@ public class Parser {
               isCurrentReWriteCompatible = false;
             }
           }
+
         } else if (currentCommandType == SqlCommandType.WITH
             && inParen == 0) {
           SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
           if (command != null) {
             currentCommandType = command;
+          }
+        } else if (currentCommandType == SqlCommandType.CREATE) {
+          if ( wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
+            isAtomicPresent = true;
           }
         }
         if (inParen != 0 || aChar == ')') {
@@ -608,6 +614,24 @@ public class Parser {
         && (query[offset + 5] | 32) == 't';
   }
 
+  /**
+   Parse string to check presence of ATOMIC keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAtomicKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 7)) {
+      return false;
+    }
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 't'
+        && (query[offset + 2] | 32) == 'o'
+        && (query[offset + 3] | 32) == 'm'
+        && (query[offset + 4] | 32) == 'i'
+        && (query[offset + 5] | 32) == 'c';
+  }
   /**
    * Parse string to check presence of MOVE keyword regardless of case.
    *
