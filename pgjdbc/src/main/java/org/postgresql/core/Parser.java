@@ -72,7 +72,8 @@ public class Parser {
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
-    boolean isAtomicPresent = false;
+    boolean isBeginPresent = false;
+    boolean isBeginAtomicPresent = false;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
@@ -140,7 +141,7 @@ public class Parser {
           break;
 
         case ';':
-          if (!isAtomicPresent && inParen == 0) {
+          if (!isBeginAtomicPresent && inParen == 0) {
             if (!whitespaceOnly) {
               numberOfStatements++;
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -247,8 +248,20 @@ public class Parser {
             currentCommandType = command;
           }
         } else if (currentCommandType == SqlCommandType.CREATE) {
-          if ( wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
-            isAtomicPresent = true;
+          /*
+          We are looking for BEGIN ATOMIC
+           */
+          if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+            isBeginPresent = true;
+          } else {
+            // found begin, now look for atomic
+            if (isBeginPresent == true) {
+              if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
+                isBeginAtomicPresent = true;
+              }
+              // either way we reset beginFound
+              isBeginPresent = false;
+            }
           }
         }
         if (inParen != 0 || aChar == ')') {
@@ -612,6 +625,25 @@ public class Parser {
         && (query[offset + 3] | 32) == 'e'
         && (query[offset + 4] | 32) == 'r'
         && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   Parse string to check presence of BEGIN keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+
+  public static boolean parseBeginKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+    return (query[offset] | 32) == 'b'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'g'
+        && (query[offset + 3] | 32) == 'i'
+        && (query[offset + 4] | 32) == 'n';
   }
 
   /**
