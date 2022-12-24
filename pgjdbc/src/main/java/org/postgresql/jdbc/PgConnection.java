@@ -167,7 +167,7 @@ public class PgConnection implements BaseConnection {
   // Connection's readonly state.
   private boolean readOnly = false;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
-  private boolean  hideUnprivilegedObjects ;
+  private final boolean  hideUnprivilegedObjects ;
   // Whether to include error details in logging and exceptions
   private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
