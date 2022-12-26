@@ -65,11 +65,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     public String key;
     public String value;
 
-    public StartupParam(String key, String value) {
+    StartupParam(String key, String value) {
       this.key = key;
       this.value = value;
     }
   }
+
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
   private static final int AUTH_REQ_KRB4 = 1;
