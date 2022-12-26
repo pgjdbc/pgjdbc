@@ -69,6 +69,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       this.key = key;
       this.value = value;
     }
+
+    @Override
+    public String toString() {
+      return this.key + "=" + this.value;
+    }
+
+    public byte[] getEncodedKey() {
+      return this.key.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public byte[] getEncodedValue() {
+      return this.value.getBytes(StandardCharsets.UTF_8);
+    }
   }
 
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
@@ -621,9 +634,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         if (i != 0) {
           details.append(", ");
         }
-        details.append(params.get(i).key);
-        details.append("=");
-        details.append(params.get(i).value);
+        details.append(params.get(i).toString());
       }
       LOGGER.log(Level.FINEST, " FE=> StartupPacket({0})", details);
     }
@@ -632,8 +643,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
     for (int i = 0; i < params.size(); ++i) {
-      encodedParams[i * 2] = params.get(i).key.getBytes(StandardCharsets.UTF_8);
-      encodedParams[i * 2 + 1] = params.get(i).value.getBytes(StandardCharsets.UTF_8);
+      encodedParams[i * 2] = params.get(i).getEncodedKey();
+      encodedParams[i * 2 + 1] = params.get(i).getEncodedValue();
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
     }
 
