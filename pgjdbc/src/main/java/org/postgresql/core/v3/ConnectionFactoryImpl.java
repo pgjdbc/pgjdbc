@@ -61,6 +61,29 @@ import javax.net.SocketFactory;
  */
 public class ConnectionFactoryImpl extends ConnectionFactory {
 
+  private static class StartupParam {
+    public String key;
+    public String value;
+
+    StartupParam(String key, String value) {
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public String toString() {
+      return this.key + "=" + this.value;
+    }
+
+    public byte[] getEncodedKey() {
+      return this.key.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public byte[] getEncodedValue() {
+      return this.value.getBytes(StandardCharsets.UTF_8);
+    }
+  }
+
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
   private static final int AUTH_REQ_KRB4 = 1;
@@ -173,7 +196,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         newStream.setNetworkTimeout(socketTimeout * 1000);
       }
 
-      List<String[]> paramList = getParametersForStartup(user, database, info);
+      List<StartupParam> paramList = getParametersForStartup(user, database, info);
       sendStartupPacket(newStream, paramList);
 
       // Do authentication (until AuthenticationOk).
@@ -347,41 +370,41 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private List<String[]> getParametersForStartup(String user, String database, Properties info) {
-    List<String[]> paramList = new ArrayList<String[]>();
-    paramList.add(new String[]{"user", user});
-    paramList.add(new String[]{"database", database});
-    paramList.add(new String[]{"client_encoding", "UTF8"});
-    paramList.add(new String[]{"DateStyle", "ISO"});
-    paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
+  private List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+    List<StartupParam> paramList = new ArrayList<>();
+    paramList.add(new StartupParam("user", user));
+    paramList.add(new StartupParam("database", database));
+    paramList.add(new StartupParam("client_encoding", "UTF8"));
+    paramList.add(new StartupParam("DateStyle", "ISO"));
+    paramList.add(new StartupParam("TimeZone", createPostgresTimeZone()));
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
     if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
       // User is explicitly telling us this is a 9.0+ server so set properties here:
-      paramList.add(new String[]{"extra_float_digits", "3"});
+      paramList.add(new StartupParam("extra_float_digits", "3"));
       String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
       if (appName != null) {
-        paramList.add(new String[]{"application_name", appName});
+        paramList.add(new StartupParam("application_name", appName));
       }
     } else {
       // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-      paramList.add(new String[]{"extra_float_digits", "2"});
+      paramList.add(new StartupParam("extra_float_digits", "2"));
     }
 
     String replication = PGProperty.REPLICATION.getOrDefault(info);
     if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
-      paramList.add(new String[]{"replication", replication});
+      paramList.add(new StartupParam("replication", replication));
     }
 
     String currentSchema = PGProperty.CURRENT_SCHEMA.getOrDefault(info);
     if (currentSchema != null) {
-      paramList.add(new String[]{"search_path", currentSchema});
+      paramList.add(new StartupParam("search_path", currentSchema));
     }
 
     String options = PGProperty.OPTIONS.getOrDefault(info);
     if (options != null) {
-      paramList.add(new String[]{"options", options});
+      paramList.add(new StartupParam("options", options));
     }
 
     return paramList;
@@ -603,7 +626,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, List<String[]> params)
+  private void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -611,9 +634,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         if (i != 0) {
           details.append(", ");
         }
-        details.append(params.get(i)[0]);
-        details.append("=");
-        details.append(params.get(i)[1]);
+        details.append(params.get(i).toString());
       }
       LOGGER.log(Level.FINEST, " FE=> StartupPacket({0})", details);
     }
@@ -622,8 +643,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
     for (int i = 0; i < params.size(); ++i) {
-      encodedParams[i * 2] = params.get(i)[0].getBytes(StandardCharsets.UTF_8);
-      encodedParams[i * 2 + 1] = params.get(i)[1].getBytes(StandardCharsets.UTF_8);
+      encodedParams[i * 2] = params.get(i).getEncodedKey();
+      encodedParams[i * 2 + 1] = params.get(i).getEncodedValue();
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
     }
 
