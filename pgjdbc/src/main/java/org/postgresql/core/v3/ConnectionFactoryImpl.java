@@ -62,8 +62,8 @@ import javax.net.SocketFactory;
 public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static class StartupParam {
-    public String key;
-    public String value;
+    private final String key;
+    private final String value;
 
     StartupParam(String key, String value) {
       this.key = key;
