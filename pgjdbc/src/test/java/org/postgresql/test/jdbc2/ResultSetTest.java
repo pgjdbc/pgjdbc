@@ -680,7 +680,8 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(1, rs.getLong(1));
 
     assertTrue(rs.next());
-    assertEquals(9.2233715e18, rs.getLong(1), 1.0e11);
+    // the string value from database trims the significant digits, leading to larger variance than binary
+    assertEquals(9223371487098961921.0, rs.getLong(1), binaryMode == BinaryMode.REGULAR ? 1.0e11 : 100);
 
     assertTrue(rs.next());
     do {

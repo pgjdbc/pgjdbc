@@ -3419,9 +3419,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         if (f < LONG_MAX_FLOAT && f > LONG_MIN_FLOAT) {
           val = (long) f;
         } else {
-          // casting to a double can result in additional decimal digits being created/considered
-          // this is much closer to the database's string representation, but not always exact
-          bd = new BigDecimal(Float.toString(f));
+          // casting to a double gets a more precise value, but does not always
+          // match up with the database's string representation
+          bd = new BigDecimal(f);
           val = 0;
         }
         break;
