@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
@@ -105,6 +106,7 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('10223372036850000000', null)");
 
     TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
@@ -463,7 +465,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getByte(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -507,7 +509,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getShort(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -569,7 +571,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getInt(1);
         fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -643,9 +645,49 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getLong(1);
         fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select a from testboolfloat");
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(-1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    do {
+      try {
+        rs.getLong(1);
+        fail("Exception expected." + rs.getString(1));
+      } catch (SQLException e) {
+      }
+    } while (rs.next());
+
     rs.close();
   }
 

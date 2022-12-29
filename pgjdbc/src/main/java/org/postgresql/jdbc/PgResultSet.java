@@ -3399,6 +3399,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
+    BigDecimal bd = null;
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3411,15 +3412,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        val = (long) ByteConverter.float4(bytes, 0);
+        bd = BigDecimal.valueOf(ByteConverter.float4(bytes, 0));
+        val = 0;
         break;
       case Oid.FLOAT8:
-        val = (long) ByteConverter.float8(bytes, 0);
+        bd = BigDecimal.valueOf(ByteConverter.float8(bytes, 0));
+        val = 0;
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
         if (num instanceof  BigDecimal) {
-          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+          bd = (BigDecimal) num;
+          val = 0;
         } else {
           val = num.longValue();
         }
@@ -3429,6 +3433,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                 Oid.toString(oid), targetType),
             PSQLState.DATA_TYPE_MISMATCH);
+    }
+    if (bd != null) {
+      final BigInteger i = bd.toBigInteger();
+      if (i.compareTo(LONGMAX) > 0 || i.compareTo(LONGMIN) < 0) {
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", bd),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      val = i.longValue();
     }
     if (val < minVal || val > maxVal) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, val),
