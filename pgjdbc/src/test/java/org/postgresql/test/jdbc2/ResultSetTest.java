@@ -681,7 +681,8 @@ public class ResultSetTest extends BaseTest4 {
 
     assertTrue(rs.next());
     // the string value from database trims the significant digits, leading to larger variance than binary
-    assertEquals(9223371487098961921.0, rs.getLong(1), binaryMode == BinaryMode.REGULAR ? 1.0e11 : 100);
+    // the liberica jdk gets similar variance, even in forced binary mode
+    assertEquals(9223371487098961921.0, rs.getLong(1), 1.0e11);
 
     assertTrue(rs.next());
     do {
