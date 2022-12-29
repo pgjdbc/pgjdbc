@@ -66,12 +66,14 @@ public class Parser {
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
     boolean isValuesFound = false;
-    int valuesBraceOpenPosition = -1;
-    int valuesBraceClosePosition = -1;
-    boolean valuesBraceCloseFound = false;
+    int valuesParenthesisOpenPosition = -1;
+    int valuesParenthesisClosePosition = -1;
+    boolean valuesParenthesisCloseFound = false;
     boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
+    boolean isBeginPresent = false;
+    boolean isBeginAtomicPresent = false;
     SqlCommandType currentCommandType = SqlCommandType.BLANK;
     SqlCommandType prevCommandType = SqlCommandType.BLANK;
     int numberOfStatements = 0;
@@ -80,10 +82,15 @@ public class Parser {
     int keyWordCount = 0;
     int keywordStart = -1;
     int keywordEnd = -1;
+    /*
+    loop through looking for keywords, single quotes, double quotes, comments, dollar quotes,
+    parenthesis, ? and ;
+    for single/double/dollar quotes, and comments we just want to move the index
+     */
     for (int i = 0; i < aChars.length; ++i) {
       char aChar = aChars[i];
       boolean isKeyWordChar = false;
-      // ';' is ignored as it splits the queries
+      // ';' is ignored as it splits the queries. We do have to deal with ; in BEGIN ATOMIC functions
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
       keywordEnd = i; // parseSingleQuotes, parseDoubleQuotes, etc move index so we keep old value
       switch (aChar) {
@@ -111,10 +118,10 @@ public class Parser {
 
         case ')':
           inParen--;
-          if (inParen == 0 && isValuesFound && !valuesBraceCloseFound) {
+          if (inParen == 0 && isValuesFound && !valuesParenthesisCloseFound) {
             // If original statement is multi-values like VALUES (...), (...), ... then
             // search for the latest closing paren
-            valuesBraceClosePosition = nativeSql.length() + i - fragmentStart;
+            valuesParenthesisClosePosition = nativeSql.length() + i - fragmentStart;
           }
           break;
 
@@ -139,7 +146,8 @@ public class Parser {
           break;
 
         case ';':
-          if (inParen == 0) {
+          // we don't split the queries if BEGIN ATOMIC is present
+          if (!isBeginAtomicPresent && inParen == 0) {
             if (!whitespaceOnly) {
               numberOfStatements++;
               nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -156,18 +164,18 @@ public class Parser {
                   nativeQueries = new ArrayList<NativeQuery>();
                 }
 
-                if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
+                if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
                     || (bindPositions != null
-                    && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
-                  valuesBraceOpenPosition = -1;
-                  valuesBraceClosePosition = -1;
+                    && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+                  valuesParenthesisOpenPosition = -1;
+                  valuesParenthesisClosePosition = -1;
                 }
 
                 nativeQueries.add(new NativeQuery(nativeSql.toString(),
                     toIntArray(bindPositions), false,
                     SqlCommand.createStatementTypeInfo(
-                        currentCommandType, isBatchedReWriteConfigured, valuesBraceOpenPosition,
-                        valuesBraceClosePosition,
+                        currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
+                        valuesParenthesisClosePosition,
                         isReturningPresent, nativeQueries.size())));
               }
             }
@@ -183,9 +191,9 @@ public class Parser {
               nativeSql.setLength(0);
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
-              valuesBraceOpenPosition = -1;
-              valuesBraceClosePosition = -1;
-              valuesBraceCloseFound = false;
+              valuesParenthesisOpenPosition = -1;
+              valuesParenthesisClosePosition = -1;
+              valuesParenthesisCloseFound = false;
             }
           }
           break;
@@ -202,10 +210,10 @@ public class Parser {
           isKeyWordChar = isIdentifierStartChar(aChar);
           if (isKeyWordChar) {
             keywordStart = i;
-            if (valuesBraceOpenPosition != -1 && inParen == 0) {
+            if (valuesParenthesisOpenPosition != -1 && inParen == 0) {
               // When the statement already has multi-values, stop looking for more of them
               // Since values(?,?),(?,?),... should not contain keywords in the middle
-              valuesBraceCloseFound = true;
+              valuesParenthesisCloseFound = true;
             }
           }
           break;
@@ -238,15 +246,32 @@ public class Parser {
               isCurrentReWriteCompatible = false;
             }
           }
+
         } else if (currentCommandType == SqlCommandType.WITH
             && inParen == 0) {
           SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
           if (command != null) {
             currentCommandType = command;
           }
+        } else if (currentCommandType == SqlCommandType.CREATE) {
+          /*
+          We are looking for BEGIN ATOMIC
+           */
+          if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+            isBeginPresent = true;
+          } else {
+            // found begin, now look for atomic
+            if (isBeginPresent == true) {
+              if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
+                isBeginAtomicPresent = true;
+              }
+              // either way we reset beginFound
+              isBeginPresent = false;
+            }
+          }
         }
         if (inParen != 0 || aChar == ')') {
-          // RETURNING and VALUES cannot be present in braces
+          // RETURNING and VALUES cannot be present in parentheses
         } else if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
         } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
@@ -257,17 +282,17 @@ public class Parser {
       }
       if (aChar == '(') {
         inParen++;
-        if (inParen == 1 && isValuesFound && valuesBraceOpenPosition == -1) {
-          valuesBraceOpenPosition = nativeSql.length() + i - fragmentStart;
+        if (inParen == 1 && isValuesFound && valuesParenthesisOpenPosition == -1) {
+          valuesParenthesisOpenPosition = nativeSql.length() + i - fragmentStart;
         }
       }
     }
 
-    if (!isValuesFound || !isCurrentReWriteCompatible || valuesBraceClosePosition == -1
+    if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
         || (bindPositions != null
-        && valuesBraceClosePosition < bindPositions.get(bindPositions.size() - 1))) {
-      valuesBraceOpenPosition = -1;
-      valuesBraceClosePosition = -1;
+        && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+      valuesParenthesisOpenPosition = -1;
+      valuesParenthesisClosePosition = -1;
     }
 
     if (fragmentStart < aChars.length && !whitespaceOnly) {
@@ -293,7 +318,7 @@ public class Parser {
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
         toIntArray(bindPositions), !splitStatements,
         SqlCommand.createStatementTypeInfo(currentCommandType,
-            isBatchedReWriteConfigured, valuesBraceOpenPosition, valuesBraceClosePosition,
+            isBatchedReWriteConfigured, valuesParenthesisOpenPosition, valuesParenthesisClosePosition,
             isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())));
 
     if (nativeQueries == null) {
@@ -609,6 +634,44 @@ public class Parser {
   }
 
   /**
+   Parse string to check presence of BEGIN keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+
+  public static boolean parseBeginKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+    return (query[offset] | 32) == 'b'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'g'
+        && (query[offset + 3] | 32) == 'i'
+        && (query[offset + 4] | 32) == 'n';
+  }
+
+  /**
+   Parse string to check presence of ATOMIC keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseAtomicKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 7)) {
+      return false;
+    }
+    return (query[offset] | 32) == 'a'
+        && (query[offset + 1] | 32) == 't'
+        && (query[offset + 2] | 32) == 'o'
+        && (query[offset + 3] | 32) == 'm'
+        && (query[offset + 4] | 32) == 'i'
+        && (query[offset + 5] | 32) == 'c';
+  }
+
+  /**
    * Parse string to check presence of MOVE keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -886,7 +949,7 @@ public class Parser {
      * pgsql/src/backend/parser/scan.l:
      * ident_start    [A-Za-z\200-\377_]
      * ident_cont     [A-Za-z\200-\377_0-9\$]
-     * however is is not clear how that interacts with unicode, so we just use Java's implementation.
+     * however it is not clear how that interacts with unicode, so we just use Java's implementation.
      */
     return Character.isJavaIdentifierStart(c);
   }
@@ -1362,7 +1425,7 @@ public class Parser {
     return i;
   }
 
-  private static int findOpenBrace(char[] sql, int i) {
+  private static int findOpenParenthesis(char[] sql, int i) {
     int posArgs = i;
     while (posArgs < sql.length && sql[posArgs] != '(') {
       posArgs++;
@@ -1383,7 +1446,7 @@ public class Parser {
 
   private static int escapeFunction(char[] sql, int i, StringBuilder newsql, boolean stdStrings) throws SQLException {
     String functionName;
-    int argPos = findOpenBrace(sql, i);
+    int argPos = findOpenParenthesis(sql, i);
     if (argPos < sql.length) {
       functionName = new String(sql, i, argPos - i).trim();
       // extract arguments

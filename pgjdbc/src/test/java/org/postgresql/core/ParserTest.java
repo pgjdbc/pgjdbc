@@ -284,4 +284,18 @@ public class ParserTest {
     Assert.assertFalse("No returning keyword should be present", command.isReturningKeywordPresent());
     Assert.assertEquals(SqlCommandType.ALTER, command.getType());
   }
+
+  @Test
+  public void testParseV14functions() throws SQLException {
+    String[] returningColumns = {"*"};
+    String query = "CREATE OR REPLACE FUNCTION asterisks(n int)\n"
+        + "  RETURNS SETOF text\n"
+        + "  LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE\n"
+        + "BEGIN ATOMIC\n"
+        + "SELECT repeat('*', g) FROM generate_series (1, n) g; \n"
+        + "END;";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
+    Assert.assertNotNull(qry);
+    Assert.assertEquals("There should only be one query returned here", 1, qry.size());
+  }
 }
