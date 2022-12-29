@@ -105,6 +105,7 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('9223371487098961921', null)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES('10223372036850000000', null)");
 
     TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
@@ -677,6 +678,9 @@ public class ResultSetTest extends BaseTest4 {
 
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(9.2233715e18, rs.getLong(1), 1.0e11);
 
     assertTrue(rs.next());
     do {

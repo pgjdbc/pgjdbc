@@ -3375,6 +3375,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+
   /**
    * <p>Converts any numeric binary field to long value.</p>
    *
@@ -3411,22 +3414,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        double d = ByteConverter.float4(bytes, 0);
-        // for double values within the range of Integer, just directly cast to long
-        // otherwise go to BigDecimal
-        if (d < Integer.MAX_VALUE && d > Integer.MIN_VALUE) {
-          val = (long) d;
+        float f = ByteConverter.float4(bytes, 0);
+        // for float values we know to be within values of long, just cast directly to long
+        if (f < LONG_MAX_FLOAT && f > LONG_MIN_FLOAT) {
+          val = (long) f;
         } else {
-          // exact decimal representation is appropriate for this usage
-          bd = new BigDecimal(d);
+          // casting to a double can result in additional decimal digits being created/considered
+          // this is much closer to the database's string representation, but not always exact
+          bd = new BigDecimal(Float.toString(f));
           val = 0;
         }
         break;
       case Oid.FLOAT8:
-        d = ByteConverter.float8(bytes, 0);
-        // for double values within the range of Integer, just directly cast to long
-        // otherwise go to BigDecimal
-        if (d < Integer.MAX_VALUE && d > Integer.MIN_VALUE) {
+        double d = ByteConverter.float8(bytes, 0);
+        // for double values within the values of a long, just directly cast to long
+        if (d < LONG_MAX_FLOAT && d > LONG_MIN_FLOAT) {
           val = (long) d;
         } else {
           // exact decimal representation is appropriate for this usage
