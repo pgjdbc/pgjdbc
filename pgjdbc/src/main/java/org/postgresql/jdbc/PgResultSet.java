@@ -48,7 +48,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -3412,12 +3411,28 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        bd = BigDecimal.valueOf(ByteConverter.float4(bytes, 0));
-        val = 0;
+        double d = ByteConverter.float4(bytes, 0);
+        // for double values within the range of Integer, just directly cast to long
+        // otherwise go to BigDecimal
+        if (d < Integer.MAX_VALUE && d > Integer.MIN_VALUE) {
+          val = (long) d;
+        } else {
+          // exact decimal representation is appropriate for this usage
+          bd = new BigDecimal(d);
+          val = 0;
+        }
         break;
       case Oid.FLOAT8:
-        bd = BigDecimal.valueOf(ByteConverter.float8(bytes, 0));
-        val = 0;
+        d = ByteConverter.float8(bytes, 0);
+        // for double values within the range of Integer, just directly cast to long
+        // otherwise go to BigDecimal
+        if (d < Integer.MAX_VALUE && d > Integer.MIN_VALUE) {
+          val = (long) d;
+        } else {
+          // exact decimal representation is appropriate for this usage
+          bd = new BigDecimal(d);
+          val = 0;
+        }
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
@@ -3437,7 +3452,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (bd != null) {
       final BigInteger i = bd.toBigInteger();
       if (i.compareTo(LONGMAX) > 0 || i.compareTo(LONGMIN) < 0) {
-        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", bd),
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, bd),
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
       }
       val = i.longValue();
