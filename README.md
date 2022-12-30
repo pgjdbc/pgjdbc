@@ -1,4 +1,4 @@
-<img height="90" alt="Slonik Duke" align="right" src="docs/media/img/slonik_duke.png" />
+<img height="90" alt="Slonik Duke" align="right" src="docs/_site/media/img/slonik_duke.png" />
 
 # PostgreSQL JDBC Driver
 
