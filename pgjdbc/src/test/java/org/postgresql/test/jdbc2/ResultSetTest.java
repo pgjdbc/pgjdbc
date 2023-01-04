@@ -466,7 +466,7 @@ public class ResultSetTest extends BaseTest4 {
         rs.getByte(1);
         fail("Exception expected.");
       } catch (SQLException e) {
-        assertEquals("Bad value for type byte :", e.getMessage().substring(0, 25));
+        assertEquals(e.getSQLState(),"22003");
       }
     }
     rs.close();
