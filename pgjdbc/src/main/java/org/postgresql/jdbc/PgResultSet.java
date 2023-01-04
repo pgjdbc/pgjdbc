@@ -3416,9 +3416,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       case Oid.FLOAT4:
         float f = ByteConverter.float4(bytes, 0);
         // for float values we know to be within values of long, just cast directly to long
-        if (f < LONG_MAX_FLOAT && f > LONG_MIN_FLOAT) {
+        if (f <= LONG_MAX_FLOAT && f >= LONG_MIN_FLOAT) {
           val = (long) f;
         } else {
+          // value is known to be out of range
           // casting to a double gets a more precise value, but does not always
           // match up with the database's string representation
           bd = new BigDecimal(f);

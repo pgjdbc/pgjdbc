@@ -95,18 +95,18 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0', null)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0', null)");
 
-    TestUtil.createTable(con, "testboolfloat", "a float4, b boolean");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.0'::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('0.0'::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.000::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(0.000::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('-1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('9223371487098961921', null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('10223372036850000000', null)");
+    TestUtil.createTable(con, "testboolfloat", "i int, a float4, b boolean");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1, '1.0'::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(2, '0.0'::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(3, 1.000::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(4, 0.000::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(5, '1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(6, '-1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(7, 123.4::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(8, 1.234e2::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(9, 100.00e-2::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(10, '9223371487098961921', null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(11, '10223372036850000000', null)");
 
     TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
@@ -466,6 +466,7 @@ public class ResultSetTest extends BaseTest4 {
         rs.getByte(1);
         fail("Exception expected.");
       } catch (SQLException e) {
+        assertTrue(e.getMessage().startsWith("Bad value for type byte :"));
       }
     }
     rs.close();
@@ -650,7 +651,7 @@ public class ResultSetTest extends BaseTest4 {
     }
     rs.close();
 
-    rs = con.createStatement().executeQuery("select a from testboolfloat");
+    rs = con.createStatement().executeQuery("select a from testboolfloat order by i");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
