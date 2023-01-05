@@ -39,10 +39,12 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
   private final @Nullable CreateAction<Key, Value> createAction;
   private final int maxSizeEntries;
   private final long maxSizeBytes;
-  private long currentSize;
   private final Map<Key, Value> cache;
+  private long currentSize;
 
   private class LimitedMap extends LinkedHashMap<Key, Value> {
+    private static final long serialVersionUID = 1L;
+
     LimitedMap(int initialCapacity, float loadFactor, boolean accessOrder) {
       super(initialCapacity, loadFactor, accessOrder);
     }
@@ -83,10 +85,56 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
     }
   }
 
+  /**
+   * Creates an instance with defined max entries and max memory used.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   */
+  public LruCache(int maxSizeEntries, long maxSizeBytes) {
+    this(maxSizeEntries, maxSizeBytes, null, null);
+  }
+
+  /**
+   * Creates an instance with defined max entries and max memory used.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param accessOrder Determines orders entries are purged. A value of {@code true} means access order (usage).
+   *      A value of {@code false} means insertion order.
+   * @deprecated As it allows controlling access order, which determines if it is actually an LRU cache.
+   */
+  @Deprecated
   public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder) {
     this(maxSizeEntries, maxSizeBytes, accessOrder, null, null);
   }
 
+  /**
+   * Creates an instance with defined max entries, max memory used, and optional actions to use for creation/eviction.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param createAction Optional action to use for creating entries on demand.
+   * @param onEvict Optional action to call when entries are evicted.
+   */
+  public LruCache(int maxSizeEntries, long maxSizeBytes,
+      @Nullable CreateAction<Key, Value> createAction,
+      @Nullable EvictAction<Value> onEvict) {
+    this(maxSizeEntries, maxSizeBytes, true, createAction, onEvict);
+  }
+
+  /**
+   * Creates an instance with defined max entries, max memory used, and optional actions to use for creation/eviction.
+   *
+   * @param maxSizeEntries The max number of entries to keep.
+   * @param maxSizeBytes The max amount of memory consumed by values in cache.
+   * @param accessOrder Determines orders entries are purged. A value of {@code true} means access order (usage).
+   *      A value of {@code false} means insertion order.
+   * @param createAction Optional action to use for creating entries on demand.
+   * @param onEvict Optional action to call when entries are evicted.
+   * @deprecated As it allows controlling access order, which determines if it is actually an LRU cache.
+   */
+  @Deprecated
   public LruCache(int maxSizeEntries, long maxSizeBytes, boolean accessOrder,
       @Nullable CreateAction<Key, Value> createAction,
       @Nullable EvictAction<Value> onEvict) {
@@ -103,6 +151,7 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param key cache key
    * @return entry from cache or null if cache does not contain given key.
    */
+  @Override
   public synchronized @Nullable Value get(Key key) {
     return cache.get(key);
   }

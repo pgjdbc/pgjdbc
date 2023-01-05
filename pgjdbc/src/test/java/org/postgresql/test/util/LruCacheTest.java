@@ -6,6 +6,7 @@
 package org.postgresql.test.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 
 import org.postgresql.util.CanEstimateSize;
@@ -49,7 +50,7 @@ public class LruCacheTest {
 
   @Before
   public void setUp() throws Exception {
-    cache = new LruCache<Integer, Entry>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
+    cache = new LruCache<Integer, Entry>(4, 1000, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
         assertEquals("Unexpected create", expectCreate[0], key);
@@ -95,7 +96,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testEvictsLeastRecentlyUsed() throws SQLException {
+  public void testEvictsLeastRecentlyBorrowed() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
@@ -105,6 +106,23 @@ public class LruCacheTest {
     b = use(2);
     c = use(3);
     a = use(1); // reuse a
+    use(5);
+    d = use(4, b); // expect b to be evicted
+  }
+
+  @Test
+  public void testEvictsLeastRecentlyGotten() throws SQLException {
+    Entry a;
+    Entry b;
+    Entry c;
+    Entry d;
+
+    a = use(1);
+    b = use(2);
+    c = use(3);
+    //calling use actually inserts value into map, which tests eviction based
+    //on insertion order rather than USED order.
+    assertSame(a, cache.get(1));
     use(5);
     d = use(4, b); // expect b to be evicted
   }
@@ -166,6 +184,16 @@ public class LruCacheTest {
       b = use(-2);
       a = use(-1);
       d = use(4, e);
+    }
+  }
+
+  @Test
+  public void testBorrowNoAction() throws SQLException {
+    LruCache<Integer, Entry> cache = new LruCache<>(2, 1000);
+    try {
+      cache.borrow(0);
+      fail("borrow with no create action should have failed");
+    } catch (UnsupportedOperationException e) {
     }
   }
 
