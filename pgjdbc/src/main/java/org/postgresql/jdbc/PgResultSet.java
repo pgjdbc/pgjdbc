@@ -48,7 +48,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -3376,6 +3375,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+
   /**
    * <p>Converts any numeric binary field to long value.</p>
    *
@@ -3399,6 +3401,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
+    BigDecimal bd = null;
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3411,15 +3414,34 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        val = (long) ByteConverter.float4(bytes, 0);
+        float f = ByteConverter.float4(bytes, 0);
+        // for float values we know to be within values of long, just cast directly to long
+        if (f <= LONG_MAX_FLOAT && f >= LONG_MIN_FLOAT) {
+          val = (long) f;
+        } else {
+          // value is known to be out of range
+          // casting to a double gets a more precise value, but does not always
+          // match up with the database's string representation
+          bd = new BigDecimal(f);
+          val = 0;
+        }
         break;
       case Oid.FLOAT8:
-        val = (long) ByteConverter.float8(bytes, 0);
+        double d = ByteConverter.float8(bytes, 0);
+        // for double values within the values of a long, just directly cast to long
+        if (d < LONG_MAX_FLOAT && d > LONG_MIN_FLOAT) {
+          val = (long) d;
+        } else {
+          // exact decimal representation is appropriate for this usage
+          bd = new BigDecimal(d);
+          val = 0;
+        }
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
         if (num instanceof  BigDecimal) {
-          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+          bd = (BigDecimal) num;
+          val = 0;
         } else {
           val = num.longValue();
         }
@@ -3429,6 +3451,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
                 Oid.toString(oid), targetType),
             PSQLState.DATA_TYPE_MISMATCH);
+    }
+    if (bd != null) {
+      final BigInteger i = bd.toBigInteger();
+      if (i.compareTo(LONGMAX) > 0 || i.compareTo(LONGMIN) < 0) {
+        throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, bd),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      val = i.longValue();
     }
     if (val < minVal || val > maxVal) {
       throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, val),

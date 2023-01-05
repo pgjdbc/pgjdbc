@@ -95,16 +95,26 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0', null)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0', null)");
 
-    TestUtil.createTable(con, "testboolfloat", "a float4, b boolean");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.0'::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('0.0'::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.000::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(0.000::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('-1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
+    TestUtil.createTable(con, "testboolfloat", "i int, a float4, b boolean");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1, '1.0'::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(2, '0.0'::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(3, 1.000::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(4, 0.000::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(5, '1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(6, '-1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(7, 123.4::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(8, 1.234e2::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(9, 100.00e-2::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(10, '9223371487098961921', null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(11, '10223372036850000000', null)");
+    String floatVal = Float.toString(StrictMath.nextDown(Long.MAX_VALUE - 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(12, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextDown(Long.MAX_VALUE + 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(13, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextUp(Long.MIN_VALUE - 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(14, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextUp(Long.MIN_VALUE + 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(15, " + floatVal + ", null)");
 
     TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
@@ -463,7 +473,8 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getByte(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
+        assertEquals(e.getSQLState(),"22003");
       }
     }
     rs.close();
@@ -507,7 +518,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getShort(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -569,7 +580,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getInt(1);
         fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -643,9 +654,61 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getLong(1);
         fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select i, a from testboolfloat order by i");
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(-1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    // the string value from database trims the significant digits, leading to larger variance than binary
+    // the liberica jdk gets similar variance, even in forced binary mode
+    assertEquals(9223371487098961921.0, rs.getLong(2), 1.0e11);
+
+    assertTrue(rs.next());
+    do {
+      try {
+        int row = rs.getInt(1);
+        long l = rs.getLong(2);
+        if ( row == 12 ) {
+          assertEquals(9223371487098961920.0, l, 1.0e11);
+        } else if ( row == 15 ) {
+          assertEquals(-9223371487098961920.0, l, 1.0e11);
+        } else {
+          fail("Exception expected." + rs.getString(2));
+        }
+      } catch (SQLException e) {
+      }
+    } while (rs.next());
+
     rs.close();
   }
 
