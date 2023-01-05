@@ -1047,6 +1047,9 @@ public class PgStatement implements Statement, BaseStatement {
           // Note: wait timeout here is irrelevant since synchronized(connection) would block until
           // .cancel finishes
           connection.wait(10);
+	   // In MultiThread env, state may be change in other thraed ,Could be loop forever ,add this will be run ok 
+	  if(this.statementState == StatementCancelState.IDLE) 
+             break;
         } catch (InterruptedException e) { // NOSONAR
           // Either re-interrupt this method or rethrow the "InterruptedException"
           interrupted = true;
