@@ -5,10 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
-
+docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
+docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)
+Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
 ### Added
-
+fix: added gssResponseTimeout as part of [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687) to make sure we don't wait forever on a GSS RESPONSE
 ### Fixed
+fix: Ensure case of XML tags in Maven snippet is correct [PR #2682](https://github.com/pgjdbc/pgjdbc/pull/2682)
+fix: Make sure socket is closed if an exception is thrown in createSocket fixes [Issue #2684](https://github.com/pgjdbc/pgjdbc/issues/2684) [PR #2685](https://github.com/pgjdbc/pgjdbc/pull/2685)
+fix: Apply patch from [Issue #2683](https://github.com/pgjdbc/pgjdbc/issues/2683) to fix hanging ssl connections [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687)
+fix - binary conversion of (very) long numeric values (longer than 4 * 2^15 digits) [PR #2697](https://github.com/pgjdbc/pgjdbc/pull/2697) fixes [Issue #2695](https://github.com/pgjdbc/pgjdbc/issues/2695)
+minor: enhance readability connection of startup params [PR #2705](https://github.com/pgjdbc/pgjdbc/pull/2785)
 
 [42.5.1] (2022-11-23 10:14:59 -0500)
 ### Security
