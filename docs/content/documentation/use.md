@@ -4,6 +4,8 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 2
 toc: true
+aliases:
+    - "/documentation/head/connect.html"
 ---
 
 This section describes how to load and initialize the JDBC driver in your programs.
