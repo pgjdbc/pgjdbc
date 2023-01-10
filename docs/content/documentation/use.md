@@ -296,19 +296,24 @@ Permissible values are auto (default, see below), sspi (force SSPI) or gssapi (f
 If this parameter is auto, SSPI is attempted if the server requests SSPI authentication, the JDBC client is running on Windows, and the Waffle libraries required for SSPI are on the CLASSPATH. 
 Otherwise Kerberos/GSSAPI via JSSE is used.
 
+  > **Note**
+  >
+  > This behaviour does not exactly match that of libpq, which uses Windows' SSPI libraries for Kerberos (GSSAPI) requests by default when on Windows.
+
+  gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour. On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException. 
+
+  To use SSPI with PgJDBC you must ensure that [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH`. pgJDBC does **not** bundle `waffle-jna` in the pgJDBC jar.
+
+  Compatibility matrix:
+
+  | pgjdbc      | waffle-jna |
+  |-------------|------------|
+  | &lt; 42.7.1 | &lt; 2.0.0 |
+  | &ge; 42.7.1 | &ge; 1.0.0 |
+
 * **`gssResponseTimeout (`*Integer*`)`** *Default `5000`*\
 Time in milliseconds to wait for a response after requesting a GSS encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
-
-> **Note**
->
-> This behaviour does not exactly match that of libpq, which uses Windows' SSPI libraries for Kerberos (GSSAPI) requests by default when on Windows.
-
-gssapi mode forces JSSE's GSSAPI to be used even if SSPI is available, matching the pre-9.4 behaviour.
-
-On non-Windows platforms or where SSPI is unavailable, forcing sspi mode will fail with a PSQLException.
-To use SSPI with PgJDBC you must ensure that [the `waffle-jna` library](https://mvnrepository.com/artifact/com.github.waffle/waffle-jna/) and its dependencies are present on the `CLASSPATH` . pgJDBC does **not** bundle `waffle-jna` in the pgJDBC jar.
-
-Since: 9.4
+  Since: 9.4
 
 * **`sspiServiceClass (`*String*`)`** *Default `POSTGRES`*\
 Specifies the name of the Windows SSPI service class that forms the service class part of the SPN. The default, POSTGRES, is almost always correct.
