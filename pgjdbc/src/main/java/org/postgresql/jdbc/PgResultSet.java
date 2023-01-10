@@ -48,6 +48,7 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -3377,6 +3378,9 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
   private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown(Long.MIN_VALUE);
+  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp(Long.MIN_VALUE);
+
   private static final BigDecimal LONG_MAX_BD = BigDecimal.valueOf(Long.MAX_VALUE);
   private static final BigDecimal LONG_MIN_BD = BigDecimal.valueOf(Long.MIN_VALUE);
 
@@ -3427,7 +3431,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       case Oid.FLOAT8:
         double d = ByteConverter.float8(bytes, 0);
         // for double values within the values of a long, just directly cast to long
-        if (d <= LONG_MAX_FLOAT && d >= LONG_MIN_FLOAT) {
+        if (d <= LONG_MAX_DOUBLE && d >= LONG_MIN_DOUBLE) {
           val = (long) d;
         } else {
           throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, d),
@@ -3437,11 +3441,17 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
         if (num instanceof BigDecimal) {
-          if ( ((BigDecimal) num).compareTo(LONG_MAX_BD) <= 0 && ((BigDecimal) num).compareTo(LONG_MIN_BD) >= 0 ) {
-            val = num.longValue();
-          } else {
+          try {
+            val = ((BigDecimal) num).setScale(0, RoundingMode.DOWN).longValueExact();
+            if (val <= Long.MAX_VALUE && val >= Long.MIN_VALUE) {
+              return val;
+            } else {
+              throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, num),
+                  PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+            }
+          } catch (ArithmeticException ae) {
             throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, num),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, ae);
           }
         } else {
           val = num.longValue();

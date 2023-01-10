@@ -122,6 +122,7 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolint VALUES(-1, null)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(9223372036854775807, null)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(-9223372036854775808, null)");
+
     // End Boolean Tests
 
     // TestUtil.createTable(con, "testbit", "a bit");
@@ -153,6 +154,7 @@ public class ResultSetTest extends BaseTest4 {
 
     // Long.MaxValue
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807.9')");
 
     // Long.MinValue
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775808')");
@@ -643,6 +645,9 @@ public class ResultSetTest extends BaseTest4 {
 
     assertTrue(rs.next());
     assertEquals(((long) Integer.MIN_VALUE) - 1, rs.getLong(1));
+
+    assertTrue(rs.next());
+    assertEquals(Long.MAX_VALUE, rs.getLong(1));
 
     assertTrue(rs.next());
     assertEquals(Long.MAX_VALUE, rs.getLong(1));
