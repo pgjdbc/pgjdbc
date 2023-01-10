@@ -3440,23 +3440,16 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
-        if (num instanceof BigDecimal) {
-          try {
-            val = ((BigDecimal) num).setScale(0, RoundingMode.DOWN).longValueExact();
-            if (val <= Long.MAX_VALUE && val >= Long.MIN_VALUE) {
-              return val;
-            } else {
-              throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, num),
-                  PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-            }
-          } catch (ArithmeticException ae) {
-            throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, num),
-                PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, ae);
-          }
+        BigInteger i = ((BigDecimal) num).toBigInteger();
+        int gt = i.compareTo(LONGMAX);
+        int lt = i.compareTo(LONGMIN);
+
+        if (gt > 0 || lt < 0) {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", num),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         } else {
           val = num.longValue();
         }
-
         break;
       default:
         throw new PSQLException(
