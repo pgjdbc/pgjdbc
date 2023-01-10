@@ -1,0 +1,28 @@
+diff --git a/build.gradle.kts b/build.gradle.kts
+index 53e7f06f3..aab7c5fdb 100644
+--- a/build.gradle.kts
++++ b/build.gradle.kts
+@@ -95,6 +95,11 @@ val jacocoReport by tasks.registering(JacocoReport::class) {
+     description = "Generates an aggregate report from all subprojects"
+ }
+ 
++val releaseNotes = tasks.register<org.postgresql.buildtools.ReleaseNotesTask>("releaseNotes"){
++    group = "Release"
++    description = "Updates release notes"
++}
++
+ releaseParams {
+     tlp.set("pgjdbc")
+     organizationName.set("pgjdbc")
+diff --git a/buildSrc/build.gradle.kts b/buildSrc/build.gradle.kts
+index 9adadee95..6e4bf13f0 100644
+--- a/buildSrc/build.gradle.kts
++++ b/buildSrc/build.gradle.kts
+@@ -19,6 +19,7 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
+ 
+ dependencies {
+     implementation("com.igormaznitsa:jcp:${"jcp".v}")
++    implementation("org.apache.httpcomponents:httpclient:4.5.13")
+ }
+ 
+ tasks.withType<KotlinCompile> {
