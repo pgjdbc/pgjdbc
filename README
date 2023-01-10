@@ -57,7 +57,7 @@ of doing this:
    introduce the driver using the following snippet of code:
 
 	try {
-	  Class.forName("org.postgresql.Driver");
+	  Class.forName("legacy.org.postgresql.Driver");
 	} catch(Exception e) {
 	  // your error handling code goes here
 	}
@@ -87,23 +87,23 @@ JDBC URL syntax
 
 The driver recognises JDBC URL's of the form:
 
-	jdbc:postgresql:database
+	jdbc:postgresqllegacy:database
 
-	jdbc:postgresql://host/database
+	jdbc:postgresqllegacy://host/database
 
-	jdbc:postgresql://host:port/database
+	jdbc:postgresqllegacy://host:port/database
 
 Also, you can supply both username and passwords as arguments, by appending
 them to the URL. eg:
 
-	jdbc:postgresql:database?user=me
-	jdbc:postgresql:database?user=me&password=mypass
+	jdbc:postgresqllegacy:database?user=me
+	jdbc:postgresqllegacy:database?user=me&password=mypass
 
 Notes:
 
 1) If you are connecting to localhost or 127.0.0.1 you can leave it out of the
-   URL. ie: jdbc:postgresql://localhost/mydb can be replaced with
-   jdbc:postgresql:mydb
+   URL. ie: jdbc:postgresqllegacy://localhost/mydb can be replaced with
+   jdbc:postgresqllegacy:mydb
 
 2) The port defaults to 5432 if it's left out.
 
