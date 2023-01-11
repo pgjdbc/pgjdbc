@@ -118,7 +118,7 @@
 
   <target name="compile" depends="prepare,check_versions,driver">
 
-    <available classname="org.postgresql.Driver" property="old.driver.present" />
+    <available classname="legacy.org.postgresql.Driver" property="old.driver.present" />
     <fail message="Old driver was detected on classpath or in jre/lib/ext, please remove and try again." if="old.driver.present" />
 
     <javac classpath="${srcdir}" srcdir="${srcdir}" destdir="${builddir}" debug="${debug}" source="${java.specification.version}">
@@ -228,13 +228,13 @@
     </condition>
 
     <!-- determine the connection class -->
-    <condition property="connectclass" value="org.postgresql.jdbc3.Jdbc3Connection">
+    <condition property="connectclass" value="legacy.org.postgresql.jdbc3.Jdbc3Connection">
         <equals arg1="${jdbc3}" arg2="true"/>
     </condition>
-    <condition property="connectclass" value="org.postgresql.jdbc3g.Jdbc3gConnection">
+    <condition property="connectclass" value="legacy.org.postgresql.jdbc3g.Jdbc3gConnection">
         <equals arg1="${jdbc3g}" arg2="true"/>
     </condition>
-    <condition property="connectclass" value="org.postgresql.jdbc4.Jdbc4Connection">
+    <condition property="connectclass" value="legacy.org.postgresql.jdbc4.Jdbc4Connection">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
@@ -245,38 +245,38 @@
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="simpledsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23SimpleDataSource">
+    <condition property="simpledsclass" value="legacy.org.postgresql.ds.jdbc23.AbstractJdbc23SimpleDataSource">
         <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
-    <condition property="simpledsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4SimpleDataSource">
+    <condition property="simpledsclass" value="legacy.org.postgresql.ds.jdbc4.AbstractJdbc4SimpleDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="poolingdsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PoolingDataSource">
+    <condition property="poolingdsclass" value="legacy.org.postgresql.ds.jdbc23.AbstractJdbc23PoolingDataSource">
         <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
-    <condition property="poolingdsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PoolingDataSource">
+    <condition property="poolingdsclass" value="legacy.org.postgresql.ds.jdbc4.AbstractJdbc4PoolingDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
 </condition>
 
-    <condition property="pooledconnclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23PooledConnection">
+    <condition property="pooledconnclass" value="legacy.org.postgresql.ds.jdbc23.AbstractJdbc23PooledConnection">
         <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
-    <condition property="pooledconnclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4PooledConnection">
+    <condition property="pooledconnclass" value="legacy.org.postgresql.ds.jdbc4.AbstractJdbc4PooledConnection">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="connpooldsclass" value="org.postgresql.ds.jdbc23.AbstractJdbc23ConnectionPoolDataSource">
+    <condition property="connpooldsclass" value="legacy.org.postgresql.ds.jdbc23.AbstractJdbc23ConnectionPoolDataSource">
         <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
-    <condition property="connpooldsclass" value="org.postgresql.ds.jdbc4.AbstractJdbc4ConnectionPoolDataSource">
+    <condition property="connpooldsclass" value="legacy.org.postgresql.ds.jdbc4.AbstractJdbc4ConnectionPoolDataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
-    <condition property="xadsclass" value="org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource">
+    <condition property="xadsclass" value="legacy.org.postgresql.xa.jdbc3.AbstractJdbc3XADataSource">
         <equals arg1="${jdbc3any}" arg2="true" />
     </condition>
-    <condition property="xadsclass" value="org.postgresql.xa.jdbc4.AbstractJdbc4XADataSource">
+    <condition property="xadsclass" value="legacy.org.postgresql.xa.jdbc4.AbstractJdbc4XADataSource">
         <equals arg1="${jdbc4any}" arg2="true" />
     </condition>
 
@@ -416,11 +416,11 @@
         <pathelement location="${jardir}/postgresql-tests.jar" />
         <pathelement path="${java.class.path}" />
       </classpath>
-      <test name="org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
-      <test name="org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
-      <test name="org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
-      <test name="org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
-      <test name="org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
+      <test name="legacy.org.postgresql.test.jdbc2.Jdbc2TestSuite" outfile="${testResultsDir}/jdbc2"/>
+      <test name="legacy.org.postgresql.test.jdbc2.optional.OptionalTestSuite" outfile="${testResultsDir}/jdbc2optional"/>
+      <test name="legacy.org.postgresql.test.jdbc3.Jdbc3TestSuite" outfile="${testResultsDir}/jdbc3"/>
+      <test name="legacy.org.postgresql.test.xa.XATestSuite" outfile="${testResultsDir}/xa"/>
+      <test name="legacy.org.postgresql.test.jdbc4.Jdbc4TestSuite" if="jdbc4tests" outfile="${testResultsDir}/jdbc4"/>
     </junit>
   </target>
   

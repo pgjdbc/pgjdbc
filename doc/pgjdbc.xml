@@ -236,7 +236,7 @@ import java.sql.*;
     For <productname>PostgreSQL</productname>, you would use:
 
 <programlisting>
-Class.forName("org.postgresql.Driver");
+Class.forName("legacy.org.postgresql.Driver");
 </programlisting>
 
     This will load the driver, and while loading, the driver will automatically
@@ -264,7 +264,7 @@ Class.forName("org.postgresql.Driver");
     <acronym>JVM</acronym> as it starts, using the <option>-D</option>
     argument. Example:
 <programlisting>
-java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer
+ java -Djdbc.drivers=legacy.org.postgresql.Driver example.ImageViewer
 </programlisting>
     In this example, the <acronym>JVM</acronym> will attempt to load
     the driver as part of its initialization. Once done, the
@@ -299,19 +299,19 @@ java -Djdbc.drivers=org.postgresql.Driver example.ImageViewer
     <itemizedlist>
      <listitem>
 <synopsis>
-jdbc:postgresql:<replaceable class="parameter">database</replaceable>
+jdbc:postgresqllegacy:<replaceable class="parameter">database</replaceable>
 </synopsis>
      </listitem>
 
      <listitem>
 <synopsis>
-jdbc:postgresql://<replaceable class="parameter">host</replaceable>/<replaceable class="parameter">database</replaceable>
+jdbc:postgresqllegacy://<replaceable class="parameter">host</replaceable>/<replaceable class="parameter">database</replaceable>
 </synopsis>
      </listitem>
 
      <listitem>
 <synopsis>
-jdbc:postgresql://<replaceable class="parameter">host</replaceable>:<replaceable class="parameter">port</replaceable>/<replaceable class="parameter">database</replaceable>
+jdbc:postgresqllegacy://<replaceable class="parameter">host</replaceable>:<replaceable class="parameter">port</replaceable>/<replaceable class="parameter">database</replaceable>
 </synopsis>
      </listitem>
     </itemizedlist>
@@ -330,7 +330,7 @@ jdbc:postgresql://<replaceable class="parameter">host</replaceable>:<replaceable
         <replaceable class="parameter">host</replaceable> parameter
         with square brackets, for example:
 <programlisting>
-jdbc:postgresql://[::1]:5740/accounting
+jdbc:postgresqllegacy://[::1]:5740/accounting
 </programlisting>
        </para>
       </listitem>
@@ -386,7 +386,7 @@ Connection db = DriverManager.getConnection(url, username, password);
      connection.
 
 <programlisting>
-String url = "jdbc:postgresql://localhost/test";
+String url = "jdbc:postgresqllegacy://localhost/test";
 Properties props = new Properties();
 props.setProperty("user","fred");
 props.setProperty("password","secret");
@@ -395,7 +395,7 @@ Connection conn = DriverManager.getConnection(url, props);
 </programlisting>
 
 <programlisting>
-String url = "jdbc:postgresql://localhost/test?user=fred&amp;password=secret&amp;ssl=true";
+String url = "jdbc:postgresqllegacy://localhost/test?user=fred&amp;password=secret&amp;ssl=true";
 Connection conn = DriverManager.getConnection(url);
 </programlisting>
 
@@ -507,8 +507,8 @@ Connection conn = DriverManager.getConnection(url);
         <para>
          Set the amount of logging information printed to the DriverManager's
          current value for LogStream or LogWriter.  It currently supports
-         values of <literal>org.postgresql.Driver.DEBUG</literal> (2) and
-         <literal>org.postgresql.Driver.INFO</literal> (1).
+         values of <literal>legacy.org.postgresql.Driver.DEBUG</literal> (2) and
+         <literal>legacy.org.postgresql.Driver.INFO</literal> (1).
          <literal>INFO</literal> will log very little information while
          <literal>DEBUG</literal> will produce significant detail.  This
          property is only really useful if you are a developer or are
@@ -827,7 +827,7 @@ java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypas
       <classname>SSLSocketFactory</classname> class that is provided with
       the driver.  Setting the connection <acronym>URL</acronym>
       parameter
-      <literal>sslfactory=org.postgresql.ssl.NonValidatingFactory</literal>
+      <literal>sslfactory=legacy.org.postgresql.ssl.NonValidatingFactory</literal>
       will turn off all <acronym>SSL</acronym> validation.
      </para>
     </sect2>
@@ -2183,7 +2183,7 @@ rs = stmt.executeQuery( "select * from {oj a left outer join b on (a.i=b.i)} ");
 
    <para>
     To access some of the extensions, you need to use some extra
-    methods in the <classname>org.postgresql.PGConnection</classname>
+    methods in the <classname>legacy.org.postgresql.PGConnection</classname>
     class. In this case, you would need to case the return value of
     <function>Driver.getConnection()</function>.  For example:
 <programlisting>
@@ -2221,8 +2221,8 @@ import org.postgresql.geometric.PGcircle;
 public class GeometricTest {
 
 	public static void main(String args[]) throws Exception {
-		Class.forName("org.postgresql.Driver");
-		String url = "jdbc:postgresql://localhost:5432/test";
+		Class.forName("legacy.org.postgresql.Driver");
+		String url = "jdbc:postgresqllegacy://localhost:5432/test";
 
 		Connection conn = DriverManager.getConnection(url,"test","");
 
@@ -2323,98 +2323,98 @@ public class GeometricTest {
     <title>Receiving Notifications</title>
 
 <programlisting>
-import java.sql.*;
+ import java.sql.*;
 
-public class NotificationTest {
+ public class NotificationTest {
 
-	public static void main(String args[]) throws Exception {
-		Class.forName("org.postgresql.Driver");
-		String url = "jdbc:postgresql://localhost:5432/test";
+ public static void main(String args[]) throws Exception {
+ Class.forName("legacy.org.postgresql.Driver");
+ String url = "jdbc:postgresqllegacy://localhost:5432/test";
 
-		// Create two distinct connections, one for the notifier
-		// and another for the listener to show the communication
-		// works across connections although this example would
-		// work fine with just one connection.
-		Connection lConn = DriverManager.getConnection(url,"test","");
-		Connection nConn = DriverManager.getConnection(url,"test","");
+ // Create two distinct connections, one for the notifier
+ // and another for the listener to show the communication
+ // works across connections although this example would
+ // work fine with just one connection.
+ Connection lConn = DriverManager.getConnection(url,"test","");
+ Connection nConn = DriverManager.getConnection(url,"test","");
 
-		// Create two threads, one to issue notifications and
-		// the other to receive them.
-		Listener listener = new Listener(lConn);
-		Notifier notifier = new Notifier(nConn);
-		listener.start();
-		notifier.start();
-	}
+ // Create two threads, one to issue notifications and
+ // the other to receive them.
+ Listener listener = new Listener(lConn);
+ Notifier notifier = new Notifier(nConn);
+ listener.start();
+ notifier.start();
+ }
 
-}
+ }
 
-class Listener extends Thread {
+ class Listener extends Thread {
 
-	private Connection conn;
-	private org.postgresql.PGConnection pgconn;
+ private Connection conn;
+ private legacy.org.postgresql.PGConnection pgconn;
 
-	Listener(Connection conn) throws SQLException {
-		this.conn = conn;
-		this.pgconn = (org.postgresql.PGConnection)conn;
-		Statement stmt = conn.createStatement();
-		stmt.execute("LISTEN mymessage");
-		stmt.close();
-	}
+ Listener(Connection conn) throws SQLException {
+ this.conn = conn;
+ this.pgconn = (org.postgresql.PGConnection)conn;
+ Statement stmt = conn.createStatement();
+ stmt.execute("LISTEN mymessage");
+ stmt.close();
+ }
 
-	public void run() {
-		while (true) {
-			try {
-				// issue a dummy query to contact the backend
-				// and receive any pending notifications.
-				Statement stmt = conn.createStatement();
-				ResultSet rs = stmt.executeQuery("SELECT 1");
-				rs.close();
-				stmt.close();
+ public void run() {
+ while (true) {
+ try {
+ // issue a dummy query to contact the backend
+ // and receive any pending notifications.
+ Statement stmt = conn.createStatement();
+ ResultSet rs = stmt.executeQuery("SELECT 1");
+ rs.close();
+ stmt.close();
 
-				org.postgresql.PGNotification notifications[] = pgconn.getNotifications();
-				if (notifications != null) {
-					for (int i=0; i&lt;notifications.length; i++) {
-						System.out.println("Got notification: " + notifications[i].getName());
-					}
-				}
+ legacy.org.postgresql.PGNotification notifications[] = pgconn.getNotifications();
+ if (notifications != null) {
+ for (int i=0; i&lt;notifications.length; i++) {
+ System.out.println("Got notification: " + notifications[i].getName());
+ }
+ }
 
-				// wait a while before checking again for new
-				// notifications
-				Thread.sleep(500);
-			} catch (SQLException sqle) {
-				sqle.printStackTrace();
-			} catch (InterruptedException ie) {
-				ie.printStackTrace();
-			}
-		}
-	}
+ // wait a while before checking again for new
+ // notifications
+ Thread.sleep(500);
+ } catch (SQLException sqle) {
+ sqle.printStackTrace();
+ } catch (InterruptedException ie) {
+ ie.printStackTrace();
+ }
+ }
+ }
 
-}
+ }
 
-class Notifier extends Thread {
+ class Notifier extends Thread {
 
-	private Connection conn;
+ private Connection conn;
 
-	public Notifier(Connection conn) {
-		this.conn = conn;
-	}
+ public Notifier(Connection conn) {
+ this.conn = conn;
+ }
 
-	public void run() {
-		while (true) {
-			try {
-				Statement stmt = conn.createStatement();
-				stmt.execute("NOTIFY mymessage");
-				stmt.close();
-				Thread.sleep(2000);
-			} catch (SQLException sqle) {
-				sqle.printStackTrace();
-			} catch (InterruptedException ie) {
-				ie.printStackTrace();
-			}
-		}
-	}
+ public void run() {
+ while (true) {
+ try {
+ Statement stmt = conn.createStatement();
+ stmt.execute("NOTIFY mymessage");
+ stmt.close();
+ Thread.sleep(2000);
+ } catch (SQLException sqle) {
+ sqle.printStackTrace();
+ } catch (InterruptedException ie) {
+ ie.printStackTrace();
+ }
+ }
+ }
 
-}
+ }
 </programlisting>
    </example>
   </sect1>
@@ -2471,39 +2471,39 @@ class Notifier extends Thread {
     <title>Using server side prepared statements</title>
 
 <programlisting>
-import java.sql.*;
+ import java.sql.*;
 
-public class ServerSidePreparedStatement
-{
+ public class ServerSidePreparedStatement
+ {
 
-	public static void main(String args[]) throws Exception
-	{
-		Class.forName("org.postgresql.Driver");
-		String url = "jdbc:postgresql://localhost:5432/test";
-		Connection conn = DriverManager.getConnection(url,"test","");
+ public static void main(String args[]) throws Exception
+ {
+ Class.forName("legacy.org.postgresql.Driver");
+ String url = "jdbc:postgresqllegacy://localhost:5432/test";
+ Connection conn = DriverManager.getConnection(url,"test","");
 
-		PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+ PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
 
-		// cast to the pg extension interface
-		org.postgresql.PGStatement pgstmt = (org.postgresql.PGStatement)pstmt;
+ // cast to the pg extension interface
+ legacy.org.postgresql.PGStatement pgstmt = (org.postgresql.PGStatement)pstmt;
 
-		// on the third execution start using server side statements
-		pgstmt.setPrepareThreshold(3);
+ // on the third execution start using server side statements
+ pgstmt.setPrepareThreshold(3);
 
-		for (int i=1; i&lt;=5; i++)
-		{
-			pstmt.setInt(1,i);
-			boolean usingServerPrepare = pgstmt.isUseServerPrepare();
-			ResultSet rs = pstmt.executeQuery();
-			rs.next();
-			System.out.println("Execution: "+i+", Used server side: " + usingServerPrepare + ", Result: "+rs.getInt(1));
-			rs.close();
-		}
+ for (int i=1; i&lt;=5; i++)
+ {
+ pstmt.setInt(1,i);
+ boolean usingServerPrepare = pgstmt.isUseServerPrepare();
+ ResultSet rs = pstmt.executeQuery();
+ rs.next();
+ System.out.println("Execution: "+i+", Used server side: " + usingServerPrepare + ", Result: "+rs.getInt(1));
+ rs.close();
+ }
 
-		pstmt.close();
-		conn.close();
-	}
-}
+ pstmt.close();
+ conn.close();
+ }
+ }
 </programlisting>
 
 <para>Which produces the expected result of using server side prepared statements upon the third execution.</para>
@@ -2535,28 +2535,28 @@ Execution: 5, Used server side: true, Result: 5
    </para>
 
 <programlisting>
-// pg extension interfaces
-org.postgresql.PGConnection pgconn;
-org.postgresql.PGStatement pgstmt;
+ // pg extension interfaces
+ legacy.org.postgresql.PGConnection pgconn;
+ legacy.org.postgresql.PGStatement pgstmt;
 
-// set a prepared statement threshold for connections created from this url
-String url = "jdbc:postgresql://localhost:5432/test?prepareThreshold=3";
+ // set a prepared statement threshold for connections created from this url
+ String url = "jdbc:postgresqllegacy://localhost:5432/test?prepareThreshold=3";
 
-// see that the connection has picked up the correct threshold from the url
-Connection conn = DriverManager.getConnection(url,"test","");
-pgconn = (org.postgresql.PGConnection)conn;
-System.out.println(pgconn.getPrepareThreshold()); // Should be 3
+ // see that the connection has picked up the correct threshold from the url
+ Connection conn = DriverManager.getConnection(url,"test","");
+ pgconn = (org.postgresql.PGConnection)conn;
+ System.out.println(pgconn.getPrepareThreshold()); // Should be 3
 
-// see that the statement has picked up the correct threshold from the connection
-PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
-pgstmt = (org.postgresql.PGStatement)pstmt;
-System.out.println(pgstmt.getPrepareThreshold()); // Should be 3
+ // see that the statement has picked up the correct threshold from the connection
+ PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+ pgstmt = (org.postgresql.PGStatement)pstmt;
+ System.out.println(pgstmt.getPrepareThreshold()); // Should be 3
 
-// change the connection's threshold and ensure that new statements pick it up
-pgconn.setPrepareThreshold(5);
-PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
-pgstmt = (org.postgresql.PGStatement)pstmt;
-System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
+ // change the connection's threshold and ensure that new statements pick it up
+ pgconn.setPrepareThreshold(5);
+ PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
+ pgstmt = (org.postgresql.PGStatement)pstmt;
+ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
 </programlisting>
 
   </sect1>
@@ -2683,7 +2683,7 @@ System.out.println(pgstmt.getPrepareThreshold()); // Should be 5
    <para>
     <productname>PostgreSQL</productname> includes one implementation
     of <classname>ConnectionPoolDataSource</classname> named
-    <classname>org.postgresql.ds.PGConnectionPoolDataSource</classname>.
+    <classname>legacy.org.postgresql.ds.PGConnectionPoolDataSource</classname>.
    </para>
 
    <para>
@@ -2833,12 +2833,12 @@ serverName=localhost;databaseName=test;user=testuser;password=testpassword
      <tbody>
       <row>
        <entry>No</entry>
-       <entry><classname>org.postgresql.ds.PGSimpleDataSource</classname></entry>
+       <entry><classname>legacy.org.postgresql.ds.PGSimpleDataSource</classname></entry>
       </row>
  
       <row>
        <entry>Yes</entry>
-       <entry><classname>org.postgresql.ds.PGPoolingDataSource</classname></entry>
+       <entry><classname>legacy.org.postgresql.ds.PGPoolingDataSource</classname></entry>
       </row>
  
      </tbody>
@@ -3030,7 +3030,7 @@ try {
 	</parameter>
 	<parameter>
 		<name>url</name>
-		<value>jdbc:postgresql://localhost/davec</value>
+		<value>jdbc:postgresqllegacy://localhost/davec</value>
 	</parameter>
 	<parameter>
 		<name>password</name>

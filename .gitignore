@@ -3,3 +3,5 @@
 .externalToolBuilders
 build
 jars
+.idea
+target
