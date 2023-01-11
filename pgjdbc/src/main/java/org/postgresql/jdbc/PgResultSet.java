@@ -3380,10 +3380,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
   private static final double LONG_MAX_DOUBLE = StrictMath.nextDown(Long.MIN_VALUE);
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp(Long.MIN_VALUE);
-
-  private static final BigDecimal LONG_MAX_BD = BigDecimal.valueOf(Long.MAX_VALUE);
-  private static final BigDecimal LONG_MIN_BD = BigDecimal.valueOf(Long.MIN_VALUE);
-
+  
   /**
    * <p>Converts any numeric binary field to long value.</p>
    *
