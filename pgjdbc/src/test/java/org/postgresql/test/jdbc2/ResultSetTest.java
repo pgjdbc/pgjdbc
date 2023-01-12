@@ -1172,7 +1172,7 @@ public class ResultSetTest extends BaseTest4 {
     }
 
     @Override
-    public Boolean call() {
+    public Boolean call() throws SQLException {
       try (Statement statement = connection.createStatement()) {
         for (int i = 0; i < 10; i++) {
           try (ResultSet resultSet = statement.executeQuery(
@@ -1187,9 +1187,6 @@ public class ResultSetTest extends BaseTest4 {
             }
           }
         }
-      } catch (SQLException sqlException) {
-        fail(sqlException.getMessage());
-        return false;
       }
       return true;
     }
