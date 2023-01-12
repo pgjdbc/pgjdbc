@@ -1188,6 +1188,7 @@ public class ResultSetTest extends BaseTest4 {
           }
         }
       } catch (SQLException sqlException) {
+        fail(sqlException.getMessage());
         return false;
       }
       return true;
