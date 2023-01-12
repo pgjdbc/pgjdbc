@@ -597,10 +597,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
+        return getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
       } else if (oid == Oid.TIME) {
         // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
+        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
         // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
         Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
@@ -608,7 +608,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else if (oid == Oid.TIMETZ) {
         TimeZone tz = cal.getTimeZone();
         byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
+        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
         // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
         Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
@@ -629,13 +629,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = castNonNull(getString(i));
     if (oid == Oid.TIME || oid == Oid.TIMETZ) {
       // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      Timestamp tsWithMicros = connection.getTimestampUtils().toTimestamp(cal, string);
-      Timestamp tsUnixEpochDate = new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, string);
+      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, string).getTime());
       tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
       return tsUnixEpochDate;
     }
 
-    return connection.getTimestampUtils().toTimestamp(cal, string);
+    return getTimestampUtils().toTimestamp(cal, string);
 
   }
 
