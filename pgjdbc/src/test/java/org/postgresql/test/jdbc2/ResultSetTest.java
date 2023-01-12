@@ -23,14 +23,23 @@ import org.junit.runners.Parameterized;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /*
  * ResultSet tests.
@@ -1150,6 +1159,51 @@ public class ResultSetTest extends BaseTest4 {
     } catch (Exception e) {
     }
     return null;
+  }
+
+  private static class CallableWithConnection implements Callable<Boolean> {
+
+    private final Connection connection;
+    private final int expectedYear;
+
+    protected CallableWithConnection(Connection connection, int expectedYear) {
+      this.connection = connection;
+      this.expectedYear = expectedYear;
+    }
+
+    @Override
+    public Boolean call() {
+      try (Statement statement = connection.createStatement()) {
+        for (int i = 0; i < 10; i++) {
+          try (ResultSet resultSet = statement.executeQuery(
+              String.format("SELECT unnest(array_fill('8/10/%d'::timestamp, ARRAY[%d]))",
+                  expectedYear, 500))) {
+            while (resultSet.next()) {
+              Timestamp d = resultSet.getTimestamp(1);
+              int year = 1900 + d.getYear();
+              if (year != expectedYear) {
+                return false;
+              }
+            }
+          }
+        }
+      } catch (SQLException sqlException) {
+        return false;
+      }
+      return true;
+    }
+
+  }
+
+  @Test
+  public void testTimestamp() throws InterruptedException, ExecutionException, TimeoutException {
+    ExecutorService e = Executors.newFixedThreadPool(2);
+    Future<Boolean> future1 = e.submit(new CallableWithConnection(con, 7777));
+    Future<Boolean> future2 = e.submit(new CallableWithConnection(con, 2017));
+    assertTrue(future1.get(1, TimeUnit.MINUTES));
+    assertTrue(future2.get(1, TimeUnit.MINUTES));
+    e.shutdown();
+    e.awaitTermination(1, TimeUnit.MINUTES);
   }
 
 }
