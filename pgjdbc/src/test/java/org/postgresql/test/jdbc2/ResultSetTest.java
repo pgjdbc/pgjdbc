@@ -780,6 +780,9 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(new BigDecimal("9223372036854775807"), rs.getBigDecimal(1));
 
     assertTrue(rs.next());
+    assertEquals(new BigDecimal("9223372036854775807.9"), rs.getBigDecimal(1));
+
+    assertTrue(rs.next());
     assertEquals(new BigDecimal("-9223372036854775808"), rs.getBigDecimal(1));
 
     assertTrue(rs.next());
