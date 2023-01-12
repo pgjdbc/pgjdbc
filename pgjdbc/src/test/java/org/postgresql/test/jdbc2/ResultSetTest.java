@@ -782,79 +782,127 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testgetBigDecimal() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select a from testnumeric");
+    ResultSet rs = null;
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(1.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(0.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-1.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-1.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(1.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2.5'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-2.5), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.000000000000000000000000000990'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.000000000000000000000000000990"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10.0000000000099'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("10.0000000000099"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10000000000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.10000000000000"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.10"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.10000000000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("1.10000000000000"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(99999.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(99999), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-99999.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-99999), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483647'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(2147483647), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483648'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-2147483648), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483648'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("2147483648"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483649'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-2147483649"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("9223372036854775807"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807.9'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("9223372036854775807.9"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775808'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-9223372036854775808"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775808'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775809'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-9223372036854775809"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10223372036850000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("10223372036850000000"), rs.getBigDecimal(1));
+    rs.close();
   }
 
   @Test
