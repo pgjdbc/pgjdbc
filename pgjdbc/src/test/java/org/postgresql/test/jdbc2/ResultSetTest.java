@@ -1161,18 +1161,19 @@ public class ResultSetTest extends BaseTest4 {
     return null;
   }
 
-  private static class CallableWithConnection implements Callable<Boolean> {
+  private static class SelectTimestampManyTimes implements Callable<Integer> {
 
     private final Connection connection;
     private final int expectedYear;
 
-    protected CallableWithConnection(Connection connection, int expectedYear) {
+    protected SelectTimestampManyTimes(Connection connection, int expectedYear) {
       this.connection = connection;
       this.expectedYear = expectedYear;
     }
 
     @Override
-    public Boolean call() throws SQLException {
+    public Integer call() throws SQLException {
+      int year = expectedYear;
       try (Statement statement = connection.createStatement()) {
         for (int i = 0; i < 10; i++) {
           try (ResultSet resultSet = statement.executeQuery(
@@ -1180,15 +1181,15 @@ public class ResultSetTest extends BaseTest4 {
                   expectedYear, 500))) {
             while (resultSet.next()) {
               Timestamp d = resultSet.getTimestamp(1);
-              int year = 1900 + d.getYear();
+              year = 1900 + d.getYear();
               if (year != expectedYear) {
-                return false;
+                return year;
               }
             }
           }
         }
       }
-      return true;
+      return year;
     }
 
   }
@@ -1196,10 +1197,12 @@ public class ResultSetTest extends BaseTest4 {
   @Test
   public void testTimestamp() throws InterruptedException, ExecutionException, TimeoutException {
     ExecutorService e = Executors.newFixedThreadPool(2);
-    Future<Boolean> future1 = e.submit(new CallableWithConnection(con, 7777));
-    Future<Boolean> future2 = e.submit(new CallableWithConnection(con, 2017));
-    assertTrue(future1.get(1, TimeUnit.MINUTES));
-    assertTrue(future2.get(1, TimeUnit.MINUTES));
+    Integer year1 = 7777;
+    Future<Integer> future1 = e.submit(new SelectTimestampManyTimes(con, year1));
+    Integer year2 = 2017;
+    Future<Integer> future2 = e.submit(new SelectTimestampManyTimes(con, year2));
+    assertEquals("Year was changed in another thread", year1, future1.get(1, TimeUnit.MINUTES));
+    assertEquals("Year was changed in another thread", year2, future2.get(1, TimeUnit.MINUTES));
     e.shutdown();
     e.awaitTermination(1, TimeUnit.MINUTES);
   }
