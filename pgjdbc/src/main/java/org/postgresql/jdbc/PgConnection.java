@@ -434,6 +434,7 @@ public class PgConnection implements BaseConnection {
 
   private final TimestampUtils timestampUtils;
 
+  @Deprecated
   public TimestampUtils getTimestampUtils() {
     return timestampUtils;
   }

@@ -23,14 +23,23 @@ import org.junit.runners.Parameterized;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /*
  * ResultSet tests.
@@ -1150,6 +1159,52 @@ public class ResultSetTest extends BaseTest4 {
     } catch (Exception e) {
     }
     return null;
+  }
+
+  private static class SelectTimestampManyTimes implements Callable<Integer> {
+
+    private final Connection connection;
+    private final int expectedYear;
+
+    protected SelectTimestampManyTimes(Connection connection, int expectedYear) {
+      this.connection = connection;
+      this.expectedYear = expectedYear;
+    }
+
+    @Override
+    public Integer call() throws SQLException {
+      int year = expectedYear;
+      try (Statement statement = connection.createStatement()) {
+        for (int i = 0; i < 10; i++) {
+          try (ResultSet resultSet = statement.executeQuery(
+              String.format("SELECT unnest(array_fill('8/10/%d'::timestamp, ARRAY[%d]))",
+                  expectedYear, 500))) {
+            while (resultSet.next()) {
+              Timestamp d = resultSet.getTimestamp(1);
+              year = 1900 + d.getYear();
+              if (year != expectedYear) {
+                return year;
+              }
+            }
+          }
+        }
+      }
+      return year;
+    }
+
+  }
+
+  @Test
+  public void testTimestamp() throws InterruptedException, ExecutionException, TimeoutException {
+    ExecutorService e = Executors.newFixedThreadPool(2);
+    Integer year1 = 7777;
+    Future<Integer> future1 = e.submit(new SelectTimestampManyTimes(con, year1));
+    Integer year2 = 2017;
+    Future<Integer> future2 = e.submit(new SelectTimestampManyTimes(con, year2));
+    assertEquals("Year was changed in another thread", year1, future1.get(1, TimeUnit.MINUTES));
+    assertEquals("Year was changed in another thread", year2, future2.get(1, TimeUnit.MINUTES));
+    e.shutdown();
+    e.awaitTermination(1, TimeUnit.MINUTES);
   }
 
 }
