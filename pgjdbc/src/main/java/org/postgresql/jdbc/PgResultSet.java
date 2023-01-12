@@ -48,7 +48,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -3376,6 +3375,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double)Long.MIN_VALUE);
+  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double)Long.MIN_VALUE);
+
   /**
    * <p>Converts any numeric binary field to long value.</p>
    *
@@ -3411,15 +3415,34 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        val = (long) ByteConverter.float4(bytes, 0);
+        float f = ByteConverter.float4(bytes, 0);
+        // for float values we know to be within values of long, just cast directly to long
+        if (f <= LONG_MAX_FLOAT && f >= LONG_MIN_FLOAT) {
+          val = (long) f;
+        } else {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, f),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
         break;
       case Oid.FLOAT8:
-        val = (long) ByteConverter.float8(bytes, 0);
+        double d = ByteConverter.float8(bytes, 0);
+        // for double values within the values of a long, just directly cast to long
+        if (d <= LONG_MAX_DOUBLE && d >= LONG_MIN_DOUBLE) {
+          val = (long) d;
+        } else {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, d),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
-        if (num instanceof  BigDecimal) {
-          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+        BigInteger i = ((BigDecimal) num).toBigInteger();
+        int gt = i.compareTo(LONGMAX);
+        int lt = i.compareTo(LONGMIN);
+
+        if (gt > 0 || lt < 0) {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", num),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         } else {
           val = num.longValue();
         }

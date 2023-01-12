@@ -104,16 +104,26 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0', null)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0', null)");
 
-    TestUtil.createTable(con, "testboolfloat", "a float4, b boolean");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.0'::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('0.0'::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.000::real, true)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(0.000::real, false)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES('-1.001'::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(123.4::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1.234e2::real, null)");
-    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(100.00e-2::real, true)");
+    TestUtil.createTable(con, "testboolfloat", "i int, a float4, b boolean");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1, '1.0'::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(2, '0.0'::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(3, 1.000::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(4, 0.000::real, false)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(5, '1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(6, '-1.001'::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(7, 123.4::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(8, 1.234e2::real, null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(9, 100.00e-2::real, true)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(10, '9223371487098961921', null)");
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(11, '10223372036850000000', null)");
+    String floatVal = Float.toString(StrictMath.nextDown(Long.MAX_VALUE - 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(12, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextDown(Long.MAX_VALUE + 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(13, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextUp(Long.MIN_VALUE - 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(14, " + floatVal + ", null)");
+    floatVal = Float.toString(StrictMath.nextUp(Long.MIN_VALUE + 1));
+    stmt.executeUpdate("INSERT INTO testboolfloat VALUES(15, " + floatVal + ", null)");
 
     TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
@@ -121,45 +131,50 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolint VALUES(-1, null)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(9223372036854775807, null)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(-9223372036854775808, null)");
+
     // End Boolean Tests
 
     // TestUtil.createTable(con, "testbit", "a bit");
 
-    TestUtil.createTable(con, "testnumeric", "a numeric");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.0')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-1.0')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.2')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2.5')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.000000000000000000000000000990')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10.0000000000099')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10000000000000')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.10000000000000')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999.2')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999.2')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999')");
+    TestUtil.createTable(con, "testnumeric", "t text, a numeric");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0', '1.0')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.0', '0.0')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-1.0', '-1.0')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.2', '1.2')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2.5', '-2.5')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.000000000000000000000000000990', '0.000000000000000000000000000990')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10.0000000000099', '10.0000000000099')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10000000000000', '.10000000000000')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('.10', '.10')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.10000000000000', '1.10000000000000')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999.2', '99999.2')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('99999', '99999')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999.2', '-99999.2')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-99999', '-99999')");
 
     // Integer.MaxValue
-    stmt.execute("INSERT INTO testnumeric VALUES('2147483647')");
+    stmt.execute("INSERT INTO testnumeric VALUES('2147483647', '2147483647')");
 
     // Integer.MinValue
-    stmt.execute("INSERT INTO testnumeric VALUES('-2147483648')");
+    stmt.execute("INSERT INTO testnumeric VALUES( '-2147483648', '-2147483648')");
 
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('2147483648')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2147483649')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('2147483648', '2147483648')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-2147483649', '-2147483649')");
 
     // Long.MaxValue
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807','9223372036854775807')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775807.9', '9223372036854775807.9')");
 
     // Long.MinValue
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775808')");
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775808', '-9223372036854775808')");
 
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808')");
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809')");
+    // Long.MaxValue +1
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('9223372036854775808', '9223372036854775808')");
 
-    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10223372036850000000')");
+    // Long.Minvalue -1
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('-9223372036854775809', '-9223372036854775809')");
+
+    stmt.executeUpdate("INSERT INTO testnumeric VALUES('10223372036850000000', '10223372036850000000')");
 
     TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
@@ -436,7 +451,7 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testgetByte() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select a from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getByte(1));
@@ -472,7 +487,8 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getByte(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
+        assertEquals(e.getSQLState(),"22003");
       }
     }
     rs.close();
@@ -480,7 +496,7 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testgetShort() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select a from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getShort(1));
@@ -516,7 +532,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getShort(1);
         fail("Exception expected.");
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -524,7 +540,7 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testgetInt() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    ResultSet rs = con.createStatement().executeQuery("select a from testnumeric");
 
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
@@ -578,7 +594,7 @@ public class ResultSetTest extends BaseTest4 {
       try {
         rs.getInt(1);
         fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
+      } catch (SQLException e) {
       }
     }
     rs.close();
@@ -586,150 +602,316 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testgetLong() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    ResultSet rs = null;
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.0'");
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.0'");
     assertTrue(rs.next());
     assertEquals(0, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-1.0'");
     assertTrue(rs.next());
     assertEquals(-1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.2'");
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2.5'");
     assertTrue(rs.next());
     assertEquals(-2, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.000000000000000000000000000990'");
     assertTrue(rs.next());
     assertEquals(0, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10.0000000000099'");
     assertTrue(rs.next());
     assertEquals(10, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10000000000000'");
     assertTrue(rs.next());
     assertEquals(0, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10'");
     assertTrue(rs.next());
     assertEquals(0, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.10000000000000'");
     assertTrue(rs.next());
     assertEquals(1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999.2'");
     assertTrue(rs.next());
     assertEquals(99999, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999'");
     assertTrue(rs.next());
     assertEquals(99999, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999.2'");
     assertTrue(rs.next());
     assertEquals(-99999, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999'");
     assertTrue(rs.next());
     assertEquals(-99999, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483647'");
     assertTrue(rs.next());
     assertEquals((Integer.MAX_VALUE), rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483648'");
     assertTrue(rs.next());
     assertEquals((Integer.MIN_VALUE), rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483648'");
     assertTrue(rs.next());
     assertEquals(((long) Integer.MAX_VALUE) + 1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483649'");
     assertTrue(rs.next());
     assertEquals(((long) Integer.MIN_VALUE) - 1, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807'");
     assertTrue(rs.next());
     assertEquals(Long.MAX_VALUE, rs.getLong(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807.9'");
+    assertTrue(rs.next());
+    assertEquals(Long.MAX_VALUE, rs.getLong(1));
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775808'");
     assertTrue(rs.next());
     assertEquals(Long.MIN_VALUE, rs.getLong(1));
+    rs.close();
 
-    while (rs.next()) {
-      try {
-        rs.getLong(1);
-        fail("Exception expected." + rs.getString(1));
-      } catch (Exception e) {
-      }
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775808'");
+    assertTrue(rs.next());
+    try {
+      rs.getLong(1);
+      fail("Exception expected. " + rs.getString(1));
+    } catch (SQLException e) {
     }
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775809'");
+    assertTrue(rs.next());
+    try {
+      rs.getLong(1);
+      fail("Exception expected. " + rs.getString(1));
+    } catch (SQLException e) {
+    }
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10223372036850000000'");
+    assertTrue(rs.next());
+    try {
+      rs.getLong(1);
+      fail("Exception expected. " + rs.getString(1));
+    } catch (SQLException e) {
+    }
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select i, a from testboolfloat order by i");
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(0, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(-1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(123, rs.getLong(2));
+
+    assertTrue(rs.next());
+    assertEquals(1, rs.getLong(2));
+
+    assertTrue(rs.next());
+    // the string value from database trims the significant digits, leading to larger variance than binary
+    // the liberica jdk gets similar variance, even in forced binary mode
+    assertEquals(9223371487098961921.0, rs.getLong(2), 1.0e11);
+
+    assertTrue(rs.next());
+    do {
+      try {
+        int row = rs.getInt(1);
+        long l = rs.getLong(2);
+        if ( row == 12 ) {
+          assertEquals(9223371487098961920.0, l, 1.0e11);
+        } else if ( row == 15 ) {
+          assertEquals(-9223371487098961920.0, l, 1.0e11);
+        } else {
+          fail("Exception expected." + rs.getString(2));
+        }
+      } catch (SQLException e) {
+      }
+    } while (rs.next());
+
     rs.close();
   }
 
   @Test
   public void testgetBigDecimal() throws SQLException {
-    ResultSet rs = con.createStatement().executeQuery("select * from testnumeric");
+    ResultSet rs = null;
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(1.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(0.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-1.0'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-1.0), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(1.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2.5'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-2.5), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '0.000000000000000000000000000990'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.000000000000000000000000000990"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10.0000000000099'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("10.0000000000099"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10000000000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.10000000000000"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '.10'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("0.10"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '1.10000000000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("1.10000000000000"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(99999.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '99999'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(99999), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999.2'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-99999.2), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-99999'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-99999), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483647'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(2147483647), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483648'");
     assertTrue(rs.next());
     assertEquals(BigDecimal.valueOf(-2147483648), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '2147483648'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("2147483648"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-2147483649'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-2147483649"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("9223372036854775807"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775807.9'");
+    assertTrue(rs.next());
+    assertEquals(new BigDecimal("9223372036854775807.9"), rs.getBigDecimal(1));
+    rs.close();
+
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775808'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-9223372036854775808"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '9223372036854775808'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("9223372036854775808"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '-9223372036854775809'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("-9223372036854775809"), rs.getBigDecimal(1));
+    rs.close();
 
+    rs = con.createStatement().executeQuery("select a from testnumeric where t = '10223372036850000000'");
     assertTrue(rs.next());
     assertEquals(new BigDecimal("10223372036850000000"), rs.getBigDecimal(1));
+    rs.close();
   }
 
   @Test
