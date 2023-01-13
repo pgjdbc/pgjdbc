@@ -71,6 +71,7 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -161,10 +162,9 @@ public class PgConnection implements BaseConnection {
   protected boolean forcebinary = false;
 
   /**
-   * Oids for which binary transfer should be disabled or null, if no oids should be disabled.
+   * Oids for which binary transfer should be disabled.
    */
-  @Nullable
-  private final Set<Integer> binaryDisabledOids;
+  private final Set<? extends Integer> binaryDisabledOids;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId = 0;
@@ -272,7 +272,7 @@ public class PgConnection implements BaseConnection {
     // get oids that should be disabled from transfer
     binaryDisabledOids = getBinaryDisabledOids(info);
     // if there are any, remove them from the enabled ones
-    if (binaryDisabledOids != null) {
+    if (!binaryDisabledOids.isEmpty()) {
       binaryOids.removeAll(binaryDisabledOids);
     }
 
@@ -428,22 +428,24 @@ public class PgConnection implements BaseConnection {
    * Gets all oids for which binary transfer should be disabled.
    *
    * @param info properties
-   * @return oids for which binary transfer should be disabled or null, if no oids should be
-   *         disabled
+   * @return oids for which binary transfer should be disabled
    * @throws PSQLException if any oid is not valid
    */
-  private static @Nullable Set<Integer> getBinaryDisabledOids(Properties info)
+  private static Set<? extends Integer> getBinaryDisabledOids(Properties info)
       throws PSQLException {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
-    if (oids != null) {
-      return new HashSet<Integer>(getOidSet(oids));
+    if (oids == null) {
+      return Collections.emptySet();
     }
-    return null;
+    return getOidSet(oids);
   }
 
-  private static Set<Integer> getOidSet(String oidList) throws PSQLException {
-    Set<Integer> oids = new HashSet<Integer>();
+  private static Set<? extends Integer> getOidSet(String oidList) throws PSQLException {
+    if (oidList.isEmpty()) {
+      return Collections.emptySet();
+    }
+    Set<Integer> oids = new HashSet<>();
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
       String oid = tokenizer.nextToken();
@@ -741,7 +743,7 @@ public class PgConnection implements BaseConnection {
     try {
       addDataType(type, Class.forName(name).asSubclass(PGobject.class));
     } catch (Exception e) {
-      throw new RuntimeException("Cannot register new type: " + e);
+      throw new RuntimeException("Cannot register new type " + type, e);
     }
   }
 
@@ -755,7 +757,7 @@ public class PgConnection implements BaseConnection {
       // try to get an oid for this type (will return 0 if the type does not exist in the database)
       int oid = typeCache.getPGType(type);
       // check if oid is there and if it is not disabled for binary transfer
-      if ((oid > 0) && ((binaryDisabledOids == null) || !binaryDisabledOids.contains(oid))) {
+      if (oid > 0 && !binaryDisabledOids.contains(oid)) {
         // allow using binary transfer for receiving and sending of this type
         queryExecutor.addBinaryReceiveOid(oid);
         queryExecutor.addBinarySendOid(oid);
