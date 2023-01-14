@@ -411,7 +411,7 @@ jobs:
     - name: Test
       uses: burrunan/gradle-cache-action@v1
       with:
-        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport
+        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport -PskipJavadoc
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
     - name: 'Upload code coverage'

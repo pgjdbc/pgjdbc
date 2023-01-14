@@ -193,7 +193,7 @@ jobs:
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk${{ matrix.java_version }}
-        arguments: --scan --no-parallel --no-daemon jandex test
+        arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
 

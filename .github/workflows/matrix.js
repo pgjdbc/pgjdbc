@@ -240,6 +240,14 @@ if (include.length === 0) {
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
+    let gradleArgs = [];
+    if (v.java_version == 11) {
+        // JavaDoc 11 can't parse package annotations: https://bugs.openjdk.org/browse/JDK-8222091
+        gradleArgs.push('-PskipJavadoc')
+    }
+    v.extraGradleArgs = gradleArgs.join(' ');
+});
+include.forEach(v => {
   let jvmArgs = [];
   v.replication = v.replication.value;
   v.slow_tests = v.slow_tests.value;
