@@ -32,9 +32,9 @@ jobs:
       - id: set-matrix
         run: |
           if [[ -n "${S3_BUILD_CACHE_ACCESS_KEY_ID:-}" ]] && [[ -n "${S3_BUILD_CACHE_SECRET_KEY:-}" ]]; then
-            echo "::set-output name=secrets_available::true"
+            echo "secrets_available=true" >> $GITHUB_OUTPUT
           else
-            echo "::set-output name=secrets_available::false"
+            echo "secrets_available=false" >> $GITHUB_OUTPUT
           fi
 
   seed-build-cache:
@@ -48,7 +48,7 @@ jobs:
     name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
     runs-on: ${{ matrix.os }}-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 50
       - name: 'Set up JDK ${{ matrix.jdk }}'

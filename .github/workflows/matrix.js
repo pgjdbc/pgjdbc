@@ -1,6 +1,8 @@
 // The script generates a random subset of valid jdk, os, timezone, and other axes.
 // You can preview the results by running "node matrix.js"
 // See https://github.com/vlsi/github-actions-random-matrix
+let fs = require('fs');
+let os = require('os');
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
 
@@ -302,4 +304,10 @@ include.forEach(v => {
 });
 
 console.log(include);
-console.log('::set-output name=matrix::' + JSON.stringify({include}));
+
+let filePath = process.env['GITHUB_OUTPUT'] || '';
+if (filePath) {
+    fs.appendFileSync(filePath, `matrix<<MATRIX_BODY${os.EOL}${JSON.stringify({include})}${os.EOL}MATRIX_BODY${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}
