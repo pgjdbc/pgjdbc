@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 
 import org.postgresql.jdbc.TimestampUtils;
 
@@ -13,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.util.TimeZone;
@@ -22,7 +24,7 @@ public class TimestampUtilsTest {
 
   @Before
   public void setUp() {
-    timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
+    timestampUtils = new TimestampUtils(false, TimeZone::getDefault);
   }
 
   @Test
@@ -77,6 +79,25 @@ public class TimestampUtilsTest {
     assertToLocalTime("23:59:59.99999999"); // 990 NanoSeconds
     assertToLocalTime("23:59:59.999999998"); // 998 NanoSeconds
     assertToLocalTime(LocalTime.MAX.toString(), "24:00:00", "LocalTime can't represent 24:00:00");
+  }
+
+  @Test
+  public void testLocalDateTimeRounding() {
+
+    assertLocalDateTimeRounding("500 ns rounds up to the next micro", "2022-01-04T08:57:13.123457", "2022-01-04T08:57:13.123456500");
+    assertLocalDateTimeRounding("499 ns should not round up", "2022-01-04T08:57:13.123456", "2022-01-04T08:57:13.123456499");
+    assertLocalDateTimeRounding("999999501 ns rounds up the next second", "2022-01-04T08:57:14","2022-01-04T08:57:13.999999501");
+
+    LocalDateTime unrounded = LocalDateTime.parse("2022-01-04T08:57:13.123456");
+    assertSame(
+        "nanosecond part is 000, so timestampUtils.round should not modify the value, and keep the same object as result for performance reasons",
+        unrounded,
+        timestampUtils.round(unrounded)
+    );
+  }
+
+  private void assertLocalDateTimeRounding(String message, String expected, String toRound) {
+    assertEquals(message + " in timestampUtils.round(LocalDateTime.parse(" + toRound + "))", LocalDateTime.parse(expected), timestampUtils.round(LocalDateTime.parse(toRound)));
   }
 
   private void assertToLocalTime(String inputTime) throws SQLException {

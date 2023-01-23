@@ -36,6 +36,13 @@ import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
+import java.time.temporal.TemporalAccessor;
+import java.time.temporal.TemporalAdjuster;
+import java.time.temporal.TemporalField;
+import java.time.temporal.TemporalUnit;
+import java.time.temporal.ValueRange;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -67,6 +74,8 @@ public class TimestampUtils {
   private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
   private static final Duration PG_EPOCH_DIFF =
       Duration.between(Instant.EPOCH, LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
+
+  private static final TemporalAdjuster PGJDBC_ROUNDING = new RoundToMicros();
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -186,6 +195,91 @@ public class TimestampUtils {
   enum Infinity {
     POSITIVE,
     NEGATIVE;
+  }
+
+  /**
+   * Implements the rounding logic of the driver.
+   *
+   * <p>Truncates to microsecond (Postgres resolution) and rounds up
+   * if the nanosecond part is above 499.</p>
+   */
+  static final class RoundToMicros implements TemporalAdjuster {
+
+    private static final TemporalField REMAINDER_NANOS = new RemainderNanos();
+
+    @Override
+    public Temporal adjustInto(Temporal temporal) {
+      int remainderNanos = temporal.get(REMAINDER_NANOS);
+      if (remainderNanos == 0) {
+        // nanosecond part is 0
+        return temporal;
+      }
+      if (remainderNanos <= 499) {
+        // round down
+        return temporal.with(REMAINDER_NANOS, 0L);
+      }
+      // round up
+      return temporal.plus(1000L - remainderNanos, ChronoUnit.NANOS);
+    }
+
+  }
+
+  /**
+   * Implements the nanosecond fractional second part that is not part of the
+   * microsecond fractional second part 0.xxx_xxx_nnn.
+   */
+  static final class RemainderNanos implements TemporalField {
+
+    private static final ValueRange RANGE = ValueRange.of(0L, 1_000L);
+
+    @Override
+    public TemporalUnit getBaseUnit() {
+      return ChronoUnit.NANOS;
+    }
+
+    @Override
+    public TemporalUnit getRangeUnit() {
+      return ChronoUnit.SECONDS;
+    }
+
+    @Override
+    public ValueRange range() {
+      return RANGE;
+    }
+
+    @Override
+    public boolean isDateBased() {
+      return false;
+    }
+
+    @Override
+    public boolean isTimeBased() {
+      return true;
+    }
+
+    @Override
+    public boolean isSupportedBy(TemporalAccessor temporal) {
+      return temporal.isSupported(ChronoField.NANO_OF_SECOND);
+    }
+
+    @Override
+    public ValueRange rangeRefinedBy(TemporalAccessor temporal) {
+      return RANGE;
+    }
+
+    @Override
+    public long getFrom(TemporalAccessor temporal) {
+      int nanosOfSecond = temporal.get(ChronoField.NANO_OF_SECOND);
+      return nanosOfSecond % 1000;
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <R extends Temporal> R adjustInto(R temporal, long newValue) {
+      int microsOfSecond = temporal.get(ChronoField.MICRO_OF_SECOND);
+      return (R) temporal.with(ChronoField.NANO_OF_SECOND, microsOfSecond * 1_000L + newValue);
+    }
+
   }
 
   /**
@@ -887,6 +981,20 @@ public class TimestampUtils {
     return sbuf.toString();
   }
 
+  /**
+   * Rounds a temporal.
+   *
+   * <p>Visible for testing.</p>
+   *
+   * @param <T> the type of temporal to round
+   * @param temportal the temporal to round
+   * @return the temporal rounded to Postgres precision
+   */
+  @SuppressWarnings("unchecked")
+  public <T extends Temporal> T round(T temportal) {
+    return (T) temportal.with(PGJDBC_ROUNDING);
+  }
+
   public synchronized String toString(LocalTime localTime) {
 
     sbuf.setLength(0);
@@ -895,13 +1003,8 @@ public class TimestampUtils {
       return "24:00:00";
     }
 
-    int nano = localTime.getNano();
-    if (nanosExceed499(nano)) {
-      // Technically speaking this is not a proper rounding, however
-      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-      localTime = localTime.plus(ONE_MICROSECOND);
-    }
-    appendTime(sbuf, localTime);
+    LocalTime rounded = round(localTime);
+    appendTime(sbuf, rounded);
 
     return sbuf.toString();
   }
@@ -938,18 +1041,13 @@ public class TimestampUtils {
 
     sbuf.setLength(0);
 
-    int nano = offsetDateTime.getNano();
-    if (nanosExceed499(nano)) {
-      // Technically speaking this is not a proper rounding, however
-      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-      offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
-    }
-    LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
+    OffsetDateTime rounded = round(offsetDateTime);
+    LocalDateTime localDateTime = rounded.toLocalDateTime();
     LocalDate localDate = localDateTime.toLocalDate();
     appendDate(sbuf, localDate);
     sbuf.append(' ');
     appendTime(sbuf, localDateTime.toLocalTime());
-    appendTimeZone(sbuf, offsetDateTime.getOffset());
+    appendTimeZone(sbuf, rounded.getOffset());
     appendEra(sbuf, localDate);
 
     return sbuf.toString();
