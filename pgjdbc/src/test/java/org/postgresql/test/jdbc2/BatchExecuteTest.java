@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.junit.Assume;
+
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
@@ -1387,9 +1389,7 @@ Server SQLState: 25001)
 
   @Test
   public void testMerge() throws Exception {
-    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v15)) {
-      return;
-    }
+    Assume.assumeTrue("Minimum server version 15.", TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
 
     con.setAutoCommit(true);
     TestUtil.createTempTable(con, "batchingMerge", "id INT, col1 VARCHAR(20)");
