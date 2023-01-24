@@ -1392,7 +1392,7 @@ Server SQLState: 25001)
     Assume.assumeTrue("Minimum server version 15.", TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
 
     con.setAutoCommit(true);
-    TestUtil.createTempTable(con, "batchingMerge", "id INT, col1 VARCHAR(20)");
+    TestUtil.createTempTable(con, "batchingMerge", "id INT, col1 VARCHAR(20), ts TIMESTAMPTZ DEFAULT statement_timestamp()");
 
     String sql = "MERGE INTO batchingMerge AS t "
         + "USING (VALUES (?, ?)) AS src (id, col1) "
@@ -1405,30 +1405,23 @@ Server SQLState: 25001)
       stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "101, 'hello 102'"));
     }
 
+    int cnt = 16;
     try (PreparedStatement stmt = con.prepareStatement(sql)) {
-      stmt.setInt(1, 100);
-      stmt.setString(2, "");
-      stmt.addBatch();
-
-      stmt.setInt(1, 101);
-      stmt.setString(2, "");
-      stmt.addBatch();
-
-      stmt.setInt(1, 102);
-      stmt.setString(2, "hello 102");
-      stmt.addBatch();
-
-      stmt.setInt(1, 103);
-      stmt.setString(2, "hello 103");
-      stmt.addBatch();
+      int[] expected = new int[cnt];
+      for (int i = 0; i < cnt; i++) {
+        stmt.setInt(1, 100 + i);
+        stmt.setString(2, "hello " + (100 + i));
+        stmt.addBatch();
+        expected[i] = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
+      }
 
       int[] results = stmt.executeBatch();
-      int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
-      Assert.assertArrayEquals(new int[]{rowsInserted, rowsInserted, rowsInserted, rowsInserted}, results);
+      Assert.assertArrayEquals(expected, results);
     }
 
-    TestUtil.assertNumberOfRows(con, "batchingMerge", 2, "2 rows expected");
+    TestUtil.assertNumberOfRows(con, "batchingMerge", cnt - 2, "14 rows expected");
     Assert.assertEquals("hello 102", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 102"));
     Assert.assertEquals("hello 103", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 103"));
+    Assert.assertEquals(insertRewrite ? "1" : String.valueOf(cnt - 2), TestUtil.queryForString(con, "SELECT COUNT(DISTINCT ts) FROM batchingMerge"));
   }
 }
