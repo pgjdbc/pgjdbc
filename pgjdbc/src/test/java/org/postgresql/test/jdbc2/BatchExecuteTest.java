@@ -1401,16 +1401,17 @@ Server SQLState: 25001)
         + "WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1)";
 
     try (Statement stmt = con.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "100, 'hello 100'"));
-      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "101, 'hello 102'"));
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "0, 'hello 0'"));
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "1, 'hello 1'"));
     }
 
     int cnt = 16;
+    int expectedCnt = cnt - 2;
     try (PreparedStatement stmt = con.prepareStatement(sql)) {
       int[] expected = new int[cnt];
       for (int i = 0; i < cnt; i++) {
-        stmt.setInt(1, 100 + i);
-        stmt.setString(2, "hello " + (100 + i));
+        stmt.setInt(1, i);
+        stmt.setString(2, String.valueOf(i));
         stmt.addBatch();
         expected[i] = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
       }
@@ -1419,9 +1420,12 @@ Server SQLState: 25001)
       Assert.assertArrayEquals(expected, results);
     }
 
-    TestUtil.assertNumberOfRows(con, "batchingMerge", cnt - 2, "14 rows expected");
-    Assert.assertEquals("hello 102", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 102"));
-    Assert.assertEquals("hello 103", TestUtil.queryForString(con, "SELECT col1 FROM batchingMerge WHERE id = 103"));
-    Assert.assertEquals(insertRewrite ? "1" : String.valueOf(cnt - 2), TestUtil.queryForString(con, "SELECT COUNT(DISTINCT ts) FROM batchingMerge"));
+    TestUtil.assertNumberOfRows(con, "batchingMerge", expectedCnt, "Number of inserted rows.");
+    for (int i = 2; i < cnt; i++) {
+      Assert.assertEquals(String.valueOf(i), TestUtil.queryForString(con, "SELECT col1 FROM " +
+          "batchingMerge WHERE id = " + i));
+    }
+    Assert.assertEquals(insertRewrite ? "1" : String.valueOf(expectedCnt),
+        TestUtil.queryForString(con, "SELECT COUNT(DISTINCT ts) FROM batchingMerge"));
   }
 }
