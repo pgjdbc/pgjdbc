@@ -1,0 +1,93 @@
+.accordion {
+    margin-block: var(--container-spacing);
+
+    &__item {
+        border-bottom: 2px solid var(--clr-primary-200);
+    }
+
+    &__btn {
+        position: relative;
+        display: block;
+        text-align: left;
+        width: 100%;
+        padding: var(--primary-spacing) 0;
+        font-size: var(--fs-400);
+        border: none;
+        background: none;
+        outline: none;
+        cursor: pointer;
+
+        &:hover,
+        &:focus {
+            color: var(--clr-primary-200);
+        }
+
+        &__icon {
+            display: inline-block;
+            position: absolute;
+            top: 18px;
+            right: 0;
+            width: 22px;
+            height: 22px;
+            border: 2px solid;
+            border-radius: 22px;
+
+            &::before {
+                display: block;
+                position: absolute;
+                content: '';
+                top: 9px;
+                left: 5px;
+                width: 10px;
+                height: 2px;
+                background: currentColor;
+            }
+
+            &::after {
+                display: block;
+                position: absolute;
+                content: '';
+                top: 5px;
+                left: 9px;
+                width: 2px;
+                height: 10px;
+                background: currentColor;
+            }
+        }
+    }
+
+    &__btn[aria-expanded='true'] {
+        color: var(--clr-primary-200);
+        border-bottom: 2px solid var(--clr-primary-200);
+
+        .accordion__btn__icon {
+            &::after {
+                width: 0;
+            }
+        }
+
+        +.accordion__content {
+            opacity: 1;
+            max-height: 50em;
+            transition: all 200ms linear;
+            will-change: opacity, max-height;
+        }
+    }
+
+    &__content {
+        opacity: 0;
+        max-height: 0;
+        overflow: hidden;
+        transition: opacity 200ms linear, max-height 200ms linear;
+        will-change: opacity, max-height;
+
+        &__inner {
+            margin: 2em 0;
+            font-size: var(--fs-300);
+
+            li:not(last-child) {
+                margin-bottom: 0.5em;
+            }
+        }
+    }
+}

@@ -62,16 +62,16 @@ public class PGPropertyTest {
   public void testGetSetAllProperties() {
     Properties properties = new Properties();
     for (PGProperty property : PGProperty.values()) {
-      String value = property.get(properties);
+      String value = property.getOrDefault(properties);
       assertEquals(property.getDefaultValue(), value);
 
       property.set(properties, value);
-      assertEquals(value, property.get(properties));
+      assertEquals(value, property.getOrDefault(properties));
 
       if (property.getChoices() != null && property.getChoices().length > 0) {
         for (String choice : property.getChoices()) {
           property.set(properties, choice);
-          assertEquals(choice, property.get(properties));
+          assertEquals(choice, property.getOrDefault(properties));
         }
       }
     }
@@ -210,7 +210,7 @@ public class PGPropertyTest {
   @Test
   public void testPresenceCheck() {
     Properties empty = new Properties();
-    Object value = PGProperty.READ_ONLY.get(empty);
+    Object value = PGProperty.READ_ONLY.getOrDefault(empty);
     assertNotNull(value);
     assertFalse(PGProperty.READ_ONLY.isPresent(empty));
   }
@@ -226,9 +226,9 @@ public class PGPropertyTest {
         + "?user=" + URLCoder.encode(userName)
         + "&password=" + URLCoder.encode(password);
     Properties parsed = Driver.parseURL(url, new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
-    assertEquals("user", userName, PGProperty.USER.get(parsed));
-    assertEquals("password", password, PGProperty.PASSWORD.get(parsed));
+    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
+    assertEquals("user", userName, PGProperty.USER.getOrDefault(parsed));
+    assertEquals("password", password, PGProperty.PASSWORD.getOrDefault(parsed));
   }
 
   @Test
@@ -288,10 +288,10 @@ public class PGPropertyTest {
     dataSource.setApplicationName(applicationName);
 
     Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.get(parsed));
+    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
     // datasources do not pass username and password as URL parameters
     assertFalse("user", PGProperty.USER.isPresent(parsed));
     assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));
-    assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.get(parsed));
+    assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed));
   }
 }

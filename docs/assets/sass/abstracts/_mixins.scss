@@ -1,0 +1,34 @@
+// media-query mixin
+
+// for max-width
+@mixin mq-max($key) {
+
+  $size: map-get($breakpoints, $key);
+
+  @media only screen and (max-width: $size) {
+    @content;
+  }
+}
+
+// for min-width
+@mixin mq-min($key) {
+
+  $size: map-get($breakpoints, $key);
+
+  @media only screen and (min-width: $size) {
+    @content;
+  }
+}
+
+// font-face mixin
+@mixin font-face($font-name, $path, $weight: normal, $style: normal) {
+  @font-face {
+    font-family: $font-name;
+    font-style: $style;
+    font-weight: $weight;
+    font-display: swap;
+    src: local(''),
+      /* Modern Browsers */
+      url("../fonts/" +$path+".woff") format("woff");
+  }
+}

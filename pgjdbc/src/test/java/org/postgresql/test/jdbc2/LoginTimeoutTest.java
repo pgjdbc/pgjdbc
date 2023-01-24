@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Before;
@@ -33,9 +34,9 @@ public class LoginTimeoutTest {
   @Test
   public void testIntTimeout() throws Exception {
     Properties props = new Properties();
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
-    props.setProperty("loginTimeout", "10");
+    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
+    PGProperty.LOGIN_TIMEOUT.set(props, 10);
 
     Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
     conn.close();

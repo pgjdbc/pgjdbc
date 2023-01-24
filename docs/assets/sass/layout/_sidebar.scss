@@ -1,0 +1,27 @@
+.sidebar {
+  background-color: var(--clr-bluishGray);
+  width: 20%;
+  margin-left: var(--primary-spacing);
+
+  align-self: start;
+  position: sticky;
+
+  &__wrapper {
+    padding-inline: var(--primary-spacing);
+  }
+
+  &__links__link {
+    color: var(--clr--indigo);
+    text-decoration: none;
+
+    &--active {
+      color: var(--clr-primary-400);
+      font-weight: 700;
+      text-decoration: none;
+    }
+  }
+
+  @include mq-max(medium) {
+    display: none;
+  }
+}

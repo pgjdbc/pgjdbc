@@ -39,11 +39,11 @@ import java.util.Properties;
 public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   public static final String COLUMNS = "digit int4, name text";
   private static Connection hidingCon;
-  private static Connection nonhidingCon;
+  private static Connection nonHidingCon;
   private static Connection privilegedCon;
   private static PgConnection pgConnection;
   private static DatabaseMetaData hidingDatabaseMetaData;
-  private static DatabaseMetaData nonhidingDatabaseMetaData;
+  private static DatabaseMetaData nonHidingDatabaseMetaData;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -69,7 +69,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
     stmt.close();
 
-    nonhidingDatabaseMetaData = getNonHidingDatabaseMetaData(props);
+    nonHidingDatabaseMetaData = getNonHidingDatabaseMetaData(props);
     hidingDatabaseMetaData = getHidingDatabaseMetaData(props);
   }
 
@@ -84,8 +84,8 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   private static DatabaseMetaData getNonHidingDatabaseMetaData(Properties props) throws Exception {
-    nonhidingCon = TestUtil.openDB(props);
-    return nonhidingCon.getMetaData();
+    nonHidingCon = TestUtil.openDB(props);
+    return nonHidingCon.getMetaData();
   }
 
   private static void createTestDataObjectsWithRangeOfPrivilegesInSchema(String schema)
@@ -227,7 +227,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   @AfterClass
   public static void tearDown() throws SQLException {
     TestUtil.closeDB(hidingCon);
-    TestUtil.closeDB(nonhidingCon);
+    TestUtil.closeDB(nonHidingCon);
     TestUtil.dropSchema(privilegedCon, "high_privileges_schema");
     TestUtil.dropSchema(privilegedCon, "low_privileges_schema");
     TestUtil.dropSchema(privilegedCon, "no_privileges_schema");
@@ -254,7 +254,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     assertThat(schemasWithHiding,
         not(hasItem("no_privileges_schema")));
 
-    List<String> schemasWithNoHiding = getSchemaNames(nonhidingDatabaseMetaData);
+    List<String> schemasWithNoHiding = getSchemaNames(nonHidingDatabaseMetaData);
     assertThat(schemasWithNoHiding,
         hasItems("pg_catalog", "information_schema",
         "high_privileges_schema", "low_privileges_schema", "no_privileges_schema"));
@@ -283,7 +283,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_table")));
 
     List<String> tablesWithNoHiding =
-        getTableNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+        getTableNames(nonHidingDatabaseMetaData, "high_privileges_schema");
     assertThat(tablesWithNoHiding,
         hasItems(
         "owned_table",
@@ -304,7 +304,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_table")));
 
     tablesWithNoHiding =
-        getTableNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+        getTableNames(nonHidingDatabaseMetaData, "low_privileges_schema");
     assertThat(tablesWithNoHiding,
         hasItems(
         "owned_table",
@@ -313,7 +313,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         "select_granted_table",
         "no_grants_table"));
 
-    // Or should the the tables names not be returned because the schema is not visible?
+    // Or should the tables names not be returned because the schema is not visible?
     tablesWithHiding = getTableNames(hidingDatabaseMetaData, "no_privileges_schema");
 
     assertThat(tablesWithHiding,
@@ -326,7 +326,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_table")));
 
     tablesWithNoHiding =
-        getTableNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+        getTableNames(nonHidingDatabaseMetaData, "no_privileges_schema");
     assertThat(tablesWithNoHiding,
         hasItems(
         "owned_table",
@@ -358,7 +358,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_view")));
 
     List<String> viewsWithNoHiding =
-        getViewNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+        getViewNames(nonHidingDatabaseMetaData, "high_privileges_schema");
     assertThat(viewsWithNoHiding,
         hasItems(
         "select_granted_view",
@@ -373,13 +373,13 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_view")));
 
     viewsWithNoHiding =
-        getViewNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+        getViewNames(nonHidingDatabaseMetaData, "low_privileges_schema");
     assertThat(viewsWithNoHiding,
         hasItems(
         "select_granted_view",
         "no_grants_view"));
 
-    // Or should the the view names not be returned because the schema is not visible?
+    // Or should the view names not be returned because the schema is not visible?
     viewsWithHiding = getViewNames(hidingDatabaseMetaData, "no_privileges_schema");
 
     assertThat(viewsWithHiding,
@@ -389,7 +389,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_view")));
 
     viewsWithNoHiding =
-        getViewNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+        getViewNames(nonHidingDatabaseMetaData, "no_privileges_schema");
     assertThat(viewsWithNoHiding,
         hasItems(
         "select_granted_view",
@@ -417,7 +417,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_add_function")));
 
     List<String> functionsWithNoHiding =
-        getFunctionNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+        getFunctionNames(nonHidingDatabaseMetaData, "high_privileges_schema");
     assertThat(functionsWithNoHiding,
         hasItems("execute_granted_add_function", "no_grants_add_function"));
 
@@ -429,11 +429,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_add_function")));
 
     functionsWithNoHiding =
-        getFunctionNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+        getFunctionNames(nonHidingDatabaseMetaData, "low_privileges_schema");
     assertThat(functionsWithNoHiding,
         hasItems("execute_granted_add_function", "no_grants_add_function"));
 
-    // Or should the the function names not be returned because the schema is not visible?
+    // Or should the function names not be returned because the schema is not visible?
     functionsWithHiding =
         getFunctionNames(hidingDatabaseMetaData, "no_privileges_schema");
     assertThat(functionsWithHiding,
@@ -442,7 +442,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem("no_grants_add_function")));
 
     functionsWithNoHiding =
-        getFunctionNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+        getFunctionNames(nonHidingDatabaseMetaData, "no_privileges_schema");
     assertThat(functionsWithNoHiding,
         hasItems("execute_granted_add_function", "no_grants_add_function"));
   }
@@ -470,7 +470,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem(noGrants)));
 
     List<String> proceduresWithNoHiding =
-        getProcedureNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+        getProcedureNames(nonHidingDatabaseMetaData, "high_privileges_schema");
     assertThat(proceduresWithNoHiding,
         hasItems(executeGranted, noGrants));
 
@@ -482,11 +482,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem(noGrants)));
 
     proceduresWithNoHiding =
-        getProcedureNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+        getProcedureNames(nonHidingDatabaseMetaData, "low_privileges_schema");
     assertThat(proceduresWithNoHiding,
         hasItems(executeGranted, noGrants));
 
-    // Or should the the function names not be returned because the schema is not visible?
+    // Or should the function names not be returned because the schema is not visible?
     proceduresWithHiding =
         getProcedureNames(hidingDatabaseMetaData, "no_privileges_schema");
     assertThat(proceduresWithHiding,
@@ -495,7 +495,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
         not(hasItem(noGrants)));
 
     proceduresWithNoHiding =
-        getProcedureNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+        getProcedureNames(nonHidingDatabaseMetaData, "no_privileges_schema");
     assertThat(proceduresWithNoHiding,
         hasItems(executeGranted, noGrants));
 
@@ -529,7 +529,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
       assertThat(typesWithHiding,
           not(hasItems("no_grants_composite_type", "no_grants_us_postal_code_domain")));
 
-      // Or should the the types names not be returned because the schema is not visible?
+      // Or should the types names not be returned because the schema is not visible?
       typesWithHiding = getTypeNames(hidingDatabaseMetaData, "no_privileges_schema");
       assertThat(typesWithHiding,
           hasItems("usage_granted_composite_type", "usage_granted_us_postal_code_domain"));
@@ -538,19 +538,19 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     }
 
     List<String> typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "high_privileges_schema");
+        getTypeNames(nonHidingDatabaseMetaData, "high_privileges_schema");
     assertThat(typesWithNoHiding,
         hasItems("usage_granted_composite_type", "no_grants_composite_type",
           "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
     typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "low_privileges_schema");
+        getTypeNames(nonHidingDatabaseMetaData, "low_privileges_schema");
     assertThat(typesWithNoHiding,
         hasItems("usage_granted_composite_type", "no_grants_composite_type",
           "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));
 
     typesWithNoHiding =
-        getTypeNames(nonhidingDatabaseMetaData, "no_privileges_schema");
+        getTypeNames(nonHidingDatabaseMetaData, "no_privileges_schema");
     assertThat(typesWithNoHiding,
         hasItems("usage_granted_composite_type", "no_grants_composite_type",
           "usage_granted_us_postal_code_domain", "no_grants_us_postal_code_domain"));

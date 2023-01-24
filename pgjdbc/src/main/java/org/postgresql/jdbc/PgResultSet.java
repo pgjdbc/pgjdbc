@@ -48,7 +48,6 @@ import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
@@ -116,7 +115,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected final int maxFieldSize; // Maximum field size in this resultset (might be 0).
 
   protected @Nullable List<Tuple> rows; // Current page of results.
-  protected int currentRow = -1; // Index into 'rows' of our currrent row (0-based)
+  protected int currentRow = -1; // Index into 'rows' of our current row (0-based)
   protected int rowOffset; // Offset of row 0 in the actual resultset
   protected @Nullable Tuple thisRow; // copy of the current result row
   protected @Nullable SQLWarning warnings = null; // The warning chain
@@ -597,10 +596,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
         boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
         TimeZone tz = cal.getTimeZone();
-        return connection.getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
+        return getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
       } else if (oid == Oid.TIME) {
         // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
+        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
         // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
         Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
@@ -608,7 +607,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       } else if (oid == Oid.TIMETZ) {
         TimeZone tz = cal.getTimeZone();
         byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
-        Timestamp tsWithMicros = connection.getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
+        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
         // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
         Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
@@ -629,13 +628,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     String string = castNonNull(getString(i));
     if (oid == Oid.TIME || oid == Oid.TIMETZ) {
       // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      Timestamp tsWithMicros = connection.getTimestampUtils().toTimestamp(cal, string);
-      Timestamp tsUnixEpochDate = new Timestamp(connection.getTimestampUtils().toTime(cal, string).getTime());
+      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, string);
+      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, string).getTime());
       tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
       return tsUnixEpochDate;
     }
 
-    return connection.getTimestampUtils().toTimestamp(cal, string);
+    return getTimestampUtils().toTimestamp(cal, string);
 
   }
 
@@ -2297,7 +2296,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     int col = columnIndex - 1;
     if (Oid.BOOL == fields[col].getOID()) {
       final byte[] v = value;
-      return (1 == v.length) && (116 == v[0]); // 116 = 't'
+      return (1 == v.length) && ((116 == v[0] && !isBinary(columnIndex)) || (1 == v[0] && isBinary(columnIndex))); // 116 = 't'
     }
 
     if (isBinary(columnIndex)) {
@@ -2325,6 +2324,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       // some other numeric type
       return (byte) readLongValue(value, fields[col].getOID(), Byte.MIN_VALUE,
           Byte.MAX_VALUE, "byte");
+    }
+
+    Encoding encoding = connection.getEncoding();
+    if (encoding.hasAsciiNumbers()) {
+      try {
+        return (byte) getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+      }
     }
 
     String s = getString(columnIndex);
@@ -2376,7 +2383,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
       return (short) readLongValue(value, oid, Short.MIN_VALUE, Short.MAX_VALUE, "short");
     }
-
+    Encoding encoding = connection.getEncoding();
+    if (encoding.hasAsciiNumbers()) {
+      try {
+        return (short) getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
+      } catch (NumberFormatException ignored) {
+      }
+    }
     return toShort(getFixedString(columnIndex));
   }
 
@@ -2401,7 +2414,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastInt(value);
+        return (int) getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2429,7 +2442,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastLong(value);
+        return getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2463,7 +2476,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toLong(String)}.
    */
-  private long getFastLong(byte[] bytes) throws NumberFormatException {
+  private long getFastLong(byte[] bytes, long minVal, long maxVal) throws NumberFormatException {
     if (bytes.length == 0) {
       throw FAST_NUMBER_FAILED;
     }
@@ -2485,68 +2498,35 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       }
     }
 
+    int periodsSeen = 0;
     while (start < bytes.length) {
       byte b = bytes[start++];
       if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
+        if (b == '.' && periodsSeen == 0) {
+          periodsSeen++;
+          continue;
+        } else {
+          throw FAST_NUMBER_FAILED;
+        }
       }
-
-      val *= 10;
-      val += b - '0';
+      if (periodsSeen == 0) {
+        val *= 10;
+        val += b - '0';
+      }
     }
 
-    if (neg) {
-      val = -val;
-    }
-
-    return val;
-  }
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param bytes integer represented as a sequence of ASCII bytes
-   * @return The parsed number.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toInt(String)}.
-   */
-  private int getFastInt(byte[] bytes) throws NumberFormatException {
-    if (bytes.length == 0) {
+    int numNonSignChars = neg ? bytes.length - 1 : bytes.length;
+    if (periodsSeen > 1 || periodsSeen == numNonSignChars) {
       throw FAST_NUMBER_FAILED;
     }
 
-    int val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 10) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 9) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        throw FAST_NUMBER_FAILED;
-      }
-
-      val *= 10;
-      val += b - '0';
-    }
-
     if (neg) {
       val = -val;
     }
 
+    if (val < minVal || val > maxVal) {
+      throw FAST_NUMBER_FAILED;
+    }
     return val;
   }
 
@@ -2586,7 +2566,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     while (start < bytes.length) {
       byte b = bytes[start++];
       if (b < '0' || b > '9') {
-        if (b == '.') {
+        if (b == '.' && periodsSeen == 0) {
           scale = bytes.length - start;
           periodsSeen++;
           continue;
@@ -3395,6 +3375,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double)Long.MIN_VALUE);
+  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double)Long.MIN_VALUE);
+
   /**
    * <p>Converts any numeric binary field to long value.</p>
    *
@@ -3430,15 +3415,34 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         val = ByteConverter.int8(bytes, 0);
         break;
       case Oid.FLOAT4:
-        val = (long) ByteConverter.float4(bytes, 0);
+        float f = ByteConverter.float4(bytes, 0);
+        // for float values we know to be within values of long, just cast directly to long
+        if (f <= LONG_MAX_FLOAT && f >= LONG_MIN_FLOAT) {
+          val = (long) f;
+        } else {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, f),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
         break;
       case Oid.FLOAT8:
-        val = (long) ByteConverter.float8(bytes, 0);
+        double d = ByteConverter.float8(bytes, 0);
+        // for double values within the values of a long, just directly cast to long
+        if (d <= LONG_MAX_DOUBLE && d >= LONG_MIN_DOUBLE) {
+          val = (long) d;
+        } else {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", targetType, d),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+        }
         break;
       case Oid.NUMERIC:
         Number num = ByteConverter.numeric(bytes);
-        if (num instanceof  BigDecimal) {
-          val = ((BigDecimal) num).setScale(0 , RoundingMode.DOWN).longValueExact();
+        BigInteger i = ((BigDecimal) num).toBigInteger();
+        int gt = i.compareTo(LONGMAX);
+        int lt = i.compareTo(LONGMIN);
+
+        if (gt > 0 || lt < 0) {
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "long", num),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         } else {
           val = num.longValue();
         }
@@ -3987,7 +3991,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       @Nullable Reader reader, long length)
       throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
-        "updateCharaceterStream(int, Reader, long)");
+        "updateCharacterStream(int, Reader, long)");
   }
 
   public void updateCharacterStream(String columnName,
@@ -3999,7 +4003,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader) throws SQLException {
     throw org.postgresql.Driver.notImplemented(this.getClass(),
-        "updateCharaceterStream(int, Reader)");
+        "updateCharacterStream(int, Reader)");
   }
 
   public void updateCharacterStream(String columnName,

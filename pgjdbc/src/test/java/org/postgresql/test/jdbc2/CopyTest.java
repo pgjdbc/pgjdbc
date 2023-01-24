@@ -406,7 +406,7 @@ public class CopyTest {
       con.commit();
     } catch (SQLException ex) {
 
-      // the with xxx is a syntax error which shoud return a state of 42601
+      // the with xxx is a syntax error which should return a state of 42601
       // if this fails the 'S' command is not being handled in the copy manager query handler
       assertEquals("42601", ex.getSQLState());
       con.rollback();

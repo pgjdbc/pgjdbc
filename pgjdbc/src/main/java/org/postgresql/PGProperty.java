@@ -163,7 +163,7 @@ public enum PGProperty {
   CONNECT_TIMEOUT(
       "connectTimeout",
       "10",
-      "The timeout value used for socket connect operations."),
+      "The timeout value in seconds used for socket connect operations."),
 
   /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
@@ -261,6 +261,17 @@ public enum PGProperty {
       new String[] {"auto", "sspi", "gssapi"}),
 
   /**
+   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
+   * timeout mechanism This timeout will be set before the request and reset after </p>
+   */
+  GSS_RESPONSE_TIMEOUT(
+      "gssResponseTimeout",
+      "5000",
+      "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
+
+
+  /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
    * granted from appearing in the DatabaseMetaData returned by the driver.
    */
@@ -317,8 +328,9 @@ public enum PGProperty {
 
   /**
    * This property is no longer used by the driver and will be ignored.
-   * Logging is configured via java.util.logging.
+   * @deprecated Logging is configured via java.util.logging.
    */
+  @Deprecated
   LOGGER_FILE(
       "loggerFile",
       null,
@@ -326,8 +338,9 @@ public enum PGProperty {
 
   /**
    * This property is no longer used by the driver and will be ignored.
-   * Logging is configured via java.util.logging.
+   * @deprecated Logging is configured via java.util.logging.
    */
+  @Deprecated
   LOGGER_LEVEL(
       "loggerLevel",
       null,
@@ -342,7 +355,7 @@ public enum PGProperty {
   LOGIN_TIMEOUT(
       "loginTimeout",
       "0",
-      "Specify how long to wait for establishment of a database connection."),
+      "Specify how long in seconds to wait for establishment of a database connection."),
 
   /**
    * Whether to include full server error detail in exception messages.
@@ -587,7 +600,7 @@ public enum PGProperty {
   SOCKET_TIMEOUT(
       "socketTimeout",
       "0",
-      "The timeout value used for socket read operations."),
+      "The timeout value in seconds max(2147484) used for socket read operations."),
 
   /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
@@ -607,7 +620,7 @@ public enum PGProperty {
       "The location of the client's SSL certificate"),
 
   /**
-   * Classname of the SSL Factory to use (instance of {@code javax.net.ssl.SSLSocketFactory}).
+   * Classname of the SSL Factory to use (instance of {@link javax.net.ssl.SSLSocketFactory}).
    */
   SSL_FACTORY(
       "sslfactory",
@@ -625,8 +638,7 @@ public enum PGProperty {
       "Argument forwarded to constructor of SSLSocketFactory class."),
 
   /**
-   * Classname of the SSL HostnameVerifier to use (instance of {@code
-   * javax.net.ssl.HostnameVerifier}).
+   * Classname of the SSL HostnameVerifier to use (instance of {@link javax.net.ssl.HostnameVerifier}).
    */
   SSL_HOSTNAME_VERIFIER(
       "sslhostnameverifier",
@@ -634,8 +646,8 @@ public enum PGProperty {
       "A class, implementing javax.net.ssl.HostnameVerifier that can verify the server"),
 
   /**
-   * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code
-   * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).
+   * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code $HOME/.postgresql} (*nix)
+   * or {@code %APPDATA%\postgresql} (windows).
    */
   SSL_KEY(
       "sslkey",
@@ -665,12 +677,12 @@ public enum PGProperty {
 
 
   /**
-   * The classname instantiating {@code javax.security.auth.callback.CallbackHandler} to use.
+   * The classname instantiating {@link javax.security.auth.callback.CallbackHandler} to use.
    */
   SSL_PASSWORD_CALLBACK(
       "sslpasswordcallback",
       null,
-      "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PassworCallback for the ssl password."),
+      "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PasswordCallback for the ssl password."),
 
   /**
    * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
@@ -760,7 +772,7 @@ public enum PGProperty {
    * Factory class to instantiate factories for XML processing.
    * The default factory disables external entity processing.
    * Legacy behavior with external entity processing can be enabled by specifying a value of LEGACY_INSECURE.
-   * Or specify a custom class that implements {@code org.postgresql.xml.PGXmlFactoryFactory}.
+   * Or specify a custom class that implements {@link org.postgresql.xml.PGXmlFactoryFactory}.
    */
   XML_FACTORY_FACTORY(
       "xmlFactoryFactory",
@@ -792,7 +804,7 @@ public enum PGProperty {
     this.choices = choices;
   }
 
-  private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<String, PGProperty>();
+  private static final Map<String, PGProperty> PROPS_BY_NAME = new HashMap<>();
 
   static {
     for (PGProperty prop : PGProperty.values()) {
@@ -849,18 +861,40 @@ public enum PGProperty {
   }
 
   /**
-   * Returns the value of the connection parameters according to the given {@code Properties} or the
+   * Returns the value of the connection parameter from the given {@link Properties} or the
    * default value.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter
    */
-  public @Nullable String get(Properties properties) {
+  public @Nullable String getOrDefault(Properties properties) {
     return properties.getProperty(name, defaultValue);
   }
 
   /**
-   * Set the value for this connection parameter in the given {@code Properties}.
+   * Returns the value of the connection parameter from the given {@link Properties} or the
+   * default value
+   * @param properties properties to take actual value from
+   * @return evaluated value for this connection parameter or null
+   * @deprecated use {@link #getOrDefault(Properties)} instead
+   */
+  @Deprecated
+  public @Nullable String get(Properties properties) {
+    return getOrDefault(properties);
+  }
+
+  /**
+   * Returns the value of the connection parameter from the given {@link Properties} or null if there
+   * is no default value
+   * @param properties properties object to get value from
+   * @return evaluated value for this connection parameter
+   */
+  public @Nullable String getOrNull(Properties properties) {
+    return properties.getProperty(name);
+  }
+
+  /**
+   * Set the value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value value for this connection parameter
@@ -874,17 +908,17 @@ public enum PGProperty {
   }
 
   /**
-   * Return the boolean value for this connection parameter in the given {@code Properties}.
+   * Return the boolean value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to boolean
    */
   public boolean getBoolean(Properties properties) {
-    return Boolean.parseBoolean(get(properties));
+    return Boolean.parseBoolean(getOrDefault(properties));
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}. Prefer the
+   * Return the int value for this connection parameter in the given {@link Properties}. Prefer the
    * use of {@link #getInt(Properties)} anywhere you can throw an {@link java.sql.SQLException}.
    *
    * @param properties properties to take actual value from
@@ -893,13 +927,13 @@ public enum PGProperty {
    */
   @SuppressWarnings("nullness:argument.type.incompatible")
   public int getIntNoCheck(Properties properties) {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     //noinspection ConstantConditions
     return Integer.parseInt(value);
   }
 
   /**
-   * Return the int value for this connection parameter in the given {@code Properties}.
+   * Return the int value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to int
@@ -907,7 +941,7 @@ public enum PGProperty {
    */
   @SuppressWarnings("nullness:argument.type.incompatible")
   public int getInt(Properties properties) throws PSQLException {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     try {
       //noinspection ConstantConditions
       return Integer.parseInt(value);
@@ -918,14 +952,14 @@ public enum PGProperty {
   }
 
   /**
-   * Return the {@code Integer} value for this connection parameter in the given {@code Properties}.
+   * Return the {@link Integer} value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties to take actual value from
    * @return evaluated value for this connection parameter converted to Integer or null
    * @throws PSQLException if unable to parse property as integer
    */
   public @Nullable Integer getInteger(Properties properties) throws PSQLException {
-    String value = get(properties);
+    String value = getOrDefault(properties);
     if (value == null) {
       return null;
     }
@@ -938,7 +972,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the boolean value for this connection parameter in the given {@code Properties}.
+   * Set the boolean value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value boolean value for this connection parameter
@@ -948,7 +982,7 @@ public enum PGProperty {
   }
 
   /**
-   * Set the int value for this connection parameter in the given {@code Properties}.
+   * Set the int value for this connection parameter in the given {@link Properties}.
    *
    * @param properties properties in which the value should be set
    * @param value int value for this connection parameter
@@ -958,7 +992,7 @@ public enum PGProperty {
   }
 
   /**
-   * Test whether this property is present in the given {@code Properties}.
+   * Test whether this property is present in the given {@link Properties}.
    *
    * @param properties set of properties to check current in
    * @return true if the parameter is specified in the given properties
@@ -968,14 +1002,14 @@ public enum PGProperty {
   }
 
   /**
-   * Convert this connection parameter and the value read from the given {@code Properties} into a
-   * {@code DriverPropertyInfo}.
+   * Convert this connection parameter and the value read from the given {@link Properties} into a
+   * {@link DriverPropertyInfo}.
    *
    * @param properties properties to take actual value from
    * @return a DriverPropertyInfo representing this connection parameter
    */
   public DriverPropertyInfo toDriverPropertyInfo(Properties properties) {
-    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(name, get(properties));
+    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(name, getOrDefault(properties));
     propertyInfo.required = required;
     propertyInfo.description = description;
     propertyInfo.choices = choices;

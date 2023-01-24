@@ -1,0 +1,7 @@
+# See https://docs.github.com/en/repositories/working-with-files/using-files/viewing-a-file#ignore-commits-in-the-blame-view
+# pgjindent jdbc files.  First time jdbc files were formatted.
+72a1e406d24746a658be7672b311a73bb3d815a3
+# Indent source code with: astyle -j -p --convert-tabs
+c1a939f6e27cb9e22a82e80341ec48d668bf90df
+# style: reformat code to fix checkstyle violations
+8f1c9d7bd48de29e3d6dabd0489520ec49d83b25

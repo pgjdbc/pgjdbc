@@ -80,6 +80,10 @@ public class BigDecimalByteConverterTest {
 
   @Test
   public void testBinary() {
+    testBinary(number);
+  }
+
+  static void testBinary(BigDecimal number) {
     final byte[] bytes = ByteConverter.numeric(number);
     final BigDecimal actual = (BigDecimal) ByteConverter.numeric(bytes);
     if (number.scale() >= 0) {

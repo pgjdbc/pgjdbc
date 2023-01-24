@@ -1,0 +1,16 @@
+{{ define "main" }}
+<article class="container">
+    <h1>
+        <img src="{{"/icons/changelogs.svg" | relURL}}" alt="changelogs">
+        {{ .Title }}
+    </h1>
+    {{ range .Data.Pages.ByDate.Reverse }}
+    <ul>
+        <li>
+            <h5>{{.Title}}</h5>
+            <a href="{{.Permalink}}"> NOTES</a>
+        </li>
+    </ul>
+    {{ end }}
+</article>
+{{ end }}

@@ -24,12 +24,13 @@ import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.security.auth.Subject;
 
-class GssAction implements PrivilegedAction<@Nullable Exception> {
+class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Nullable Exception> {
 
   private static final Logger LOGGER = Logger.getLogger(GssAction.class.getName());
   private final PGStream pgStream;
@@ -167,5 +168,10 @@ class GssAction implements PrivilegedAction<@Nullable Exception> {
           gsse);
     }
     return null;
+  }
+
+  @Override
+  public @Nullable Exception call() throws Exception {
+    return run();
   }
 }

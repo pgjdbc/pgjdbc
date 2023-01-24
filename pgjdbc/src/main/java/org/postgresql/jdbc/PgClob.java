@@ -42,7 +42,7 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
 
   public synchronized java.io.Writer setCharacterStream(long pos) throws SQLException {
     checkFreed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacteStream(long)");
+    throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(long)");
   }
 
   public synchronized InputStream getAsciiStream() throws SQLException {

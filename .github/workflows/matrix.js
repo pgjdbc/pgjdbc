@@ -1,6 +1,8 @@
 // The script generates a random subset of valid jdk, os, timezone, and other axes.
 // You can preview the results by running "node matrix.js"
 // See https://github.com/vlsi/github-actions-random-matrix
+let fs = require('fs');
+let os = require('os');
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
 
@@ -199,7 +201,9 @@ matrix.setNamePattern([
 matrix.exclude(row => row.ssl.value === 'yes' && isLessThan(row.pg_version, '9.3'));
 matrix.exclude(row => row.scram.value === 'yes' && isLessThan(row.pg_version, '10'));
 matrix.exclude(row => row.replication.value === 'yes' && isLessThan(row.pg_version, '9.6'));
-
+//org.postgresql.test.jdbc2.ArrayTest fails using simple mode for versions less than 9.0 with malformed Array literal
+matrix.exclude( row => row.query_mode.value == 'simple' && isLessThan(row.pg_version, '9.1'));
+//matrix.exclude({query_mode: {value: 'simple'}, pg_version: '8.4'});
 // Microsoft Java has no distribution for 8
 matrix.exclude({java_distribution: 'microsoft', java_version: '8'});
 matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest', 'self-hosted']})
@@ -235,6 +239,14 @@ if (include.length === 0) {
   throw new Error('Matrix list is empty');
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+include.forEach(v => {
+    let gradleArgs = [];
+    if (v.java_version == 11) {
+        // JavaDoc 11 can't parse package annotations: https://bugs.openjdk.org/browse/JDK-8222091
+        gradleArgs.push('-PskipJavadoc')
+    }
+    v.extraGradleArgs = gradleArgs.join(' ');
+});
 include.forEach(v => {
   let jvmArgs = [];
   v.replication = v.replication.value;
@@ -300,4 +312,10 @@ include.forEach(v => {
 });
 
 console.log(include);
-console.log('::set-output name=matrix::' + JSON.stringify({include}));
+
+let filePath = process.env['GITHUB_OUTPUT'] || '';
+if (filePath) {
+    fs.appendFileSync(filePath, `matrix<<MATRIX_BODY${os.EOL}${JSON.stringify({include})}${os.EOL}MATRIX_BODY${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}

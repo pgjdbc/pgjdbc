@@ -49,12 +49,12 @@ public class PGPropertyUtil {
    */
   public static boolean propertiesConsistencyCheck(Properties properties) {
     //
-    String hosts = PGProperty.PG_HOST.get(properties);
+    String hosts = PGProperty.PG_HOST.getOrDefault(properties);
     if (hosts == null) {
       LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.PG_HOST.getName());
       return false;
     }
-    String ports = PGProperty.PG_PORT.get(properties);
+    String ports = PGProperty.PG_PORT.getOrDefault(properties);
     if (ports == null) {
       LOGGER.log(Level.WARNING, "Property [{0}] can not be null", PGProperty.PG_PORT.getName());
       return false;

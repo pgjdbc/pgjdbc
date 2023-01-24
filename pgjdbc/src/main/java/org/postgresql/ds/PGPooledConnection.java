@@ -109,7 +109,7 @@ public class PGPooledConnection implements PooledConnection {
   /**
    * Gets a handle for a client to use. This is a wrapper around the physical connection, so the
    * client can call close and it will just return the connection to the pool without really closing
-   * the pgysical connection.
+   * the physical connection.
    *
    * <p>
    * According to the JDBC 2.0 Optional Package spec (6.2.3), only one client may have an active

@@ -59,7 +59,7 @@ val paxLocalCacheRepository = layout.buildDirectory.dir("pax-repo")
 
 val cleanCachedPgjdbc by tasks.registering(Delete::class) {
     description =
-        "Removes cached postrgresql.jar from pax-repo folder so pax-exam always resolves the recent one"
+        "Removes cached postgresql.jar from pax-repo folder so pax-exam always resolves the recent one"
     delete(paxLocalCacheRepository.map { it.dir("org/postgresql") })
 }
 

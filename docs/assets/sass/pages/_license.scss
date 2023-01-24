@@ -1,0 +1,9 @@
+.license {
+    margin-block: var(--container-spacing);
+
+    &__page {
+        padding: var(--primary-spacing);
+        border: 2px solid var(--clr-indigo);
+        box-shadow: 10px 10px var(--clr-primary-100);
+    }
+}

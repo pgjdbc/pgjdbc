@@ -1,0 +1,39 @@
+.toc {
+    width: 20%;
+    padding-top: 0.1rem;
+    align-self: start;
+    position: sticky;
+    top: 9rem;
+
+    &__head {
+        margin-bottom: 0.8em;
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    nav {
+        border-left: 1px solid var(--clr-neutral-300);
+        overflow-y: auto;
+        max-height: calc(100vh - 9rem);
+    }
+
+    ul {
+        list-style: none;
+        font-size: 0.9rem;
+        margin: 0.5rem;
+        padding: 0;
+        padding-left: 0.25rem;
+
+        li:not(last-child) {
+            margin-bottom: 0.125em;
+        }
+    }
+
+    a {
+        text-decoration: none;
+    }
+
+    @include mq-max(medium) {
+        display: none;
+    }
+}

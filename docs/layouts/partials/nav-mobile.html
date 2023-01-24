@@ -1,0 +1,25 @@
+<div class="globalmenu mobilemenu dn">
+    <ul role="list">
+        {{ range .Site.Menus.global }}
+        <li role="listitem" class="hover-bg-black">
+            <a href="{{ .URL }}" title="{{ .Title }}">
+                {{ .Name }}</a>
+        </li>
+        {{ end }}
+    </ul>
+</div>
+<div class="docsmenu mobilemenu dn">
+    <ul role="list">
+        {{ range .Site.Menus.docs.ByWeight }}
+        <li role="listitem" class="hover-bg-black">
+            <a href="{{ .URL }}">
+                {{.Name }}
+            </a>
+        </li>
+        {{- end}}
+    </ul>
+</div>
+<div class="nav-inside">
+    <button class="js-toggle db btn" data-target=".globalmenu">Main Menu</button>
+    <button class="js-toggle db btn" data-target=".docsmenu">Docs Menu</button>
+</div>

@@ -167,7 +167,7 @@ public class Utils {
    * <p>The yy or zz version parts may be larger than 99. A NumberFormatException is thrown if a
    * version part is out of range.</p>
    *
-   * @param serverVersion server vertion in a XXYYZZ form
+   * @param serverVersion server version in a XXYYZZ form
    * @return server version in number form
    * @deprecated use specific {@link Version} instance
    */

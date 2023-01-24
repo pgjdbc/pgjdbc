@@ -493,7 +493,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    // Version 7.2 supports BinaryStream for for the PG bytea type
+    // Version 7.2 supports BinaryStream for the PG bytea type
     // As the spec/javadoc for this method indicate this is to be used for
     // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
     // long binary datatype, but with toast the bytea datatype is capable of
@@ -739,18 +739,31 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  private Class<?> getArrayType(Class<?> type) {
+    Class<?> subType = type.getComponentType();
+    while (subType != null) {
+      type = subType;
+      subType = type.getComponentType();
+    }
+    return type;
+  }
+
   private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
     final ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
 
     final TypeInfo typeInfo = connection.getTypeInfo();
 
-    final int oid = arraySupport.getDefaultArrayTypeOid();
+    int oid = arraySupport.getDefaultArrayTypeOid();
 
     if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
     } else {
       if (oid == Oid.UNSPECIFIED) {
-        throw new SQLFeatureNotSupportedException();
+        Class<?> arrayType = getArrayType(in.getClass());
+        oid = typeInfo.getJavaArrayType(arrayType.getName());
+        if (oid == Oid.UNSPECIFIED) {
+          throw new SQLFeatureNotSupportedException();
+        }
       }
       final int baseOid = typeInfo.getPGArrayElement(oid);
       final String baseType = castNonNull(typeInfo.getPGType(baseOid));
@@ -1265,7 +1278,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    // Version 7.2 supports CharacterStream for for the PG text types
+    // Version 7.2 supports CharacterStream for the PG text types
     // As the spec/javadoc for this method indicate this is to be used for
     // large text values (i.e. LONGVARCHAR) PG doesn't have a separate
     // long varchar datatype, but with toast all the text datatypes are capable of

@@ -37,7 +37,7 @@ public class DateStyleTest extends BaseTest4 {
   }
 
   @Test
-  public void conenct() throws SQLException {
+  public void connect() throws SQLException {
     Statement st = con.createStatement();
     try {
       st.execute("set DateStyle='" + dateStyle + "'");

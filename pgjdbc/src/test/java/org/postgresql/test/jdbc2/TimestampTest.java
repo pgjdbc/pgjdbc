@@ -38,7 +38,7 @@ import java.util.TimeZone;
 
 /*
  * Test get/setTimestamp for both timestamp with time zone and timestamp without time zone datatypes
- * TODO: refactor to a property-based testing or paremeterized testing somehow so adding new times
+ * TODO: refactor to a property-based testing or parameterized testing somehow so adding new times
  *  don't require to add constants and setters/getters. JUnit 5 would probably help here.
  */
 @RunWith(Parameterized.class)

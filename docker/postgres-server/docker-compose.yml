@@ -22,7 +22,7 @@ services:
       - FSYNC=${FSYNC:-no}
       - SYNC_COMMIT=${SYNC_COMMIT:-yes}
       - FULL_PAGE_WRITES=${FULL_PAGE_WRITES:-no}
-      - AUTO_VACCUUM=${AUTO_VACCUUM:-no}
+      - AUTO_VACUUM=${AUTO_VACUUM:-no}
       - TRACK_COUNTS=${TRACK_COUNTS:-no}
       - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
       - POSTGRES_USER=postgres

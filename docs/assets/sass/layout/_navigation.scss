@@ -1,0 +1,126 @@
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--primary-spacing) var(--container-spacing);
+  box-shadow: 0px 3px 3px hsla(0, 0%, 0%, 0.15);
+  background-color: var(--clr-white);
+
+  .logo {
+    width: 45px;
+    aspect-ratio: 1;
+  }
+
+  &__item {
+    display: flex;
+
+    &__link {
+      color: var(--clr-indigo);
+      text-decoration: none;
+      font-size: 1.25rem;
+      position: relative;
+      font-weight: 600;
+      margin-inline: var(--primary-spacing);
+
+      &--active {
+        color: var(--clr-primary-400);
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        transform: scaleX(0);
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background-color: var(--clr-primary-100);
+        transform-origin: bottom right;
+        transition: transform 0.25s ease-out;
+      }
+
+      &:hover {
+        color: var(--clr-indigo);
+      }
+
+      &:hover::after {
+        transform: scaleX(1);
+        transform-origin: bottom left;
+      }
+    }
+
+    @include mq-max(medium) {
+      display: none;
+    }
+  }
+}
+
+.db {
+  display: block;
+}
+
+.dn {
+  display: none;
+}
+
+.nav-mob {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--clr-indigo);
+
+  ul,
+  li {
+    margin: 0;
+    padding: 0.5em;
+  }
+
+  li {
+    // margin-block: 1em;
+    width: 100%;
+    display: block;
+    text-align: left;
+    // padding: 0.5em;
+  }
+
+  .hover-bg-black:hover {
+    background-color: var(--clr-black);
+
+  }
+
+  a {
+    text-decoration: none;
+    color: var(--clr-white);
+
+
+  }
+
+  padding: 1em 2em;
+
+  @include mq-min(medium) {
+    display: none;
+
+  }
+}
+
+.nav-inside {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+
+  .btn {
+    border-style: none;
+    border: 1px solid var(--clr-white);
+    background-color: transparent;
+    color: var(--clr-white);
+    border-radius: 0;
+    width: auto;
+    flex: 1 1 auto;
+    margin-inline: 0.25em;
+  }
+}

@@ -807,7 +807,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
               startTime = newTimeMillis;
               if (timeoutMillis == 0) {
-                timeoutMillis = -1; // Don't accidentially wait forever
+                timeoutMillis = -1; // Don't accidentally wait forever
               }
             }
             break;
@@ -1683,7 +1683,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // be received from a client. If we have a bigger value
     // from either very large parameters or incorrect length
     // descriptions of setXXXStream we do not send the bind
-    // messsage.
+    // message.
     //
     if (encodedSize > 0x3fffffff) {
       throw new PGBindException(new IOException(GT.tr(

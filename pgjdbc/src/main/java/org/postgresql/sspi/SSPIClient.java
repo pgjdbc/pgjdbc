@@ -129,7 +129,7 @@ public class SSPIClient implements ISSPIClient {
   public void startSSPI() throws SQLException, IOException {
 
     /*
-     * We usually use SSPI negotiation (spnego), but it's disabled if the client asked for GSSPI and
+     * We usually use SSPI negotiation (spnego), but it's disabled if the client asked for GSSAPI and
      * usespngo isn't explicitly turned on.
      */
     final String securityPackage = enableNegotiate ? "negotiate" : "kerberos";

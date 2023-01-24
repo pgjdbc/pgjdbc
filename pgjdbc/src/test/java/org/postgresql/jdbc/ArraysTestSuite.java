@@ -24,7 +24,8 @@ import org.junit.runners.Suite;
     LongObjectArraysTest.class,
     ShortArraysTest.class,
     ShortObjectArraysTest.class,
-    StringArraysTest.class
+    StringArraysTest.class,
+    UUIDArrayTest.class
 })
 public class ArraysTestSuite {
 }

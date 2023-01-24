@@ -29,7 +29,7 @@ dependencies {
 }
 
 // See https://github.com/melix/jmh-gradle-plugin
-// Unfortunately, current jmh-gradle-plugin does not allow to cusomize jmh parameters from the
+// Unfortunately, current jmh-gradle-plugin does not allow to customize jmh parameters from the
 // command line, so the workarounds are:
 // a) Build and execute the jar itself: ./gradlew jmhJar && java -jar build/libs/calcite-...jar JMH_OPTIONS
 // b) Execute benchmarks via .main() methods from IDE (you might want to activate "power save mode"

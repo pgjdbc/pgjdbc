@@ -192,7 +192,7 @@ public class DriverTest {
       // consume service
       Resources.with(
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), tempFile.toString(), PGEnvironment.PGSYSCONFDIR.getName(), ""),
-          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
       ).execute(() -> {
         //
         // testing that properties overriding priority is correct (POSITIVE cases)
@@ -276,7 +276,7 @@ public class DriverTest {
       // ignore pg_service.conf, use .pgpass
       Resources.with(
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
-          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent",
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent",
               PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), tempPgPassFile.toString())
       ).execute(() -> {
         // password from .pgpass (correct)
@@ -496,12 +496,6 @@ public class DriverTest {
   public void testSystemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
     TestUtil.initDriver();
     PrintStream err = System.err;
-    String loggerLevel = System.getProperty("loggerLevel");
-    String loggerFile = System.getProperty("loggerFile");
-
-    System.clearProperty("loggerLevel");
-    System.clearProperty("loggerFile");
-    System.setProperty("loggerLevel", "INFO");
     PrintStream buffer = new PrintStream(new ByteArrayOutputStream());
     System.setErr(buffer);
     try {
@@ -520,8 +514,6 @@ public class DriverTest {
         con.close();
       }
     } finally {
-      System.setProperty("loggerLevel", loggerLevel);
-      System.setProperty("loggerFile", loggerFile);
       System.setErr(err);
     }
   }

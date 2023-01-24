@@ -40,7 +40,7 @@ plugins {
 
 fun reportsForHumans() = !(System.getenv()["CI"]?.toBoolean() ?: props.bool("CI"))
 
-val lastEditYear = 2020 // TODO: by extra(lastEditYear("$rootDir/LICENSE"))
+val lastEditYear = 2023 // TODO: by extra(lastEditYear("$rootDir/LICENSE"))
 
 // Do not enable spotbugs by default. Execute it only when -Pspotbugs is present
 val enableSpotBugs = props.bool("spotbugs", default = false)
@@ -348,7 +348,9 @@ allprojects {
                 header = "<b>PostgreSQL JDBC</b>"
                 bottom =
                     "Copyright &copy; 1997-$lastEditYear PostgreSQL Global Development Group. All Rights Reserved."
-                if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
+                if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+                    addBooleanOption("html5", true)
+                } else if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
                     links("https://docs.oracle.com/javase/9/docs/api/")
                 } else {

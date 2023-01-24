@@ -1,0 +1,17 @@
+{{ $currentPage := printf "%s" "/" | printf "%s%s" .Section | printf "%s%s" "/" | printf "%s"}}
+
+<nav class="navbar" role="navigation">
+
+    <a href="{{.Site.BaseURL | relLangURL }}" id="host">
+        <img class="logo" src="{{"/icons/postgreslogo.svg" | relURL}}"  alt="logo" />
+    </a>
+
+    <div class="navbar__item">
+        {{ range .Site.Menus.global }}
+        <a href="{{ .URL }}" title="{{ .Title }}" class="navbar__item__link {{ if eq $currentPage .URL }} navbar__item__link--active {{end}}">{{ .Name }}</a>
+        {{ end }}
+    </div>
+
+    {{ partial "search.html" . }}
+
+</nav>

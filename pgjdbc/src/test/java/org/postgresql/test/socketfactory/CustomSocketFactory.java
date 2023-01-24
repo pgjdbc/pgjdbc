@@ -21,7 +21,7 @@ public class CustomSocketFactory extends SocketFactory {
 
   public CustomSocketFactory(String argument) {
     if (instance != null) {
-      throw new IllegalStateException("Test failed, multiple custom socket factory instanciation");
+      throw new IllegalStateException("Test failed, multiple custom socket factory instantiation");
     }
     instance = this;
     this.argument = argument;

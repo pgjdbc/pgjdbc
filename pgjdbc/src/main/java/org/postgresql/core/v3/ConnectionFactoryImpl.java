@@ -61,6 +61,29 @@ import javax.net.SocketFactory;
  */
 public class ConnectionFactoryImpl extends ConnectionFactory {
 
+  private static class StartupParam {
+    private final String key;
+    private final String value;
+
+    StartupParam(String key, String value) {
+      this.key = key;
+      this.value = value;
+    }
+
+    @Override
+    public String toString() {
+      return this.key + "=" + this.value;
+    }
+
+    public byte[] getEncodedKey() {
+      return this.key.getBytes(StandardCharsets.UTF_8);
+    }
+
+    public byte[] getEncodedValue() {
+      return this.value.getBytes(StandardCharsets.UTF_8);
+    }
+  }
+
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
   private static final int AUTH_REQ_KRB4 = 1;
@@ -97,8 +120,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SslMode sslMode, GSSEncMode gssEncMode)
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
-    String user = PGProperty.USER.get(info);
-    String database = PGProperty.PG_DBNAME.get(info);
+    String user = PGProperty.USER.getOrDefault(info);
+    String database = PGProperty.PG_DBNAME.getOrDefault(info);
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }
@@ -114,7 +137,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         newStream.setNetworkTimeout(socketTimeout * 1000);
       }
 
-      String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.get(info);
+      String maxResultBuffer = PGProperty.MAX_RESULT_BUFFER.getOrDefault(info);
       newStream.setMaxResultBuffer(maxResultBuffer);
 
       // Enable TCP keep-alive probe if required.
@@ -173,7 +196,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         newStream.setNetworkTimeout(socketTimeout * 1000);
       }
 
-      List<String[]> paramList = getParametersForStartup(user, database, info);
+      List<StartupParam> paramList = getParametersForStartup(user, database, info);
       sendStartupPacket(newStream, paramList);
 
       // Do authentication (until AuthenticationOk).
@@ -192,7 +215,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
     HostRequirement targetServerType;
-    String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.get(info));
+    String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.getOrDefault(info));
     try {
       targetServerType = HostRequirement.getTargetServerType(targetServerTypeStr);
     } catch (IllegalArgumentException ex) {
@@ -347,41 +370,41 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private List<String[]> getParametersForStartup(String user, String database, Properties info) {
-    List<String[]> paramList = new ArrayList<String[]>();
-    paramList.add(new String[]{"user", user});
-    paramList.add(new String[]{"database", database});
-    paramList.add(new String[]{"client_encoding", "UTF8"});
-    paramList.add(new String[]{"DateStyle", "ISO"});
-    paramList.add(new String[]{"TimeZone", createPostgresTimeZone()});
+  private List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+    List<StartupParam> paramList = new ArrayList<>();
+    paramList.add(new StartupParam("user", user));
+    paramList.add(new StartupParam("database", database));
+    paramList.add(new StartupParam("client_encoding", "UTF8"));
+    paramList.add(new StartupParam("DateStyle", "ISO"));
+    paramList.add(new StartupParam("TimeZone", createPostgresTimeZone()));
 
-    Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.get(info));
+    Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
     if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
       // User is explicitly telling us this is a 9.0+ server so set properties here:
-      paramList.add(new String[]{"extra_float_digits", "3"});
-      String appName = PGProperty.APPLICATION_NAME.get(info);
+      paramList.add(new StartupParam("extra_float_digits", "3"));
+      String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
       if (appName != null) {
-        paramList.add(new String[]{"application_name", appName});
+        paramList.add(new StartupParam("application_name", appName));
       }
     } else {
       // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-      paramList.add(new String[]{"extra_float_digits", "2"});
+      paramList.add(new StartupParam("extra_float_digits", "2"));
     }
 
-    String replication = PGProperty.REPLICATION.get(info);
+    String replication = PGProperty.REPLICATION.getOrDefault(info);
     if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
-      paramList.add(new String[]{"replication", replication});
+      paramList.add(new StartupParam("replication", replication));
     }
 
-    String currentSchema = PGProperty.CURRENT_SCHEMA.get(info);
+    String currentSchema = PGProperty.CURRENT_SCHEMA.getOrDefault(info);
     if (currentSchema != null) {
-      paramList.add(new String[]{"search_path", currentSchema});
+      paramList.add(new StartupParam("search_path", currentSchema));
     }
 
-    String options = PGProperty.OPTIONS.get(info);
+    String options = PGProperty.OPTIONS.getOrDefault(info);
     if (options != null) {
-      paramList.add(new String[]{"options", options});
+      paramList.add(new StartupParam("options", options));
     }
 
     return paramList;
@@ -453,13 +476,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /*
     let's see if the server will allow a GSS encrypted connection
      */
-    String user = PGProperty.USER.get(info);
+    String user = PGProperty.USER.getOrDefault(info);
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
     }
 
     // attempt to acquire a GSS encrypted connection
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
+
+    int gssTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
+    int currentTimeout = pgStream.getNetworkTimeout();
+
+    // if the current timeout is less than sslTimeout then
+    // use the smaller timeout. We could do something tricky
+    // here to not set it in that case but this is pretty readable
+    if (currentTimeout > 0 && currentTimeout < gssTimeout) {
+      gssTimeout = currentTimeout;
+    }
+
+    pgStream.setNetworkTimeout(gssTimeout);
 
     // Send GSSEncryption request packet
     pgStream.sendInteger4(8);
@@ -468,6 +503,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
+    pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
       case 'E':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
@@ -498,8 +534,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         try {
           AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
             org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
-                PGProperty.JAAS_APPLICATION_NAME.get(info),
-                PGProperty.KERBEROS_SERVER_NAME.get(info), false, // TODO: fix this
+                PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
+                PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), false, // TODO: fix this
                 PGProperty.JAAS_LOGIN.getBoolean(info),
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
@@ -533,7 +569,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
     int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
-    int currentTimeout = pgStream.getSocket().getSoTimeout();
+    int currentTimeout = pgStream.getNetworkTimeout();
 
     // if the current timeout is less than sslTimeout then
     // use the smaller timeout. We could do something tricky
@@ -542,7 +578,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       sslTimeout = currentTimeout;
     }
 
-    pgStream.getSocket().setSoTimeout(sslTimeout);
+    pgStream.setNetworkTimeout(sslTimeout);
     // Send SSL request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);
@@ -551,7 +587,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Now get the response from the backend, one of N, E, S.
     int beresp = pgStream.receiveChar();
-    pgStream.getSocket().setSoTimeout(currentTimeout);
+    pgStream.setNetworkTimeout(currentTimeout);
 
     switch (beresp) {
       case 'E':
@@ -590,7 +626,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, List<String[]> params)
+  private void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -598,9 +634,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         if (i != 0) {
           details.append(", ");
         }
-        details.append(params.get(i)[0]);
-        details.append("=");
-        details.append(params.get(i)[1]);
+        details.append(params.get(i).toString());
       }
       LOGGER.log(Level.FINEST, " FE=> StartupPacket({0})", details);
     }
@@ -609,8 +643,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
     for (int i = 0; i < params.size(); ++i) {
-      encodedParams[i * 2] = params.get(i)[0].getBytes(StandardCharsets.UTF_8);
-      encodedParams[i * 2 + 1] = params.get(i)[1].getBytes(StandardCharsets.UTF_8);
+      encodedParams[i * 2] = params.get(i).getEncodedKey();
+      encodedParams[i * 2 + 1] = params.get(i).getEncodedValue();
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
     }
 
@@ -732,7 +766,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * GSSAPI and the other end isn't using Kerberos for SSPI then authentication will
                  * fail.
                  */
-                final String gsslib = PGProperty.GSS_LIB.get(info);
+                final String gsslib = PGProperty.GSS_LIB.getOrDefault(info);
                 final boolean usespnego = PGProperty.USE_SPNEGO.getBoolean(info);
 
                 boolean useSSPI = false;
@@ -749,7 +783,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                       "Using JSSE GSSAPI, gssapi requested by server and gsslib=sspi not forced");
                 } else {
                   /* Determine if SSPI is supported by the client */
-                  sspiClient = createSSPI(pgStream, PGProperty.SSPI_SERVICE_CLASS.get(info),
+                  sspiClient = createSSPI(pgStream, PGProperty.SSPI_SERVICE_CLASS.getOrDefault(info),
                       /* Use negotiation for SSPI, or if explicitly requested for GSS */
                       areq == AUTH_REQ_SSPI || (areq == AUTH_REQ_GSS && usespnego));
 
@@ -779,8 +813,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   /* Use JGSS's GSSAPI for this request */
                   AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
                     org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
-                        PGProperty.JAAS_APPLICATION_NAME.get(info),
-                        PGProperty.KERBEROS_SERVER_NAME.get(info), usespnego,
+                        PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
+                        PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), usespnego,
                         PGProperty.JAAS_LOGIN.getBoolean(info),
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
@@ -868,7 +902,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
-    String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.get(info);
+    String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
     if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
       // We already sent the parameter values in the StartupMessage so skip this
       return;
@@ -884,7 +918,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
-    String appName = PGProperty.APPLICATION_NAME.get(info);
+    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
     if (appName != null && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
       StringBuilder sql = new StringBuilder();
       sql.append("SET application_name = '");

@@ -1,0 +1,26 @@
+[[faq]]
+title = "New versioning policy"
+[[faq.item]]
+ans = "We have three issues we are trying to address here.<ol><li>We do not want to be tied to the server release schedule. Previously the version was based on the server release to declare some kind of compatibility, from 9.4.xxxx this was no longer the case and the increments was just in the last 4 digits, this leads us to the second issue. </li> <li> Avoid confusion as to which version to use with which server version. The naming scheme previously has 9.4 in it which leads people to believe it is for server version 9.4 only, when in fact it support PostgreSQL 8.2 and higher. That means that some users looking for PostgreSQL 9.5 were asking what is the version to use, and some users that still use PostgreSQL 8.4 were using the JDBC driver 8.4 Build 703. The driver is version agnostic for the most point so there is no reason to tie it to a specific server version. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. </li> <li> The previous version policy don't leave room for differentiate from bug fixes releases and feature releases.</li></ol>The new version policy will allow us to use more or less Semantic Versioning, and have a more clear understanding of the versions."
+ques = "Why the versioning change from 9.4.xxxx to 42.x.x?"
+[[faq.item]]
+ans = "42 was more or less chosen at random. But it is large enough to avoid any future conflicts with the server. Given current server project policies, server version 42 should come out in 2049, plus or minus a bit. Some say that 'The answer to the ultimate question of life, the universe and everything is 42.'"
+ques = "Why the number 42?"
+[[faq.item]]
+ans = "This release is not a rewrite of the driver, is not using a new architecture, nor is using something special, it's the continuation of the same driver following a better versioning policy."
+ques = "What is not the 42.0.0 release?"
+
+[[faq]]
+title = "XA"
+[[faq.item]]
+ans = "Yes, starting with the 8.1dev-403 driver. However, transaction interleaving is not supported."
+ques = "Does the driver have XA support?"
+[[faq.item]]
+ans = "Transaction interleaving means that one database connection can be used for multiple transactions at the same time, switching between the transactions. Transaction interleaving is mostly useless, but it's a required part of the JTA specification. Some application servers use it to allow a bit more concurrency without allocating a bigger jdbc connection pool. Few JDBC drivers support transaction interleaving properly. Some fake it by issuing early prepare commands, risking transaction integrity, some give strange error messages, some fail in other, subtle ways. The PostgreSQL JDBC driver does it's best to detect interleaving and throws a proper error message when it can't do what's requested. Because of the lack of driver support, all of the popular application servers provide options to work around it, or don't use it at all. Therefore, lack of transaction interleaving shouldn't affect your application or data integrity. See the JTA specification, section 3.4.4, or search the pgsql-jdbc mailing list archives for more information."
+ques = "What is 'transaction interleaving'?"
+
+[[faq]]
+title = "Problems"
+[[faq.item]]
+ans = "This is related to batched queries and synchronous TCP. The thing to look at is setting the network buffer sizes to use to large values to avoid the deadlock. The default values are machine dependent which also explains it working or not on different machines (credit to Kris Jurka)"
+ques = "executeBatch hangs without error Possible solutions"

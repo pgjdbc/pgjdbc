@@ -1,0 +1,20 @@
+<div class="card">
+    {{ range $ind, $ver := $.Site.Data.versions.recent }}
+    <div class="card__item">
+        <div class="card__title">{{$ver.j_name}}</div>
+        <div class="card__subtitle">{{$ver.version}}</div>
+        <p class="card__desc">{{$ver.description}}</p>
+        <button class="card__btn__left">
+            <a href="{{$ver.url}}" class="card__btn__left__link">Download</a>
+        </button>
+        <script class="maven" id="coordinates-{{$ind}}" type="application/xml">
+            <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</version>
+            </dependency>
+        </script>
+        <button class="card__btn__right" id="copyBtn-{{$ind}}" data="{{$ind}}">Copy Maven</button>
+    </div>
+    {{ end }}
+</div>

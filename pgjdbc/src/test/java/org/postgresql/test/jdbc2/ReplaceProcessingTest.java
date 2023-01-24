@@ -34,7 +34,7 @@ public class ReplaceProcessingTest extends BaseTest4 {
         {"{fn ifnull(?,?)}", "coalesce($1,$2)"},
         {"{fn database()}", "current_database()"},
         // Not yet supported
-        // {"{fn timestampadd(SQL_TSI_QUATER, ?, {fn now()})}", "(CAST( $1||' quater' as interval)+ now())"},
+        // {"{fn timestampadd(SQL_TSI_QUARTER, ?, {fn now()})}", "(CAST( $1||' quarter' as interval)+ now())"},
         // {"{fn timestampadd(SQL_TSI_FRAC_SECOND, ?, {fn now()})}", "(CAST( $1||' second' as interval)+ now())"},
     });
   }

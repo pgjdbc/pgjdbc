@@ -1,0 +1,111 @@
+### GLOBAL ITEMS
+
+[[global]]
+identifier = "download"
+name = "Download"
+url = "/download/"
+weight = 1
+
+[[global]]
+identifier = "document"
+name = "Documentation"
+url = "/documentation/"
+weight = 2
+
+[[global]]
+identifier = "community"
+name = "Community"
+url = "/community/"
+weight = 3
+
+[[global]]
+identifier = "development"
+name = "Development"
+url = "/development/"
+weight = 4
+
+[[global]]
+identifier = "changelogs"
+name = "Changelogs"
+url = "/changelogs/"
+weight = 5
+
+[[global]]
+identifier = "security"
+name = "Security"
+url = "/security/"
+weight = 6
+
+### DOCS ITEMS
+
+[[docs]]
+identifier = "setup"
+name = "Getting Started"
+url = "/documentation/setup/"
+weight = 2
+
+[[docs]]
+identifier = "use"
+name = "Initializing the Driver"
+url = "/documentation/use/"
+weight = 3
+
+[[docs]]
+identifier = "ssl"
+name = "Using SSL"
+url = "/documentation/ssl/"
+weight = 4
+
+[[docs]]
+identifier = "query"
+name = "Issuing a Query and Processing the Result"
+url = "/documentation/query/"
+weight = 5
+
+[[docs]]
+identifier = "callproc"
+name = "Calling Stored Functions and Procedures"
+url = "/documentation/callproc/"
+weight = 6
+
+[[docs]]
+identifier = "binary-data"
+name = "Storing Binary Data"
+url = "/documentation/binary-data/"
+weight = 7
+
+[[docs]]
+identifier = "escapes"
+name = "JDBC escapes"
+url = "/documentation/escapes/"
+weight = 8
+
+[[docs]]
+identifier = "server-prepare"
+name = "PostgreSQL™ Extensions to the JDBC API"
+url = "/documentation/server-prepare/"
+weight = 9
+
+[[docs]]
+identifier = "thread"
+name = "Using the Driver in a Multithreaded or a Servlet Environment"
+url = "/documentation/thread/"
+weight = 10
+
+[[docs]]
+identifier = "datasource"
+name = "Connection Pools and Data Sources"
+url = "/documentation/datasource/"
+weight = 11
+
+[[docs]]
+identifier = "logging"
+name = "Logging using java.util.logging"
+url = "/documentation/logging/"
+weight = 12
+
+[[docs]]
+identifier = "reading"
+name = "Further Reading"
+url = "/documentation/reading/"
+weight = 13
