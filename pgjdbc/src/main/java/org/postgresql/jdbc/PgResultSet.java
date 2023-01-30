@@ -236,6 +236,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         return getString(columnIndex);
       case Types.DATE:
         return getDate(columnIndex);
+      case Types.TIME_WITH_TIMEZONE:
       case Types.TIME:
         return getTime(columnIndex);
       case Types.TIMESTAMP_WITH_TIMEZONE:
