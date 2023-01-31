@@ -49,31 +49,37 @@ import java.util.Set;
 public class DatabaseMetaDataTest {
   private Connection con;
   private final BinaryMode binaryMode;
+  private final boolean sqlTypesWithTimezone;
 
-  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+  public DatabaseMetaDataTest(BinaryMode binaryMode, boolean sqlTypesWithTimezone) {
     this.binaryMode = binaryMode;
+    this.sqlTypesWithTimezone = sqlTypesWithTimezone;
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
+  @Parameterized.Parameters(name = "binary = {0}, sqlTypesWithTimezone = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
-      ids.add(new Object[]{binaryMode});
+      ids.add(new Object[]{binaryMode,true});
+      ids.add(new Object[]{binaryMode,false});
     }
     return ids;
   }
 
   @Before
   public void setUp() throws Exception {
+    final Properties props = new Properties();
+    if(this.sqlTypesWithTimezone){
+      PGProperty.SQL_TYPES_WITH_TIMEZONE.set(props,true);
+    }
     if (binaryMode == BinaryMode.FORCE) {
-      final Properties props = new Properties();
       PGProperty.PREPARE_THRESHOLD.set(props, -1);
       con = TestUtil.openDB(props);
     } else {
-      con = TestUtil.openDB();
+      con = TestUtil.openDB(props);
     }
     TestUtil.createTable(con, "metadatatest",
-        "id int4, name text, updated timestamptz, colour text, quest text");
+        "id int4, name text, updated timestamptz, updated_time timetz, colour text, quest text");
     TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -112,9 +118,9 @@ public class DatabaseMetaDataTest {
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz, OUT d timetz) AS $f$ BEGIN b := 'a'; c := now(); d := CURRENT_TIME return; END; $f$ LANGUAGE plpgsql");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
+        "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), CURRENT_TIME, ''c''::text, ''q''::text' LANGUAGE SQL");
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       // RETURNS TABLE requires PostgreSQL 8.4+
       stmt.execute(
@@ -270,7 +276,20 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
+    }else {
+      assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    }
+
+    assertTrue(rs.next());
+    assertEquals("metadatatest", rs.getString("TABLE_NAME"));
+    assertEquals("updated_time", rs.getString("COLUMN_NAME"));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIME_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
+    }else {
+      assertEquals(java.sql.Types.TIME, rs.getInt("DATA_TYPE"));
+    }
   }
 
   @Test
@@ -579,15 +598,19 @@ public class DatabaseMetaDataTest {
     assertEquals(2, rs.getInt("ORDINAL_POSITION"));
 
     assertTrue(rs.next());
-    assertEquals("quest", rs.getString("COLUMN_NAME"));
+    assertEquals("updated_time", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+
+    assertTrue(rs.next());
+    assertEquals("quest", rs.getString("COLUMN_NAME"));
+    assertEquals(4, rs.getInt("ORDINAL_POSITION"));
 
     rs.close();
 
     rs = dbmd.getColumns(null, null, "metadatatest", "quest");
     assertTrue(rs.next());
     assertEquals("quest", rs.getString("COLUMN_NAME"));
-    assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+    assertEquals(4, rs.getInt("ORDINAL_POSITION"));
     assertFalse(rs.next());
     rs.close();
 
@@ -962,7 +985,21 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("c", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
+    }else {
+      assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    }
+
+    assertTrue(rs.next());
+    assertEquals("d", rs.getString(4));
+    assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIME_WITH_TIMEZONE, rs.getInt(6));
+    }else {
+      assertEquals(Types.TIME, rs.getInt(6));
+    }
+
 
     rs.close();
   }
@@ -990,7 +1027,20 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
+    }else {
+      assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    }
+
+    assertTrue(rs.next());
+    assertEquals("updated_time", rs.getString(4));
+    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+    if(sqlTypesWithTimezone){
+      assertEquals(Types.TIME_WITH_TIMEZONE, rs.getInt(6));
+    }else {
+      assertEquals(Types.TIME, rs.getInt(6));
+    }
 
     assertTrue(rs.next());
     assertEquals("colour", rs.getString(4));

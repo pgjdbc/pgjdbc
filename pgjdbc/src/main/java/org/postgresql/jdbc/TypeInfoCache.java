@@ -99,13 +99,23 @@ public class TypeInfoCache implements TypeInfo {
       {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
       {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
       {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
-      {"timetz", Oid.TIMETZ, Types.TIME_WITH_TIMEZONE, "java.sql.Time", Oid.TIMETZ_ARRAY},
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP_WITH_TIMEZONE, "java.sql.Timestamp",
-          Oid.TIMESTAMPTZ_ARRAY},
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
       {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
+  };
+
+  // whether withTimeZone or noTimeZone types are used is controlled by the PGProperty SQL_TYPES_WITH_TIMEZONE
+  private static final Object[][] sqlTypesWithTimezone = {
+      {"timetz", Oid.TIMETZ, Types.TIME_WITH_TIMEZONE, "java.sql.Time", Oid.TIMETZ_ARRAY},
+      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP_WITH_TIMEZONE, "java.sql.Timestamp",
+          Oid.TIMESTAMPTZ_ARRAY}
+  };
+
+  private static final Object[][] sqlTypesNoTimezone = {
+      {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
+      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
+          Oid.TIMESTAMPTZ_ARRAY}
   };
 
   /**
@@ -137,23 +147,36 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @SuppressWarnings("method.invocation.invalid")
-  public TypeInfoCache(BaseConnection conn, int unknownLength) {
+  public TypeInfoCache(BaseConnection conn, int unknownLength,boolean sqlTypeWithTimezone) {
     this.conn = conn;
     this.unknownLength = unknownLength;
-    oidToPgName = new HashMap<Integer, String>((int) Math.round(types.length * 1.5));
-    pgNameToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
-    javaArrayTypeToOid = new HashMap<String, Integer>((int) Math.round(types.length * 1.5));
-    pgNameToJavaClass = new HashMap<String, String>((int) Math.round(types.length * 1.5));
-    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>((int) Math.round(types.length * 1.5));
-    pgArrayToPgType = new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5));
-    arrayOidToDelimiter = new HashMap<Integer, Character>((int) Math.round(types.length * 2.5));
+    final Object[][] timezoneTypes =  sqlTypeWithTimezone ? sqlTypesWithTimezone : sqlTypesNoTimezone;
+    final int typesLength = types.length + timezoneTypes.length;
+    oidToPgName = new HashMap<Integer, String>((int) Math.round(typesLength * 1.5));
+    pgNameToOid = new HashMap<String, Integer>((int) Math.round(typesLength * 1.5));
+    javaArrayTypeToOid = new HashMap<String, Integer>((int) Math.round(typesLength * 1.5));
+    pgNameToJavaClass = new HashMap<String, String>((int) Math.round(typesLength * 1.5));
+    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>((int) Math.round(typesLength * 1.5));
+    pgArrayToPgType = new HashMap<Integer, Integer>((int) Math.round(typesLength * 1.5));
+    arrayOidToDelimiter = new HashMap<Integer, Character>((int) Math.round(typesLength * 2.5));
 
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
-    pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
-    oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5)));
+    pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(typesLength * 1.5)));
+    oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(typesLength * 1.5)));
 
     for (Object[] type : types) {
+      String pgTypeName = (String) type[0];
+      Integer oid = (Integer) type[1];
+      Integer sqlType = (Integer) type[2];
+      String javaClass = (String) type[3];
+      Integer arrayOid = (Integer) type[4];
+
+      addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
+    }
+
+    // add timezone types
+    for (Object[] type : timezoneTypes) {
       String pgTypeName = (String) type[0];
       Integer oid = (Integer) type[1];
       Integer sqlType = (Integer) type[2];
