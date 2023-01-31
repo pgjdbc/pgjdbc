@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -109,6 +110,10 @@ public class BaseTest4 {
         preferQueryMode != PreferQueryMode.SIMPLE);
   }
 
+  public void assumeProceduresCanHaveOutArguments()  throws  SQLException {
+    assumeMinimumServerVersion("Procedures with OUT arguments are supported in version 14 and higher", ServerVersion.v14);
+  }
+  
   public void assumeBinaryModeRegular() {
     Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
   }

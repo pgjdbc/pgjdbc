@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc42;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -39,13 +40,15 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
                       + "declare ref refcursor;"
                       + "begin OPEN ref FOR SELECT 1; RETURN ref; end; ' LANGUAGE plpgsql;");
 
-      stmt.execute("CREATE OR replace PROCEDURE testcallstatment_proc(OUT result INTEGER)\n"
-          + "AS "
-          + "$_$ "
-          + "BEGIN"
-          + "  result := 42; "
-          + "END; "
-          + "$_$ LANGUAGE plpgsql");
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+        stmt.execute("CREATE OR replace PROCEDURE testcallstatment_proc(OUT result INTEGER)\n"
+            + "AS "
+            + "$_$ "
+            + "BEGIN"
+            + "  result := 42; "
+            + "END; "
+            + "$_$ LANGUAGE plpgsql");
+      }
     }
   }
 
@@ -55,7 +58,9 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
   @Override
   public void tearDown() throws SQLException {
     TestUtil.dropFunction(con, "testspg__getResultSetWithoutArg", null);
-    TestUtil.dropProcedure(con, "testcallstatment_proc" );
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+      TestUtil.dropProcedure(con, "testcallstatment_proc");
+    }
     super.tearDown();
   }
 
@@ -81,6 +86,7 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
   @Test
   public void testCastProcedure() throws SQLException {
     assumeCallableStatementsSupported();
+    assumeProceduresCanHaveOutArguments();
     try (CallableStatement stmt =
              con.prepareCall("call testcallstatment_proc(?)")) {
       stmt.setNull(1, Types.INTEGER);
@@ -111,7 +117,7 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testRegisterOutParameter() throws SQLException {
-
+    assumeProceduresCanHaveOutArguments();
     CallableStatement cs = null;
 
     cs = con.prepareCall("{ ? = call xxxx.yyyy (?,?,?,?)}");
