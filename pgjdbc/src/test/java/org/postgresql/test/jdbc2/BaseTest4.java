@@ -113,7 +113,7 @@ public class BaseTest4 {
   public void assumeProceduresCanHaveOutArguments()  throws  SQLException {
     assumeMinimumServerVersion("Procedures with OUT arguments are supported in version 14 and higher", ServerVersion.v14);
   }
-  
+
   public void assumeBinaryModeRegular() {
     Assume.assumeTrue(binaryMode == BinaryMode.REGULAR);
   }
