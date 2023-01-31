@@ -609,8 +609,8 @@ public enum PGProperty {
   SQL_TYPES_WITH_TIMEZONE(
       "sqlTypesWithTimezone",
       "false",
-      "Enable or disable mapping of PG types with TIMEZONE into SQL types with TIMEZONE."+
-          " The default is (@code false)"),
+      "Enable or disable mapping of PG types with TIMEZONE into SQL types with TIMEZONE."
+          + "The default is (@code false)"),
 
   /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
