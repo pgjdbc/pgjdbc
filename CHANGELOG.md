@@ -7,7 +7,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
 docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)
-Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
+docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
+feat: Define binary transfer for custom types dynamically/automatically fixes [Issue #2554](https://github.com/pgjdbc/pgjdbc/issues/2554) [PR #2556](https://github.com/pgjdbc/pgjdbc/pull/2556)
 ### Added
 fix: added gssResponseTimeout as part of [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687) to make sure we don't wait forever on a GSS RESPONSE
 ### Fixed
