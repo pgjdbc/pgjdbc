@@ -262,7 +262,7 @@ public abstract class AbstractArraysTest<A> {
 
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
-    private final TypeInfo typeInfo = new TypeInfoCache(this, -1);
+    private final TypeInfo typeInfo = new TypeInfoCache(this, -1,false);
 
     EncodingConnection(Encoding encoding) {
       this.encoding = encoding;

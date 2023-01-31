@@ -608,6 +608,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param enabled if PG types with TIMEZONE should map into SQL types with TIMEZONE
+   * @see PGProperty#SQL_TYPES_WITH_TIMEZONE
+   */
+  public void setSqlTypesWithTimezone(boolean enabled) {
+    PGProperty.SQL_TYPES_WITH_TIMEZONE.set(properties, enabled);
+  }
+
+  /**
+   * @return true if SQL types with TIMEZONE is enabled
+   * @see PGProperty#SQL_TYPES_WITH_TIMEZONE
+   */
+  public boolean getSqlTypesWithTimezone() {
+    return PGProperty.SQL_TYPES_WITH_TIMEZONE.getBoolean(properties);
+  }
+
+  /**
    * @param seconds timeout that is used for sending cancel command
    * @see PGProperty#CANCEL_SIGNAL_TIMEOUT
    */
