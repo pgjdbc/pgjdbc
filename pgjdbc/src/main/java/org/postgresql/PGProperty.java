@@ -624,7 +624,7 @@ public enum PGProperty {
    */
   SSL_FACTORY(
       "sslfactory",
-      null,
+      "org.postgresql.ssl.LibPQFactory",
       "Provide a SSLSocketFactory class when using SSL."),
 
   /**
