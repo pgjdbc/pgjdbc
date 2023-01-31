@@ -643,7 +643,7 @@ public class TestUtil {
   Drops a procedure
    */
   public static void dropProcedure(Connection con, String name ) throws SQLException {
-    dropObject(con, "PROCEDURE", name +"()");
+    dropObject(con, "PROCEDURE", name + "()");
   }
 
   private static void dropObject(Connection con, String type, String name) throws SQLException {
