@@ -14,7 +14,7 @@ name = "Github"
 url = "https://github.com/pgjdbc/pgjdbc"
 [[external.links]]
 name = "Slack"
-url = "https://postgres-slack.herokuapp.com/"
+url = "https://postgresteam.slack.com/"
 [[external.links]]
 name = "Twitter"
 url = "https://twitter.com/PostgreSQL"
