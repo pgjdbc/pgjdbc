@@ -108,6 +108,10 @@ public class PgConnection implements BaseConnection {
 
   private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
   private static final @Nullable MethodHandle SECURITY_MANAGER_CHECK_PERMISSION;
+  private static final int DEFAULT_ISOLATION_LEVEL = Connection.TRANSACTION_READ_COMMITTED;
+  private static final String DEFAULT_ISOLATION_LEVEL_NAME = "READ COMMITTED";
+  private static final String SESSION_ISOLATION_QUERY_BASE =
+      "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL ";
 
   static {
     MethodHandle systemGetSecurityManagerHandle = null;
@@ -135,6 +139,11 @@ public class PgConnection implements BaseConnection {
   private final ResourceLock lock = new ResourceLock();
   private final Condition lockCondition = lock.newCondition();
 
+  private enum TransactionIsolationBehavior {
+    transaction,
+    session
+  }
+
   //
   // Data initialized on construction:
   //
@@ -144,6 +153,8 @@ public class PgConnection implements BaseConnection {
   private final String creatingURL;
 
   private final ReadOnlyBehavior readOnlyBehavior;
+
+  private final TransactionIsolationBehavior transactionIsolationBehavior;
 
   private @Nullable Throwable openStackTrace;
 
@@ -196,6 +207,8 @@ public class PgConnection implements BaseConnection {
   private boolean autoCommit = true;
   // Connection's readonly state.
   private boolean readOnly;
+  // Transaction's isolation level.
+  private int isolationLevel = DEFAULT_ISOLATION_LEVEL;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private final boolean  hideUnprivilegedObjects ;
   // Whether to include error details in logging and exceptions
@@ -261,6 +274,8 @@ public class PgConnection implements BaseConnection {
     this.creatingURL = url;
 
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
+    this.transactionIsolationBehavior =
+        getTransactionIsolationBehavior(PGProperty.TRANSACTION_ISOLATION_MODE.get(info));
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
 
@@ -396,6 +411,18 @@ public class PgConnection implements BaseConnection {
         return ReadOnlyBehavior.valueOf(property.toLowerCase(Locale.US));
       } catch (IllegalArgumentException e2) {
         return ReadOnlyBehavior.transaction;
+      }
+    }
+  }
+
+  private static TransactionIsolationBehavior getTransactionIsolationBehavior(String property) {
+    try {
+      return TransactionIsolationBehavior.valueOf(property);
+    } catch (IllegalArgumentException e) {
+      try {
+        return TransactionIsolationBehavior.valueOf(property.toLowerCase(Locale.US));
+      } catch (IllegalArgumentException e2) {
+        return TransactionIsolationBehavior.session;
       }
     }
   }
@@ -934,6 +961,27 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public boolean isIsolationInTransactionMode() {
+    return transactionIsolationBehavior == TransactionIsolationBehavior.transaction;
+  }
+
+  @Override
+  public int addIsolationLevelFlags(int flags) {
+    int resultFlags = flags;
+    if (isolationLevel == Connection.TRANSACTION_READ_COMMITTED
+        || isolationLevel == Connection.TRANSACTION_SERIALIZABLE) {
+      resultFlags |= QueryExecutor.QUERY_ISOLATION_LEVEL_LOW;
+    }
+
+    if (isolationLevel == Connection.TRANSACTION_REPEATABLE_READ
+        || isolationLevel == Connection.TRANSACTION_SERIALIZABLE) {
+      resultFlags |= QueryExecutor.QUERY_ISOLATION_LEVEL_HIGH;
+    }
+
+    return resultFlags;
+  }
+
+  @Override
   public void setAutoCommit(boolean autoCommit) throws SQLException {
     checkClosed();
 
@@ -1036,34 +1084,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public int getTransactionIsolation() throws SQLException {
     checkClosed();
-
-    String level = null;
-    final ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
-    if (rs.next()) {
-      level = rs.getString(1);
-    }
-    rs.close();
-
-    // TODO revisit: throw exception instead of silently eating the error in unknown cases?
-    if (level == null) {
-      return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
-    }
-
-    level = level.toUpperCase(Locale.US);
-    if ("READ COMMITTED".equals(level)) {
-      return Connection.TRANSACTION_READ_COMMITTED;
-    }
-    if ("READ UNCOMMITTED".equals(level)) {
-      return Connection.TRANSACTION_READ_UNCOMMITTED;
-    }
-    if ("REPEATABLE READ".equals(level)) {
-      return Connection.TRANSACTION_REPEATABLE_READ;
-    }
-    if ("SERIALIZABLE".equals(level)) {
-      return Connection.TRANSACTION_SERIALIZABLE;
-    }
-
-    return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+    return this.isolationLevel;
   }
 
   @Override
@@ -1082,9 +1103,12 @@ public class PgConnection implements BaseConnection {
           PSQLState.NOT_IMPLEMENTED);
     }
 
-    String isolationLevelSQL =
-        "SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL " + isolationLevelName;
-    execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
+    if (this.isolationLevel != level && transactionIsolationBehavior == TransactionIsolationBehavior.session) {
+      String isolationLevelSQL = getSessionIsolationQuery(isolationLevelName);
+      execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
+    }
+
+    this.isolationLevel = level;
     LOGGER.log(Level.FINE, "  setTransactionIsolation = {0}", isolationLevelName);
   }
 
@@ -1101,6 +1125,18 @@ public class PgConnection implements BaseConnection {
       default:
         return null;
     }
+  }
+
+  protected String getSessionIsolationQuery(int level) {
+    String levelName = getIsolationLevelName(level);
+    if (levelName == null) {
+      levelName = DEFAULT_ISOLATION_LEVEL_NAME;
+    }
+    return SESSION_ISOLATION_QUERY_BASE + levelName;
+  }
+
+  protected String getSessionIsolationQuery(String levelName) {
+    return SESSION_ISOLATION_QUERY_BASE + levelName;
   }
 
   @Override

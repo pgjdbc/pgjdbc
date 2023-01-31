@@ -87,6 +87,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Field[] NO_FIELDS = new Field[0];
 
+  private static final String BEGIN = "BEGIN";
+
+  private static final String READ_ONLY = " READ ONLY";
+
+  private static final String ISOLATION_LEVEL = " ISOLATION LEVEL";
+
+  private static final String READ_UNCOMMITTED = " READ UNCOMMITTED";
+
+  private static final String READ_COMMITTED = " READ COMMITTED";
+
+  private static final String REPEATABLE_READ = " REPEATABLE READ";
+
+  private static final String SERIALIZABLE = " SERIALIZABLE";
+
   static {
     //canonicalize commonly seen strings to reduce memory and speed comparisons
     Encoding.canonicalize("application_name");
@@ -619,7 +633,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     beginFlags = updateQueryMode(beginFlags);
 
-    final SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0 ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+    final SimpleQuery beginQuery = getBeginTransactionQuery(flags);
 
     sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
 
@@ -648,6 +662,41 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
     };
+  }
+
+  private SimpleQuery getBeginTransactionQuery(int flags) {
+    if ((flags & QueryExecutor.QUERY_ISOLATION_TRANSACTION_MODE) == 0) {
+      if ((flags & QueryExecutor.QUERY_READ_ONLY_HINT) != 0) {
+        return beginReadOnlyTransactionQuery;
+      } else {
+        return beginTransactionQuery;
+      }
+    }
+
+    String beginQueryString = BEGIN;
+    switch (flags / QueryExecutor.QUERY_ISOLATION_LEVEL_HIGH & 0b11) {
+      default:
+      case 0:
+        beginQueryString += ISOLATION_LEVEL + READ_UNCOMMITTED;
+        break;
+      case 1:
+        beginQueryString += ISOLATION_LEVEL + READ_COMMITTED;
+        break;
+      case 2:
+        beginQueryString += ISOLATION_LEVEL + REPEATABLE_READ;
+        break;
+      case 3:
+        beginQueryString += ISOLATION_LEVEL + SERIALIZABLE;
+        break;
+    }
+
+    if ((flags & QueryExecutor.QUERY_READ_ONLY_HINT) != 0) {
+      beginQueryString += READ_ONLY;
+    }
+
+    return new SimpleQuery(
+        new NativeQuery(beginQueryString, new int[0], false, SqlCommand.BLANK),
+        null, false);
   }
 
   //
