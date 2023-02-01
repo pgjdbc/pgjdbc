@@ -19,7 +19,7 @@ The following tools are required to build and test the driver:
 
 ## Build Process
 
-After retrieving the source from the [git repository](https://github.com/pgjdbc/pgjdbc). Move into the top level `pgjdbc` directory and simply type `./gradlew build -DskipTests` .  This will build the driver and place it into `pgjdbc/build/distributions/postgresql-${version}.jar` .
+After retrieving the source from the [git repository](https://github.com/pgjdbc/pgjdbc). Move into the top level `pgjdbc` directory and simply type `./gradlew build -x test` or `./gradlew assemble` .  This will build the driver and place it into `pgjdbc/build/distributions/postgresql-${version}.jar` .
 
 ## Test Suite
 
