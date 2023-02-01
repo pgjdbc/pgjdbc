@@ -8,6 +8,7 @@ package org.postgresql.ds;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -19,6 +20,8 @@ import java.sql.SQLException;
 import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
@@ -79,7 +82,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private final Stack<PooledConnection> available = new Stack<PooledConnection>();
   private final Stack<PooledConnection> used = new Stack<PooledConnection>();
   private boolean isClosed;
-  private final Object lock = new Object();
+  private final ResourceLock lock = new ResourceLock();
+  private final Condition lockCondition = lock.newCondition();
   private @Nullable PGConnectionPoolDataSource source;
 
   /**
@@ -266,7 +270,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    *         DataSource is not able to create enough physical connections.
    */
   public void initialize() throws SQLException {
-    synchronized (lock) {
+    try (ResourceLock ignore = lock.obtain()) {
       PGConnectionPoolDataSource source = createConnectionPool();
       this.source = source;
       try {
@@ -337,7 +341,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * Closes this DataSource, and all the pooled connections, whether in use or not.
    */
   public void close() {
-    synchronized (lock) {
+    try (ResourceLock ignore = lock.obtain()) {
       isClosed = true;
       while (!available.isEmpty()) {
         PooledConnection pci = available.pop();
@@ -372,7 +376,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    */
   private Connection getPooledConnection() throws SQLException {
     PooledConnection pc = null;
-    synchronized (lock) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (isClosed) {
         throw new PSQLException(GT.tr("DataSource has been closed."),
             PSQLState.CONNECTION_DOES_NOT_EXIST);
@@ -390,7 +394,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
         } else {
           try {
             // Wake up every second at a minimum
-            lock.wait(1000L);
+            lockCondition.await(1000L, TimeUnit.MILLISECONDS);
           } catch (InterruptedException ignored) {
           }
         }
@@ -407,7 +411,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private final ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
     public void connectionClosed(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
-      synchronized (lock) {
+      try (ResourceLock ignore = lock.obtain()) {
         if (isClosed) {
           return; // DataSource has been closed
         }
@@ -415,7 +419,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
         if (removed) {
           available.push((PooledConnection) event.getSource());
           // There's now a new connection available
-          lock.notify();
+          lockCondition.signal();
         } else {
           // a connection error occurred
         }
@@ -428,13 +432,13 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
      */
     public void connectionErrorOccurred(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
-      synchronized (lock) {
+      try (ResourceLock ignore = lock.obtain()) {
         if (isClosed) {
           return; // DataSource has been closed
         }
         used.remove(event.getSource());
         // We're now at least 1 connection under the max
-        lock.notify();
+        lockCondition.signal();
       }
     }
   };

@@ -69,6 +69,8 @@ public class PgArray implements java.sql.Array {
 
   protected byte @Nullable [] fieldBytes;
 
+  private final ResourceLock lock = new ResourceLock();
+
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
     this.oid = oid;
@@ -293,11 +295,13 @@ public class PgArray implements java.sql.Array {
    * {@link #arrayList} is build. Method can be called many times in order to make sure that array
    * list is ready to use, however {@link #arrayList} will be set only once during first call.
    */
-  private synchronized PgArrayList buildArrayList(String fieldString) throws SQLException {
-    if (arrayList == null) {
-      arrayList = ArrayDecoding.buildArrayList(fieldString, getConnection().getTypeInfo().getArrayDelimiter(oid));
+  private PgArrayList buildArrayList(String fieldString) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (arrayList == null) {
+        arrayList = ArrayDecoding.buildArrayList(fieldString, getConnection().getTypeInfo().getArrayDelimiter(oid));
+      }
+      return arrayList;
     }
-    return arrayList;
   }
 
   /**

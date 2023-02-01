@@ -139,6 +139,7 @@ public class TimestampUtils {
    */
   private final boolean usesDouble;
   private final Provider<TimeZone> timeZoneProvider;
+  private final ResourceLock lock = new ResourceLock();
 
   public TimestampUtils(boolean usesDouble, Provider<TimeZone> timeZoneProvider) {
     this.usesDouble = usesDouble;
@@ -375,37 +376,39 @@ public class TimestampUtils {
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */
-  public synchronized @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
+  public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    if (s == null) {
-      return null;
+    try (ResourceLock ignore = lock.obtain()) {
+      if (s == null) {
+        return null;
+      }
+
+      int slen = s.length();
+
+      // convert postgres's infinity values to internal infinity magic value
+      if (slen == 8 && s.equals("infinity")) {
+        return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
+      }
+
+      if (slen == 9 && s.equals("-infinity")) {
+        return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
+      }
+
+      ParsedTimestamp ts = parseBackendTimestamp(s);
+      Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
+      useCal.set(Calendar.ERA, ts.era);
+      useCal.set(Calendar.YEAR, ts.year);
+      useCal.set(Calendar.MONTH, ts.month - 1);
+      useCal.set(Calendar.DAY_OF_MONTH, ts.day);
+      useCal.set(Calendar.HOUR_OF_DAY, ts.hour);
+      useCal.set(Calendar.MINUTE, ts.minute);
+      useCal.set(Calendar.SECOND, ts.second);
+      useCal.set(Calendar.MILLISECOND, 0);
+
+      Timestamp result = new Timestamp(useCal.getTimeInMillis());
+      result.setNanos(ts.nanos);
+      return result;
     }
-
-    int slen = s.length();
-
-    // convert postgres's infinity values to internal infinity magic value
-    if (slen == 8 && s.equals("infinity")) {
-      return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
-    }
-
-    if (slen == 9 && s.equals("-infinity")) {
-      return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
-    }
-
-    ParsedTimestamp ts = parseBackendTimestamp(s);
-    Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
-    useCal.set(Calendar.ERA, ts.era);
-    useCal.set(Calendar.YEAR, ts.year);
-    useCal.set(Calendar.MONTH, ts.month - 1);
-    useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-    useCal.set(Calendar.HOUR_OF_DAY, ts.hour);
-    useCal.set(Calendar.MINUTE, ts.minute);
-    useCal.set(Calendar.SECOND, ts.second);
-    useCal.set(Calendar.MILLISECOND, 0);
-
-    Timestamp result = new Timestamp(useCal.getTimeInMillis());
-    result.setNanos(ts.nanos);
-    return result;
   }
 
   /**
@@ -587,62 +590,66 @@ public class TimestampUtils {
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
-  public synchronized @PolyNull Time toTime(
+  public @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
-    // 1) Parse backend string
-    if (s == null) {
-      return null;
-    }
-    ParsedTimestamp ts = parseBackendTimestamp(s);
-    Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
-    if (!ts.hasOffset) {
-      // When no time zone provided (e.g. time or timestamp)
-      // We get the year-month-day from the string, then truncate the day to 1970-01-01
-      // This is used for timestamp -> time conversion
-      // Note: this cannot be merged with "else" branch since
-      // timestamps at which the time flips to/from DST depend on the date
-      // For instance, 2000-03-26 02:00:00 is invalid timestamp in Europe/Moscow time zone
-      // and the valid one is 2000-03-26 03:00:00. That is why we parse full timestamp
-      // then set year to 1970 later
-      useCal.set(Calendar.ERA, ts.era);
-      useCal.set(Calendar.YEAR, ts.year);
-      useCal.set(Calendar.MONTH, ts.month - 1);
-      useCal.set(Calendar.DAY_OF_MONTH, ts.day);
-    } else {
-      // When time zone is given, we just pick the time part and assume date to be 1970-01-01
-      // this is used for time, timez, and timestamptz parsing
-      useCal.set(Calendar.ERA, GregorianCalendar.AD);
-      useCal.set(Calendar.YEAR, 1970);
-      useCal.set(Calendar.MONTH, Calendar.JANUARY);
-      useCal.set(Calendar.DAY_OF_MONTH, 1);
-    }
-    useCal.set(Calendar.HOUR_OF_DAY, ts.hour);
-    useCal.set(Calendar.MINUTE, ts.minute);
-    useCal.set(Calendar.SECOND, ts.second);
-    useCal.set(Calendar.MILLISECOND, 0);
+    try (ResourceLock ignore = lock.obtain()) {
+      // 1) Parse backend string
+      if (s == null) {
+        return null;
+      }
+      ParsedTimestamp ts = parseBackendTimestamp(s);
+      Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
+      if (!ts.hasOffset) {
+        // When no time zone provided (e.g. time or timestamp)
+        // We get the year-month-day from the string, then truncate the day to 1970-01-01
+        // This is used for timestamp -> time conversion
+        // Note: this cannot be merged with "else" branch since
+        // timestamps at which the time flips to/from DST depend on the date
+        // For instance, 2000-03-26 02:00:00 is invalid timestamp in Europe/Moscow time zone
+        // and the valid one is 2000-03-26 03:00:00. That is why we parse full timestamp
+        // then set year to 1970 later
+        useCal.set(Calendar.ERA, ts.era);
+        useCal.set(Calendar.YEAR, ts.year);
+        useCal.set(Calendar.MONTH, ts.month - 1);
+        useCal.set(Calendar.DAY_OF_MONTH, ts.day);
+      } else {
+        // When time zone is given, we just pick the time part and assume date to be 1970-01-01
+        // this is used for time, timez, and timestamptz parsing
+        useCal.set(Calendar.ERA, GregorianCalendar.AD);
+        useCal.set(Calendar.YEAR, 1970);
+        useCal.set(Calendar.MONTH, Calendar.JANUARY);
+        useCal.set(Calendar.DAY_OF_MONTH, 1);
+      }
+      useCal.set(Calendar.HOUR_OF_DAY, ts.hour);
+      useCal.set(Calendar.MINUTE, ts.minute);
+      useCal.set(Calendar.SECOND, ts.second);
+      useCal.set(Calendar.MILLISECOND, 0);
 
-    long timeMillis = useCal.getTimeInMillis() + ts.nanos / 1000000;
-    if (ts.hasOffset || (ts.year == 1970 && ts.era == GregorianCalendar.AD)) {
-      // time with time zone has proper time zone, so the value can be returned as is
-      return new Time(timeMillis);
-    }
+      long timeMillis = useCal.getTimeInMillis() + ts.nanos / 1000000;
+      if (ts.hasOffset || (ts.year == 1970 && ts.era == GregorianCalendar.AD)) {
+        // time with time zone has proper time zone, so the value can be returned as is
+        return new Time(timeMillis);
+      }
 
-    // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
-    return convertToTime(timeMillis, useCal.getTimeZone());
+      // 2) Truncate date part so in given time zone the date would be formatted as 01/01/1970
+      return convertToTime(timeMillis, useCal.getTimeZone());
+    }
   }
 
-  public synchronized @PolyNull Date toDate(@Nullable Calendar cal,
+  public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    // 1) Parse backend string
-    Timestamp timestamp = toTimestamp(cal, s);
+    try (ResourceLock ignore = lock.obtain()) {
+      // 1) Parse backend string
+      Timestamp timestamp = toTimestamp(cal, s);
 
-    if (timestamp == null) {
-      return null;
+      if (timestamp == null) {
+        return null;
+      }
+
+      // Note: infinite dates are handled in convertToDate
+      // 2) Truncate date part so in given time zone the date would be formatted as 00:00
+      return convertToDate(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
     }
-
-    // Note: infinite dates are handled in convertToDate
-    // 2) Truncate date part so in given time zone the date would be formatted as 00:00
-    return convertToDate(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
   }
 
   private Calendar setupCalendar(@Nullable Calendar cal) {
@@ -675,93 +682,99 @@ public class TimestampUtils {
     return nanos % 1000 > 499;
   }
 
-  public synchronized String toString(@Nullable Calendar cal, Timestamp x) {
+  public String toString(@Nullable Calendar cal, Timestamp x) {
     return toString(cal, x, true);
   }
 
-  public synchronized String toString(@Nullable Calendar cal, Timestamp x,
+  public String toString(@Nullable Calendar cal, Timestamp x,
       boolean withTimeZone) {
-    if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
-      return "infinity";
-    } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
-      return "-infinity";
-    }
+    try (ResourceLock ignore = lock.obtain()) {
+      if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+        return "infinity";
+      } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+        return "-infinity";
+      }
 
-    cal = setupCalendar(cal);
-    long timeMillis = x.getTime();
+      cal = setupCalendar(cal);
+      long timeMillis = x.getTime();
 
-    // Round to microseconds
-    int nanos = x.getNanos();
-    if (nanos >= MAX_NANOS_BEFORE_WRAP_ON_ROUND) {
-      nanos = 0;
-      timeMillis++;
-    } else if (nanosExceed499(nanos)) {
-      // PostgreSQL does not support nanosecond resolution yet, and appendTime will just ignore
-      // 0..999 part of the nanoseconds, however we subtract nanos % 1000 to make the value
-      // a little bit saner for debugging reasons
-      nanos += 1000 - nanos % 1000;
-    }
-    cal.setTimeInMillis(timeMillis);
+      // Round to microseconds
+      int nanos = x.getNanos();
+      if (nanos >= MAX_NANOS_BEFORE_WRAP_ON_ROUND) {
+        nanos = 0;
+        timeMillis++;
+      } else if (nanosExceed499(nanos)) {
+        // PostgreSQL does not support nanosecond resolution yet, and appendTime will just ignore
+        // 0..999 part of the nanoseconds, however we subtract nanos % 1000 to make the value
+        // a little bit saner for debugging reasons
+        nanos += 1000 - nanos % 1000;
+      }
+      cal.setTimeInMillis(timeMillis);
 
-    sbuf.setLength(0);
+      sbuf.setLength(0);
 
-    appendDate(sbuf, cal);
-    sbuf.append(' ');
-    appendTime(sbuf, cal, nanos);
-    if (withTimeZone) {
-      appendTimeZone(sbuf, cal);
-    }
-    appendEra(sbuf, cal);
-
-    return sbuf.toString();
-  }
-
-  public synchronized String toString(@Nullable Calendar cal, Date x) {
-    return toString(cal, x, true);
-  }
-
-  public synchronized String toString(@Nullable Calendar cal, Date x,
-      boolean withTimeZone) {
-    if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
-      return "infinity";
-    } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
-      return "-infinity";
-    }
-
-    cal = setupCalendar(cal);
-    cal.setTime(x);
-
-    sbuf.setLength(0);
-
-    appendDate(sbuf, cal);
-    appendEra(sbuf, cal);
-    if (withTimeZone) {
+      appendDate(sbuf, cal);
       sbuf.append(' ');
-      appendTimeZone(sbuf, cal);
-    }
+      appendTime(sbuf, cal, nanos);
+      if (withTimeZone) {
+        appendTimeZone(sbuf, cal);
+      }
+      appendEra(sbuf, cal);
 
-    return sbuf.toString();
+      return sbuf.toString();
+    }
   }
 
-  public synchronized String toString(@Nullable Calendar cal, Time x) {
+  public String toString(@Nullable Calendar cal, Date x) {
     return toString(cal, x, true);
   }
 
-  public synchronized String toString(@Nullable Calendar cal, Time x,
+  public String toString(@Nullable Calendar cal, Date x,
       boolean withTimeZone) {
-    cal = setupCalendar(cal);
-    cal.setTime(x);
+    try (ResourceLock ignore = lock.obtain()) {
+      if (x.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+        return "infinity";
+      } else if (x.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+        return "-infinity";
+      }
 
-    sbuf.setLength(0);
+      cal = setupCalendar(cal);
+      cal.setTime(x);
 
-    appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
+      sbuf.setLength(0);
 
-    // The 'time' parser for <= 7.3 doesn't like timezones.
-    if (withTimeZone) {
-      appendTimeZone(sbuf, cal);
+      appendDate(sbuf, cal);
+      appendEra(sbuf, cal);
+      if (withTimeZone) {
+        sbuf.append(' ');
+        appendTimeZone(sbuf, cal);
+      }
+
+      return sbuf.toString();
     }
+  }
 
-    return sbuf.toString();
+  public String toString(@Nullable Calendar cal, Time x) {
+    return toString(cal, x, true);
+  }
+
+  public String toString(@Nullable Calendar cal, Time x,
+      boolean withTimeZone) {
+    try (ResourceLock ignore = lock.obtain()) {
+      cal = setupCalendar(cal);
+      cal.setTime(x);
+
+      sbuf.setLength(0);
+
+      appendTime(sbuf, cal, cal.get(Calendar.MILLISECOND) * 1000000);
+
+      // The 'time' parser for <= 7.3 doesn't like timezones.
+      if (withTimeZone) {
+        appendTimeZone(sbuf, cal);
+      }
+
+      return sbuf.toString();
+    }
   }
 
   private static void appendDate(StringBuilder sb, Calendar cal) {
@@ -872,87 +885,93 @@ public class TimestampUtils {
     }
   }
 
-  public synchronized String toString(LocalDate localDate) {
-    if (LocalDate.MAX.equals(localDate)) {
-      return "infinity";
-    } else if (localDate.isBefore(MIN_LOCAL_DATE)) {
-      return "-infinity";
-    }
+  public String toString(LocalDate localDate) {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (LocalDate.MAX.equals(localDate)) {
+        return "infinity";
+      } else if (localDate.isBefore(MIN_LOCAL_DATE)) {
+        return "-infinity";
+      }
 
-    sbuf.setLength(0);
+      sbuf.setLength(0);
 
-    appendDate(sbuf, localDate);
-    appendEra(sbuf, localDate);
+      appendDate(sbuf, localDate);
+      appendEra(sbuf, localDate);
 
-    return sbuf.toString();
-  }
-
-  public synchronized String toString(LocalTime localTime) {
-
-    sbuf.setLength(0);
-
-    if (localTime.isAfter(MAX_TIME)) {
-      return "24:00:00";
-    }
-
-    int nano = localTime.getNano();
-    if (nanosExceed499(nano)) {
-      // Technically speaking this is not a proper rounding, however
-      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-      localTime = localTime.plus(ONE_MICROSECOND);
-    }
-    appendTime(sbuf, localTime);
-
-    return sbuf.toString();
-  }
-
-  public synchronized String toString(OffsetTime offsetTime) {
-
-    sbuf.setLength(0);
-
-    final LocalTime localTime = offsetTime.toLocalTime();
-    if (localTime.isAfter(MAX_TIME)) {
-      sbuf.append("24:00:00");
-      appendTimeZone(sbuf, offsetTime.getOffset());
       return sbuf.toString();
     }
-
-    int nano = offsetTime.getNano();
-    if (nanosExceed499(nano)) {
-      // Technically speaking this is not a proper rounding, however
-      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-      offsetTime = offsetTime.plus(ONE_MICROSECOND);
-    }
-    appendTime(sbuf, localTime);
-    appendTimeZone(sbuf, offsetTime.getOffset());
-
-    return sbuf.toString();
   }
 
-  public synchronized String toString(OffsetDateTime offsetDateTime) {
-    if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
-      return "infinity";
-    } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
-      return "-infinity";
+  public String toString(LocalTime localTime) {
+    try (ResourceLock ignore = lock.obtain()) {
+      sbuf.setLength(0);
+
+      if (localTime.isAfter(MAX_TIME)) {
+        return "24:00:00";
+      }
+
+      int nano = localTime.getNano();
+      if (nanosExceed499(nano)) {
+        // Technically speaking this is not a proper rounding, however
+        // it relies on the fact that appendTime just truncates 000..999 nanosecond part
+        localTime = localTime.plus(ONE_MICROSECOND);
+      }
+      appendTime(sbuf, localTime);
+
+      return sbuf.toString();
     }
+  }
 
-    sbuf.setLength(0);
+  public String toString(OffsetTime offsetTime) {
+    try (ResourceLock ignore = lock.obtain()) {
+      sbuf.setLength(0);
 
-    int nano = offsetDateTime.getNano();
-    if (nanosExceed499(nano)) {
-      // Technically speaking this is not a proper rounding, however
-      // it relies on the fact that appendTime just truncates 000..999 nanosecond part
-      offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
+      final LocalTime localTime = offsetTime.toLocalTime();
+      if (localTime.isAfter(MAX_TIME)) {
+        sbuf.append("24:00:00");
+        appendTimeZone(sbuf, offsetTime.getOffset());
+        return sbuf.toString();
+      }
+
+      int nano = offsetTime.getNano();
+      if (nanosExceed499(nano)) {
+        // Technically speaking this is not a proper rounding, however
+        // it relies on the fact that appendTime just truncates 000..999 nanosecond part
+        offsetTime = offsetTime.plus(ONE_MICROSECOND);
+      }
+      appendTime(sbuf, localTime);
+      appendTimeZone(sbuf, offsetTime.getOffset());
+
+      return sbuf.toString();
     }
-    LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
-    LocalDate localDate = localDateTime.toLocalDate();
-    appendDate(sbuf, localDate);
-    sbuf.append(' ');
-    appendTime(sbuf, localDateTime.toLocalTime());
-    appendTimeZone(sbuf, offsetDateTime.getOffset());
-    appendEra(sbuf, localDate);
+  }
 
-    return sbuf.toString();
+  public String toString(OffsetDateTime offsetDateTime) {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
+        return "infinity";
+      } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
+        return "-infinity";
+      }
+
+      sbuf.setLength(0);
+
+      int nano = offsetDateTime.getNano();
+      if (nanosExceed499(nano)) {
+        // Technically speaking this is not a proper rounding, however
+        // it relies on the fact that appendTime just truncates 000..999 nanosecond part
+        offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
+      }
+      LocalDateTime localDateTime = offsetDateTime.toLocalDateTime();
+      LocalDate localDate = localDateTime.toLocalDate();
+      appendDate(sbuf, localDate);
+      sbuf.append(' ');
+      appendTime(sbuf, localDateTime.toLocalTime());
+      appendTimeZone(sbuf, offsetDateTime.getOffset());
+      appendEra(sbuf, localDate);
+
+      return sbuf.toString();
+    }
   }
 
   /**
@@ -961,16 +980,18 @@ public class TimestampUtils {
    * @param localDateTime The local date to format as a String
    * @return The formatted local date
    */
-  public synchronized String toString(LocalDateTime localDateTime) {
-    if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
-      return "infinity";
-    } else if (localDateTime.isBefore(MIN_LOCAL_DATETIME)) {
-      return "-infinity";
-    }
+  public String toString(LocalDateTime localDateTime) {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
+        return "infinity";
+      } else if (localDateTime.isBefore(MIN_LOCAL_DATETIME)) {
+        return "-infinity";
+      }
 
-    // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
-    ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
-    return toString(zonedDateTime.toOffsetDateTime());
+      // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
+      ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
+      return toString(zonedDateTime.toOffsetDateTime());
+    }
   }
 
   private static void appendDate(StringBuilder sb, LocalDate localDate) {

@@ -49,9 +49,7 @@ public abstract class CopyOperationImpl implements CopyOperation {
   }
 
   public boolean isActive() {
-    synchronized (castNonNull(queryExecutor)) {
-      return queryExecutor.hasLock(this);
-    }
+    return castNonNull(queryExecutor).hasLockOn(this);
   }
 
   public void handleCommandStatus(String status) throws PSQLException {

@@ -80,7 +80,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public boolean executeWithFlags(int flags) throws SQLException {
-    synchronized (this) {
+    try (ResourceLock ignore = lock.obtain()) {
       boolean hasResultSet = super.executeWithFlags(flags);
       int[] functionReturnType = this.functionReturnType;
       if (!isFunction || !returnTypeSet || functionReturnType == null) {

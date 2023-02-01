@@ -84,6 +84,7 @@ import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
+import java.util.concurrent.locks.Condition;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -119,6 +120,9 @@ public class PgConnection implements BaseConnection {
     transaction,
     always;
   }
+
+  private final ResourceLock lock = new ResourceLock();
+  private final Condition lockCondition = lock.newCondition();
 
   //
   // Data initialized on construction:
@@ -480,6 +484,21 @@ public class PgConnection implements BaseConnection {
    */
   protected Map<String, Class<?>> typemap = new HashMap<String, Class<?>>();
 
+  /**
+   * Obtain the connection lock and return it. Callers must use try-with-resources to ensure that
+   * unlock() is performed on the lock.
+   */
+  final ResourceLock obtainLock() {
+    return lock.obtain();
+  }
+
+  /**
+   * Return the lock condition for this connection.
+   */
+  final Condition lockCondition() {
+    return lockCondition;
+  }
+
   @Override
   public Statement createStatement() throws SQLException {
     // We now follow the spec and default to TYPE_FORWARD_ONLY.
@@ -832,24 +851,28 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public synchronized @Nullable SQLWarning getWarnings() throws SQLException {
-    checkClosed();
-    SQLWarning newWarnings = queryExecutor.getWarnings(); // NB: also clears them.
-    if (firstWarning == null) {
-      firstWarning = newWarnings;
-    } else if (newWarnings != null) {
-      firstWarning.setNextWarning(newWarnings); // Chain them on.
-    }
+  public @Nullable SQLWarning getWarnings() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkClosed();
+      SQLWarning newWarnings = queryExecutor.getWarnings(); // NB: also clears them.
+      if (firstWarning == null) {
+        firstWarning = newWarnings;
+      } else if (newWarnings != null) {
+        firstWarning.setNextWarning(newWarnings); // Chain them on.
+      }
 
-    return firstWarning;
+      return firstWarning;
+    }
   }
 
   @Override
-  public synchronized void clearWarnings() throws SQLException {
-    checkClosed();
-    //noinspection ThrowableNotThrown
-    queryExecutor.getWarnings(); // Clear and discard.
-    firstWarning = null;
+  public void clearWarnings() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkClosed();
+      //noinspection ThrowableNotThrown
+      queryExecutor.getWarnings(); // Clear and discard.
+      firstWarning = null;
+    }
   }
 
   @Override
@@ -1291,17 +1314,21 @@ public class PgConnection implements BaseConnection {
     queryExecutor.abort();
   }
 
-  private synchronized Timer getTimer() {
-    if (cancelTimer == null) {
-      cancelTimer = Driver.getSharedTimer().getTimer();
+  private Timer getTimer() {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (cancelTimer == null) {
+        cancelTimer = Driver.getSharedTimer().getTimer();
+      }
+      return cancelTimer;
     }
-    return cancelTimer;
   }
 
-  private synchronized void releaseTimer() {
-    if (cancelTimer != null) {
-      cancelTimer = null;
-      Driver.getSharedTimer().releaseTimer();
+  private void releaseTimer() {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (cancelTimer != null) {
+        cancelTimer = null;
+        Driver.getSharedTimer().releaseTimer();
+      }
     }
   }
 
@@ -1504,7 +1531,7 @@ public class PgConnection implements BaseConnection {
           statement.close();
         } else {
           PreparedStatement checkConnectionQuery;
-          synchronized (this) {
+          try (ResourceLock ignore = lock.obtain()) {
             checkConnectionQuery = this.checkConnectionQuery;
             if (checkConnectionQuery == null) {
               checkConnectionQuery = prepareStatement("");

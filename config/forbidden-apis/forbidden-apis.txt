@@ -1,3 +1,15 @@
 @defaultMessage Use toLowerCase(Locale.ROOT) and toUpperCase(Locale.ROOT)
 java.lang.String#toUpperCase()
 java.lang.String#toLowerCase()
+
+@defaultMessage Use ResourceLock.newCondition() and lockCondition.await() instead of Object.wait()
+java.lang.Object#wait()
+
+@defaultMessage Use ResourceLock.newCondition() and lockCondition.await(long, TimeUnit) instead of Object.wait(int)
+java.lang.Object#wait(long)
+
+@defaultMessage Use ResourceLock.newCondition() and lockCondition.signal() instead of Object.notify()
+java.lang.Object#notify()
+
+@defaultMessage Use ResourceLock.newCondition() and lockCondition.signalAll() instead of Object.notifyAll()
+java.lang.Object#notifyAll()
