@@ -41,7 +41,7 @@ dependencies {
         apiv("javax:javaee-api")
         apiv("junit:junit", "junit4")
         apiv("org.apache.felix:org.apache.felix.framework")
-        apiv("org.checkerframework:checker-qual", "checkerframework")
+        apiv("org.checkerframework:checker-qual-android", "checkerframework")
         apiv("org.hamcrest:hamcrest")
         apiv("org.hamcrest:hamcrest-core", "hamcrest")
         apiv("org.hamcrest:hamcrest-library", "hamcrest")
