@@ -3467,7 +3467,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
   private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
-  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double)Long.MIN_VALUE);
+  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double)Long.MAX_VALUE);
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double)Long.MIN_VALUE);
 
   /**
