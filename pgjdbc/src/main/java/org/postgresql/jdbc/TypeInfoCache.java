@@ -182,6 +182,9 @@ public class TypeInfoCache implements TypeInfo {
     // the box datatype and it's not a JDBC core type.
     //
     Character delim = ',';
+    if (pgTypeName.equals("box")) {
+      delim = ';';
+    }
     arrayOidToDelimiter.put(oid, delim);
     arrayOidToDelimiter.put(arrayOid, delim);
 
