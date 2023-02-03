@@ -598,6 +598,12 @@ public class ResultSetTest extends BaseTest4 {
       }
     }
     rs.close();
+    // test for Issue #2748
+    rs = con.createStatement().executeQuery("select 2.0 :: double precision");
+    assertTrue(rs.next());
+    assertEquals(2, rs.getInt(1));
+    rs.close();
+
   }
 
   @Test
