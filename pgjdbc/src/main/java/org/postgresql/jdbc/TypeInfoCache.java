@@ -106,7 +106,8 @@ public class TypeInfoCache implements TypeInfo {
           Oid.TIMESTAMPTZ_ARRAY},
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
-      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY}
+      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY},
+      {"box", Oid.BOX, Types.OTHER, "org.postgresql.geometric.PGBox", Oid.BOX_ARRAY}
   };
 
   /**
@@ -183,6 +184,9 @@ public class TypeInfoCache implements TypeInfo {
       // the box datatype and it's not a JDBC core type.
       //
       Character delim = ',';
+      if (pgTypeName.equals("box")) {
+        delim = ';';
+      }
       arrayOidToDelimiter.put(oid, delim);
       arrayOidToDelimiter.put(arrayOid, delim);
 
