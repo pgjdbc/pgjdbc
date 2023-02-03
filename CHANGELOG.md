@@ -19,7 +19,7 @@ fix: regression in PgResultSet LONG_MIN copy and paste error fixes [Issue #2748]
 ## [42.5.2] (2023-01-31 14:30:46 -0500)
 
 ### Changed
-regression: This release has 2 known regressions which make it unusable see the notes above. We advise people not to use 42.5.2.
+regression: This release has 2 known regressions which make it unusable see the notes above. We advise people to use 42.5.3 instead.
 docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
 docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)
 docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
