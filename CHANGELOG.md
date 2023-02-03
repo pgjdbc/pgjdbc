@@ -10,6 +10,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.5.3] (2023-02-03 08:24:50 -0500)
+### Fixed
+fix: Add box to TypeInfoCache, fixes [Issue #2746](https://github.com/pgjdbc/pgjdbc/issues/2746) [PR #2747](https://github.com/pgjdbc/pgjdbc/pull/2747)
+fix: regression in PgResultSet LONG_MIN copy and paste error fixes [Issue #2748](https://github.com/pgjdbc/pgjdbc/issues/2748) [PR#2749](https://github.com/pgjdbc/pgjdbc/pull/2749)
+
 ## [42.5.2] (2023-01-31 14:30:46 -0500)
 ### Changed
 docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
