@@ -659,6 +659,7 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getUser();
   }
 
+  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
     if (fastpath == null) {
@@ -668,6 +669,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This holds a reference to the Fastpath API if already open
+  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   private @Nullable Fastpath fastpath;
 
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
