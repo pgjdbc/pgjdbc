@@ -133,7 +133,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
    * from Sync messages vs from simple execute (aka 'Q').
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
@@ -159,8 +159,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final AdaptiveFetchCache adaptiveFetchCache;
 
-  @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible",
-      "method.invocation.invalid"})
+  @SuppressWarnings({"assignment", "argument",
+      "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
       int cancelSignalTimeout, Properties info) throws SQLException, IOException {
     super(pgStream, cancelSignalTimeout, info);
@@ -170,7 +170,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
-    // assignment.type.incompatible, argument.type.incompatible
+    // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
   }

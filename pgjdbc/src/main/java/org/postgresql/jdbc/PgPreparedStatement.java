@@ -88,7 +88,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   PgPreparedStatement(PgConnection connection, CachedQuery query, int rsType,
       int rsConcurrency, int rsHoldability) throws SQLException {
     super(connection, rsType, rsConcurrency, rsHoldability);

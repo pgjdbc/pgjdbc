@@ -36,7 +36,7 @@ public class ScramAuthenticator {
   private final PGStream pgStream;
   private @Nullable ScramClient scramClient;
   private @Nullable ScramSession scramSession;
-  private @Nullable ScramSession.ClientFinalProcessor clientFinalProcessor;
+  private ScramSession.@Nullable ClientFinalProcessor clientFinalProcessor;
 
   private interface BodySender {
     void sendBody(PGStream pgStream) throws IOException;

@@ -137,7 +137,7 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("numeric", "numeric");
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;

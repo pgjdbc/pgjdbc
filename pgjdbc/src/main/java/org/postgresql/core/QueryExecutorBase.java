@@ -71,7 +71,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
 
-  @SuppressWarnings({"assignment.type.incompatible", "argument.type.incompatible"})
+  @SuppressWarnings({"assignment", "argument"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
     this.user = PGProperty.USER.getOrDefault(info);
@@ -86,7 +86,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.getOrDefault(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
-    // assignment.type.incompatible, argument.type.incompatible
+    // assignment, argument
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),

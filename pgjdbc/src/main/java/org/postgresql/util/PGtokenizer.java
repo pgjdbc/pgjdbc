@@ -49,7 +49,7 @@ public class PGtokenizer {
    * @param string containing tokens
    * @param delim single character to split the tokens
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGtokenizer(String string, char delim) {
     tokenize(string, delim);
   }

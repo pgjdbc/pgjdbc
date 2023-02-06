@@ -22,7 +22,7 @@ public class LogWriterHandler extends Handler {
   private @Nullable Writer writer;
   private final ResourceLock lock = new ResourceLock();
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public LogWriterHandler(Writer inWriter) {
     super();
     setLevel(Level.INFO);

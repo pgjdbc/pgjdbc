@@ -108,27 +108,27 @@ public class PgArray implements java.sql.Array {
     return castNonNull(connection);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("return")
   public Object getArray() throws SQLException {
     return getArrayImpl(1, 0, null);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("return")
   public Object getArray(long index, int count) throws SQLException {
     return getArrayImpl(index, count, null);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("return")
   public Object getArrayImpl(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(1, 0, map);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("return")
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(map);
   }
 
-  @SuppressWarnings("return.type.incompatible")
+  @SuppressWarnings("return")
   public Object getArray(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getArrayImpl(index, count, map);

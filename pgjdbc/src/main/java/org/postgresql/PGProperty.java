@@ -925,7 +925,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to int
    * @throws NumberFormatException if it cannot be converted to int.
    */
-  @SuppressWarnings("nullness:argument.type.incompatible")
+  @SuppressWarnings("nullness:argument")
   public int getIntNoCheck(Properties properties) {
     String value = getOrDefault(properties);
     //noinspection ConstantConditions
@@ -939,7 +939,7 @@ public enum PGProperty {
    * @return evaluated value for this connection parameter converted to int
    * @throws PSQLException if it cannot be converted to int.
    */
-  @SuppressWarnings("nullness:argument.type.incompatible")
+  @SuppressWarnings("nullness:argument")
   public int getInt(Properties properties) throws PSQLException {
     String value = getOrDefault(properties);
     try {

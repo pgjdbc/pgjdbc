@@ -51,7 +51,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
    * @param s Box definition in PostgreSQL syntax
    * @throws SQLException if definition is invalid
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGbox(String s) throws SQLException {
     this();
     setValue(s);

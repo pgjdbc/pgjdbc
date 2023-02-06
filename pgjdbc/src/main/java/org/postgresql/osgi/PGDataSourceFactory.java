@@ -40,7 +40,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   private static class SingleUseProperties extends Properties {
     private static final long serialVersionUID = 1L;
 
-    @SuppressWarnings("method.invocation.invalid")
+    @SuppressWarnings("method.invocation")
     SingleUseProperties(Properties initialProperties) {
       super();
       if (initialProperties != null) {

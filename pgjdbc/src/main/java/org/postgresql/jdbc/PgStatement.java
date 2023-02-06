@@ -153,7 +153,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
@@ -166,7 +166,7 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) throws SQLException {
     PgResultSet newResult = new PgResultSet(originalQuery, this, fields, tuples, cursor,

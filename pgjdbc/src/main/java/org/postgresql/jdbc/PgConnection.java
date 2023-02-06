@@ -235,7 +235,7 @@ public class PgConnection implements BaseConnection {
   //
   // Ctor.
   //
-  @SuppressWarnings({"method.invocation.invalid", "argument.type.incompatible"})
+  @SuppressWarnings({"method.invocation", "argument"})
   public PgConnection(HostSpec[] hostSpecs,
                       Properties info,
                       String url) throws SQLException {

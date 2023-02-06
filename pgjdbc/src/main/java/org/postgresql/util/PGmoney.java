@@ -32,7 +32,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     val = value;
   }
 
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGmoney(String value) throws SQLException {
     this();
     setValue(value);

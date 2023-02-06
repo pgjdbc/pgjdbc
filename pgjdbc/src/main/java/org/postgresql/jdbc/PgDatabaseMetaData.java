@@ -1766,7 +1766,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
         permissions.putAll(relPermissions);
       }
-      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
@@ -1835,7 +1835,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String owner = castNonNull(rs.getString("rolname"));
       String acl = rs.getString("relacl");
       Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(acl, owner);
-      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);

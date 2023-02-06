@@ -14,7 +14,7 @@ import org.checkerframework.dataflow.qual.Pure;
  * The methods in this class allow to cast nullable reference to a non-nullable one.
  * This is an internal class, and it is not meant to be used as a public API.
  */
-@SuppressWarnings({"cast.unsafe", "NullableProblems", "contracts.postcondition.not.satisfied"})
+@SuppressWarnings({"cast.unsafe", "NullableProblems", "contracts.postcondition"})
 public class Nullness {
   @Pure
   public static @EnsuresNonNull("#1") <T extends @Nullable Object> @NonNull T castNonNull(
