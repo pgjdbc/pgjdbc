@@ -150,7 +150,4 @@ public class BaseTest4 {
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid));
   }
 
-  public  void assumeExtensionInstalled(String extension) throws SQLException {
-    TestUtil.assumeExtensionInstalled(con, extension);
-  }
 }
