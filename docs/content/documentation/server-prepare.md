@@ -923,6 +923,10 @@ The driver provides an extension for accessing `COPY`. Copy is an extension that
 #### Example 9.15 Copying Data in
 ```java
 
+/*
+* DDL for code below
+* create table copytest (stringvalue text, intvalue int, numvalue numeric(5,2));
+*/
 private static String[] origData =
             {"First Row\t1\t1.10\n",
                     "Second Row\t2\t-22.20\n",
@@ -930,11 +934,13 @@ private static String[] origData =
                     "\t4\t444.40\n"};
 private int dataRows = origData.length;
 private String sql = "COPY copytest FROM STDIN";
+
 try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword")){
     createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
     PGConnection pgConnection = con.unwrap(org.postgresql.PGConnection.class);
     CopyManager copyAPI = pgConnection.getCopyAPI();
     CopyIn cp = copyAPI.copyIn(sql);
+
     for (String anOrigData : origData) {
         byte[] buf = anOrigData.getBytes();
         cp.writeToCopy(buf, 0, buf.length);
@@ -944,15 +950,10 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
     long handledRowCount = cp.getHandledRowCount();
     System.err.println(String.format("copy Updated %d Rows, and handled %d rows", updatedRows, handledRowCount));
 
-    try {
-        cp.cancelCopy();
-    } catch (SQLException se) { // should fail with obsolete operation
-        se.printStackTrace();
-    }
     int rowCount = getCount(con);
     System.err.println(rowCount);
 } catch (Exception ex) {
-    ex.printStackTrace();
+    // some logging code or otherwise handle the exception
 }
 
 ``` 
@@ -966,10 +967,12 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
     CopyManager copyAPI = pgConnection.getCopyAPI();
     CopyOut cp = copyAPI.copyOut(sql);
     int count = 0;
-    byte[] buf;
+    byte[] buf;  // This is a relatively simple example. buf will contain rows from the database
+
     while ((buf = cp.readFromCopy()) != null) {
         count++;
     }
+    long rowCount = cp.getHandledRowCount();
 }
 ```
 
