@@ -952,8 +952,7 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
 
     int rowCount = getCount(con);
     System.err.println(rowCount);
-} catch (Exception ex) {
-    // some logging code or otherwise handle the exception
+
 }
 
 ``` 
