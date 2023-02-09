@@ -1,3 +1,7 @@
+plugins {
+    id("build-logic.java-library")
+}
+
 val pgjdbcRepository by configurations.creating {
     isCanBeConsumed = false
     isCanBeResolved = true
@@ -14,17 +18,17 @@ dependencies {
 
     testImplementation(project(":postgresql"))
 
-    testImplementation("javax:javaee-api")
-    testImplementation("org.osgi:org.osgi.service.jdbc")
-    testImplementation("org.ops4j.pax.exam:pax-exam-container-native")
+    testImplementation("javax:javaee-api:6.0")
+    testImplementation("org.osgi:org.osgi.service.jdbc:1.0.0")
+    testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.13.5")
     // pax-exam is not yet compatible with junit5
     // see https://github.com/ops4j/org.ops4j.pax.exam2/issues/886
-    testImplementation("org.ops4j.pax.exam:pax-exam-junit4")
-    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn")
-    testImplementation("org.ops4j.pax.url:pax-url-aether")
-    testImplementation("org.apache.felix:org.apache.felix.framework")
-    testImplementation("ch.qos.logback:logback-core")
-    testImplementation("ch.qos.logback:logback-classic")
+    testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.13.5")
+    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
+    testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.7")
+    testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
+    testImplementation("ch.qos.logback:logback-core:1.1.2")
+    testImplementation("ch.qos.logback:logback-classic:1.1.2")
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
