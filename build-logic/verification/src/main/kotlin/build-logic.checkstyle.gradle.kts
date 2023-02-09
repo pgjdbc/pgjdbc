@@ -1,13 +1,13 @@
-import com.github.vlsi.gradle.dsl.configureEach
+import org.gradle.api.plugins.quality.Checkstyle
+import org.gradle.kotlin.dsl.withType
+import java.io.File
 
 plugins {
     id("checkstyle")
-    id("build-logic.toolchains")
-    id("build-logic.build-params")
 }
 
 checkstyle {
-    toolVersion = "10.12.5"
+    toolVersion = "9.3"
     providers.gradleProperty("checkstyle.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
@@ -29,12 +29,4 @@ checkstyleTasks.configureEach {
 
 tasks.register("checkstyleAll") {
     dependsOn(checkstyleTasks)
-}
-
-plugins.withId("java")  {
-    tasks.configureEach<Checkstyle> {
-        buildParameters.buildJdk?.let {
-            javaLauncher.convention(project.the<JavaToolchainService>().launcherFor(it))
-        }
-    }
 }

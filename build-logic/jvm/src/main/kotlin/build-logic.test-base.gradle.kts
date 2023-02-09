@@ -1,16 +1,11 @@
 import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.properties.dsl.props
 import org.gradle.api.tasks.testing.Test
 
 plugins {
-    id("java-library")
     id("build-logic.build-params")
 }
 
 tasks.configureEach<Test> {
-    buildParameters.testJdk?.let {
-        javaLauncher.convention(javaToolchains.launcherFor(it))
-    }
     inputs.file("../build.properties")
     if (file("../build.local.properties").exists()) {
         inputs.file("../build.local.properties")
@@ -25,9 +20,6 @@ tasks.configureEach<Test> {
     exclude("**/*Suite*")
     jvmArgs("-Xmx1536m")
     jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
-    props.string("testExtraJvmArgs").trim().takeIf { it.isNotBlank() }?.let {
-        jvmArgs(it.split(" ::: "))
-    }
     // Pass the property to tests
     fun passProperty(name: String, default: String? = null) {
         val value = System.getProperty(name) ?: default
@@ -40,7 +32,7 @@ tasks.configureEach<Test> {
     val props = System.getProperties()
     @Suppress("UNCHECKED_CAST")
     for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-        if (e.startsWith("pgjdbc.")) {
+        if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
             passProperty(e)
         }
     }

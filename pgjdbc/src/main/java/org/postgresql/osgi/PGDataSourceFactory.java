@@ -56,6 +56,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void configureBaseDataSource(BaseDataSource ds, Properties props) throws SQLException {
     if (props.containsKey(JDBC_URL)) {
       ds.setUrl(castNonNull(props.getProperty(JDBC_URL)));
@@ -89,6 +90,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     return new org.postgresql.Driver();
   }
 
+  @SuppressWarnings("deprecation")
   private DataSource createPoolingDataSource(Properties props) throws SQLException {
     PoolingDataSource dataSource = new PoolingDataSource();
     if (props.containsKey(JDBC_INITIAL_POOL_SIZE)) {
@@ -106,6 +108,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     return dataSource;
   }
 
+  @SuppressWarnings("deprecation")
   private DataSource createSimpleDataSource(Properties props) throws SQLException {
     SimpleDataSource dataSource = new SimpleDataSource();
     configureBaseDataSource(dataSource, props);
@@ -130,6 +133,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
+  @SuppressWarnings("deprecation")
   public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
       throws SQLException {
     props = new SingleUseProperties(props);

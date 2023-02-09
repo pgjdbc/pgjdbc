@@ -1,7 +1,7 @@
+import org.gradle.api.JavaVersion
 import org.gradle.kotlin.dsl.dependencies
 
 plugins {
-    id("build-logic.build-params")
     id("org.checkerframework")
 }
 
@@ -11,14 +11,14 @@ dependencies {
         ?.let {
             val checkerframeworkVersion = it.get()
             "checkerFramework"("org.checkerframework:checker:$checkerframeworkVersion")
-            if (buildParameters.buildJdkVersion == 8) {
+            if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
                 // only needed for JDK 8
                 "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8:$checkerframeworkVersion")
             }
         } ?: run {
-            val checkerframeworkVersion = "3.40.0"
+            val checkerframeworkVersion = "3.30.0"
             "checkerFramework"("org.checkerframework:checker:$checkerframeworkVersion")
-            if (buildParameters.buildJdkVersion == 8) {
+            if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
                 // only needed for JDK 8
                 "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8:$checkerframeworkVersion")
             }

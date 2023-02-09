@@ -1,4 +1,3 @@
-import com.github.vlsi.gradle.dsl.configureEach
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -14,8 +13,6 @@ java {
     withSourcesJar()
 }
 
-val String.v: String get() = rootProject.extra["$this.version"] as String
-
 autostyle {
     kotlin {
         file("$rootDir/config/licenseHeaderRaw").takeIf { it.exists() }?.let {
@@ -26,24 +23,8 @@ autostyle {
     }
 }
 
-tasks.configureEach<KotlinCompile> {
+tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions {
-        if (!name.startsWith("compileTest")) {
-            apiVersion = "kotlin.api".v
-        }
-        freeCompilerArgs += "-Xjvm-default=all"
-        val jdkRelease = buildParameters.targetJavaVersion.let {
-            when {
-                it < 9 -> "1.8"
-                else -> it.toString()
-            }
-        }
-        // jdk-release requires Java 9+
-        buildParameters.buildJdkVersion
-            .takeIf { it > 8 }
-            ?.let {
-                freeCompilerArgs += "-Xjdk-release=$jdkRelease"
-            }
-        kotlinOptions.jvmTarget = jdkRelease
+        jvmTarget = "11"
     }
 }
