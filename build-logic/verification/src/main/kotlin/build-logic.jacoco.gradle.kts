@@ -4,7 +4,7 @@ plugins {
 }
 
 jacoco {
-    toolVersion = "0.8.5"
+    toolVersion = "0.8.8"
     providers.gradleProperty("jacoco.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
