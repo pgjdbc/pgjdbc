@@ -8,15 +8,15 @@ plugins {
 }
 
 dependencies {
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.9.2")
     testImplementation("uk.org.webcompere:system-stubs-jupiter:2.0.1")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.9.2")
     testImplementation("org.hamcrest:hamcrest:2.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.9.2")
     if ((project.findProperty("junit4") ?: "true").toString().toBoolean()) {
         // Allow projects to opt-out of junit dependency, so they can be JUnit5-only
         testImplementation("junit:junit:4.13.2")
-        testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.8.2")
+        testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.9.2")
     }
 }
 
