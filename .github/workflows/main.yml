@@ -48,14 +48,14 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: zulu
-        java-version: 8
+        java-version: 17
     - uses: burrunan/gradle-cache-action@v1
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
-        job-id: jdk8
+        job-id: jdk17
         arguments: autostyleCheck checkstyleAll jandex
 
   linux-checkerframework:
