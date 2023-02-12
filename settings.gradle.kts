@@ -33,11 +33,10 @@ rootProject.name = "pgjdbc"
 
 includeBuild("build-logic")
 
-include(
-    "benchmarks",
-    "postgresql",
-    "pgjdbc-osgi-test"
-)
+// Renovate treats names as dependency coordinates when vararg include(...) is used, so we have separate include calls here
+include("benchmarks")
+include("pgjdbc-osgi-test")
+include("postgresql")
 
 project(":postgresql").projectDir = file("pgjdbc")
 
