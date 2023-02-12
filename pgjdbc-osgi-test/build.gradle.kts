@@ -18,6 +18,7 @@ dependencies {
 
     testImplementation(project(":postgresql"))
 
+    testImplementation("junit:junit:4.13.2")
     testImplementation("javax:javaee-api:8.0.1")
     testImplementation("org.osgi:org.osgi.service.jdbc:1.0.0")
     testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.13.5")
