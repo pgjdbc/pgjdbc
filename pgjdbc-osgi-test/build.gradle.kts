@@ -27,8 +27,8 @@ dependencies {
     testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
     testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.7")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
-    testImplementation("ch.qos.logback:logback-core:1.1.2")
-    testImplementation("ch.qos.logback:logback-classic:1.1.2")
+    testImplementation("ch.qos.logback:logback-core:1.4.5")
+    testImplementation("ch.qos.logback:logback-classic:1.4.5")
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
