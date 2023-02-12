@@ -18,7 +18,7 @@ dependencies {
 
     testImplementation(project(":postgresql"))
 
-    testImplementation("javax:javaee-api:6.0")
+    testImplementation("javax:javaee-api:8.0.1")
     testImplementation("org.osgi:org.osgi.service.jdbc:1.0.0")
     testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.13.5")
     // pax-exam is not yet compatible with junit5
