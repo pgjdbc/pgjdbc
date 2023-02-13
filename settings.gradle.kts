@@ -16,7 +16,7 @@ pluginManagement {
         id("com.github.vlsi.ide") version "1.86"
         id("com.github.vlsi.stage-vote-release") version "1.86"
         id("org.nosphere.gradle.github.actions") version "1.3.2"
-        id("org.owasp.dependencycheck") version "8.0.2"
+        id("org.owasp.dependencycheck") version "8.1.0"
         id("me.champeau.jmh") version "0.6.8"
         kotlin("jvm") version "1.8.10"
     }
