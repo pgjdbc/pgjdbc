@@ -412,7 +412,7 @@ import java.sql.*;
 public class ServerSidePreparedStatement {
 
     public static void main(String args[]) throws Exception {
-        
+
         String url = "jdbc:postgresql://localhost:5432/test";
         try (Connection conn = DriverManager.getConnection(url, "test", "")){
 
@@ -432,7 +432,7 @@ public class ServerSidePreparedStatement {
                     System.out.println("Execution: " + i + ", Used server side: " + usingServerPrepare + ", Result: " + rs.getInt(1));
                     rs.close();
                 }
-            }        
+            }
         }
     }
 }
@@ -955,7 +955,7 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
 
 }
 
-``` 
+```
 
 #### Example 9.16 Copying Data out
 
