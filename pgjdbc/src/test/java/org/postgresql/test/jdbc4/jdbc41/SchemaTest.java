@@ -233,7 +233,7 @@ public class SchemaTest {
     TestUtil.execute("insert into schema1.check_table (test_col) values ('test_value')", connection);
     TestUtil.execute("create or replace function schema2.check_fun () returns text as $$"
         + " select test_col from check_table"
-        + "$$ language sql immutable", connection);
+        + "$$ language sql stable", connection);
     connection.close();
   }
 
