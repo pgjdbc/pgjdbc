@@ -2,8 +2,6 @@
 title: "License"
 date: 2022-06-19T22:46:55+05:30
 draft: false
-aliases:
-    - "/about/license.html"
 ---
 
 Copyright (c) 1997, PostgreSQL Global Development Group
