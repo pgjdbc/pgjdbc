@@ -936,7 +936,6 @@ private int dataRows = origData.length;
 private String sql = "COPY copytest FROM STDIN";
 
 try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword")){
-    createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
     PGConnection pgConnection = con.unwrap(org.postgresql.PGConnection.class);
     CopyManager copyAPI = pgConnection.getCopyAPI();
     CopyIn cp = copyAPI.copyIn(sql);
