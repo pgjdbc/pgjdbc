@@ -4,7 +4,6 @@
  */
 
 plugins {
-    id("org.owasp.dependencycheck")
     id("org.nosphere.gradle.github.actions")
     // IDE configuration
     id("com.github.vlsi.ide")
