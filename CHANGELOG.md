@@ -10,6 +10,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Fixed
 
+## [42.5.4] (2023-02-15 10:21:04 -0500)
+
+### Fixed
+fix: fix testGetSQLTypeQueryCache by searching for xid type. We used to search for box type but it is now cached. xid is not cached, this nuance is required for the test.
+fix OidValueCorrectnessTest BOX_ARRAY OID, by adding BOX_ARRAY to the oidTypeName map [PR #2810]((https://github.com/pgjdbc/pgjdbc/pull/2810).
+fixes [Issue #2804](https://github.com/pgjdbc/pgjdbc/issues/2804).
+fix: Make sure that github CI runs tests on all [PRs #2809]((https://github.com/pgjdbc/pgjdbc/pull/2809)).
+
 ## [42.5.3] (2023-02-03 08:24:50 -0500)
 
 ### Fixed
