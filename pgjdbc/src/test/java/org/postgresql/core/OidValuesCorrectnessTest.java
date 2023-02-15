@@ -61,7 +61,6 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Helps in situation when variable name in Oid class isn't the same as typname in pg_type table.
    */
   private static Map<String, String> oidTypeNames = new HashMap<String, String>() {{
-      put("BOX_ARRAY", "_BOX");
       put("INT2_ARRAY", "_INT2");
       put("INT4_ARRAY", "_INT4");
       put("INT8_ARRAY", "_INT8");
