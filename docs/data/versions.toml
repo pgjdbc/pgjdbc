@@ -30,6 +30,18 @@ suffix=""
 url= "/download/postgresql-42.5.3.jar"
 
 [[past]]
+v_name= "Postgresql JDBC 42.5.2"
+version= "42.5.2"
+suffix=""
+url= "/download/postgresql-42.5.2.jar"
+
+[[past]]
+v_name= "Postgresql JDBC 42.5.1"
+version= "42.5.1"
+suffix=""
+url= "/download/postgresql-42.5.1.jar"
+
+[[past]]
 v_name= "Postgresql JDBC 42.4.2"
 version= "42.4.2"
 suffix=""
