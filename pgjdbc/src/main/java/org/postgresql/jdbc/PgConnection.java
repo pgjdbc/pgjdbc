@@ -96,7 +96,7 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
- private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
+  private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
   private static final @Nullable MethodHandle SECURITY_MANAGER_CHECK_PERMISSION;
 
   static {
