@@ -38,6 +38,7 @@ import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.LeakTracker;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -95,7 +96,7 @@ public class PgConnection implements BaseConnection {
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
 
-  private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
+ private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
   private static final @Nullable MethodHandle SECURITY_MANAGER_CHECK_PERMISSION;
 
   static {
@@ -115,10 +116,15 @@ public class PgConnection implements BaseConnection {
     SECURITY_MANAGER_CHECK_PERMISSION = securityManagerCheckPermission;
   }
 
+  static class ConnectionLeakTrackerHolder {
+    private static final LeakTracker<Object> INSTANCE =
+        new LeakTracker<>();
+  }
+
   private enum ReadOnlyBehavior {
     ignore,
     transaction,
-    always;
+    always
   }
 
   private final ResourceLock lock = new ResourceLock();
@@ -134,7 +140,20 @@ public class PgConnection implements BaseConnection {
 
   private final ReadOnlyBehavior readOnlyBehavior;
 
-  private @Nullable Throwable openStackTrace;
+  /**
+   * The sole purpose of leakMarker field is to have a minimal object.
+   * That will become unreachable as soon as the connection itself becomes unreachable.
+   * In practice {@code PhantomReference<PgConnection>} would be good enough,
+   * however, {@code OpenJdk <= 8} keeps the referent longer than needed,
+   * so we add a dummy object to workaround
+   * <a href="https://bugs.openjdk.java.net/browse/JDK-8071507">JDK-8071507</a>.
+   */
+  private @Nullable Object leakMarker;
+
+  /**
+   * A handle for de-registration from "leak reporter" when the connection is closed appropriately.
+   */
+  private LeakTracker.@Nullable LeakTraceHandle<Object> leakTraceHandle;
 
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
@@ -336,7 +355,16 @@ public class PgConnection implements BaseConnection {
     initObjectTypes(info);
 
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
-      openStackTrace = new Throwable("Connection was created at this point:");
+      Throwable stackTrace = new Throwable("Connection was created at this point:");
+      Object leakMarker = new Object();
+      this.leakMarker = leakMarker;
+      this.leakTraceHandle =
+          ConnectionLeakTrackerHolder.INSTANCE.register(leakMarker, stackTrace);
+
+      ConnectionLeakTrackerHolder.INSTANCE.processReferences((leak) ->
+          LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"),
+              leak.stackTrace)
+      );
     }
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
@@ -831,17 +859,19 @@ public class PgConnection implements BaseConnection {
    */
   @Override
   public void close() throws SQLException {
-    if (queryExecutor == null) {
-      // This might happen in case constructor throws an exception (e.g. host being not available).
-      // When that happens the connection is still registered in the finalizer queue, so it gets finalized
-      return;
-    }
     if (queryExecutor.isClosed()) {
       return;
     }
+
+    LeakTracker.LeakTraceHandle<Object> leakTraceHandle = this.leakTraceHandle;
+    // Connection has been explicitly closed, unregister
+    if (leakTraceHandle != null) {
+      ConnectionLeakTrackerHolder.INSTANCE.unregister(leakTraceHandle);
+      this.leakMarker = null;
+      this.leakTraceHandle = null;
+    }
     releaseTimer();
     queryExecutor.close();
-    openStackTrace = null;
   }
 
   @Override
@@ -1084,25 +1114,6 @@ public class PgConnection implements BaseConnection {
 
   public boolean getHideUnprivilegedObjects() {
     return hideUnprivilegedObjects;
-  }
-
-  /**
-   * <p>Overrides finalize(). If called, it closes the connection.</p>
-   *
-   * <p>This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
-   * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
-   * fortnight enough clients were open to kill the postgres server.</p>
-   */
-  protected void finalize() throws Throwable {
-    try {
-      if (openStackTrace != null) {
-        LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-      }
-
-      close();
-    } finally {
-      super.finalize();
-    }
   }
 
   /**
