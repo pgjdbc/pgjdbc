@@ -45,7 +45,7 @@ if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipFo
             dependsOn("checkstyleAll")
         }
         if (!buildParameters.skipForbiddenApis) {
-            dependsOn("forbiddenApisAll")
+            dependsOn("forbiddenApis")
         }
     }
 }
