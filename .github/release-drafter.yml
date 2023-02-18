@@ -3,6 +3,7 @@ name-template: 'v$RESOLVED_VERSION'
 tag-template: 'REL$RESOLVED_VERSION'
 # Filter previous releases to consider only those with the target matching the current branch
 filter-by-commitish: true
+tag-prefix: REL
 categories:
   - title: '🚀 Features'
     labels:
