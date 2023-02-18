@@ -5,10 +5,7 @@ on:
     # branches to consider in the event; optional, defaults to all
     branches:
       - master
-  # pull_request event is required only for autolabeler
-  pull_request:
-    # Only following types are handled by the action, but one can default to all as well
-    types: [opened, reopened, synchronize]
+      - 'release/**'
   # pull_request_target allows PR from forks to access secrets, so please NEVER add pull_request_target
 
 jobs:
@@ -19,35 +16,35 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Publish pre-release files to a draft release
-      PUBLISH_SNAPSHOT: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+      PUBLISH_SNAPSHOT: true
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - name: Update release body draft
         uses: release-drafter/release-drafter@v5
         id: prepare_release
         # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-        # with:
+        with:
         #   config-name: my-config.yml
-        #   disable-autolabeler: true
+           disable-autolabeler: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout sources
-        if: ${{ env.PUBLISH_SNAPSHOT }}
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
         uses: actions/checkout@v3
       - name: Set up JDK 17
-        if: ${{ env.PUBLISH_SNAPSHOT }}
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
         uses: actions/setup-java@v3
         with:
           java-version: 17
           distribution: liberica
       - name: Build
-        if: ${{ env.PUBLISH_SNAPSHOT }}
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk17
           arguments: --scan --no-parallel --no-daemon :postgresql:osgiJar
       - name: Attach files to release
-        if: ${{ env.PUBLISH_SNAPSHOT }}
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
         uses: actions/github-script@v6
         env:
           # https://github.com/release-drafter/release-drafter#action-outputs
