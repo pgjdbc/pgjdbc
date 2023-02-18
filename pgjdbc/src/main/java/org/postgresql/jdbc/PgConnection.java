@@ -7,7 +7,6 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -136,6 +135,14 @@ public class PgConnection implements BaseConnection {
 
   private @Nullable Throwable openStackTrace;
 
+  /**
+   * This field keeps finalize action alive, so its .finalize() method is called only
+   * when the connection itself becomes unreachable.
+   * Moving .finalize() to a different object allows JVM to release all the other objects
+   * referenced in PgConnection early.
+   */
+  private final PgConnectionFinalizeAction finalizeAction;
+
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
 
@@ -185,10 +192,6 @@ public class PgConnection implements BaseConnection {
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
-
-  // Timer for scheduling TimerTasks for this connection.
-  // Only instantiated if a task is actually scheduled.
-  private volatile @Nullable Timer cancelTimer;
 
   private @Nullable PreparedStatement checkConnectionQuery;
   /**
@@ -338,6 +341,7 @@ public class PgConnection implements BaseConnection {
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
+    finalizeAction = new PgConnectionFinalizeAction(lock, openStackTrace, queryExecutor.getCloseAction());
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
@@ -836,12 +840,14 @@ public class PgConnection implements BaseConnection {
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
     }
-    if (queryExecutor.isClosed()) {
-      return;
-    }
-    releaseTimer();
-    queryExecutor.close();
     openStackTrace = null;
+    try {
+      finalizeAction.close();
+    } catch (IOException e) {
+      throw new PSQLException(
+          GT.tr("Unable to close connection properly"),
+          PSQLState.UNKNOWN_STATE, e);
+    }
   }
 
   @Override
@@ -1087,25 +1093,6 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * <p>Overrides finalize(). If called, it closes the connection.</p>
-   *
-   * <p>This was done at the request of <a href="mailto:rachel@enlarion.demon.co.uk">Rachel
-   * Greenham</a> who hit a problem where multiple clients didn't close the connection, and once a
-   * fortnight enough clients were open to kill the postgres server.</p>
-   */
-  protected void finalize() throws Throwable {
-    try {
-      if (openStackTrace != null) {
-        LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-      }
-
-      close();
-    } finally {
-      super.finalize();
-    }
-  }
-
-  /**
    * Get server version number.
    *
    * @return server version number
@@ -1317,21 +1304,11 @@ public class PgConnection implements BaseConnection {
   }
 
   private Timer getTimer() {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (cancelTimer == null) {
-        cancelTimer = Driver.getSharedTimer().getTimer();
-      }
-      return cancelTimer;
-    }
+    return finalizeAction.getTimer();
   }
 
   private void releaseTimer() {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (cancelTimer != null) {
-        cancelTimer = null;
-        Driver.getSharedTimer().releaseTimer();
-      }
-    }
+    finalizeAction.releaseTimer();
   }
 
   @Override
@@ -1342,10 +1319,7 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void purgeTimerTasks() {
-    Timer timer = cancelTimer;
-    if (timer != null) {
-      timer.purge();
-    }
+    finalizeAction.purgeTimerTasks();
   }
 
   @Override
