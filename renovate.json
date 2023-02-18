@@ -3,6 +3,7 @@
   "extends": [
     "config:base"
   ],
+  "labels": ["dependencies"],
   "packageRules": [
     {
       "matchPackagePrefixes": ["org.openjdk.jmh"],
