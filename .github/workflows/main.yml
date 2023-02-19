@@ -189,13 +189,14 @@ jobs:
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
-        _JAVA_OPTIONS: ${{ matrix.testExtraJvmArgs }}
+        _JAVA_OPTIONS: ${{ matrix.extraJvmArgs }}
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk${{ matrix.java_version }}
         arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
+          testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
 
     - name: 'Install krb5 for GSS tests'
       if: ${{ matrix.gss == 'yes' }}
