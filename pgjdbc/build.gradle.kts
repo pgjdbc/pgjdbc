@@ -99,6 +99,12 @@ if (skipReplicationTests) {
     }
 }
 
+tasks.jar {
+    // Workaround https://github.com/lburgazzoli/gradle-karaf-plugin/issues/87
+    extra.set("classifier", "")
+    extra.set("extension", "jar")
+}
+
 tasks.configureEach<Test> {
     outputs.cacheIf("test results on the database configuration, so we can't cache it") {
         false
@@ -350,6 +356,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
             }
         }
     }
+    dependsOn(tasks.generateKar)
     into("src/main/resources") {
         from(tasks.jar.map {
             zipTree(it.archiveFile).matching {

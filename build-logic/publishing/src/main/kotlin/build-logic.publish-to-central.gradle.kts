@@ -1,6 +1,7 @@
 import com.github.vlsi.gradle.dsl.configureEach
 import org.gradle.api.publish.internal.PublicationInternal
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
+import java.util.Locale
 
 plugins {
     id("java-library")
@@ -20,7 +21,7 @@ publishing {
         afterEvaluate {
             named<MavenPublication>(project.name) {
                 extraMavenPublications.outgoing.artifacts.apply {
-                    val keys = mapTo(HashSet()) {
+                    val keys = mapTo(mutableSetOf()) {
                         it.classifier.orEmpty() to it.extension
                     }
                     artifacts.removeIf {
@@ -46,10 +47,12 @@ publishing {
         }
         pom {
             simplifyXml()
+            val capitalizedName = project.name
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             name.set(
-                (project.findProperty("artifact.name") as? String) ?: "pgdjbc ${project.name.capitalize()}"
+                (project.findProperty("artifact.name") as? String) ?: "pgdjbc $capitalizedName"
             )
-            description.set(project.description ?: "PostgreSQL JDBC Driver ${project.name.capitalize()}")
+            description.set(project.description ?: "PostgreSQL JDBC Driver $capitalizedName")
             inceptionYear.set("1997")
             url.set("https://jdbc.postgresql.org")
             licenses {

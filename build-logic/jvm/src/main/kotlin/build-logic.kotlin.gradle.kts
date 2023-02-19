@@ -22,9 +22,3 @@ autostyle {
         endWithNewline()
     }
 }
-
-tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "11"
-    }
-}
