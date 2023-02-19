@@ -4,12 +4,14 @@
  */
 
 plugins {
+    id("build-logic.repositories")
     id("org.nosphere.gradle.github.actions")
     // IDE configuration
     id("com.github.vlsi.ide")
     // Release
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.stage-vote-release")
+    id("jacoco")
 }
 
 ide {
@@ -26,6 +28,13 @@ val buildVersion = "pgjdbc".v + releaseParams.snapshotSuffix
 println("Building pgjdbc $buildVersion")
 
 val isReleaseVersion = rootProject.releaseParams.release.get()
+
+jacoco {
+    toolVersion = "0.8.8"
+    providers.gradleProperty("jacoco.version")
+        .takeIf { it.isPresent }
+        ?.let { toolVersion = it.get() }
+}
 
 val jacocoReport by tasks.registering(JacocoReport::class) {
     group = "Coverage reports"
