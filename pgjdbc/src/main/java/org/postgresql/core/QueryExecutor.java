@@ -17,6 +17,7 @@ import org.postgresql.util.HostSpec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -444,6 +445,15 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * Close this connection cleanly.
    */
   void close();
+
+  /**
+   * Returns an action that would close the connection cleanly.
+   * The returned object should refer only the minimum subset of objects required
+   * for proper resource cleanup. For instance, it should better not hold a strong reference to
+   * {@link QueryExecutor}.
+   * @return action that would close the connection cleanly.
+   */
+  Closeable getCloseAction();
 
   /**
    * Check if this connection is closed.

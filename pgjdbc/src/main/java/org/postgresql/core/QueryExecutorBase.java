@@ -20,6 +20,7 @@ import org.postgresql.util.ServerErrorMessage;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -42,7 +43,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   private int cancelPid;
   private int cancelKey;
-  private boolean closed = false;
+  protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum = 0;
   private TransactionState transactionState = TransactionState.IDLE;
@@ -71,7 +72,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
 
-  @SuppressWarnings({"assignment", "argument"})
+  @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
     this.user = PGProperty.USER.getOrDefault(info);
@@ -99,8 +100,20 @@ public abstract class QueryExecutorBase implements QueryExecutor {
             cachedQuery.query.close();
           }
         });
+    // method.invocation
+    this.closeAction = createCloseAction();
   }
 
+  protected QueryExecutorCloseAction createCloseAction() {
+    return new QueryExecutorCloseAction(pgStream);
+  }
+
+  /**
+   * Sends "terminate connection" message to the backend.
+   * @throws IOException in case connection termination fails
+   * @deprecated use {@link #getCloseAction()} instead
+   */
+  @Deprecated
   protected abstract void sendCloseMessage() throws IOException;
 
   @Override
@@ -140,35 +153,30 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public void abort() {
-    try {
-      pgStream.getSocket().close();
-    } catch (IOException e) {
-      // ignore
-    }
-    closed = true;
+    closeAction.abort();
+  }
+
+  @Override
+  public Closeable getCloseAction() {
+    return closeAction;
   }
 
   @Override
   public void close() {
-    if (closed) {
+    if (closeAction.isClosed()) {
       return;
     }
 
     try {
-      LOGGER.log(Level.FINEST, " FE=> Terminate");
-      sendCloseMessage();
-      pgStream.flush();
-      pgStream.close();
+      getCloseAction().close();
     } catch (IOException ioe) {
       LOGGER.log(Level.FINEST, "Discarding IOException on close:", ioe);
     }
-
-    closed = true;
   }
 
   @Override
   public boolean isClosed() {
-    return closed;
+    return closeAction.isClosed();
   }
 
   @Override

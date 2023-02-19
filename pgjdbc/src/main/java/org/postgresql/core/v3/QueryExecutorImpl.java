@@ -2786,9 +2786,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   protected void sendCloseMessage() throws IOException {
-    pgStream.sendChar('X');
-    pgStream.sendInteger4(4);
+    closeAction.sendCloseMessage(pgStream);
   }
 
   public void readStartupMessages() throws IOException, SQLException {
