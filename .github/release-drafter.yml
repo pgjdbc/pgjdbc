@@ -14,6 +14,9 @@ categories:
       - 'fix'
       - 'bugfix'
       - 'bug'
+  - title: '📝 Documentation'
+    labels:
+      - 'documentation'
   - title: '🧰 Maintenance'
     label: 'chore'
   - title: '⬆️ Dependencies'
@@ -38,6 +41,7 @@ template: |
 
   $CHANGES
 # See https://github.com/release-drafter/release-drafter#autolabeler
+# This is more like a reference, since auto-labelling PRs seems to require too much privileges
 autolabeler:
   - label: 'dependencies'
     files:
@@ -52,7 +56,7 @@ autolabeler:
       - '/docs{0,1}\/.+/'
     title:
       - '/^chore/i'
-  - label: documentation
+  - label: 'documentation'
     files:
       - '*.md'
       - 'docs/**'
