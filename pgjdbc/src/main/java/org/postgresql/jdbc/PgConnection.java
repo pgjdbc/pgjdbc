@@ -556,26 +556,25 @@ public class PgConnection implements BaseConnection {
   @Override
   public ResultSet execSQLQuery(String s, int resultSetType, int resultSetConcurrency)
       throws SQLException {
-    try (BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency)) {
-      boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
+    BaseStatement stat = (BaseStatement) createStatement(resultSetType, resultSetConcurrency);
+    boolean hasResultSet = stat.executeWithFlags(s, QueryExecutor.QUERY_SUPPRESS_BEGIN);
 
-      while (!hasResultSet && stat.getUpdateCount() != -1) {
-        hasResultSet = stat.getMoreResults();
-      }
-
-      if (!hasResultSet) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      // Transfer warnings to the connection, since the user never
-      // has a chance to see the statement itself.
-      SQLWarning warnings = stat.getWarnings();
-      if (warnings != null) {
-        addWarning(warnings);
-      }
-
-      return castNonNull(stat.getResultSet(), "hasResultSet==true, yet getResultSet()==null");
+    while (!hasResultSet && stat.getUpdateCount() != -1) {
+      hasResultSet = stat.getMoreResults();
     }
+
+    if (!hasResultSet) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+    }
+
+    // Transfer warnings to the connection, since the user never
+    // has a chance to see the statement itself.
+    SQLWarning warnings = stat.getWarnings();
+    if (warnings != null) {
+      addWarning(warnings);
+    }
+
+    return castNonNull(stat.getResultSet(), "hasResultSet==true, yet getResultSet()==null");
   }
 
   @Override
