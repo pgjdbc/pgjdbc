@@ -28,5 +28,7 @@ checkstyleTasks.configureEach {
 }
 
 tasks.register("checkstyleAll") {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Runs Checkstyle source code verifications"
     dependsOn(checkstyleTasks)
 }

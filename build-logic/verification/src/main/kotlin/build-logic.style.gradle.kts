@@ -9,13 +9,20 @@ if (!buildParameters.skipAutostyle) {
     apply(plugin = "build-logic.autostyle")
 }
 
-val skipCheckstyle = buildParameters.skipCheckstyle || run {
-    logger.info("Checkstyle requires Java 11+")
-    !JavaVersion.current().isJava11Compatible
-}
+val javaIsGoodForCheckstyle = JavaVersion.current().isJava11Compatible
+
+val skipCheckstyle = buildParameters.skipCheckstyle || !javaIsGoodForCheckstyle
 
 if (!skipCheckstyle) {
     apply(plugin = "build-logic.checkstyle")
+} else if (!javaIsGoodForCheckstyle) {
+    tasks.register("checkstyleAll") {
+        group = LifecycleBasePlugin.VERIFICATION_GROUP
+        description = "Runs Checkstyle source code verifications. Java 11+ is needed. The current Java is ${JavaVersion.current()}"
+        doLast {
+            throw IllegalArgumentException("Checkstyle requires Java 11+, the current Java is ${JavaVersion.current()}")
+        }
+    }
 }
 
 if (!buildParameters.skipForbiddenApis) {
