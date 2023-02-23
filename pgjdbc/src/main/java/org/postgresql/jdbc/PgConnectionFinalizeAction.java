@@ -5,15 +5,13 @@
 
 package org.postgresql.jdbc;
 
-import net.juanlopes.lazycleaner.LazyCleaner;
-
 import org.postgresql.Driver;
 import org.postgresql.util.GT;
 
+import net.juanlopes.lazycleaner.LazyCleaner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -82,6 +80,9 @@ class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
 
   @Override
   public void onClean(boolean leak) throws Exception {
+    if (leak && openStackTrace != null) {
+      LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
+    }
     openStackTrace = null;
     releaseTimer();
     queryExecutorCloseAction.close();
