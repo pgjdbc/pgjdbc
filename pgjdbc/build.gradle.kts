@@ -84,6 +84,7 @@ dependencies {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
     shaded("com.ongres.scram:client:2.1")
+    shaded("net.juanlopes.lazycleaner:lazycleaner:1.1.0")
 
     implementation("org.checkerframework:checker-qual:3.31.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.1")

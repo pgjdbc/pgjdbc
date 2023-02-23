@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import net.juanlopes.lazycleaner.LazyCleaner;
+
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -241,7 +243,7 @@ public class PgConnection implements BaseConnection {
   @SuppressWarnings({"method.invocation", "argument"})
   public PgConnection(HostSpec[] hostSpecs,
                       Properties info,
-                      String url) throws SQLException {
+                      String url, LazyCleaner cleaner) throws SQLException {
     // Print out the driver version number
     LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
 
@@ -367,6 +369,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
+    cleaner.register(this, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
@@ -839,8 +842,8 @@ public class PgConnection implements BaseConnection {
     }
     openStackTrace = null;
     try {
-      finalizeAction.close();
-    } catch (IOException e) {
+      finalizeAction.onClean(false);
+    } catch (Exception e) {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),
           PSQLState.UNKNOWN_STATE, e);

@@ -7,6 +7,8 @@ package org.postgresql;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import net.juanlopes.lazycleaner.LazyCleaner;
+
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.jdbcurlresolver.PgPassParser;
@@ -66,6 +68,8 @@ public class Driver implements java.sql.Driver {
   private static final Logger PARENT_LOGGER = Logger.getLogger("org.postgresql");
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
+
+  private static final LazyCleaner cleaner = new LazyCleaner(10, "Cleaner");
 
   static {
     try {
@@ -440,7 +444,7 @@ public class Driver implements java.sql.Driver {
    * @throws SQLException if the connection could not be made
    */
   private static Connection makeConnection(String url, Properties props) throws SQLException {
-    return new PgConnection(hostSpecs(props), props, url);
+    return new PgConnection(hostSpecs(props), props, url, cleaner);
   }
 
   /**

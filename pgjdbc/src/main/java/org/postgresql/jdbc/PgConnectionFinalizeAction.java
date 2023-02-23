@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import net.juanlopes.lazycleaner.LazyCleaner;
+
 import org.postgresql.Driver;
 import org.postgresql.util.GT;
 
@@ -25,7 +27,7 @@ import java.util.logging.Logger;
  *   <li>Release shared timer registration</li>
  * </ul>
  */
-class PgConnectionFinalizeAction implements Closeable {
+class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
   private final ResourceLock lock;
@@ -79,18 +81,7 @@ class PgConnectionFinalizeAction implements Closeable {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  protected void finalize() throws Throwable {
-    if (openStackTrace != null) {
-      LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
-    }
-    close();
-  }
-
-  @Override
-  public void close() throws IOException {
-    // Implementation note: close() might be called multiple times (e.g. by the user, and from finalize()
-    // Please keep the implementation safe in those cases
+  public void onClean(boolean leak) throws Exception {
     openStackTrace = null;
     releaseTimer();
     queryExecutorCloseAction.close();
