@@ -14,13 +14,13 @@ import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
 
-import net.juanlopes.lazycleaner.LazyCleaner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;

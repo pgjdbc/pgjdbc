@@ -32,6 +32,7 @@ import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
+import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
@@ -41,7 +42,6 @@ import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
-import net.juanlopes.lazycleaner.LazyCleaner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.dataflow.qual.Pure;

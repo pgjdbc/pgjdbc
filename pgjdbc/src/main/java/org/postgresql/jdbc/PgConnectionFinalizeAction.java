@@ -7,8 +7,8 @@ package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
 import org.postgresql.util.GT;
+import org.postgresql.util.LazyCleaner;
 
-import net.juanlopes.lazycleaner.LazyCleaner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
