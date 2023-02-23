@@ -4,6 +4,7 @@
     "config:base"
   ],
   "labels": ["dependencies"],
+  "schedule": ["every 3 weeks on Monday"],
   "packageRules": [
     {
       "matchPackagePrefixes": ["org.openjdk.jmh"],
