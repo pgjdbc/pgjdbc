@@ -22,6 +22,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
 import java.util.concurrent.ThreadFactory;
@@ -42,10 +44,10 @@ public class LazyCleaner {
   private final ReferenceQueue<Object> queue = new ReferenceQueue<Object>();
   private final long threadTtl;
   private final ThreadFactory threadFactory;
-  private boolean threadRunning;
-  private int watchedCount;
-  private Node first;
-  private Cleanable keepAliveCleanable;
+  private boolean threadRunning = false;
+  private int watchedCount = 0;
+  private @Nullable Node first = null;
+  private @Nullable Cleanable keepAliveCleanable;
 
   public LazyCleaner(long threadTtl, final String threadName) {
     this(threadTtl, new ThreadFactory() {
@@ -159,8 +161,8 @@ public class LazyCleaner {
 
   private class Node extends PhantomReference<Object> implements Cleanable, CleaningAction {
     private final CleaningAction action;
-    private Node prev;
-    private Node next;
+    private Node prev = null;
+    private Node next = null;
 
     Node(Object referent, CleaningAction action) {
       super(referent, queue);

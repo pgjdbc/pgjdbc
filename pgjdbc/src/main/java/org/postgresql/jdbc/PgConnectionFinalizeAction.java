@@ -13,7 +13,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
