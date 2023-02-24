@@ -37,7 +37,7 @@ public class LazyCleaner {
     void clean();
   }
 
-  public interface CleaningAction <T extends Throwable >{
+  public interface CleaningAction<T extends Throwable> {
     void onClean(boolean leak) throws T;
   }
 

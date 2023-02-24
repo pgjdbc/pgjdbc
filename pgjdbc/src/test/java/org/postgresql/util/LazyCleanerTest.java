@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-
 public class LazyCleanerTest {
   @Test
   public void testPhantomCleaner() throws InterruptedException {
