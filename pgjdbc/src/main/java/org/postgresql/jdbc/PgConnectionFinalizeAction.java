@@ -12,6 +12,8 @@ import org.postgresql.util.LazyCleaner;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Timer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,7 +81,7 @@ class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
   }
 
   @Override
-  public void onClean(boolean leak) throws Exception {
+  public void onClean(boolean leak) throws IOException {
     if (leak && openStackTrace != null) {
       LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
     }

@@ -35,8 +35,8 @@ public class LazyCleaner {
     void clean();
   }
 
-  public interface CleaningAction {
-    void onClean(boolean leak) throws Exception;
+  public interface CleaningAction <T extends Throwable >{
+    void onClean(boolean leak) throws T;
   }
 
   private final ReferenceQueue<Object> queue = new ReferenceQueue<Object>();

@@ -842,7 +842,7 @@ public class PgConnection implements BaseConnection {
     openStackTrace = null;
     try {
       finalizeAction.onClean(false);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),
           PSQLState.UNKNOWN_STATE, e);
