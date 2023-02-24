@@ -22,7 +22,6 @@
 
 package org.postgresql.util;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
@@ -47,7 +46,7 @@ public class LazyCleaner {
   private final ThreadFactory threadFactory;
   private boolean threadRunning = false;
   private int watchedCount = 0;
-  private @Nullable Node first = null;
+  private @Nullable Node first;
   private @Nullable Cleanable keepAliveCleanable;
 
   public LazyCleaner(long threadTtl, final String threadName) {
@@ -110,14 +109,13 @@ public class LazyCleaner {
     watchedCount++;
 
     if (!threadRunning) {
-      startThread();
-      threadRunning = true;
+      threadRunning = startThread();
     }
     return node;
   }
 
-  private void startThread() {
-    @NonNull Thread thread = threadFactory.newThread(new Runnable() {
+  private boolean startThread() {
+    Thread thread = threadFactory.newThread(new Runnable() {
       public void run() {
         while (true) {
           try {
@@ -134,7 +132,11 @@ public class LazyCleaner {
         }
       }
     });
-    thread.start();
+    if (thread != null) {
+      thread.start();
+      return true;
+    }
+    return false;
   }
 
   private synchronized boolean remove(Node node) {
