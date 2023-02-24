@@ -72,13 +72,15 @@ public class LazyCleaner {
     if (alive) {
       keepAliveCleanable = register(this, null);
     } else {
-      keepAliveCleanable.clean();
+      if (keepAliveCleanable != null) {
+        keepAliveCleanable.clean();
+      }
       keepAliveCleanable = null;
     }
     return this;
   }
 
-  public Cleanable register(Object obj, CleaningAction action) {
+  public Cleanable register(Object obj, @Nullable CleaningAction action) {
     return add(new Node(obj, action));
   }
 
@@ -160,11 +162,11 @@ public class LazyCleaner {
   }
 
   private class Node extends PhantomReference<Object> implements Cleanable, CleaningAction {
-    private final CleaningAction action;
-    private Node prev = null;
-    private Node next = null;
+    private final @Nullable CleaningAction action;
+    private @Nullable Node prev = null;
+    private @Nullable Node next = null;
 
-    Node(Object referent, CleaningAction action) {
+    Node(Object referent, @Nullable CleaningAction action) {
       super(referent, queue);
       this.action = action;
       //Objects.requireNonNull(referent); // poor man`s reachabilityFence
