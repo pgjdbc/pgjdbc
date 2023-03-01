@@ -189,6 +189,8 @@ public class PgConnection implements BaseConnection {
   private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
+  // Uses timestamptz always for java sql Timestamp
+  private final boolean sqlTimestamptzAlways;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -273,6 +275,8 @@ public class PgConnection implements BaseConnection {
     }
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
+
+    this.sqlTimestamptzAlways = PGProperty.SQL_TIMESTAMPTZ_ALWAYS.getBoolean(info);
 
     // get oids that support binary transfer
     Set<Integer> binaryOids = getBinaryEnabledOids(info);
@@ -1925,5 +1929,10 @@ public class PgConnection implements BaseConnection {
     }
     this.xmlFactoryFactory = xmlFactoryFactory;
     return xmlFactoryFactory;
+  }
+  
+  
+  public boolean isSqlTimestamptzAlways() {
+    return sqlTimestamptzAlways;
   }
 }
