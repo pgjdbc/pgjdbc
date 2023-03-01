@@ -1,6 +1,8 @@
 // The script generates a random subset of valid jdk, os, timezone, and other axes.
 // You can preview the results by running "node matrix.js"
 // See https://github.com/vlsi/github-actions-random-matrix
+let fs = require('fs');
+let os = require('os');
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
 
@@ -238,7 +240,18 @@ if (include.length === 0) {
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
+    let gradleArgs = [];
+    if (v.java_version == 11) {
+        // JavaDoc 11 can't parse package annotations: https://bugs.openjdk.org/browse/JDK-8222091
+        gradleArgs.push('-PskipJavadoc')
+    }
+    v.extraGradleArgs = gradleArgs.join(' ');
+});
+include.forEach(v => {
+  // Arguments passed to all the JVMs via _JAVA_OPTIONS
   let jvmArgs = [];
+  // Extra JVM arguments passed to test execution
+  let testJvmArgs = [];
   v.replication = v.replication.value;
   v.slow_tests = v.slow_tests.value;
   v.xa = v.xa.value;
@@ -268,7 +281,10 @@ include.forEach(v => {
       v.deploy_to_maven_local = true
   }
   if (v.hash.value === 'same') {
-    jvmArgs.push('-XX:+UnlockExperimentalVMOptions', '-XX:hashCode=2');
+    // "same hashcode" causes issue for javac, and kotlinc,
+    // so we pass it to test execution only
+    // See https://github.com/pgjdbc/pgjdbc/pull/2821#issuecomment-1436013284
+    testJvmArgs.push('-XX:+UnlockExperimentalVMOptions', '-XX:hashCode=2');
   }
   // Gradle does not work in tr_TR locale, so pass locale to test only: https://github.com/gradle/gradle/issues/17361
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
@@ -297,9 +313,16 @@ include.forEach(v => {
       jvmArgs.push('-XX:+StressCCP');
     }
   }
-  v.testExtraJvmArgs = jvmArgs.join(' ');
+  v.extraJvmArgs = jvmArgs.join(' ');
+  v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;
 });
 
 console.log(include);
-console.log('::set-output name=matrix::' + JSON.stringify({include}));
+
+let filePath = process.env['GITHUB_OUTPUT'] || '';
+if (filePath) {
+    fs.appendFileSync(filePath, `matrix<<MATRIX_BODY${os.EOL}${JSON.stringify({include})}${os.EOL}MATRIX_BODY${os.EOL}`, {
+        encoding: 'utf8'
+    });
+}

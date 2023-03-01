@@ -4,6 +4,8 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 10
 toc: true
+aliases:
+    - "/documentation/head/ds-ds.html"
 ---
 
 JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package

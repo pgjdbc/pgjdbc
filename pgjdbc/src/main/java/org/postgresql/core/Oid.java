@@ -73,6 +73,7 @@ public class Oid {
   public static final int POINT = 600;
   public static final int POINT_ARRAY = 1017;
   public static final int BOX = 603;
+  public static final int BOX_ARRAY = 1020;
   public static final int JSONB = 3802;
   public static final int JSONB_ARRAY = 3807;
   public static final int JSON = 114;

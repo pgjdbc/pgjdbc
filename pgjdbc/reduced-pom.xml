@@ -10,7 +10,7 @@
     <artifactId>postgresql</artifactId>
     <packaging>jar</packaging>
     <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-    <version>%{pgjdbc.version}</version>
+    <version>%{org.postgresql:postgresql}</version>
     <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
     <url>https://github.com/pgjdbc/pgjdbc</url>
 
@@ -43,47 +43,48 @@
         <dependency>
             <groupId>com.ongres.scram</groupId>
             <artifactId>client</artifactId>
-            <version>%{com.ongres.scram.client.version}</version>
+            <version>%{com.ongres.scram:client}</version>
         </dependency>
         <dependency>
             <groupId>se.jiderhamn</groupId>
             <artifactId>classloader-leak-test-framework</artifactId>
-            <version>%{classloader-leak-test-framework.version}</version>
+            <version>%{se.jiderhamn:classloader-leak-test-framework}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>%{junit4.version}</version>
+            <version>%{junit:junit}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
-            <version>%{junit5.version}</version>
+            <version>%{org.junit.jupiter:junit-jupiter-api}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>uk.org.webcompere</groupId>
             <artifactId>system-stubs-jupiter</artifactId>
-            <version>%{junit5-system-stubs-jupiter.version}</version>
+            <version>%{uk.org.webcompere:system-stubs-jupiter}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
-            <version>%{junit5.version}</version>
+            <version>%{org.junit.jupiter:junit-jupiter-params}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
-            <version>%{junit5.version}</version>
+            <version>%{org.junit.jupiter:junit-jupiter-params}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
-            <version>%{junit5.version}</version>
+            <version>%{org.junit.jupiter:junit-jupiter-params}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

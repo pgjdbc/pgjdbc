@@ -19,7 +19,7 @@ public abstract class WrappedFactory extends SSLSocketFactory {
 
   // The field is indeed not initialized in this class, however it is a part of public API,
   // so it is hard to fix.
-  @SuppressWarnings("initialization.fields.uninitialized")
+  @SuppressWarnings("initialization.field.uninitialized")
   protected SSLSocketFactory factory;
 
   public Socket createSocket(InetAddress host, int port) throws IOException {

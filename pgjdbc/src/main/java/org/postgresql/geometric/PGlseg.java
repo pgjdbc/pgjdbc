@@ -48,7 +48,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param s definition of the line segment in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGlseg(String s) throws SQLException {
     this();
     setValue(s);

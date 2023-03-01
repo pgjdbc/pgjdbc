@@ -75,12 +75,15 @@ public class BigDecimalByteConverterTest {
     numbers.add(new Object[] {new BigDecimal("1000000").setScale(31)});
     numbers.add(new Object[] {new BigDecimal("10000000000000000000000000000000000000").setScale(14)});
     numbers.add(new Object[] {new BigDecimal("90000000000000000000000000000000000000")});
-    numbers.add(new Object[] {new BigDecimal(BigInteger.TEN.pow(131072).subtract(BigInteger.ONE))});
     return numbers;
   }
 
   @Test
   public void testBinary() {
+    testBinary(number);
+  }
+
+  static void testBinary(BigDecimal number) {
     final byte[] bytes = ByteConverter.numeric(number);
     final BigDecimal actual = (BigDecimal) ByteConverter.numeric(bytes);
     if (number.scale() >= 0) {

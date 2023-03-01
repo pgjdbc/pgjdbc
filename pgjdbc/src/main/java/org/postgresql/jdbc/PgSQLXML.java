@@ -52,6 +52,7 @@ import javax.xml.transform.stream.StreamSource;
 
 public class PgSQLXML implements SQLXML {
 
+  private final ResourceLock lock = new ResourceLock();
   private final BaseConnection conn;
   private @Nullable String data; // The actual data contained.
   private boolean initialized; // Has someone assigned the data for this object?
@@ -86,41 +87,47 @@ public class PgSQLXML implements SQLXML {
   }
 
   @Override
-  public synchronized void free() {
-    freed = true;
-    data = null;
-  }
-
-  @Override
-  public synchronized @Nullable InputStream getBinaryStream() throws SQLException {
-    checkFreed();
-    ensureInitialized();
-
-    if (data == null) {
-      return null;
-    }
-
-    try {
-      return new ByteArrayInputStream(conn.getEncoding().encode(data));
-    } catch (IOException ioe) {
-      // This should be a can't happen exception. We just
-      // decoded this data, so it would be surprising that
-      // we couldn't encode it.
-      // For this reason don't make it translatable.
-      throw new PSQLException("Failed to re-encode xml data.", PSQLState.DATA_ERROR, ioe);
+  public void free() {
+    try (ResourceLock ignore = lock.obtain()) {
+      freed = true;
+      data = null;
     }
   }
 
   @Override
-  public synchronized @Nullable Reader getCharacterStream() throws SQLException {
-    checkFreed();
-    ensureInitialized();
+  public @Nullable InputStream getBinaryStream() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      ensureInitialized();
 
-    if (data == null) {
-      return null;
+      if (data == null) {
+        return null;
+      }
+
+      try {
+        return new ByteArrayInputStream(conn.getEncoding().encode(data));
+      } catch (IOException ioe) {
+        // This should be a can't happen exception. We just
+        // decoded this data, so it would be surprising that
+        // we couldn't encode it.
+        // For this reason don't make it translatable.
+        throw new PSQLException("Failed to re-encode xml data.", PSQLState.DATA_ERROR, ioe);
+      }
     }
+  }
 
-    return new StringReader(data);
+  @Override
+  public @Nullable Reader getCharacterStream() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      ensureInitialized();
+
+      if (data == null) {
+        return null;
+      }
+
+      return new StringReader(data);
+    }
   }
 
   // We must implement this unsafely because that's what the
@@ -130,116 +137,128 @@ public class PgSQLXML implements SQLXML {
   // ensure they are the same.
   //
   @Override
-  public synchronized <T extends Source> @Nullable T getSource(@Nullable Class<T> sourceClass)
+  public <T extends Source> @Nullable T getSource(@Nullable Class<T> sourceClass)
       throws SQLException {
-    checkFreed();
-    ensureInitialized();
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      ensureInitialized();
 
-    String data = this.data;
-    if (data == null) {
-      return null;
-    }
-
-    try {
-      if (sourceClass == null || DOMSource.class.equals(sourceClass)) {
-        DocumentBuilder builder = getXmlFactoryFactory().newDocumentBuilder();
-        InputSource input = new InputSource(new StringReader(data));
-        DOMSource domSource = new DOMSource(builder.parse(input));
-        //noinspection unchecked
-        return (T) domSource;
-      } else if (SAXSource.class.equals(sourceClass)) {
-        XMLReader reader = getXmlFactoryFactory().createXMLReader();
-        InputSource is = new InputSource(new StringReader(data));
-        return sourceClass.cast(new SAXSource(reader, is));
-      } else if (StreamSource.class.equals(sourceClass)) {
-        return sourceClass.cast(new StreamSource(new StringReader(data)));
-      } else if (StAXSource.class.equals(sourceClass)) {
-        XMLInputFactory xif = getXmlFactoryFactory().newXMLInputFactory();
-        XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(data));
-        return sourceClass.cast(new StAXSource(xsr));
+      String data = this.data;
+      if (data == null) {
+        return null;
       }
-    } catch (Exception e) {
-      throw new PSQLException(GT.tr("Unable to decode xml data."), PSQLState.DATA_ERROR, e);
-    }
 
-    throw new PSQLException(GT.tr("Unknown XML Source class: {0}", sourceClass),
-        PSQLState.INVALID_PARAMETER_TYPE);
-  }
-
-  @Override
-  public synchronized @Nullable String getString() throws SQLException {
-    checkFreed();
-    ensureInitialized();
-    return data;
-  }
-
-  @Override
-  public synchronized OutputStream setBinaryStream() throws SQLException {
-    checkFreed();
-    initialize();
-    active = true;
-    byteArrayOutputStream = new ByteArrayOutputStream();
-    return byteArrayOutputStream;
-  }
-
-  @Override
-  public synchronized Writer setCharacterStream() throws SQLException {
-    checkFreed();
-    initialize();
-    active = true;
-    stringWriter = new StringWriter();
-    return stringWriter;
-  }
-
-  @Override
-  public synchronized <T extends Result> T setResult(Class<T> resultClass) throws SQLException {
-    checkFreed();
-    initialize();
-
-    if (resultClass == null || DOMResult.class.equals(resultClass)) {
-      domResult = new DOMResult();
-      active = true;
-      //noinspection unchecked
-      return (T) domResult;
-    } else if (SAXResult.class.equals(resultClass)) {
       try {
-        SAXTransformerFactory transformerFactory = getXmlFactoryFactory().newSAXTransformerFactory();
-        TransformerHandler transformerHandler = transformerFactory.newTransformerHandler();
-        stringWriter = new StringWriter();
-        transformerHandler.setResult(new StreamResult(stringWriter));
-        active = true;
-        return resultClass.cast(new SAXResult(transformerHandler));
-      } catch (TransformerException te) {
-        throw new PSQLException(GT.tr("Unable to create SAXResult for SQLXML."),
-            PSQLState.UNEXPECTED_ERROR, te);
+        if (sourceClass == null || DOMSource.class.equals(sourceClass)) {
+          DocumentBuilder builder = getXmlFactoryFactory().newDocumentBuilder();
+          InputSource input = new InputSource(new StringReader(data));
+          DOMSource domSource = new DOMSource(builder.parse(input));
+          //noinspection unchecked
+          return (T) domSource;
+        } else if (SAXSource.class.equals(sourceClass)) {
+          XMLReader reader = getXmlFactoryFactory().createXMLReader();
+          InputSource is = new InputSource(new StringReader(data));
+          return sourceClass.cast(new SAXSource(reader, is));
+        } else if (StreamSource.class.equals(sourceClass)) {
+          return sourceClass.cast(new StreamSource(new StringReader(data)));
+        } else if (StAXSource.class.equals(sourceClass)) {
+          XMLInputFactory xif = getXmlFactoryFactory().newXMLInputFactory();
+          XMLStreamReader xsr = xif.createXMLStreamReader(new StringReader(data));
+          return sourceClass.cast(new StAXSource(xsr));
+        }
+      } catch (Exception e) {
+        throw new PSQLException(GT.tr("Unable to decode xml data."), PSQLState.DATA_ERROR, e);
       }
-    } else if (StreamResult.class.equals(resultClass)) {
+
+      throw new PSQLException(GT.tr("Unknown XML Source class: {0}", sourceClass),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+  }
+
+  @Override
+  public @Nullable String getString() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      ensureInitialized();
+      return data;
+    }
+  }
+
+  @Override
+  public OutputStream setBinaryStream() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      initialize();
+      active = true;
+      byteArrayOutputStream = new ByteArrayOutputStream();
+      return byteArrayOutputStream;
+    }
+  }
+
+  @Override
+  public Writer setCharacterStream() throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      initialize();
+      active = true;
       stringWriter = new StringWriter();
-      active = true;
-      return resultClass.cast(new StreamResult(stringWriter));
-    } else if (StAXResult.class.equals(resultClass)) {
-      StringWriter stringWriter = new StringWriter();
-      this.stringWriter = stringWriter;
-      try {
-        XMLOutputFactory xof = getXmlFactoryFactory().newXMLOutputFactory();
-        XMLStreamWriter xsw = xof.createXMLStreamWriter(stringWriter);
-        active = true;
-        return resultClass.cast(new StAXResult(xsw));
-      } catch (XMLStreamException xse) {
-        throw new PSQLException(GT.tr("Unable to create StAXResult for SQLXML"),
-            PSQLState.UNEXPECTED_ERROR, xse);
-      }
+      return stringWriter;
     }
-
-    throw new PSQLException(GT.tr("Unknown XML Result class: {0}", resultClass),
-        PSQLState.INVALID_PARAMETER_TYPE);
   }
 
   @Override
-  public synchronized void setString(String value) throws SQLException {
-    checkFreed();
-    initialize();
-    data = value;
+  public <T extends Result> T setResult(Class<T> resultClass) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      initialize();
+
+      if (resultClass == null || DOMResult.class.equals(resultClass)) {
+        domResult = new DOMResult();
+        active = true;
+        //noinspection unchecked
+        return (T) domResult;
+      } else if (SAXResult.class.equals(resultClass)) {
+        try {
+          SAXTransformerFactory transformerFactory = getXmlFactoryFactory().newSAXTransformerFactory();
+          TransformerHandler transformerHandler = transformerFactory.newTransformerHandler();
+          stringWriter = new StringWriter();
+          transformerHandler.setResult(new StreamResult(stringWriter));
+          active = true;
+          return resultClass.cast(new SAXResult(transformerHandler));
+        } catch (TransformerException te) {
+          throw new PSQLException(GT.tr("Unable to create SAXResult for SQLXML."),
+              PSQLState.UNEXPECTED_ERROR, te);
+        }
+      } else if (StreamResult.class.equals(resultClass)) {
+        stringWriter = new StringWriter();
+        active = true;
+        return resultClass.cast(new StreamResult(stringWriter));
+      } else if (StAXResult.class.equals(resultClass)) {
+        StringWriter stringWriter = new StringWriter();
+        this.stringWriter = stringWriter;
+        try {
+          XMLOutputFactory xof = getXmlFactoryFactory().newXMLOutputFactory();
+          XMLStreamWriter xsw = xof.createXMLStreamWriter(stringWriter);
+          active = true;
+          return resultClass.cast(new StAXResult(xsw));
+        } catch (XMLStreamException xse) {
+          throw new PSQLException(GT.tr("Unable to create StAXResult for SQLXML"),
+              PSQLState.UNEXPECTED_ERROR, xse);
+        }
+      }
+
+      throw new PSQLException(GT.tr("Unknown XML Result class: {0}", resultClass),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+  }
+
+  @Override
+  public void setString(String value) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      checkFreed();
+      initialize();
+      data = value;
+    }
   }
 
   private void checkFreed() throws SQLException {

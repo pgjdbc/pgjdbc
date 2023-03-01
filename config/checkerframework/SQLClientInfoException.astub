@@ -7,4 +7,6 @@ class SQLClientInfoException {
                            @Nullable String SQLState,
                            Map<String, ClientInfoStatus> failedProperties,
                            @Nullable Throwable cause);
+
+   public Map<String, ClientInfoStatus> getFailedProperties();
 }

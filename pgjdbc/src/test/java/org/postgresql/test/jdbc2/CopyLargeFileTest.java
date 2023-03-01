@@ -104,7 +104,7 @@ public class CopyLargeFileTest {
           + seed + " to reproduce the test";
       t.addSuppressed(new Throwable(message) {
         @Override
-        public synchronized Throwable fillInStackTrace() {
+        public Throwable fillInStackTrace() {
           return this;
         }
       });

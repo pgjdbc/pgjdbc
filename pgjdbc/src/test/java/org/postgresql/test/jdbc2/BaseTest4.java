@@ -5,8 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.Assert.assertEquals;
+
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -20,6 +23,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 public class BaseTest4 {
 
@@ -136,4 +140,13 @@ public class BaseTest4 {
     Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, version));
   }
 
+  protected void assertBinaryForReceive(int oid, boolean expected, Supplier<String> message) throws SQLException {
+    assertEquals(message.get() + ", useBinaryForReceive(oid=" + oid + ")", expected,
+        con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForReceive(oid));
+  }
+
+  protected void assertBinaryForSend(int oid, boolean expected, Supplier<String> message) throws SQLException {
+    assertEquals(message.get() + ", useBinaryForSend(oid=" + oid + ")", expected,
+        con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid));
+  }
 }

@@ -147,6 +147,7 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean getStandardConformingStrings();
 
   // Ew. Quick hack to give access to the connection-specific utils implementation.
+  @Deprecated
   TimestampUtils getTimestampUtils();
 
   // Get the per-connection logger.

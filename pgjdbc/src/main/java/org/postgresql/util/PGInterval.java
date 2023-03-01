@@ -46,7 +46,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @throws SQLException Is thrown if the string representation has an unknown format
    * @see PGobject#setValue(String)
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGInterval(String value) throws SQLException {
     this();
     setValue(value);
@@ -122,7 +122,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param seconds seconds
    * @see #setValue(int, int, int, int, int, double)
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGInterval(int years, int months, int days, int hours, int minutes, double seconds) {
     this();
     setValue(years, months, days, hours, minutes, seconds);

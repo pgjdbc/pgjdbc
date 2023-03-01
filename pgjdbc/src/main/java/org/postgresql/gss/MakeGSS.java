@@ -157,7 +157,7 @@ public class MakeGSS {
             kerberosServerName, useSpnego, logServerErrorDetail);
       }
       //noinspection ConstantConditions
-      @SuppressWarnings({"cast.unsafe", "assignment.type.incompatible"})
+      @SuppressWarnings({"cast.unsafe", "assignment"})
       @NonNull Subject subject = sub;
       if (SUBJECT_DO_AS != null) {
         result = (Exception) SUBJECT_DO_AS.invoke(subject, action);

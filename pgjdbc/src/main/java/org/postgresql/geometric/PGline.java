@@ -56,7 +56,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param x2 coordinate for second point on the line
    * @param y2 coordinate for second point on the line
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGline(double x1, double y1, double x2, double y2) {
     this();
     setValue(x1, y1, x2, y2);
@@ -66,7 +66,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param p1 first point on the line
    * @param p2 second point on the line
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGline(@Nullable PGpoint p1, @Nullable PGpoint p2) {
     this();
     setValue(p1, p2);
@@ -75,7 +75,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   /**
    * @param lseg Line segment which calls on this line.
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGline(@Nullable PGlseg lseg) {
     this();
     if (lseg == null) {
@@ -113,7 +113,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param s definition of the line in PostgreSQL's syntax.
    * @throws SQLException on conversion failure
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGline(String s) throws SQLException {
     this();
     setValue(s);

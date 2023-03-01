@@ -355,6 +355,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return keywords;
   }
 
+  @SuppressWarnings("deprecation")
   public String getNumericFunctions() throws SQLException {
     return EscapedFunctions.ABS + ',' + EscapedFunctions.ACOS + ',' + EscapedFunctions.ASIN + ','
         + EscapedFunctions.ATAN + ',' + EscapedFunctions.ATAN2 + ',' + EscapedFunctions.CEILING
@@ -367,6 +368,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   }
 
+  @SuppressWarnings("deprecation")
   public String getStringFunctions() throws SQLException {
     String funcs = EscapedFunctions.ASCII + ',' + EscapedFunctions.CHAR + ','
         + EscapedFunctions.CONCAT + ',' + EscapedFunctions.LCASE + ',' + EscapedFunctions.LEFT + ','
@@ -386,10 +388,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return funcs;
   }
 
+  @SuppressWarnings("deprecation")
   public String getSystemFunctions() throws SQLException {
     return EscapedFunctions.DATABASE + ',' + EscapedFunctions.IFNULL + ',' + EscapedFunctions.USER;
   }
 
+  @SuppressWarnings("deprecation")
   public String getTimeDateFunctions() throws SQLException {
     String timeDateFuncs = EscapedFunctions.CURDATE + ',' + EscapedFunctions.CURTIME + ','
         + EscapedFunctions.DAYNAME + ',' + EscapedFunctions.DAYOFMONTH + ','
@@ -1766,7 +1770,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         Map<String, Map<String, List<@Nullable String[]>>> relPermissions = parseACL(acl, owner);
         permissions.putAll(relPermissions);
       }
-      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);
@@ -1835,7 +1839,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String owner = castNonNull(rs.getString("rolname"));
       String acl = rs.getString("relacl");
       Map<String, Map<String, List<@Nullable String[]>>> permissions = parseACL(acl, owner);
-      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new String[0]);
+      @KeyFor("permissions") String[] permNames = permissions.keySet().toArray(new @KeyFor("permissions") String[0]);
       Arrays.sort(permNames);
       for (String permName : permNames) {
         byte[] privilege = connection.encodeString(permName);

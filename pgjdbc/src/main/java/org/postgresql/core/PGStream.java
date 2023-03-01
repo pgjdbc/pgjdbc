@@ -90,7 +90,7 @@ public class PGStream implements Closeable, Flushable {
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
    */
-  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
+  @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
@@ -103,7 +103,7 @@ public class PGStream implements Closeable, Flushable {
     int4Buf = new byte[4];
   }
 
-  @SuppressWarnings({"method.invocation.invalid", "initialization.fields.uninitialized"})
+  @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
   public PGStream(PGStream pgStream, int timeout ) throws IOException {
 
     /*

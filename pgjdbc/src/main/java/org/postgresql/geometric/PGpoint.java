@@ -57,7 +57,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param value Definition of this point in PostgreSQL's syntax
    * @throws SQLException if something goes wrong
    */
-  @SuppressWarnings("method.invocation.invalid")
+  @SuppressWarnings("method.invocation")
   public PGpoint(String value) throws SQLException {
     this();
     setValue(value);

@@ -489,6 +489,11 @@ public class CopyTest {
   }
 
   private void acceptIOCause(SQLException e) throws SQLException {
+    if (e.getSQLState().equals(PSQLState.CONNECTION_FAILURE.getState())
+        || e.getSQLState().equals(PSQLState.CONNECTION_DOES_NOT_EXIST.getState())) {
+      // The test expects network exception, so CONNECTION_FAILURE looks good
+      return;
+    }
     if (!(e.getCause() instanceof IOException)) {
       throw e;
     }

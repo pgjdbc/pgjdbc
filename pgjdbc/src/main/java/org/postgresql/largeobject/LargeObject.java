@@ -42,6 +42,7 @@ import java.sql.SQLException;
  * @see java.sql.PreparedStatement#setBinaryStream
  * @see java.sql.PreparedStatement#setUnicodeStream
  */
+@SuppressWarnings("deprecation") // support for deprecated Fastpath API
 public class LargeObject
     implements AutoCloseable {
 

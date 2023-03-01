@@ -7,5 +7,4 @@ interface Connection {
     @Nullable SQLWarning getWarnings();
     @Nullable String getClientInfo(@NonNull String p0);
     Array createArrayOf(String typeName, @Nullable Object @Nullable [] elements);
-    Array createArrayOf(String typeName, @Nullable Object elements);
 }

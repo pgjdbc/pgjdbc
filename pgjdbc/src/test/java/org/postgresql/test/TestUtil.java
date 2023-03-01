@@ -13,6 +13,7 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
+import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.PSQLException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -50,6 +51,8 @@ public class TestUtil {
    */
   public static final String SERVER_HOST_PORT_PROP = "_test_hostport";
   public static final String DATABASE_PROP = "_test_database";
+
+  private static final ResourceLock lock = new ResourceLock();
 
   /*
    * Returns the Test database JDBC URL
@@ -244,9 +247,11 @@ public class TestUtil {
 
   private static Properties sslTestProperties = null;
 
-  private static synchronized void initSslTestProperties() {
-    if (sslTestProperties == null) {
-      sslTestProperties = TestUtil.loadPropertyFiles("ssltest.properties");
+  private static void initSslTestProperties() {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (sslTestProperties == null) {
+        sslTestProperties = TestUtil.loadPropertyFiles("ssltest.properties");
+      }
     }
   }
 
@@ -265,7 +270,7 @@ public class TestUtil {
   }
 
   public static void initDriver() {
-    synchronized (TestUtil.class) {
+    try (ResourceLock ignore = lock.obtain()) {
       if (initialized) {
         return;
       }

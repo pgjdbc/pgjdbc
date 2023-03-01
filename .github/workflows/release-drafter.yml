@@ -1,0 +1,80 @@
+name: Release Drafter
+
+on:
+  push:
+    # branches to consider in the event; optional, defaults to all
+    branches:
+      - master
+      - 'release/**'
+  # pull_request_target allows PR from forks to access secrets, so please NEVER add pull_request_target
+
+jobs:
+  update_release_draft:
+    # Skip release drafts in forks
+    if: github.repository_owner == 'pgjdbc'
+    name: Update Release Draft
+    runs-on: ubuntu-latest
+    env:
+      # Publish pre-release files to a draft release
+      PUBLISH_SNAPSHOT: true
+    steps:
+      # Drafts your next Release notes as Pull Requests are merged into "master"
+      - name: Update release body draft
+        uses: release-drafter/release-drafter@v5
+        id: prepare_release
+        # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
+        with:
+        #   config-name: my-config.yml
+           disable-autolabeler: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout sources
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
+        uses: actions/checkout@v3
+      - name: Set up JDK 17
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
+        uses: actions/setup-java@v3
+        with:
+          java-version: 17
+          distribution: liberica
+      - name: Build
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk17
+          arguments: --scan --no-parallel --no-daemon :postgresql:osgiJar
+      - name: Attach files to release
+        if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
+        uses: actions/github-script@v6
+        env:
+          # https://github.com/release-drafter/release-drafter#action-outputs
+          RELEASE_ID: ${{ steps.prepare_release.outputs.id }}
+        with:
+          # language=JavaScript
+          script: |
+            const fs = require('fs');
+            const {RELEASE_ID} = process.env;
+            // remove old jar files from the release
+            const assets = await github.rest.repos.listReleaseAssets({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: RELEASE_ID
+            });
+            for (const asset of assets.data) {
+                if (asset.name.endsWith('.jar')) {
+                    await github.rest.repos.deleteReleaseAsset({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        asset_id: asset.id
+                    });
+                }
+            }
+            const globber = await glob.create('pgjdbc/build/libs/postgresql-*-osgi.jar');
+            const files = await globber.glob();
+            await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: files[0].replace(/^(.*build\/libs\/postgresql-)/, "postgresql-").replace("-osgi", ""),
+                release_id: RELEASE_ID,
+                data: fs.readFileSync(files[0])
+            })
