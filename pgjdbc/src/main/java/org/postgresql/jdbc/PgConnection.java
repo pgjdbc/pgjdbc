@@ -1930,8 +1930,7 @@ public class PgConnection implements BaseConnection {
     this.xmlFactoryFactory = xmlFactoryFactory;
     return xmlFactoryFactory;
   }
-  
-  
+
   public boolean isSqlTimestamptzAlways() {
     return sqlTimestamptzAlways;
   }
