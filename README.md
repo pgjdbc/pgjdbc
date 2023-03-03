@@ -20,7 +20,7 @@ The current version of the driver should be compatible with **PostgreSQL 8.4 and
 PgJDBC regression tests are run against all PostgreSQL versions since 9.1, including "build PostgreSQL from git master" version. There are other derived forks of PostgreSQL but they have not been certified to run with PgJDBC. If you find a bug or regression on supported versions, please file an [Issue](https://github.com/pgjdbc/pgjdbc/issues).
 
 ## Get the Driver
-Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download.html) or using your chosen dependency management tool:
+Most people do not need to compile PgJDBC. You can download the precompiled driver (jar) from the [PostgreSQL JDBC site](https://jdbc.postgresql.org/download/) or using your chosen dependency management tool:
 
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [org.postgresql:postgresql][mvn-search].
