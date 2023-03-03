@@ -25,7 +25,7 @@ import java.nio.file.Path;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-public class StreamWrapper implements Closeable {
+public final class StreamWrapper implements Closeable {
 
   private static final int MAX_MEMORY_BUFFER_BYTES = 51200;
 
@@ -69,12 +69,12 @@ public class StreamWrapper implements Closeable {
           throw e;
         }
         // The finalize action is not created if the above code throws
-        finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        Driver.getCleanerInstance().register(this, finalizeAction);
         this.offset = 0;
         this.length = rawData.length + diskLength;
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
+        finalizeAction = new StreamWrapperCleaningAction(tempFile);
+        Driver.getCleanerInstance().register(this, finalizeAction);
       } else {
         this.rawData = rawData;
         this.stream = null;
