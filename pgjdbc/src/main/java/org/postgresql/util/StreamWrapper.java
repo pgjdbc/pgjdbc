@@ -8,6 +8,8 @@ package org.postgresql.util;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
@@ -67,7 +69,8 @@ public class StreamWrapper implements Closeable {
           throw e;
         }
         // The finalize action is not created if the above code throws
-        finalizeAction = new StreamWrapperFinalizeAction(tempFile);
+        finalizeAction = new StreamWrapperCleaningAction(tempFile);
+        Driver.getCleanerInstance().register(this, finalizeAction);
         this.offset = 0;
         this.length = rawData.length + diskLength;
         this.rawData = null;
@@ -88,7 +91,7 @@ public class StreamWrapper implements Closeable {
     if (stream != null) {
       return stream;
     }
-    StreamWrapperFinalizeAction finalizeAction = this.finalizeAction;
+    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
       return finalizeAction.getStream();
     }
@@ -98,9 +101,9 @@ public class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    StreamWrapperFinalizeAction finalizeAction = this.finalizeAction;
+    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
-      finalizeAction.close();
+      finalizeAction.onClean(false);
       this.finalizeAction = null;
     }
   }
@@ -138,7 +141,7 @@ public class StreamWrapper implements Closeable {
   }
 
   private final @Nullable InputStream stream;
-  private @Nullable StreamWrapperFinalizeAction finalizeAction;
+  private @Nullable StreamWrapperCleaningAction finalizeAction;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;

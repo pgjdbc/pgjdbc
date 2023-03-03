@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -32,7 +33,6 @@ import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
@@ -242,7 +242,7 @@ public class PgConnection implements BaseConnection {
   @SuppressWarnings({"method.invocation", "argument"})
   public PgConnection(HostSpec[] hostSpecs,
                       Properties info,
-                      String url, LazyCleaner cleaner) throws SQLException {
+                      String url) throws SQLException {
     // Print out the driver version number
     LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
 
@@ -368,7 +368,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleaner.register(this, finalizeAction);
+    Driver.getCleanerInstance().register(this, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
