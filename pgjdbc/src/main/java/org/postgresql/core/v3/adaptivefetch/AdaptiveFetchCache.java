@@ -89,9 +89,9 @@ public class AdaptiveFetchCache {
           int previousFetchSize = adaptiveFetchCacheEntry.getSize();
           if (newFetchSize != previousFetchSize && LOGGER.isLoggable(Level.FINE)) {
             LOGGER.log(Level.FINE,
-                "Updating adaptiveFetch fetch size from {0} to {1} for query hash {2}. " +
-                    "maximumResultBufferSizeBytes={3} maximumRowSizeBytes={4} " +
-                    "minimumAdaptiveFetchSize={5} maximumAdaptiveFetchSize={6}",
+                "Updating adaptiveFetch fetch size from {0} to {1} for query hash {2}. "
+                    + "maximumResultBufferSizeBytes={3} maximumRowSizeBytes={4} "
+                    + "minimumAdaptiveFetchSize={5} maximumAdaptiveFetchSize={6}",
                 new Object[]{previousFetchSize, newFetchSize, query.hashCode(),
                     maximumResultBufferSize, maximumRowSizeBytes,
                     minimumAdaptiveFetchSize, maximumAdaptiveFetchSize});
