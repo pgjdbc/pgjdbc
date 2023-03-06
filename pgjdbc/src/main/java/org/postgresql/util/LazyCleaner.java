@@ -34,6 +34,7 @@ import java.util.logging.Logger;
 public class LazyCleaner {
   private static final Logger LOGGER = Logger.getLogger(LazyCleaner.class.getName());
   private static final LazyCleaner instance = new LazyCleaner(Duration.ofMillis(100), "Cleaner");
+
   public interface Cleanable {
     void clean();
   }
@@ -56,6 +57,7 @@ public class LazyCleaner {
   public static LazyCleaner getInstance() {
     return instance;
   }
+  
   private LazyCleaner(Duration threadTtl, final String threadName) {
     this(threadTtl, new ThreadFactory() {
       public Thread newThread(Runnable runnable) {
@@ -70,7 +72,6 @@ public class LazyCleaner {
     this.threadTtl = threadTtl.toMillis();
     this.threadFactory = threadFactory;
   }
-
 
   public Cleanable register(Object obj, CleaningAction action) {
     return add(new Node(obj, action));
@@ -176,7 +177,7 @@ public class LazyCleaner {
         return;
       }
       try {
-          action.clean(leak);
+        action.clean(leak);
       } catch (Throwable e) {
         // Should not happen if cleaners are well-behaved
         LOGGER.log(Level.WARNING, "Unexpected exception in cleaner thread", e);

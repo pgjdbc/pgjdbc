@@ -67,7 +67,6 @@ public class Driver implements java.sql.Driver {
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
 
-
   static {
     try {
       // moved the registerDriver from the constructor to here

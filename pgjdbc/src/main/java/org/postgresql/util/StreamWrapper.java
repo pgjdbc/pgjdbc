@@ -35,7 +35,7 @@ public final class StreamWrapper implements Closeable {
     this.offset = offset;
     this.length = length;
     // create a null lambda to avoid checker errors
-    finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
+    finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
   }
 
   public StreamWrapper(InputStream stream, int length) {
@@ -44,7 +44,7 @@ public final class StreamWrapper implements Closeable {
     this.offset = 0;
     this.length = length;
     // create a null lambda to avoid checker errors
-    finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
+    finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
   }
 
   public StreamWrapper(InputStream stream) throws PSQLException {
@@ -79,7 +79,7 @@ public final class StreamWrapper implements Closeable {
         LazyCleaner.getInstance().register(this, finalizeAction);
       } else {
         // create a null lambda to avoid checker errors
-        finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
+        finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
         this.rawData = rawData;
         this.stream = null;
         this.offset = 0;
