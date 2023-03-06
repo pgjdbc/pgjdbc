@@ -99,12 +99,6 @@ if (skipReplicationTests) {
     }
 }
 
-tasks.jar {
-    // Workaround https://github.com/lburgazzoli/gradle-karaf-plugin/issues/87
-    extra.set("classifier", "")
-    extra.set("extension", "jar")
-}
-
 tasks.configureEach<Test> {
     outputs.cacheIf("test results on the database configuration, so we can't cache it") {
         false
