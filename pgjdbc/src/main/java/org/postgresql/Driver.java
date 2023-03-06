@@ -14,7 +14,6 @@ import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -68,7 +67,6 @@ public class Driver implements java.sql.Driver {
   private static final Logger LOGGER = Logger.getLogger("org.postgresql.Driver");
   private static final SharedTimer SHARED_TIMER = new SharedTimer();
 
-  private static final LazyCleaner CLEANER = new LazyCleaner(10, "Cleaner");
 
   static {
     try {
@@ -792,14 +790,5 @@ public class Driver implements java.sql.Driver {
    */
   public static boolean isRegistered() {
     return registeredDriver != null;
-  }
-
-  /**
-   * StreamWrapper needs this and instead of passing this all the way down, it makes more sense
-   * to simply get the one instance this way
-   * @return instance of LazyCleaner
-   */
-  public static LazyCleaner getCleanerInstance() {
-    return CLEANER;
   }
 }

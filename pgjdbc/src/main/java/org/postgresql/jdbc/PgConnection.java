@@ -7,7 +7,6 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -31,13 +30,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
-import org.postgresql.util.GT;
-import org.postgresql.util.HostSpec;
-import org.postgresql.util.LruCache;
-import org.postgresql.util.PGBinaryObject;
-import org.postgresql.util.PGobject;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
+import org.postgresql.util.*;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
 import org.postgresql.xml.LegacyInsecurePGXmlFactoryFactory;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -368,7 +361,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    Driver.getCleanerInstance().register(this, finalizeAction);
+    LazyCleaner.getInstance().register(this, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
@@ -841,7 +834,7 @@ public class PgConnection implements BaseConnection {
     }
     openStackTrace = null;
     try {
-      finalizeAction.onClean(false);
+      finalizeAction.clean(false);
     } catch (IOException e) {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),

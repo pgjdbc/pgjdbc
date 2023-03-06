@@ -80,7 +80,7 @@ class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
   }
 
   @Override
-  public void onClean(boolean leak) throws IOException {
+  public void clean(boolean leak) throws IOException {
     if (leak && openStackTrace != null) {
       LOGGER.log(Level.WARNING, GT.tr("Finalizing a Connection that was never closed:"), openStackTrace);
     }

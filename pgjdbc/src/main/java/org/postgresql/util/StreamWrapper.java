@@ -8,8 +8,6 @@ package org.postgresql.util;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.Driver;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayOutputStream;
@@ -36,6 +34,8 @@ public final class StreamWrapper implements Closeable {
     this.rawData = data;
     this.offset = offset;
     this.length = length;
+    // create a null lambda to avoid checker errors
+    finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
   }
 
   public StreamWrapper(InputStream stream, int length) {
@@ -43,6 +43,8 @@ public final class StreamWrapper implements Closeable {
     this.rawData = null;
     this.offset = 0;
     this.length = length;
+    // create a null lambda to avoid checker errors
+    finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
   }
 
   public StreamWrapper(InputStream stream) throws PSQLException {
@@ -74,8 +76,10 @@ public final class StreamWrapper implements Closeable {
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
         finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        Driver.getCleanerInstance().register(this, finalizeAction);
+        LazyCleaner.getInstance().register(this, finalizeAction);
       } else {
+        // create a null lambda to avoid checker errors
+        finalizeAction = (LazyCleaner.CleaningAction) (boolean clean)->{};
         this.rawData = rawData;
         this.stream = null;
         this.offset = 0;
@@ -91,9 +95,9 @@ public final class StreamWrapper implements Closeable {
     if (stream != null) {
       return stream;
     }
-    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
+    LazyCleaner.CleaningAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
-      return finalizeAction.getStream();
+      return ((StreamWrapperCleaningAction) (finalizeAction)).getStream();
     }
 
     return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
@@ -101,10 +105,11 @@ public final class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
-    if (finalizeAction != null) {
-      finalizeAction.onClean(false);
-      this.finalizeAction = null;
+    LazyCleaner.CleaningAction finalizeAction = this.finalizeAction;
+    try {
+      finalizeAction.clean(false);
+    } catch (Throwable t) {
+      throw new IOException(t);
     }
   }
 
@@ -141,7 +146,7 @@ public final class StreamWrapper implements Closeable {
   }
 
   private final @Nullable InputStream stream;
-  private @Nullable StreamWrapperCleaningAction finalizeAction;
+  private LazyCleaner.CleaningAction finalizeAction;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;

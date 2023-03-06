@@ -25,7 +25,6 @@ package org.postgresql.util;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertSame;
 
 import org.junit.Test;
 
@@ -42,7 +41,7 @@ public class LazyCleanerTest {
     List<Object> list = new ArrayList<Object>(Arrays.asList(
         new Object(), new Object(), new Object()));
 
-    final LazyCleaner t = new LazyCleaner(10, "Cleaner");
+    final LazyCleaner t = LazyCleaner.getInstance();
     assertFalse(t.isThreadRunning());
     assertEquals(0, t.getWatchedCount());
 
@@ -51,7 +50,7 @@ public class LazyCleanerTest {
     for (int i = 0; i < list.size(); i++) {
       final int ii = i;
       cleaners.add(t.register(list.get(i), new LazyCleaner.CleaningAction() {
-        public void onClean(boolean leak) throws Exception {
+        public void clean(boolean leak) throws Exception {
           collected.put(ii, leak);
         }
       }));
@@ -79,41 +78,12 @@ public class LazyCleanerTest {
   }
 
   @Test
-  public void testForceThreadAlive() throws InterruptedException {
-    final LazyCleaner t = new LazyCleaner(10, "Cleaner");
-
-    for (int i = 0; i < 5; i++) {
-      assertFalse(t.isThreadRunning());
-      assertEquals(0, t.getWatchedCount());
-
-      assertSame(t, t.setKeepThreadAlive(true));
-      Await.until(new Await.Condition() {
-        public boolean get() {
-          return t.isThreadRunning();
-        }
-      });
-      assertEquals(1, t.getWatchedCount());
-
-      t.setKeepThreadAlive(true);
-      assertEquals(1, t.getWatchedCount());
-
-      t.setKeepThreadAlive(false);
-      Await.until(new Await.Condition() {
-        public boolean get() {
-          return !t.isThreadRunning();
-        }
-      });
-      assertEquals(0, t.getWatchedCount());
-    }
-  }
-
-  @Test
   public void testGetThread() throws InterruptedException {
     String threadName = UUID.randomUUID().toString();
-    final LazyCleaner t = new LazyCleaner(10, threadName);
+    final LazyCleaner t = LazyCleaner.getInstance();
     Object obj = new Object();
     t.register(obj, new LazyCleaner.CleaningAction() {
-      public void onClean(boolean leak) throws Exception {
+      public void clean(boolean leak) throws Exception {
         throw new RuntimeException("abc");
       }
     });
