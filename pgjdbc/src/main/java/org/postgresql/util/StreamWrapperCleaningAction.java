@@ -42,7 +42,7 @@ class StreamWrapperCleaningAction implements LazyCleaner.CleaningAction {
   @Override
   public void clean(boolean leak) throws IOException {
     if (leak ) {
-      LOGGER.log(Level.WARNING, GT.tr("Finalizing a StreamWrapper that was never closed:"));
+      LOGGER.log(Level.WARNING, GT.tr("StreamWrapper leak detected StreamWrapper.close() was not called. "));
     }
     Path tempFile = this.tempFile;
     if (tempFile != null) {

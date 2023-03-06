@@ -57,7 +57,7 @@ public class LazyCleaner {
   public static LazyCleaner getInstance() {
     return instance;
   }
-  
+
   private LazyCleaner(Duration threadTtl, final String threadName) {
     this(threadTtl, new ThreadFactory() {
       public Thread newThread(Runnable runnable) {
