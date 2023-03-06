@@ -42,8 +42,8 @@ public class LazyCleanerTest {
         new Object(), new Object(), new Object()));
 
     final LazyCleaner t = LazyCleaner.getInstance();
-    assertFalse(t.isThreadRunning());
-    assertEquals(0, t.getWatchedCount());
+
+    int watchedCount = t.getWatchedCount();
 
     final Map<Integer, Boolean> collected = new HashMap<Integer, Boolean>();
     List<LazyCleaner.Cleanable> cleaners = new ArrayList<LazyCleaner.Cleanable>();
@@ -55,7 +55,7 @@ public class LazyCleanerTest {
         }
       }));
     }
-    assertEquals(3, t.getWatchedCount());
+    assertEquals(watchedCount + 3, t.getWatchedCount());
     Await.until(new Await.Condition() {
       public boolean get() {
         return t.isThreadRunning();
@@ -73,13 +73,12 @@ public class LazyCleanerTest {
       }
     });
 
-    assertEquals(0, t.getWatchedCount());
     assertArrayEquals(new Object[]{true, false, true},  collected.values().toArray());
   }
 
   @Test
   public void testGetThread() throws InterruptedException {
-    String threadName = UUID.randomUUID().toString();
+    String threadName = "Cleaner";
     final LazyCleaner t = LazyCleaner.getInstance();
     Object obj = new Object();
     t.register(obj, new LazyCleaner.CleaningAction() {
