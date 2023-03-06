@@ -16,7 +16,7 @@ dependencies {
                 "checkerFrameworkAnnotatedJDK"("org.checkerframework:jdk8:$checkerframeworkVersion")
             }
         } ?: run {
-            val checkerframeworkVersion = "3.31.0"
+            val checkerframeworkVersion = "3.32.0"
             "checkerFramework"("org.checkerframework:checker:$checkerframeworkVersion")
             if (JavaVersion.current() == JavaVersion.VERSION_1_8) {
                 // only needed for JDK 8
