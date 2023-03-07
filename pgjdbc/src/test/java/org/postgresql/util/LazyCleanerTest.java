@@ -24,6 +24,7 @@ package org.postgresql.util;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -41,8 +42,6 @@ public class LazyCleanerTest {
 
     final LazyCleaner t = LazyCleaner.getInstance();
 
-    int watchedCount = t.getWatchedCount();
-
     final Map<Integer, Boolean> collected = new HashMap<Integer, Boolean>();
     List<LazyCleaner.Cleanable> cleaners = new ArrayList<LazyCleaner.Cleanable>();
     for (int i = 0; i < list.size(); i++) {
@@ -53,7 +52,9 @@ public class LazyCleanerTest {
         }
       }));
     }
-    assertEquals(watchedCount + 3, t.getWatchedCount());
+    assertEquals( 3, t.getWatchedCount());
+
+    assertTrue(t.isThreadRunning());
     Await.until(new Await.Condition() {
       public boolean get() {
         return t.isThreadRunning();
@@ -65,6 +66,7 @@ public class LazyCleanerTest {
     list.clear();
     System.gc();
 
+    assertTrue(t.isThreadRunning());
     Await.until(new Await.Condition() {
       public boolean get() {
         return !t.isThreadRunning();
@@ -73,7 +75,8 @@ public class LazyCleanerTest {
 
     assertArrayEquals(new Object[]{true, false, true},  collected.values().toArray());
   }
-  
+
+  @Test
   public void testGetThread() throws InterruptedException {
     String threadName = "Cleaner";
     final LazyCleaner t = LazyCleaner.getInstance();

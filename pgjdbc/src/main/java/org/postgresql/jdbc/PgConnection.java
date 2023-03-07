@@ -205,6 +205,7 @@ public class PgConnection implements BaseConnection {
 
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
+  private final LazyCleaner.Cleanable cleanable;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -368,7 +369,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    LazyCleaner.getInstance().register(this, finalizeAction);
+    cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(String property) {
@@ -840,13 +841,7 @@ public class PgConnection implements BaseConnection {
       return;
     }
     openStackTrace = null;
-    try {
-      finalizeAction.clean(false);
-    } catch (IOException e) {
-      throw new PSQLException(
-          GT.tr("Unable to close connection properly"),
-          PSQLState.UNKNOWN_STATE, e);
-    }
+    cleanable.clean();
   }
 
   @Override

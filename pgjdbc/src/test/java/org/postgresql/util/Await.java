@@ -25,7 +25,7 @@ package org.postgresql.util;
 public class Await {
   public static void until(Condition condition) throws InterruptedException {
     while (!condition.get()) {
-      Thread.sleep(1);
+      Thread.sleep(100);
     }
   }
 

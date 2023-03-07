@@ -129,6 +129,7 @@ public class LazyCleaner {
       thread.start();
       return true;
     }
+    LOGGER.log(Level.WARNING, "Unable to create thread ");
     return false;
   }
 

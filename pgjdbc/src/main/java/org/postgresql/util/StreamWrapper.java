@@ -29,6 +29,8 @@ public final class StreamWrapper implements Closeable {
 
   private static final String TEMP_FILE_PREFIX = "postgres-pgjdbc-stream";
 
+  private LazyCleaner.Cleanable cleaner;
+
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
     this.rawData = data;
@@ -76,7 +78,7 @@ public final class StreamWrapper implements Closeable {
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
         finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        LazyCleaner.getInstance().register(this, finalizeAction);
+        cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
       } else {
         // create a null lambda to avoid checker errors
         finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
@@ -105,11 +107,8 @@ public final class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    LazyCleaner.CleaningAction finalizeAction = this.finalizeAction;
-    try {
-      finalizeAction.clean(false);
-    } catch (Throwable t) {
-      throw new IOException(t);
+    if (cleaner != null ) {
+      cleaner.clean();
     }
   }
 
