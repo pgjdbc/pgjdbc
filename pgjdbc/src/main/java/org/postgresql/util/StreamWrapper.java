@@ -36,8 +36,7 @@ public final class StreamWrapper implements Closeable {
     this.rawData = data;
     this.offset = offset;
     this.length = length;
-    // create a null lambda to avoid checker errors
-    finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
+    this.finalizeAction = null;
     @SuppressWarnings("argument")
     LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
     cleaner = cleanable;
@@ -48,8 +47,7 @@ public final class StreamWrapper implements Closeable {
     this.rawData = null;
     this.offset = 0;
     this.length = length;
-    // create a null lambda to avoid checker errors
-    finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
+    this.finalizeAction = null;
     @SuppressWarnings("argument")
     LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
     cleaner = cleanable;
@@ -89,12 +87,12 @@ public final class StreamWrapper implements Closeable {
         cleaner = cleanable;
 
       } else {
-        // create a null lambda to avoid checker errors
-        finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
+
         this.rawData = rawData;
         this.stream = null;
         this.offset = 0;
         this.length = rawData.length;
+        this.finalizeAction = null;
         @SuppressWarnings("argument")
         LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
         cleaner = cleanable;
@@ -110,9 +108,9 @@ public final class StreamWrapper implements Closeable {
     if (stream != null) {
       return stream;
     }
-    LazyCleaner.CleaningAction finalizeAction = this.finalizeAction;
+    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
-      InputStream stream = ((StreamWrapperCleaningAction) (finalizeAction)).getStream();
+      InputStream stream = finalizeAction.getStream();
       if (stream != null) {
         return stream;
       }
@@ -161,7 +159,7 @@ public final class StreamWrapper implements Closeable {
   }
 
   private final @Nullable InputStream stream;
-  private LazyCleaner.CleaningAction finalizeAction;
+  private @Nullable StreamWrapperCleaningAction finalizeAction;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;

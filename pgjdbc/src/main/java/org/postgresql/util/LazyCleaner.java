@@ -159,7 +159,7 @@ public class LazyCleaner {
   }
 
   private class Node extends PhantomReference<Object> implements Cleanable, CleaningAction {
-    private final CleaningAction action;
+    private @Nullable final CleaningAction action;
     private @Nullable Node prev = null;
     private @Nullable Node next = null;
 
@@ -178,7 +178,9 @@ public class LazyCleaner {
         return;
       }
       try {
-        action.clean(leak);
+        if (action != null) {
+          action.clean(leak);
+        }
       } catch (Throwable e) {
         // Should not happen if cleaners are well-behaved
         LOGGER.log(Level.WARNING, "Unexpected exception in cleaner thread", e);
