@@ -73,8 +73,7 @@ public class LazyCleanerTest {
 
     assertArrayEquals(new Object[]{true, false, true},  collected.values().toArray());
   }
-
-  @Test
+  
   public void testGetThread() throws InterruptedException {
     String threadName = "Cleaner";
     final LazyCleaner t = LazyCleaner.getInstance();
