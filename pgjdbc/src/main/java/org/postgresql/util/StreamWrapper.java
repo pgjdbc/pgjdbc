@@ -31,7 +31,6 @@ public final class StreamWrapper implements Closeable {
 
   private LazyCleaner.Cleanable cleaner;
 
-  @SuppressWarnings("initialization")
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
     this.rawData = data;
@@ -39,10 +38,11 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
-    cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
+    @SuppressWarnings("initialization")
+    LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
+    cleaner = cleanable;
   }
 
-  @SuppressWarnings("initialization")
   public StreamWrapper(InputStream stream, int length) {
     this.stream = stream;
     this.rawData = null;
@@ -50,10 +50,11 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
-    cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
+    @SuppressWarnings("initialization")
+    LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
+    cleaner = cleanable;
   }
 
-  @SuppressWarnings("initialization")
   public StreamWrapper(InputStream stream) throws PSQLException {
     try {
       ByteArrayOutputStream memoryOutputStream = new ByteArrayOutputStream();
@@ -83,7 +84,10 @@ public final class StreamWrapper implements Closeable {
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
         finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
+        @SuppressWarnings("initialization")
+        LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
+        cleaner = cleanable;
+
       } else {
         // create a null lambda to avoid checker errors
         finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
@@ -91,7 +95,10 @@ public final class StreamWrapper implements Closeable {
         this.stream = null;
         this.offset = 0;
         this.length = rawData.length;
-        cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
+        @SuppressWarnings("initialization")
+        LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
+        cleaner = cleanable;
+
       }
     } catch (IOException e) {
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
