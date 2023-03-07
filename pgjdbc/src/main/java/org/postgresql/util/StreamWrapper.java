@@ -38,7 +38,7 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
-    @SuppressWarnings("initialization")
+    @SuppressWarnings("argument")
     LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
     cleaner = cleanable;
   }
@@ -50,7 +50,7 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
-    @SuppressWarnings("initialization")
+    @SuppressWarnings("argument")
     LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
     cleaner = cleanable;
   }
@@ -84,7 +84,7 @@ public final class StreamWrapper implements Closeable {
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
         finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        @SuppressWarnings("initialization")
+        @SuppressWarnings("argument")
         LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
         cleaner = cleanable;
 
@@ -95,7 +95,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null;
         this.offset = 0;
         this.length = rawData.length;
-        @SuppressWarnings("initialization")
+        @SuppressWarnings("argument")
         LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
         cleaner = cleanable;
 
