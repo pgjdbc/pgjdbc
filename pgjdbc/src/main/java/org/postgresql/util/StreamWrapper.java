@@ -31,6 +31,7 @@ public final class StreamWrapper implements Closeable {
 
   private LazyCleaner.Cleanable cleaner;
 
+  @SuppressWarnings("initialization")
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
     this.rawData = data;
@@ -38,8 +39,10 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
+    cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
   }
 
+  @SuppressWarnings("initialization")
   public StreamWrapper(InputStream stream, int length) {
     this.stream = stream;
     this.rawData = null;
@@ -47,8 +50,10 @@ public final class StreamWrapper implements Closeable {
     this.length = length;
     // create a null lambda to avoid checker errors
     finalizeAction = (LazyCleaner.CleaningAction)(boolean clean) -> { };
+    cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
   }
 
+  @SuppressWarnings("initialization")
   public StreamWrapper(InputStream stream) throws PSQLException {
     try {
       ByteArrayOutputStream memoryOutputStream = new ByteArrayOutputStream();
@@ -86,6 +91,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null;
         this.offset = 0;
         this.length = rawData.length;
+        cleaner = LazyCleaner.getInstance().register(this, finalizeAction);
       }
     } catch (IOException e) {
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
@@ -99,7 +105,10 @@ public final class StreamWrapper implements Closeable {
     }
     LazyCleaner.CleaningAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
-      return ((StreamWrapperCleaningAction) (finalizeAction)).getStream();
+      InputStream stream = ((StreamWrapperCleaningAction) (finalizeAction)).getStream();
+      if (stream != null) {
+        return stream;
+      }
     }
 
     return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
