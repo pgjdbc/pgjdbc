@@ -9,8 +9,6 @@ import org.postgresql.core.Provider;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.util.GT;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import java.util.TimeZone;
 
 /**
