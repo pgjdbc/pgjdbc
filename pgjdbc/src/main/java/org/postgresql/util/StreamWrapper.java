@@ -121,7 +121,7 @@ public final class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    if (cleaner != null ) {
+    if (cleaner != null) {
       cleaner.clean();
     }
   }
