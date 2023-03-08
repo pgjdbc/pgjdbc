@@ -60,7 +60,7 @@ public class LazyCleaner {
 
   /**
    * Returns a default cleaner instance.
-   * <p>Note: this is driver-internal API.</p>>
+   * <p>Note: this is driver-internal API.</p>
    * @return the instance of LazyCleaner
    */
   public static LazyCleaner getInstance() {
