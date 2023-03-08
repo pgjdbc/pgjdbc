@@ -151,6 +151,9 @@ In addition to the standard connection parameters the driver supports a number o
 | unknownLength                 | Integer |   Integer.MAX_LENGTH    | Specifies the length to return for types of unknown length                                                                                                                                                                                                                                                                                    |
 | stringtype                    | String |          null           | Specify the type to use when binding `PreparedStatement` parameters set via `setString()`                                                                                                                                                                                                                                                     |
 
+#### System Properties
+`pgjdbc.config.cleanup.thread.ttl` The driver has an internal cleanup thread which monitors and cleans up PhantomReferences. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
+
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
 
