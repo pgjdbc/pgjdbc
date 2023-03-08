@@ -29,17 +29,11 @@ public final class StreamWrapper implements Closeable {
 
   private static final String TEMP_FILE_PREFIX = "postgres-pgjdbc-stream";
 
-  private LazyCleaner.Cleanable cleaner;
-
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
     this.rawData = data;
     this.offset = offset;
     this.length = length;
-    this.finalizeAction = null;
-    @SuppressWarnings("argument")
-    LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
-    cleaner = cleanable;
   }
 
   public StreamWrapper(InputStream stream, int length) {
@@ -47,10 +41,6 @@ public final class StreamWrapper implements Closeable {
     this.rawData = null;
     this.offset = 0;
     this.length = length;
-    this.finalizeAction = null;
-    @SuppressWarnings("argument")
-    LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
-    cleaner = cleanable;
   }
 
   public StreamWrapper(InputStream stream) throws PSQLException {
@@ -81,22 +71,14 @@ public final class StreamWrapper implements Closeable {
         this.length = rawData.length + diskLength;
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
-        finalizeAction = new StreamWrapperCleaningAction(tempFile);
-        @SuppressWarnings("argument")
-        LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
-        cleaner = cleanable;
-
+        TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
+        this.tempFileHolder = tempFileHolder;
+        cleaner = LazyCleaner.getInstance().register(tempFileHolder, tempFileHolder);
       } else {
-
         this.rawData = rawData;
         this.stream = null;
         this.offset = 0;
         this.length = rawData.length;
-        this.finalizeAction = null;
-        @SuppressWarnings("argument")
-        LazyCleaner.Cleanable cleanable = LazyCleaner.getInstance().register(this, finalizeAction);
-        cleaner = cleanable;
-
       }
     } catch (IOException e) {
       throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
@@ -108,12 +90,9 @@ public final class StreamWrapper implements Closeable {
     if (stream != null) {
       return stream;
     }
-    StreamWrapperCleaningAction finalizeAction = this.finalizeAction;
+    TempFileHolder finalizeAction = this.tempFileHolder;
     if (finalizeAction != null) {
-      InputStream stream = finalizeAction.getStream();
-      if (stream != null) {
-        return stream;
-      }
+      return finalizeAction.getStream();
     }
 
     return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
@@ -159,7 +138,8 @@ public final class StreamWrapper implements Closeable {
   }
 
   private final @Nullable InputStream stream;
-  private @Nullable StreamWrapperCleaningAction finalizeAction;
+  private @Nullable TempFileHolder tempFileHolder;
+  private LazyCleaner.@Nullable Cleanable<IOException> cleaner;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;

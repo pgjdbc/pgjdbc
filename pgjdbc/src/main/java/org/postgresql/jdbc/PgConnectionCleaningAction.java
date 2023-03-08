@@ -26,7 +26,7 @@ import java.util.logging.Logger;
  *   <li>Release shared timer registration</li>
  * </ul>
  */
-class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
+class PgConnectionCleaningAction implements LazyCleaner.CleaningAction<IOException> {
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
   private final ResourceLock lock;
@@ -41,7 +41,7 @@ class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
    */
   private @Nullable Timer cancelTimer;
 
-  PgConnectionFinalizeAction(
+  PgConnectionCleaningAction(
       ResourceLock lock,
       @Nullable Throwable openStackTrace,
       Closeable queryExecutorCloseAction) {
@@ -80,9 +80,9 @@ class PgConnectionFinalizeAction implements LazyCleaner.CleaningAction {
   }
 
   @Override
-  public void clean(boolean leak) throws IOException {
+  public void onClean(boolean leak) throws IOException {
     if (leak && openStackTrace != null) {
-      LOGGER.log(Level.WARNING, GT.tr("Leak detected Connection.close() was not called"), openStackTrace);
+      LOGGER.log(Level.WARNING, GT.tr("Leak detected: Connection.close() was not called"), openStackTrace);
     }
     openStackTrace = null;
     releaseTimer();

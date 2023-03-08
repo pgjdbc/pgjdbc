@@ -20,13 +20,13 @@ import java.util.logging.Logger;
  * The action deletes temporary file in case the user submits a large input stream,
  * and then abandons the statement.
  */
-class StreamWrapperCleaningAction implements LazyCleaner.CleaningAction {
+class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
 
   private static final Logger LOGGER = Logger.getLogger(StreamWrapper.class.getName());
   private @Nullable InputStream stream;
   private @Nullable Path tempFile;
 
-  StreamWrapperCleaningAction(Path tempFile) {
+  TempFileHolder(Path tempFile) {
     this.tempFile = tempFile;
   }
 
@@ -40,8 +40,8 @@ class StreamWrapperCleaningAction implements LazyCleaner.CleaningAction {
   }
 
   @Override
-  public void clean(boolean leak) throws IOException {
-    if (leak ) {
+  public void onClean(boolean leak) throws IOException {
+    if (leak) {
       LOGGER.log(Level.WARNING, GT.tr("StreamWrapper leak detected StreamWrapper.close() was not called. "));
     }
     Path tempFile = this.tempFile;

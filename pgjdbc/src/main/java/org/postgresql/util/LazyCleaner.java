@@ -31,40 +31,47 @@ import java.util.concurrent.ThreadFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * LazyCleaner is a utility class that allows to register objects for deferred cleanup.
+ * <p>Note: this is a driver-internal class</p>
+ */
 public class LazyCleaner {
   private static final Logger LOGGER = Logger.getLogger(LazyCleaner.class.getName());
-  private static final LazyCleaner instance = new LazyCleaner(Duration.ofMillis(100), "Cleaner");
+  private static final LazyCleaner instance =
+      new LazyCleaner(
+          Duration.ofMillis(Long.getLong("pgjdbc.config.cleanup.thread.ttl", 30000)),
+          "pgjdbc cleanup thread"
+      );
 
-  public interface Cleanable {
-    void clean();
+  public interface Cleanable<T extends Throwable> {
+    void clean() throws T;
   }
 
   public interface CleaningAction<T extends Throwable> {
-    void clean(boolean leak) throws T;
+    void onClean(boolean leak) throws T;
   }
 
-  private final ReferenceQueue<Object> queue = new ReferenceQueue<Object>();
+  private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
   private final long threadTtl;
   private final ThreadFactory threadFactory;
   private boolean threadRunning = false;
   private int watchedCount = 0;
-  private @Nullable Node first;
+  private @Nullable Node<?> first;
 
   /**
-   * This is a driver-internal class
+   * Returns a default cleaner instance.
+   * <p>Note: this is driver-internal API.</p>>
    * @return the instance of LazyCleaner
    */
   public static LazyCleaner getInstance() {
     return instance;
   }
 
-  private LazyCleaner(Duration threadTtl, final String threadName) {
-    this(threadTtl, new ThreadFactory() {
-      public Thread newThread(Runnable runnable) {
-        Thread thread = new Thread(runnable, threadName);
-        thread.setDaemon(true);
-        return thread;
-      }
+  public LazyCleaner(Duration threadTtl, final String threadName) {
+    this(threadTtl, runnable -> {
+      Thread thread = new Thread(runnable, threadName);
+      thread.setDaemon(true);
+      return thread;
     });
   }
 
@@ -73,15 +80,15 @@ public class LazyCleaner {
     this.threadFactory = threadFactory;
   }
 
-  public Cleanable register(Object obj, CleaningAction action) {
-    return add(new Node(obj, action));
+  public <T extends Throwable> Cleanable<T> register(Object obj, CleaningAction<T> action) {
+    return add(new Node<T>(obj, action));
   }
 
-  public int getWatchedCount() {
+  public synchronized int getWatchedCount() {
     return watchedCount;
   }
 
-  public boolean isThreadRunning() {
+  public synchronized boolean isThreadRunning() {
     return threadRunning;
   }
 
@@ -93,7 +100,7 @@ public class LazyCleaner {
     return false;
   }
 
-  private synchronized Node add(Node node) {
+  private synchronized <T extends Throwable> Node<T> add(Node<T> node) {
     if (first != null) {
       node.next = first;
       first.prev = node;
@@ -112,14 +119,36 @@ public class LazyCleaner {
       public void run() {
         while (true) {
           try {
-            Node ref = (Node) queue.remove(threadTtl);
-            if (ref != null) {
-              ref.clean(true);
-            } else if (LazyCleaner.this.checkEmpty()) {
+            // Node extends PhantomReference, so this cast is safe
+            Node<?> ref = (Node<?>) queue.remove(threadTtl);
+            if (ref == null) {
+              if (checkEmpty()) {
+                break;
+              }
+              continue;
+            }
+            try {
+              ref.onClean(true);
+            } catch (Throwable e) {
+              if (e instanceof InterruptedException) {
+                // This could happen if onClean uses sneaky-throws
+                LOGGER.log(Level.WARNING, "Unexpected interrupt while executing onClean", e);
+                throw e;
+              }
+              // Should not happen if cleaners are well-behaved
+              LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
+            }
+          } catch (InterruptedException e) {
+            if (LazyCleaner.this.checkEmpty()) {
+              LOGGER.log(
+                  Level.FINE,
+                  "Cleanup queue is empty, and got interrupt, will terminate the cleanup thread"
+              );
               break;
             }
+            LOGGER.log(Level.FINE, "Ignoring interrupt since the cleanup queue is non-empty");
           } catch (Throwable e) {
-            // Ignore exceptions from the cleanup action (including interruption of cleanup thread)
+            // Ignore exceptions from the cleanup action
             LOGGER.log(Level.WARNING, "Unexpected exception in cleaner thread main loop", e);
           }
         }
@@ -129,11 +158,11 @@ public class LazyCleaner {
       thread.start();
       return true;
     }
-    LOGGER.log(Level.WARNING, "Unable to create thread ");
+    LOGGER.log(Level.WARNING, "Unable to create cleanup thread");
     return false;
   }
 
-  private synchronized boolean remove(Node node) {
+  private synchronized boolean remove(Node<?> node) {
     // If already removed, do nothing
     if (node.next == node) {
       return false;
@@ -158,32 +187,30 @@ public class LazyCleaner {
     return true;
   }
 
-  private class Node extends PhantomReference<Object> implements Cleanable, CleaningAction {
-    private @Nullable final CleaningAction action;
-    private @Nullable Node prev = null;
-    private @Nullable Node next = null;
+  private class Node<T extends Throwable> extends PhantomReference<Object> implements Cleanable<T>,
+      CleaningAction<T> {
+    private final @Nullable CleaningAction<T> action;
+    private @Nullable Node<?> prev;
+    private @Nullable Node<?> next;
 
-    Node(Object referent, CleaningAction action) {
+    Node(Object referent, CleaningAction<T> action) {
       super(referent, queue);
       this.action = action;
       //Objects.requireNonNull(referent); // poor man`s reachabilityFence
     }
 
-    public void clean() {
-      clean(false);
+    @Override
+    public void clean() throws T {
+      onClean(false);
     }
 
-    public void clean(boolean leak) {
+    @Override
+    public void onClean(boolean leak) throws T {
       if (!remove(this)) {
         return;
       }
-      try {
-        if (action != null) {
-          action.clean(leak);
-        }
-      } catch (Throwable e) {
-        // Should not happen if cleaners are well-behaved
-        LOGGER.log(Level.WARNING, "Unexpected exception in cleaner thread", e);
+      if (action != null) {
+        action.onClean(leak);
       }
     }
   }

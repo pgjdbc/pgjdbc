@@ -22,9 +22,15 @@
 
 package org.postgresql.util;
 
+import java.time.Duration;
+
 public class Await {
-  public static void until(Condition condition) throws InterruptedException {
+  public static void until(String message, Duration timeout, Condition condition) throws InterruptedException {
+    long deadline = System.currentTimeMillis() + timeout.toMillis();
     while (!condition.get()) {
+      if (System.currentTimeMillis() > deadline) {
+        throw new AssertionError("Condition not met within " + timeout + ": " + message);
+      }
       Thread.sleep(100);
     }
   }
