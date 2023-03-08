@@ -29,6 +29,7 @@ public class TimestamptzTest extends BaseTest4 {
 
   public TimestamptzTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
+    setTimestamptzAlways(TimestamptzAlways.YES);
   }
 
   @Parameterized.Parameters(name = "timestamptzAlways = {1}")
@@ -42,7 +43,6 @@ public class TimestamptzTest extends BaseTest4 {
 
   @Override
   public void setUp() throws Exception {
-    setTimestamptzAlways(TimestamptzAlways.YES);
     super.setUp();
   }
 
