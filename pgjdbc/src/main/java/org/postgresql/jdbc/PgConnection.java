@@ -143,6 +143,7 @@ public class PgConnection implements BaseConnection {
    * referenced in PgConnection early.
    */
   private final PgConnectionCleaningAction finalizeAction;
+  private final Object leakHandle = new Object();
 
   /* Actual network handler */
   private final QueryExecutor queryExecutor;
@@ -371,7 +372,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleanable = LazyCleaner.getInstance().register(finalizeAction, finalizeAction);
+    cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {

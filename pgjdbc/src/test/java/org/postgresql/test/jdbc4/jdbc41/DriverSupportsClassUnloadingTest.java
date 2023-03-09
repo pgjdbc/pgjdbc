@@ -38,7 +38,7 @@ public class DriverSupportsClassUnloadingTest {
   }
 
   @Test
-  @Leaks(false)
+  @Leaks(value = false, dumpHeapOnError = false)
   public void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
     try {
       if (!Driver.isRegistered()) {
@@ -52,21 +52,29 @@ public class DriverSupportsClassUnloadingTest {
       Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER", md.getColumnType(1),
           Types.INTEGER);
 
+      // This is to trigger "query timeout" code to increase the chances for memory leaks
+      ps.setQueryTimeout(10000);
       ResultSet rs = ps.executeQuery();
       rs.next();
       Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
+      // It is required to avoid holding references from interpreter frame
+      md = null;
+      rs = null;
+      ps = null;
+      con = null;
     } finally {
       // We need deregister the driver explicitly, otherwise DriverManager will keep reference on
       // the driver
       Driver.deregister();
     }
+    // Allow cleanup thread to detect and close the leaked connection
     JUnitClassloaderRunner.forceGc(3);
     // Allow for the cleanup thread to terminate
     Thread.sleep(2000);
   }
 
   @Test
-  @Leaks(value = false, dumpHeapOnError = true)
+  @Leaks(value = false, dumpHeapOnError = false)
   public void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException,
       InterruptedException {
     try {

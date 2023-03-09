@@ -73,7 +73,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null; // The stream is opened on demand
         TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
         this.tempFileHolder = tempFileHolder;
-        cleaner = LazyCleaner.getInstance().register(tempFileHolder, tempFileHolder);
+        cleaner = LazyCleaner.getInstance().register(leakHandle, tempFileHolder);
       } else {
         this.rawData = rawData;
         this.stream = null;
@@ -139,6 +139,7 @@ public final class StreamWrapper implements Closeable {
 
   private final @Nullable InputStream stream;
   private @Nullable TempFileHolder tempFileHolder;
+  private final Object leakHandle = new Object();
   private LazyCleaner.@Nullable Cleanable<IOException> cleaner;
   private final byte @Nullable [] rawData;
   private final int offset;

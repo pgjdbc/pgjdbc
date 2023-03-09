@@ -81,6 +81,8 @@ public class LazyCleaner {
   }
 
   public <T extends Throwable> Cleanable<T> register(Object obj, CleaningAction<T> action) {
+    assert obj != action : "object handle should not be the same as cleaning action, otherwise"
+        + " the object will never become phantom reachable, so the action will never trigger";
     return add(new Node<T>(obj, action));
   }
 
