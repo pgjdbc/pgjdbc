@@ -119,6 +119,9 @@ public class LazyCleaner {
       public void run() {
         while (true) {
           try {
+            // Clear setContextClassLoader to avoid leaking the classloader
+            Thread.currentThread().setContextClassLoader(null);
+            Thread.currentThread().setUncaughtExceptionHandler(null);
             // Node extends PhantomReference, so this cast is safe
             Node<?> ref = (Node<?>) queue.remove(threadTtl);
             if (ref == null) {
