@@ -7,6 +7,10 @@
   "schedule": ["every 3 weeks on Monday"],
   "packageRules": [
     {
+      "matchPackagePrefixes": ["org.checkerframework"],
+      "groupName": "checkerframework"
+    },
+    {
       "matchPackagePrefixes": ["org.openjdk.jmh"],
       "groupName": "jmh"
     },
