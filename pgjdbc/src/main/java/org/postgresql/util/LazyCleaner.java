@@ -40,7 +40,7 @@ public class LazyCleaner {
   private static final LazyCleaner instance =
       new LazyCleaner(
           Duration.ofMillis(Long.getLong("pgjdbc.config.cleanup.thread.ttl", 30000)),
-          "pgjdbc cleanup thread"
+          "PostgreSQL-JDBC-Cleaner"
       );
 
   public interface Cleanable<T extends Throwable> {
