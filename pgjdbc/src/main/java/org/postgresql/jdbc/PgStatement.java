@@ -988,22 +988,22 @@ public class PgStatement implements Statement, BaseStatement {
       return;
     }
 
-    TimerTask cancelTask = new TimerTask() {
-      public void run() {
-        try {
-          if (!CANCEL_TIMER_UPDATER.compareAndSet(PgStatement.this, this, null)) {
-            // Nothing to do here, statement has already finished and cleared
-            // cancelTimerTask reference
-            return;
-          }
-          PgStatement.this.cancel();
-        } catch (SQLException e) {
-        }
-      }
-    };
+    TimerTask cancelTask = new StatementCancelTimerTask(this);
 
     CANCEL_TIMER_UPDATER.set(this, cancelTask);
     connection.addTimerTask(cancelTask, timeout);
+  }
+
+  void cancelIfStillNeeded(TimerTask timerTask) {
+    try {
+      if (!CANCEL_TIMER_UPDATER.compareAndSet(this, timerTask, null)) {
+        // Nothing to do here, statement has already finished and cleared
+        // cancelTimerTask reference
+        return;
+      }
+      cancel();
+    } catch (SQLException e) {
+    }
   }
 
   /**
@@ -1320,4 +1320,5 @@ public class PgStatement implements Statement, BaseStatement {
     }
     return timestampUtils;
   }
+
 }
