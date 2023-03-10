@@ -1320,5 +1320,4 @@ public class PgStatement implements Statement, BaseStatement {
     }
     return timestampUtils;
   }
-
 }
