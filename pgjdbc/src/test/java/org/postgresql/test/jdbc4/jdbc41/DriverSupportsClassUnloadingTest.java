@@ -47,7 +47,7 @@ public class DriverSupportsClassUnloadingTest {
   }
 
   @Test
-  @Leaks(value = false, dumpHeapOnError = false)
+  @Leaks(value = false, dumpHeapOnError = true)
   public void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
     try {
       if (!Driver.isRegistered()) {
@@ -80,7 +80,7 @@ public class DriverSupportsClassUnloadingTest {
   }
 
   @Test
-  @Leaks(value = false, dumpHeapOnError = false)
+  @Leaks(value = false, dumpHeapOnError = true)
   public void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException,
       InterruptedException {
     try {
