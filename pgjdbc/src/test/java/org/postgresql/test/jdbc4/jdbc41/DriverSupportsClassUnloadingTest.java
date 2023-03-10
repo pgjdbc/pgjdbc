@@ -35,10 +35,12 @@ public class DriverSupportsClassUnloadingTest {
         if (Driver.isRegistered()) {
           Driver.deregister();
         }
-        // Allow cleanup thread to detect and close the leaked connection
-        JUnitClassloaderRunner.forceGc(3);
-        // JUnitClassloaderRunner uses finalizers
-        System.runFinalization();
+        for (int i = 0; i < 10; i++) {
+          // Allow cleanup thread to detect and close the leaked connection
+          JUnitClassloaderRunner.forceGc();
+          // JUnitClassloaderRunner uses finalizers
+          System.runFinalization();
+        }
         // Allow for the cleanup thread to terminate
         Thread.sleep(2000);
       } catch (Throwable e) {
