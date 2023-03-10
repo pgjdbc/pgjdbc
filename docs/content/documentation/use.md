@@ -58,9 +58,6 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 > 
 > Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. see [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
 
-### System Properties
-`pgjdbc.config.cleanup.thread.ttl` (milliseconds, default: 30000). The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
-
 ### Connection Parameters
 
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL®. These properties may be specified in either the connection

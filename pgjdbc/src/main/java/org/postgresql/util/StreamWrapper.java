@@ -23,7 +23,7 @@ import java.nio.file.Path;
  *
  * @author Oliver Jowett (oliver@opencloud.com)
  */
-public final class StreamWrapper implements Closeable {
+public class StreamWrapper implements Closeable {
 
   private static final int MAX_MEMORY_BUFFER_BYTES = 51200;
 
@@ -67,13 +67,11 @@ public final class StreamWrapper implements Closeable {
           throw e;
         }
         // The finalize action is not created if the above code throws
+        finalizeAction = new StreamWrapperFinalizeAction(tempFile);
         this.offset = 0;
         this.length = rawData.length + diskLength;
         this.rawData = null;
         this.stream = null; // The stream is opened on demand
-        TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
-        this.tempFileHolder = tempFileHolder;
-        cleaner = LazyCleaner.getInstance().register(leakHandle, tempFileHolder);
       } else {
         this.rawData = rawData;
         this.stream = null;
@@ -90,7 +88,7 @@ public final class StreamWrapper implements Closeable {
     if (stream != null) {
       return stream;
     }
-    TempFileHolder finalizeAction = this.tempFileHolder;
+    StreamWrapperFinalizeAction finalizeAction = this.finalizeAction;
     if (finalizeAction != null) {
       return finalizeAction.getStream();
     }
@@ -100,8 +98,10 @@ public final class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    if (cleaner != null) {
-      cleaner.clean();
+    StreamWrapperFinalizeAction finalizeAction = this.finalizeAction;
+    if (finalizeAction != null) {
+      finalizeAction.close();
+      this.finalizeAction = null;
     }
   }
 
@@ -138,9 +138,7 @@ public final class StreamWrapper implements Closeable {
   }
 
   private final @Nullable InputStream stream;
-  private @Nullable TempFileHolder tempFileHolder;
-  private final Object leakHandle = new Object();
-  private LazyCleaner.@Nullable Cleanable<IOException> cleaner;
+  private @Nullable StreamWrapperFinalizeAction finalizeAction;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;
