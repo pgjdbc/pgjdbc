@@ -17,7 +17,6 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
-import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PSQLState;
 
 import org.junit.After;
@@ -33,7 +32,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +43,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1062,11 +1059,6 @@ public class StatementTest {
 
     final AtomicInteger leaks = new AtomicInteger();
     final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
-    // Create several cleaners, so they can clean leaks concurrently
-    List<LazyCleaner> cleaners = new ArrayList<>();
-    for (int i = 0; i < 16; i++) {
-      cleaners.add(new LazyCleaner(Duration.ofSeconds(2), "pgjdbc-test-cleaner-" + i));
-    }
 
     for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
       for (int i = 0; i < 100; i++) {
@@ -1074,16 +1066,20 @@ public class StatementTest {
         ps.close();
       }
       final int nextId = q;
-      int cleanerId = ThreadLocalRandom.current().nextInt(cleaners.size());
-      PreparedStatement ps = con.prepareStatement("select /*leak*/ " + nextId);
-      cleaners.get(cleanerId).register(new Object(), leak -> {
-        try {
-          ps.close();
-        } catch (Throwable t) {
-          cleanupFailure.compareAndSet(null, t);
+      new Object() {
+        PreparedStatement ps = con.prepareStatement("select /*leak*/ " + nextId);
+
+        @Override
+        protected void finalize() throws Throwable {
+          super.finalize();
+          try {
+            ps.close();
+          } catch (Throwable t) {
+            cleanupFailure.compareAndSet(null, t);
+          }
+          leaks.incrementAndGet();
         }
-        leaks.incrementAndGet();
-      });
+      };
     }
     if (cleanupFailure.get() != null) {
       throw new IllegalStateException("Detected failure in cleanup thread", cleanupFailure.get());
