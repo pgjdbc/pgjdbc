@@ -37,6 +37,15 @@ public class DriverSupportsClassUnloadingTest {
     System.clearProperty("pgjdbc.config.cleanup.thread.ttl");
   }
 
+  private static void freeMemory() throws InterruptedException {
+    // Allow cleanup thread to detect and close the leaked connection
+    JUnitClassloaderRunner.forceGc(3);
+    // JUnitClassloaderRunner uses finalizers
+    System.runFinalization();
+    // Allow for the cleanup thread to terminate
+    Thread.sleep(2000);
+  }
+
   @Test
   @Leaks(value = false, dumpHeapOnError = false)
   public void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
@@ -53,7 +62,7 @@ public class DriverSupportsClassUnloadingTest {
           Types.INTEGER);
 
       // This is to trigger "query timeout" code to increase the chances for memory leaks
-      ps.setQueryTimeout(10000);
+      ps.setQueryTimeout(1000);
       ResultSet rs = ps.executeQuery();
       rs.next();
       Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
@@ -67,10 +76,7 @@ public class DriverSupportsClassUnloadingTest {
       // the driver
       Driver.deregister();
     }
-    // Allow cleanup thread to detect and close the leaked connection
-    JUnitClassloaderRunner.forceGc(3);
-    // Allow for the cleanup thread to terminate
-    Thread.sleep(2000);
+    freeMemory();
   }
 
   @Test
@@ -89,6 +95,8 @@ public class DriverSupportsClassUnloadingTest {
           Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER",
               md.getColumnType(1), Types.INTEGER);
 
+          // This is to trigger "query timeout" code to increase the chances for memory leaks
+          ps.setQueryTimeout(1000);
           try (ResultSet rs = ps.executeQuery();) {
             rs.next();
             Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
@@ -100,7 +108,6 @@ public class DriverSupportsClassUnloadingTest {
       // the driver
       Driver.deregister();
     }
-    // Allow for the cleanup thread to terminate
-    Thread.sleep(2000);
+    freeMemory();
   }
 }
