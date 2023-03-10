@@ -14,6 +14,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import se.jiderhamn.classloader.leak.JUnitClassloaderRunner;
+import se.jiderhamn.classloader.leak.LeakPreventor;
 import se.jiderhamn.classloader.leak.Leaks;
 
 import java.sql.Connection;
@@ -24,7 +25,27 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 @RunWith(JUnitClassloaderRunner.class)
+@LeakPreventor(DriverSupportsClassUnloadingTest.LeakPreventor.class)
 public class DriverSupportsClassUnloadingTest {
+  // See https://github.com/mjiderhamn/classloader-leak-prevention/tree/master/classloader-leak-test-framework#verifying-prevention-measures
+  public static class LeakPreventor implements Runnable {
+    @Override
+    public void run() {
+      try {
+        if (Driver.isRegistered()) {
+          Driver.deregister();
+        }
+        // Allow cleanup thread to detect and close the leaked connection
+        JUnitClassloaderRunner.forceGc(3);
+        // JUnitClassloaderRunner uses finalizers
+        System.runFinalization();
+        // Allow for the cleanup thread to terminate
+        Thread.sleep(2000);
+      } catch (Throwable e) {
+        throw new RuntimeException(e);
+      }
+    }
+  }
 
   @BeforeClass
   public static void setSmallCleanupThreadTtl() {
@@ -37,77 +58,48 @@ public class DriverSupportsClassUnloadingTest {
     System.clearProperty("pgjdbc.config.cleanup.thread.ttl");
   }
 
-  private static void freeMemory() throws InterruptedException {
-    // Allow cleanup thread to detect and close the leaked connection
-    JUnitClassloaderRunner.forceGc(3);
-    // JUnitClassloaderRunner uses finalizers
-    System.runFinalization();
-    // Allow for the cleanup thread to terminate
-    Thread.sleep(2000);
-  }
-
   @Test
-  @Leaks(value = false, dumpHeapOnError = true)
+  @Leaks(dumpHeapOnError = true)
   public void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
-    try {
-      if (!Driver.isRegistered()) {
-        Driver.register();
-      }
-      // This code intentionally leaks connection, prepared statement to verify if the classes
-      // will still be able to unload
-      Connection con = TestUtil.openDB();
-      PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2");
-      ResultSetMetaData md = ps.getMetaData();
-      Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER", md.getColumnType(1),
-          Types.INTEGER);
-
-      // This is to trigger "query timeout" code to increase the chances for memory leaks
-      ps.setQueryTimeout(1000);
-      ResultSet rs = ps.executeQuery();
-      rs.next();
-      Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
-      // It is required to avoid holding references from interpreter frame
-      md = null;
-      rs = null;
-      ps = null;
-      con = null;
-    } finally {
-      // We need deregister the driver explicitly, otherwise DriverManager will keep reference on
-      // the driver
-      Driver.deregister();
+    if (!Driver.isRegistered()) {
+      Driver.register();
     }
-    freeMemory();
+    // This code intentionally leaks connection, prepared statement to verify if the classes
+    // will still be able to unload
+    Connection con = TestUtil.openDB();
+    PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2");
+    ResultSetMetaData md = ps.getMetaData();
+    Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER", md.getColumnType(1),
+        Types.INTEGER);
+
+    // This is to trigger "query timeout" code to increase the chances for memory leaks
+    ps.setQueryTimeout(1000);
+    ResultSet rs = ps.executeQuery();
+    rs.next();
+    Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
   }
 
   @Test
-  @Leaks(value = false, dumpHeapOnError = true)
-  public void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException,
-      InterruptedException {
-    try {
-      if (!Driver.isRegistered()) {
-        Driver.register();
-      }
-      // This code intentionally leaks connection, prepared statement to verify if the classes
-      // will still be able to unload
-      try (Connection con = TestUtil.openDB();) {
-        try (PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2");) {
-          ResultSetMetaData md = ps.getMetaData();
-          Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER",
-              md.getColumnType(1), Types.INTEGER);
+  @Leaks(dumpHeapOnError = true)
+  public void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException {
+    if (!Driver.isRegistered()) {
+      Driver.register();
+    }
+    // This code intentionally leaks connection, prepared statement to verify if the classes
+    // will still be able to unload
+    try (Connection con = TestUtil.openDB();) {
+      try (PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2");) {
+        ResultSetMetaData md = ps.getMetaData();
+        Assert.assertEquals(".getColumnType for column 1 c1 should be INTEGER",
+            md.getColumnType(1), Types.INTEGER);
 
-          // This is to trigger "query timeout" code to increase the chances for memory leaks
-          ps.setQueryTimeout(1000);
-          try (ResultSet rs = ps.executeQuery();) {
-            rs.next();
-            Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
-          }
+        // This is to trigger "query timeout" code to increase the chances for memory leaks
+        ps.setQueryTimeout(1000);
+        try (ResultSet rs = ps.executeQuery();) {
+          rs.next();
+          Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
         }
       }
-    } finally {
-      // We need deregister the driver explicitly, otherwise DriverManager will keep reference on
-      // the driver
-      Driver.deregister();
     }
-    freeMemory();
   }
 }
