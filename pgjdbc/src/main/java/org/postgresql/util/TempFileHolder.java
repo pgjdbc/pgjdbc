@@ -9,21 +9,24 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The action deletes temporary file in case the user submits a large input stream,
  * and then abandons the statement.
  */
-class StreamWrapperFinalizeAction implements Closeable {
+class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
+
+  private static final Logger LOGGER = Logger.getLogger(StreamWrapper.class.getName());
   private @Nullable InputStream stream;
   private @Nullable Path tempFile;
 
-  StreamWrapperFinalizeAction(Path tempFile) {
+  TempFileHolder(Path tempFile) {
     this.tempFile = tempFile;
   }
 
@@ -37,7 +40,10 @@ class StreamWrapperFinalizeAction implements Closeable {
   }
 
   @Override
-  public void close() throws IOException {
+  public void onClean(boolean leak) throws IOException {
+    if (leak) {
+      LOGGER.log(Level.WARNING, GT.tr("StreamWrapper leak detected StreamWrapper.close() was not called. "));
+    }
     Path tempFile = this.tempFile;
     if (tempFile != null) {
       tempFile.toFile().delete();
@@ -50,9 +56,4 @@ class StreamWrapperFinalizeAction implements Closeable {
     }
   }
 
-  @Override
-  @SuppressWarnings("deprecation")
-  protected void finalize() throws Throwable {
-    close();
-  }
 }
