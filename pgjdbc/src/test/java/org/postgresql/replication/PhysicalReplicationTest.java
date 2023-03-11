@@ -19,7 +19,6 @@ import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -129,7 +128,7 @@ public class PhysicalReplicationTest {
     boolean isActive = isActiveOnView();
     stream.close();
 
-    Assert.assertThat(
+    assertThat(
         "After start streaming, database status should be update on view pg_replication_slots to active",
         isActive, equalTo(true)
     );
@@ -156,7 +155,7 @@ public class PhysicalReplicationTest {
     stream.close();
 
     isActive = isActiveOnView();
-    Assert.assertThat(
+    assertThat(
         "Execute close method on PGREplicationStream should lead to stop replication, "
             + "as result we wait that on view pg_replication_slots status for slot will change to no active",
         isActive, equalTo(false)

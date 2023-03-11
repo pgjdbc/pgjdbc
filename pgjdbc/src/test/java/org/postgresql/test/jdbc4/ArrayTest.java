@@ -19,6 +19,7 @@ import org.postgresql.test.util.RegexMatcher;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
@@ -616,7 +617,7 @@ public class ArrayTest extends BaseTest4 {
           actual = actual.replaceAll("\"", "");
         }
         //the string format may vary based on how data stored
-        Assert.assertThat(actual, RegexMatcher.matchesPattern("\\{3\\.5,-4\\.5,NULL,77(.0)?\\}"));
+        MatcherAssert.assertThat(actual, RegexMatcher.matchesPattern("\\{3\\.5,-4\\.5,NULL,77(.0)?\\}"));
       }
 
     } finally {

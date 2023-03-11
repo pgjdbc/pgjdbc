@@ -9,6 +9,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
 import org.junit.Assert;
 import org.junit.Test;
@@ -45,7 +46,7 @@ public class ParameterStatusTest extends BaseTest4 {
     // PgJDBC forces the following parameters
     Assert.assertEquals("UTF8", params.get("client_encoding"));
     Assert.assertNotNull(params.get("DateStyle"));
-    Assert.assertThat(params.get("DateStyle"), StringStartsWith.startsWith("ISO"));
+    MatcherAssert.assertThat(params.get("DateStyle"), StringStartsWith.startsWith("ISO"));
 
     // PgJDBC sets TimeZone via Java's TimeZone.getDefault()
     // Pg reports POSIX timezones which are negated, so:
