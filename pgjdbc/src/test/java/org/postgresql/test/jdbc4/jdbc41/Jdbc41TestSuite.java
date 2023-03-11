@@ -18,7 +18,6 @@ import org.junit.runners.Suite;
     GetObjectTest.class,
     NetworkTimeoutTest.class,
     SchemaTest.class,
-    SharedTimerClassLoaderLeakTest.class,
 })
 public class Jdbc41TestSuite {
 

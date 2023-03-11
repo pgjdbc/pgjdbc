@@ -109,6 +109,12 @@ jobs:
           tar xzf postgresql-1.0-jdbc-src.tar.gz
           cd postgresql-1.0-jdbc-src
           mvn --batch-mode --fail-at-end --show-version verify
+      - name: Attach heap dump if any
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: pgjdbc-heapdump-source-distribution
+          path: pgjdbc/build/distributions/postgresql-1.0-jdbc-src/target/surefire-reports/*.hprof
 
   matrix_prep:
     name: Matrix Preparation
@@ -215,6 +221,12 @@ jobs:
         read-only: ${{ matrix.os == 'self-hosted' }}
         job-id: jdk${{ matrix.java_version }}
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
+    - name: Attach heap dump if any
+      if: ${{ failure() && github.event_name == 'pull_request' }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: pgjdbc-heapdump
+        path: pgjdbc/*.hprof
     - name: Test GSS
       if: ${{ matrix.gss == 'yes' }}
       run: |
