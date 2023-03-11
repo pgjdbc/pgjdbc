@@ -327,7 +327,7 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertEquals("fa\"b", strarr[1]);
 
     try {
-      arraySupport.createArrayOf("int4", Integer.valueOf(1));
+      arraySupport.createArrayOf("int4", 1);
       fail("not an array");
     } catch (PSQLException e) {
 

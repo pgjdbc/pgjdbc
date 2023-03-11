@@ -79,7 +79,7 @@ public class IntervalTest {
     PreparedStatement pstmt = conn.prepareStatement(
         "SELECT v FROM testdate WHERE v < (?::timestamp with time zone + ? * ?::interval) ORDER BY v");
     pstmt.setObject(1, makeDate(2010, 1, 1));
-    pstmt.setObject(2, Integer.valueOf(2));
+    pstmt.setObject(2, 2);
     pstmt.setObject(3, "1 day");
     ResultSet rs = pstmt.executeQuery();
 

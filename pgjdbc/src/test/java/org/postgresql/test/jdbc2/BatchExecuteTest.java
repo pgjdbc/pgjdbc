@@ -619,7 +619,7 @@ public class BatchExecuteTest extends BaseTest4 {
         ps.executeBatch();
       }
 
-      ps.setObject(1, new Double(43));
+      ps.setObject(1, 43.0);
       ps.setObject(2, new Date(43));
       ps.addBatch();
       ps.setNull(1, Types.SMALLINT);
@@ -627,7 +627,7 @@ public class BatchExecuteTest extends BaseTest4 {
       ps.addBatch();
       ps.executeBatch();
 
-      ps.setObject(1, new Double(45));
+      ps.setObject(1, 45.0);
       ps.setObject(2, new Date(45)); // <-- this causes "oid of bind unknown, send Describe"
       ps.addBatch();
       ps.setNull(1, Types.SMALLINT);
@@ -642,7 +642,7 @@ public class BatchExecuteTest extends BaseTest4 {
 
       // This execution with (double, unknown) passes isPreparedForTypes check, and causes
       // the failure
-      ps.setObject(1, new Double(47));
+      ps.setObject(1, 47.0);
       ps.setObject(2, new Date(47));
       ps.addBatch();
       ps.executeBatch();

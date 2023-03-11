@@ -70,7 +70,7 @@ public class TypesTest extends BaseTest4 {
   public void testPreparedByte() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?,?");
     pstmt.setByte(1, (byte) 1);
-    pstmt.setObject(2, new Byte((byte) 2));
+    pstmt.setObject(2, (byte) 2);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals((byte) 1, rs.getByte(1));

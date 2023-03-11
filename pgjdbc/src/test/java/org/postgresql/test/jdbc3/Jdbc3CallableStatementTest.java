@@ -591,10 +591,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cstmt.close();
       ResultSet rs = con.createStatement().executeQuery("select * from real_tab");
       assertTrue(rs.next());
-      Float oVal = new Float(intValues[0]);
+      Float oVal = (float) intValues[0];
       Float rVal = new Float(rs.getObject(1).toString());
       assertTrue(oVal.equals(rVal));
-      oVal = new Float(intValues[1]);
+      oVal = (float) intValues[1];
       rVal = new Float(rs.getObject(2).toString());
       assertTrue(oVal.equals(rVal));
       rs.close();
