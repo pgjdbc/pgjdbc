@@ -730,6 +730,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public void setUseServerPrepare(boolean flag) throws SQLException {
     setPrepareThreshold(flag ? 1 : 0);
   }

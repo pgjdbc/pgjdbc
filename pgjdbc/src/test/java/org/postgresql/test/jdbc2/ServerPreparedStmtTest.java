@@ -53,10 +53,15 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     super.tearDown();
   }
 
+  @SuppressWarnings("deprecation")
+  private static void setUseServerPrepare(PreparedStatement pstmt, boolean flag) throws SQLException {
+    pstmt.unwrap(PGStatement.class).setUseServerPrepare(flag);
+  }
+
   @Test
   public void testEmptyResults() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
+    setUseServerPrepare(pstmt, true);
     for (int i = 0; i < 10; ++i) {
       pstmt.setInt(1, -1);
       ResultSet rs = pstmt.executeQuery();
@@ -69,7 +74,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testPreparedExecuteCount() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("UPDATE testsps SET id = id + 44");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
+    setUseServerPrepare(pstmt, true);
     int count = pstmt.executeUpdate();
     assertEquals(6, count);
     pstmt.close();
@@ -78,8 +83,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testPreparedStatementsNoBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     // Test that basic functionality works
     ResultSet rs = pstmt.executeQuery();
@@ -97,8 +102,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     if (Boolean.getBoolean("org.postgresql.forceBinary")) {
       return;
     }
-    ((PGStatement) pstmt).setUseServerPrepare(false);
-    assertTrue(!((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, false);
+    assertTrue(!pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
@@ -111,8 +116,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testPreparedStatementsWithOneBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     // Test that basic functionality works
     pstmt.setInt(1, 2);
@@ -132,8 +137,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
       return;
     }
 
-    ((PGStatement) pstmt).setUseServerPrepare(false);
-    assertTrue(!((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, false);
+    assertTrue(!pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     pstmt.setInt(1, 9);
     rs = pstmt.executeQuery();
@@ -148,8 +153,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testBooleanObjectBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     pstmt.setObject(1, Boolean.FALSE, java.sql.Types.BIT);
     ResultSet rs = pstmt.executeQuery();
@@ -162,8 +167,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testBooleanIntegerBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     pstmt.setObject(1, Boolean.TRUE, java.sql.Types.INTEGER);
     ResultSet rs = pstmt.executeQuery();
@@ -176,8 +181,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testBooleanBind() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE value = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     pstmt.setBoolean(1, false);
     ResultSet rs = pstmt.executeQuery();
@@ -189,8 +194,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testPreparedStatementsWithBinds() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ? or id = ?");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    assertTrue(((PGStatement) pstmt).isUseServerPrepare());
+    setUseServerPrepare(pstmt, true);
+    assertTrue(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     // Test that basic functionality works
     // bind different datatypes
@@ -214,8 +219,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   public void testSPSToggle() throws Exception {
     // Verify we can toggle UseServerPrepare safely before a query is executed.
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = 2");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
-    ((PGStatement) pstmt).setUseServerPrepare(false);
+    setUseServerPrepare(pstmt, true);
+    setUseServerPrepare(pstmt, false);
   }
 
   @Test
@@ -225,7 +230,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
       TestUtil.createTable(con, "testsps_bytea", "data bytea");
 
       PreparedStatement pstmt = con.prepareStatement("INSERT INTO testsps_bytea(data) VALUES (?)");
-      ((PGStatement) pstmt).setUseServerPrepare(true);
+      setUseServerPrepare(pstmt, true);
       pstmt.setBytes(1, new byte[100]);
       pstmt.executeUpdate();
     } finally {
@@ -239,7 +244,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     // CREATE TABLE isn't supported by PREPARE; the driver should realize this and
     // still complete without error.
     PreparedStatement pstmt = con.prepareStatement("CREATE TABLE testsps_bad(data int)");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
+    setUseServerPrepare(pstmt, true);
     pstmt.executeUpdate();
     TestUtil.dropTable(con, "testsps_bad");
   }
@@ -252,7 +257,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
       TestUtil.createTable(con, "testsps_multiple", "data int");
       PreparedStatement pstmt = con.prepareStatement(
           "INSERT INTO testsps_multiple(data) VALUES (?); INSERT INTO testsps_multiple(data) VALUES (?)");
-      ((PGStatement) pstmt).setUseServerPrepare(true);
+      setUseServerPrepare(pstmt, true);
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.executeUpdate(); // Two inserts.
@@ -272,7 +277,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   @Test
   public void testTypeChange() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT CAST (? AS TEXT)");
-    ((PGStatement) pstmt).setUseServerPrepare(true);
+    setUseServerPrepare(pstmt, true);
 
     // Prepare with int parameter.
     pstmt.setInt(1, 1);
