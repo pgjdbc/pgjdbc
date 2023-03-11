@@ -22,6 +22,9 @@ public class DefaultPgjdbcOsgiOptions {
         // It is pgjdbc built in the current build + central for other dependencies
         systemProperty("org.ops4j.pax.url.mvn.repositories")
             .value(System.getProperty("pgjdbc.org.ops4j.pax.url.mvn.repositories")),
+        systemProperty("org.ops4j.pax.url.mvn.timeout").value("15000"),
+        systemProperty("org.ops4j.pax.url.mvn.socket.connectionTimeout").value("15000"),
+        systemProperty("org.ops4j.pax.url.mvn.socket.readTimeout").value("60000"),
         // This is a repository where osgi container would cache resolved maven artifacts
         systemProperty("org.ops4j.pax.url.mvn.localRepository")
             .value(System.getProperty("pgjdbc.org.ops4j.pax.url.mvn.localRepository")),
