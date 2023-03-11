@@ -647,6 +647,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Fastpath
   //
 
+  @SuppressWarnings("deprecation")
   public byte @Nullable [] fastpathCall(int fnid, ParameterList parameters,
       boolean suppressBegin)
       throws SQLException {
@@ -717,6 +718,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   }
 
+  @SuppressWarnings("deprecation")
   public ParameterList createFastpathParameters(int count) {
     return new SimpleParameterList(count, this);
   }
@@ -2962,6 +2964,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public Set<? extends Integer> getBinaryReceiveOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinaryReceiveForOids) {
@@ -2999,6 +3002,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
   public Set<? extends Integer> getBinarySendOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinarySendForOids) {
