@@ -4,6 +4,8 @@ tag-template: 'REL$RESOLVED_VERSION'
 # Filter previous releases to consider only those with the target matching the current branch
 filter-by-commitish: true
 tag-prefix: REL
+exclude-labels:
+  - 'skip-changelog'
 categories:
   - title: '🚀 Features'
     labels:
