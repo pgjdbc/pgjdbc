@@ -736,7 +736,7 @@ public class PgConnection implements BaseConnection {
       // point, etc).
 
       if (klass != null) {
-        obj = klass.newInstance();
+        obj = klass.getDeclaredConstructor().newInstance();
         obj.setType(type);
         if (byteValue != null && obj instanceof PGBinaryObject) {
           PGBinaryObject binObj = (PGBinaryObject) obj;
@@ -1921,7 +1921,9 @@ public class PgConnection implements BaseConnection {
             PSQLState.INVALID_PARAMETER_VALUE);
       }
       try {
-        xmlFactoryFactory = (PGXmlFactoryFactory) clazz.newInstance();
+        xmlFactoryFactory = clazz.asSubclass(PGXmlFactoryFactory.class)
+            .getDeclaredConstructor()
+            .newInstance();
       } catch (Exception ex) {
         throw new PSQLException(
             GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
