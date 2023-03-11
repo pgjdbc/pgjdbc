@@ -40,7 +40,7 @@ public class LogServerMessagePropertyTest {
     Connection conn = TestUtil.openDB(props);
     Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_1));
     try {
-      TestUtil.execute(CREATE_TABLE_SQL, conn);
+      TestUtil.execute(conn, CREATE_TABLE_SQL);
       if (batch) {
         PreparedStatement stmt = conn.prepareStatement(INSERT_SQL);
         stmt.addBatch();
@@ -48,9 +48,9 @@ public class LogServerMessagePropertyTest {
         stmt.executeBatch();
       } else {
         // First insert should work
-        TestUtil.execute(INSERT_SQL, conn);
+        TestUtil.execute(conn, INSERT_SQL);
         // Second insert should throw a duplicate key error
-        TestUtil.execute(INSERT_SQL, conn);
+        TestUtil.execute(conn, INSERT_SQL);
       }
     } catch (SQLException e) {
       Assert.assertEquals("SQL state must be for a unique violation", PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState());

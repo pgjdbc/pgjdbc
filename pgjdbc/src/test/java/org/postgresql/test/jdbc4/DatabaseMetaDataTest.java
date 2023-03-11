@@ -44,11 +44,11 @@ public class DatabaseMetaDataTest {
     TestUtil.createSchema(conn, "nofunctions");
     TestUtil.createSchema(conn, "hasprocedures");
     TestUtil.createSchema(conn, "noprocedures");
-    TestUtil.execute("create function hasfunctions.addfunction (integer, integer) "
-        + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE", conn);
+    TestUtil.execute(conn, "create function hasfunctions.addfunction (integer, integer) "
+        + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE");
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-      TestUtil.execute("create procedure hasprocedures.addprocedure() "
-          + "LANGUAGE plpgsql AS $$ BEGIN SELECT 1; END; $$", conn);
+      TestUtil.execute(conn, "create procedure hasprocedures.addprocedure() "
+          + "LANGUAGE plpgsql AS $$ BEGIN SELECT 1; END; $$");
     }
   }
 

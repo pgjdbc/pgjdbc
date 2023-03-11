@@ -72,15 +72,15 @@ public class AuthenticationPluginTest {
 
   private static void createRole(String username, String passwordEncryption, String password) throws SQLException {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
-      TestUtil.execute("SET password_encryption='" + passwordEncryption + "'", conn);
-      TestUtil.execute("DROP ROLE IF EXISTS " + username, conn);
-      TestUtil.execute("CREATE USER " + username + " WITH PASSWORD '" + password + "'", conn);
+      TestUtil.execute(conn, "SET password_encryption='" + passwordEncryption + "'");
+      TestUtil.execute(conn, "DROP ROLE IF EXISTS " + username);
+      TestUtil.execute(conn, "CREATE USER " + username + " WITH PASSWORD '" + password + "'");
     }
   }
 
   private static void dropRole(String username) throws SQLException {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
-      TestUtil.execute("DROP ROLE IF EXISTS " + username, conn);
+      TestUtil.execute(conn, "DROP ROLE IF EXISTS " + username);
     }
   }
 }

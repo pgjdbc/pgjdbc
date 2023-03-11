@@ -77,8 +77,8 @@ public class StatementTest {
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
     TestUtil.dropTable(con, "test_lock");
-    TestUtil.execute("DROP FUNCTION IF EXISTS notify_loop()",con);
-    TestUtil.execute("DROP FUNCTION IF EXISTS notify_then_sleep()",con);
+    TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_loop()");
+    TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
   }
 

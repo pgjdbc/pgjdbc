@@ -229,11 +229,11 @@ public class SchemaTest {
     properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema1,schema2");
     Connection connection = TestUtil.openDB(properties);
 
-    TestUtil.execute("create table schema1.check_table (test_col text)", connection);
-    TestUtil.execute("insert into schema1.check_table (test_col) values ('test_value')", connection);
-    TestUtil.execute("create or replace function schema2.check_fun () returns text as $$"
+    TestUtil.execute(connection, "create table schema1.check_table (test_col text)");
+    TestUtil.execute(connection, "insert into schema1.check_table (test_col) values ('test_value')");
+    TestUtil.execute(connection, "create or replace function schema2.check_fun () returns text as $$"
         + " select test_col from check_table"
-        + "$$ language sql stable", connection);
+        + "$$ language sql stable");
     connection.close();
   }
 
@@ -243,11 +243,11 @@ public class SchemaTest {
     properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema2");
 
     try (Connection connection = TestUtil.openDB(properties)) {
-      TestUtil.execute("create table schema1.check_table (test_col text)", connection);
-      TestUtil.execute("insert into schema1.check_table (test_col) values ('test_value')", connection);
-      TestUtil.execute("create or replace function schema2.check_fun (txt text) returns text as $$"
+      TestUtil.execute(connection, "create table schema1.check_table (test_col text)");
+      TestUtil.execute(connection, "insert into schema1.check_table (test_col) values ('test_value')");
+      TestUtil.execute(connection, "create or replace function schema2.check_fun (txt text) returns text as $$"
           + " select test_col from check_table"
-          + "$$ language sql immutable", connection);
+          + "$$ language sql immutable");
     } catch (PSQLException e) {
       String sqlState = e.getSQLState();
       String message = e.getMessage();
@@ -276,7 +276,7 @@ public class SchemaTest {
     properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema1,schema2");
     Connection connection = TestUtil.openDB(properties);
 
-    TestUtil.execute("select check_fun()", connection);
+    TestUtil.execute(connection, "select check_fun()");
     connection.close();
   }
 
@@ -287,7 +287,7 @@ public class SchemaTest {
     properties.setProperty(PGProperty.CURRENT_SCHEMA.getName(), "public,schema2");
 
     try (Connection connection = TestUtil.openDB(properties)) {
-      TestUtil.execute("select check_fun()", connection);
+      TestUtil.execute(connection, "select check_fun()");
     } catch (PSQLException e) {
       String sqlState = e.getSQLState();
       String message = e.getMessage();

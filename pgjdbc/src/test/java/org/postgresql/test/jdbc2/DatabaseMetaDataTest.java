@@ -90,11 +90,11 @@ public class DatabaseMetaDataTest {
 
     // create a table and multiple comments on it
     TestUtil.createTable(con, "duplicate", "x text");
-    TestUtil.execute("comment on table duplicate is 'duplicate table'", con);
-    TestUtil.execute("create or replace function bar() returns integer language sql as $$ select 1 $$", con);
-    TestUtil.execute("comment on function bar() is 'bar function'", con);
+    TestUtil.execute(con, "comment on table duplicate is 'duplicate table'");
+    TestUtil.execute(con, "create or replace function bar() returns integer language sql as $$ select 1 $$");
+    TestUtil.execute(con, "comment on function bar() is 'bar function'");
     try (Connection conPriv = TestUtil.openPrivilegedDB()) {
-      TestUtil.execute("update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc", conPriv);
+      TestUtil.execute(conPriv, "update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc");
     }
 
     // 8.2 does not support arrays of composite types
@@ -145,7 +145,7 @@ public class DatabaseMetaDataTest {
     // metadatatest table's type
     Statement stmt = con.createStatement();
     stmt.execute("DROP FUNCTION f4(int)");
-    TestUtil.execute("drop function bar()", con);
+    TestUtil.execute(con, "drop function bar()");
     TestUtil.dropTable(con, "duplicate");
 
     TestUtil.dropView(con, "viewtest");

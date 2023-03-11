@@ -45,19 +45,19 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "unique_null_constraint", "u1 int unique, name1 text");
     TestUtil.createTable(con, "uniquekeys", "id int unique not null, id2 int unique, dt date");
     TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
-    TestUtil.execute("CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success", con);
+    TestUtil.execute(con, "CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success");
     TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
     TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique not null, dt date");
     TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
     TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
-    TestUtil.execute( "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10", con);
-    TestUtil.execute( "alter table compositepktable add primary key ( gen_id, dec_id )", con);
+    TestUtil.execute(con, "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10");
+    TestUtil.execute(con, "alter table compositepktable add primary key ( gen_id, dec_id )");
     TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
-    TestUtil.execute("insert into booltable (id) values (1)", con);
-    TestUtil.execute("insert into uniquekeys(id, id2, dt) values (1, 2, now())", con);
+    TestUtil.execute(con, "insert into booltable (id) values (1)");
+    TestUtil.execute(con, "insert into uniquekeys(id, id2, dt) values (1, 2, now())");
 
     Statement st2 = con.createStatement();
     // create pk for multicol table
@@ -65,9 +65,9 @@ public class UpdateableResultTest extends BaseTest4 {
     // put some dummy data into second
     st2.execute("insert into second values (1,'anyvalue' )");
     st2.close();
-    TestUtil.execute("insert into unique_null_constraint values (1, 'dave')", con);
-    TestUtil.execute("insert into unique_null_constraint values (null, 'unknown')", con);
-    TestUtil.execute("insert into primaryunique values (1, 'dave', now())", con);
+    TestUtil.execute(con, "insert into unique_null_constraint values (1, 'dave')");
+    TestUtil.execute(con, "insert into unique_null_constraint values (null, 'unknown')");
+    TestUtil.execute(con, "insert into primaryunique values (1, 'dave', now())");
 
   }
 
@@ -464,7 +464,7 @@ public class UpdateableResultTest extends BaseTest4 {
   @Test
   public void testUpdateDate() throws Exception {
     Date testDate = Date.valueOf("2021-01-01");
-    TestUtil.execute("insert into hasdate values (1,'2021-01-01'::date)", con);
+    TestUtil.execute(con, "insert into hasdate values (1,'2021-01-01'::date)");
     con.setAutoCommit(false);
     String sql = "SELECT * FROM hasdate where id=1";
     ResultSet rs = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,

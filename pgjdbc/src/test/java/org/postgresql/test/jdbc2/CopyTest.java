@@ -229,7 +229,7 @@ public class CopyTest {
    */
   @Test
   public void testCopyMultiApi() throws SQLException, IOException {
-    TestUtil.execute("CREATE TABLE pg_temp.copy_api_test (data text)", con);
+    TestUtil.execute(con, "CREATE TABLE pg_temp.copy_api_test (data text)");
     String sql = "COPY pg_temp.copy_api_test (data) FROM STDIN";
     PGCopyOutputStream out = new PGCopyOutputStream(copyAPI.copyIn(sql));
     try {

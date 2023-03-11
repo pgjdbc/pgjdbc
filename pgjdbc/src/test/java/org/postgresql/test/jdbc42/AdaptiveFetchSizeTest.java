@@ -277,7 +277,7 @@ public class AdaptiveFetchSizeTest {
     }
     sb.append("'");
     String insert = TestUtil.insertSQL(table, "value", sb.toString());
-    TestUtil.execute(insert, connection);
+    TestUtil.execute(connection, insert);
   }
 
   /**
