@@ -307,6 +307,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Double) result;
   }
 
+  @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(@Positive int parameterIndex, int scale) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
     return (@Nullable BigDecimal) result;

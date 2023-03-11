@@ -472,6 +472,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setCharacterStreamPost71(parameterIndex, x, length, "ASCII");
   }
 
+  @SuppressWarnings("deprecation")
   public void setUnicodeStream(@Positive int parameterIndex, @Nullable InputStream x,
       @NonNegative int length) throws SQLException {
     checkClosed();

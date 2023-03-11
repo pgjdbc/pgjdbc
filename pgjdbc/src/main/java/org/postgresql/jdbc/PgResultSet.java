@@ -2150,6 +2150,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private @Nullable String refCursorName;
 
+  @SuppressWarnings("deprecation")
   public @Nullable String getRefCursor() {
     // Can't check this because the PGRefCursorResultSet
     // interface doesn't allow throwing a SQLException
@@ -2722,6 +2723,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return toDouble(getFixedString(columnIndex));
   }
 
+  @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(
       int columnIndex, int scale) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBigDecimal columnIndex: {0}", columnIndex);
@@ -2842,6 +2844,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Pure
+  @SuppressWarnings("deprecation")
   public @Nullable InputStream getUnicodeStream(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getUnicodeStream columnIndex: {0}", columnIndex);
     byte[] value = getRawValue(columnIndex);
@@ -2922,6 +2925,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Pure
+  @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
     return getBigDecimal(findColumn(columnName), scale);
   }
@@ -2952,6 +2956,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Pure
+  @SuppressWarnings("deprecation")
   public @Nullable InputStream getUnicodeStream(String columnName) throws SQLException {
     return getUnicodeStream(findColumn(columnName));
   }
