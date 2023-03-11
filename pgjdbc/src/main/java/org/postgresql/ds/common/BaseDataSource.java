@@ -663,6 +663,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL mode
    * @see PGProperty#SSL_FACTORY_ARG
    */
+  @SuppressWarnings("deprecation")
   public @Nullable String getSslFactoryArg() {
     return PGProperty.SSL_FACTORY_ARG.getOrDefault(properties);
   }
@@ -671,6 +672,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param arg argument forwarded to SSL factory
    * @see PGProperty#SSL_FACTORY_ARG
    */
+  @SuppressWarnings("deprecation")
   public void setSslFactoryArg(@Nullable String arg) {
     PGProperty.SSL_FACTORY_ARG.set(properties, arg);
   }
@@ -1219,6 +1221,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
+  @SuppressWarnings("deprecation")
   public @Nullable String getSocketFactoryArg() {
     return PGProperty.SOCKET_FACTORY_ARG.getOrDefault(properties);
   }
@@ -1227,6 +1230,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param socketFactoryArg socket factory argument
    * @see PGProperty#SOCKET_FACTORY_ARG
    */
+  @SuppressWarnings("deprecation")
   public void setSocketFactoryArg(@Nullable String socketFactoryArg) {
     PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
   }
