@@ -61,7 +61,8 @@ public class TimestamptzTest extends BaseTest4 {
   }
 
   /**
-   * Test to demonstrate another example on additional unnecessary cast cause the driver know already the data type.
+   * Test to demonstrate another example on additional unnecessary cast. 
+   * The driver know already the data type.
    */
   @Test
   public void testTypeOnDbSite_select() throws SQLException {
