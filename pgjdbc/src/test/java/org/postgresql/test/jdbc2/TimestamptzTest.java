@@ -74,7 +74,7 @@ public class TimestamptzTest extends BaseTest4 {
     GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("Europe/Berlin"));
     cal.set(2023, Calendar.MARCH, 12, 9, 30);
 
-    try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where ts < ?  + 30 * interval '1 hour' ")) {
+    try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where ts < ?  +  interval '1 hour' ")) {
       ps.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
 
       try {
