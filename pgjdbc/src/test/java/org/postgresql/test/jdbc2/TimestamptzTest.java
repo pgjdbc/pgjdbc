@@ -61,7 +61,51 @@ public class TimestamptzTest extends BaseTest4 {
   }
 
   /**
-   * Test to demonstrate another example on additional unnecessary cast. 
+   * Aother example where overloading is necessary on sql site to choose the correct function
+   */
+  @Test
+  public void testTypeOnDbSite_functionOverloading() throws SQLException {
+
+    //SET time zone 'Europe/Berlin';
+    try (PreparedStatement ps = con.prepareStatement("create or replace function testtimestamp.demoF(msg text, ts timestamptz) returns text language sql as $$select msg || ' at time ' || ts $$;  ")) {
+      ps.executeUpdate();
+    }
+    try (PreparedStatement ps = con.prepareStatement("create or replace function testtimestamp.demoF(msg text, additional text) returns text language sql as $$select msg || ' wrongInfo:' || additional  $$; ")) {
+      ps.executeUpdate();
+    }
+
+    GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("Europe/Berlin"));
+    cal.set(2023, Calendar.MARCH, 12, 9, 30);
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+
+    try (PreparedStatement ps = con.prepareStatement(" SELECT  testtimestamp.demoF(?, ?) as res ")) {
+      ps.setString(1, "Some data");
+      ps.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
+
+      try {
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+          String resultFunction = rs.getString("res");
+          System.out.printf("result:%s \n", resultFunction);
+
+          if (resultFunction.contains("wrongInfo")) {
+            fail("choose wrong overloading");
+          }
+
+        } else {
+          fail("no result");
+        }
+      } catch (SQLException e) {
+        fail(e.getMessage());
+      }
+    }
+  }
+
+
+
+  /**
+   * Test to demonstrate another example on additional unnecessary cast.
    * The driver know already the data type.
    */
   @Test
@@ -74,6 +118,8 @@ public class TimestamptzTest extends BaseTest4 {
 
     GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("Europe/Berlin"));
     cal.set(2023, Calendar.MARCH, 12, 9, 30);
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
 
     try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where ts < ?  +  interval '1 hour' ")) {
       ps.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
