@@ -9,6 +9,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.test.TestUtil;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -19,7 +21,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collection;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 /**
  * Tests both db and java side that correct type are passed.
@@ -44,11 +49,45 @@ public class TimestamptzTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
+    TestUtil.createSchema(con, "testtimestamp");
+    TestUtil.createTable(con, "testtimestamp.tbtesttimestamp", "id bigint, ts timestamptz");
   }
 
   @Override
   public void tearDown() throws SQLException {
+    TestUtil.dropTable(con, "testtimestamp.tbtesttimestamp");
+    TestUtil.dropSchema(con, "testtimestamp");
     super.tearDown();
+  }
+
+  /**
+   * Test to demonstrate another example on additional unnecessary cast cause the driver know already the data type.
+   */
+  @Test
+  public void testTypeOnDbSite_select() throws SQLException {
+
+    //SET time zone 'Europe/Berlin';
+    try (PreparedStatement ps = con.prepareStatement(" insert into testtimestamp.tbtesttimestamp (id, ts) values(1, '2023-03-12 10:00:00+1'::timestamptz ) ")) {
+      ps.executeUpdate();
+    }
+
+    GregorianCalendar cal = new GregorianCalendar(TimeZone.getTimeZone("Europe/Berlin"));
+    cal.set(2023, Calendar.MARCH, 12, 9, 30);
+
+    try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where ts < ?  + 30 * interval '1 hour' ")) {
+      ps.setTimestamp(1, new Timestamp(cal.getTimeInMillis()));
+
+      try {
+        ResultSet rs = ps.executeQuery();
+        if (rs.next()) {
+          System.out.printf("id:%d ts:%s \n", rs.getInt("id"), rs.getTimestamp("ts"));
+        } else {
+          fail("no result");
+        }
+      } catch (SQLException e) {
+        fail(e.getMessage());
+      }
+    }
   }
 
   @Test
