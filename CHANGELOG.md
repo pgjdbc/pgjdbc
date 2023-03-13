@@ -5,10 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Changed
+fix: use PhantomReferences instead of `Obejct.finalize()` to track Connection leaks [PR #2847](https://github.com/pgjdbc/pgjdbc/pull/2847) 
 
-### Added
+    The change replaces all uses of Object.finalize with PhantomReferences.
+    The leaked resources (Connections) are tracked in a helper thread that is active as long as
+    there are connection in use. By default, the thread keeps running for 30 seconds after all
+    the connections are released. The timeout is set with pgjdbc.config.cleanup.thread.ttl system property.
 
-### Fixed
+refactor:(loom) replace the usages of synchronized with ReentrantLock [PR #2635](https://github.com/pgjdbc/pgjdbc/pull/2635)
+    Fixes [Issue #1951](https://github.com/pgjdbc/pgjdbc/issues/1951)
 
 ## [42.5.4] (2023-02-15 10:21:04 -0500)
 
