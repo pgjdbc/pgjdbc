@@ -24,7 +24,7 @@ import java.sql.*;
 
 ## Loading the Driver
 
-Applications do not need to explicitly load the org.postgresql. Driver class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
+Applications do not need to explicitly load the `org.postgresql.Driver` class because the pgJDBC driver jar supports the Java Service Provider mechanism. The driver will be loaded by the JVM when the application connects to PostgreSQL® (as long as the driver's jar file is on the classpath).
 
 > **NOTE**
 >
