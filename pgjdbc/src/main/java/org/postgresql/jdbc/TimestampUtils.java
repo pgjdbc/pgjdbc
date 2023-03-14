@@ -32,7 +32,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -988,9 +987,19 @@ public class TimestampUtils {
         return "-infinity";
       }
 
-      // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
-      ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
-      return toString(zonedDateTime.toOffsetDateTime());
+      sbuf.setLength(0);
+
+      if (nanosExceed499(localDateTime.getNano())) {
+        localDateTime = localDateTime.plus(ONE_MICROSECOND);
+      }
+
+      LocalDate localDate = localDateTime.toLocalDate();
+      appendDate(sbuf, localDate);
+      sbuf.append(' ');
+      appendTime(sbuf, localDateTime.toLocalTime());
+      appendEra(sbuf, localDate);
+
+      return sbuf.toString();
     }
   }
 

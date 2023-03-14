@@ -13,12 +13,13 @@ import static org.junit.Assume.assumeTrue;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -83,22 +84,30 @@ public class SetObject310Test extends BaseTest4 {
     return ids;
   }
 
-  @Before
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
-            + "timestamp_with_time_zone_column timestamp with time zone,"
-            + "date_column date,"
-            + "time_without_time_zone_column time without time zone,"
-            + "time_with_time_zone_column time with time zone"
-    );
+  @BeforeClass
+  public static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
+              + "timestamp_with_time_zone_column timestamp with time zone,"
+              + "date_column date,"
+              + "time_without_time_zone_column time without time zone,"
+              + "time_with_time_zone_column time with time zone"
+      );
+    }
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterClass
+  public static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      TestUtil.dropTable(con, "table1");
+    }
     TimeZone.setDefault(saveTZ);
-    TestUtil.dropTable(con, "table1");
-    super.tearDown();
+  }
+
+  @Override
+  public void setUp() throws Exception {
+    super.setUp();
+    TestUtil.execute(con, "delete from table1");
   }
 
   private void insert(Object data, String columnName, Integer type) throws SQLException {
@@ -232,9 +241,7 @@ public class SetObject310Test extends BaseTest4 {
       ZoneId zone = ZoneId.of(zoneId);
       for (String date : datesToTest) {
         LocalDateTime localDateTime = LocalDateTime.parse(date);
-        String expected = localDateTime.atZone(zone)
-            .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-            .replace('T', ' ');
+        String expected = date.replace('T', ' ');
         localTimestamps(zone, localDateTime, expected);
       }
     }
