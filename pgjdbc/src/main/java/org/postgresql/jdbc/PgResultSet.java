@@ -2322,6 +2322,25 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // varchar in binary is same as text, other binary fields are converted to their text format
     if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
       Field field = fields[columnIndex - 1];
+      TimestampUtils ts = getTimestampUtils();
+      // internalGetObject is used in getObject(int), so we can't easily alter the returned type
+      // Currently, internalGetObject delegates to getTime(), getTimestamp(), so it has issues
+      // with timezone conversions.
+      // However, as we know the explicit oids, we can do a better job here
+      switch (field.getOID()) {
+        case Oid.TIME:
+          return ts.toString(ts.toLocalTimeBin(value));
+        case Oid.TIMETZ:
+          return ts.toStringOffsetTimeBin(value);
+        case Oid.DATE:
+          return ts.toString(ts.toLocalDateBin(value));
+        case Oid.TIMESTAMP:
+          return ts.toString(ts.toLocalDateTimeBin(value));
+        case Oid.TIMESTAMPTZ:
+          return ts.toStringOffsetDateTime(value);
+      }
+      // internalGetObject requires thisRow to be non-null
+      castNonNull(thisRow, "thisRow");
       Object obj = internalGetObject(columnIndex, field);
       if (obj == null) {
         // internalGetObject() knows jdbc-types and some extra like hstore. It does not know of
@@ -2331,12 +2350,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           return null;
         }
         return obj.toString();
-      }
-      // hack to be compatible with text protocol
-      if (obj instanceof java.util.Date) {
-        int oid = field.getOID();
-        return getTimestampUtils().timeToString((java.util.Date) obj,
-            oid == Oid.TIMESTAMPTZ || oid == Oid.TIMETZ);
       }
       if ("hstore".equals(getPGType(columnIndex))) {
         return HStoreConverter.toString((Map<?, ?>) obj);

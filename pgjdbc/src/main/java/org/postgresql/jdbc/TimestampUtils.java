@@ -32,7 +32,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -946,6 +945,36 @@ public class TimestampUtils {
     }
   }
 
+  /**
+   * Converts {@code timetz} to string taking client time zone ({@link #timeZoneProvider})
+   * into account.
+   * @param value binary representation of {@code timetz}
+   * @return string representation of {@code timetz}
+   */
+  public String toStringOffsetTimeBin(byte[] value) throws PSQLException {
+    OffsetTime offsetTimeBin = toOffsetTimeBin(value);
+    return toString(withClientOffsetSameInstant(offsetTimeBin));
+  }
+
+  /**
+   * PostgreSQL does not store the time zone in the binary representation of timetz.
+   * However, we want to preserve the output of {@code getString()} in both binary and text formats
+   * So we try a client time zone when serializing {@link OffsetTime} to string.
+   * @param input input offset time
+   * @return adjusted offset time (it represents the same instant as the input one)
+   */
+  public OffsetTime withClientOffsetSameInstant(OffsetTime input) {
+    if (input == OffsetTime.MAX || input == OffsetTime.MIN) {
+      return input;
+    }
+    TimeZone timeZone = timeZoneProvider.get();
+    int offsetMillis = timeZone.getRawOffset();
+    return input.withOffsetSameInstant(
+        offsetMillis == 0
+            ? ZoneOffset.UTC
+            : ZoneOffset.ofTotalSeconds(offsetMillis / 1000));
+  }
+
   public String toString(OffsetDateTime offsetDateTime) {
     try (ResourceLock ignore = lock.obtain()) {
       if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
@@ -975,6 +1004,41 @@ public class TimestampUtils {
   }
 
   /**
+   * Converts {@code timestamptz} to string taking client time zone ({@link #timeZoneProvider})
+   * into account.
+   * @param value binary representation of {@code timestamptz}
+   * @return string representation of {@code timestamptz}
+   */
+  public String toStringOffsetDateTime(byte[] value) throws PSQLException {
+    OffsetDateTime offsetDateTime = toOffsetDateTimeBin(value);
+    return toString(withClientOffsetSameInstant(offsetDateTime));
+  }
+
+  /**
+   * PostgreSQL does not store the time zone in the binary representation of timestamptz.
+   * However, we want to preserve the output of {@code getString()} in both binary and text formats
+   * So we try a client time zone when serializing {@link OffsetDateTime} to string.
+   * @param input input offset date time
+   * @return adjusted offset date time (it represents the same instant as the input one)
+   */
+  public OffsetDateTime withClientOffsetSameInstant(OffsetDateTime input) {
+    if (input == OffsetDateTime.MAX || input == OffsetDateTime.MIN) {
+      return input;
+    }
+    int offsetMillis;
+    TimeZone timeZone = timeZoneProvider.get();
+    if (isSimpleTimeZone(timeZone.getID())) {
+      offsetMillis = timeZone.getRawOffset();
+    } else {
+      offsetMillis = timeZone.getOffset(input.toEpochSecond() * 1000L);
+    }
+    return input.withOffsetSameInstant(
+        offsetMillis == 0
+            ? ZoneOffset.UTC
+            : ZoneOffset.ofTotalSeconds(offsetMillis / 1000));
+  }
+
+  /**
    * Formats {@link LocalDateTime} to be sent to the backend, thus it adds time zone.
    * Do not use this method in {@link java.sql.ResultSet#getString(int)}
    * @param localDateTime The local date to format as a String
@@ -988,9 +1052,19 @@ public class TimestampUtils {
         return "-infinity";
       }
 
-      // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
-      ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
-      return toString(zonedDateTime.toOffsetDateTime());
+      sbuf.setLength(0);
+
+      if (nanosExceed499(localDateTime.getNano())) {
+        localDateTime = localDateTime.plus(ONE_MICROSECOND);
+      }
+
+      LocalDate localDate = localDateTime.toLocalDate();
+      appendDate(sbuf, localDate);
+      sbuf.append(' ');
+      appendTime(sbuf, localDateTime.toLocalTime());
+      appendEra(sbuf, localDate);
+
+      return sbuf.toString();
     }
   }
 
