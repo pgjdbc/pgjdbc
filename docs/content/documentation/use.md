@@ -129,7 +129,9 @@ Provide the full path for the key file. Defaults to `defaultdir/postgresql.pk8`.
 
 > **NOTE**
 >
-> The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key can be converted to DER format using the openssl command: `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+> The key file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). 
+ A PEM key can be converted to DER format using the openssl command: `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
+ When you create the key the `alias` or the `name` must be *user*. The test codes uses the following to create a .p12 key `openssl pkcs12 -export -in $< -inkey $*.key -out $@ -name user -CAfile $(SERVER_CRT_DIR)root.crt -caname local -passout pass:$(P12_PASSWORD)`
 
 PKCS-12 key files are only recognized if they have the ".p12" (42.2.9+) or the ".pfx" (42.2.16+) extension.
 
@@ -137,7 +139,8 @@ If your key has a password, provide it using the `sslpassword` connection parame
 
 > **NOTE**
 >
-> The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected by other means (e.g. access control of the OS), or the key file is transmitted in untrusted channels. We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at the time of writing. If you have stricter security needs, please see [here](https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1) for a discussion of the problem and information on choosing a better cipher suite.
+> The use of -v1 PBE-MD5-DES might be inadequate in environments where high level of security is needed and the key is not protected by other means (e.g. access control of the OS), 
+ or the key file is transmitted in untrusted channels. We are depending on the cryptography providers provided by the java runtime. The solution documented here is known to work at the time of writing. If you have stricter security needs, please see [here](https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1) for a discussion of the problem and information on choosing a better cipher suite.
 
 * **`sslrootcert (`*String*`)`** *Default `defaultdir/root.crt`*\
 File name of the SSL root certificate. It can be a PEM encoded X509v3 certificate.
