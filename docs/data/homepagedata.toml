@@ -13,6 +13,10 @@ desc = "The current development driver supports eleven server versions and three
 path = "/icons/driver-icon.svg"
 
 # Releases Info
+[[info]]
+date = "17 March 2023"
+url = "/changelogs/2023-03-17-42.6.0-release/"
+version = "42.6.0"
 
 [[info]]
 date = "16 February 2023"
