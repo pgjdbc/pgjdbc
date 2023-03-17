@@ -84,7 +84,7 @@ must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16). (In this case
 
 > **NOTE**
 >
-> When using a PKCS-12 client certificate the name *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
+> When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
 There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
 
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
