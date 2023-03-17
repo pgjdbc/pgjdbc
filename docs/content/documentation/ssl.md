@@ -82,6 +82,11 @@ As of version 42.2.9 PKCS-12 is also supported. In this archive format the clien
 one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension 
 must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16). (In this case the `sslcert` parameter is ignored.)
 
+> **NOTE**
+>
+> When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
+There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
+
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and currently implements the
 following
