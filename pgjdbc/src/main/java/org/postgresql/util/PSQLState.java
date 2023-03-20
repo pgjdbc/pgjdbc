@@ -5,6 +5,10 @@
 
 package org.postgresql.util;
 
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -118,12 +122,37 @@ public enum PSQLState {
     return this.state;
   }
 
-  public static boolean isConnectionError(@Nullable String psqlState) {
-    return PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(psqlState)
-        || PSQLState.CONNECTION_DOES_NOT_EXIST.getState().equals(psqlState)
-        || PSQLState.CONNECTION_REJECTED.getState().equals(psqlState)
-        || PSQLState.CONNECTION_FAILURE.getState().equals(psqlState)
-        || PSQLState.CONNECTION_FAILURE_DURING_TRANSACTION.getState().equals(psqlState);
+  private static final Collection<PSQLState> CONNECTION_ERRORS = EnumSet.of(
+    CONNECTION_UNABLE_TO_CONNECT,
+    CONNECTION_DOES_NOT_EXIST,
+    CONNECTION_REJECTED,
+    CONNECTION_FAILURE,
+    CONNECTION_FAILURE_DURING_TRANSACTION);
+  private static final Map<String, PSQLState> CODE_TO_ENUM;
+
+  static {
+    final PSQLState[] values = PSQLState.values();
+    CODE_TO_ENUM = new HashMap<>((int) (values.length / 0.75f + 1), 0.75f);
+    for (final PSQLState value : values) {
+      CODE_TO_ENUM.put(value.state, value);
+    }
   }
 
+  /**
+   * Get a {@link PSQLState} by its error code
+   *
+   * @param code A
+   * <a href="https://www.postgresql.org/docs/current/errcodes-appendix.html">PostgreSQL
+   * error code</a>
+   * @return The {@link PSQLState} with the given code, {@code null} if the
+   * code is {@code null} or not known
+   */
+  public static @Nullable PSQLState fromCode(String code) {
+    return CODE_TO_ENUM.get(code);
+  }
+
+  public static boolean isConnectionError(String psqlState) {
+    final PSQLState enumValue = fromCode(psqlState);
+    return CONNECTION_ERRORS.contains(enumValue);
+  }
 }
