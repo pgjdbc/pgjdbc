@@ -13,7 +13,7 @@ repositories {
 }
 
 dependencies {
-    implementation('org.codehaus.groovy:groovy-all:3.0.15')
+    implementation('org.codehaus.groovy:groovy-all:3.0.16')
     implementation(group: 'org.postgresql', name: 'postgresql', version: '1.0.0-dev-master-SNAPSHOT')
     testImplementation(group: 'junit', name: 'junit', version: '4.13.2')
 }
