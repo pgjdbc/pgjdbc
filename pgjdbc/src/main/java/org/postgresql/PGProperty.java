@@ -805,8 +805,8 @@ public enum PGProperty {
       "transactionIsolationMode",
       "session",
       "Controls the behavior when a transaction isolation level is set, one of 'transaction', or 'session' "
-          + "When 'transaction' setting isolation level will cause transactions to BEGIN ISOLATION LEVEL if autocommit is 'false'. "
-          + "When 'session' setting readOnly to setting isolation level will set it as the session characteristics.",
+          + "When 'transaction' setting isolation level will cause transactions to BEGIN ISOLATION LEVEL if autocommit is 'false'."
+          + "When 'session' setting isolation level will set it as the session characteristic.",
       false,
       new String[] {"transaction", "session"}),
 

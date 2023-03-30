@@ -1127,14 +1127,6 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  protected String getSessionIsolationQuery(int level) {
-    String levelName = getIsolationLevelName(level);
-    if (levelName == null) {
-      levelName = DEFAULT_ISOLATION_LEVEL_NAME;
-    }
-    return SESSION_ISOLATION_QUERY_BASE + levelName;
-  }
-
   protected String getSessionIsolationQuery(String levelName) {
     return SESSION_ISOLATION_QUERY_BASE + levelName;
   }
