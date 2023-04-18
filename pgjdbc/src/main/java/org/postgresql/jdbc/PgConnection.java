@@ -415,7 +415,10 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  private static TransactionIsolationBehavior getTransactionIsolationBehavior(String property) {
+  private static TransactionIsolationBehavior getTransactionIsolationBehavior(@Nullable String property) {
+    if (property == null) {
+      return TransactionIsolationBehavior.session;
+    }
     try {
       return TransactionIsolationBehavior.valueOf(property);
     } catch (IllegalArgumentException e) {
