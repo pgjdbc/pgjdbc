@@ -676,7 +676,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     String beginQueryString = BEGIN;
 
     int isolationFlags = flags & (QUERY_ISOLATION_LEVEL_HIGH | QUERY_ISOLATION_LEVEL_LOW);
-    switch (isolationFlags >> 12) {
+    switch ((isolationFlags >> 12) & 3) {
       default:
       case 0:
         beginQueryString += ISOLATION_LEVEL + READ_UNCOMMITTED;
