@@ -13,7 +13,7 @@ pluginManagement {
         id("com.github.vlsi.gettext") version "1.86"
         id("com.github.vlsi.gradle-extensions") version "1.86"
         id("com.github.vlsi.license-gather") version "1.86"
-        id("com.github.vlsi.ide") version "1.86"
+        id("com.github.vlsi.ide") version "1.87"
         id("com.github.vlsi.stage-vote-release") version "1.86"
         id("org.nosphere.gradle.github.actions") version "1.3.2"
         id("me.champeau.jmh") version "0.7.0"
