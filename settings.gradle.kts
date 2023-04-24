@@ -9,7 +9,7 @@ pluginManagement {
         id("com.github.burrunan.s3-build-cache") version "1.5"
         id("com.github.johnrengelman.shadow") version "7.1.2"
         id("com.github.lburgazzoli.karaf") version "0.5.6"
-        id("com.github.vlsi.crlf") version "1.86"
+        id("com.github.vlsi.crlf") version "1.87"
         id("com.github.vlsi.gettext") version "1.86"
         id("com.github.vlsi.gradle-extensions") version "1.87"
         id("com.github.vlsi.license-gather") version "1.86"
