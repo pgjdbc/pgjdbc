@@ -828,27 +828,9 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
 
-    boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
-
-    if (!sameQueryAhead
-        // If executing the same query twice in a batch, make sure the statement
-        // is server-prepared. In other words, "oneshot" only if the query is one in the batch
-        // or the queries are different
-        || isOneShotQuery(null)) {
+    if (isOneShotQuery(null)) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     } else {
-      // If a batch requests generated keys and isn't already described,
-      // force a Describe of the query before proceeding. That way we can
-      // determine the appropriate size of each batch by estimating the
-      // maximum data returned. Without that, we don't know how many queries
-      // we'll be able to queue up before we risk a deadlock.
-      // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
-
-      // SameQueryAhead is just a quick way to issue pre-describe for batch execution
-      // TODO: It should be reworked into "pre-describe if query has unknown parameter
-      // types and same query is ahead".
-      preDescribe = (wantsGeneratedKeysAlways || sameQueryAhead)
-          && !queries[0].isStatementDescribed();
       /*
        * It's also necessary to force a Describe on the first execution of the new statement, even
        * though we already described it, to work around bug #267.
@@ -865,27 +847,6 @@ public class PgStatement implements Statement, BaseStatement {
 
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
-
-    if ((preDescribe || forceBinaryTransfers)
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
-      // Do a client-server round trip, parsing and describing the query so we
-      // can determine its result types for use in binary parameters, batch sizing,
-      // etc.
-      int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      StatementResultHandler handler2 = new StatementResultHandler();
-      try {
-        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
-      } catch (SQLException e) {
-        // Unable to parse the first statement -> throw BatchUpdateException
-        handler.handleError(e);
-        handler.handleCompletion();
-        // Will not reach here (see above)
-      }
-      ResultWrapper result2 = handler2.getResults();
-      if (result2 != null) {
-        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
-      }
-    }
 
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
