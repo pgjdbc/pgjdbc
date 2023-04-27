@@ -25,6 +25,7 @@ import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.HStoreConverter;
 import org.postgresql.util.JdbcBlackHole;
+import org.postgresql.util.NumberParser;
 import org.postgresql.util.PGbytea;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
@@ -2420,7 +2421,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return (byte) getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
+        return (byte) NumberParser.getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2477,7 +2478,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return (short) getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
+        return (short) NumberParser.getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2505,7 +2506,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return (int) getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
+        return (int) NumberParser.getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2533,7 +2534,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     Encoding encoding = connection.getEncoding();
     if (encoding.hasAsciiNumbers()) {
       try {
-        return getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
+        return NumberParser.getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
       }
     }
@@ -2557,69 +2558,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return this;
     }
   };
-
-  /**
-   * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
-   * checkResultSet and handle null values prior to calling this function.
-   *
-   * @param bytes integer represented as a sequence of ASCII bytes
-   * @return The parsed number.
-   * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
-   *         The value must then be parsed by {@link #toLong(String)}.
-   */
-  private long getFastLong(byte[] bytes, long minVal, long maxVal) throws NumberFormatException {
-    if (bytes.length == 0) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    long val = 0;
-    int start;
-    boolean neg;
-    if (bytes[0] == '-') {
-      neg = true;
-      start = 1;
-      if (bytes.length == 1 || bytes.length > 19) {
-        throw FAST_NUMBER_FAILED;
-      }
-    } else {
-      start = 0;
-      neg = false;
-      if (bytes.length > 18) {
-        throw FAST_NUMBER_FAILED;
-      }
-    }
-
-    int periodsSeen = 0;
-    while (start < bytes.length) {
-      byte b = bytes[start++];
-      if (b < '0' || b > '9') {
-        if (b == '.' && periodsSeen == 0) {
-          periodsSeen++;
-          continue;
-        } else {
-          throw FAST_NUMBER_FAILED;
-        }
-      }
-      if (periodsSeen == 0) {
-        val *= 10;
-        val += b - '0';
-      }
-    }
-
-    int numNonSignChars = neg ? bytes.length - 1 : bytes.length;
-    if (periodsSeen > 1 || periodsSeen == numNonSignChars) {
-      throw FAST_NUMBER_FAILED;
-    }
-
-    if (neg) {
-      val = -val;
-    }
-
-    if (val < minVal || val > maxVal) {
-      throw FAST_NUMBER_FAILED;
-    }
-    return val;
-  }
 
   /**
    * Optimised byte[] to number parser. This code does not handle null values, so the caller must do
