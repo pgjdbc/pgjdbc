@@ -11,7 +11,7 @@ pluginManagement {
         id("com.github.lburgazzoli.karaf") version "0.5.6"
         id("com.github.vlsi.crlf") version "1.87"
         id("com.github.vlsi.gettext") version "1.87"
-        id("com.github.vlsi.gradle-extensions") version "1.87"
+        id("com.github.vlsi.gradle-extensions") version "1.88"
         id("com.github.vlsi.license-gather") version "1.86"
         id("com.github.vlsi.ide") version "1.87"
         id("com.github.vlsi.stage-vote-release") version "1.86"
