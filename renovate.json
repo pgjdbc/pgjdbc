@@ -15,6 +15,10 @@
       "groupName": "jmh"
     },
     {
+      "matchPackagePrefixes": ["com.github.vlsi"],
+      "groupName": "com.github.vlsi"
+    },
+    {
       "matchPackagePrefixes": ["ch.qos.logback"],
       "groupName": "logback",
       "allowedVersions": "< 1.3.0"
