@@ -1443,10 +1443,37 @@ public class PgConnection implements BaseConnection {
     return makeSQLXML();
   }
 
+  // Unit tests are in "CreateStructTest"
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+    return new PgStruct(typeName, attributes);
+  }
+
+  // Inner class representing the custom PgStruct
+  private class PgStruct implements Struct {
+    private final String typeName;
+    private final Object[] attributes;
+
+    public PgStruct(String typeName, Object[] attributes) {
+      this.typeName = typeName;
+      this.attributes = attributes;
+    }
+
+    @Override
+    public String getSQLTypeName() throws SQLException {
+      return typeName;
+    }
+
+    @Override
+    public Object[] getAttributes() throws SQLException {
+      return attributes;
+    }
+
+    @Override
+    public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
+      return new Object[0];
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

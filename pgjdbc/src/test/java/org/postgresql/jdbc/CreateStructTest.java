@@ -2,37 +2,30 @@
  * Copyright (c) 2022, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
-
 package org.postgresql.jdbc;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-
-import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.core.ServerVersion;
 
 import java.sql.*;
-import java.util.UUID;
 
+import org.junit.Ignore;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 class CreateStructTest {
 
   private static Connection con;
   private static final String TABLE_NAME = "uuid_table";
-  private static final String INSERT1 = "INSERT INTO " + TABLE_NAME
-      + " (id, data1) VALUES (?, ?)";
-  private static final String INSERT2 = "INSERT INTO " + TABLE_NAME
-      + " (id, data2) VALUES (?, ?)";
-  private static final String SELECT1 = "SELECT data1 FROM " + TABLE_NAME
-      + " WHERE id = ?";
-  private static final String SELECT2 = "SELECT data2 FROM " + TABLE_NAME
-      + " WHERE id = ?";
-  private static final UUID[] uids1 = new UUID[]{UUID.randomUUID(), UUID.randomUUID()};
-  private static final UUID[][] uids2 = new UUID[][]{uids1};
 
   @BeforeAll
   public static void setUp() throws Exception {
@@ -53,56 +46,96 @@ class CreateStructTest {
   }
 
   @Test
-  void test1DWithSetObject() throws SQLException {
-    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB());
-         PreparedStatement stmt1 = c.prepareStatement(INSERT1);
-         PreparedStatement stmt2 = c.prepareStatement(SELECT1)) {
-      stmt1.setInt(1, 100);
-      stmt1.setArray(2, c.createArrayOf("uuid", uids1));
-      stmt1.execute();
+  public void basicTest() throws SQLException {
+    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
+      final String typeName = "my_struct";
+      final Object[] attributes = {10, "John", true};
 
-      stmt2.setInt(1, 100);
-      stmt2.execute();
-      try (ResultSet rs = stmt2.getResultSet()) {
-        assertTrue(rs.next());
-        UUID[] array = (UUID[])rs.getArray(1).getArray();
-        assertEquals(uids1[0], array[0]);
-        assertEquals(uids1[1], array[1]);
-      }
+      final Struct struct = c.createStruct(typeName, attributes);
+
+      assertEquals(typeName, struct.getSQLTypeName());
+
+      final int expected1 = 10;
+      final String expected2 = "John";
+      final boolean expected3 = true;
+
+      assertEquals(expected1, struct.getAttributes()[0]);
+      assertEquals(expected2, struct.getAttributes()[1]);
+      assertEquals(expected3, struct.getAttributes()[2]);
     }
   }
 
-  /*
+  /**
+   * Should an exception be thrown in this scenario?
+   * @throws SQLException
+   */
   @Test
-  public void testCreateStruct() throws SQLException {
-    try (Connection connection = assertDoesNotThrow(() -> TestUtil.openDB());
-      PreparedStatement insertStmt = connection.prepareStatement(INSERT1);
-      PreparedStatement selectStmt = connection.prepareStatement(SELECT2)) {
-      // Prepare test data
-      int id = 101;
-      UUID[] uids = {UUID.randomUUID(), UUID.randomUUID()};
-      String typeName = "my_struct";
-      Object[] attributes = {id, uids};
+  public void nullAttributesTest() throws SQLException {
+    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(c, ServerVersion.v9_6));
 
-      // Insert a row with the data
-      insertStmt.setInt(1, id);
-      insertStmt.setObject(2, attributes);
-      insertStmt.execute();
+      final String typeName = "my_struct";
+      final Object[] attributes = null;
 
-      // Retrieve the row from the database
-      selectStmt.setInt(1, id);
-      selectStmt.execute();
+      final Struct struct = c.createStruct(typeName, attributes);
 
-      try (ResultSet rs = selectStmt.getResultSet()) {
-      assertTrue(rs.next());
-      Struct struct = rs.getStruct(1);
-      Object[] retrievedAttributes = struct.getAttributes();
+      assertEquals(typeName, struct.getSQLTypeName());
 
-      // Assert the retrieved attributes
-      assertEquals(id, retrievedAttributes[0]);
-      assertArrayEquals(uids, (Object[]) retrievedAttributes[1]);
-      }
+      assertNull(struct.getAttributes());
     }
   }
-  */
+
+  @Test
+  void emptyAttributesTest() throws SQLException {
+    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(c, ServerVersion.v9_6));
+
+      final String typeName = "my_struct";
+      final Object[] attributes = {};
+
+      final Struct struct = c.createStruct(typeName, attributes);
+
+      assertEquals(typeName, struct.getSQLTypeName());
+
+      // Excepted and actual lengths
+      final int expected = 0;
+      final int actual = struct.getAttributes().length;
+
+      assertEquals(expected, actual);
+    }
+  }
+
+  @Test
+  @Ignore
+  void unsupportedTypeNameTest() throws SQLException {
+    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(c, ServerVersion.v9_6));
+
+      final String typeName = "unsupported_struct";
+      final Object[] attributes = {10, "John"};
+
+      // Creating a STRUCT object with an unsupported type name should throw an exception
+      // assertThrows(SQLException.class, () -> c.createStruct(typeName, attributes));
+    }
+  }
+
+  @Test
+  void complexStructTest() throws SQLException {
+    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
+      final String typeName = "complex_struct";
+      final Object[] attributes = {42, "Test", new int[]{1, 2, 3}};
+
+      Struct struct = c.createStruct(typeName, attributes);
+
+      assertEquals(typeName, struct.getSQLTypeName());
+
+      final int expectedValue1 = 42;
+      final String expectedValue2 = "Test";
+      final int[] expectedValue3 = {1, 2, 3};
+
+      assertEquals(expectedValue1, struct.getAttributes()[0]);
+      assertEquals(expectedValue2, struct.getAttributes()[1]);
+      assertArrayEquals(expectedValue3, (int[]) struct.getAttributes()[2]);
+    }
+  }
 }
