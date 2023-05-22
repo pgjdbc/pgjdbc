@@ -10,7 +10,6 @@ import org.postgresql.core.ServerVersion;
 import java.sql.*;
 
 import org.junit.Ignore;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -125,7 +124,7 @@ class CreateStructTest {
       final String typeName = "complex_struct";
       final Object[] attributes = {42, "Test", new int[]{1, 2, 3}};
 
-      Struct struct = c.createStruct(typeName, attributes);
+      final Struct struct = c.createStruct(typeName, attributes);
 
       assertEquals(typeName, struct.getSQLTypeName());
 

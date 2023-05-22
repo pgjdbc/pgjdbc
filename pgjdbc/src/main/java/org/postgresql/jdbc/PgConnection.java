@@ -1444,6 +1444,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // Unit tests are in "CreateStructTest"
+  // What if either argument is null?
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
