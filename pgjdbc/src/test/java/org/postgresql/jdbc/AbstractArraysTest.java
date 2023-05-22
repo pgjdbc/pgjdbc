@@ -21,7 +21,6 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.FieldMetadata.Key;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
-import org.postgresql.util.HostSpec;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 import org.postgresql.xml.PGXmlFactoryFactory;
