@@ -105,20 +105,6 @@ class CreateStructTest {
   }
 
   @Test
-  @Ignore
-  void unsupportedTypeNameTest() throws SQLException {
-    try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
-      assumeTrue(TestUtil.haveMinimumServerVersion(c, ServerVersion.v9_6));
-
-      final String typeName = "unsupported_struct";
-      final Object[] attributes = {10, "John"};
-
-      // Creating a STRUCT object with an unsupported type name should throw an exception
-      // assertThrows(SQLException.class, () -> c.createStruct(typeName, attributes));
-    }
-  }
-
-  @Test
   void complexStructTest() throws SQLException {
     try (Connection c = assertDoesNotThrow(() -> TestUtil.openDB())) {
       final String typeName = "complex_struct";
