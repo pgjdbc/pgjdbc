@@ -50,6 +50,8 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.security.Permission;
 import java.sql.Array;
 import java.sql.Blob;
@@ -1443,37 +1445,148 @@ public class PgConnection implements BaseConnection {
     return makeSQLXML();
   }
 
-  // Unit tests are in "CreateStructTest"
-  // What if either argument is null?
+  /**
+   * Ambiguities/Questions:
+   *    Is it enough for exceptions just be check for in the subclass?
+   *    What if typeName doesn't correspond to an actual SQL type?
+   *    I had many questions about how edge cases should be handled.
+   *
+   * This method creates a Struct object representing a custom PgStruct.
+   *
+   * @param typeName the SQL type name for the struct
+   * @param attributes the array of attribute values for the struct
+   * @return the created Struct object
+   * @throws SQLException if an SQL-related error occurs
+   * @throws IllegalArgumentException if typeName or attributes are null
+   */
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
+    if (typeName == null) {
+      throw new IllegalArgumentException("Type name cannot be null");
+    }
+    if (typeName.isEmpty()) {
+      throw new IllegalArgumentException("Type name cannot be empty");
+    }
+    // isBlank can only be used with java 11+
+    if (typeName.trim().isEmpty()) {
+      throw new IllegalArgumentException("Type name cannot be blank");
+    }
+    if (attributes == null) {
+      throw new IllegalArgumentException("Object attributes cannot be null");
+    }
+    if (attributes.length == 0) {
+      throw new IllegalArgumentException("Object attributes cannot be empty");
+    }
     return new PgStruct(typeName, attributes);
   }
 
   // Inner class representing the custom PgStruct
   private class PgStruct implements Struct {
+    // Should the user be able to change the variables?
+    // Should the user be able to add to the attributes?
     private final String typeName;
     private final Object[] attributes;
 
+    /**
+     * Ambiguities/Questions:
+     *    What if typeName doesn't correspond to an actual SQL type?
+     *
+     * Constructs a PgStruct object with the given typeName and attributes.
+     *
+     * @param typeName the SQL type name for the struct
+     * @param attributes the array of attribute values for the struct
+     * @throws IllegalArgumentException if typeName or attributes are null
+     */
     public PgStruct(String typeName, Object[] attributes) {
+      if (typeName == null) {
+        throw new IllegalArgumentException("Type name cannot be null");
+      }
+      if (attributes == null) {
+        throw new IllegalArgumentException("Object attributes cannot be null");
+      }
       this.typeName = typeName;
       this.attributes = attributes;
     }
 
+    /**
+     * Returns the SQL type name for this struct.
+     *
+     * @return the SQL type name
+     * @throws SQLException if an SQL-related error occurs
+     */
     @Override
     public String getSQLTypeName() throws SQLException {
       return typeName;
     }
 
+    /**
+     * Returns the array of attribute values for this struct.
+     *
+     * @return the array of attribute values
+     * @throws SQLException if an SQL-related error occurs
+     */
     @Override
     public Object[] getAttributes() throws SQLException {
       return attributes;
     }
 
+    /**
+     * Ambiguities/Questions: Labeled below with "Question".
+     *
+     * Returns the mapped attribute values for this struct based on the provided map.
+     *
+     * @param map  the map containing attribute type mappings
+     * @return the array of mapped attribute values
+     * @throws SQLException if an SQL-related error occurs
+     * @throws IllegalArgumentException if map is null
+     */
     @Override
     public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
-      return new Object[0];
+      if (map == null) {
+        throw new IllegalArgumentException("Map argument cannot be null");
+      }
+
+      // Create an array to store the mapped attributes
+      Object[] mappedAttributes = new Object[attributes.length];
+
+      // Iterate over the attributes and map them using the provided map
+      for (int i = 0; i < attributes.length; i++) {
+        Object attribute = attributes[i];
+
+        // Question: What if attribute[i] is null? [Exception? Skip it? Assign null to mapped attribute?]
+        if (attribute == null) {
+          mappedAttributes[i] = null;
+          continue;
+        }
+
+        Class<?> targetClass = map.get(attribute.getClass().getName());
+
+        // Question: SQL Exception?
+        if (targetClass == null) {
+          throw new SQLException("No mapping found for attribute at index " + i);
+        }
+
+        // Question: What mechanism do I use to convert the original attribute to an instance of the 'targetClass' type?
+        // Use the org.postgresql.util.ObjectFactory class?
+        try {
+          Object mappedAttribute = null;
+          // Check if the target class has a constructor that accepts the attribute's class
+          try {
+            Constructor<?> ctor = targetClass.getConstructor(attribute.getClass());
+            mappedAttribute = ctor.newInstance(attribute);
+          } catch (NoSuchMethodException e) {
+            // No suitable constructor found, attempt conversion using String.valueOf()
+            Constructor<?> ctor = targetClass.getConstructor(String.class);
+            mappedAttribute = ctor.newInstance(String.valueOf(attribute));
+          }
+
+          mappedAttributes[i] = mappedAttribute;
+        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
+          throw new SQLException("Error while converting attribute at index " + i, ex);
+        }
+      }
+      return mappedAttributes;
     }
   }
 
