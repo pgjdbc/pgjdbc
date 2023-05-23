@@ -1446,19 +1446,18 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * Ambiguities/Questions:
-   *    Is it enough for exceptions just be check for in the subclass?
-   *    What if typeName doesn't correspond to an actual SQL type?
-   *    I had many questions about how edge cases should be handled.
-   * <p>
-   * This method creates a Struct object representing a custom PgStruct.
-   * <p>
+   * <p>Ambiguities/Questions:
+   * Is it enough for exceptions just be check for in the subclass?
+   * What if typeName doesn't correspond to an actual SQL type?
+   * I had many questions about how edge cases should be handled.</p>
+   *
+   * <p>This method creates a Struct object representing a custom PgStruct.</p>
+   *
    * @param typeName the SQL type name for the struct
    * @param attributes the array of attribute values for the struct
    * @return the created Struct object
    * @throws SQLException if an SQL-related error occurs
    * @throws IllegalArgumentException if typeName or attributes are null
-   * <p>
    */
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
@@ -1490,11 +1489,11 @@ public class PgConnection implements BaseConnection {
     private final Object[] attributes;
 
     /**
-     * Ambiguities/Questions:
-     *    What if typeName doesn't correspond to an actual SQL type?
-     *    What if one of the attributes inside the Object array is null? Exception?
+     * <p>Ambiguities/Questions:
+     * What if typeName doesn't correspond to an actual SQL type?
+     * What if one of the attributes inside the Object array is null? Exception?</p>
      *
-     * Constructs a PgStruct object with the given typeName and attributes.
+     * <p>Constructs a PgStruct object with the given typeName and attributes.</p>
      *
      * @param typeName the SQL type name for the struct
      * @param attributes the array of attribute values for the struct
@@ -1512,7 +1511,7 @@ public class PgConnection implements BaseConnection {
     }
 
     /**
-     * Returns the SQL type name for this struct.
+     * <p>Returns the SQL type name for this struct.</p>
      *
      * @return the SQL type name
      * @throws SQLException if an SQL-related error occurs
@@ -1523,7 +1522,7 @@ public class PgConnection implements BaseConnection {
     }
 
     /**
-     * Returns the array of attribute values for this struct.
+     * <p>Returns the array of attribute values for this struct.</p>
      *
      * @return the array of attribute values
      * @throws SQLException if an SQL-related error occurs
@@ -1534,11 +1533,11 @@ public class PgConnection implements BaseConnection {
     }
 
     /**
-     * Ambiguities/Questions: Labeled below with "Question".
+     * <p>Ambiguities/Questions: Labeled below with "Question".</p>
      *
-     * Returns the mapped attribute values for this struct based on the provided map.
+     * <p>Returns the mapped attribute values for this struct based on the provided map.</p>
      *
-     * @param map  the map containing attribute type mappings
+     * @param map the map containing attribute type mappings
      * @return the array of mapped attribute values
      * @throws SQLException if an SQL-related error occurs
      * @throws IllegalArgumentException if map is null
