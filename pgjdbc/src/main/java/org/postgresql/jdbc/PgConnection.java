@@ -1450,14 +1450,15 @@ public class PgConnection implements BaseConnection {
    *    Is it enough for exceptions just be check for in the subclass?
    *    What if typeName doesn't correspond to an actual SQL type?
    *    I had many questions about how edge cases should be handled.
-   *
+   * <p>
    * This method creates a Struct object representing a custom PgStruct.
-   *
+   * <p>
    * @param typeName the SQL type name for the struct
    * @param attributes the array of attribute values for the struct
    * @return the created Struct object
    * @throws SQLException if an SQL-related error occurs
    * @throws IllegalArgumentException if typeName or attributes are null
+   * <p>
    */
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {

@@ -46,6 +46,9 @@ class CreateStructTest {
     TestUtil.closeDB(conn);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetSQLTypeName() throws SQLException {
     final String typeName = "my_struct";
@@ -56,6 +59,9 @@ class CreateStructTest {
     assertEquals(typeName, struct.getSQLTypeName());
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testWithDifferentDataTypes() throws SQLException {
     final String typeName = "my_struct";
@@ -68,6 +74,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, actualAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   void complexStructTest() throws SQLException {
     final String typeName = "complex_struct";
@@ -82,6 +91,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, actualAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetAttributesWithMapWithInteger() throws SQLException {
     final String typeName = "my_struct";
@@ -98,6 +110,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, mappedAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetAttributesWithMapWithString() throws SQLException {
     final String typeName = "my_struct";
@@ -114,6 +129,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, mappedAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetAttributesWithMapWithBoolean() throws SQLException {
     final String typeName = "my_struct";
@@ -130,6 +148,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, mappedAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetAttributesWithMapWithSeveralDataTypes() throws SQLException {
     final String typeName = "my_struct";
@@ -147,6 +168,9 @@ class CreateStructTest {
     assertArrayEquals(attributes, mappedAttributes);
   }
 
+  /**
+   * @throws SQLException if a database access error occurs.
+   */
   @Test
   public void testGetAttributesWithMapWithDifferentDataTypeMapping() throws SQLException {
     final String typeName = "my_struct";
@@ -169,8 +193,10 @@ class CreateStructTest {
    * Unresolved edge cases.
    ************************/
   /**
-   * How should this case be handled?
-   * @throws SQLException
+   * Tests the behavior when the typeName is null.
+   * Expected: IllegalArgumentException should be thrown.
+   *
+   * @throws SQLException if a database access error occurs.
    */
   @Test
   public void testWithNullTypeName() throws SQLException {
@@ -182,8 +208,10 @@ class CreateStructTest {
   }
 
   /**
-   * How should this case be handled?
-   * @throws SQLException
+   * Tests the behavior when the typeName is an empty string.
+   * Expected: IllegalArgumentException should be thrown.
+   *
+   * @throws SQLException if a database access error occurs.
    */
   @Test
   public void testWithEmptyTypeName() throws SQLException {
@@ -195,8 +223,10 @@ class CreateStructTest {
   }
 
   /**
-   * How should this case be handled?
-   * @throws SQLException
+   * Tests the behavior when the typeName is a blank string.
+   * Expected: IllegalArgumentException should be thrown.
+   *
+   * @throws SQLException if a database access error occurs.
    */
   @Test
   public void testWithBlankTypeName() throws SQLException {
@@ -208,8 +238,10 @@ class CreateStructTest {
   }
 
   /**
-   * How should this case be handled?
-   * @throws SQLException
+   * Tests the behavior when the attributes array is null.
+   * Expected: IllegalArgumentException should be thrown.
+   *
+   * @throws SQLException if a database access error occurs.
    */
   @Test
   public void testWithNullAttributes() throws SQLException {
@@ -221,8 +253,10 @@ class CreateStructTest {
   }
 
   /**
-   * How should this case be handled?
-   * @throws SQLException
+   * Tests the behavior when the attributes array is empty.
+   * Expected: IllegalArgumentException should be thrown.
+   *
+   * @throws SQLException if a database access error occurs.
    */
   @Test
   void emptyAttributesTest() throws SQLException {
