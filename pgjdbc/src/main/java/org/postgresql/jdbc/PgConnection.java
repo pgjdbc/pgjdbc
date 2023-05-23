@@ -1491,6 +1491,7 @@ public class PgConnection implements BaseConnection {
     /**
      * Ambiguities/Questions:
      *    What if typeName doesn't correspond to an actual SQL type?
+     *    What if one of the attributes inside the Object array is null? Exception?
      *
      * Constructs a PgStruct object with the given typeName and attributes.
      *
@@ -1556,8 +1557,7 @@ public class PgConnection implements BaseConnection {
 
         // Question: What if attribute[i] is null? [Exception? Skip it? Assign null to mapped attribute?]
         if (attribute == null) {
-          mappedAttributes[i] = null;
-          continue;
+          throw new IllegalArgumentException("attributes[" + i + "] is null");
         }
 
         Class<?> targetClass = map.get(attribute.getClass().getName());
