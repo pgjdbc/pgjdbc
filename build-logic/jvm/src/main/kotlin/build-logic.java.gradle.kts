@@ -48,7 +48,13 @@ tasks.configureEach<JavaCompile> {
     inputs.property("java.vm.version", System.getProperty("java.vm.version"))
     options.apply {
         encoding = "UTF-8"
-        compilerArgs.add("-Xlint:deprecation")
+        if (!buildParameters.enableCheckerframework) {
+            compilerArgs.add("-Xlint:deprecation")
+        } else {
+            // We use checkerframework for nullability mostly, so we don't want to see deprecation warnings
+            compilerArgs.add("-Xmaxerrs")
+            compilerArgs.add("1")
+        }
         if (JavaVersion.current().isJava9Compatible) {
             // See https://bugs.openjdk.org/browse/JDK-8032211
             // Don't issue deprecation warnings on import statements is resolved in Java 9+

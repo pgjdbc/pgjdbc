@@ -49,7 +49,7 @@ import java.util.Map;
  */
 final class ArrayEncoding {
 
-  interface ArrayEncoder<A> {
+  interface ArrayEncoder<A extends Object> {
 
     /**
      * The default array type oid supported by this instance.

@@ -155,13 +155,14 @@ public class SSPIClient implements ISSPIClient {
             PSQLState.CONNECTION_UNABLE_TO_CONNECT /* TODO: Should be authentication error */, ex);
       }
 
+      WindowsSecurityContextImpl sspiContext;
       try {
         String targetName = makeSPN();
         this.targetName = targetName;
 
         LOGGER.log(Level.FINEST, "SSPI target name: {0}", targetName);
 
-        sspiContext = new WindowsSecurityContextImpl();
+        this.sspiContext = sspiContext = new WindowsSecurityContextImpl();
         sspiContext.setPrincipalName(targetName);
         sspiContext.setCredentialsHandle(clientCredentials);
         sspiContext.setSecurityPackage(securityPackage);

@@ -129,6 +129,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
 
   public void close() throws IOException {
     // Don't complain about a double close.
+    CopyOut op = this.op;
     if (op == null) {
       return;
     }
@@ -140,7 +141,7 @@ public class PGCopyInputStream extends InputStream implements CopyOut {
         throw new IOException("Failed to close copy reader.", se);
       }
     }
-    op = null;
+    this.op = null;
   }
 
   public void cancelCopy() throws SQLException {

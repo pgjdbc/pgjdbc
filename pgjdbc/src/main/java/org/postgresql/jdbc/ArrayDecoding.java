@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Parser;
@@ -766,7 +768,8 @@ final class ArrayDecoding {
     {
       List tmpList = (List) adjustedList.get(0);
       for (int i = 1; i < dims; i++) {
-        dimensionLengths[i] = tmpList.size();
+        // TODO: tmpList always non-null?
+        dimensionLengths[i] = castNonNull(tmpList, "first element of adjustedList is null").size();
         if (i != dims - 1) {
           tmpList = (List) tmpList.get(0);
         }
@@ -781,15 +784,16 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
-  private static <A extends @NonNull Object> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int @NonNull[] dimensionLengths,
+  private static <A extends @NonNull Object> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int [] dimensionLengths,
       int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
     for (int i = 0; i < dimensionLengths[dim]; ++i) {
+      Object element = castNonNull(list.get(i), "list.get(i)");
       if (dim == dimensionLengths.length - 2) {
-        decoder.populateFromString(array[i], (List<@Nullable String>) list.get(i), connection);
+        decoder.populateFromString(array[i], (List<@Nullable String>) element, connection);
       } else {
-        storeStringValues((@NonNull A @NonNull[]) array[i], decoder, (List) list.get(i), dimensionLengths, dim + 1, connection);
+        storeStringValues((@NonNull A @NonNull[]) array[i], decoder, (List) element, dimensionLengths, dim + 1, connection);
       }
     }
   }

@@ -10,5 +10,5 @@ dependencies {
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:1.90")
     implementation("de.thetaphi.forbiddenapis:de.thetaphi.forbiddenapis.gradle.plugin:3.6")
     implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.1.0")
-    implementation("org.checkerframework:org.checkerframework.gradle.plugin:0.6.23")
+    implementation("org.checkerframework:org.checkerframework.gradle.plugin:0.6.27")
 }

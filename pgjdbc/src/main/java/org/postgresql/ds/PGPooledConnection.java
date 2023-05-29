@@ -85,6 +85,8 @@ public class PGPooledConnection implements PooledConnection {
    */
   @Override
   public void close() throws SQLException {
+    Connection con = this.con;
+    ConnectionHandler last = this.last;
     if (last != null) {
       last.close();
       if (con != null && !con.isClosed()) {
@@ -102,7 +104,7 @@ public class PGPooledConnection implements PooledConnection {
     try {
       con.close();
     } finally {
-      con = null;
+      this.con = null;
     }
   }
 
@@ -119,6 +121,7 @@ public class PGPooledConnection implements PooledConnection {
    */
   @Override
   public Connection getConnection() throws SQLException {
+    Connection con = this.con;
     if (con == null) {
       // Before throwing the exception, let's notify the registered listeners about the error
       PSQLException sqlException =
@@ -133,6 +136,7 @@ public class PGPooledConnection implements PooledConnection {
     try {
       // Only one connection can be open at a time from this PooledConnection. See JDBC 2.0 Optional
       // Package spec section 6.2.3
+      ConnectionHandler last = this.last;
       if (last != null) {
         last.close();
         if (con != null) {
@@ -289,6 +293,7 @@ public class PGPooledConnection implements PooledConnection {
       }
 
       // All the rest is from the Connection or PGConnection interface
+      Connection con = this.con;
       if (methodName.equals("isClosed")) {
         return con == null || con.isClosed();
       }
@@ -310,7 +315,7 @@ public class PGPooledConnection implements PooledConnection {
           }
           con.clearWarnings();
         }
-        con = null;
+        this.con = null;
         this.proxy = null;
         last = null;
         fireConnectionClosed();
@@ -415,6 +420,7 @@ public class PGPooledConnection implements PooledConnection {
         return method.invoke(st, args);
       }
 
+      Statement st = this.st;
       // All the rest is from the Statement interface
       if (methodName.equals("isClosed")) {
         return st == null || st.isClosed();
@@ -424,9 +430,8 @@ public class PGPooledConnection implements PooledConnection {
           return null;
         }
         con = null;
-        final Statement oldSt = st;
-        st = null;
-        oldSt.close();
+        this.st = null;
+        st.close();
         return null;
       }
       if (st == null || st.isClosed()) {

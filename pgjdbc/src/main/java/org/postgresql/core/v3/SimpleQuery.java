@@ -287,18 +287,20 @@ class SimpleQuery implements Query {
   }
 
   void setCleanupRef(PhantomReference<?> cleanupRef) {
-    if (this.cleanupRef != null) {
-      this.cleanupRef.clear();
-      this.cleanupRef.enqueue();
+    PhantomReference<?> oldCleanupRef = this.cleanupRef;
+    if (oldCleanupRef != null) {
+      oldCleanupRef.clear();
+      oldCleanupRef.enqueue();
     }
     this.cleanupRef = cleanupRef;
   }
 
   void unprepare() {
+    PhantomReference<?> cleanupRef = this.cleanupRef;
     if (cleanupRef != null) {
       cleanupRef.clear();
       cleanupRef.enqueue();
-      cleanupRef = null;
+      this.cleanupRef = null;
     }
     if (this.unspecifiedParams != null) {
       this.unspecifiedParams.clear();

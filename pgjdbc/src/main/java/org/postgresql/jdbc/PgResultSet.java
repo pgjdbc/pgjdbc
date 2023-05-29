@@ -1090,6 +1090,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
       List<PrimaryKey> primaryKeys = castNonNull(this.primaryKeys, "primaryKeys");
       int numKeys = primaryKeys.size();
+      PreparedStatement deleteStatement = this.deleteStatement;
       if (deleteStatement == null) {
         StringBuilder deleteSQL =
             new StringBuilder("DELETE FROM ").append(onlyTable).append(tableName).append(" where ");
@@ -1102,7 +1103,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
         }
 
-        deleteStatement = connection.prepareStatement(deleteSQL.toString());
+        this.deleteStatement = deleteStatement = connection.prepareStatement(deleteSQL.toString());
       }
       deleteStatement.clearParameters();
 

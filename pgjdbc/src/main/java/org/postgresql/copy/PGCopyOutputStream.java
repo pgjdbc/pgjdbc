@@ -104,18 +104,19 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
 
   public void close() throws IOException {
     // Don't complain about a double close.
+    CopyIn op = this.op;
     if (op == null) {
       return;
     }
 
-    if (getOp().isActive()) {
+    if (op.isActive()) {
       try {
         endCopy();
       } catch (SQLException se) {
         throw new IOException("Ending write to copy failed.", se);
       }
     }
-    op = null;
+    this.op = null;
   }
 
   public void flush() throws IOException {

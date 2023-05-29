@@ -400,6 +400,7 @@ public class TypeInfoCache implements TypeInfo {
     int dotIndex = pgTypeName.indexOf('.');
 
     if (dotIndex == -1 && !hasQuote && !isArray) {
+      PreparedStatement getOidStatementSimple = this.getOidStatementSimple;
       if (getOidStatementSimple == null) {
         String sql;
         // see comments in @getSQLType()
@@ -416,7 +417,7 @@ public class TypeInfoCache implements TypeInfo {
               + "    ON sp.nspoid = typnamespace "
               + " WHERE typname = ? "
               + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-        getOidStatementSimple = conn.prepareStatement(sql);
+        this.getOidStatementSimple = getOidStatementSimple = conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
       String lcName = pgTypeName.toLowerCase(Locale.ROOT);
@@ -427,6 +428,7 @@ public class TypeInfoCache implements TypeInfo {
     }
     PreparedStatement oidStatementComplex;
     if (isArray) {
+      PreparedStatement getOidStatementComplexArray = this.getOidStatementComplexArray;
       if (getOidStatementComplexArray == null) {
         String sql;
         if (conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
@@ -445,17 +447,18 @@ public class TypeInfoCache implements TypeInfo {
               + " AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
               + " ORDER BY t.typelem DESC LIMIT 1";
         }
-        getOidStatementComplexArray = conn.prepareStatement(sql);
+        this.getOidStatementComplexArray = getOidStatementComplexArray = conn.prepareStatement(sql);
       }
       oidStatementComplex = getOidStatementComplexArray;
     } else {
+      PreparedStatement getOidStatementComplexNonArray = this.getOidStatementComplexNonArray;
       if (getOidStatementComplexNonArray == null) {
         String sql = "SELECT t.oid, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
             + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
             + " ORDER BY t.oid DESC LIMIT 1";
-        getOidStatementComplexNonArray = conn.prepareStatement(sql);
+        this.getOidStatementComplexNonArray = getOidStatementComplexNonArray = conn.prepareStatement(sql);
       }
       oidStatementComplex = getOidStatementComplexNonArray;
     }

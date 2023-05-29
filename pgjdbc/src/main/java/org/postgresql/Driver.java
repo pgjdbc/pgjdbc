@@ -389,6 +389,7 @@ public class Driver implements java.sql.Driver {
             return result;
           }
 
+          Throwable resultException = this.resultException;
           if (resultException != null) {
             if (resultException instanceof SQLException) {
               resultException.fillInStackTrace();

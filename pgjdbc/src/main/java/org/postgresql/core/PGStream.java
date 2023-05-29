@@ -679,8 +679,9 @@ public class PGStream implements Closeable, Flushable {
    */
   public void sendStream(InputStream inStream, int remaining) throws IOException {
     int expectedLength = remaining;
+    byte[] streamBuffer = this.streamBuffer;
     if (streamBuffer == null) {
-      streamBuffer = new byte[8192];
+      this.streamBuffer = streamBuffer = new byte[8192];
     }
 
     while (remaining > 0) {

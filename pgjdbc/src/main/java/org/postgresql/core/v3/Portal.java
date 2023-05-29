@@ -27,10 +27,11 @@ class Portal implements ResultCursor {
   }
 
   public void close() {
+    PhantomReference<?> cleanupRef = this.cleanupRef;
     if (cleanupRef != null) {
       cleanupRef.clear();
       cleanupRef.enqueue();
-      cleanupRef = null;
+      this.cleanupRef = null;
     }
   }
 
