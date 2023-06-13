@@ -105,7 +105,4 @@ public class Type {
     Type other = (Type) obj;
     return id == other.id;
   }
-
-
-
 }
