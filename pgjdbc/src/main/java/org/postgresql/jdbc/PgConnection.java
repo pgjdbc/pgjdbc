@@ -30,6 +30,8 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.types.CompositeType;
+import org.postgresql.types.Type;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
@@ -50,8 +52,6 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.security.Permission;
 import java.sql.Array;
 import java.sql.Blob;
@@ -1446,6 +1446,11 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
+   * https://github.com/impossibl/pgjdbc-ng/blob/dbf9490408554a1617a64d1beb4df4b8fdd52ac4/driver/src/main/java/com/impossibl/postgres/jdbc/PGDirectConnection.java#L1238
+   *
+   * Fields in the Struct should have the same names as the attributes of the type.
+   * The attributes have _ in them we can apply the pattern where some_attribute would be someAttribute
+   *
    * <p>Ambiguities/Questions:
    * Is it enough for exceptions just be check for in the subclass?
    * What if typeName doesn't correspond to an actual SQL type?
@@ -1462,6 +1467,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
+
     if (typeName == null) {
       throw new IllegalArgumentException("Type name cannot be null");
     }
@@ -1478,115 +1484,70 @@ public class PgConnection implements BaseConnection {
     if (attributes.length == 0) {
       throw new IllegalArgumentException("Object attributes cannot be empty");
     }
-    return new PgStruct(typeName, attributes);
+    try {
+      // Load the appropriate type based on the typeName
+      Type type = loadTransientType(typeName);
+      if (!(type instanceof CompositeType)) {
+        throw new SQLException("Invalid type for struct");
+      }
+      return encodeStruct(new PGStruct(this, (CompositeType) type, attributes));
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error encoding struct", e);
+    }
   }
 
-  // Inner class representing the custom PgStruct
-  private class PgStruct implements Struct {
-    // Should the user be able to change the variables?
-    // Should the user be able to add to the attributes?
-    private final String typeName;
-    private final Object[] attributes;
+  // Implement the logic to encode the struct using the appropriate method from the repository
+  // You might need to use classes or methods specific to the pgjdbc repository
+  // Return the encoded Struct object
+  private Struct encodeStruct(PGStruct pgStruct) throws SQLException {
+    return PGBuffersStruct.Binary.encode(pgStruct);
+  }
 
-    /**
-     * <p>Ambiguities/Questions:
-     * What if typeName doesn't correspond to an actual SQL type?
-     * What if one of the attributes inside the Object array is null? Exception?</p>
-     *
-     * <p>Constructs a PgStruct object with the given typeName and attributes.</p>
-     *
-     * @param typeName the SQL type name for the struct
-     * @param attributes the array of attribute values for the struct
-     * @throws IllegalArgumentException if typeName or attributes are null
-     */
-    public PgStruct(String typeName, Object[] attributes) {
-      if (typeName == null) {
-        throw new IllegalArgumentException("Type name cannot be null");
-      }
-      if (attributes == null) {
-        throw new IllegalArgumentException("Object attributes cannot be null");
-      }
-      this.typeName = typeName;
-      this.attributes = attributes;
+  // Implement the logic to load the type based on the typeName from the repository
+  // You might need to use classes or methods specific to the pgjdbc repository
+  // Return the loaded Type object
+  private Type loadTransientType(String typeName) throws SQLException {
+    TypeRegistry typeRegistry = TypeRegistry.getInstance();
+    Type type = typeRegistry.loadTransientType(typeName);
+    if (type == null) {
+      throw new IllegalArgumentException("Type not found: " + typeName);
+    }
+    return type;
+  }
+
+  public static class TypeRegistry {
+    private static TypeRegistry instance;
+    private Map<String, Type> typeMap;
+
+    // Initialize the type map with predefined types
+    private TypeRegistry() {
+      typeMap = new HashMap<>();
+      // typeMap.put("type1", new CompositeType("type1"));
+      // typeMap.put("type2", new CompositeType("type2"));
+      // Add more types as needed.
     }
 
-    /**
-     * <p>Returns the SQL type name for this struct.</p>
-     *
-     * @return the SQL type name
-     * @throws SQLException if an SQL-related error occurs
-     */
-    @Override
-    public String getSQLTypeName() throws SQLException {
-      return typeName;
+    public static TypeRegistry getInstance() {
+      if (instance == null) {
+        instance = new TypeRegistry();
+      }
+      return instance;
     }
 
-    /**
-     * <p>Returns the array of attribute values for this struct.</p>
-     *
-     * @return the array of attribute values
-     * @throws SQLException if an SQL-related error occurs
-     */
-    @Override
-    public Object[] getAttributes() throws SQLException {
-      return attributes;
+    // Look up the type in the type map
+    public Type loadTransientType(String typeName) {
+      return typeMap.get(typeName);
     }
+  }
 
-    /**
-     * <p>Ambiguities/Questions: Labeled below with "Question".</p>
-     *
-     * <p>Returns the mapped attribute values for this struct based on the provided map.</p>
-     *
-     * @param map the map containing attribute type mappings
-     * @return the array of mapped attribute values
-     * @throws SQLException if an SQL-related error occurs
-     * @throws IllegalArgumentException if map is null
-     */
-    @Override
-    public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
-      if (map == null) {
-        throw new IllegalArgumentException("Map argument cannot be null");
+  // Implement the logic to encode the struct using the appropriate method from the repository
+  // You might need to use classes or methods specific to the pgjdbc repository
+  // Return the encoded Struct object
+  public static class PGBuffersStruct {
+    public static class Binary {
+      public static Struct encode(PGStruct pgStruct) {
+        return new PGStruct(pgStruct.context, pgStruct.typeName, pgStruct.attributeTypes);
       }
-
-      // Create an array to store the mapped attributes
-      Object[] mappedAttributes = new Object[attributes.length];
-
-      // Iterate over the attributes and map them using the provided map
-      for (int i = 0; i < attributes.length; i++) {
-        Object attribute = attributes[i];
-
-        // Question: What if attribute[i] is null? [Exception? Skip it? Assign null to mapped attribute?]
-        if (attribute == null) {
-          throw new IllegalArgumentException("attributes[" + i + "] is null");
-        }
-
-        Class<?> targetClass = map.get(attribute.getClass().getName());
-
-        // Question: SQL Exception?
-        if (targetClass == null) {
-          throw new SQLException("No mapping found for attribute at index " + i);
-        }
-
-        // Question: What mechanism do I use to convert the original attribute to an instance of the 'targetClass' type?
-        // Use the org.postgresql.util.ObjectFactory class?
-        try {
-          Object mappedAttribute = null;
-          // Check if the target class has a constructor that accepts the attribute's class
-          try {
-            Constructor<?> ctor = targetClass.getConstructor(attribute.getClass());
-            mappedAttribute = ctor.newInstance(attribute);
-          } catch (NoSuchMethodException e) {
-            // No suitable constructor found, attempt conversion using String.valueOf()
-            Constructor<?> ctor = targetClass.getConstructor(String.class);
-            mappedAttribute = ctor.newInstance(String.valueOf(attribute));
-          }
-
-          mappedAttributes[i] = mappedAttribute;
-        } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException ex) {
-          throw new SQLException("Error while converting attribute at index " + i, ex);
-        }
-      }
-      return mappedAttributes;
     }
   }
 
