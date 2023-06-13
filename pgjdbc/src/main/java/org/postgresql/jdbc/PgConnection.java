@@ -1446,18 +1446,6 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * https://github.com/impossibl/pgjdbc-ng/blob/dbf9490408554a1617a64d1beb4df4b8fdd52ac4/driver/src/main/java/com/impossibl/postgres/jdbc/PGDirectConnection.java#L1238
-   *
-   * Fields in the Struct should have the same names as the attributes of the type.
-   * The attributes have _ in them we can apply the pattern where some_attribute would be someAttribute
-   *
-   * <p>Ambiguities/Questions:
-   * Is it enough for exceptions just be check for in the subclass?
-   * What if typeName doesn't correspond to an actual SQL type?
-   * I had many questions about how edge cases should be handled.</p>
-   *
-   * <p>This method creates a Struct object representing a custom PgStruct.</p>
-   *
    * @param typeName the SQL type name for the struct
    * @param attributes the array of attribute values for the struct
    * @return the created Struct object
