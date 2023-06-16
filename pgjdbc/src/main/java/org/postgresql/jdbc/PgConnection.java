@@ -32,6 +32,7 @@ import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.types.CompositeType;
 import org.postgresql.types.Type;
+import org.postgresql.types.TypeRegistry;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
@@ -1473,70 +1474,32 @@ public class PgConnection implements BaseConnection {
       throw new IllegalArgumentException("Object attributes cannot be empty");
     }
     try {
-      // Load the appropriate type based on the typeName
-      Type type = loadTransientType(typeName);
+      Type type = loadType(typeName);
+      if (type == null) {
+        throw new IllegalArgumentException("Type cannot be null.");
+      }
       if (!(type instanceof CompositeType)) {
         throw new SQLException("Invalid type for struct");
       }
-      return encodeStruct(new PGStruct(this, (CompositeType) type, attributes));
+      PGStruct pgStruct = new PGStruct(this, (CompositeType) type, attributes);
+      return PGBuffersStruct.Binary.encode(pgStruct);
     } catch (Exception e) {
       throw new IllegalArgumentException("Error encoding struct", e);
     }
   }
 
-  // Implement the logic to encode the struct using the appropriate method from the repository
-  // You might need to use classes or methods specific to the pgjdbc repository
-  // Return the encoded Struct object
-  private Struct encodeStruct(PGStruct pgStruct) throws SQLException {
-    return PGBuffersStruct.Binary.encode(pgStruct);
-  }
-
-  // Implement the logic to load the type based on the typeName from the repository
-  // You might need to use classes or methods specific to the pgjdbc repository
-  // Return the loaded Type object
-  private Type loadTransientType(String typeName) throws SQLException {
-    TypeRegistry typeRegistry = TypeRegistry.getInstance();
-    Type type = typeRegistry.loadTransientType(typeName);
+  private Type loadType(String typeName) throws SQLException {
+    Type type;
+    try {
+      TypeRegistry typeRegistry = TypeRegistry.getInstance();
+      type = typeRegistry.loadType(typeName);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error loading type", e);
+    }
     if (type == null) {
       throw new IllegalArgumentException("Type not found: " + typeName);
     }
     return type;
-  }
-
-  public static class TypeRegistry {
-    private static TypeRegistry instance;
-    private Map<String, Type> typeMap;
-
-    // Initialize the type map with predefined types
-    private TypeRegistry() {
-      typeMap = new HashMap<>();
-      // typeMap.put("type1", new CompositeType("type1"));
-      // typeMap.put("type2", new CompositeType("type2"));
-      // Add more types as needed.
-    }
-
-    public static TypeRegistry getInstance() {
-      if (instance == null) {
-        instance = new TypeRegistry();
-      }
-      return instance;
-    }
-
-    // Look up the type in the type map
-    public Type loadTransientType(String typeName) {
-      return typeMap.get(typeName);
-    }
-  }
-
-  // Implement the logic to encode the struct using the appropriate method from the repository
-  // You might need to use classes or methods specific to the pgjdbc repository
-  // Return the encoded Struct object
-  public static class PGBuffersStruct {
-    public static class Binary {
-      public static Struct encode(PGStruct pgStruct) {
-        return new PGStruct(pgStruct.context, pgStruct.typeName, pgStruct.attributeTypes);
-      }
-    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

@@ -107,7 +107,7 @@ class CreateStructTest {
   }
 
   // Replaced "createType" with "createCompositeType"
-  @Before
+  // @Before
   public static void setUp() throws Exception {
     conn = TestUtil.openDB();
 
@@ -212,7 +212,9 @@ class CreateStructTest {
   }
 
   @Test
-  public void testStructCreateDynamic() throws SQLException {
+  public void testStructCreateDynamic() throws Exception {
+    setUp();
+
     putPublicStruct();
     putFirstStruct();
     putSecondStruct();
@@ -223,7 +225,9 @@ class CreateStructTest {
   }
 
   @Test
-  public void testStructsWithoutDefault() throws SQLException {
+  public void testStructsWithoutDefault() throws Exception {
+
+    setUp();
 
     // Create get method.
     Map<String, Class<?>> typeMap = new HashMap<>();
@@ -240,7 +244,9 @@ class CreateStructTest {
   }
 
   @Test
-  public void testStructsWithDefault() throws SQLException {
+  public void testStructsWithDefault() throws Exception {
+
+    setUp();
 
     Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("first.t_user", FirstSchemaUser.class);
