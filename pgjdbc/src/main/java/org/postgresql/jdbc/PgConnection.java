@@ -1481,14 +1481,45 @@ public class PgConnection implements BaseConnection {
       if (!(type instanceof CompositeType)) {
         throw new SQLException("Invalid type for struct");
       }
-      PGStruct pgStruct = new PGStruct(this, (CompositeType) type, attributes);
-      return PGBuffersStruct.Binary.encode(pgStruct);
+      // Check if the type is STRUCT (OID 2002).
+      if (type.getOid() == 2002) {
+        Struct struct = new CustomStruct(typeName, attributes);
+        return struct;
+      } else {
+        PGStruct pgStruct = new PGStruct(this, (CompositeType) type, attributes);
+        return PGBuffersStruct.Binary.encode(pgStruct);
+      }
     } catch (Exception e) {
       throw new IllegalArgumentException("Error encoding struct", e);
     }
   }
 
-  private Type loadType(String typeName) throws SQLException {
+  public class CustomStruct implements Struct {
+    private String typeName;
+    private Object[] attributes;
+
+    public CustomStruct(String typeName, Object[] attributes) {
+      this.typeName = typeName;
+      this.attributes = attributes;
+    }
+
+    @Override
+    public String getSQLTypeName() throws SQLException {
+      return typeName;
+    }
+
+    @Override
+    public Object[] getAttributes() throws SQLException {
+      return attributes;
+    }
+
+    @Override
+    public Object[] getAttributes(Map<String, Class<?>> map) throws SQLException {
+      return new Object[0];
+    }
+  }
+
+  public Type loadType(String typeName) throws SQLException {
     Type type;
     try {
       TypeRegistry typeRegistry = TypeRegistry.getInstance();

@@ -19,6 +19,9 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.types.CompositeType;
+import org.postgresql.types.Type;
+import org.postgresql.types.TypeRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
@@ -52,6 +55,7 @@ import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -61,7 +65,9 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -734,10 +740,44 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
         }
         break;
+      case Types.STRUCT:
+        System.out.println(in.toString());
+        if (in instanceof Struct || in instanceof PGStruct) {
+          setStruct(parameterIndex, (Struct) in);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.STRUCT"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
       default:
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
     }
+  }
+
+  // Relocate.
+  private void setStruct(int i, java.sql.@Nullable Struct x) throws SQLException {
+    checkClosed();
+    if (null == x) {
+      setNull(i, Types.STRUCT);
+      return;
+    }
+    String typename = x.getSQLTypeName();
+    int oid = connection.getTypeInfo().getPGType(typename);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    if (x instanceof PGStruct) {
+      PGStruct arr = (PGStruct) x;
+      byte[] bytes = arr.toBytes();
+      if (bytes != null) {
+        bindBytes(i, bytes, oid);
+        return;
+      }
+    }
+    setString(i, x.toString(), oid);
   }
 
   private Class<?> getArrayType(Class<?> type) {
