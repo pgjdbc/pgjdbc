@@ -63,6 +63,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLType;
@@ -764,20 +765,79 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setNull(i, Types.STRUCT);
       return;
     }
-    String typename = x.getSQLTypeName();
-    int oid = connection.getTypeInfo().getPGType(typename);
+    String typeName = x.getSQLTypeName();
+    int oid = connection.getTypeInfo().getPGType(typeName);
     if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("Unknown type {0}.", typename), PSQLState.INVALID_PARAMETER_TYPE);
+      throw new PSQLException(GT.tr("Unknown type {0}.", typeName), PSQLState.INVALID_PARAMETER_TYPE);
     }
-    if (x instanceof PGStruct) {
-      PGStruct arr = (PGStruct) x;
-      byte[] bytes = arr.toBytes();
+    if (x instanceof SQLData) {
+      SQLData sqlData = (SQLData) x;
+      Object[] attributes = constructAttributesFromString(sqlData.toString());
+      if (attributes != null) {
+        for (int j = 0; j < attributes.length; j++) {
+          setObject(i + j + 1, attributes[j]);
+        }
+      } else {
+        throw new PSQLException(GT.tr("Failed to retrieve attributes from Struct."), PSQLState.INVALID_PARAMETER_TYPE);
+      }
+    }
+    else if (x instanceof PGStruct) {
+      PGStruct pgStruct = (PGStruct) x;
+      byte[] bytes = pgStruct.toBytes();
       if (bytes != null) {
         bindBytes(i, bytes, oid);
         return;
       }
     }
-    setString(i, x.toString(), oid);
+    else {
+      throw new PSQLException(
+          GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.STRUCT"),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    /*
+    Object[] attributes = x.getAttributes();
+    if (attributes == null) {
+      throw new PSQLException(GT.tr("Failed to retrieve attributes from Struct."), PSQLState.INVALID_PARAMETER_TYPE);
+    }
+
+    // Create a Struct instance using the connection
+    Struct struct = connection.createStruct(typeName, x.getAttributes());
+    setObject(i, struct, Types.STRUCT);
+    */
+  }
+
+  private Object[] constructAttributesFromString(String str) {
+    // TODO: Implement the logic to parse the string and create the attributes array
+    // Replace the code below with the appropriate parsing logic
+
+    String[] parts = str.split(",");
+    Object[] attributes = new Object[parts.length];
+    for (int i = 0; i < parts.length; i++) {
+      attributes[i] = parts[i].trim();
+    }
+    return attributes;
+  }
+
+  // Helper method to convert Struct to a string representation
+  private String structToString(Object[] attributes) throws SQLException {
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append('(');
+    for (int i = 0; i < attributes.length; i++) {
+      if (i > 0) {
+        stringBuilder.append(',');
+      }
+      Object attribute = attributes[i];
+      if (attribute == null) {
+        stringBuilder.append("NULL");
+      } else if (attribute instanceof String || attribute instanceof java.sql.Date ||
+          attribute instanceof java.sql.Time || attribute instanceof java.sql.Timestamp) {
+        stringBuilder.append('\'').append(attribute).append('\'');
+      } else {
+        stringBuilder.append(attribute);
+      }
+    }
+    stringBuilder.append(')');
+    return stringBuilder.toString();
   }
 
   private Class<?> getArrayType(Class<?> type) {

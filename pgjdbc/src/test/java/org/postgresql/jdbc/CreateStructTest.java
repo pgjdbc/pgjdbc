@@ -4,11 +4,14 @@
  */
 
 package org.postgresql.jdbc;
+
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGobject;
 
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLInput;
@@ -17,7 +20,9 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
@@ -56,6 +61,11 @@ class CreateStructTest {
       out.writeInt(id);
       out.writeString(name);
     }
+
+    @Override
+    public String toString() {
+      return "(" + id + "," + name + ")";
+    }
   }
 
   public static class SecondSchemaUser implements SQLData {
@@ -81,11 +91,21 @@ class CreateStructTest {
       out.writeString(name);
       out.writeString(email);
     }
+
+    @Override
+    public String toString() {
+      return "(" + id + "," + name + "," + email + ")";
+    }
   }
 
   public static class PublicSchemaUser implements SQLData {
     String firstName;
     String lastName;
+
+    PublicSchemaUser(String firstName, String lastName){
+      this.firstName = firstName;
+      this.lastName = lastName;
+    }
 
     @Override
     public String getSQLTypeName() {
@@ -102,6 +122,11 @@ class CreateStructTest {
     public void writeSQL(SQLOutput out) throws SQLException {
       out.writeString(firstName);
       out.writeString(lastName);
+    }
+
+    @Override
+    public String toString() {
+      return "(" + firstName + "," + lastName + ")";
     }
   }
 
@@ -296,10 +321,17 @@ class CreateStructTest {
   private void putFirstUser() throws SQLException {
     CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_put_user(?) ");
 
+    PGobject pgObject = new PGobject();
+    pgObject.setType("first.t_user");
+
     FirstSchemaUser userFirst = new FirstSchemaUser();
     userFirst.id = 1;
     userFirst.name = "First user";
-    statement.setObject(1, userFirst, Types.STRUCT);
+
+    pgObject.setValue(userFirst.toString()); // Convert FirstSchemaUser to string representation
+
+    // statement.setObject(1, userFirst, Types.STRUCT);
+    statement.setObject(1, pgObject);
 
     statement.execute();
     statement.close();
@@ -308,11 +340,16 @@ class CreateStructTest {
   private void putSecondUser() throws SQLException {
     CallableStatement statement = conn.prepareCall("select " + SECOND_SCHEMA + ".fn_put_user(?) ");
 
+    PGobject pgObject = new PGobject();
+    pgObject.setType("second.t_user");
+
     SecondSchemaUser secondUser = new SecondSchemaUser();
     secondUser.id = 1;
     secondUser.name = "Second user";
     secondUser.email = "second_user@mail.com";
-    statement.setObject(1, secondUser, Types.STRUCT);
+
+    // statement.setObject(1, secondUser, Types.STRUCT);
+    statement.setObject(1, pgObject);
 
     statement.execute();
     statement.close();
@@ -322,10 +359,15 @@ class CreateStructTest {
 
     CallableStatement statement = conn.prepareCall("select fn_put_user(?) ");
 
-    PublicSchemaUser userPublic = new PublicSchemaUser();
-    userPublic.firstName = "First name";
-    userPublic.lastName = "Last name";
-    statement.setObject(1, userPublic, Types.STRUCT);
+    PGobject pgObject = new PGobject();
+    pgObject.setType("t_user");
+
+    PublicSchemaUser userPublic = new PublicSchemaUser("First name", "Last name");
+
+    pgObject.setValue(userPublic.toString()); // Convert PublicSchemaUser to string representation
+
+    statement.setObject(1, pgObject);
+    // statement.setObject(1, userPublic, Types.STRUCT);
 
     statement.execute();
     statement.close();
@@ -333,7 +375,8 @@ class CreateStructTest {
   }
 
   private Object[] getFirstUsers() throws SQLException {
-    CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
+    // CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
+    CallableStatement statement = conn.prepareCall("{ ? = call fn_get_users() }");
 
     statement.registerOutParameter(1, Types.ARRAY);
     statement.execute();
@@ -362,19 +405,42 @@ class CreateStructTest {
   }
 
   private Object[] getPublicUsers() throws SQLException {
-    CallableStatement statement = conn.prepareCall("select fn_get_users(?) ");
+    //CallableStatement statement = conn.prepareCall("select fn_get_users(?) ");
+    CallableStatement statement = conn.prepareCall("{ ? = call fn_get_users() }");
 
-    statement.registerOutParameter(1, Types.ARRAY);
+    //statement.registerOutParameter(1, Types.ARRAY);
+    statement.registerOutParameter(1, Types.OTHER); // Register as OTHER type
 
     statement.execute();
 
-    Array array = statement.getArray(1);
-    Object users = array.getArray();
-    array.free();
+    ResultSet resultSet = (ResultSet) statement.getObject(1); // Retrieve as ResultSet
+
+    List<PublicSchemaUser> users = new ArrayList<>();
+    while (resultSet.next()) {
+      String firstName = resultSet.getString("first_name");
+      String lastName = resultSet.getString("last_name");
+      PublicSchemaUser user = new PublicSchemaUser(firstName, lastName);
+      users.add(user);
+    }
+
+    resultSet.close();
     statement.close();
 
-    return (Object[]) users;
+    return users.toArray(new PublicSchemaUser[0]);
   }
+
+  /*
+  statement.registerOutParameter(1, Types.STRUCT);
+
+  statement.execute();
+
+  Array array = statement.getArray(1);
+  Object users = array.getArray();
+  array.free();
+  statement.close();
+
+  return (Object[]) users;
+  */
 
   private void checkFirstUsers() throws SQLException {
     try {
@@ -412,6 +478,7 @@ class CreateStructTest {
       fail("Invalid casting to PublicSchemaUser");
     }
   }
+
   private void checkFirstStructs() throws SQLException {
     try {
       Struct[] users = (Struct[]) getFirstUsers();
