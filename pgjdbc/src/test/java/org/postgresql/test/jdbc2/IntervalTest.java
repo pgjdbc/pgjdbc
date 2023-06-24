@@ -22,6 +22,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -373,6 +376,23 @@ public class IntervalTest {
     PGInterval pgi = new PGInterval("0.0000007 seconds");
 
     assertEquals(1, pgi.getMicroSeconds());
+  }
+
+  @Test
+  public void testConverter() throws SQLException {
+    PGInterval fromString = new PGInterval("+2004 years -4 mons +20 days -15:57:12.100001");
+    Period period = fromString.getPeriodPart();
+    Period expectedPeriod = Period.of(2004, -4, 20);
+    assertEquals(expectedPeriod, period);
+
+    Duration duration = fromString.getDurationPart();
+    Duration expectedDuration = Duration.ofHours(-15).plusMinutes(-57).plusSeconds(-12).plus(-100001, ChronoUnit.MICROS);
+    assertEquals(expectedDuration, duration);
+
+    assertEquals(fromString, PGInterval.from(expectedPeriod, expectedDuration));
+
+    PGInterval pgi = new PGInterval("0.0000007 seconds");
+    assertEquals(Duration.ofNanos(1000), pgi.getDurationPart());
   }
 
   private java.sql.Date makeDate(int y, int m, int d) {
