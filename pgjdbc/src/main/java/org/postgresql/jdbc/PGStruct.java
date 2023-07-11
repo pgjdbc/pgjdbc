@@ -18,7 +18,7 @@ import java.sql.SQLException;
 
 import java.util.Map;
 
-public class PGStruct implements Struct {
+public abstract class PGStruct implements Struct {
 
   protected PgConnection context;
   protected Type[] attributeTypes;
@@ -26,6 +26,7 @@ public class PGStruct implements Struct {
 
   PGStruct(CompositeType typeName, Object[] attributeTypes) {
     // context = null;
+    super();
     this.typeName = typeName;
     this.attributeTypes = (Type[]) attributeTypes;
   }

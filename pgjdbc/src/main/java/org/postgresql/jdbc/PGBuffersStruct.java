@@ -1,9 +1,6 @@
 package org.postgresql.jdbc;
 
-/*
-import org.postgresql.system.Context;
-import org.postgresql.system.CustomTypes;
- */
+import org.postgresql.util.ByteBuf;
 import org.postgresql.types.CompositeType;
 import org.postgresql.types.Type;
 
@@ -20,12 +17,64 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.UnpooledByteBufAllocator;
 */
 
-public class PGBuffersStruct {
+public class PGBuffersStruct extends PGStruct {
+
+  PGBuffersStruct(CompositeType typeName, Object[] attributeTypes) {
+    super(typeName, attributeTypes);
+  }
 
   public static class Binary {
-    public static Struct encode(PGStruct pgStruct) {
-      return new PGStruct(pgStruct.context, pgStruct.typeName, pgStruct.attributeTypes);
+
+    public static Struct encode(PgConnection context, CompositeType type, Object[] values) throws SQLException, IOException {
+      Type[] attributeTypes = new Type[values.length];
+      ByteBuf[] attributeBuffers = new ByteBuf[values.length];
+
+      // Why increment before?
+      for (int attributeIdx = 0; attributeIdx < values.length; ++attributeIdx) {
+
+        // ByteBuf attributeBuffer = ALLOC.buffer();
+        Object value = values[attributeIdx];
+        if (value == null) {
+          attributeTypes[attributeIdx] = context.loadType("text");
+          // attributeBuffers[attributeIdx] = null;
+          continue;
+        }
+
+        Type attributeType = JDBCTypeMapping.getType(JDBCTypeMapping.getSQLType(value), value, context.getRegistry());
+        if (attributeType == null) {
+          throw new IOException("Unable to determine type of attribute " + (attributeIdx + 1));
+        }
+
+        attributeType
+            .getBinaryCodec()
+            .getEncoder()
+            .encode(context, type, values[attributeIdx], null, attributeBuffer);
+
+        attributeTypes[attributeIdx] = attributeType;
+        attributeBuffers[attributeIdx] = attributeBuffer;
+      }
+
+      return new Binary(context, type.getQualifiedName().toString(), attributeTypes, attributeBuffers);
+
+
     }
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    PGBuffersStruct struct = (PGBuffersStruct) o;
+    return Objects.equals(context, struct.context) &&
+        Objects.equals(typeName, struct.typeName) &&
+        Arrays.equals(attributeTypes, struct.attributeTypes)
+        // && Arrays.equals(attributeBuffers, struct.attributeBuffers)
+        ;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(context, typeName, attributeTypes); // , attributeBuffers
   }
 
   /*

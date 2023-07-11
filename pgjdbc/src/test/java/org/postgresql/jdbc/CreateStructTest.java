@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -42,6 +43,7 @@ class CreateStructTest {
   private static final String TYPE_NAME = "t_user";
 
   public static class FirstSchemaUser implements SQLData {
+    // Define access type.
     Integer id;
     String name;
 
@@ -69,6 +71,7 @@ class CreateStructTest {
   }
 
   public static class SecondSchemaUser implements SQLData {
+    // Define access type.
     Integer id;
     String name;
     String email;
@@ -99,6 +102,7 @@ class CreateStructTest {
   }
 
   public static class PublicSchemaUser implements SQLData {
+    // Define access type.
     String firstName;
     String lastName;
 
@@ -109,7 +113,7 @@ class CreateStructTest {
 
     @Override
     public String getSQLTypeName() {
-      return  TYPE_NAME;
+      return TYPE_NAME;
     }
 
     @Override
@@ -131,8 +135,8 @@ class CreateStructTest {
   }
 
   // Replaced "createType" with "createCompositeType"
-  // @Before
-  public static void setUp() throws Exception {
+  @Before
+  public void setUp() throws Exception {
     conn = TestUtil.openDB();
 
     TestUtil.createSchema(conn, FIRST_SCHEMA);
@@ -237,8 +241,9 @@ class CreateStructTest {
 
   @Test
   public void testStructCreateDynamic() throws Exception {
-    setUp();
-
+    if (conn == null) {
+      setUp();
+    }
     putPublicStruct();
     putFirstStruct();
     putSecondStruct();
@@ -250,9 +255,9 @@ class CreateStructTest {
 
   @Test
   public void testStructsWithoutDefault() throws Exception {
-
-    setUp();
-
+    if (conn == null) {
+      setUp();
+    }
     // Create get method.
     Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("first.t_user", FirstSchemaUser.class);
@@ -269,9 +274,9 @@ class CreateStructTest {
 
   @Test
   public void testStructsWithDefault() throws Exception {
-
-    setUp();
-
+    if (conn == null) {
+      setUp();
+    }
     Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("first.t_user", FirstSchemaUser.class);
     typeMap.put("second.t_user", SecondSchemaUser.class);
@@ -311,7 +316,9 @@ class CreateStructTest {
   private void putPublicStruct() throws SQLException {
     CallableStatement statement = conn.prepareCall("select fn_put_user(?) ");
 
+    // Struct struct = conn.createStruct(TYPE_NAME, new Object[] {"First name", "Last name"});
     Struct struct = conn.createStruct(TYPE_NAME, new Object[] {"First name", "Last name"});
+
     statement.setObject(1, struct, Types.STRUCT);
 
     statement.execute();
@@ -356,7 +363,6 @@ class CreateStructTest {
   }
 
   private void putPublicUser() throws SQLException {
-
     CallableStatement statement = conn.prepareCall("select fn_put_user(?) ");
 
     PGobject pgObject = new PGobject();
@@ -366,17 +372,17 @@ class CreateStructTest {
 
     pgObject.setValue(userPublic.toString()); // Convert PublicSchemaUser to string representation
 
-    statement.setObject(1, pgObject);
+    // statement.setObject(1, pgObject);
+    statement.setObject(1, Types.STRUCT);
     // statement.setObject(1, userPublic, Types.STRUCT);
 
     statement.execute();
     statement.close();
-
   }
 
   private Object[] getFirstUsers() throws SQLException {
-    // CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
-    CallableStatement statement = conn.prepareCall("{ ? = call fn_get_users() }");
+    CallableStatement statement = conn.prepareCall("select " + FIRST_SCHEMA + ".fn_get_users(?) ");
+    // CallableStatement statement = conn.prepareCall("{ ? = call fn_get_users() }");
 
     statement.registerOutParameter(1, Types.ARRAY);
     statement.execute();
@@ -408,8 +414,7 @@ class CreateStructTest {
     //CallableStatement statement = conn.prepareCall("select fn_get_users(?) ");
     CallableStatement statement = conn.prepareCall("{ ? = call fn_get_users() }");
 
-    //statement.registerOutParameter(1, Types.ARRAY);
-    statement.registerOutParameter(1, Types.OTHER); // Register as OTHER type
+    statement.registerOutParameter(1, Types.STRUCT);
 
     statement.execute();
 
