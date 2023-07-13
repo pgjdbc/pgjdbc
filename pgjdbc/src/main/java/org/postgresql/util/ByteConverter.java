@@ -634,7 +634,7 @@ public class ByteConverter {
   }
 
   /**
-   * Encodes a int value to the byte array.
+   * Encodes a float value to the byte array.
    *
    * @param target The byte array to encode to.
    * @param idx The starting index in the byte array.
