@@ -17,9 +17,10 @@ import java.util.Arrays;
 public class PGvector extends PGobject implements PGBinaryObject, Serializable, Cloneable{
 
   private static final int HEADER_SIZE = 4;
-  private float[] vector;
+  private float[] @Nullable vector;
   public PGvector() {
     this.type = "vector";
+    vector = null;
   }
 
   public PGvector(float[] in) {
