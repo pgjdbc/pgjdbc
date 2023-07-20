@@ -1338,13 +1338,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       }
       url.append(serverNames[i]);
       if (portNumbers != null) {
-        if (serverNames.length == portNumbers.length) {
-          if (portNumbers.length >= i && portNumbers[i] != 0) {
-            url.append(":").append(portNumbers[i]);
-          }
-        } else {
-          throw new IllegalArgumentException("Invalid argument: number of port entries must equal number of serverNames");
+        if (serverNames.length != portNumbers.length) {
+          throw new IllegalArgumentException(
+              String.format("Invalid argument: number of port %s entries must equal number of serverNames %s",
+                  Arrays.toString(portNumbers), Arrays.toString(serverNames)));
         }
+        if (portNumbers.length >= i && portNumbers[i] != 0) {
+          url.append(":").append(portNumbers[i]);
+        }
+
       }
     }
     url.append("/");

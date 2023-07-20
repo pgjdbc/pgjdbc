@@ -75,7 +75,7 @@ public class BaseDataSourceFailoverUrlsTest {
     bds.setServerNames(new String[] {"localhost", "localhost1"});
     bds.setPortNumbers(new int[] {6432});
     assertThrows("Number of ports not equal to the number of servers should throw an exception",
-        IllegalArgumentException.class, ()->bds.getUrl());
+        IllegalArgumentException.class, () -> bds.getUrl());
   }
   private BaseDataSource newDS() {
     return new BaseDataSource() {
