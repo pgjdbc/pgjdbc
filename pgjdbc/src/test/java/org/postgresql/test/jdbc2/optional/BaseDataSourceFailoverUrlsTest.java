@@ -77,6 +77,7 @@ public class BaseDataSourceFailoverUrlsTest {
     assertThrows("Number of ports not equal to the number of servers should throw an exception",
         IllegalArgumentException.class, () -> bds.getUrl());
   }
+  
   private BaseDataSource newDS() {
     return new BaseDataSource() {
       @Override
