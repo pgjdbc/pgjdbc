@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2.optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.postgresql.ds.common.BaseDataSource;
 
@@ -67,6 +68,15 @@ public class BaseDataSourceFailoverUrlsTest {
     assertEquals(0, bds.getPortNumbers()[0]);
   }
 
+  @Test
+  public void testWrongNumberOfPorts() {
+    BaseDataSource bds = newDS();
+    bds.setDatabaseName("database");
+    bds.setServerNames(new String[] {"localhost", "localhost1"});
+    bds.setPortNumbers(new int[] {6432});
+    assertThrows("Number of ports not equal to the number of servers should throw an exception",
+        IllegalArgumentException.class, ()->bds.getUrl());
+  }
   private BaseDataSource newDS() {
     return new BaseDataSource() {
       @Override
