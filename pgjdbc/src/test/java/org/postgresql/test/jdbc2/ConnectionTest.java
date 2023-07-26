@@ -559,7 +559,7 @@ public class ConnectionTest {
 
   @Test
   public void testGetBinaryEnabledOidWithName() throws  Exception {
-    try (Connection con = TestUtil.openDB()){
+    try (Connection con = TestUtil.openDB()) {
       Properties properties = new Properties();
       PGProperty.BINARY_TRANSFER_ENABLE.set(properties, "text");
       Set<?> oids = con.unwrap(PgConnection.class).getBinaryEnabledOids(properties);
