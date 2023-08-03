@@ -356,7 +356,7 @@ public class TypeInfoCache implements TypeInfo {
         return i;
       }
 
-      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", intOidToLong(typeOid));
+      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid ''{0}''", intOidToLong(typeOid));
 
       PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
 
