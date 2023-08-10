@@ -65,6 +65,10 @@ main () {
     psql_super "${POSTGRES_DB}" "
       CREATE DATABASE test OWNER test
     "
+    # Create additional database for some LSN testing
+    psql_super "${POSTGRES_DB}" "
+      CREATE DATABASE test_2 OWNER test
+    "
 
     if ! is_pg_version_at_least "9.0"; then
         # Older versions do not have plpgsql so we explicitly install it

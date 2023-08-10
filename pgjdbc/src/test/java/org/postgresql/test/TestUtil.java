@@ -58,7 +58,11 @@ public class TestUtil {
    * Returns the Test database JDBC URL
    */
   public static String getURL() {
-    return getURL(getServer(), + getPort());
+    return getURL(getServer(), getPort());
+  }
+
+  public static String getURL(String database) {
+    return getURL(getServer() + ":" + getPort(), database);
   }
 
   public static String getURL(String server, int port) {
@@ -317,6 +321,18 @@ public class TestUtil {
     PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
     PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
     return DriverManager.getConnection(getURL(), properties);
+
+  }
+
+  public static Connection openPrivilegedDB(String databaseName) throws SQLException {
+    initDriver();
+    Properties properties = new Properties();
+
+    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
+    PGProperty.USER.set(properties, getPrivilegedUser());
+    PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
+    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
+    return DriverManager.getConnection(getURL(databaseName), properties);
 
   }
 
