@@ -442,6 +442,7 @@ public class LogicalReplicationStatusTest {
             .logical()
             .withSlotName(SLOT_NAME)
             .withStartPosition(startLSN)
+            .withStatusInterval(1, TimeUnit.SECONDS)
             .start();
 
     // create replication changes and poll for messages
@@ -461,6 +462,8 @@ public class LogicalReplicationStatusTest {
     Statement st2 = secondSqlConnection.createStatement();
     st2.execute("insert into test_logic_table(name) values('previous changes')");
     st2.close();
+
+    TimeUnit.SECONDS.sleep(1);
 
     // read KeepAlive messages - lastServerLSN will have advanced and we can safely confirm it
     stream.readPending();
