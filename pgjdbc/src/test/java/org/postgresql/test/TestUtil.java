@@ -313,15 +313,7 @@ public class TestUtil {
    *         functions now as of 4/14
    */
   public static Connection openPrivilegedDB() throws SQLException {
-    initDriver();
-    Properties properties = new Properties();
-
-    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
-    PGProperty.USER.set(properties, getPrivilegedUser());
-    PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
-    PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
-    return DriverManager.getConnection(getURL(), properties);
-
+    return openPrivilegedDB(getDatabase());
   }
 
   public static Connection openPrivilegedDB(String databaseName) throws SQLException {
