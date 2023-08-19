@@ -69,6 +69,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -642,6 +643,14 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   // TODO: In Java 8 this constant is missing, later versions (at least 11) have LocalDate#EPOCH:
   private static final LocalDate LOCAL_DATE_EPOCH = LocalDate.of(1970, 1, 1);
+
+  private @Nullable Instant getInstant(int i) throws SQLException {
+    OffsetDateTime odt = getOffsetDateTime(i);
+    if (odt == null) {
+      return null;
+    }
+    return odt.toInstant();
+  }
 
   private @Nullable OffsetDateTime getOffsetDateTime(int i) throws SQLException {
     byte[] value = getRawValue(i);
@@ -3799,6 +3808,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return type.cast(getOffsetDateTime(columnIndex));
     } else if (type == OffsetTime.class) {
       return type.cast(getOffsetTime(columnIndex));
+    } else if (type == Instant.class) {
+      return type.cast(getInstant(columnIndex));
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {

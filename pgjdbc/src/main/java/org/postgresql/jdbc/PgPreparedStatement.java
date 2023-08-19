@@ -65,11 +65,13 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Map;
@@ -670,6 +672,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           setTimestamp(parameterIndex, (OffsetDateTime) in);
         } else if (in instanceof PGTimestamp) {
           setObject(parameterIndex, in);
+        } else if (in instanceof Instant) {
+          setObject(parameterIndex, in);
         } else {
           throw new PSQLException(
               GT.tr("Cannot cast an instance of {0} to type {1}",
@@ -1034,6 +1038,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setTimestamp(parameterIndex, (LocalDateTime) x);
     } else if (x instanceof OffsetDateTime) {
       setTimestamp(parameterIndex, (OffsetDateTime) x);
+    } else if (x instanceof Instant) {
+      setTimestamp(parameterIndex, (Instant) x);
     } else if (x instanceof Map) {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
@@ -1496,6 +1502,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       throws SQLException {
     int oid = Oid.TIMESTAMPTZ;
     bindString(i, getTimestampUtils().toString(offsetDateTime), oid);
+  }
+
+  private void setTimestamp(@Positive int i, Instant instant)
+      throws SQLException {
+    setTimestamp(i, instant.atOffset(ZoneOffset.UTC));
   }
 
   public ParameterMetaData createParameterMetaData(BaseConnection conn, int[] oids)

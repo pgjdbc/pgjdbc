@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -224,6 +225,18 @@ public class SetObject310Test extends BaseTest4 {
    * Test the behavior of setObject for timestamp columns.
    */
   @Test
+  public void testSetInstant() throws SQLException {
+    List<String> datesToTest = getDatesToTest();
+    for (String date : datesToTest) {
+      Instant instant = LocalDateTime.parse(date).toInstant(ZoneOffset.UTC);
+      instantTimestamps(instant);
+    }
+  }
+
+  /**
+   * Test the behavior of setObject for timestamp columns.
+   */
+  @Test
   public void testSetLocalDateTime() throws SQLException {
     List<String> zoneIdsToTest = getZoneIdsToTest();
     List<String> datesToTest = getDatesToTest();
@@ -298,6 +311,23 @@ public class SetObject310Test extends BaseTest4 {
       zoneIdsToTest.add(String.format("GMT%+02d", i));
     }
     return zoneIdsToTest;
+  }
+
+  private void instantTimestamps(Instant instant) throws SQLException {
+    String sql = "select ?::timestamp with time zone, ?::timestamp with time zone";
+    try (PreparedStatement ps = con.prepareStatement(sql)) {
+      ps.setObject(1, instant);
+      ps.setObject(2, instant, Types.TIMESTAMP_WITH_TIMEZONE);
+      try (ResultSet rs = ps.executeQuery()) {
+        rs.next();
+        String noType = rs.getString(1);
+        OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
+        assertEquals(instant, noTypeRes.toInstant());
+        String withType = rs.getString(2);
+        OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
+        assertEquals(instant, withTypeRes.toInstant());
+      }
+    }
   }
 
   private void localTimestamps(ZoneId zoneId, LocalDateTime localDateTime, String expected) throws SQLException {
