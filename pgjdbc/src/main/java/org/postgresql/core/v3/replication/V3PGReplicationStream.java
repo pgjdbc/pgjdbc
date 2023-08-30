@@ -42,6 +42,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private volatile LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber startOfLastMessageLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber explicitlyFlushedLSN = LogSequenceNumber.INVALID_LSN;
 
   /**
    * @param copyDual         bidirectional copy protocol
@@ -194,6 +196,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.writeToCopy(reply, 0, reply.length);
     copyDual.flushCopy();
 
+    explicitlyFlushedLSN = flushed;
     lastStatusUpdate = System.nanoTime();
   }
 
@@ -230,6 +233,13 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if (lastServerLSN.asLong() > lastReceiveLSN.asLong()) {
       lastReceiveLSN = lastServerLSN;
     }
+    // if the client has confirmed flush of last XLogData msg and KeepAlive shows ServerLSN is still
+    // advancing, we can safely advance FlushLSN to ServerLSN
+    if (explicitlyFlushedLSN.asLong() >= startOfLastMessageLSN.asLong()
+        && lastServerLSN.asLong() > explicitlyFlushedLSN.asLong()
+        && lastServerLSN.asLong() > lastFlushedLSN.asLong()) {
+      lastFlushedLSN = lastServerLSN;
+    }
 
     long lastServerClock = buffer.getLong();
 
@@ -248,6 +258,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private ByteBuffer processXLogData(ByteBuffer buffer) {
     long startLsn = buffer.getLong();
+    startOfLastMessageLSN = LogSequenceNumber.valueOf(startLsn);
     lastServerLSN = LogSequenceNumber.valueOf(buffer.getLong());
     long systemClock = buffer.getLong();
 
