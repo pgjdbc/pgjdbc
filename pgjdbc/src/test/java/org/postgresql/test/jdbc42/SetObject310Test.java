@@ -314,18 +314,18 @@ public class SetObject310Test extends BaseTest4 {
   }
 
   private void instantTimestamps(Instant instant) throws SQLException {
-    String sql = "select ?::timestamp with time zone, ?::timestamp with time zone";
+    String sql = "select ?, ?";
     try (PreparedStatement ps = con.prepareStatement(sql)) {
       ps.setObject(1, instant);
       ps.setObject(2, instant, Types.TIMESTAMP_WITH_TIMEZONE);
       try (ResultSet rs = ps.executeQuery()) {
         rs.next();
-        String noType = rs.getString(1);
-        OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
-        assertEquals(instant, noTypeRes.toInstant());
-        String withType = rs.getString(2);
-        OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
-        assertEquals(instant, withTypeRes.toInstant());
+        String untypedOdtString = rs.getString(1);
+        OffsetDateTime untypedOdt = parseBackendTimestamp(untypedOdtString);
+        assertEquals(instant, untypedOdt.toInstant());
+        String typedOdtString = rs.getString(2);
+        OffsetDateTime typedOdt = parseBackendTimestamp(typedOdtString);
+        assertEquals(instant, typedOdt.toInstant());
       }
     }
   }
