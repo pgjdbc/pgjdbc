@@ -1,6 +1,6 @@
 # Adopters
 
-This list shows adopters of OpenFaaS. If you're using pgjdbc in some way, then please add your team and use-case to this file.
+This list shows adopters of pgjdbc. If you're using pgjdbc in some way, then please add your team and use-case to this file.
 
 Tell us more:
 
