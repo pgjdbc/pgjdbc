@@ -31,6 +31,8 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -334,6 +336,99 @@ public class ArrayTest extends BaseTest4 {
     }
 
     rs.close();
+  }
+
+  @Test
+  public void testSetArraysWithAnsiTypeNames() throws SQLException {
+    TestUtil.createTable(
+        conn,
+        "ansiarraytest",
+        "floats double precision[], "
+            + "reals real[], "
+            + "varchars character varying(8)[], "
+            + "times time without time zone[], "
+            + "timestamps timestamp without time zone[], "
+            + "timestampstz timestamp with time zone[]");
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO ansiarraytest VALUES (?,?,?,?,?,?)");
+
+    final PGConnection arraySupport = conn.unwrap(PGConnection.class);
+
+    pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[] {1d, 4d}));
+    pstmt.setArray(2, arraySupport.createArrayOf("real", new Object[] {0f, 3f}));
+    pstmt.setObject(
+        3, arraySupport.createArrayOf("character varying", new String[] {"abc", "f'a", "fa\"b"}));
+    pstmt.setObject(
+        4,
+        arraySupport.createArrayOf(
+            "time without time zone",
+            new Object[] {Time.valueOf("12:34:56"), Time.valueOf("03:30:25")}));
+    pstmt.setObject(
+        5,
+        arraySupport.createArrayOf(
+            "timestamp without time zone",
+            new Object[] {"2023-09-05 16:21:50", "2012-01-01 13:02:03"}));
+    pstmt.setObject(
+        6,
+        arraySupport.createArrayOf(
+            "timestamp with time zone",
+            new Object[] {"1996-01-23 12:00:00-08", "1997-08-16 16:51:00-04"}));
+
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs =
+        stmt.executeQuery(
+            "SELECT floats, reals, varchars, times, timestamps, timestampstz FROM ansiarraytest");
+    Assert.assertTrue(rs.next());
+
+    Array arr = rs.getArray(1);
+    Assert.assertEquals(Types.DOUBLE, arr.getBaseType());
+    Double[] doubles = (Double[]) arr.getArray();
+    Assert.assertEquals(2, doubles.length);
+    Assert.assertEquals(1d, doubles[0], 0);
+    Assert.assertEquals(4d, doubles[1], 0);
+
+    arr = rs.getArray(2);
+    Assert.assertEquals(Types.REAL, arr.getBaseType());
+    Float[] floats = (Float[]) arr.getArray();
+    Assert.assertEquals(2, floats.length);
+    Assert.assertEquals(0f, floats[0], 0);
+    Assert.assertEquals(3f, floats[1], 0);
+
+    arr = rs.getArray(3);
+    Assert.assertEquals(Types.VARCHAR, arr.getBaseType());
+    String[] strings = (String[]) arr.getArray();
+    Assert.assertEquals(3, strings.length);
+    Assert.assertEquals("abc", strings[0]);
+    Assert.assertEquals("f'a", strings[1]);
+    Assert.assertEquals("fa\"b", strings[2]);
+
+    arr = rs.getArray(4);
+    Assert.assertEquals(Types.TIME, arr.getBaseType());
+    Time[] times = (Time[]) arr.getArray();
+    Assert.assertEquals(2, times.length);
+    Assert.assertEquals(Time.valueOf("12:34:56"), times[0]);
+    Assert.assertEquals(Time.valueOf("03:30:25"), times[1]);
+
+    arr = rs.getArray(5);
+    Assert.assertEquals(Types.TIMESTAMP, arr.getBaseType());
+    Timestamp[] tzarr = (Timestamp[]) arr.getArray();
+    Assert.assertEquals(2, times.length);
+    Assert.assertEquals(Timestamp.valueOf("2023-09-05 16:21:50"), tzarr[0]);
+    Assert.assertEquals(Timestamp.valueOf("2012-01-01 13:02:03"), tzarr[1]);
+
+    arr = rs.getArray(6);
+    Assert.assertEquals(Types.TIMESTAMP, arr.getBaseType());
+    tzarr = (Timestamp[]) arr.getArray();
+    Assert.assertEquals(2, times.length);
+    Assert.assertEquals(822427200000L, tzarr[0].getTime());
+    Assert.assertEquals(871764660000L, tzarr[1].getTime());
+
+    rs.close();
+
+    TestUtil.dropTable(conn, "ansiarraytest");
   }
 
   @Test
