@@ -1457,20 +1457,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  /**
-   * PostgreSQL does not support multiple catalogs from a single connection, so to reduce confusion
-   * we only return the current catalog. {@inheritDoc}
-   */
   @Override
   public ResultSet getCatalogs() throws SQLException {
-    Field[] f = new Field[1];
-    List<Tuple> v = new ArrayList<Tuple>();
-    f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
-    byte[] @Nullable [] tuple = new byte[1][];
-    tuple[0] = connection.encodeString(connection.getCatalog());
-    v.add(new Tuple(tuple));
-
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    String sql = "SELECT datname AS TABLE_CAT FROM pg_catalog.pg_database"
+        + " WHERE datallowconn = true";
+    return createMetaDataStatement().executeQuery(sql);
   }
 
   @Override

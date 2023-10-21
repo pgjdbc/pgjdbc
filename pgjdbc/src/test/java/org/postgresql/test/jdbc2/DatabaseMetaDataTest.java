@@ -1065,9 +1065,26 @@ public class DatabaseMetaDataTest {
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getCatalogs();
-    assertTrue(rs.next());
-    assertEquals(con.getCatalog(), rs.getString(1));
-    assertTrue(!rs.next());
+
+    boolean foundDefault = false;
+    boolean foundTest = false;
+    int count;
+
+    for (count = 0; rs.next(); count++) {
+      String catalog = rs.getString("TABLE_CAT");
+      if ("test".equals(catalog)) {
+        foundTest = true;
+      }
+      if ("postgres".equals(catalog)) {
+        foundDefault = true;
+      }
+    }
+
+    rs.close();
+
+    assertTrue(count >= 2);
+    assertTrue(foundDefault);
+    assertTrue(foundTest);
   }
 
   @Test
