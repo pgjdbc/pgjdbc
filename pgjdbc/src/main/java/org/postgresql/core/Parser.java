@@ -235,6 +235,8 @@ public class Parser {
             currentCommandType = SqlCommandType.SELECT;
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
+          } else if (wordLength == 3 && parseSetKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.SET;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
               // Only allow rewrite for insert command starting with the insert keyword.
@@ -730,6 +732,23 @@ public class Parser {
         && (query[offset + 3] | 32) == 'e'
         && (query[offset + 4] | 32) == 'c'
         && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of SET keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseSetKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 3)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 's'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 't';
   }
 
   /**
