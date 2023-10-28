@@ -535,7 +535,7 @@ public class PgStatement implements Statement, BaseStatement {
       long count = -1;
       ResultWrapper iter = result;
       while (iter != null) {
-        if(iter.getResultSet() == null) {
+        if (iter.getResultSet() == null) {
           if (first) {
             count = iter.getUpdateCount();
             first = false;

@@ -25,7 +25,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
 /**
  * Internal class, it is not a part of public API.
@@ -80,7 +83,7 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
-    if(status.toUpperCase(Locale.ROOT).startsWith("SET")) {
+    if (status.toUpperCase(Locale.ROOT).startsWith("SET")) {
       return;
     }
     List<Tuple> latestGeneratedRows = this.latestGeneratedRows;
