@@ -531,11 +531,20 @@ public class PgStatement implements Statement, BaseStatement {
   public int getUpdateCount() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
-      if (result == null || result.getResultSet() != null) {
-        return -1;
+      boolean first = true;
+      long count = -1;
+      ResultWrapper iter = result;
+      while (iter != null) {
+        if (iter.getResultSet() == null) {
+          if (first) {
+            count = iter.getUpdateCount();
+            first = false;
+          } else {
+            count += iter.getUpdateCount();
+          }
+        }
+        iter = iter.getNext();
       }
-
-      long count = result.getUpdateCount();
       return count > Integer.MAX_VALUE ? Statement.SUCCESS_NO_INFO : (int) count;
     }
   }

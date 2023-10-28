@@ -1598,4 +1598,69 @@ public class PreparedStatementTest extends BaseTest4 {
       // ignore
     }
   }
+
+  @Test
+  public void testCountForStatementWithSet() throws SQLException {
+    //INSERT
+    PreparedStatement pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "INSERT INTO inttable VALUES (?)");
+    pstmt.setInt(1, 1);
+    int count = pstmt.executeUpdate();
+    pstmt.close();
+    assertEquals("Expected update count to be 1", 1, count);
+    //UPDATE
+    pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "UPDATE inttable SET a=?");
+    pstmt.setInt(1, 1);
+    count = pstmt.executeUpdate();
+    pstmt.close();
+    assertEquals("Expected update count to be 1", 1, count);
+    //DELETE
+    pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "DELETE FROM inttable WHERE a=?");
+    pstmt.setInt(1, 1);
+    count = pstmt.executeUpdate();
+    pstmt.close();
+    assertEquals("Expected update count to be 1", 1, count);
+  }
+
+  @Test
+  public void testCountForBatchStatementWithSet() throws SQLException {
+    //INSERT
+    PreparedStatement pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "INSERT INTO inttable VALUES (?)");
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+    pstmt.setInt(1, 2);
+    pstmt.addBatch();
+    int[] count = pstmt.executeBatch();
+    pstmt.close();
+    assertEquals("Expected update batch size to be 2", 2, count.length);
+    assertEquals("Expected update count on first batch to be 1", 1, count[0]);
+    assertEquals("Expected update count on second batch to be 1", 1, count[1]);
+    //UPDATE
+    pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "UPDATE inttable SET a=?");
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+    pstmt.setInt(1, 2);
+    pstmt.addBatch();
+    count = pstmt.executeBatch();
+    pstmt.close();
+    assertEquals("Expected update batch size to be 2", 2, count.length);
+    assertEquals("Expected update count on first batch to be 2", 2, count[0]);
+    assertEquals("Expected update count on second batch to be 2", 2, count[1]);
+    //DELETE
+    pstmt = con.prepareStatement("SET search_path = 'public';"
+        + "DELETE FROM inttable WHERE a=?");
+    pstmt.setInt(1, 1);
+    pstmt.addBatch();
+    pstmt.setInt(1, 2);
+    pstmt.addBatch();
+    count = pstmt.executeBatch();
+    pstmt.close();
+    assertEquals("Expected update batch size to be 2", 2, count.length);
+    assertEquals("Expected update count on first batch to be 0", 0, count[0]);
+    assertEquals("Expected update count on second batch to be 2", 2, count[1]);
+  }
 }

@@ -28,6 +28,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Internal class, it is not a part of public API.
@@ -105,7 +106,10 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
     latestGeneratedKeysRs = null;
 
-    longUpdateCounts[resultIndex++] = updateCount;
+    boolean canUpdateCount = !status.toUpperCase(Locale.ROOT).startsWith("SET");
+    if (canUpdateCount) {
+      longUpdateCounts[resultIndex++] = updateCount;
+    }
   }
 
   private boolean isAutoCommit() {
