@@ -1623,6 +1623,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.close();
     assertEquals("Expected update count to be 1", 1, count);
   }
+
   @Test
   public void testCountForBatchStatementWithSet() throws SQLException {
     //INSERT
