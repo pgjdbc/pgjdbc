@@ -155,41 +155,38 @@ public class StatementTest {
 
   @Test
   public void testUpdateCountWithSet() throws SQLException {
-    Assume.assumeTrue("SET user variable is supported since 9.0",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
     Statement stmt = con.createStatement();
     int count;
-    count = stmt.executeUpdate("SET var.test='test'; INSERT INTO test_statement VALUES (1)");
+    count = stmt.executeUpdate("SET search_path = 'public'; INSERT INTO test_statement VALUES (1)");
     assertEquals(1, count);
 
-    count = stmt.executeUpdate("SET var.test='test'; UPDATE test_statement SET i=2");
+    count = stmt.executeUpdate("SET search_path = 'public'; UPDATE test_statement SET i=2");
     assertEquals(1, count);
 
-    count = stmt.executeUpdate("SET var.test='test'; DELETE FROM test_statement");
+    count = stmt.executeUpdate("SET search_path = 'public'; DELETE FROM test_statement");
     assertEquals(1, count);
   }
 
   @Test
   public void testUpdateCountForMultipleStatements() throws SQLException {
-    Assume.assumeTrue("SET user variable is supported since 9.0",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
     Statement stmt = con.createStatement();
     int count;
-    count = stmt.executeUpdate("SET var.test='test'; INSERT INTO test_statement VALUES (1)"
+    count = stmt.executeUpdate("SET search_path = 'public'; INSERT INTO test_statement VALUES (1)"
         + "; INSERT INTO test_statement VALUES (2); INSERT INTO test_statement VALUES (3)");
     assertEquals(3, count);
 
-    count = stmt.executeUpdate("SET var.test='test'; UPDATE test_statement SET i=2 WHERE i=1"
+    count = stmt.executeUpdate("SET search_path = 'public'; UPDATE test_statement SET i=2 WHERE i=1"
         + ";UPDATE test_statement SET i=4 WHERE i=3");
     assertEquals(2, count);
 
-    count = stmt.executeUpdate("SET var.test='test'; UPDATE test_statement SET i=2");
+    count = stmt.executeUpdate("SET search_path = 'public'; UPDATE test_statement SET i=2");
     assertEquals(3, count);
 
-    count = stmt.executeUpdate("SET var.test='test'; DELETE FROM test_statement WHERE i=2");
+    count = stmt.executeUpdate("SET search_path = 'public'; DELETE FROM test_statement WHERE i=2");
     assertEquals(3, count);
 
-    count = stmt.executeUpdate("INSERT INTO test_statement VALUES (1);SET var.test='test';"
+    count = stmt.executeUpdate("INSERT INTO test_statement VALUES (1);"
+        + "SET search_path = 'public';"
         + "UPDATE test_statement SET i=2 WHERE i=1;DELETE FROM test_statement WHERE i=2");
     assertEquals(3, count);
   }

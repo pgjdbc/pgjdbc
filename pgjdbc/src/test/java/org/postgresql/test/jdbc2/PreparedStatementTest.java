@@ -1601,24 +1601,22 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testCountForStatementWithSet() throws SQLException {
-    assumeMinimumServerVersion("SET user variable is supported since 9.0",
-        ServerVersion.v9_0);
     //INSERT
-    PreparedStatement pstmt = con.prepareStatement("SET var.test='test';"
+    PreparedStatement pstmt = con.prepareStatement("SET search_path = 'public';"
         + "INSERT INTO inttable VALUES (?)");
     pstmt.setInt(1, 1);
     int count = pstmt.executeUpdate();
     pstmt.close();
     assertEquals("Expected update count to be 1", 1, count);
     //UPDATE
-    pstmt = con.prepareStatement("SET var.test='test';"
+    pstmt = con.prepareStatement("SET search_path = 'public';"
         + "UPDATE inttable SET a=?");
     pstmt.setInt(1, 1);
     count = pstmt.executeUpdate();
     pstmt.close();
     assertEquals("Expected update count to be 1", 1, count);
     //DELETE
-    pstmt = con.prepareStatement("SET var.test='test';"
+    pstmt = con.prepareStatement("SET search_path = 'public';"
         + "DELETE FROM inttable WHERE a=?");
     pstmt.setInt(1, 1);
     count = pstmt.executeUpdate();
@@ -1629,7 +1627,7 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testCountForBatchStatementWithSet() throws SQLException {
     //INSERT
-    PreparedStatement pstmt = con.prepareStatement("SET var.test='test';"
+    PreparedStatement pstmt = con.prepareStatement("SET search_path = 'public';"
         + "INSERT INTO inttable VALUES (?)");
     pstmt.setInt(1, 1);
     pstmt.addBatch();
@@ -1641,7 +1639,7 @@ public class PreparedStatementTest extends BaseTest4 {
     assertEquals("Expected update count on first batch to be 1", 1, count[0]);
     assertEquals("Expected update count on second batch to be 1", 1, count[1]);
     //UPDATE
-    pstmt = con.prepareStatement("SET var.test='test';"
+    pstmt = con.prepareStatement("SET search_path = 'public';"
         + "UPDATE inttable SET a=?");
     pstmt.setInt(1, 1);
     pstmt.addBatch();
@@ -1653,7 +1651,7 @@ public class PreparedStatementTest extends BaseTest4 {
     assertEquals("Expected update count on first batch to be 2", 2, count[0]);
     assertEquals("Expected update count on second batch to be 2", 2, count[1]);
     //DELETE
-    pstmt = con.prepareStatement("SET var.test='test';"
+    pstmt = con.prepareStatement("SET search_path = 'public';"
         + "DELETE FROM inttable WHERE a=?");
     pstmt.setInt(1, 1);
     pstmt.addBatch();
