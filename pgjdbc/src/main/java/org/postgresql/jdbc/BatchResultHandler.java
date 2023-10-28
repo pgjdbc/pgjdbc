@@ -83,9 +83,6 @@ public class BatchResultHandler extends ResultHandlerBase {
 
   @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
-    if (status.toUpperCase(Locale.ROOT).startsWith("SET")) {
-      return;
-    }
     List<Tuple> latestGeneratedRows = this.latestGeneratedRows;
     if (latestGeneratedRows != null) {
       // We have DML. Decrease resultIndex that was just increased in handleResultRows
@@ -109,7 +106,10 @@ public class BatchResultHandler extends ResultHandlerBase {
     }
     latestGeneratedKeysRs = null;
 
-    longUpdateCounts[resultIndex++] = updateCount;
+    boolean canUpdateCount = !status.toUpperCase(Locale.ROOT).startsWith("SET");
+    if (canUpdateCount) {
+      longUpdateCounts[resultIndex++] = updateCount;
+    }
   }
 
   private boolean isAutoCommit() {
