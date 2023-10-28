@@ -155,6 +155,8 @@ public class StatementTest {
 
   @Test
   public void testUpdateCountWithSet() throws SQLException {
+    Assume.assumeTrue("SET user variable is supported since 9.0",
+        TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
     Statement stmt = con.createStatement();
     int count;
     count = stmt.executeUpdate("SET var.test='test'; INSERT INTO test_statement VALUES (1)");
@@ -169,6 +171,8 @@ public class StatementTest {
 
   @Test
   public void testUpdateCountForMultipleStatements() throws SQLException {
+    Assume.assumeTrue("SET user variable is supported since 9.0",
+        TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
     Statement stmt = con.createStatement();
     int count;
     count = stmt.executeUpdate("SET var.test='test'; INSERT INTO test_statement VALUES (1)"

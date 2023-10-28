@@ -1601,6 +1601,8 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testCountForStatementWithSet() throws SQLException {
+    assumeMinimumServerVersion("SET user variable is supported since 9.0",
+        ServerVersion.v9_0);
     //INSERT
     PreparedStatement pstmt = con.prepareStatement("SET var.test='test';"
         + "INSERT INTO inttable VALUES (?)");
