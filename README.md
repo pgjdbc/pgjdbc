@@ -182,10 +182,17 @@ public void testMyCodeSinceVersion15() {
 
 ### Validate the code style and run the tests
 
-CI also uses conventions to validate the code style, you can use the following command to validate your code changes and run the tests locally.
+CI uses strict conventions to validate the code style, you can use the following command to test your code changes against theses conventions.
+>Due to CI workflow, maintainers will strongly appreciate if you can run the following commands before submitting a PR
 
 ```shell
-./gradlew checkstyleAll autostyleJavaCheck build
+./gradlew checkstyleAll autostyleJavaCheck
+```
+
+At the end you can test your changes against the test database using the following command.
+
+```shell
+./gradlew test
 ```
 
 ### Guidelines
