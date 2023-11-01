@@ -59,11 +59,9 @@ public class CursorFetchTest extends BaseTest4 {
   }
 
   protected void createRows(int count) throws Exception {
-    PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(?)");
-    for (int i = 0; i < count; ++i) {
-      stmt.setInt(1, i);
-      stmt.executeUpdate();
-    }
+    PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) select  generate_series(0,?)");
+    stmt.setInt(1, count - 1);
+    stmt.executeUpdate();
   }
 
   // Test various fetchsizes.
