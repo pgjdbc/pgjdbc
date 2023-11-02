@@ -315,10 +315,6 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     // we could close in rs.close(), but if the transaction is closed before the result set,
     // then
     // the cursor no longer exists
-    if (fetchSize <= 0) {
-      closeCursor(cursorName);
-    }
-
     rs.setFetchSize(fetchSize);
     ((PgResultSet) rs).setRefCursor(cursorName);
     return rs;
