@@ -83,6 +83,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   private @Nullable TimeZone defaultTimeZone;
 
+  private final int binaryTransferBufferSize;
+
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
     this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
@@ -108,6 +110,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // TODO: this.wantsGeneratedKeysAlways = true;
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
+    this.binaryTransferBufferSize = connection.getBinaryTransferBufferSize();
   }
 
   final int maximumNumberOfParameters() {
@@ -1199,7 +1202,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
     OutputStream outputStream = lob.getOutputStream();
-    byte[] buf = new byte[4096];
+    byte[] buf = new byte[binaryTransferBufferSize];
     try {
       long remaining;
       if (length > 0) {

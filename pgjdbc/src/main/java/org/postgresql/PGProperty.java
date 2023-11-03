@@ -117,6 +117,14 @@ public enum PGProperty {
       "Use binary format for sending and receiving data if possible"),
 
   /**
+   * Size of buffers for copying inputs to outputs in case of OID creation using Blobs
+   */
+  BINARY_TRANSFER_BUFFER_SIZE(
+      "binaryTransferBufferSize",
+      "4096",
+      "Size of buffers for copying inputs to outputs in case of OID creation using Blobs"),
+
+  /**
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
    * Overrides values in the driver default set and values set with binaryTransferEnable.
    */

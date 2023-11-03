@@ -179,6 +179,11 @@ public class PgConnection implements BaseConnection {
    */
   private final Set<? extends Integer> binaryDisabledOids;
 
+  /**
+   * Buffer size for transfering binary data
+   */
+  private final int binaryTransferBufferSize;
+
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId = 0;
   // Connection's autocommit state.
@@ -284,6 +289,19 @@ public class PgConnection implements BaseConnection {
     // if there are any, remove them from the enabled ones
     if (!binaryDisabledOids.isEmpty()) {
       binaryOids.removeAll(binaryDisabledOids);
+    }
+
+    int userBinaryTransferBufferSize = PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getInt(info);
+    if (userBinaryTransferBufferSize > 0) {
+      this.binaryTransferBufferSize = userBinaryTransferBufferSize;
+    } else {
+      String binaryTransferBufferSizeDefaultValue =
+          PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getDefaultValue();
+      LOGGER.log(Level.WARNING, "Unsupported value for binaryTransferBufferSize: {0}, will use "
+          + "default value {1}", new Object[]{userBinaryTransferBufferSize,
+          binaryTransferBufferSizeDefaultValue});
+      this.binaryTransferBufferSize =
+          Integer.parseInt(binaryTransferBufferSizeDefaultValue);
     }
 
     // split for receive and send for better control
@@ -1244,6 +1262,10 @@ public class PgConnection implements BaseConnection {
   public void setForceBinary(boolean newValue) {
     this.forcebinary = newValue;
     LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
+  }
+
+  public int getBinaryTransferBufferSize() {
+    return binaryTransferBufferSize;
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
