@@ -2182,6 +2182,10 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
+    // ignore request to set fetchSize to 0 if it is currently > 0
+    if (fetchSize > 0 && rows == 0) {
+      return;
+    }
     fetchSize = rows;
   }
 

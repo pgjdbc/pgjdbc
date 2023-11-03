@@ -52,10 +52,10 @@ public class RefCursorFetchTest extends BaseTest4 {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (int numRows : new int[]{0, 10, 101}) {
-        for (Integer defaultFetchSize : new Integer[]{null, 9, 50}) {
+        for (Integer defaultFetchSize : new Integer[]{null, 0, 9, 50}) {
           for (AutoCommit autoCommit : AutoCommit.values()) {
             for (boolean commitAfterExecute : new boolean[]{true, false}) {
-              for (Integer resultSetFetchSize : new Integer[]{null, 9, 50}) {
+              for (Integer resultSetFetchSize : new Integer[]{null, 0, 9, 50}) {
                 ids.add(new Object[]{binaryMode, numRows, defaultFetchSize, resultSetFetchSize, autoCommit, commitAfterExecute});
               }
             }
