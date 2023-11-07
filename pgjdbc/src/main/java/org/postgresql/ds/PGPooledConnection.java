@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.LinkedList;
@@ -390,6 +391,7 @@ public class PGPooledConnection implements PooledConnection {
   private class StatementHandler implements InvocationHandler {
     private @Nullable ConnectionHandler con;
     private @Nullable Statement st;
+    private @Nullable ResultSet rs;
 
     StatementHandler(ConnectionHandler con, Statement st) {
       this.con = con;
@@ -413,6 +415,32 @@ public class PGPooledConnection implements PooledConnection {
           return proxy == args[0];
         }
         return method.invoke(st, args);
+      }
+
+      if (methodName.equals("executeQuery") ) {
+        try {
+          rs = castNonNull((ResultSet) method.invoke(st, args));
+          return Proxy.newProxyInstance(getClass().getClassLoader(),
+              new Class[]{ResultSet.class},
+              new ResultSetHandler(this, castNonNull(rs)));
+        } catch (final InvocationTargetException ite) {
+          final Throwable te = ite.getTargetException();
+          if (te instanceof SQLException) {
+            fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+          }
+          throw te;
+        }
+      }
+
+      // return the ResultSet stored above.
+      if ( methodName.equals("getResultSet") ) {
+        if ( rs == null ) {
+          return null;
+        } else {
+          return Proxy.newProxyInstance(getClass().getClassLoader(),
+              new Class[]{ResultSet.class},
+              new ResultSetHandler(this, castNonNull(rs)));
+        }
       }
 
       // All the rest is from the Statement interface
@@ -457,4 +485,42 @@ public class PGPooledConnection implements PooledConnection {
   public void addStatementEventListener(StatementEventListener listener) {
   }
 
+  private class ResultSetHandler implements InvocationHandler {
+
+    final StatementHandler statementHandler;
+    final ResultSet rs;
+
+    ResultSetHandler( StatementHandler statementHandler, ResultSet rs ) {
+      this.statementHandler = statementHandler;
+      this.rs = rs;
+    }
+
+    @Override
+    @SuppressWarnings("throwing.nullable")
+    public @Nullable Object invoke(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
+      final String methodName = method.getName();
+      // From Object
+      if (method.getDeclaringClass() == Object.class) {
+        if (methodName.equals("toString")) {
+          return "Pooled ResultSet wrapping physical resultSet " + rs;
+        }
+        if (methodName.equals("hashCode")) {
+          return System.identityHashCode(proxy);
+        }
+        if (methodName.equals("equals")) {
+          return proxy == args[0];
+        }
+        return method.invoke(rs, args);
+      }
+      try {
+        return method.invoke(rs, args);
+      } catch (final InvocationTargetException ite) {
+        final Throwable te = ite.getTargetException();
+        if (te instanceof SQLException) {
+          fireConnectionError((SQLException) te); // Tell listeners about exception if it's fatal
+        }
+        throw te;
+      }
+    }
+  }
 }

@@ -25,6 +25,7 @@ import java.io.ObjectOutputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -440,6 +441,27 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
 
       CallableStatement cs = con.prepareCall("select 'x'");
       b = ((org.postgresql.PGStatement) cs).isUseServerPrepare();
+
+    } catch (SQLException e) {
+      fail(e.getMessage());
+    }
+  }
+
+  /**
+   * Ensure that a statement created from a pool can be used like any other statement in regard to
+   * pg extensions.
+   */
+  @Test
+  public void testProxyResultSet() {
+    try {
+      PooledConnection pc = getPooledConnection();
+      con = pc.getConnection();
+
+      Statement s = con.createStatement();
+      ResultSet rs = s.executeQuery("select 1");
+      assertTrue(rs.next());
+      assertEquals(1, rs.getInt(1));
+      assertTrue("Pooled ResultSet wrapping physical resultSet", rs.toString().startsWith("Pooled ResultSet wrapping physical resultSet"));
 
     } catch (SQLException e) {
       fail(e.getMessage());
