@@ -18,6 +18,8 @@ rewrite {
 
     // See config/openrewrite/rewrite.yml
     activeRecipe("io.github.pgjdbc.staticanalysis.CodeCleanup")
+    // See https://github.com/openrewrite/rewrite-static-analysis/blob/8c803a9c50b480841a4af031f60bac5ee443eb4e/src/main/resources/META-INF/rewrite/common-static-analysis.yml#L21
+    activeRecipe("io.github.pgjdbc.staticanalysis.CommonStaticAnalysis")
 
     // This is auto-generated code, so there's no need to clean it up
     exclusion("pgjdbc/src/main/java/org/postgresql/translation/messages_*.java")
