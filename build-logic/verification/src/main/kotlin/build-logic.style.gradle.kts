@@ -72,6 +72,9 @@ if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipFo
         if (!buildParameters.skipAutostyle) {
             dependsOn("autostyleCheck")
         }
+        if (!skipOpenrewrite) {
+            dependsOn("rewriteDryRun")
+        }
         if (!skipCheckstyle) {
             dependsOn("checkstyleAll")
         }
@@ -85,17 +88,17 @@ if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipFo
 if (!skipOpenrewrite) {
     if (!buildParameters.skipForbiddenApis) {
         tasks.withType<CheckForbiddenApis>().configureEach {
-            mustRunAfter("rewriteRun")
+            mustRunAfter("rewriteRun", "rewriteDryRun")
         }
     }
     if (!buildParameters.skipCheckstyle) {
         tasks.withType<Checkstyle>().configureEach {
-            mustRunAfter("rewriteRun")
+            mustRunAfter("rewriteRun", "rewriteDryRun")
         }
     }
     if (!buildParameters.skipAutostyle) {
         tasks.withType<AutostyleTask>().configureEach {
-            mustRunAfter("rewriteRun")
+            mustRunAfter("rewriteRun", "rewriteDryRun")
         }
     }
 }

@@ -1,0 +1,66 @@
+---
+# See reference at https://docs.openrewrite.org/concepts-explanations/styles#declarative-styles
+type: specs.openrewrite.org/v1beta/style
+name: io.github.pgjdbc.style.Style
+styleConfigs:
+  - org.openrewrite.java.style.TabsAndIndentsStyle:
+      # See https://github.com/openrewrite/rewrite/issues/3666
+      # For now, it should be the same as in .editorconfig
+      useTabCharacter: false
+      tabSize: 2
+      indentSize: 2
+      continuationIndent: 4
+  - org.openrewrite.java.style.SpacesStyle:
+      # See https://github.com/openrewrite/rewrite/blob/1d0aeec11e2d7f239f2f656bfd964b17ca8e4d17/rewrite-java/src/main/java/org/openrewrite/java/style/SpacesStyle.java#L26C14-L26C25
+      other:
+        afterForSemicolon: true
+  - org.openrewrite.java.style.NoWhitespaceAfterStyle:
+      # This is to workaround https://github.com/openrewrite/rewrite/issues/3869
+      arrayDeclarator: false
+  - org.openrewrite.java.style.ImportLayoutStyle:
+      classCountToUseStarImport: 999
+      nameCountToUseStarImport: 999
+      # The order of the imports should match ij_java_imports_layout in .editorconfig
+      layout:
+        - import static all other imports
+        - <blank line>
+        - import org.postgresql.*
+        - <blank line>
+        - import all other imports
+        - <blank line>
+        - import java.*
+        - <blank line>
+        - import javax.*
+---
+type: specs.openrewrite.org/v1beta/recipe
+name: io.github.pgjdbc.staticanalysis.CodeCleanup
+displayName: Code cleanup
+description: Automatically cleanup code, e.g. remove unnecessary parentheses, simplify expressions.
+recipeList:
+  # The list is taken from https://github.com/openrewrite/rewrite-static-analysis/blob/8c803a9c50b480841a4af031f60bac5ee443eb4e/src/main/resources/META-INF/rewrite/static-analysis.yml#L16C1-L42
+  - org.openrewrite.staticanalysis.DefaultComesLast
+  - org.openrewrite.staticanalysis.EmptyBlock
+  - org.openrewrite.java.format.EmptyNewlineAtEndOfFile
+  - org.openrewrite.staticanalysis.ForLoopControlVariablePostfixOperators
+  - org.openrewrite.staticanalysis.FinalizePrivateFields
+  - org.openrewrite.java.format.MethodParamPad
+  - org.openrewrite.java.format.NoWhitespaceAfter
+  - org.openrewrite.java.format.NoWhitespaceBefore
+  - org.openrewrite.java.format.PadEmptyForLoopComponents
+  - org.openrewrite.staticanalysis.TypecastParenPad
+  - org.openrewrite.staticanalysis.EqualsAvoidsNull
+  - org.openrewrite.staticanalysis.ExplicitInitialization
+  - org.openrewrite.staticanalysis.FallThrough
+  # It breaks backward compatibility, so
+  # - org.openrewrite.staticanalysis.HideUtilityClassConstructor
+  - org.openrewrite.staticanalysis.NeedBraces
+  - org.openrewrite.staticanalysis.OperatorWrap
+  - org.openrewrite.staticanalysis.UnnecessaryParentheses
+  - org.openrewrite.staticanalysis.ReplaceThreadRunWithThreadStart
+  - org.openrewrite.staticanalysis.ChainStringBuilderAppendCalls
+  - org.openrewrite.staticanalysis.ReplaceStringBuilderWithString
+  # See https://github.com/openrewrite/rewrite/issues/3870, https://github.com/openrewrite/rewrite/issues/3873
+  # - org.openrewrite.java.ShortenFullyQualifiedTypeReferences
+  # See https://github.com/openrewrite/rewrite-static-analysis/issues/232 is resolved
+  # - org.openrewrite.staticanalysis.MissingOverrideAnnotation
+  - org.openrewrite.java.OrderImports
