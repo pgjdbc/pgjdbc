@@ -1506,13 +1506,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       java.sql.SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(parameterIndex,x,targetSqlType.getVendorTypeNumber(),scaleOrLength);
   }
 
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
       java.sql.SQLType targetSqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setObject");
+    setObject(parameterIndex,x,targetSqlType.getVendorTypeNumber());
   }
 
   public void setRowId(@Positive int parameterIndex, @Nullable RowId x) throws SQLException {
