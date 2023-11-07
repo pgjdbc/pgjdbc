@@ -149,4 +149,5 @@ public class BaseTest4 {
     assertEquals(message.get() + ", useBinaryForSend(oid=" + oid + ")", expected,
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid));
   }
+
 }

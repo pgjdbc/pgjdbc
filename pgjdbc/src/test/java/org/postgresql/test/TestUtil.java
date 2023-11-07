@@ -789,6 +789,15 @@ public class TestUtil {
     }
   }
 
+  public static void assumeExtensionInstalled(Connection conn, String extensionName) throws SQLException {
+    try (PreparedStatement pstmt = conn.prepareStatement("select * from pg_extension where extname = ?")) {
+      pstmt.setString(1, extensionName);
+      try (ResultSet rs = pstmt.executeQuery()) {
+        Assume.assumeTrue(rs.next());
+      }
+    }
+  }
+
   public static boolean haveMinimumJVMVersion(String version) {
     String jvm = java.lang.System.getProperty("java.version");
     return (jvm.compareTo(version) >= 0);
@@ -1163,6 +1172,34 @@ public class TestUtil {
   public static void execute(Connection connection, String sql) throws SQLException {
     try (Statement stmt = connection.createStatement()) {
       stmt.execute(sql);
+    }
+  }
+
+  /**
+   * Creates named extension
+   *
+   * @param con Connection we are connected to
+   * @param extension name of the extension to load
+   * @throws SQLException
+   *
+   */
+  public static void createExtension(Connection con, String extension) throws  SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("create extension " + extension);
+    }
+  }
+
+  /**
+   * Drops named extension
+   *
+   * @param con connection we are connected to
+   * @param extension name of the extension
+   * @throws SQLException
+   *
+   */
+  public static void dropExtension(Connection con, String extension) throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("drop extension " + extension);
     }
   }
 }
