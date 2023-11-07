@@ -1,4 +1,5 @@
 import com.github.autostyle.gradle.AutostyleTask
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import org.gradle.kotlin.dsl.apply
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
@@ -18,6 +19,14 @@ if (!buildParameters.skipAutostyle) {
 val skipCheckstyle = buildParameters.skipCheckstyle || run {
     logger.info("Checkstyle requires Java 11+")
     buildParameters.buildJdkVersion < 11
+}
+
+// OpenRewrite Gradle plugin applies to allprojects when it is applied to the root project
+// So the workaround is to avoid applying openrewrite to the root
+val skipOpenrewrite = project == rootProject || buildParameters.skipOpenrewrite
+
+if (!skipOpenrewrite) {
+    apply(plugin = "build-logic.openrewrite")
 }
 
 if (!skipCheckstyle) {
@@ -47,6 +56,9 @@ if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipFo
         if (!buildParameters.skipAutostyle) {
             dependsOn("autostyleApply")
         }
+        if (!skipOpenrewrite) {
+            dependsOn("rewriteRun")
+        }
         if (!skipCheckstyle) {
             dependsOn("checkstyleAll")
         }
@@ -66,5 +78,30 @@ if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipFo
         if (!buildParameters.skipForbiddenApis) {
             dependsOn("forbiddenApis")
         }
+    }
+}
+
+// OpenRewrite fixes many warnings, so it should run the first
+if (!skipOpenrewrite) {
+    if (!buildParameters.skipForbiddenApis) {
+        tasks.withType<CheckForbiddenApis>().configureEach {
+            mustRunAfter("rewriteRun")
+        }
+    }
+    if (!buildParameters.skipCheckstyle) {
+        tasks.withType<Checkstyle>().configureEach {
+            mustRunAfter("rewriteRun")
+        }
+    }
+    if (!buildParameters.skipAutostyle) {
+        tasks.withType<AutostyleTask>().configureEach {
+            mustRunAfter("rewriteRun")
+        }
+    }
+}
+
+if (!buildParameters.skipAutostyle) {
+    tasks.withType<Checkstyle>().configureEach {
+        mustRunAfter(tasks.withType<AutostyleTask>())
     }
 }

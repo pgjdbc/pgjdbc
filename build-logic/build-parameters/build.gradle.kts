@@ -62,6 +62,10 @@ buildParameters {
         defaultValue.set(false)
         description.set("Skip AutoStyle verifications")
     }
+    bool("skipOpenrewrite") {
+        defaultValue.set(false)
+        description.set("Skip OpenRewrite processing")
+    }
     bool("skipForbiddenApis") {
         defaultValue.set(false)
         description.set("Skip forbidden-apis verifications")
