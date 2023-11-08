@@ -33,6 +33,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.time.chrono.IsoChronology;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -67,6 +68,11 @@ public class TimestampUtils {
   private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
   private static final Duration PG_EPOCH_DIFF =
       Duration.between(Instant.EPOCH, LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
+
+  // Max/min values for CE/BCE cutovers. The exact time that the switch in era happens depends on
+  // the local timezone.
+  private static final long MAX_ERA_CUTOVER = -62135683200000L;
+  private static final long MIN_ERA_CUTOVER = -62135856000000L;
 
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
@@ -1588,27 +1594,30 @@ public class TimestampUtils {
   /**
    * Converts the SQL Date to binary representation for {@link Oid#DATE}.
    *
-   * @param tz The timezone used.
+   * @param tz The timezone used. If <code>null</code>, then no timezone offset will be applied to the date.
    * @param bytes The binary encoded date value.
    * @param value value
    * @throws PSQLException If binary format could not be parsed.
    */
   public void toBinDate(@Nullable TimeZone tz, byte[] bytes, Date value) throws PSQLException {
-    long millis = value.getTime();
-
-    if (tz == null) {
-      tz = getDefaultTz();
+    if (tz != null) {
+      long millis = value.getTime();
+      value = new Date(millis + tz.getOffset(millis));
     }
-    // It "getOffset" is UNTESTED
-    // See org.postgresql.jdbc.AbstractJdbc2Statement.setDate(int, java.sql.Date,
-    // java.util.Calendar)
-    // The problem is we typically do not know for sure what is the exact required date/timestamp
-    // type
-    // Thus pgjdbc sticks to text transfer.
-    millis += tz.getOffset(millis);
 
-    long secs = toPgSecs(millis / 1000);
-    ByteConverter.int4(bytes, 0, (int) (secs / 86400));
+    int normalizedYear = value.getYear() + 1900;
+    IsoEra era;
+    if (value.getTime() > MAX_ERA_CUTOVER) {
+      era = IsoEra.CE;
+    } else if (value.getTime() < MIN_ERA_CUTOVER) {
+      era = IsoEra.BCE;
+    } else {
+      Date startOfCE = new Date(1 - 1900, 0, 1);
+      era = value.before(startOfCE) ? IsoEra.BCE : IsoEra.CE;
+    }
+    LocalDate localDate = IsoChronology.INSTANCE.date(era, normalizedYear, value.getMonth() + 1, value.getDate());
+    long epochDay = localDate.toEpochDay();
+    ByteConverter.int4(bytes, 0, (int) (epochDay - PG_EPOCH_DIFF.toDays()));
   }
 
   /**
