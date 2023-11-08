@@ -8,7 +8,7 @@
 ### New Feature Submissions:
 
 1. [ ] Does your submission pass tests?
-2. [ ] Does `./gradlew autostyleCheck checkstyleAll` pass ?
+2. [ ] Does `./gradlew styleCheck` pass ?
 3. [ ] Have you added your new test classes to an existing test suite in alphabetical order?
 
 ### Changes to Existing Features:
