@@ -7,11 +7,11 @@ package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.math.BigDecimal;
-
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,8 +21,6 @@ import java.util.Collection;
  * @author Brett Okken
  */
 public class BigDecimalByteConverterTest {
-  public BigDecimal number;
-
   public static Iterable<Object[]> data() {
     final Collection<Object[]> numbers = new ArrayList<>();
     numbers.add(new Object[]{new BigDecimal("0.1")});
@@ -76,11 +74,17 @@ public class BigDecimalByteConverterTest {
   @MethodSource("data")
   @ParameterizedTest(name = "number = {0,number,#,###.##################################################}")
   public void binary(BigDecimal number) {
-    initBigDecimalByteConverterTest(number);
-    testBinary(number);
+    testBinaryConversion(number);
   }
 
-  static void testBinary(BigDecimal number) {
+  @Test
+  void testBigDecimal10_pow_131072_minus_1() {
+    testBinaryConversion(
+        new BigDecimal(BigInteger.TEN.pow(131072).subtract(BigInteger.ONE))
+    );
+  }
+
+  static void testBinaryConversion(BigDecimal number) {
     final byte[] bytes = ByteConverter.numeric(number);
     final BigDecimal actual = (BigDecimal) ByteConverter.numeric(bytes);
     if (number.scale() >= 0) {
@@ -88,9 +92,5 @@ public class BigDecimalByteConverterTest {
     } else {
       assertEquals(number.toPlainString(), actual.toPlainString());
     }
-  }
-
-  public void initBigDecimalByteConverterTest(BigDecimal number) {
-    this.number = number;
   }
 }
