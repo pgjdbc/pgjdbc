@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
+import org.postgresql.PGPreparedStatement;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Oid;
@@ -48,19 +49,21 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -72,11 +75,12 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
 
-class PgPreparedStatement extends PgStatement implements PreparedStatement {
+class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
 
   protected final CachedQuery preparedQuery; // Query fragments for prepared statement.
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
@@ -504,6 +508,173 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   public void clearParameters() throws SQLException {
     preparedParameters.clear();
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, int targetSqlType) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader, int length)
+      throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setRef(String parameterName, Ref x) throws SQLException {
+    this.setRef(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBlob(String parameterName, Blob x) throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setClob(String parameterName, Clob x) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setArray(String parameterName, Array x) throws SQLException {
+    this.setArray(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setDate(String parameterName, Date x, Calendar cal) throws SQLException {
+    this.setDate(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setTime(String parameterName, Time x, Calendar cal) throws SQLException {
+    this.setTime(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
+    this.setTimestamp(preparedParameters.getIndex(parameterName), x, cal);
+  }
+
+  @Override
+  public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
+    this.setNull(preparedParameters.getIndex(parameterName), sqlType, typeName);
+  }
+
+  @Override
+  public void setRowId(String parameterName, RowId x) throws SQLException {
+    this.setRowId(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setNString(String parameterName, String value) throws SQLException {
+    this.setNString(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setNCharacterStream(String parameterName, Reader value, long length)
+      throws SQLException {
+    this.setNCharacterStream(preparedParameters.getIndex(parameterName), value, length);
+  }
+
+  @Override
+  public void setNClob(String parameterName, NClob value) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setClob(String parameterName, Reader reader, long length) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setBlob(String parameterName, InputStream inputStream, long length)
+      throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), inputStream, length);
+  }
+
+  @Override
+  public void setNClob(String parameterName, Reader reader, long length) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setSQLXML(String parameterName, SQLXML xmlObject) throws SQLException {
+    this.setSQLXML(preparedParameters.getIndex(parameterName), xmlObject);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, int targetSqlType, int scaleOrLength)
+      throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType, scaleOrLength);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x, long length) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x, long length)
+      throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader, long length)
+      throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader, length);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x) throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setCharacterStream(String parameterName, Reader reader) throws SQLException {
+    this.setCharacterStream(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setNCharacterStream(String parameterName, Reader value) throws SQLException {
+    this.setNCharacterStream(preparedParameters.getIndex(parameterName), value);
+  }
+
+  @Override
+  public void setClob(String parameterName, Reader reader) throws SQLException {
+    this.setClob(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setBlob(String parameterName, InputStream inputStream) throws SQLException {
+    this.setBlob(preparedParameters.getIndex(parameterName), inputStream);
+  }
+
+  @Override
+  public void setNClob(String parameterName, Reader reader) throws SQLException {
+    this.setNClob(preparedParameters.getIndex(parameterName), reader);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType, int scaleOrLength)
+      throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType, scaleOrLength);
+  }
+
+  @Override
+  public void setObject(String parameterName, Object x, SQLType targetSqlType) throws SQLException {
+    this.setObject(preparedParameters.getIndex(parameterName), x, targetSqlType);
   }
 
   // Helper method for setting parameters to PGobject subclasses.
@@ -1750,5 +1921,109 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     this.batchStatements = newBatchStatements;
     this.batchParameters = newBatchParameters;
+  }
+
+  @Override
+  public void setString(String parameterName, String x) throws SQLException {
+    this.setString(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBytes(String parameterName, byte[] x) throws SQLException {
+    this.setBytes(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setNull(String parameterName, int sqlType) throws SQLException {
+    this.setNull(preparedParameters.getIndex(parameterName), sqlType);
+  }
+
+  @Override
+  public void setURL(String parameterName, URL x) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setURL(String,URL)");
+  }
+
+  @Override
+  public void setBoolean(String parameterName, boolean x) throws SQLException {
+    this.setBoolean(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setByte(String parameterName, byte x) throws SQLException {
+    this.setByte(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setShort(String parameterName, short x) throws SQLException {
+    this.setShort(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setInt(String parameterName, int i) throws SQLException {
+    this.setInt(preparedParameters.getIndex(parameterName), i);
+  }
+
+  @Override
+  public void setLong(String parameterName, long x) throws SQLException {
+    this.setLong(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setFloat(String parameterName, float x) throws SQLException {
+    this.setFloat(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setDouble(String parameterName, double x) throws SQLException {
+    this.setDouble(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setBigDecimal(String parameterName, BigDecimal x) throws SQLException {
+    this.setBigDecimal(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException {
+    this.setDate(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setTime(String parameterName, Time x) throws SQLException {
+    this.setTime(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setTimestamp(String parameterName, Timestamp x) throws SQLException {
+    this.setTimestamp(preparedParameters.getIndex(parameterName), x);
+  }
+
+  @Override
+  public void setAsciiStream(String parameterName, InputStream x, int length) throws SQLException {
+    this.setAsciiStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setUnicodeStream(String parameterName, InputStream x, int length)
+      throws SQLException {
+    this.setUnicodeStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public void setBinaryStream(String parameterName, InputStream x, int length) throws SQLException {
+    this.setBinaryStream(preparedParameters.getIndex(parameterName), x, length);
+  }
+
+  @Override
+  public boolean hasParameterNames() {
+    return preparedParameters.hasParameterNames();
+  }
+
+  @Override
+  public List<String> getParameterNames() throws SQLException {
+    /* We need to consult Query.getPlaceholderStyle() here, since Query.createParameterList may have
+      returned a reference to ParameterContext.EMPTY_CONTEXT if no parameters were found.
+    */
+    return preparedParameters.getParameterNames(this.preparedQuery.query.getPlaceholderStyle());
   }
 }

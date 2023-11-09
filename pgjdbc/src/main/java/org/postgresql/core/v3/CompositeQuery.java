@@ -9,6 +9,7 @@ package org.postgresql.core.v3;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -71,6 +72,11 @@ class CompositeQuery implements Query {
 
   public Query[] getSubqueries() {
     return subqueries;
+  }
+
+  @Override
+  public PlaceholderStyle getPlaceholderStyle() {
+    throw new RuntimeException("This should not be called");
   }
 
   public boolean isStatementDescribed() {

@@ -885,4 +885,19 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     // ignore scale for now
     registerOutParameter(parameterIndex, sqlType);
   }
+
+  @Override
+  public void setArray(String parameterName, Array array) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setArray(String,Array)");
+  }
+
+  @Override
+  public void setUnicodeStream(String parameterName, InputStream inputStream, int length) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setUnicodeStream(String,InputStream, int)");
+  }
+
+  @Override
+  public void setRef(String parameterName, Ref x) throws SQLException {
+    throw Driver.notImplemented(this.getClass(), "setRef(String,Ref)");
+  }
 }

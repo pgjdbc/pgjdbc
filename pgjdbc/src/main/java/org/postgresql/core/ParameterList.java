@@ -6,6 +6,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.ByteStreamWriter;
 
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -14,6 +15,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * <p>Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
@@ -209,4 +211,10 @@ public interface ParameterList {
    * @return Object array containing the parameter values.
    */
   @Nullable Object @Nullable [] getValues();
+
+  int getIndex(String parameterName) throws SQLException;
+
+  boolean hasParameterNames();
+
+  List<String> getParameterNames(PlaceholderStyle allowedPlaceholderStyle) throws SQLException;
 }

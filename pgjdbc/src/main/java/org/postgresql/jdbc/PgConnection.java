@@ -1892,6 +1892,16 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+    queryExecutor.setPlaceholderStyle(placeholderStyle);
+  }
+
+  @Override
+  public PlaceholderStyle getPlaceholderStyle() {
+    return queryExecutor.getPlaceholderStyle();
+  }
+
+  @Override
   public void setAdaptiveFetch(boolean adaptiveFetch) {
     queryExecutor.setAdaptiveFetch(adaptiveFetch);
   }

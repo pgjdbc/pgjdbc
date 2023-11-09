@@ -17,13 +17,23 @@ public enum SqlCommandType {
    * Use BLANK for empty sql queries or when parsing the sql string is not
    * necessary.
    */
-  BLANK,
-  INSERT,
-  UPDATE,
-  DELETE,
-  MOVE,
-  SELECT,
-  WITH,
-  CREATE,
-  ALTER;
+  BLANK(false),
+  INSERT(true),
+  UPDATE(true),
+  DELETE(true),
+  MOVE(false),
+  SELECT(true),
+  WITH(true),
+  CREATE(false),
+  ALTER(false);
+
+  private final boolean supportsParameters;
+
+  SqlCommandType(boolean supportsParameters) {
+    this.supportsParameters = supportsParameters;
+  }
+
+  public boolean supportsParameters() {
+    return supportsParameters;
+  }
 }

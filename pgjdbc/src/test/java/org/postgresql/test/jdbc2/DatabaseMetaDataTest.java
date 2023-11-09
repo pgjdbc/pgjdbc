@@ -17,7 +17,7 @@ import static org.junit.Assert.assertTrue;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
+import org.postgresql.test.jdbc2.AbstractBaseTest.BinaryMode;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.After;

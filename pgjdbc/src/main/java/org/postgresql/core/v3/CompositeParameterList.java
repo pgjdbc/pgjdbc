@@ -7,6 +7,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.ParameterList;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -18,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Parameter list for V3 query strings that contain multiple statements. We delegate to one
@@ -175,6 +177,21 @@ class CompositeParameterList implements V3ParameterList {
 
   public @Nullable Object @Nullable [] getValues() {
     return null; // unsupported
+  }
+
+  @Override
+  public int getIndex(String parameterName) {
+    throw new RuntimeException("This should not be called");
+  }
+
+  @Override
+  public boolean hasParameterNames() {
+    throw new RuntimeException("This should not be called");
+  }
+
+  @Override
+  public List<String> getParameterNames(PlaceholderStyle allowedPlaceholderStyle) throws SQLException {
+    throw new RuntimeException("This should not be called");
   }
 
   public void appendAll(ParameterList list) throws SQLException {

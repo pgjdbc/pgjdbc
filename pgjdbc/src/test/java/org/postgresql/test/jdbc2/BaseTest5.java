@@ -5,18 +5,18 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.sql.SQLException;
 
-public class BaseTest4 extends AbstractBaseTest {
-  @Before
+public class BaseTest5 extends AbstractBaseTest {
+  @BeforeEach
   public void setUp() throws Exception {
     super.setUp();
   }
 
-  @After
+  @AfterEach
   public void tearDown() throws SQLException {
     super.tearDown();
   }

@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyle;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Map;
@@ -86,4 +88,9 @@ public interface Query {
    *         single-statement query.
    */
   Query @Nullable [] getSubqueries();
+
+  /**
+   * @return the value of the setting that was used during parsing of this Query.
+   */
+  PlaceholderStyle getPlaceholderStyle();
 }

@@ -266,7 +266,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
         getStandardConformingStrings(), false, true,
-        isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers());
+        isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers(),
+        getPlaceholderStyle());
     return wrap(queries);
   }
 
@@ -299,7 +300,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
       subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
-      offset += nativeQuery.bindPositions.length;
+      offset += nativeQuery.parameterCtx.placeholderCount();
     }
 
     return new CompositeQuery(subqueries, offsets);
@@ -3055,28 +3056,29 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final SimpleQuery beginTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN", null, false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery beginReadOnlyTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN READ ONLY", null, false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN READ ONLY", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery emptyQuery =
       new SimpleQuery(
-          new NativeQuery("", null, false,
+          new NativeQuery("", false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
-          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
-          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", false,
+              SqlCommand.BLANK),
           null, false);
 
   /*
@@ -3084,6 +3086,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
-          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", false,
+              SqlCommand.BLANK),
           null, false);
 }

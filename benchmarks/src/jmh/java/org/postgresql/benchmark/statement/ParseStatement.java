@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.statement;
 
+import org.postgresql.PGPreparedStatement;
+import org.postgresql.core.ParameterContext;
 import org.postgresql.util.ConnectionUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -29,7 +31,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -47,12 +48,12 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class ParseStatement {
-  @Param({"0", "1", "10", "20"})
-  private int bindCount;
-
   @Param({"false"})
   public boolean unique;
-
+  @Param({"POSITIONAL", "NAMED", "NATIVE"})
+  public ParameterContext.BindStyle bindStyle;
+  @Param({"0", "1", "10", "20", "50", "100", "1000"})
+  private int bindCount;
   private Connection connection;
 
   @Param({"conservative"})
@@ -66,6 +67,7 @@ public class ParseStatement {
   public void setUp() throws SQLException {
     Properties props = ConnectionUtil.getProperties();
     props.put("autosave", autoSave);
+    props.put("placeholderStyle", "any");
 
     connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
 
@@ -81,7 +83,22 @@ public class ParseStatement {
       if (i > 0) {
         sb.append(',');
       }
-      sb.append('?');
+      switch (bindStyle) {
+        case POSITIONAL:
+          sb.append('?');
+          break;
+
+        case NAMED:
+          sb.append(":p_").append(i);
+          break;
+
+        case NATIVE:
+          sb.append("$").append(i + 1);
+          break;
+
+        default:
+          throw new IllegalArgumentException("Unknown bindStyle: " + bindStyle);
+      }
     }
     sql = sb.toString();
   }
@@ -97,9 +114,24 @@ public class ParseStatement {
     if (unique) {
       sql += " -- " + cntr++;
     }
-    PreparedStatement ps = connection.prepareStatement(sql);
+    PGPreparedStatement ps = connection.prepareStatement(sql).unwrap(PGPreparedStatement.class);
     for (int i = 1; i <= bindCount; i++) {
-      ps.setInt(i, i);
+      switch (bindStyle) {
+        case POSITIONAL:
+          ps.setInt(i, i);
+          break;
+
+        case NAMED:
+          ps.setInt("p_" + (i - 1), i);
+          break;
+
+        case NATIVE:
+          ps.setInt("$" + i, i);
+          break;
+
+        default:
+          throw new IllegalArgumentException("Unknown bindStyle: " + bindStyle);
+      }
     }
     ResultSet rs = ps.executeQuery();
     while (rs.next()) {

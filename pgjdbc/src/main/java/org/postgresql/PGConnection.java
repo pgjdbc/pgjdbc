@@ -8,6 +8,7 @@ package org.postgresql;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
@@ -330,4 +331,8 @@ public interface PGConnection {
    * @return state of adaptive fetch (turned on or off)
    */
   boolean getAdaptiveFetch();
+
+  void setPlaceholderStyle(PlaceholderStyle placeholderStyle);
+
+  PlaceholderStyle getPlaceholderStyle();
 }

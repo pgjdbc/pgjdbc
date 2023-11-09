@@ -14,10 +14,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class NativeQuery {
   private static final String[] BIND_NAMES = new String[128 * 10];
-  private static final int[] NO_BINDS = new int[0];
 
   public final String nativeSql;
-  public final int[] bindPositions;
+  public final ParameterContext parameterCtx;
   public final SqlCommand command;
   public final boolean multiStatement;
 
@@ -28,13 +27,20 @@ public class NativeQuery {
   }
 
   public NativeQuery(String nativeSql, SqlCommand dml) {
-    this(nativeSql, NO_BINDS, true, dml);
+    this(nativeSql, ParameterContext.EMPTY_CONTEXT, true, dml);
   }
 
-  public NativeQuery(String nativeSql, int @Nullable [] bindPositions, boolean multiStatement, SqlCommand dml) {
+  public NativeQuery(String nativeSql, boolean multiStatement,
+      SqlCommand dml) {
+    this(nativeSql, ParameterContext.EMPTY_CONTEXT, multiStatement, dml);
+  }
+
+  public NativeQuery(String nativeSql,
+      ParameterContext parameterContext,
+      boolean multiStatement,
+      SqlCommand dml) {
     this.nativeSql = nativeSql;
-    this.bindPositions =
-        bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;
+    this.parameterCtx = parameterContext;
     this.multiStatement = multiStatement;
     this.command = dml;
   }
@@ -48,24 +54,32 @@ public class NativeQuery {
    * @return a human-readable representation of this query
    */
   public String toString(@Nullable ParameterList parameters) {
-    if (bindPositions.length == 0) {
+    if (!parameterCtx.hasParameters()) {
       return nativeSql;
     }
 
     int queryLength = nativeSql.length();
-    String[] params = new String[bindPositions.length];
-    for (int i = 1; i <= bindPositions.length; ++i) {
-      String param = parameters == null ? "?" : parameters.toString(i, true);
-      params[i - 1] = param;
+    String[] nativeParams = new String[parameterCtx.nativeParameterCount()];
+    for (int i = 1; i <= parameterCtx.nativeParameterCount(); ++i) {
+      final String param;
+      if (parameters != null) {
+        param = parameters.toString(i, true);
+      } else {
+        param = parameterCtx.getPlaceholderForToString(i);
+      }
+      nativeParams[i - 1] = param;
       queryLength += param.length() - bindName(i).length();
     }
 
     StringBuilder sbuf = new StringBuilder(queryLength);
-    sbuf.append(nativeSql, 0, bindPositions[0]);
-    for (int i = 1; i <= bindPositions.length; ++i) {
-      sbuf.append(params[i - 1]);
-      int nextBind = i < bindPositions.length ? bindPositions[i] : nativeSql.length();
-      sbuf.append(nativeSql, bindPositions[i - 1] + bindName(i).length(), nextBind);
+    sbuf.append(nativeSql, 0, parameterCtx.getPlaceholderPosition(0));
+    for (int i = 1; i <= this.parameterCtx.placeholderCount(); ++i) {
+      sbuf.append(nativeParams[parameterCtx.getNativeParameterIndexForPlaceholderIndex(i - 1)]);
+      int nextBind = i < this.parameterCtx.placeholderCount()
+          ? parameterCtx.getPlaceholderPosition(i)
+          : nativeSql.length();
+      sbuf.append(nativeSql, parameterCtx.getPlaceholderPosition(i - 1) + bindName(i).length(),
+          nextBind);
     }
     return sbuf.toString();
   }

@@ -9,6 +9,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
@@ -1716,6 +1717,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public void setAdaptiveFetchMinimum(int adaptiveFetchMinimum) {
     PGProperty.ADAPTIVE_FETCH_MINIMUM.set(properties, adaptiveFetchMinimum);
+  }
+
+  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+    PGProperty.PLACEHOLDER_STYLE.set(properties, placeholderStyle.value());
+  }
+
+  public PlaceholderStyle getPlaceholderStyle() {
+    return PlaceholderStyle.of(castNonNull(PGProperty.PLACEHOLDER_STYLE.get(properties)));
   }
 
   @Override

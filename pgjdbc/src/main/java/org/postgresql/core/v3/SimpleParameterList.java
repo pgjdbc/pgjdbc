@@ -8,10 +8,12 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.Oid;
 import org.postgresql.core.PGStream;
+import org.postgresql.core.ParameterContext;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Utils;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
@@ -29,6 +31,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Parameter list for a single-statement V3 query.
@@ -44,12 +47,34 @@ class SimpleParameterList implements V3ParameterList {
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
 
-  SimpleParameterList(int paramCount, @Nullable TypeTransferModeRegistry transferModeRegistry) {
+  /**
+   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
+   * to null".
+   */
+  private static final Object NULL_OBJECT = new Object();
+  private final @Nullable Object[] paramValues;
+  private final int[] paramTypes;
+  private final byte[] flags;
+  private final byte[] @Nullable [] encoded;
+  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
+  private final ParameterContext parameterCtx;
+  private int pos = 0;
+
+  SimpleParameterList(int paramCount,
+      @Nullable TypeTransferModeRegistry transferModeRegistry) {
+    this(paramCount, transferModeRegistry, ParameterContext.EMPTY_CONTEXT);
+  }
+
+  SimpleParameterList(int paramCount,
+      @Nullable TypeTransferModeRegistry transferModeRegistry,
+      ParameterContext parameterCtx
+  ) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
     this.transferModeRegistry = transferModeRegistry;
+    this.parameterCtx = parameterCtx;
   }
 
   @Override
@@ -138,12 +163,14 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length) throws SQLException {
+  public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length)
+      throws SQLException {
     bind(index, new StreamWrapper(data, offset, length), Oid.BYTEA, BINARY);
   }
 
   @Override
-  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException {
+  public void setBytea(@Positive int index, InputStream stream, @NonNegative int length)
+      throws SQLException {
     bind(index, new StreamWrapper(stream, length), Oid.BYTEA, BINARY);
   }
 
@@ -178,7 +205,7 @@ class SimpleParameterList implements V3ParameterList {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
-      return "?";
+      return this.parameterCtx.getPlaceholderForToString(index);
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
     } else if ((flags[index] & BINARY) == BINARY) {
@@ -457,6 +484,43 @@ class SimpleParameterList implements V3ParameterList {
     return paramValues;
   }
 
+  @Override
+  public int getIndex(String parameterName) throws PSQLException {
+    if (!this.parameterCtx.hasNamedParameters()) {
+      throw new PSQLException(
+          GT.tr("The ParameterList was not created with named parameters."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    final Integer index = this.parameterCtx.getNativeParameterIndexForPlaceholderName(parameterName);
+
+    if (index == null) {
+      throw new PSQLException(
+          GT.tr("The parameterName was not found : {0}. The following names are known : \n\t {1}",
+              parameterName, this.parameterCtx.getPlaceholderNames()), PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    return index + 1;
+  }
+
+  @Override
+  public boolean hasParameterNames() {
+    return this.parameterCtx.hasNamedParameters();
+  }
+
+  @Override
+  public List<String> getParameterNames(PlaceholderStyle allowedPlaceholderStyle) throws PSQLException {
+    if (!this.parameterCtx.hasNamedParameters()) {
+      throw new PSQLException(
+          GT.tr("No parameter names are available, you need to call hasParameterNames to verify the presence of any names.\n"
+              + "Perhaps you need to enable support for named placeholders? Current setting is: PLACEHOLDER_STYLE = {0}",
+              allowedPlaceholderStyle
+          ),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return this.parameterCtx.getPlaceholderNames();
+  }
+
   public int[] getParamTypes() {
     return paramTypes;
   }
@@ -471,16 +535,16 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void appendAll(ParameterList list) throws SQLException {
-    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
+    if (list instanceof org.postgresql.core.v3.SimpleParameterList) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;
       int inParamCount = spl.getInParameterCount();
       if ((pos + inParamCount) > paramValues.length) {
         throw new PSQLException(
-          GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
-              (pos + inParamCount), paramValues.length),
-              PSQLState.INVALID_PARAMETER_VALUE);
+            GT.tr("Added parameters index out of range: {0}, number of columns: {1}.",
+                (pos + inParamCount), paramValues.length),
+            PSQLState.INVALID_PARAMETER_VALUE);
       }
       System.arraycopy(spl.getValues(), 0, this.paramValues, pos, inParamCount);
       System.arraycopy(spl.getParamTypes(), 0, this.paramTypes, pos, inParamCount);
@@ -492,6 +556,7 @@ class SimpleParameterList implements V3ParameterList {
 
   /**
    * Useful implementation of toString.
+   *
    * @return String representation of the list values
    */
   @Override
@@ -506,18 +571,4 @@ class SimpleParameterList implements V3ParameterList {
     ts.append("]>");
     return ts.toString();
   }
-
-  private final @Nullable Object[] paramValues;
-  private final int[] paramTypes;
-  private final byte[] flags;
-  private final byte[] @Nullable [] encoded;
-  private final @Nullable TypeTransferModeRegistry transferModeRegistry;
-
-  /**
-   * Marker object representing NULL; this distinguishes "parameter never set" from "parameter set
-   * to null".
-   */
-  private static final Object NULL_OBJECT = new Object();
-
-  private int pos = 0;
 }
