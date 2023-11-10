@@ -207,7 +207,10 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    *
    * @param p Point to move to
    * @see java.awt.Point
+   *
+   * @deprecated Will be removed for avoiding a dependency to the {@code java.desktop} module.
    */
+  @Deprecated
   public void setLocation(Point p) {
     setLocation(p.x, p.y);
   }

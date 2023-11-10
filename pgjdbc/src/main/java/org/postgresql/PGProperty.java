@@ -583,9 +583,7 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the Socket Factory.
-   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
-  @Deprecated
   SOCKET_FACTORY_ARG(
       "socketFactoryArg",
       null,

@@ -42,14 +42,18 @@ public class LogicalReplicationStatusTest {
 
   private Connection replicationConnection;
   private Connection sqlConnection;
+  private Connection secondSqlConnection;
 
   @Before
   public void setUp() throws Exception {
     //statistic available only for privileged user
     sqlConnection = TestUtil.openPrivilegedDB();
+    secondSqlConnection = TestUtil.openPrivilegedDB("test_2");
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     replicationConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",
+        "pk serial primary key, name varchar(100)");
+    TestUtil.createTable(secondSqlConnection, "test_logic_table",
         "pk serial primary key, name varchar(100)");
 
     TestUtil.recreateLogicalReplicationSlot(sqlConnection, SLOT_NAME, "test_decoding");
@@ -59,7 +63,9 @@ public class LogicalReplicationStatusTest {
   public void tearDown() throws Exception {
     replicationConnection.close();
     TestUtil.dropTable(sqlConnection, "test_logic_table");
+    TestUtil.dropTable(secondSqlConnection, "test_logic_table");
     TestUtil.dropReplicationSlot(sqlConnection, SLOT_NAME);
+    secondSqlConnection.close();
     sqlConnection.close();
   }
 
@@ -420,6 +426,59 @@ public class LogicalReplicationStatusTest {
             + "by default it parameter equals to 10 second, but in current test we change it on few millisecond "
             + "and wait that set status on stream will be auto send to backend",
         flushLSN, equalTo(waitLSN)
+    );
+  }
+
+  @Test()
+  public void testKeepAliveServerLSNCanBeUsedToAdvanceFlushLSN() throws Exception {
+    PGConnection pgConnection = (PGConnection) replicationConnection;
+
+    LogSequenceNumber startLSN = getCurrentLSN();
+
+    PGReplicationStream stream =
+        pgConnection
+            .getReplicationAPI()
+            .replicationStream()
+            .logical()
+            .withSlotName(SLOT_NAME)
+            .withStartPosition(startLSN)
+            .withStatusInterval(1, TimeUnit.SECONDS)
+            .start();
+
+    // create replication changes and poll for messages
+    Statement st = sqlConnection.createStatement();
+    st.execute("insert into test_logic_table(name) values('previous changes')");
+    st.close();
+
+    receiveMessageWithoutBlock(stream, 3);
+
+    // client confirms flush of these changes. At this point we're in sync with server
+    LogSequenceNumber confirmedClientFlushLSN = stream.getLastReceiveLSN();
+    stream.setFlushedLSN(confirmedClientFlushLSN);
+    stream.forceUpdateStatus();
+
+    // now insert something into other DB (without replication) to generate WAL
+    System.out.println("Writing to quiet table");
+    Statement st2 = secondSqlConnection.createStatement();
+    st2.execute("insert into test_logic_table(name) values('previous changes')");
+    st2.close();
+
+    TimeUnit.SECONDS.sleep(1);
+
+    // read KeepAlive messages - lastServerLSN will have advanced and we can safely confirm it
+    stream.readPending();
+
+    LogSequenceNumber lastFlushedLSN = stream.getLastFlushedLSN();
+    LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
+
+    assertThat("Activity in other database will generate WAL but no XLogData "
+            + " messages. Received LSN will begin to advance beyond of confirmed flushLSN",
+        confirmedClientFlushLSN, not(equalTo(lastReceivedLSN))
+    );
+
+    assertThat("When all XLogData messages have been processed, we can confirm "
+            + " flush of Server LSNs in the KeepAlive messages",
+        lastFlushedLSN, equalTo(lastReceivedLSN)
     );
   }
 

@@ -93,6 +93,7 @@ public class TypeInfoCache implements TypeInfo {
       {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
       {"bpchar", Oid.BPCHAR, Types.CHAR, "java.lang.String", Oid.BPCHAR_ARRAY},
       {"varchar", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
+      {"varbit", Oid.VARBIT, Types.OTHER, "java.lang.String", Oid.VARBIT_ARRAY},
       {"text", Oid.TEXT, Types.VARCHAR, "java.lang.String", Oid.TEXT_ARRAY},
       {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
       {"bytea", Oid.BYTEA, Types.BINARY, "[B", Oid.BYTEA_ARRAY},
@@ -117,7 +118,7 @@ public class TypeInfoCache implements TypeInfo {
    * Additional values used at runtime (including case variants) will be added to the map.
    * </p>
    */
-  private static final ConcurrentMap<String, String> TYPE_ALIASES = new ConcurrentHashMap<>(20);
+  private static final ConcurrentMap<String, String> TYPE_ALIASES = new ConcurrentHashMap<>(30);
 
   static {
     TYPE_ALIASES.put("bool", "bool");
@@ -131,11 +132,23 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("int8", "int8");
     TYPE_ALIASES.put("bigint", "int8");
     TYPE_ALIASES.put("float", "float8");
+    TYPE_ALIASES.put("real", "float4");
     TYPE_ALIASES.put("float4", "float4");
     TYPE_ALIASES.put("double", "float8");
+    TYPE_ALIASES.put("double precision", "float8");
     TYPE_ALIASES.put("float8", "float8");
     TYPE_ALIASES.put("decimal", "numeric");
     TYPE_ALIASES.put("numeric", "numeric");
+    TYPE_ALIASES.put("character varying", "varchar");
+    TYPE_ALIASES.put("varchar", "varchar");
+    TYPE_ALIASES.put("time without time zone", "time");
+    TYPE_ALIASES.put("time", "time");
+    TYPE_ALIASES.put("time with time zone", "timetz");
+    TYPE_ALIASES.put("timetz", "timetz");
+    TYPE_ALIASES.put("timestamp without time zone", "timestamp");
+    TYPE_ALIASES.put("timestamp", "timestamp");
+    TYPE_ALIASES.put("timestamp with time zone", "timestamptz");
+    TYPE_ALIASES.put("timestamptz", "timestamptz");
   }
 
   @SuppressWarnings("method.invocation")
@@ -356,7 +369,7 @@ public class TypeInfoCache implements TypeInfo {
         return i;
       }
 
-      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid '{0}'", intOidToLong(typeOid));
+      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid ''{0}''", intOidToLong(typeOid));
 
       PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
 

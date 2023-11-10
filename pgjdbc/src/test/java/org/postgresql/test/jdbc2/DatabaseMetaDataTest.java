@@ -217,7 +217,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }
     }
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       con.createArrayOf("custom", new Object[]{});
@@ -229,7 +233,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }
     }
   }
 
@@ -1057,9 +1065,26 @@ public class DatabaseMetaDataTest {
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getCatalogs();
-    assertTrue(rs.next());
-    assertEquals(con.getCatalog(), rs.getString(1));
-    assertTrue(!rs.next());
+
+    boolean foundDefault = false;
+    boolean foundTest = false;
+    int count;
+
+    for (count = 0; rs.next(); count++) {
+      String catalog = rs.getString("TABLE_CAT");
+      if ("test".equals(catalog)) {
+        foundTest = true;
+      }
+      if ("postgres".equals(catalog)) {
+        foundDefault = true;
+      }
+    }
+
+    rs.close();
+
+    assertTrue(count >= 2);
+    assertTrue(foundDefault);
+    assertTrue(foundTest);
   }
 
   @Test

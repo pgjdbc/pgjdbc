@@ -482,7 +482,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
         }
         errorCode = XAException.XAER_RMFAIL;
       }
-      throw new PGXAException(GT.tr("Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}", xid, preparedXid), ex, errorCode);
+      throw new PGXAException(GT.tr("Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, currentXid={2}", xid, preparedXid, currentXid), ex, errorCode);
     }
   }
 
