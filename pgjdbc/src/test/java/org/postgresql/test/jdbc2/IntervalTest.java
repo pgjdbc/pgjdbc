@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.time.Period;
-import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -386,13 +385,22 @@ public class IntervalTest {
     assertEquals(expectedPeriod, period);
 
     Duration duration = fromString.getDurationPart();
-    Duration expectedDuration = Duration.ofHours(-15).plusMinutes(-57).plusSeconds(-12).plus(-100001, ChronoUnit.MICROS);
+    Duration expectedDuration = Duration.parse("-PT15H57M12.100001S");
     assertEquals(expectedDuration, duration);
 
-    assertEquals(fromString, PGInterval.from(expectedPeriod, expectedDuration));
+    assertEquals(fromString, PGInterval.of(expectedPeriod, expectedDuration));
+  }
 
+  @Test
+  public void testConverterSupportsOnlyMicroseconds() throws SQLException {
     PGInterval pgi = new PGInterval("0.0000007 seconds");
     assertEquals(Duration.ofNanos(1000), pgi.getDurationPart());
+  }
+
+  @Test
+  public void testConverterSupportsMoreThan24Hours() throws SQLException {
+    PGInterval pgi = new PGInterval("1 year 1 month 1 day 300 hours");
+    assertEquals(Duration.ofHours(300), pgi.getDurationPart());
   }
 
   private java.sql.Date makeDate(int y, int m, int d) {

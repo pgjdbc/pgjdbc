@@ -472,13 +472,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Creates a new PGIntervall with the given period and duration values.
+   * Creates a new PGInterval with the given period and duration values.
    *
    * @param period the Period part (years, months and days) of the new interval.
    * @param duration the Duration part (hours, minutes and seconds) of the new interval.
    * @return a PGInterval with this filled values from the passed period and duration.
    */
-  public static PGInterval from(Period period, Duration duration) {
+  public static PGInterval of(Period period, Duration duration) {
     int hoursPart = (int) (duration.toHours() % 24);
     int minutesPart = (int) (duration.toMinutes() % 60);
     int secondsPart = (int) (duration.getSeconds() % 60);
