@@ -29,15 +29,17 @@ The following must be considered when using the extension interface `PGPreparedS
 This example binds a value to the parameter named myParam:
 
 ```java
-Properties props = new Properties;
+Properties props = new Properties();
 props.put("placeholderStyle", "any"); // "named", "native" or "any" can be enabled this way.
-Connection conn = DriverManager.getConnection( url, props );
-PGPreparedStatement ps = 
-  conn.prepareStatement("SELECT col_a FROM mytable WHERE col_a < :myParam AND col_b > :myParam")
-      .unwrap(PGPreparedStatement.class);
-
-ps.setInt("myParam", 42);
-...
+try (Connection con = DriverManager.getConnection(url, props); ) {
+    try (PreparedStatement ps = con.prepareStatement("SELECT col_a FROM mytable WHERE col_a < :myParam AND col_b > :myParam");
+        PGPreparedStatement pps = ps.unwrap(PGPreparedStatement.class);
+        ps.setInt("myParam", 42);
+        try (ResultSet rs = ps.executeQuery(); ) {
+            // ...
+        }
+    }
+}
 ```
 
 This example binds a value to a named parameter by the index of the parameter:
@@ -94,11 +96,11 @@ PGPreparedStatement ps =
   conn.prepareStatement("SELECT col_a FROM mytable WHERE col_a < :nameA AND col_b > :nameB")
       .unwrap(PGPreparedStatement.class);
 
-if ( ps.hasParameterNames() ) {
-	for ( String name : ps.getParameterNames() )
-		System.out.println( name );
-}
-else {
+if (ps.hasParameterNames()) {
+	for (String name : ps.getParameterNames()) {
+        System.out.println(name); // TODO: add expected output like ":nameA" and ":nameB"
+    }
+} else {
 	System.out.println( "No names are available" );
 }
 ...
