@@ -174,19 +174,23 @@ PGV=15 docker/bin/postgres-server
 If your contribution is version specific, you can use the same version used by CI to test your changes.  
 In your tests you can use the following [assumption](pgjdbc/src/test/java/org/postgresql/test/TestUtil.java) to skip the tests if the version is not compatible with your changes.
 ```java
-@Test
-public void testMyCodeSinceVersion15() {
-  Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
+class PgDriverTest {
+    @Test
+    void testMyCodeSinceVersion15() {
+        Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
+        // test your code
+    }
 }
 ```
 
 ### Validate the code style and run the tests
 
-CI uses strict conventions to validate the code style, you can use the following command to test your code changes against theses conventions.
+CI uses strict conventions to validate the code style, you can use the following command to test your code changes against these conventions.
 >Due to CI workflow, maintainers will strongly appreciate if you can run the following commands before submitting a PR
 
 ```shell
-./gradlew checkstyleAll autostyleJavaCheck
+#fix code style
+./gradlew style
 ```
 
 At the end you can test your changes against the test database using the following command.
