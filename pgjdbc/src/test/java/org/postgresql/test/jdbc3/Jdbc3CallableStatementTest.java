@@ -1110,7 +1110,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testCall5Times() throws SQLException {
-    assumeMinimumServerVersion(ServerVersion.v11);
+    assumeMinimumServerVersion(ServerVersion.v14);
     // call this enough times to change to binary mode
     for (int i = 0; i < 6; i++) {
       con.setAutoCommit(false);
