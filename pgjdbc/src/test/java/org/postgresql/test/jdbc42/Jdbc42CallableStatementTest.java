@@ -8,6 +8,8 @@ package org.postgresql.test.jdbc42;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
+import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Test;
@@ -37,6 +39,16 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
                       + "RETURNS refcursor AS '  "
                       + "declare ref refcursor;"
                       + "begin OPEN ref FOR SELECT 1; RETURN ref; end; ' LANGUAGE plpgsql;");
+
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+        stmt.execute("CREATE OR replace PROCEDURE testcallstatment_proc(OUT result INTEGER)\n"
+            + "AS "
+            + "$_$ "
+            + "BEGIN"
+            + "  result := 42; "
+            + "END; "
+            + "$_$ LANGUAGE plpgsql");
+      }
     }
   }
 
@@ -45,8 +57,9 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
 
   @Override
   public void tearDown() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      stmt.execute("drop FUNCTION testspg__getResultSetWithoutArg ();");
+    TestUtil.dropFunction(con, "testspg__getResultSetWithoutArg", null);
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
+      TestUtil.dropProcedure(con, "testcallstatment_proc");
     }
     super.tearDown();
   }
@@ -71,6 +84,19 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
   }
 
   @Test
+  public void testCastProcedure() throws SQLException {
+    assumeCallableStatementsSupported();
+    assumeProceduresCanHaveOutArguments();
+    try (CallableStatement stmt =
+             con.prepareCall("call testcallstatment_proc(?)")) {
+      stmt.setNull(1, Types.INTEGER);
+      stmt.registerOutParameter(1, Types.INTEGER);
+      stmt.execute();
+      stmt.getObject(1, Integer.class);
+    }
+  }
+
+  @Test
   public void testGetResultSetWithoutArgUnsupportedConversion() throws SQLException {
     assumeCallableStatementsSupported();
     try (CallableStatement call = con.prepareCall(func + pkgName + "getResultSetWithoutArg () }")) {
@@ -91,7 +117,7 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
 
   @Test
   public void testRegisterOutParameter() throws SQLException {
-
+    assumeProceduresCanHaveOutArguments();
     CallableStatement cs = null;
 
     cs = con.prepareCall("{ ? = call xxxx.yyyy (?,?,?,?)}");

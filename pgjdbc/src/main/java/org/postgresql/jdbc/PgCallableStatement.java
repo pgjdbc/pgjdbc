@@ -27,6 +27,7 @@ import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLXML;
@@ -658,11 +659,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public <T> @Nullable T getObject(@Positive int parameterIndex, Class<T> type)
       throws SQLException {
-    if (type == ResultSet.class) {
-      return type.cast(getObject(parameterIndex));
+    if (type == ResultSetMetaData.class) {
+      throw new PSQLException(GT.tr("Unsupported type conversion to {1}.", type),
+                      PSQLState.INVALID_PARAMETER_VALUE);
     }
-    throw new PSQLException(GT.tr("Unsupported type conversion to {1}.", type),
-            PSQLState.INVALID_PARAMETER_VALUE);
+    return type.cast(getObject(parameterIndex));
   }
 
   public <T> @Nullable T getObject(String parameterName, Class<T> type) throws SQLException {

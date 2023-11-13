@@ -11,6 +11,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -111,6 +112,10 @@ public class BaseTest4 {
   public void assumeCallableStatementsSupported() {
     Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",
         preferQueryMode != PreferQueryMode.SIMPLE);
+  }
+
+  public void assumeProceduresCanHaveOutArguments()  throws  SQLException {
+    assumeMinimumServerVersion("Procedures with OUT arguments are supported in version 14 and higher", ServerVersion.v14);
   }
 
   public void assumeBinaryModeRegular() {
