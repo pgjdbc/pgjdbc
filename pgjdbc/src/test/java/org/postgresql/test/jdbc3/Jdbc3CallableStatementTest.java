@@ -1107,13 +1107,14 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     assertEquals("call inoutprocedure(?) should return 10 (when input param = 5) via the INOUT parameter, but did not.", 10, cs.getInt(1));
     TestUtil.closeQuietly(cs);
   }
+
   @Test
   public void testCall5Times() throws SQLException {
     assumeMinimumServerVersion(ServerVersion.v11);
     // call this enough times to change to binary mode
-    for (int i = 0; i < 6; i++){
+    for (int i = 0; i < 6; i++) {
       con.setAutoCommit(false);
-      try(CallableStatement proc = con.prepareCall("call testspg_refcursor( ? , ? )")) {
+      try (CallableStatement proc = con.prepareCall("call testspg_refcursor( ? , ? )")) {
         proc.setDate(1, java.sql.Date.valueOf(LocalDate.now()));
         proc.registerOutParameter(2, Types.REF_CURSOR);
         proc.execute();
