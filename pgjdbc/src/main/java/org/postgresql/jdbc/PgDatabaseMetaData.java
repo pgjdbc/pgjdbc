@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -53,6 +54,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private int nameDataLength = 0; // length for name datatype
   private int indexMaxKeys = 0; // maximum number of keys in an index.
+  private int defaultTransactionIsolation = 0;
 
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
@@ -957,7 +959,40 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    return Connection.TRANSACTION_READ_COMMITTED;
+    if (defaultTransactionIsolation == 0) {
+      String sql;
+      sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
+
+      try (Statement stmt = connection.createStatement()) {
+        try (ResultSet rs = stmt.executeQuery(sql)) {
+          String level = null;
+          if (rs.next()) {
+            level = rs.getString(1);
+          }
+          if (level == null) {
+            throw new PSQLException(
+                GT.tr(
+                    "Unable to determine a value for DefaultTransactionIsolation due to missing "
+                    + "system catalog data."),
+                PSQLState.UNEXPECTED_ERROR);
+          }
+
+          level = level.toUpperCase(Locale.US);
+          if (level.equals("READ COMMITTED")) {
+            defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
+          } else if (level.equals("READ UNCOMMITTED")) {
+            defaultTransactionIsolation = Connection.TRANSACTION_READ_UNCOMMITTED;
+          } else if (level.equals("REPEATABLE READ")) {
+            defaultTransactionIsolation = Connection.TRANSACTION_REPEATABLE_READ;
+          } else if (level.equals("SERIALIZABLE")) {
+            defaultTransactionIsolation = Connection.TRANSACTION_SERIALIZABLE;
+          } else {
+            defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+          }
+        }
+      }
+    }
+    return defaultTransactionIsolation;
   }
 
   public boolean supportsTransactions() throws SQLException {

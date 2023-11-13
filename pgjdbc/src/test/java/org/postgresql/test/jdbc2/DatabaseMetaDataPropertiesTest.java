@@ -148,6 +148,41 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
+  public void testDefaultTransactionIsolation() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    int transactionIsolation = dbmd.getDefaultTransactionIsolation();
+    assertEquals(Connection.TRANSACTION_READ_COMMITTED, transactionIsolation);
+
+    String [] isolationLevels = {"\"read committed\"","\"read uncommitted\"", "\"repeatable read\"","serializable"};
+    try {
+      for (int i = 0; i < isolationLevels.length; i++) {
+        con.createStatement().execute("alter database test set default_transaction_isolation to " + isolationLevels[i]);
+        try (Connection con1 = TestUtil.openDB()) {
+          transactionIsolation = con1.getMetaData().getDefaultTransactionIsolation();
+          switch (i) {
+            case 0:
+              assertEquals(Connection.TRANSACTION_READ_COMMITTED, transactionIsolation);
+              break;
+            case 1:
+              assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, transactionIsolation);
+              break;
+            case 2:
+              assertEquals(Connection.TRANSACTION_REPEATABLE_READ, transactionIsolation);
+              break;
+            case 3:
+              assertEquals(Connection.TRANSACTION_SERIALIZABLE, transactionIsolation);
+              break;
+          }
+        }
+      }
+    } finally {
+      con.createStatement().execute("alter database test set default_transaction_isolation to DEFAULT");
+    }
+  }
+
+  @Test
   public void testTables() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
