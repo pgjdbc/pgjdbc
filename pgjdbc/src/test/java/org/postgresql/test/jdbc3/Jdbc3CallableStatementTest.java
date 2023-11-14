@@ -111,6 +111,9 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
           "CREATE OR REPLACE PROCEDURE inonlyprocedure(a IN int) AS 'BEGIN NULL; END;' LANGUAGE plpgsql");
       stmt.execute(
           "CREATE OR REPLACE PROCEDURE inoutprocedure(a INOUT int) AS 'BEGIN a := a + a; END;' LANGUAGE plpgsql");
+
+    }
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       stmt.execute("create or replace PROCEDURE testspg_refcursor(bar date, out cur1 refcursor) "
           + " as $$ declare begin "
           + "OPEN cur1 FOR "
@@ -135,6 +138,8 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       stmt.execute("drop procedure inonlyprocedure(a IN int)");
       stmt.execute("drop procedure inoutprocedure(a INOUT int)");
+    }
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v14)) {
       stmt.execute("DROP PROCEDURE testspg_refcursor(date);");
     }
     stmt.close();
