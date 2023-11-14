@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.time.LocalDate;
 
 /**
  * @author davec
@@ -110,6 +111,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
           "CREATE OR REPLACE PROCEDURE inonlyprocedure(a IN int) AS 'BEGIN NULL; END;' LANGUAGE plpgsql");
       stmt.execute(
           "CREATE OR REPLACE PROCEDURE inoutprocedure(a INOUT int) AS 'BEGIN a := a + a; END;' LANGUAGE plpgsql");
+      stmt.execute("create or replace PROCEDURE testspg_refcursor(bar date, out cur1 refcursor) "
+          + " as $$ declare begin "
+          + "OPEN cur1 FOR "
+          + "SELECT now() as now; end $$ language plpgsql");
     }
   }
 
@@ -130,6 +135,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       stmt.execute("drop procedure inonlyprocedure(a IN int)");
       stmt.execute("drop procedure inoutprocedure(a INOUT int)");
+      stmt.execute("DROP PROCEDURE testspg_refcursor(date);");
     }
     stmt.close();
     super.tearDown();
@@ -1100,5 +1106,25 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.execute();
     assertEquals("call inoutprocedure(?) should return 10 (when input param = 5) via the INOUT parameter, but did not.", 10, cs.getInt(1));
     TestUtil.closeQuietly(cs);
+  }
+
+  @Test
+  public void testCall5Times() throws SQLException {
+    assumeMinimumServerVersion(ServerVersion.v14);
+    // call this enough times to change to binary mode
+    for (int i = 0; i < 6; i++) {
+      con.setAutoCommit(false);
+      try (CallableStatement proc = con.prepareCall("call testspg_refcursor( ? , ? )")) {
+        proc.setDate(1, java.sql.Date.valueOf(LocalDate.now()));
+        proc.registerOutParameter(2, Types.REF_CURSOR);
+        proc.execute();
+        try (ResultSet results = (ResultSet) proc.getObject(2)) {
+          while (results.next()) {
+            System.out.println("  " + i + " " + results.getTimestamp("now").toLocalDateTime());
+          }
+        }
+      }
+      con.commit();
+    }
   }
 }
