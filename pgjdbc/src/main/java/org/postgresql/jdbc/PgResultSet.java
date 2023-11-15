@@ -2321,9 +2321,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       cursor.close();
       cursor = null;
     }
-    if (fetchSize > 0) {
-      closeRefCursor();
-    }
+    closeRefCursor();
   }
 
   /**
