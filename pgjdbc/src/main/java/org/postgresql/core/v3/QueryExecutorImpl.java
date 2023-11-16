@@ -47,7 +47,6 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -2631,7 +2630,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
+  public void addQueryToAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
     if (cursor instanceof Portal) {
       Query query = ((Portal) cursor).getQuery();
       if (Objects.nonNull(query)) {
@@ -2641,7 +2640,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, @NonNull ResultCursor cursor) {
+  public void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor) {
     if (cursor instanceof Portal) {
       Query query = ((Portal) cursor).getQuery();
       if (Objects.nonNull(query)) {
