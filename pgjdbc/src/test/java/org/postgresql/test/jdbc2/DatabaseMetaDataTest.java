@@ -5,6 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -16,6 +19,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -1064,27 +1068,23 @@ public class DatabaseMetaDataTest {
   @Test
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getCatalogs();
-
-    boolean foundDefault = false;
-    boolean foundTest = false;
-    int count;
-
-    for (count = 0; rs.next(); count++) {
-      String catalog = rs.getString("TABLE_CAT");
-      if ("test".equals(catalog)) {
-        foundTest = true;
+    try (ResultSet rs = dbmd.getCatalogs();) {
+      List<String> catalogs = new ArrayList<>();
+      while (rs.next()) {
+        catalogs.add(rs.getString("TABLE_CAT"));
       }
-      if ("postgres".equals(catalog)) {
-        foundDefault = true;
-      }
+      List<String> sortedCatalogs = new ArrayList<>(catalogs);
+      Collections.sort(sortedCatalogs);
+
+      MatcherAssert.assertThat(
+          catalogs,
+          allOf(
+              hasItem("test"),
+              hasItem("postgres"),
+              equalTo(sortedCatalogs)
+          )
+      );
     }
-
-    rs.close();
-
-    assertTrue(count >= 2);
-    assertTrue(foundDefault);
-    assertTrue(foundTest);
   }
 
   @Test

@@ -1495,7 +1495,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getCatalogs() throws SQLException {
     String sql = "SELECT datname AS TABLE_CAT FROM pg_catalog.pg_database"
-        + " WHERE datallowconn = true";
+        + " WHERE datallowconn = true"
+        + " ORDER BY datname";
     return createMetaDataStatement().executeQuery(sql);
   }
 
