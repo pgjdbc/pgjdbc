@@ -961,7 +961,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public int getDefaultTransactionIsolation() throws SQLException {
     if (defaultTransactionIsolation == 0) {
       String sql;
-      sql = "SELECT upper(setting) FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
+      sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
 
       try (Statement stmt = connection.createStatement()) {
         try (ResultSet rs = stmt.executeQuery(sql)) {
@@ -976,6 +976,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                         + "system catalog data."),
                 PSQLState.UNEXPECTED_ERROR);
           }
+          level = level.toUpperCase(Locale.ROOT);
+          
           switch (level) {
             case "READ COMMITTED":
               defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
