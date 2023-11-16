@@ -961,7 +961,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public int getDefaultTransactionIsolation() throws SQLException {
     if (defaultTransactionIsolation == 0) {
       String sql;
-      sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
+      sql = "SELECT upper(setting) FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
 
       try (Statement stmt = connection.createStatement()) {
         try (ResultSet rs = stmt.executeQuery(sql)) {
@@ -973,21 +973,25 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             throw new PSQLException(
                 GT.tr(
                     "Unable to determine a value for DefaultTransactionIsolation due to missing "
-                    + "system catalog data."),
+                        + "system catalog data."),
                 PSQLState.UNEXPECTED_ERROR);
           }
-
-          level = level.toUpperCase(Locale.US);
-          if (level.equals("READ COMMITTED")) {
-            defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
-          } else if (level.equals("READ UNCOMMITTED")) {
-            defaultTransactionIsolation = Connection.TRANSACTION_READ_UNCOMMITTED;
-          } else if (level.equals("REPEATABLE READ")) {
-            defaultTransactionIsolation = Connection.TRANSACTION_REPEATABLE_READ;
-          } else if (level.equals("SERIALIZABLE")) {
-            defaultTransactionIsolation = Connection.TRANSACTION_SERIALIZABLE;
-          } else {
-            defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+          switch (level) {
+            case "READ COMMITTED":
+              defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
+              break;
+            case "READ UNCOMMITTED":
+              defaultTransactionIsolation = Connection.TRANSACTION_READ_UNCOMMITTED;
+              break;
+            case "REPEATABLE READ":
+              defaultTransactionIsolation = Connection.TRANSACTION_REPEATABLE_READ;
+              break;
+            case "SERIALIZABLE":
+              defaultTransactionIsolation = Connection.TRANSACTION_SERIALIZABLE;
+              break;
+            default:
+              defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+              break;
           }
         }
       }
