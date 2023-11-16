@@ -31,23 +31,26 @@ import java.util.Properties;
 public class RefCursorFetchTest extends BaseTest4 {
   private final int numRows;
   private final @Nullable Integer defaultFetchSize;
+  private final @Nullable Integer statementFetchSize;
   private final @Nullable Integer resultSetFetchSize;
   private final AutoCommit autoCommit;
   private final boolean commitAfterExecute;
 
   public RefCursorFetchTest(BinaryMode binaryMode, int numRows,
       @Nullable Integer defaultFetchSize,
+      @Nullable Integer statementFetchSize,
       @Nullable Integer resultSetFetchSize,
       AutoCommit autoCommit, boolean commitAfterExecute) {
     this.numRows = numRows;
     this.defaultFetchSize = defaultFetchSize;
+    this.statementFetchSize = statementFetchSize;
     this.resultSetFetchSize = resultSetFetchSize;
     this.autoCommit = autoCommit;
     this.commitAfterExecute = commitAfterExecute;
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, numRows = {1}, defaultFetchSize = {2}, resultSetFetchSize = {3}, autoCommit = {4}, commitAfterExecute = {5}")
+  @Parameterized.Parameters(name = "binary = {0}, numRows = {1}, defaultFetchSize = {2}, statementFetchSize = {3}, resultSetFetchSize = {4}, autoCommit = {5}, commitAfterExecute = {6}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -56,7 +59,9 @@ public class RefCursorFetchTest extends BaseTest4 {
           for (AutoCommit autoCommit : AutoCommit.values()) {
             for (boolean commitAfterExecute : new boolean[]{true, false}) {
               for (Integer resultSetFetchSize : new Integer[]{null, 0, 9, 50}) {
-                ids.add(new Object[]{binaryMode, numRows, defaultFetchSize, resultSetFetchSize, autoCommit, commitAfterExecute});
+                for (Integer statementFetchSize : new Integer[]{null, 0, 9, 50}) {
+                  ids.add(new Object[]{binaryMode, numRows, defaultFetchSize, statementFetchSize, resultSetFetchSize, autoCommit, commitAfterExecute});
+                }
               }
             }
           }
@@ -115,6 +120,9 @@ public class RefCursorFetchTest extends BaseTest4 {
     int cnt = 0;
     try (CallableStatement call = con.prepareCall("{? = call test_blob(?)}")) {
       con.setAutoCommit(false); // ref cursors only work if auto commit is off
+      if (statementFetchSize != null) {
+        call.setFetchSize(statementFetchSize);
+      }
       call.registerOutParameter(1, Types.REF_CURSOR);
       call.setInt(2, numRows);
       call.execute();
@@ -139,11 +147,13 @@ public class RefCursorFetchTest extends BaseTest4 {
           // Transaction commit closes refcursor, so the fetch call is expected to fail
           // File: postgres.c, Routine: exec_execute_message, Line: 2070
           //   Server SQLState: 34000
+          // TODO: add resultSetFetchSize when ResultSet.setFetchSize is supported for refcursors
+          Integer fetchSize = statementFetchSize != null ? statementFetchSize : defaultFetchSize;
           int expectedRows =
-              defaultFetchSize != null && defaultFetchSize != 0 ? Math.min(defaultFetchSize, numRows) : numRows;
+              fetchSize != null && fetchSize != 0 ? Math.min(fetchSize, numRows) : numRows;
           assertEquals(
               "The transaction was committed before processing the results,"
-                  + " so expecting ResultSet to buffer fetchSize=" + defaultFetchSize + " rows out of "
+                  + " so expecting ResultSet to buffer fetchSize=" + fetchSize + " rows out of "
                   + numRows,
               expectedRows,
               cnt
