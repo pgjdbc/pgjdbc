@@ -147,8 +147,8 @@ public class RefCursorFetchTest extends BaseTest4 {
           // Transaction commit closes refcursor, so the fetch call is expected to fail
           // File: postgres.c, Routine: exec_execute_message, Line: 2070
           //   Server SQLState: 34000
-          // TODO: add resultSetFetchSize when ResultSet.setFetchSize is supported for refcursors
-          Integer fetchSize = statementFetchSize != null ? statementFetchSize : defaultFetchSize;
+          // TODO: add statementFetchSize, resultSetFetchSize when implemented
+          Integer fetchSize = defaultFetchSize;
           int expectedRows =
               fetchSize != null && fetchSize != 0 ? Math.min(fetchSize, numRows) : numRows;
           assertEquals(
