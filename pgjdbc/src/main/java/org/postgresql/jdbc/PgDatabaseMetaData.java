@@ -977,7 +977,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                 PSQLState.UNEXPECTED_ERROR);
           }
           level = level.toUpperCase(Locale.ROOT);
-          
+
           switch (level) {
             case "READ COMMITTED":
               defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
