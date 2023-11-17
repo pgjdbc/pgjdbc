@@ -54,7 +54,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private int nameDataLength = 0; // length for name datatype
   private int indexMaxKeys = 0; // maximum number of keys in an index.
-  private int defaultTransactionIsolation = 0;
 
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
@@ -959,46 +958,36 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    if (defaultTransactionIsolation == 0) {
-      String sql;
-      sql = "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
+    String sql =
+        "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
 
-      try (Statement stmt = connection.createStatement()) {
-        try (ResultSet rs = stmt.executeQuery(sql)) {
-          String level = null;
-          if (rs.next()) {
-            level = rs.getString(1);
-          }
-          if (level == null) {
-            throw new PSQLException(
-                GT.tr(
-                    "Unable to determine a value for DefaultTransactionIsolation due to missing "
-                        + "system catalog data."),
-                PSQLState.UNEXPECTED_ERROR);
-          }
-          level = level.toUpperCase(Locale.ROOT);
-
-          switch (level) {
-            case "READ COMMITTED":
-              defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED;
-              break;
-            case "READ UNCOMMITTED":
-              defaultTransactionIsolation = Connection.TRANSACTION_READ_UNCOMMITTED;
-              break;
-            case "REPEATABLE READ":
-              defaultTransactionIsolation = Connection.TRANSACTION_REPEATABLE_READ;
-              break;
-            case "SERIALIZABLE":
-              defaultTransactionIsolation = Connection.TRANSACTION_SERIALIZABLE;
-              break;
-            default:
-              defaultTransactionIsolation = Connection.TRANSACTION_READ_COMMITTED; // Best guess.
-              break;
-          }
-        }
+    try (Statement stmt = connection.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+      String level = null;
+      if (rs.next()) {
+        level = rs.getString(1);
+      }
+      if (level == null) {
+        throw new PSQLException(
+            GT.tr(
+                "Unable to determine a value for DefaultTransactionIsolation due to missing "
+                    + " entry in pg_catalog.pg_settings WHERE name='default_transaction_isolation'."),
+            PSQLState.UNEXPECTED_ERROR);
+      }
+      // PostgreSQL returns the value in lower case, so using "toLowerCase" here would be
+      // slightly more efficient.
+      switch (level.toLowerCase(Locale.ROOT)) {
+        case "read committed":
+        default: // Best guess.
+          return Connection.TRANSACTION_READ_COMMITTED;
+        case "read uncommitted":
+          return Connection.TRANSACTION_READ_UNCOMMITTED;
+        case "repeatable read":
+          return Connection.TRANSACTION_REPEATABLE_READ;
+        case "serializable":
+          return Connection.TRANSACTION_SERIALIZABLE;
       }
     }
-    return defaultTransactionIsolation;
   }
 
   public boolean supportsTransactions() throws SQLException {
