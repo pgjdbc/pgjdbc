@@ -2,10 +2,10 @@
 
 [[recent]]
 j_name= "Java 8"
-version= "42.6.0"
+version= "42.7.0"
 suffix=""
 description= "If you are using Java 8 or newer then you should use the JDBC 4.2 version."
-url= "/download/postgresql-42.6.0.jar"
+url= "/download/postgresql-42.7.0.jar"
 
 [[recent]]
 j_name= "Java 7"
@@ -22,6 +22,13 @@ description= "If you are using Java 6  then you should use the  JDBC 4.0 version
 url= "/download/postgresql-42.2.27.jre6.jar"
 
 # Past Versions
+[[past]]
+j_name= "Java 8"
+version= "42.6.0"
+suffix=""
+description= "If you are using Java 8 or newer then you should use the JDBC 4.2 version."
+url= "/download/postgresql-42.6.0.jar"
+
 [[past]]
 j_name= "Java 8"
 version= "42.5.4"
