@@ -110,7 +110,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // TODO: this.wantsGeneratedKeysAlways = true;
 
     setPoolable(true); // As per JDBC spec: prepared and callable statements are poolable by
-    this.binaryTransferBufferSize = connection.getBinaryTransferBufferSize();
+    this.binaryTransferBufferSize = Math.max(64 * 1024, connection.getBinaryTransferBufferSize());
   }
 
   final int maximumNumberOfParameters() {

@@ -1731,6 +1731,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
   }
 
+  public int getBinaryTransferBufferSize() {
+    return PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getIntNoCheck(properties);
+  }
+
+  public void setBinaryTransferBufferSize(int binaryTransferBufferSize) {
+    PGProperty.BINARY_TRANSFER_BUFFER_SIZE.set(properties, binaryTransferBufferSize);
+  }
+
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
    * which expect normal java bean getters / setters to exist for the property names.
