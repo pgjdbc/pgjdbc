@@ -299,7 +299,7 @@ public class PgConnection implements BaseConnection {
           PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getDefaultValue();
       LOGGER.log(Level.WARNING, "Unsupported value for binaryTransferBufferSize: {0}, will use "
           + "default value {1}", new Object[]{userBinaryTransferBufferSize,
-          binaryTransferBufferSizeDefaultValue});
+            binaryTransferBufferSizeDefaultValue});
       this.binaryTransferBufferSize =
           Integer.parseInt(binaryTransferBufferSizeDefaultValue);
     }
