@@ -9,11 +9,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
-## [42.6.1] (2023-11-14 08:05:00 -0500)
+## [42.7.0] (2023-11-20 09:33:00 -0500)
 
 ### Changed
 * fix: Deprecate for removal PGPoint.setLocation(java.awt.Point) to cut dependency to `java.desktop` module. [PR #2967](https://github.com/pgjdbc/pgjdbc/pull/2967)
 * feat: return all catalogs for getCatalogs metadata query closes [ISSUE #2949](https://github.com/pgjdbc/pgjdbc/issues/2949) [PR #2953](https://github.com/pgjdbc/pgjdbc/pull/2953)
+* feat: support SET statements combining with other queries with semicolon in PreparedStatement [PR ##2973](https://github.com/pgjdbc/pgjdbc/pull/2973)
 
 ### Fixed
 * chore: add styleCheck Gradle task to report style violations [PR #2980](https://github.com/pgjdbc/pgjdbc/pull/2980)
@@ -28,7 +29,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: Method getFastLong should be able to parse all longs [PR #2881](https://github.com/pgjdbc/pgjdbc/pull/2881)
 * docs: Fix typos in info.html [PR #2860](https://github.com/pgjdbc/pgjdbc/pull/2860)
 * fix: Return correct default from PgDatabaseMetaData.getDefaultTransactionIsolation [PR #2992](https://github.com/pgjdbc/pgjdbc/pull/2992) fixes [Issue #2991](https://github.com/pgjdbc/pgjdbc/issues/2991)
-
+* test: fix assertion in RefCursorFetchTestultFetchSize rows
+* test: use try-with-resources in LogicalReplicationStatusTest
+* 
 ## [42.6.0] (2023-03-17 15:34:34 -0400)
 
 ### Changed
