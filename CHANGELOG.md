@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: Return correct default from PgDatabaseMetaData.getDefaultTransactionIsolation [PR #2992](https://github.com/pgjdbc/pgjdbc/pull/2992) fixes [Issue #2991](https://github.com/pgjdbc/pgjdbc/issues/2991)
 * test: fix assertion in RefCursorFetchTestultFetchSize rows
 * test: use try-with-resources in LogicalReplicationStatusTest
-* 
+
 ## [42.6.0] (2023-03-17 15:34:34 -0400)
 
 ### Changed
