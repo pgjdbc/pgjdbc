@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 
@@ -957,7 +958,36 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   public int getDefaultTransactionIsolation() throws SQLException {
-    return Connection.TRANSACTION_READ_COMMITTED;
+    String sql =
+        "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
+
+    try (Statement stmt = connection.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+      String level = null;
+      if (rs.next()) {
+        level = rs.getString(1);
+      }
+      if (level == null) {
+        throw new PSQLException(
+            GT.tr(
+                "Unable to determine a value for DefaultTransactionIsolation due to missing "
+                    + " entry in pg_catalog.pg_settings WHERE name='default_transaction_isolation'."),
+            PSQLState.UNEXPECTED_ERROR);
+      }
+      // PostgreSQL returns the value in lower case, so using "toLowerCase" here would be
+      // slightly more efficient.
+      switch (level.toLowerCase(Locale.ROOT)) {
+        case "read committed":
+        default: // Best guess.
+          return Connection.TRANSACTION_READ_COMMITTED;
+        case "read uncommitted":
+          return Connection.TRANSACTION_READ_UNCOMMITTED;
+        case "repeatable read":
+          return Connection.TRANSACTION_REPEATABLE_READ;
+        case "serializable":
+          return Connection.TRANSACTION_SERIALIZABLE;
+      }
+    }
   }
 
   public boolean supportsTransactions() throws SQLException {
@@ -1457,20 +1487,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return createMetaDataStatement().executeQuery(sql);
   }
 
-  /**
-   * PostgreSQL does not support multiple catalogs from a single connection, so to reduce confusion
-   * we only return the current catalog. {@inheritDoc}
-   */
   @Override
   public ResultSet getCatalogs() throws SQLException {
-    Field[] f = new Field[1];
-    List<Tuple> v = new ArrayList<Tuple>();
-    f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
-    byte[] @Nullable [] tuple = new byte[1][];
-    tuple[0] = connection.encodeString(connection.getCatalog());
-    v.add(new Tuple(tuple));
-
-    return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    String sql = "SELECT datname AS TABLE_CAT FROM pg_catalog.pg_database"
+        + " WHERE datallowconn = true"
+        + " ORDER BY datname";
+    return createMetaDataStatement().executeQuery(sql);
   }
 
   @Override

@@ -56,7 +56,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk17
-        arguments: autostyleCheck checkstyleAll jandex
+        arguments: styleCheck jandex
 
   linux-checkerframework:
     name: 'CheckerFramework'

@@ -75,9 +75,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -112,9 +110,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -142,9 +138,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -172,9 +166,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -205,9 +197,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -245,9 +235,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -278,9 +266,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -320,9 +306,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -358,9 +342,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -394,9 +376,7 @@ public class LogicalReplicationStatusTest {
 
     LogSequenceNumber startLSN = getCurrentLSN();
 
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     PGReplicationStream stream =
         pgConnection
@@ -429,6 +409,12 @@ public class LogicalReplicationStatusTest {
     );
   }
 
+  private void insertPreviousChanges(Connection sqlConnection) throws SQLException {
+    try (Statement st = sqlConnection.createStatement();) {
+      st.execute("insert into test_logic_table(name) values('previous changes')");
+    }
+  }
+
   @Test()
   public void testKeepAliveServerLSNCanBeUsedToAdvanceFlushLSN() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
@@ -446,9 +432,7 @@ public class LogicalReplicationStatusTest {
             .start();
 
     // create replication changes and poll for messages
-    Statement st = sqlConnection.createStatement();
-    st.execute("insert into test_logic_table(name) values('previous changes')");
-    st.close();
+    insertPreviousChanges(sqlConnection);
 
     receiveMessageWithoutBlock(stream, 3);
 
@@ -458,10 +442,7 @@ public class LogicalReplicationStatusTest {
     stream.forceUpdateStatus();
 
     // now insert something into other DB (without replication) to generate WAL
-    System.out.println("Writing to quiet table");
-    Statement st2 = secondSqlConnection.createStatement();
-    st2.execute("insert into test_logic_table(name) values('previous changes')");
-    st2.close();
+    insertPreviousChanges(secondSqlConnection);
 
     TimeUnit.SECONDS.sleep(1);
 
@@ -534,11 +515,10 @@ public class LogicalReplicationStatusTest {
 
     int repeatCount = 0;
     while (true) {
-      Statement st = sqlConnection.createStatement();
-      ResultSet rs = null;
-      try {
-        rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid);
-
+      try (
+          Statement st = sqlConnection.createStatement();
+          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid);
+      ) {
         String result = null;
         if (rs.next()) {
           result = rs.getString(columnName);
@@ -554,34 +534,22 @@ public class LogicalReplicationStatusTest {
         } else {
           return LogSequenceNumber.valueOf(result);
         }
-      } finally {
-        if (rs != null) {
-          rs.close();
-        }
-        st.close();
       }
     }
   }
 
   private LogSequenceNumber getCurrentLSN() throws SQLException {
-    Statement st = sqlConnection.createStatement();
-    ResultSet rs = null;
-    try {
-      rs = st.executeQuery("select "
-          + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-          ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
-
+    try (Statement st = sqlConnection.createStatement();
+         ResultSet rs = st.executeQuery("select "
+             + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+             ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
+    ) {
       if (rs.next()) {
         String lsn = rs.getString(1);
         return LogSequenceNumber.valueOf(lsn);
       } else {
         return LogSequenceNumber.INVALID_LSN;
       }
-    } finally {
-      if (rs != null) {
-        rs.close();
-      }
-      st.close();
     }
   }
 }

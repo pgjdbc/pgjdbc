@@ -5,6 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -16,6 +19,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -217,7 +221,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }
     }
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       con.createArrayOf("custom", new Object[]{});
@@ -229,7 +237,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }
     }
   }
 
@@ -1056,10 +1068,23 @@ public class DatabaseMetaDataTest {
   @Test
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getCatalogs();
-    assertTrue(rs.next());
-    assertEquals(con.getCatalog(), rs.getString(1));
-    assertTrue(!rs.next());
+    try (ResultSet rs = dbmd.getCatalogs();) {
+      List<String> catalogs = new ArrayList<>();
+      while (rs.next()) {
+        catalogs.add(rs.getString("TABLE_CAT"));
+      }
+      List<String> sortedCatalogs = new ArrayList<>(catalogs);
+      Collections.sort(sortedCatalogs);
+
+      MatcherAssert.assertThat(
+          catalogs,
+          allOf(
+              hasItem("test"),
+              hasItem("postgres"),
+              equalTo(sortedCatalogs)
+          )
+      );
+    }
   }
 
   @Test
