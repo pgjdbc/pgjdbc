@@ -1202,7 +1202,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
     OutputStream outputStream = lob.getOutputStream();
-    byte[] buf = new byte[binaryTransferBufferSize];
+    byte[] buf = new byte[(int) Math.min(length, binaryTransferBufferSize)];
     try {
       long remaining;
       if (length > 0) {
