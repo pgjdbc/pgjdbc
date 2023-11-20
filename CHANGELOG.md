@@ -4,55 +4,79 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+
 ### Changed
 ### Added
 ### Fixed
 
+## [42.7.0] (2023-11-20 09:33:00 -0500)
+
+### Changed
+* fix: Deprecate for removal PGPoint.setLocation(java.awt.Point) to cut dependency to `java.desktop` module. [PR #2967](https://github.com/pgjdbc/pgjdbc/pull/2967)
+* feat: return all catalogs for getCatalogs metadata query closes [ISSUE #2949](https://github.com/pgjdbc/pgjdbc/issues/2949) [PR #2953](https://github.com/pgjdbc/pgjdbc/pull/2953)
+* feat: support SET statements combining with other queries with semicolon in PreparedStatement [PR ##2973](https://github.com/pgjdbc/pgjdbc/pull/2973)
+
+### Fixed
+* chore: add styleCheck Gradle task to report style violations [PR #2980](https://github.com/pgjdbc/pgjdbc/pull/2980)
+* fix: Include currentXid in "Error rolling back prepared transaction" exception message [PR #2978](https://github.com/pgjdbc/pgjdbc/pull/2978)
+* fix: add varbit as a basic type inside the TypeInfoCache [PR #2960](https://github.com/pgjdbc/pgjdbc/pull/2960)
+* fix: Fix failing tests for version 16.  [PR #2962](https://github.com/pgjdbc/pgjdbc/pull/2962)
+* fix: allow setting arrays with ANSI type name [PR #2952](https://github.com/pgjdbc/pgjdbc/pull/2952)
+* feat: Use KeepAlive to confirm LSNs [PR #2941](https://github.com/pgjdbc/pgjdbc/pull/2941)
+* fix: put double ' around log parameter [PR #2936](https://github.com/pgjdbc/pgjdbc/pull/2936) fixes [ISSUE #2935](https://github.com/pgjdbc/pgjdbc/issues/2935)
+* fix: Fix Issue #2928 number of ports not equal to number of servers in datasource [PR #2929](https://github.com/pgjdbc/pgjdbc/pull/2929)
+* fix: Use canonical DateStyle name (#2925) fixes [pgbouncer issue](https://github.com/pgbouncer/pgbouncer/issues/776)
+* fix: Method getFastLong should be able to parse all longs [PR #2881](https://github.com/pgjdbc/pgjdbc/pull/2881)
+* docs: Fix typos in info.html [PR #2860](https://github.com/pgjdbc/pgjdbc/pull/2860)
+* fix: Return correct default from PgDatabaseMetaData.getDefaultTransactionIsolation [PR #2992](https://github.com/pgjdbc/pgjdbc/pull/2992) fixes [Issue #2991](https://github.com/pgjdbc/pgjdbc/issues/2991)
+* test: fix assertion in RefCursorFetchTestultFetchSize rows
+* test: use try-with-resources in LogicalReplicationStatusTest
+
 ## [42.6.0] (2023-03-17 15:34:34 -0400)
 
 ### Changed
-fix: use PhantomReferences instead of `Obejct.finalize()` to track Connection leaks [PR #2847](https://github.com/pgjdbc/pgjdbc/pull/2847) 
+* fix: use PhantomReferences instead of `Obejct.finalize()` to track Connection leaks [PR #2847](https://github.com/pgjdbc/pgjdbc/pull/2847) 
 
     The change replaces all uses of Object.finalize with PhantomReferences.
     The leaked resources (Connections) are tracked in a helper thread that is active as long as
     there are connections in use. By default, the thread keeps running for 30 seconds after all
     the connections are released. The timeout is set with pgjdbc.config.cleanup.thread.ttl system property.
 
-refactor:(loom) replace the usages of synchronized with ReentrantLock [PR #2635](https://github.com/pgjdbc/pgjdbc/pull/2635)
+* refactor:(loom) replace the usages of synchronized with ReentrantLock [PR #2635](https://github.com/pgjdbc/pgjdbc/pull/2635)
     Fixes [Issue #1951](https://github.com/pgjdbc/pgjdbc/issues/1951)
 
 ## [42.5.4] (2023-02-15 10:21:04 -0500)
 
 ### Fixed
-fix: fix testGetSQLTypeQueryCache by searching for xid type. We used to search for box type but it is now cached. xid is not cached, this nuance is required for the test.
-fix OidValueCorrectnessTest BOX_ARRAY OID, by adding BOX_ARRAY to the oidTypeName map [PR #2810]((https://github.com/pgjdbc/pgjdbc/pull/2810).
-fixes [Issue #2804](https://github.com/pgjdbc/pgjdbc/issues/2804).
-fix: Make sure that github CI runs tests on all [PRs #2809]((https://github.com/pgjdbc/pgjdbc/pull/2809)).
+* fix: fix testGetSQLTypeQueryCache by searching for xid type. We used to search for box type but it is now cached. xid is not cached, this nuance is required for the test.  
+* fix OidValueCorrectnessTest BOX_ARRAY OID, by adding BOX_ARRAY to the oidTypeName map [PR #2810]((https://github.com/pgjdbc/pgjdbc/pull/2810).
+* fixes [Issue #2804](https://github.com/pgjdbc/pgjdbc/issues/2804).  
+* fix: Make sure that github CI runs tests on all [PRs #2809]((https://github.com/pgjdbc/pgjdbc/pull/2809)).  
 
 ## [42.5.3] (2023-02-03 08:24:50 -0500)
 
 ### Fixed
-fix: Add box to TypeInfoCache, fixes [Issue #2746](https://github.com/pgjdbc/pgjdbc/issues/2746) [PR #2747](https://github.com/pgjdbc/pgjdbc/pull/2747)
-fix: regression in PgResultSet LONG_MIN copy and paste error fixes [Issue #2748](https://github.com/pgjdbc/pgjdbc/issues/2748) [PR#2749](https://github.com/pgjdbc/pgjdbc/pull/2749)
+* fix: Add box to TypeInfoCache, fixes [Issue #2746](https://github.com/pgjdbc/pgjdbc/issues/2746) [PR #2747](https://github.com/pgjdbc/pgjdbc/pull/2747)  
+* fix: regression in PgResultSet LONG_MIN copy and paste error fixes [Issue #2748](https://github.com/pgjdbc/pgjdbc/issues/2748) [PR#2749](https://github.com/pgjdbc/pgjdbc/pull/2749)
 
 ## [42.5.2] (2023-01-31 14:30:46 -0500)
 
 ### Changed
-regression: This release has 2 known regressions which make it unusable see the notes above. We advise people to use 42.5.3 instead.
-docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
-docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)
-docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
-feat: Define binary transfer for custom types dynamically/automatically fixes [Issue #2554](https://github.com/pgjdbc/pgjdbc/issues/2554) [PR #2556](https://github.com/pgjdbc/pgjdbc/pull/2556)
+* regression: This release has 2 known regressions which make it unusable see the notes above. We advise people to use 42.5.3 instead.  
+* docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)  
+* docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)  
+* docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)  
+* feat: Define binary transfer for custom types dynamically/automatically fixes [Issue #2554](https://github.com/pgjdbc/pgjdbc/issues/2554) [PR #2556](https://github.com/pgjdbc/pgjdbc/pull/2556)  
 
 ### Added
-fix: added gssResponseTimeout as part of [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687) to make sure we don't wait forever on a GSS RESPONSE
+* fix: added gssResponseTimeout as part of [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687) to make sure we don't wait forever on a GSS RESPONSE
 
 ### Fixed
-fix: Ensure case of XML tags in Maven snippet is correct [PR #2682](https://github.com/pgjdbc/pgjdbc/pull/2682)
-fix: Make sure socket is closed if an exception is thrown in createSocket fixes [Issue #2684](https://github.com/pgjdbc/pgjdbc/issues/2684) [PR #2685](https://github.com/pgjdbc/pgjdbc/pull/2685)
-fix: Apply patch from [Issue #2683](https://github.com/pgjdbc/pgjdbc/issues/2683) to fix hanging ssl connections [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687)
-fix - binary conversion of (very) long numeric values (longer than 4 * 2^15 digits) [PR #2697](https://github.com/pgjdbc/pgjdbc/pull/2697) fixes [Issue #2695](https://github.com/pgjdbc/pgjdbc/issues/2695)
-minor: enhance readability connection of startup params [PR #2705](https://github.com/pgjdbc/pgjdbc/pull/2785)
+* fix: Ensure case of XML tags in Maven snippet is correct [PR #2682](https://github.com/pgjdbc/pgjdbc/pull/2682)
+* fix: Make sure socket is closed if an exception is thrown in createSocket fixes [Issue #2684](https://github.com/pgjdbc/pgjdbc/issues/2684) [PR #2685](https://github.com/pgjdbc/pgjdbc/pull/2685)
+* fix: Apply patch from [Issue #2683](https://github.com/pgjdbc/pgjdbc/issues/2683) to fix hanging ssl connections [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687)
+* fix - binary conversion of (very) long numeric values (longer than 4 * 2^15 digits) [PR #2697](https://github.com/pgjdbc/pgjdbc/pull/2697) fixes [Issue #2695](https://github.com/pgjdbc/pgjdbc/issues/2695)
+* minor: enhance readability connection of startup params [PR #2705](https://github.com/pgjdbc/pgjdbc/pull/2785)
 
 ## [42.5.1] (2022-11-23 10:14:59 -0500)
 ### Security
