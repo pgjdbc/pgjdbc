@@ -5,6 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
+import static java.sql.Types.TIMESTAMP;
+import static java.sql.Types.TIMESTAMP_WITH_TIMEZONE;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -53,31 +55,36 @@ import java.util.Set;
 public class DatabaseMetaDataTest {
   private Connection con;
   private final BinaryMode binaryMode;
+  private final int timestampType;
 
-  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+  public DatabaseMetaDataTest(BinaryMode binaryMode, int timestampType) {
     this.binaryMode = binaryMode;
+    this.timestampType = timestampType;
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
+  @Parameterized.Parameters(name = "binary = {0}, timestampType = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
-    for (BinaryMode binaryMode : BinaryMode.values()) {
-      ids.add(new Object[]{binaryMode});
+    for (int type : new int[]{TIMESTAMP, TIMESTAMP_WITH_TIMEZONE}) {
+      for (BinaryMode binaryMode : BinaryMode.values()) {
+        ids.add(new Object[]{binaryMode, type});
+      }
     }
     return ids;
   }
 
   @Before
   public void setUp() throws Exception {
-    if (binaryMode == BinaryMode.FORCE) {
-      final Properties props = new Properties();
-      PGProperty.PREPARE_THRESHOLD.set(props, -1);
-      con = TestUtil.openDB(props);
-    } else {
-      con = TestUtil.openDB();
+    final Properties props = new Properties();
+    if (timestampType == TIMESTAMP_WITH_TIMEZONE) {
+      PGProperty.TIMESTAMP_WITH_TIMEZONE.set(props, "timestamp_with_timezone");
     }
+    if (binaryMode == BinaryMode.FORCE) {
+      PGProperty.PREPARE_THRESHOLD.set(props, -1);
+    }
+    con = TestUtil.openDB(props);
     TestUtil.createTable(con, "metadatatest",
-        "id int4, name text, updated timestamptz, colour text, quest text");
+        "id int4, name text, updated timestamp, updatedtz timestamptz, colour text, quest text");
     TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -116,9 +123,9 @@ public class DatabaseMetaDataTest {
     stmt.execute(
         "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamp, OUT d timestamptz) AS $f$ BEGIN b := 'a'; c := now(); d := now() ; return; END; $f$ LANGUAGE plpgsql");
     stmt.execute(
-        "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
+        "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now()::timestamp, now()::timestamptz,  ''c''::text, ''q''::text' LANGUAGE SQL");
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       // RETURNS TABLE requires PostgreSQL 8.4+
       stmt.execute(
@@ -282,7 +289,12 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    assertEquals(TIMESTAMP, rs.getInt("DATA_TYPE"));
+
+    assertTrue(rs.next());
+    assertEquals("metadatatest", rs.getString("TABLE_NAME"));
+    assertEquals("updatedtz", rs.getString("COLUMN_NAME"));
+    assertEquals( timestampType, rs.getInt("DATA_TYPE"));
   }
 
   @Test
@@ -591,15 +603,19 @@ public class DatabaseMetaDataTest {
     assertEquals(2, rs.getInt("ORDINAL_POSITION"));
 
     assertTrue(rs.next());
-    assertEquals("quest", rs.getString("COLUMN_NAME"));
+    assertEquals("updatedtz", rs.getString("COLUMN_NAME"));
     assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+
+    assertTrue(rs.next());
+    assertEquals("quest", rs.getString("COLUMN_NAME"));
+    assertEquals(4, rs.getInt("ORDINAL_POSITION"));
 
     rs.close();
 
     rs = dbmd.getColumns(null, null, "metadatatest", "quest");
     assertTrue(rs.next());
     assertEquals("quest", rs.getString("COLUMN_NAME"));
-    assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+    assertEquals(4, rs.getInt("ORDINAL_POSITION"));
     assertFalse(rs.next());
     rs.close();
 
@@ -614,6 +630,9 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
+
+    assertTrue(rs.next());
+    assertEquals("updatedtz", rs.getString(4));
 
     rs.close();
   }
@@ -974,7 +993,12 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("c", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(TIMESTAMP, rs.getInt(6));
+
+    assertTrue(rs.next());
+    assertEquals("d", rs.getString(4));
+    assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
+    assertEquals(timestampType, rs.getInt(6));
 
     rs.close();
   }
@@ -1002,7 +1026,12 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(TIMESTAMP, rs.getInt(6));
+
+    assertTrue(rs.next());
+    assertEquals("updatedtz", rs.getString(4));
+    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
+    assertEquals(timestampType, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("colour", rs.getString(4));

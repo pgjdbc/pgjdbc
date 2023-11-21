@@ -159,6 +159,9 @@ public interface PGConnection {
    */
   int getPrepareThreshold();
 
+  void setTimestampType(int timestampType);
+
+  int getTimestampType();
   /**
    * Set the default fetch size for statements created from this connection.
    *

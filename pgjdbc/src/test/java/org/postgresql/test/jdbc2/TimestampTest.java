@@ -157,10 +157,6 @@ public class TimestampTest extends BaseTest4 {
     stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select ts from " + table);
     while (rs.next()) {
-      String foo = rs.getString(1);
-      if (foo == null) {
-        System.out.println();
-      }
       assertEquals(strValue, rs.getString(1));
 
       Timestamp ts = rs.getTimestamp(1);

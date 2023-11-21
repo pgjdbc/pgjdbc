@@ -896,6 +896,16 @@ public abstract class AbstractArraysTest<A> {
       throw new UnsupportedOperationException();
     }
 
+    @Override
+    public void setTimestampType(int timestampType) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int getTimestampType() {
+      throw new UnsupportedOperationException();
+    }
+
     /**
      * {@inheritDoc}
      */
