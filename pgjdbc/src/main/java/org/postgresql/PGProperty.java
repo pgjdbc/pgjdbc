@@ -117,10 +117,11 @@ public enum PGProperty {
       "Use binary format for sending and receiving data if possible"),
 
   /**
-   * Size of buffers for copying inputs to outputs in case of OID creation using Blobs
+   * Size of buffers for copying inputs to outputs in case of OID creation using Blobs.
+   * @since   42.7.1
    */
-  BINARY_TRANSFER_BUFFER_SIZE(
-      "binaryTransferBufferSize",
+  BINARY_TRANSFER_BLOB_BUFFER_SIZE(
+      "binaryTransferBlobBufferSize",
       "4096",
       "Size of buffers for copying inputs to outputs in case of OID creation using Blobs"),
 

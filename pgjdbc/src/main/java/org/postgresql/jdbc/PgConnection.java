@@ -182,7 +182,7 @@ public class PgConnection implements BaseConnection {
   /**
    * Buffer size for transfering binary data
    */
-  private final int binaryTransferBufferSize;
+  private final int binaryTransferBlobBufferSize;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId = 0;
@@ -291,17 +291,17 @@ public class PgConnection implements BaseConnection {
       binaryOids.removeAll(binaryDisabledOids);
     }
 
-    int userBinaryTransferBufferSize = PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getInt(info);
-    if (userBinaryTransferBufferSize > 0) {
-      this.binaryTransferBufferSize = userBinaryTransferBufferSize;
+    int userBinaryTransferBlobBufferSize = PGProperty.BINARY_TRANSFER_BLOB_BUFFER_SIZE.getInt(info);
+    if (userBinaryTransferBlobBufferSize > 0) {
+      this.binaryTransferBlobBufferSize = userBinaryTransferBlobBufferSize;
     } else {
-      String binaryTransferBufferSizeDefaultValue = castNonNull(
-          PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getDefaultValue());
-      LOGGER.log(Level.WARNING, "Unsupported value for binaryTransferBufferSize: {0}, will use "
-          + "default value {1}", new Object[]{userBinaryTransferBufferSize,
-            binaryTransferBufferSizeDefaultValue});
-      this.binaryTransferBufferSize =
-          Integer.parseInt(binaryTransferBufferSizeDefaultValue);
+      String binaryTransferBlobBufferSizeDefaultValue = castNonNull(
+          PGProperty.BINARY_TRANSFER_BLOB_BUFFER_SIZE.getDefaultValue());
+      LOGGER.log(Level.WARNING, "Unsupported value for binaryTransferBlobBufferSize: {0}, will use "
+          + "default value {1}", new Object[]{userBinaryTransferBlobBufferSize,
+            binaryTransferBlobBufferSizeDefaultValue});
+      this.binaryTransferBlobBufferSize =
+          Integer.parseInt(binaryTransferBlobBufferSizeDefaultValue);
     }
 
     // split for receive and send for better control
@@ -1264,8 +1264,8 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
   }
 
-  public int getBinaryTransferBufferSize() {
-    return binaryTransferBufferSize;
+  public int getBinaryTransferBlobBufferSize() {
+    return binaryTransferBlobBufferSize;
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {
