@@ -244,21 +244,30 @@ public class TypeInfoCache implements TypeInfo {
     // otherwise take the last version of a type that is at least more deterministic then before
     // (keeping old behaviour of finding types, that should not be found without correct search
     // path)
-    StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
+    StringBuilder sql = new StringBuilder("SELECT typinput='pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
     sql.append("  FROM pg_catalog.pg_type ");
-    sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
-    sql.append("          from pg_namespace as ns ");
-    // -- go with older way of unnesting array to be compatible with 8.0
-    sql.append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ");
-    sql.append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ");
-    sql.append("         using ( nspname ) ");
-    sql.append("       ) as sp ");
-    sql.append("    ON sp.nspoid = typnamespace ");
-    if (typoidParam) {
-      sql.append(" WHERE pg_type.oid = ? ");
+
+    if (conn.haveMinimumServerVersion(ServerVersion.v8_4)) {
+      sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r ")
+         .append("          from pg_namespace as ns ")
+         .append("          join ( select pg_catalog.unnest(current_schemas(false)) as nspname    ) as r ")
+         .append("          using ( nspname ) ) as sp  ")
+         .append("       ON sp.nspoid = typnamespace ");
+
+    } else {
+      sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
+      sql.append("          from pg_namespace as ns ");
+      // -- go with older way of unnesting array to be compatible with 8.0
+      sql.append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ");
+      sql.append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ");
+      sql.append("         using ( nspname ) ");
+      sql.append("       ) as sp ");
+      sql.append("    ON sp.nspoid = typnamespace ");
     }
-    sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
+      if (typoidParam) {
+        sql.append(" WHERE pg_type.oid = ? ");
+      }
+      sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
     return sql.toString();
   }
 
@@ -401,22 +410,27 @@ public class TypeInfoCache implements TypeInfo {
 
     if (dotIndex == -1 && !hasQuote && !isArray) {
       if (getOidStatementSimple == null) {
-        String sql;
+        StringBuilder sqlBuilder;
         // see comments in @getSQLType()
-        // -- go with older way of unnesting array to be compatible with 8.0
-        sql = "SELECT pg_type.oid, typname "
-              + "  FROM pg_catalog.pg_type "
-              + "  LEFT "
-              + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-              + "          from pg_namespace as ns "
-              + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-              + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-              + "         using ( nspname ) "
-              + "       ) as sp "
-              + "    ON sp.nspoid = typnamespace "
-              + " WHERE typname = ? "
-              + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-        getOidStatementSimple = conn.prepareStatement(sql);
+
+        if (conn.haveMinimumServerVersion(ServerVersion.v8_4)) {
+          sqlBuilder = new StringBuilder("select oid, typname from pg_type where oid = ?::regtype::oid");
+        } else {
+          // -- go with older way of unnesting array to be compatible with 8.0
+          sqlBuilder = new StringBuilder("SELECT pg_type.oid, typname ")
+              .append("  FROM pg_catalog.pg_type ")
+              .append("  LEFT ")
+              .append("  JOIN (select ns.oid as nspoid, ns.nspname, r.r ")
+              .append("          from pg_namespace as ns ")
+              .append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ")
+              .append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ")
+              .append("         using ( nspname ) ")
+              .append("       ) as sp ")
+              .append("    ON sp.nspoid = typnamespace ")
+              .append(" WHERE typname = ? ")
+              .append(" ORDER BY sp.r, pg_type.oid DESC LIMIT 1;");
+        }
+        getOidStatementSimple = conn.prepareStatement(sqlBuilder.toString());
       }
       // coerce to lower case to handle upper case type names
       String lcName = pgTypeName.toLowerCase(Locale.ROOT);
