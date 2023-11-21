@@ -199,6 +199,9 @@ A comma separated list of types to enable binary transfer. Either OID numbers or
 A comma separated list of types to disable binary transfer. Either OID numbers or names.
 Over-rides values in the driver default set and values set with binaryTransferEnable.
 
+* **`binaryTransferBufferSize (`*int*`)`** *Default `4096`*\
+Size of buffers for copying inputs to outputs in case of OID creation using Blobs.
+
 * **`databaseMetadataCacheFields (`*int*`)`** *Default `65536`*\
 Specifies the maximum number of fields to be cached per connection.
 A value of 0 disables the cache.

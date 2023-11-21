@@ -295,8 +295,8 @@ public class PgConnection implements BaseConnection {
     if (userBinaryTransferBufferSize > 0) {
       this.binaryTransferBufferSize = userBinaryTransferBufferSize;
     } else {
-      String binaryTransferBufferSizeDefaultValue =
-          PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getDefaultValue();
+      String binaryTransferBufferSizeDefaultValue = castNonNull(
+          PGProperty.BINARY_TRANSFER_BUFFER_SIZE.getDefaultValue());
       LOGGER.log(Level.WARNING, "Unsupported value for binaryTransferBufferSize: {0}, will use "
           + "default value {1}", new Object[]{userBinaryTransferBufferSize,
             binaryTransferBufferSizeDefaultValue});
