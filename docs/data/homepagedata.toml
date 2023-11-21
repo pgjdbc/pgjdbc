@@ -14,6 +14,11 @@ path = "/icons/driver-icon.svg"
 
 # Releases Info
 [[info]]
+date = "20 November 2023"
+url = "/changelogs/2023-11-20-42.7.0-release/"
+version = "42.7.0"
+
+[[info]]
 date = "17 March 2023"
 url = "/changelogs/2023-03-17-42.6.0-release/"
 version = "42.6.0"

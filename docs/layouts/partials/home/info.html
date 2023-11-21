@@ -15,8 +15,9 @@
             Latest Releases
         </h2>
         <p>
-            pgJDBC has released v42.6.0 on 17 March, 2023. This release has two major changes: Remove most uses of synchronized
-            in favour of reentrant locks, and remove the use of finalize.
+            pgJDBC has released v42.7.0 on November 20, 2023. This release is mostly a maintenance release but the change
+            in allowing SET statemnts in <a href="https://github.com/pgjdbc/pgjdbc/pull/2973">PR #2973</a> is a breaking
+            change which necessitates the major version change.
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
