@@ -32,7 +32,6 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
@@ -61,10 +60,6 @@ public class TimestampUtils {
   private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
-  // low value for dates is   4713 BC
-  private static final LocalDate MIN_LOCAL_DATE = LocalDate.of(4713, 1, 1).with(ChronoField.ERA, IsoEra.BCE.getValue());
-  private static final LocalDateTime MIN_LOCAL_DATETIME = MIN_LOCAL_DATE.atStartOfDay();
-  private static final OffsetDateTime MIN_OFFSET_DATETIME = MIN_LOCAL_DATETIME.atOffset(ZoneOffset.UTC);
   private static final Duration PG_EPOCH_DIFF =
       Duration.between(Instant.EPOCH, LocalDate.of(2000, 1, 1).atStartOfDay().toInstant(ZoneOffset.UTC));
 
@@ -889,7 +884,7 @@ public class TimestampUtils {
     try (ResourceLock ignore = lock.obtain()) {
       if (LocalDate.MAX.equals(localDate)) {
         return "infinity";
-      } else if (localDate.isBefore(MIN_LOCAL_DATE)) {
+      } else if (LocalDate.MIN.equals(localDate)) {
         return "-infinity";
       }
 
@@ -948,16 +943,16 @@ public class TimestampUtils {
 
   public String toString(OffsetDateTime offsetDateTime) {
     try (ResourceLock ignore = lock.obtain()) {
-      if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
+      if (offsetDateTime.equals(OffsetDateTime.MAX)) {
         return "infinity";
-      } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
+      } else if (offsetDateTime.equals(OffsetDateTime.MIN)) {
         return "-infinity";
       }
 
       sbuf.setLength(0);
 
       int nano = offsetDateTime.getNano();
-      if (nanosExceed499(nano)) {
+      if (nanosExceed499(nano) && !offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
         // Technically speaking this is not a proper rounding, however
         // it relies on the fact that appendTime just truncates 000..999 nanosecond part
         offsetDateTime = offsetDateTime.plus(ONE_MICROSECOND);
@@ -982,15 +977,25 @@ public class TimestampUtils {
    */
   public String toString(LocalDateTime localDateTime) {
     try (ResourceLock ignore = lock.obtain()) {
-      if (localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
+      if (localDateTime.equals(LocalDateTime.MAX)) {
         return "infinity";
-      } else if (localDateTime.isBefore(MIN_LOCAL_DATETIME)) {
+      } else if (localDateTime.equals(LocalDateTime.MIN)) {
         return "-infinity";
       }
 
-      // LocalDateTime is always passed with time zone so backend can decide between timestamp and timestamptz
-      ZonedDateTime zonedDateTime = localDateTime.atZone(getDefaultTz().toZoneId());
-      return toString(zonedDateTime.toOffsetDateTime());
+      sbuf.setLength(0);
+
+      if (nanosExceed499(localDateTime.getNano()) && !localDateTime.isAfter(MAX_LOCAL_DATETIME)) {
+        localDateTime = localDateTime.plus(ONE_MICROSECOND);
+      }
+
+      LocalDate localDate = localDateTime.toLocalDate();
+      appendDate(sbuf, localDate);
+      sbuf.append(' ');
+      appendTime(sbuf, localDateTime.toLocalTime());
+      appendEra(sbuf, localDate);
+
+      return sbuf.toString();
     }
   }
 
