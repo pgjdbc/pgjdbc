@@ -13,8 +13,6 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import org.junit.jupiter.api.Disabled;
-
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
@@ -1124,10 +1122,8 @@ public class StatementTest {
   public void testSetFollowedByShow() throws SQLException {
     try (Statement statement = con.createStatement()) {
       // This should return 'false', as the first statement returns nothing.
-      // This works as expected in 42.6.0, but returns 'true' in 42.7.0.
       assertFalse(statement.execute("set statement_timeout = '10s'; show statement_timeout;"));
       assertEquals(0, statement.getUpdateCount());
-
       // This should return 'true', because the next result is a ResultSet.
       assertTrue(statement.getMoreResults());
       try (ResultSet resultSet = statement.getResultSet()) {
@@ -1145,25 +1141,25 @@ public class StatementTest {
 
   @Test
   public void testUpdateCountWithSetForInsert() throws SQLException {
-    try(Statement stmt = con.createStatement()) {
+    try (Statement stmt = con.createStatement()) {
       int count = stmt.executeUpdate("SET search_path = 'public';"
           + "INSERT INTO test_statement VALUES (1)");
-      assertEquals(0, count);
-      stmt.getMoreResults();
+      assertEquals("SET should not return an update count", 0, count);
+      assertFalse(stmt.getMoreResults());
       assertEquals(1, stmt.getUpdateCount());
     }
   }
 
   @Test
   public void testUpdateCountWithSetForUpdate() throws SQLException {
-    try(Statement insertStmt = con.createStatement()) {
+    try (Statement insertStmt = con.createStatement()) {
       assertEquals(1, insertStmt.executeUpdate(
           "INSERT INTO test_statement VALUES (1)"));
-      try(Statement stmt = con.createStatement()) {
+      try (Statement stmt = con.createStatement()) {
         int count = stmt.executeUpdate("SET search_path = 'public';"
             + "UPDATE test_statement SET i=2");
-        assertEquals(0, count);
-        stmt.getMoreResults();
+        assertEquals("SET should not return an update count", 0, count);
+        assertFalse(stmt.getMoreResults());
         assertEquals(1, stmt.getUpdateCount());
       }
     }
@@ -1171,67 +1167,29 @@ public class StatementTest {
 
   @Test
   public void testUpdateCountWithSetForDelete() throws SQLException {
-    try(Statement insertStmt = con.createStatement()) {
+    try (Statement insertStmt = con.createStatement()) {
       assertEquals(1, insertStmt.executeUpdate(
           "INSERT INTO test_statement VALUES (1)"));
-      try(Statement stmt = con.createStatement()) {
+      try (Statement stmt = con.createStatement()) {
         int count = stmt.executeUpdate("SET search_path = 'public';"
             + "DELETE FROM test_statement");
-        assertEquals(0, count);
-        stmt.getMoreResults();
+        assertEquals("SET should not return an update count", 0, count);
+        assertFalse(stmt.getMoreResults());
         assertEquals(1, stmt.getUpdateCount());
       }
     }
   }
 
-  @Test @Disabled("Check regular behavior")
-  public void testUpdateCountForMultipleStatementsWithSet() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      stmt.execute("DROP SCHEMA IF EXISTS another_schema_than_public CASCADE");
-      stmt.execute("CREATE SCHEMA another_schema_than_public");
-      stmt.execute("CREATE TABLE another_schema_than_public.test_statement_in_another_schema (i int)");
-      stmt.execute("TRUNCATE TABLE another_schema_than_public.test_statement_in_another_schema");
-      int count;
-      count = stmt.executeUpdate("SET search_path = another_schema_than_public;"
-          + "INSERT INTO test_statement_in_another_schema VALUES (1);"
-          + "INSERT INTO test_statement_in_another_schema VALUES (2);"
-          + "INSERT INTO test_statement_in_another_schema VALUES (3)");
-      assertEquals("Multiple inserts should return the last update count", 1, count);
-
-      count = stmt.executeUpdate("SET search_path = another_schema_than_public;"
-          + "UPDATE test_statement_in_another_schema SET i=2 WHERE i=1;"
-          + "UPDATE test_statement_in_another_schema SET i=4 WHERE i=3");
-      assertEquals("Multiple updates should return the last update count", 1, count);
-
-      count = stmt.executeUpdate("SET search_path = another_schema_than_public;"
-          + "UPDATE test_statement_in_another_schema SET i=2");
-      assertEquals("Single update should return the update count", 3, count);
-
-      count = stmt.executeUpdate("SET search_path = another_schema_than_public;"
-          + "DELETE FROM test_statement_in_another_schema WHERE i > 0");
-      assertEquals(3, count);
-
-      count = stmt.executeUpdate("SET search_path TO public;"
-          + "INSERT INTO test_statement VALUES (1);"
-          + "SET search_path TO another_schema_than_public;"
-          + "INSERT INTO test_statement_in_another_schema VALUES (1);"
-          + "SET search_path TO public;"
-          + "UPDATE test_statement SET i=2 WHERE i=1;"
-          + "SET search_path TO another_schema_than_public;"
-          + "UPDATE test_statement_in_another_schema SET i=2 WHERE i=1;"
-          + "DELETE FROM test_statement_in_another_schema WHERE i=2;"
-          + "SET search_path TO public;");
-      assertEquals("Multiple statements should return the last update count", 1, count);
-    }
-  }
-
-  @Test @Disabled("Check regular behavior")
+  @Test
   public void testSingleSelectStatementsWithSetBefore() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      ResultSet resultSet = stmt.executeQuery("SET search_path = 'public';"
+      stmt.execute("SET search_path = 'public';"
           + "SET search_path = 'public';SELECT * FROM test_statement");
+      assertFalse(stmt.getMoreResults());
+      assertTrue(stmt.getMoreResults());
       int count = 0;
+      ResultSet resultSet = stmt.getResultSet();
       while (resultSet.next()) {
         count++;
       }
@@ -1240,13 +1198,15 @@ public class StatementTest {
     }
   }
 
-  @Test @Disabled("Check regular behavior")
+  @Test
   public void testSingleSelectStatementsWithSetSurrounding() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      ResultSet resultSet = stmt.executeQuery("SET search_path = 'public';"
+      stmt.execute("SET search_path = 'public';"
           + "SELECT * FROM test_statement;"
           + "SET search_path = 'public'");
+      assertTrue(stmt.getMoreResults());
+      ResultSet resultSet = stmt.getResultSet();
       int count = 0;
       while (resultSet.next()) {
         count++;
@@ -1256,70 +1216,14 @@ public class StatementTest {
     }
   }
 
-  @Test @Disabled("Check regular behavior")
-  public void testMultipleSelectStatementsWithSetBefore() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      boolean ok = stmt.execute("SET search_path = 'public';"
-          + "SET search_path = 'public';"
-          + "SELECT * FROM test_statement WHERE i>5;"
-          + "SET search_path = 'public';"
-          + "SELECT * FROM test_statement WHERE i<=5");
-      assertTrue(ok);
-      ResultSet resultSet = stmt.getResultSet();
-      int count = 0;
-      while (resultSet.next()) {
-        count++;
-      }
-      resultSet.close();
-      assertEquals("First select should return 5 rows", 5, count);
-      assertTrue(stmt.getMoreResults());
-      resultSet = stmt.getResultSet();
-      count = 0;
-      while (resultSet.next()) {
-        count++;
-      }
-      resultSet.close();
-      assertEquals("Second select should return 5 rows", 5, count);
-      assertFalse(stmt.getMoreResults());
-    }
-  }
-
-  @Test @Disabled("Check regular behavior")
-  public void testMultipleSelectStatementsWithSetSurrounding() throws SQLException {
-    try (Statement stmt = con.createStatement()) {
-      stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      boolean ok = stmt.execute("SET search_path = 'public';"
-          + "SELECT * FROM test_statement WHERE i>5;"
-          + "SET search_path = 'public';"
-          + "SELECT * FROM test_statement WHERE i<=5;"
-          + "SET search_path = 'public'");
-      assertTrue(ok);
-      ResultSet resultSet = stmt.getResultSet();
-      int count = 0;
-      while (resultSet.next()) {
-        count++;
-      }
-      resultSet.close();
-      assertEquals("First select should return 5 rows", 5, count);
-      assertTrue(stmt.getMoreResults());
-      resultSet = stmt.getResultSet();
-      count = 0;
-      while (resultSet.next()) {
-        count++;
-      }
-      resultSet.close();
-      assertEquals("Second select should return 5 rows", 5, count);
-      assertFalse(stmt.getMoreResults());
-    }
-  }
-
-  @Test @Disabled("Check regular behavior")
+  @Test
   public void testSetLocalUserSetting() throws SQLException {
     Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_6));
     try (Statement stmt = con.createStatement()) {
       assertThrows(SQLException.class, () -> stmt.executeQuery("SELECT current_setting('var.test', FALSE)"));
-      ResultSet rs = stmt.executeQuery("SET LOCAL var.test='test';SELECT current_setting('var.test', FALSE)");
+      stmt.execute("SET LOCAL var.test='test';SELECT current_setting('var.test', FALSE)");
+      assertTrue(stmt.getMoreResults());
+      ResultSet rs = stmt.getResultSet();
       assertTrue(rs.next());
       assertEquals("Current setting should be 'test'", "test", rs.getString(1));
       rs.close();
