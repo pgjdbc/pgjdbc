@@ -1120,22 +1120,18 @@ public class StatementTest {
 
   @Test
   public void testSetFollowedByShow() throws SQLException {
-    try (Statement statement = con.createStatement()) {
-      // This should return 'false', as the first statement returns nothing.
-      assertFalse(statement.execute("set statement_timeout = '10s'; show statement_timeout;"));
-      assertEquals(0, statement.getUpdateCount());
-      // This should return 'true', because the next result is a ResultSet.
-      assertTrue(statement.getMoreResults());
-      try (ResultSet resultSet = statement.getResultSet()) {
+    try (Statement stmt = con.createStatement()) {
+      assertFalse("First statement returns nothing",
+          stmt.execute("SET statement_timeout = '10s'; SHOW statement_timeout;"));
+      assertEquals("UpdateCount for SET is 0", 0, stmt.getUpdateCount());
+      assertTrue("Next result is a ResultSet", stmt.getMoreResults());
+      try (ResultSet resultSet = stmt.getResultSet()) {
         assertTrue(resultSet.next());
         assertEquals("10s", resultSet.getString(1));
         assertFalse(resultSet.next());
       }
-      // This should return 'false', as there are no more results.
-      assertFalse(statement.getMoreResults());
-      // This should return -1 to indicate that there were really no more results (i.e. there was
-      // also no update count).
-      assertEquals(-1, statement.getUpdateCount());
+      assertFalse("There are no more results", stmt.getMoreResults());
+      assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
     }
   }
 
@@ -1143,24 +1139,28 @@ public class StatementTest {
   public void testUpdateCountWithSetForInsert() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       int count = stmt.executeUpdate("SET search_path = 'public';"
-          + "INSERT INTO test_statement VALUES (1)");
-      assertEquals("SET should not return an update count", 0, count);
-      assertFalse(stmt.getMoreResults());
-      assertEquals(1, stmt.getUpdateCount());
+          + "INSERT INTO test_statement VALUES (1),(2),(3)");
+      assertEquals("UpdateCount for SET is 0", 0, count);
+      assertFalse("No more ResultSet", stmt.getMoreResults());
+      assertEquals("Right UpdateCount for INSERT", 3, stmt.getUpdateCount());
+      assertFalse("There are no more results", stmt.getMoreResults());
+      assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
     }
   }
 
   @Test
   public void testUpdateCountWithSetForUpdate() throws SQLException {
     try (Statement insertStmt = con.createStatement()) {
-      assertEquals(1, insertStmt.executeUpdate(
-          "INSERT INTO test_statement VALUES (1)"));
+      assertEquals(3, insertStmt.executeUpdate(
+          "INSERT INTO test_statement VALUES (1),(2),(3)"));
       try (Statement stmt = con.createStatement()) {
         int count = stmt.executeUpdate("SET search_path = 'public';"
             + "UPDATE test_statement SET i=2");
-        assertEquals("SET should not return an update count", 0, count);
-        assertFalse(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
+        assertEquals("UpdateCount for SET is 0", 0, count);
+        assertFalse("No more ResultSet", stmt.getMoreResults());
+        assertEquals("Right UpdateCount for UPDATE", 3, stmt.getUpdateCount());
+        assertFalse("There are no more results", stmt.getMoreResults());
+        assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
       }
     }
   }
@@ -1168,14 +1168,16 @@ public class StatementTest {
   @Test
   public void testUpdateCountWithSetForDelete() throws SQLException {
     try (Statement insertStmt = con.createStatement()) {
-      assertEquals(1, insertStmt.executeUpdate(
-          "INSERT INTO test_statement VALUES (1)"));
+      assertEquals(3, insertStmt.executeUpdate(
+          "INSERT INTO test_statement VALUES (1),(2),(3)"));
       try (Statement stmt = con.createStatement()) {
         int count = stmt.executeUpdate("SET search_path = 'public';"
             + "DELETE FROM test_statement");
-        assertEquals("SET should not return an update count", 0, count);
-        assertFalse(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
+        assertEquals("UpdateCount for SET is 0", 0, count);
+        assertFalse("No more ResultSet", stmt.getMoreResults());
+        assertEquals("Right UpdateCount for DELETE", 3, stmt.getUpdateCount());
+        assertFalse("There are no more results", stmt.getMoreResults());
+        assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
       }
     }
   }
@@ -1183,29 +1185,42 @@ public class StatementTest {
   @Test
   public void testSingleSelectStatementsWithSetBefore() throws SQLException {
     try (Statement stmt = con.createStatement()) {
-      stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      stmt.execute("SET search_path = 'public';"
-          + "SET search_path = 'public';SELECT * FROM test_statement");
-      assertFalse(stmt.getMoreResults());
-      assertTrue(stmt.getMoreResults());
+      assertEquals(7, stmt.executeUpdate(
+          "INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 7)"));
+      assertFalse("There is no ResultSet", stmt.execute("SET search_path = 'public';"
+          + "SELECT * FROM test_statement"));
+      assertEquals("UpdateCount for SET is 0", 0, stmt.getUpdateCount());
+      assertTrue("There is a ResultSet", stmt.getMoreResults());
       int count = 0;
       ResultSet resultSet = stmt.getResultSet();
       while (resultSet.next()) {
         count++;
       }
       resultSet.close();
-      assertEquals("Single select should return all rows", 10, count);
+      assertEquals("Single select should return all rows", 7, count);
+      assertFalse("No more ResultSet", stmt.getMoreResults());
+      assertFalse("There are no more results", stmt.getMoreResults());
+      assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
     }
   }
 
   @Test
-  public void testSingleSelectStatementsWithSetSurrounding() throws SQLException {
+  public void testManyResultsInStatementWithSet() throws SQLException {
     try (Statement stmt = con.createStatement()) {
-      stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
-      stmt.execute("SET search_path = 'public';"
-          + "SELECT * FROM test_statement;"
-          + "SET search_path = 'public'");
-      assertTrue(stmt.getMoreResults());
+      assertEquals(10, stmt.executeUpdate(
+          "INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)"));
+      assertFalse(stmt.execute(
+          "SET search_path = 'public';"
+              + "SELECT * FROM test_statement;"
+              + "SET search_path = 'public';"
+              + "DELETE FROM test_statement WHERE i > 5;"
+              + "UPDATE test_statement SET i=2 WHERE i > 2;"
+              + "INSERT INTO test_statement VALUES (11),(12),(13);"
+              + "SELECT * FROM test_statement;"
+              + "SET search_path = 'public';"
+              + "DELETE FROM test_statement;"));
+      assertEquals("UpdateCount for SET is 0", 0, stmt.getUpdateCount());
+      assertTrue("There is a ResultSet for SELECT", stmt.getMoreResults());
       ResultSet resultSet = stmt.getResultSet();
       int count = 0;
       while (resultSet.next()) {
@@ -1213,6 +1228,28 @@ public class StatementTest {
       }
       resultSet.close();
       assertEquals("Single select should return all rows", 10, count);
+      assertFalse("No more ResultSet for SET", stmt.getMoreResults());
+      assertEquals("UpdateCount for SET is 0", 0, stmt.getUpdateCount());
+      assertFalse("There is no ResultSet for DELETE", stmt.getMoreResults());
+      assertEquals("UpdateCount for DELETE is 5", 5, stmt.getUpdateCount());
+      assertFalse("There is no ResultSet for UPDATE", stmt.getMoreResults());
+      assertEquals("UpdateCount for UPDATE is 3", 3, stmt.getUpdateCount());
+      assertFalse("There is no ResultSet for INSERT", stmt.getMoreResults());
+      assertEquals("UpdateCount for INSERT is 3", 3, stmt.getUpdateCount());
+      assertTrue("There is a ResultSet for SELECT", stmt.getMoreResults());
+      resultSet = stmt.getResultSet();
+      count = 0;
+      while (resultSet.next()) {
+        count++;
+      }
+      resultSet.close();
+      assertEquals("Single select should return all rows", 10 - 5 + 3, count);
+      assertFalse("No more ResultSet for SET", stmt.getMoreResults());
+      assertEquals("UpdateCount for SET is 0", 0, stmt.getUpdateCount());
+      assertFalse("There is no ResultSet for DELETE", stmt.getMoreResults());
+      assertEquals("UpdateCount for DELETE is 3", 10 - 5 + 3, stmt.getUpdateCount());
+      assertFalse("There are no more results", stmt.getMoreResults());
+      assertEquals("No more results or updateCount", -1, stmt.getUpdateCount());
     }
   }
 
