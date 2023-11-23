@@ -20,18 +20,20 @@ import java.sql.ResultSet;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
-  public ResultWrapper(@Nullable ResultSet rs, SqlCommandType commandType) {
+  public ResultWrapper(@Nullable ResultSet rs, SqlCommandType commandType, PgStatement statement) {
     this.rs = rs;
     this.commandType = commandType;
     this.updateCount = -1;
     this.insertOID = -1;
+    this.fromPreparedStatement = isPreparedStatement(statement);
   }
 
-  public ResultWrapper(long updateCount, long insertOID, SqlCommandType commandType) {
+  public ResultWrapper(long updateCount, long insertOID, SqlCommandType commandType, PgStatement statement) {
     this.commandType = commandType;
     this.rs = null;
     this.updateCount = updateCount;
     this.insertOID = insertOID;
+    this.fromPreparedStatement = isPreparedStatement(statement);
   }
 
   @Pure
@@ -63,10 +65,10 @@ public class ResultWrapper {
    * @return the head of the chain
    */
   public ResultWrapper append(ResultWrapper newResult) {
-    if (commandType == SqlCommandType.SET) {
+    if (fromPreparedStatement && commandType == SqlCommandType.SET) {
       return newResult;
     }
-    if (newResult.commandType == SqlCommandType.SET) {
+    if (fromPreparedStatement && newResult.commandType == SqlCommandType.SET) {
       return this;
     }
     ResultWrapper tail = this;
@@ -77,9 +79,15 @@ public class ResultWrapper {
     return this;
   }
 
+  private static  boolean isPreparedStatement(PgStatement statement) {
+    return statement instanceof PgPreparedStatement;
+  }
+
   private final @Nullable ResultSet rs;
   private final long updateCount;
   private final long insertOID;
   private final SqlCommandType commandType;
   private @Nullable ResultWrapper next;
+
+  private final boolean fromPreparedStatement;
 }

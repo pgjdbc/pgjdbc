@@ -223,7 +223,7 @@ public class PgStatement implements Statement, BaseStatement {
         @Nullable ResultCursor cursor) {
       try {
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
-        append(new ResultWrapper(rs, commandTypeOfQuery(fromQuery)));
+        append(new ResultWrapper(rs, commandTypeOfQuery(fromQuery), PgStatement.this));
       } catch (SQLException e) {
         handleError(e);
       }
@@ -239,7 +239,8 @@ public class PgStatement implements Statement, BaseStatement {
 
     @Override
     public void handleCommandStatus(String status, long updateCount, long insertOID) {
-      append(new ResultWrapper(updateCount, insertOID, SqlCommandType.fromCommandStatus(status)));
+      append(new ResultWrapper(updateCount, insertOID, SqlCommandType.fromCommandStatus(status),
+          PgStatement.this));
     }
 
     @Override
@@ -910,7 +911,7 @@ public class PgStatement implements Statement, BaseStatement {
       try (ResourceLock ignore = lock.obtain()) {
         checkClosed();
         if (wantsGeneratedKeysAlways) {
-          generatedKeys = new ResultWrapper(handler.getGeneratedKeys(), SqlCommandType.BLANK);
+          generatedKeys = new ResultWrapper(handler.getGeneratedKeys(), SqlCommandType.BLANK, this);
         }
       }
     }
