@@ -55,7 +55,8 @@ public class ResultWrapper {
 
   /**
    * Append a result to its internal chain of results.
-   * It has a special behavior for {@code SET} commands as {@code SET} is discarded if there are
+   * It has a special behavior for {@code SET} commands in the context of
+   * {@code PgPreparedStatement} as {@code SET} is discarded if there are
    * other results in the chain.
    * If this is a {@code SET} command, the {@code newResult} is returned has the new head of
    * the chain.
