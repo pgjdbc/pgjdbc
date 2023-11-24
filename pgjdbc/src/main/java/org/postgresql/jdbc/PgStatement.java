@@ -19,7 +19,6 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
-import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -214,7 +213,7 @@ public class PgStatement implements Statement, BaseStatement {
       if (results == null) {
         lastResult = results = newResult;
       } else {
-        lastResult = results = castNonNull(lastResult).append(newResult);
+        castNonNull(lastResult).append(newResult);
       }
     }
 
@@ -223,23 +222,15 @@ public class PgStatement implements Statement, BaseStatement {
         @Nullable ResultCursor cursor) {
       try {
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
-        append(new ResultWrapper(rs, commandTypeOfQuery(fromQuery)));
+        append(new ResultWrapper(rs));
       } catch (SQLException e) {
         handleError(e);
       }
     }
 
-    private SqlCommandType commandTypeOfQuery(Query query) {
-      SqlCommand sqlCommand = query.getSqlCommand();
-      if (sqlCommand == null) {
-        return SqlCommandType.BLANK;
-      }
-      return sqlCommand.getType();
-    }
-
     @Override
     public void handleCommandStatus(String status, long updateCount, long insertOID) {
-      append(new ResultWrapper(updateCount, insertOID, SqlCommandType.fromCommandStatus(status)));
+      append(new ResultWrapper(updateCount, insertOID));
     }
 
     @Override
@@ -910,7 +901,7 @@ public class PgStatement implements Statement, BaseStatement {
       try (ResourceLock ignore = lock.obtain()) {
         checkClosed();
         if (wantsGeneratedKeysAlways) {
-          generatedKeys = new ResultWrapper(handler.getGeneratedKeys(), SqlCommandType.BLANK);
+          generatedKeys = new ResultWrapper(handler.getGeneratedKeys());
         }
       }
     }
