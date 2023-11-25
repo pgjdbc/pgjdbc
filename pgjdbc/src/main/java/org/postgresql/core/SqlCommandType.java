@@ -25,5 +25,24 @@ public enum SqlCommandType {
   SELECT,
   WITH,
   CREATE,
-  ALTER;
+  ALTER,
+  SET;
+
+  private static final SqlCommandType[] SQL_COMMAND_TYPES = SqlCommandType.values();
+
+  /**
+   * Returns the SqlCommandType for the given command status.
+   * Returns BLANK if the no match is found.
+   *
+   * @param commandStatus the command status
+   * @return the SqlCommandType for the given command status
+   */
+  public static SqlCommandType fromCommandStatus(String commandStatus) {
+    for (SqlCommandType type : SQL_COMMAND_TYPES) {
+      if (type.name().equalsIgnoreCase(commandStatus)) {
+        return type;
+      }
+    }
+    return SqlCommandType.BLANK;
+  }
 }

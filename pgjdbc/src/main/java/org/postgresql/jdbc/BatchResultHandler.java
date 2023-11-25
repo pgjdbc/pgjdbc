@@ -98,14 +98,19 @@ public class BatchResultHandler extends ResultHandlerBase {
       this.latestGeneratedRows = null;
     }
 
-    if (resultIndex >= queries.length) {
+    //SET commands can be ignored for the purposes of update counts
+    boolean statusIsFromSet = status.regionMatches(true, 0, "SET", 0, 3);
+
+    if (!statusIsFromSet && resultIndex >= queries.length) {
       handleError(new PSQLException(GT.tr("Too many update results were returned."),
           PSQLState.TOO_MANY_RESULTS));
       return;
     }
     latestGeneratedKeysRs = null;
 
-    longUpdateCounts[resultIndex++] = updateCount;
+    if (!statusIsFromSet) {
+      longUpdateCounts[resultIndex++] = updateCount;
+    }
   }
 
   private boolean isAutoCommit() {
