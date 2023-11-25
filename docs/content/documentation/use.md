@@ -428,6 +428,12 @@ If we quote them, then we end up sending ""colname"" to the backend instead of "
 Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password 
 value in the connection properties will be used.
 
+* **`quietOutput (`*boolean*`)`** *Default `false`*\
+If set to `true` , the driver will not append empty non-relevant results to the JDBC `ResultSet` unless the last one.
+For example BEGIN;SET ...;SELECT;COMMIT will only return the result of the SELECT statement, allowing the application to
+call `executeQuery` with that statement and get the result.
+
+
 ### Unix sockets
 
 By adding junixsocket you can obtain a socket factory that works with the driver.
