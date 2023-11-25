@@ -22,6 +22,11 @@
       "matchPackagePrefixes": ["ch.qos.logback"],
       "groupName": "logback",
       "allowedVersions": "< 1.3.0"
+    },
+    {
+      "matchPackagePrefixes": ["uk.org.webcompere"],
+      "groupName": "uk.org.webcompere",
+      "allowedVersions": "< 2.1.0"
     }
   ]
 }
