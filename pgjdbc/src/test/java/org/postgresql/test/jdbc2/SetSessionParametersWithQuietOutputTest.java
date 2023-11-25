@@ -53,6 +53,7 @@ public class SetSessionParametersWithQuietOutputTest {
 
   @Test
   void testUpdateCountForInsertWithLocalVariable() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     try (Statement stmt = con.createStatement()) {
       //Given
       int localVariable = 42;
@@ -69,6 +70,7 @@ public class SetSessionParametersWithQuietOutputTest {
 
   @Test
   void testUpdateCountForUpdateWithLocalVariable() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     try (Statement stmt = con.createStatement()) {
       //Given
       stmt.execute("INSERT INTO test_statement VALUES (1), (2), (3)");
@@ -86,6 +88,7 @@ public class SetSessionParametersWithQuietOutputTest {
 
   @Test
   void testUpdateCountForDeleteWithLocalVariable() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     try (Statement stmt = con.createStatement()) {
       //Given
       stmt.execute("INSERT INTO test_statement VALUES (1), (2), (3)");
@@ -140,6 +143,7 @@ public class SetSessionParametersWithQuietOutputTest {
 
   @Test
   public void testSingleSelectStatementsWithSetBefore() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     try (Statement stmt = con.createStatement()) {
       con.setAutoCommit(false);
       stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
@@ -160,7 +164,7 @@ public class SetSessionParametersWithQuietOutputTest {
   }
 
   @Test
-  public void testMultipleSelectStatementsWithSetBefore() throws SQLException {
+  public void testMultipleSelectStatementsWithSetPathBefore() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("INSERT INTO test_statement SELECT * FROM GENERATE_SERIES(1, 10)");
       boolean ok = stmt.execute("SET search_path = 'public';"
