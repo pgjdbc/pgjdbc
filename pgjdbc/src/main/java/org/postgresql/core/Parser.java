@@ -764,7 +764,7 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of VALUES keyword regardless of case.
+   * Parse string to check presence of SHOW keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
@@ -782,7 +782,7 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of AS keyword regardless of case.
+   * Parse string to check presence of START keyword regardless of case.
    *
    * @param query  char[] of the query statement
    * @param offset position of query to start checking
@@ -801,7 +801,7 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of AS keyword regardless of case.
+   * Parse string to check presence of COMMIT keyword regardless of case.
    *
    * @param query  char[] of the query statement
    * @param offset position of query to start checking
@@ -821,7 +821,7 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of AS keyword regardless of case.
+   * Parse string to check presence of END keyword regardless of case.
    *
    * @param query  char[] of the query statement
    * @param offset position of query to start checking
@@ -838,7 +838,7 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of AS keyword regardless of case.
+   * Parse string to check presence of ROLLBACK keyword regardless of case.
    *
    * @param query  char[] of the query statement
    * @param offset position of query to start checking
