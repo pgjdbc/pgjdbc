@@ -45,7 +45,7 @@ jobs:
           arguments: --scan --no-parallel --no-daemon :postgresql:osgiJar
       - name: Attach files to release
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         env:
           # https://github.com/release-drafter/release-drafter#action-outputs
           RELEASE_ID: ${{ steps.prepare_release.outputs.id }}
