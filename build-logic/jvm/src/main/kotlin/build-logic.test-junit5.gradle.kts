@@ -9,7 +9,7 @@ plugins {
 
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.1")
-    testImplementation("uk.org.webcompere:system-stubs-jupiter:2.0.2")
+    testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.5")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.1")
     testImplementation("org.hamcrest:hamcrest:2.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.1")
