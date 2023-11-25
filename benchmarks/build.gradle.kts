@@ -10,8 +10,8 @@ plugins {
 dependencies {
     // Make jmhCompileClasspath resolvable
     jmhImplementation(project(":postgresql"))
-    jmhImplementation("org.openjdk.jmh:jmh-core:1.36")
-    jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.36")
+    jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
+    jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
 
 // See https://github.com/melix/jmh-gradle-plugin
