@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Check out proper version of sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Submit the build
         env:
