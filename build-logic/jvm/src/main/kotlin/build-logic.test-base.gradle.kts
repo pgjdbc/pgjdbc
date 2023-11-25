@@ -21,7 +21,6 @@ tasks.configureEach<Test> {
     exclude("**/*Suite*")
     jvmArgs("-Xmx1536m")
     jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
-    jvmArgs("--add-opens", "java.base/java.net=ALL-UNNAMED")
     props.string("testExtraJvmArgs").trim().takeIf { it.isNotBlank() }?.let {
         jvmArgs(it.split(" ::: "))
     }

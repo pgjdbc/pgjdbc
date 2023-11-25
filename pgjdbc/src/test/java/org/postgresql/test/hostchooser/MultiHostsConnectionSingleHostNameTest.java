@@ -11,6 +11,8 @@ import static org.junit.Assert.assertNull;
 import static org.postgresql.hostchooser.HostRequirement.primary;
 import static org.postgresql.test.TestUtil.closeDB;
 
+import org.junit.After;
+
 import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostRequirement;
@@ -38,6 +40,7 @@ public class MultiHostsConnectionSingleHostNameTest {
   private String primaryIp;
   private Connection con;
   private Map<HostSpec, Object> hostStatusMap;
+  private Map<String, Object> addressCache;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -60,7 +63,7 @@ public class MultiHostsConnectionSingleHostNameTest {
 
     Field addressCacheField = InetAddress.class.getDeclaredField("cache");
     addressCacheField.setAccessible(true);
-    Map<String, Object> addressCache = (Map<String, Object>) addressCacheField.get(null);
+    addressCache = (Map<String, Object>) addressCacheField.get(null);
     for (Class<?> declaredClass : InetAddress.class.getDeclaredClasses()) {
       if (declaredClass.getSimpleName().equals("CachedAddresses")) {
         Constructor<?> constructor = declaredClass.getDeclaredConstructor(String.class,
@@ -77,6 +80,11 @@ public class MultiHostsConnectionSingleHostNameTest {
         addressCache.put("test-host", cachedTestAddress);
       }
     }
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    addressCache.remove("test-host");
   }
 
   @Test
