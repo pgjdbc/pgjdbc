@@ -1,14 +1,14 @@
 # appveyor.yml
-image: Visual Studio 2015
+image: Visual Studio 2022
 configuration: Release
 
 clone_depth: 1
 environment:
-  JAVA_HOME: 'C:\Program Files\Java\jdk1.8.0'
+  JAVA_HOME: 'C:\Program Files\Java\jdk17'
   matrix:
   - pg: 9.6.11-1
     PlatformToolset: v120
-  - pg: 10.6-1
+  - pg: 15.2-1
     PlatformToolset: v120
 matrix:
   allow_failures:
@@ -25,8 +25,6 @@ skip_commits:
     - 'docs/**'
     - '**/*.md'
     - '.github/**'
-    - '.travis.yml'
-    - '.travis/**'
 
 init:
 - set pf=%ProgramFiles%&& set x64=-x64

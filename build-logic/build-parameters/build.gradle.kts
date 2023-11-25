@@ -16,6 +16,32 @@ buildParameters {
         defaultValue.set(false)
         description.set("Collect test coverage")
     }
+    integer("targetJavaVersion") {
+        defaultValue.set(8)
+        mandatory.set(true)
+        description.set("Java version for source and target compatibility")
+    }
+    val projectName = "pgjdbc"
+    integer("jdkBuildVersion") {
+        defaultValue.set(17)
+        mandatory.set(true)
+        description.set("JDK version to use for building $projectName. If the value is 0, then the current Java is used. (see https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming)")
+    }
+    string("jdkBuildVendor") {
+        description.set("JDK vendor to use building $projectName (see https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors)")
+    }
+    string("jdkBuildImplementation") {
+        description.set("Vendor-specific virtual machine implementation to use building $projectName (see https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation)")
+    }
+    integer("jdkTestVersion") {
+        description.set("JDK version to use for testing $projectName. If the value is 0, then the current Java is used. (see https://docs.gradle.org/current/userguide/toolchains.html#sec:vendors)")
+    }
+    string("jdkTestVendor") {
+        description.set("JDK vendor to use testing $projectName (see https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors)")
+    }
+    string("jdkTestImplementation") {
+        description.set("Vendor-specific virtual machine implementation to use testing $projectName (see https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation)")
+    }
     bool("spotbugs") {
         defaultValue.set(false)
         description.set("Run SpotBugs verifications")

@@ -3,10 +3,14 @@ import com.github.vlsi.gradle.properties.dsl.props
 import org.gradle.api.tasks.testing.Test
 
 plugins {
+    id("java-library")
     id("build-logic.build-params")
 }
 
 tasks.configureEach<Test> {
+    buildParameters.testJdk?.let {
+        javaLauncher.convention(javaToolchains.launcherFor(it))
+    }
     inputs.file("../build.properties")
     if (file("../build.local.properties").exists()) {
         inputs.file("../build.local.properties")
@@ -36,7 +40,7 @@ tasks.configureEach<Test> {
     val props = System.getProperties()
     @Suppress("UNCHECKED_CAST")
     for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-        if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
+        if (e.startsWith("pgjdbc.")) {
             passProperty(e)
         }
     }

@@ -20,16 +20,20 @@ const matrix = new MatrixBuilder();
 matrix.addAxis({
   name: 'java_distribution',
   values: [
-    'zulu',
-    'temurin',
-    'liberica',
-    'microsoft',
+    {value: 'corretto', vendor: 'amazon', weight: 1},
+    {value: 'liberica', vendor: 'bellsoft', weight: 1},
+    {value: 'microsoft', vendor: 'microsoft', weight: 1},
+    {value: 'oracle', vendor: 'oracle', weight: 1},
+    {value: 'semeru', vendor: 'ibm', weight: 4},
+    {value: 'temurin', vendor: 'eclipse', weight: 1},
+    {value: 'zulu', vendor: 'azul', weight: 1},
   ]
 });
 
-// TODO: support different JITs (see https://github.com/actions/setup-java/issues/279)
-matrix.addAxis({name: 'jit', title: '', values: ['hotspot']});
+// We can't yet use EA here, see https://github.com/oracle-actions/setup-java/issues/65
+const eaJava = '22';
 
+// Below versions will be used for testing only
 matrix.addAxis({
   name: 'java_version',
   title: x => 'Java ' + x,
@@ -38,6 +42,8 @@ matrix.addAxis({
     '8',
     '11',
     '17',
+    '21',
+    eaJava,
   ]
 });
 
@@ -188,8 +194,8 @@ matrix.addAxis({
   ]
 });
 
-function isLessThan(pg_version, minVersion){
-    return Number(pg_version) < Number(minVersion);
+function lessThan(minVersion) {
+    return value => Number(value) < Number(minVersion);
 }
 
 matrix.setNamePattern([
@@ -198,18 +204,25 @@ matrix.setNamePattern([
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
 ]);
 
-matrix.exclude(row => row.ssl.value === 'yes' && isLessThan(row.pg_version, '9.3'));
-matrix.exclude(row => row.scram.value === 'yes' && isLessThan(row.pg_version, '10'));
-matrix.exclude(row => row.replication.value === 'yes' && isLessThan(row.pg_version, '9.6'));
+// We take EA builds from Oracle
+matrix.imply({java_version: eaJava}, {java_distribution: {value: 'oracle'}})
+matrix.exclude({ssl: {value: 'yes'}, pg_version: lessThan('9.3')});
+// matrix.exclude(row => row.ssl.value === 'yes' && isLessThan(row.pg_version, '9.3'));
+matrix.exclude({scram: {value: 'yes'}, pg_version: lessThan('10')});
+matrix.exclude({replication: {value: 'yes'}, pg_version: lessThan('9.6')});
 //org.postgresql.test.jdbc2.ArrayTest fails using simple mode for versions less than 9.0 with malformed Array literal
-matrix.exclude( row => row.query_mode.value == 'simple' && isLessThan(row.pg_version, '9.1'));
+matrix.exclude({query_mode: {value: 'simple'}, pg_version: lessThan('9.1')});
 //matrix.exclude({query_mode: {value: 'simple'}, pg_version: '8.4'});
-// Microsoft Java has no distribution for 8
-matrix.exclude({java_distribution: 'microsoft', java_version: '8'});
+// Microsoft ships Java 11+
+matrix.imply({java_distribution: 'microsoft'}, {java_version: v => v >= 11});
+// Oracle ships Java 11+
+matrix.imply({java_distribution: 'oracle'}, {java_version: v => v === eaJava || v >= 11});
+// TODO: Semeru does not ship Java 21 builds yet
+matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest', 'self-hosted']})
 if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
     // PG images below 9.3 are x86_64 only
-    matrix.exclude(row => row.os === 'self-hosted' && isLessThan(row.pg_version, '9.3'));
+    matrix.exclude({os: 'self-hosted', pg_version: lessThan('9.3')});
 }
 
 // The most rare features should be generated the first
@@ -218,6 +231,8 @@ if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
 // Ensure at least one job with "same" hashcode exists
 matrix.generateRow({hash: {value: 'same'}});
 matrix.generateRow({scram: {value: 'yes'}});
+// Ensure there's a row for Java EA. It is at the beginning to increase chances of covering cases like ssl=yes below
+matrix.generateRow({java_version: eaJava});
 // Ensure we have a job with the minimal and maximal PostgreSQL versions
 matrix.generateRow({pg_version: matrix.axisByName.pg_version.values[0]});
 matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]});
@@ -225,8 +240,10 @@ matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]
 matrix.generateRow({query_mode: {value: 'simple'}});
 // Ensure there will be at least one job with minimal supported Java
 matrix.generateRow({java_version: matrix.axisByName.java_version.values[0]});
-// Ensure there will be at least one job with the latest Java
-matrix.generateRow({java_version: matrix.axisByName.java_version.values.slice(-1)[0]});
+// Ensure there will be at least one job with Java 17
+matrix.generateRow({java_version: "17"});
+// Ensure there will be at least one job with the latest Java (excluding EA)
+matrix.generateRow({java_version: matrix.axisByName.java_version.values.slice(-2)[0]});
 matrix.generateRow({ssl: {value: 'yes'}});
 // Ensure at least one Windows and at least one Linux job is present (macOS is almost the same as Linux)
 // matrix.generateRow({os: 'windows-latest'});
@@ -240,11 +257,10 @@ if (include.length === 0) {
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
-    let gradleArgs = [];
-    if (v.java_version == 11) {
-        // JavaDoc 11 can't parse package annotations: https://bugs.openjdk.org/browse/JDK-8222091
-        gradleArgs.push('-PskipJavadoc')
-    }
+    let gradleArgs = [
+        `-Duser.country=${v.locale.country}`,
+        `-Duser.language=${v.locale.language}`,
+    ];
     v.extraGradleArgs = gradleArgs.join(' ');
 });
 include.forEach(v => {
@@ -252,6 +268,15 @@ include.forEach(v => {
   let jvmArgs = [];
   // Extra JVM arguments passed to test execution
   let testJvmArgs = [];
+  jvmArgs.push(`-Duser.country=${v.locale.country}`);
+  jvmArgs.push(`-Duser.language=${v.locale.language}`);
+
+  v.java_distribution = v.java_distribution.value;
+  v.java_vendor = v.java_distribution.vendor;
+  if (v.java_distribution === 'oracle') {
+      v.oracle_java_website = v.java_version === eaJava ? 'jdk.java.net' : 'oracle.com';
+  }
+  v.non_ea_java_version = v.java_version === eaJava ? '' : v.java_version;
   v.replication = v.replication.value;
   v.slow_tests = v.slow_tests.value;
   v.xa = v.xa.value;
@@ -289,7 +314,8 @@ include.forEach(v => {
   // Gradle does not work in tr_TR locale, so pass locale to test only: https://github.com/gradle/gradle/issues/17361
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
-  if (v.jit === 'hotspot' && Math.random() > 0.5) {
+  let jit = v.java_distribution === 'semeru' ? 'open9j' : 'hotspot';
+  if (jit === 'hotspot' && Math.random() > 0.5) {
     // The following options randomize instruction selection in JIT compiler
     // so it might reveal missing synchronization in TestNG code
     v.name += ', stress JIT';

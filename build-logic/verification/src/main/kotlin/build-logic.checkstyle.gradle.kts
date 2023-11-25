@@ -1,9 +1,9 @@
-import org.gradle.api.plugins.quality.Checkstyle
-import org.gradle.kotlin.dsl.withType
-import java.io.File
+import com.github.vlsi.gradle.dsl.configureEach
 
 plugins {
     id("checkstyle")
+    id("build-logic.toolchains")
+    id("build-logic.build-params")
 }
 
 checkstyle {
@@ -29,4 +29,12 @@ checkstyleTasks.configureEach {
 
 tasks.register("checkstyleAll") {
     dependsOn(checkstyleTasks)
+}
+
+plugins.withId("java")  {
+    tasks.configureEach<Checkstyle> {
+        buildParameters.buildJdk?.let {
+            javaLauncher.convention(project.the<JavaToolchainService>().launcherFor(it))
+        }
+    }
 }
