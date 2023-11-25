@@ -24,14 +24,15 @@ public enum SqlCommandType {
   SELECT(true),
   WITH(true),
   SHOW(true),
-  MOVE(false),
+  MOVE(true),
+
   CREATE(false),
   ALTER(false),
-
   BEGIN(false),
   START(false),
   SET(false),
   COMMIT(false),
+  ROLLBACK(false),
   END(false);
 
   SqlCommandType(boolean produceResult) {

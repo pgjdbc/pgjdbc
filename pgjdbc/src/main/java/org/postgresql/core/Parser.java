@@ -247,6 +247,8 @@ public class Parser {
             currentCommandType = SqlCommandType.COMMIT;
           } else if (wordLength == 3 && parseEndKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.END;
+          } else if (wordLength == 7 && parseRollbackKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.ROLLBACK;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
               // Only allow rewrite for insert command starting with the insert keyword.
@@ -833,6 +835,28 @@ public class Parser {
     return (query[offset] | 32) == 'e'
         && (query[offset + 1] | 32) == 'n'
         && (query[offset + 2] | 32) == 'd';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query  char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseRollbackKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 8)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'r'
+        && (query[offset + 1] | 32) == 'o'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'l'
+        && (query[offset + 4] | 32) == 'b'
+        && (query[offset + 5] | 32) == 'a'
+        && (query[offset + 6] | 32) == 'c'
+        && (query[offset + 7] | 32) == 'k';
   }
 
   /**

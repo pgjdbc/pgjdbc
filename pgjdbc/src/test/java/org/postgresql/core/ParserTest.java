@@ -167,6 +167,16 @@ public class ParserTest {
   }
 
   /**
+   * Test ROLLBACK command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLLBACK", "rollback", "rOllback", "roLlback", "rolLback", "rOLlback", "roLLback", "rOLLback", "Rollback", "rOllback"})
+  public void testRollbackCommandParsing(String rollback) {
+    char[] command = rollback.toCharArray();
+    assertTrue("Parser.parseRollbackKeyword(\"" + rollback + "\", 0)", Parser.parseRollbackKeyword(command, 0));
+  }
+
+  /**
    * Test END command parsing.
    */
   @ParameterizedTest
