@@ -55,11 +55,8 @@ public class ResultWrapper {
 
   /**
    * Append a result to its internal chain of results.
-   * It has a special behavior for {@code SET} commands as {@code SET} is discarded if there are
-   * other results in the chain.
-   * If this is a {@code SET} command, the {@code newResult} is returned has the new head of
-   * the chain.
-   * If the newResult is a {@code SET} command, it's not appended and this is returned.
+   * When the result is quiet, only result from {@code SqlCommandType} which produce result will be
+   * appended.
    *
    * @param newResult the result to append
    * @return the head of the chain

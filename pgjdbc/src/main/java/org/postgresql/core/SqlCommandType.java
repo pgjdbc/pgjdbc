@@ -38,6 +38,9 @@ public enum SqlCommandType {
     this.produceResult = produceResult;
   }
 
+  /**
+   * Whether the command produces a result.
+   */
   private final boolean produceResult;
 
   private static final SqlCommandType[] SQL_COMMAND_TYPES = SqlCommandType.values();
