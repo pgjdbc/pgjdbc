@@ -199,6 +199,10 @@ public class PgStatement implements Statement, BaseStatement {
     return rsHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
+  protected boolean isQuietOutPut() {
+    return connection.isQuietOutPut();
+  }
+
   /**
    * ResultHandler implementations for updates, queries, and either-or.
    */
@@ -214,7 +218,11 @@ public class PgStatement implements Statement, BaseStatement {
       if (results == null) {
         lastResult = results = newResult;
       } else {
-        lastResult = results = castNonNull(lastResult).append(newResult);
+        if (isQuietOutPut()) {
+          lastResult = results = castNonNull(lastResult).append(newResult);
+        } else {
+          castNonNull(lastResult).append(newResult);
+        }
       }
     }
 
@@ -223,7 +231,7 @@ public class PgStatement implements Statement, BaseStatement {
         @Nullable ResultCursor cursor) {
       try {
         ResultSet rs = PgStatement.this.createResultSet(fromQuery, fields, tuples, cursor);
-        append(new ResultWrapper(rs, commandTypeOfQuery(fromQuery)));
+        append(new ResultWrapper(rs, commandTypeOfQuery(fromQuery), isQuietOutPut()));
       } catch (SQLException e) {
         handleError(e);
       }
@@ -239,7 +247,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     @Override
     public void handleCommandStatus(String status, long updateCount, long insertOID) {
-      append(new ResultWrapper(updateCount, insertOID, SqlCommandType.fromCommandStatus(status)));
+      append(new ResultWrapper(updateCount, insertOID, SqlCommandType.fromCommandStatus(status), isQuietOutPut()));
     }
 
     @Override
@@ -910,7 +918,7 @@ public class PgStatement implements Statement, BaseStatement {
       try (ResourceLock ignore = lock.obtain()) {
         checkClosed();
         if (wantsGeneratedKeysAlways) {
-          generatedKeys = new ResultWrapper(handler.getGeneratedKeys(), SqlCommandType.BLANK);
+          generatedKeys = new ResultWrapper(handler.getGeneratedKeys(), SqlCommandType.BLANK, isQuietOutPut());
         }
       }
     }

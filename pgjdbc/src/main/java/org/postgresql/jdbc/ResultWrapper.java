@@ -20,15 +20,17 @@ import java.sql.ResultSet;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public class ResultWrapper {
-  public ResultWrapper(@Nullable ResultSet rs, SqlCommandType commandType) {
+  public ResultWrapper(@Nullable ResultSet rs, SqlCommandType commandType, boolean quietMode) {
     this.rs = rs;
     this.commandType = commandType;
+    this.quietMode = quietMode;
     this.updateCount = -1;
     this.insertOID = -1;
   }
 
-  public ResultWrapper(long updateCount, long insertOID, SqlCommandType commandType) {
+  public ResultWrapper(long updateCount, long insertOID, SqlCommandType commandType, boolean quietMode) {
     this.commandType = commandType;
+    this.quietMode = quietMode;
     this.rs = null;
     this.updateCount = updateCount;
     this.insertOID = insertOID;
@@ -63,12 +65,18 @@ public class ResultWrapper {
    * @return the head of the chain
    */
   public ResultWrapper append(ResultWrapper newResult) {
-    if (commandType == SqlCommandType.SET) {
-      return newResult;
+    if (this.quietMode != newResult.quietMode) {
+      throw new IllegalStateException("Cannot mix quiet and non-quiet results");
     }
-    if (newResult.commandType == SqlCommandType.SET) {
-      return this;
+    if (quietMode) {
+      if (!commandType.produceResult()) {
+        return newResult;
+      }
+      if (!newResult.commandType.produceResult()) {
+        return this;
+      }
     }
+
     ResultWrapper tail = this;
     while (tail.next != null) {
       tail = tail.next;
@@ -81,5 +89,7 @@ public class ResultWrapper {
   private final long updateCount;
   private final long insertOID;
   private final SqlCommandType commandType;
+
+  private final boolean quietMode;
   private @Nullable ResultWrapper next;
 }

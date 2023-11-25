@@ -12,6 +12,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
@@ -98,17 +99,26 @@ public class BatchResultHandler extends ResultHandlerBase {
       this.latestGeneratedRows = null;
     }
 
-    //SET commands can be ignored for the purposes of update counts
-    boolean statusIsFromSet = status.regionMatches(true, 0, "SET", 0, 3);
+    if (this.pgStatement.isQuietOutPut()) {
+      SqlCommandType commandType = SqlCommandType.fromCommandStatus(status);
+      if (commandType.produceResult() && resultIndex >= queries.length) {
+        handleError(new PSQLException(GT.tr("Too many update results were returned."),
+            PSQLState.TOO_MANY_RESULTS));
+        return;
+      }
+      latestGeneratedKeysRs = null;
 
-    if (!statusIsFromSet && resultIndex >= queries.length) {
-      handleError(new PSQLException(GT.tr("Too many update results were returned."),
-          PSQLState.TOO_MANY_RESULTS));
-      return;
-    }
-    latestGeneratedKeysRs = null;
+      if (commandType.produceResult()) {
+        longUpdateCounts[resultIndex++] = updateCount;
+      }
+    } else {
+      if (resultIndex >= queries.length) {
+        handleError(new PSQLException(GT.tr("Too many update results were returned."),
+            PSQLState.TOO_MANY_RESULTS));
+        return;
+      }
+      latestGeneratedKeysRs = null;
 
-    if (!statusIsFromSet) {
       longUpdateCounts[resultIndex++] = updateCount;
     }
   }

@@ -481,6 +481,14 @@ public enum PGProperty {
       new String[] {"3"}),
 
   /**
+   * Discard empty outputs sent by the backend when executing multiple statements
+   */
+  QUIET_OUTPUT(
+      "quietOutput",
+      "false",
+      "Discard empty outputs from server"),
+
+  /**
    * Quote returning columns.
    * There are some ORM's that quote everything, including returning columns
    * If we quote them, then we end up sending ""colname"" to the backend

@@ -117,6 +117,26 @@ public class ParserTest {
   }
 
   /**
+   * Test BEGIN command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"BEGIN", "begin", "bEgin", "beGin", "begIn", "bEgIn", "beGIn", "begIN", "bEgIN", "beGIN", "bEGIN", "Begin", "bEgin"})
+  public void testBeginCommandParsing(String begin) {
+    char[] command = begin.toCharArray();
+    assertTrue("Parser.parseBeginKeyword(\"" + begin + "\", 0)", Parser.parseBeginKeyword(command, 0));
+  }
+
+  /**
+   * Test START command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"START", "start", "sTart", "stArt", "staRt", "sTArT", "stART", "sTART", "Start", "sTart"})
+  public void testStartCommandParsing(String start) {
+    char[] command = start.toCharArray();
+    assertTrue("Parser.parseStartKeyword(\"" + start + "\", 0)", Parser.parseStartKeyword(command, 0));
+  }
+
+  /**
    * Test SET command parsing.
    */
   @ParameterizedTest
@@ -124,6 +144,36 @@ public class ParserTest {
   public void testSetCommandParsing(String set) {
     char[] command = set.toCharArray();
     assertTrue("Parser.parseSetKeyword(\"" + set + "\", 0)", Parser.parseSetKeyword(command, 0));
+  }
+
+  /**
+   * Test SHOW command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"SHOW", "show", "sHow", "shOw", "shoW", "sHoW", "shOW", "sHOW", "Show", "sHow"})
+  public void testShowCommandParsing(String show) {
+    char[] command = show.toCharArray();
+    assertTrue("Parser.parseShowKeyword(\"" + show + "\", 0)", Parser.parseShowKeyword(command, 0));
+  }
+
+  /**
+   * Test COMMIT command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"COMMIT", "commit", "cOmmiT", "coMmIt", "comMit", "cOMmIt", "coMMit", "cOMMit", "comMIT", "cOMMIT", "Commit", "cOmmiT"})
+  public void testCommitCommandParsing(String commit) {
+    char[] command = commit.toCharArray();
+    assertTrue("Parser.parseCommitKeyword(\"" + commit + "\", 0)", Parser.parseCommitKeyword(command, 0));
+  }
+
+  /**
+   * Test END command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"END", "end", "eNd", "enD", "End", "eND", "EnD", "eND"})
+  public void testEndCommandParsing(String end) {
+    char[] command = end.toCharArray();
+    assertTrue("Parser.parseEndKeyword(\"" + end + "\", 0)", Parser.parseEndKeyword(command, 0));
   }
 
   @Test

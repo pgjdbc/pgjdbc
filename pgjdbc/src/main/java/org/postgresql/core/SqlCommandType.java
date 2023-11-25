@@ -17,18 +17,34 @@ public enum SqlCommandType {
    * Use BLANK for empty sql queries or when parsing the sql string is not
    * necessary.
    */
-  BLANK,
-  INSERT,
-  UPDATE,
-  DELETE,
-  MOVE,
-  SELECT,
-  WITH,
-  CREATE,
-  ALTER,
-  SET;
+  BLANK(true),
+  INSERT(true),
+  UPDATE(true),
+  DELETE(true),
+  SELECT(true),
+  WITH(true),
+  SHOW(true),
+  MOVE(false),
+  CREATE(false),
+  ALTER(false),
+
+  BEGIN(false),
+  START(false),
+  SET(false),
+  COMMIT(false),
+  END(false);
+
+  SqlCommandType(boolean produceResult) {
+    this.produceResult = produceResult;
+  }
+
+  private final boolean produceResult;
 
   private static final SqlCommandType[] SQL_COMMAND_TYPES = SqlCommandType.values();
+
+  public boolean produceResult() {
+    return produceResult;
+  }
 
   /**
    * Returns the SqlCommandType for the given command status.

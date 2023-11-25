@@ -235,8 +235,18 @@ public class Parser {
             currentCommandType = SqlCommandType.SELECT;
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
+          } else if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.BEGIN;
+          } else if (wordLength == 5 && parseStartKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.START;
           } else if (wordLength == 3 && parseSetKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.SET;
+          } else if (wordLength == 4 && parseShowKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.SHOW;
+          } else if (wordLength == 6 && parseCommitKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.COMMIT;
+          } else if (wordLength == 3 && parseEndKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.END;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
               // Only allow rewrite for insert command starting with the insert keyword.
@@ -644,7 +654,7 @@ public class Parser {
    */
 
   public static boolean parseBeginKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
+    if (query.length < (offset + 5)) {
       return false;
     }
     return (query[offset] | 32) == 'b'
@@ -749,6 +759,80 @@ public class Parser {
     return (query[offset] | 32) == 's'
         && (query[offset + 1] | 32) == 'e'
         && (query[offset + 2] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of VALUES keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseShowKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 's'
+        && (query[offset + 1] | 32) == 'h'
+        && (query[offset + 2] | 32) == 'o'
+        && (query[offset + 3] | 32) == 'w';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query  char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseStartKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 5)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 's'
+        && (query[offset + 1] | 32) == 't'
+        && (query[offset + 2] | 32) == 'a'
+        && (query[offset + 3] | 32) == 'r'
+        && (query[offset + 4] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query  char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCommitKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'o'
+        && (query[offset + 2] | 32) == 'm'
+        && (query[offset + 3] | 32) == 'm'
+        && (query[offset + 4] | 32) == 'i'
+        && (query[offset + 5] | 32) == 't';
+  }
+
+  /**
+   * Parse string to check presence of AS keyword regardless of case.
+   *
+   * @param query  char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseEndKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 3)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'e'
+        && (query[offset + 1] | 32) == 'n'
+        && (query[offset + 2] | 32) == 'd';
   }
 
   /**
