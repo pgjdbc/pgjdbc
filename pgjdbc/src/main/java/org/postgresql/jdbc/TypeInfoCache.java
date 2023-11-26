@@ -627,7 +627,7 @@ public class TypeInfoCache implements TypeInfo {
 
   public char getArrayDelimiter(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
+      if (oid == Oid.UNSPECIFIED || oid == Oid.UNKNOWN ) {
         return ',';
       }
 
