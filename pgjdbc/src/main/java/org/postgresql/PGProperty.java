@@ -728,13 +728,6 @@ public enum PGProperty {
       false,
       new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary", "preferPrimary"}),
 
-  TIMESTAMP_WITH_TIMEZONE(
-      "timestampWithTimezone",
-      "timestamp",
-      "Specifies if timestamp with timezone should map to TIMESTAMP_WITH_TIMEZONE",
-      false,
-      new String [] {"timestamp", "timestamp_with_timezone"}),
-
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.
    */
@@ -748,6 +741,18 @@ public enum PGProperty {
       "true",
       "Enable or disable TCP no delay. The default is (@code true}."
   ),
+  /**
+   * Specifies if timestamp with timezone should map to TIMESTAMP_WITH_TIMEZONE"
+   * default TIMESTAMP
+   */
+  TIMESTAMP_WITH_TIMEZONE(
+      "timestampWithTimezone",
+      "timestamp",
+      "Specifies if timestamp with timezone should map to TIMESTAMP_WITH_TIMEZONE",
+      false,
+      new String [] {"timestamp", "timestamp_with_timezone"}),
+
+
   /**
    * Specifies the length to return for types of unknown length.
    */

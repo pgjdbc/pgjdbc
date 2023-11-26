@@ -870,6 +870,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   *
+   * @param timezoneType set to one of timestamp or timestampWithTimeZone
+   */
+  public void setTimestampWithTimezone( String  timezoneType ) {
+    PGProperty.TIMESTAMP_WITH_TIMEZONE.set(properties, timezoneType);
+  }
+
+  /**
+   *
+   * @return one of timestamp or timestampWithTimeZone
+   */
+  public String getTimestampWithTimezone() {
+    return PGProperty.TIMESTAMP_WITH_TIMEZONE.get(properties);
+  }
+
+  /**
    * @param enabled if binary transfer should be enabled
    * @see PGProperty#BINARY_TRANSFER
    */
