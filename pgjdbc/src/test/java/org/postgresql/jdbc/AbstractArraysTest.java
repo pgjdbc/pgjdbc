@@ -28,20 +28,7 @@ import org.postgresql.xml.PGXmlFactoryFactory;
 import org.junit.Test;
 
 import java.lang.reflect.Array;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.DatabaseMetaData;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Savepoint;
-import java.sql.Statement;
-import java.sql.Struct;
+import java.sql.*;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimerTask;
@@ -263,6 +250,8 @@ public abstract class AbstractArraysTest<A> {
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
     private final TypeInfo typeInfo = new TypeInfoCache(this, -1);
+
+    private int timestampType = Types.TIMESTAMP;
 
     EncodingConnection(Encoding encoding) {
       this.encoding = encoding;
@@ -898,12 +887,12 @@ public abstract class AbstractArraysTest<A> {
 
     @Override
     public void setTimestampType(int timestampType) {
-      throw new UnsupportedOperationException();
+      this.timestampType = timestampType;
     }
 
     @Override
     public int getTimestampType() {
-      throw new UnsupportedOperationException();
+      return timestampType;
     }
 
     /**
