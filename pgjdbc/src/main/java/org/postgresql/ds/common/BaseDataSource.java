@@ -882,7 +882,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return one of timestamp or timestampWithTimeZone
    */
   public String getTimestampWithTimezone() {
-    return PGProperty.TIMESTAMP_WITH_TIMEZONE.getOrDefault(properties);
+    return castNonNull(PGProperty.TIMESTAMP_WITH_TIMEZONE.getOrDefault(properties));
   }
 
   /**
