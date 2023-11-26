@@ -692,12 +692,12 @@ public class TypeInfoCache implements TypeInfo {
       // Go through BaseStatement to avoid transaction start.
       if (!((BaseStatement) getArrayElementOidStatement)
           .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}.", oid), PSQLState.NO_DATA);
       }
 
       ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
       if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}.", oid), PSQLState.NO_DATA);
       }
 
       pgType = (int) rs.getLong(1);
