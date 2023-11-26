@@ -675,8 +675,8 @@ public class TypeInfoCache implements TypeInfo {
 
   public int getPGArrayElement(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        return Oid.UNSPECIFIED;
+      if (oid == Oid.UNSPECIFIED || oid == Oid.UNKNOWN) {
+        return oid;
       }
 
       Integer pgType = pgArrayToPgType.get(oid);
@@ -692,12 +692,12 @@ public class TypeInfoCache implements TypeInfo {
       // Go through BaseStatement to avoid transaction start.
       if (!((BaseStatement) getArrayElementOidStatement)
           .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}."), PSQLState.NO_DATA);
       }
 
       ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
       if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}."), PSQLState.NO_DATA);
       }
 
       pgType = (int) rs.getLong(1);
