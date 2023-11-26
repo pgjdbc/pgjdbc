@@ -260,7 +260,7 @@ public class PgConnection implements BaseConnection {
     if (prepareThreshold == -1) {
       setForceBinary(true);
     }
-    if (info != null && PGProperty.TIMESTAMP_WITH_TIMEZONE.getOrDefault(info).equalsIgnoreCase("timestamp_with_timezone") ) {
+    if (castNonNull(PGProperty.TIMESTAMP_WITH_TIMEZONE.getOrDefault(info)).equalsIgnoreCase("timestamp_with_timezone") ) {
       setTimestampType(Types.TIMESTAMP_WITH_TIMEZONE);
     } else {
       setTimestampType(Types.TIMESTAMP);

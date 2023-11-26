@@ -331,7 +331,7 @@ public class messages_tr extends java.util.ResourceBundle {
     t[774] = "Zero bytes may not occur in identifiers.";
     t[775] = "Belirteçlerde sıfır bayt olamaz.";
     t[776] = "No results were returned by the query.";
-    t[777] = "Sorgudan hiç bir sonuç dönmedi.";
+    t[777] = "Sorgudan hiç bir sonuç dönmedi for oid {0}.";
     t[778] = "A CallableStatement was executed with nothing returned.";
     t[779] = "CallableStatement çalıştırma sonucunda veri getirilmedi.";
     t[780] = "wasNull cannot be call before fetching a result.";
