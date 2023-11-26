@@ -208,8 +208,8 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[515] = "不正確的函式或程序 escape 語法於 {0}。";
     t[516] = "The server''s DateStyle parameter was changed to {0}. The JDBC driver requires DateStyle to begin with ISO for correct operation.";
     t[517] = "這伺服器的 DateStyle 參數被更改成 {0}，JDBC 驅動程式請求需要 DateStyle 以 ISO 開頭以正確工作。";
-    t[518] = "No results were returned by the query.";
-    t[519] = "查詢沒有傳回任何結果。";
+    t[518] = "No results were returned by the query for oid {0}.";
+    t[519] = "查詢沒有傳回任何結果。 for oid {0}";
     t[520] = "Location: File: {0}, Routine: {1}, Line: {2}";
     t[521] = "位置：檔案：{0}，常式：{1}，行：{2}";
     t[526] = "Hint: {0}";

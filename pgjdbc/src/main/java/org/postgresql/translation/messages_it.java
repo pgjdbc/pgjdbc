@@ -264,8 +264,8 @@ public class messages_it extends java.util.ResourceBundle {
     t[769] = "Il parametro «holdability» per il «ResultSet» è sconosciuto: {0}.";
     t[772] = "Transaction isolation level {0} not supported.";
     t[773] = "Il livello di isolamento delle transazioni «{0}» non è supportato.";
-    t[776] = "No results were returned by the query.";
-    t[777] = "Nessun risultato è stato restituito dalla query.";
+    t[776] = "No results were returned by the query for oid {0}.";
+    t[777] = "Nessun risultato è stato restituito dalla query for oid {0}.";
     t[778] = "A CallableStatement was executed with nothing returned.";
     t[779] = "Un «CallableStatement» è stato eseguito senza produrre alcun risultato. ";
     t[780] = "The maximum field size must be a value greater than or equal to 0.";

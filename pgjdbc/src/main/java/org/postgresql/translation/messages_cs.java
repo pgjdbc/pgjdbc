@@ -158,8 +158,8 @@ public class messages_cs extends java.util.ResourceBundle {
     t[271] = "Funkce {0} bere přesně čtyři argumenty.";
     t[272] = "Failed to create object for: {0}.";
     t[273] = "Selhalo vytvoření objektu: {0}.";
-    t[274] = "No results were returned by the query.";
-    t[275] = "Neobdržen žádný výsledek dotazu.";
+    t[274] = "No results were returned by the query for oid {0}.";
+    t[275] = "Neobdržen žádný výsledek dotazu for oid {0}.";
     t[276] = "Position: {0}";
     t[277] = "Pozice: {0}";
     t[278] = "The column index is out of range: {0}, number of columns: {1}.";

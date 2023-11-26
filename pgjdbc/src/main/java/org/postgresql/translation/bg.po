@@ -821,8 +821,8 @@ msgstr "Непозволена стойност за StringType параметъ
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:526
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:563
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:568
-msgid "No results were returned by the query."
-msgstr "Няма намерени резултати за заявката."
+msgid "No results were returned by the query for oid {0}."
+msgstr "Няма намерени резултати за заявката for oid {0}."
 
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:481
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:499

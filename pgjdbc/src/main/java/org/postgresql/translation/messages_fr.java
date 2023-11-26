@@ -280,8 +280,8 @@ public class messages_fr extends java.util.ResourceBundle {
     t[773] = "Le niveau d''isolation de transaction {0} n''est pas supporté.";
     t[774] = "Zero bytes may not occur in identifiers.";
     t[775] = "Des octects à 0 ne devraient pas apparaître dans les identifiants.";
-    t[776] = "No results were returned by the query.";
-    t[777] = "Aucun résultat retourné par la requête.";
+    t[776] = "No results were returned by the query for oid {0}.";
+    t[777] = "Aucun résultat retourné par la requête for oid {0}.";
     t[778] = "A CallableStatement was executed with nothing returned.";
     t[779] = "Un CallableStatement a été exécuté mais n''a rien retourné.";
     t[780] = "wasNull cannot be call before fetching a result.";

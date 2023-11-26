@@ -274,8 +274,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[607] = "Възникна грешка при осъществяване на SSL връзката.";
     t[614] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
     t[615] = "Възникна неочаквана грешка с драйвъра. Моля докадвайте това изключение. ";
-    t[618] = "No results were returned by the query.";
-    t[619] = "Няма намерени резултати за заявката.";
+    t[618] = "No results were returned by the query for oid {0}.";
+    t[619] = "Няма намерени резултати за заявката for oid {0}.";
     t[620] = "ClientInfo property not supported.";
     t[621] = "Информацията за ClientInfo не се поддържа.";
     t[622] = "Unexpected error writing large object to database.";

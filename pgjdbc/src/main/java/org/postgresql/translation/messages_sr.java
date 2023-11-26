@@ -328,8 +328,8 @@ public class messages_sr extends java.util.ResourceBundle {
     t[773] = "Nivo izolacije transakcije {0} nije podržan.";
     t[774] = "Zero bytes may not occur in identifiers.";
     t[775] = "Nula bajtovji se ne smeju pojavljivati u identifikatorima.";
-    t[776] = "No results were returned by the query.";
-    t[777] = "Nikakav rezultat nije vraćen od strane upita.";
+    t[776] = "No results were returned by the query for oid {0}.";
+    t[777] = "Nikakav rezultat nije vraćen od strane upita for oid {0}.";
     t[778] = "A CallableStatement was executed with nothing returned.";
     t[779] = "CallableStatement je izvršen ali ništa nije vrećeno kao rezultat.";
     t[780] = "wasNull cannot be call before fetching a result.";

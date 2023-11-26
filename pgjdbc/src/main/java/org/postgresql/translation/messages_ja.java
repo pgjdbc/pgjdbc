@@ -146,8 +146,8 @@ public class messages_ja extends java.util.ResourceBundle {
     t[337] = "時間間隔 {0} は実装されていません";
     t[338] = "No X509TrustManager found";
     t[339] = "X509TrustManager が見つかりません";
-    t[346] = "No results were returned by the query.";
-    t[347] = "クエリは結果を返却しませんでした。";
+    t[346] = "No results were returned by the query for oid {0}.";
+    t[347] = "クエリは結果を返却しませんでした。 for oid {0}";
     t[354] = "Heuristic commit/rollback not supported. forget xid={0}";
     t[355] = "ヒューリスティック commit/rollback はサポートされません。forget xid={0}";
     t[362] = "Fastpath call {0} - No result was returned or wrong size while expecting an integer.";
