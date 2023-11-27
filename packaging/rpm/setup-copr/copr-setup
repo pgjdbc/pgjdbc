@@ -11,7 +11,7 @@ PROJECT_PUSH=@pgjdbc/pgjdbc
 
 build_deps=(
     git
-    java-11-openjdk-devel
+    java-17-openjdk-devel
 )
 
 copr_cmd=(
