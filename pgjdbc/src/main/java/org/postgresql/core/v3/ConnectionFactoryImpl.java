@@ -375,7 +375,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
     paramList.add(new StartupParam("client_encoding", "UTF8"));
-    paramList.add(new StartupParam("DateStyle", "ISO, MDY"));
+    paramList.add(new StartupParam("DateStyle", "ISO"));
     paramList.add(new StartupParam("TimeZone", createPostgresTimeZone()));
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
