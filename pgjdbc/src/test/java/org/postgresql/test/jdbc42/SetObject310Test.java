@@ -395,6 +395,11 @@ public class SetObject310Test extends BaseTest4 {
 
     for (LocalDateTime bcDate : bcDates) {
       String expected = LOCAL_TIME_FORMATTER.format(bcDate);
+      if (expected.endsWith(" BCE")) {
+        // Java 22.ea.25-open prints "BCE" even though previous releases printed "BC"
+        // See https://bugs.openjdk.org/browse/JDK-8320747
+        expected = expected.substring(0, expected.length() - 1);
+      }
       localTimestamps(ZoneOffset.UTC, bcDate, expected);
     }
   }

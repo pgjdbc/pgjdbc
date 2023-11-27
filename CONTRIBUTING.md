@@ -76,9 +76,21 @@ Here are a few important things you should know about contributing code:
 
 In order to build the source code for PgJDBC you will need the following tools:
 
-  - A git client
-  - A JDK for the JDBC version you'd like to build (JDK8 for JDBC 4.2)
+  - A Git client
+  - A JDK for the JDBC version you'd like to build (Java 17 for pgjdbc 42.7.1, Java 8 for older pgjdbc releases)
   - A running PostgreSQL instance (optional for unit/integration tests)
+
+We use [Gradle's Toolchains for JVM projects](https://docs.gradle.org/current/userguide/toolchains.html)
+to separate JDK version used for building and running tests.
+This means Gradle will automatically find the required JDK version or download it for you.
+
+You could control JDK versions with the following Gradle properties:
+* `jdkBuildVersion`. Defaults to 17. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for building $projectName. If the value is 0, then the current Java is used.
+* `jdkBuildVendor`. [JDK vendor](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors) to use building
+* `jdkBuildImplementation`. Vendor-specific [virtual machine implementation](https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation) to use building
+* `jdkTestVersion`. Defaults to `jdkBuildVersion`. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for testing.
+* `jdkTestVendor`. Defaults to `jdkBuildVendor`. [JDK vendor](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors) to use testing
+* `jdkTestImplementation`. Defaults to `jdkBuildImplementation`. Vendor-specific [virtual machine implementation](https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation) to use testing
 
 Additionally, in order to update translations (not typical), you will need the following additional tools:
 
@@ -109,6 +121,9 @@ on a command line (the outputs are located in the relevant:
     ./gradlew test # execute tests
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class
     ./gradlew test -PincludeTestTags=!org.postgresql.test.SlowTests # skip slow tests
+    ./gradlew test -PjdkTestVersion=21 --tests org.postgresql.test.ssl.SslTest # execute test with Java 21
+
+    ./gradlew parameters # list most build parameters like jdkTestVersion above
 
 Note: `clean` is not required, and the build automatically re-executes the tasks.
 However, Gradle caches the results of `test` execution as well, so if you want to
@@ -218,7 +233,7 @@ is used for releasing artifacts.
 ## Releasing a new version
 
 Prerequisites:
-- Java 8
+- Java 17
 - a PostgreSQL instance for running tests; it must have a user named `test` as well as a database named `test`
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)
