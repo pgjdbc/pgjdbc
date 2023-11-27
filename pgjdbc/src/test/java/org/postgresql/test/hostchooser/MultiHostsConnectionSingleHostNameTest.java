@@ -54,10 +54,10 @@ public class MultiHostsConnectionSingleHostNameTest {
 
     String[] parts = primaryIp.split("/")[0].split("\\.");
     byte[] address = new byte[]{
-        Byte.parseByte(parts[0]),
-        Byte.parseByte(parts[1]),
-        Byte.parseByte(parts[2]),
-        Byte.parseByte(parts[3]),
+        (byte) Integer.parseInt(parts[0]),
+        (byte) Integer.parseInt(parts[1]),
+        (byte) Integer.parseInt(parts[2]),
+        (byte) Integer.parseInt(parts[3]),
     };
 
     Field addressCacheField = InetAddress.class.getDeclaredField("cache");
