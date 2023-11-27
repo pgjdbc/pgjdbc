@@ -11,14 +11,13 @@ import static org.junit.Assert.assertNull;
 import static org.postgresql.hostchooser.HostRequirement.primary;
 import static org.postgresql.test.TestUtil.closeDB;
 
-import org.junit.After;
-
 import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
