@@ -5,7 +5,7 @@
 
 pluginManagement {
     plugins {
-        id("biz.aQute.bnd.builder") version "6.4.0"
+        id("biz.aQute.bnd.builder") version "7.0.0"
         id("com.github.burrunan.s3-build-cache") version "1.7"
         id("com.github.johnrengelman.shadow") version "8.1.1"
         id("com.github.lburgazzoli.karaf") version "0.5.6"
