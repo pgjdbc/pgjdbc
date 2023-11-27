@@ -9,6 +9,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
+## [42.7.1] (2023-11-27 09:33:00 -0500)
+
+### Fixed
+*  fix: NoSuchMethodError on ByteBuffer#position When Running on Java 8  when accessing arrays, issue https://github.com/pgjdbc/pgjdbc/issues/3014
+*  Revert "[PR #2925](https://github.com/pgjdbc/pgjdbc/pull/2925) Use canonical DateStyle name" [PR #3035](https://github.com/pgjdbc/pgjdbc/pull/3035)
+   Fixes  [Issue #3008](https://github.com/pgjdbc/pgjdbc/issues/3008)
+*  Revert "[PR ##2973](https://github.com/pgjdbc/pgjdbc/pull/2973) feat: support SET statements combining with other queries with semicolon in PreparedStatement" [PR #3010](https://github.com/pgjdbc/pgjdbc/pull/3010)
+   Fixes [Issue #3007](https://github.com/pgjdbc/pgjdbc/issues/3007)
+
+
 ## [42.7.0] (2023-11-20 09:33:00 -0500)
 
 ### Changed
