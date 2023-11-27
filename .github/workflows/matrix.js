@@ -214,9 +214,9 @@ matrix.exclude({replication: {value: 'yes'}, pg_version: lessThan('9.6')});
 matrix.exclude({query_mode: {value: 'simple'}, pg_version: lessThan('9.1')});
 //matrix.exclude({query_mode: {value: 'simple'}, pg_version: '8.4'});
 // Microsoft ships Java 11+
-matrix.imply({java_distribution: 'microsoft'}, {java_version: v => v >= 11});
+matrix.imply({java_distribution: {value: 'microsoft'}}, {java_version: v => v >= 11});
 // Oracle ships Java 11+
-matrix.imply({java_distribution: 'oracle'}, {java_version: v => v === eaJava || v >= 11});
+matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === eaJava || v >= 11});
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest', 'self-hosted']})
