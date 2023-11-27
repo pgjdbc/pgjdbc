@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
-        jdk: [8, 11]
+        jdk: [17]
 
     name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
     runs-on: ${{ matrix.os }}-latest
@@ -56,10 +56,6 @@ jobs:
         with:
           java-version: ${{ matrix.jdk }}
           distribution: liberica
-      - name: Skip javadoc with Java 11
-        if: ${{ matrix.jdk == '11' }}
-        run: |
-          echo "skipJavadoc=-PskipJavadoc" >> $GITHUB_ENV
       - uses: burrunan/gradle-cache-action@v1
         name: Build pgjdbc
         env:
@@ -67,4 +63,4 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: jdk${{ matrix.jdk }}
-          arguments: build -x test --scan -i ${{ env.skipJavadoc }}
+          arguments: build -x test --scan -i
