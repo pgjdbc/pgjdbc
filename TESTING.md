@@ -10,7 +10,7 @@ guidelines and an example for developers to add new test cases.
 
 ## 2 - Installation
 
-Of course, you need to have a [Java 8 JDK](https://www.oracle.com/technetwork/java/javase/downloads/index.html).
+Java 11+ is required to build pgjdbc. We recommend installing [Java 17](https://javaalmanac.io/jdk/17/).
 
 You need to install and build the PostgreSQL JDBC driver source
 tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See
@@ -101,6 +101,14 @@ This will run the command line version of JUnit. If you'd like
 to see an animated coloured progress bar as the tests are
 executed, you may want to use one of the GUI versions of the
 test runner. See the JUnit documentation for more information.
+
+You could specify Java version for testing purposes with `-PjdkTestVersion=8` build parameter:
+
+```sh
+./gradlew -PjdkTestVersion=8 test
+```
+
+You could lauch `./gradlew parameters` to get the list of available parameters.
 
 If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the

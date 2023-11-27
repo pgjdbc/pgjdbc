@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    implementation(project(":basics"))
     implementation(project(":build-parameters"))
     implementation(project(":verification"))
     implementation("com.github.vlsi.crlf:com.github.vlsi.crlf.gradle.plugin:1.90")
