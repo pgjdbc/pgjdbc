@@ -29,6 +29,7 @@
     <properties>
         <!-- Require JDK 1.8 or later -->
         <javac.target>1.8</javac.target>
+        <java.target.release>8</java.target.release>
         <encoding>UTF-8</encoding>
         <project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
@@ -95,10 +96,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
-                <configuration>
-                    <source>${javac.target}</source>
-                    <target>${javac.target}</target>
-                </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -124,6 +121,53 @@
     </build>
 
     <profiles>
+        <profile>
+            <id>jdk8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-compiler-plugin</artifactId>
+                            <configuration>
+                                <source>${javac.target}</source>
+                                <target>${javac.target}</target>
+                                <testExcludes>
+                                    <!-- The recent system-stubs test dependency does not support Java 1.8, so we exclude those tests -->
+                                    <testExclude>org/postgresql/test/jdbc2/DriverTest.java</testExclude>
+                                    <testExclude>org/postgresql/util/OSUtilTest.java</testExclude>
+                                    <testExclude>org/postgresql/util/StubEnvironmentAndProperties.java</testExclude>
+                                    <testExclude>org/postgresql/jdbcurlresolver/PgPassParserTest.java</testExclude>
+                                    <testExclude>org/postgresql/jdbcurlresolver/PgServiceConfParserTest.java</testExclude>
+                                </testExcludes>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
+        <profile>
+            <id>jdkge11</id>
+            <activation>
+                <jdk>[11,)</jdk>
+            </activation>
+            <build>
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <groupId>org.apache.maven.plugins</groupId>
+                            <artifactId>maven-compiler-plugin</artifactId>
+                            <configuration>
+                                <release>${java.target.release}</release>
+                            </configuration>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+            </build>
+        </profile>
         <!--
           By default, source distribution does not build javadocs, however it can be activated with
           -Pjavadoc
