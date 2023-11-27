@@ -51,13 +51,14 @@ Summary:	JDBC driver for PostgreSQL
 Name:		postgresql-jdbc
 Version:	GENERATED
 Release:	GENERATED
-License:	BSD
+License:	BSD-2-Clause
 URL:		http://jdbc.postgresql.org/
 
 Source0:	https://repo1.maven.org/maven2/org/postgresql/postgresql/%{version}/postgresql-%{version}-jdbc-src.tar.gz
 Provides:	pgjdbc = %version-%release
 
 BuildArch:	noarch
+ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
 BuildRequires:	maven-plugin-bundle
