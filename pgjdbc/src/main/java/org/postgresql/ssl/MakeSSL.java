@@ -36,6 +36,9 @@ public class MakeSSL extends ObjectFactory {
     try {
       newConnection = (SSLSocket) factory.createSocket(stream.getSocket(),
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
+      // honour the network timeout set in the incoming stream. We have a report that SSL
+      // connections do not timeout.
+      newConnection.setSoTimeout(stream.getNetworkTimeout());
       // We must invoke manually, otherwise the exceptions are hidden
       newConnection.setUseClientMode(true);
       newConnection.startHandshake();
