@@ -5,8 +5,6 @@
 
 package org.postgresql.largeobject;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
@@ -60,6 +58,8 @@ public class LargeObject
    * Indicates a seek from the end of a file.
    */
   public static final int SEEK_END = 2;
+
+  private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
   private final Fastpath fp; // Fastpath API to use
   private final long oid; // OID of this object
@@ -196,7 +196,11 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(len);
-    return castNonNull(fp.getData("loread", args));
+    byte[] bytes = fp.getData("loread", args);
+    if (bytes == null) {
+      return EMPTY_BYTE_ARRAY;
+    }
+    return bytes;
   }
 
   /**
@@ -210,12 +214,10 @@ public class LargeObject
    */
   public int read(byte[] buf, int off, int len) throws SQLException {
     byte[] b = read(len);
-    if (b == null) {
+    if (b.length == 0) {
       return 0;
     }
-    if (b.length < len) {
-      len = b.length;
-    }
+    len = Math.min(len, b.length);
     System.arraycopy(b, 0, buf, off, len);
     return len;
   }
@@ -397,6 +399,20 @@ public class LargeObject
    */
   public InputStream getInputStream(long limit) throws SQLException {
     return new BlobInputStream(this, 4096, limit);
+  }
+
+  /**
+   * Returns an {@link InputStream} from this object, that will limit the amount of data that is
+   * visible.
+   * Added mostly for testing
+   *
+   * @param bufferSize buffer size for the stream
+   * @param limit maximum number of bytes the resulting stream will serve
+   * @return {@link InputStream} from this object
+   * @throws SQLException if a database-access error occurs.
+   */
+  public InputStream getInputStream(int bufferSize, long limit) throws SQLException {
+    return new BlobInputStream(this, bufferSize, limit);
   }
 
   /**

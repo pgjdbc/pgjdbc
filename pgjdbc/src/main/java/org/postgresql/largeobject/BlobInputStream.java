@@ -6,6 +6,7 @@
 package org.postgresql.largeobject;
 
 import org.postgresql.jdbc.ResourceLock;
+import org.postgresql.util.GT;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -26,7 +27,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The absolute position.
    */
-  private long apos;
+  private long absolutePosition;
 
   /**
    * Buffer used to improve performance.
@@ -36,22 +37,22 @@ public class BlobInputStream extends InputStream {
   /**
    * Position within buffer.
    */
-  private int bpos;
+  private int bufferPosition;
 
   /**
    * The buffer size.
    */
-  private int bsize;
+  private final int bufferSize;
 
   /**
    * The mark position.
    */
-  private long mpos = 0;
+  private long markPosition;
 
   /**
    * The limit.
    */
-  private long limit = -1;
+  private final long limit;
 
   /**
    * @param lo LargeObject to read from
@@ -66,7 +67,7 @@ public class BlobInputStream extends InputStream {
    */
 
   public BlobInputStream(LargeObject lo, int bsize) {
-    this(lo, bsize, -1);
+    this(lo, bsize, Long.MAX_VALUE);
   }
 
   /**
@@ -76,43 +77,132 @@ public class BlobInputStream extends InputStream {
    */
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
     this.lo = lo;
-    buffer = null;
-    bpos = 0;
-    apos = 0;
-    this.bsize = bsize;
-    this.limit = limit;
+    this.bufferSize = bsize;
+    // Treat -1 as no limit for backward compatibility
+    this.limit = limit == -1 ? Long.MAX_VALUE : limit;
   }
 
   /**
    * The minimum required to implement input stream.
    */
   public int read() throws java.io.IOException {
-    LargeObject lo = getLo();
-    try {
-      if (limit > 0 && apos >= limit) {
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = getLo();
+      if (absolutePosition >= limit) {
         return -1;
       }
-      if (buffer == null || bpos >= buffer.length) {
-        buffer = lo.read(bsize);
-        bpos = 0;
+      // read more in if necessary
+      if (buffer == null || bufferPosition >= buffer.length) {
+        // Don't hold the buffer while waiting for DB to respond
+        // Note: lo.read(...) does not support "fetching the response into the user-provided buffer"
+        // See https://github.com/pgjdbc/pgjdbc/issues/3043
+        buffer = lo.read(bufferSize);
+        bufferPosition = 0;
+
+        if (buffer.length == 0) {
+          // The lob does not produce any more data, so we are at the end of the stream
+          return -1;
+        }
       }
 
-      // Handle EOF
-      if (buffer == null || bpos >= buffer.length) {
-        return -1;
-      }
+      int ret = buffer[bufferPosition] & 0xFF;
 
-      int ret = (buffer[bpos] & 0x7F);
-      if ((buffer[bpos] & 0x80) == 0x80) {
-        ret |= 0x80;
+      bufferPosition++;
+      absolutePosition++;
+      if (bufferPosition >= buffer.length) {
+        // TODO: support buffer reuse in mark/reset
+        buffer = null;
+        bufferPosition = 0;
       }
-
-      bpos++;
-      apos++;
 
       return ret;
-    } catch (SQLException se) {
-      throw new IOException(se.toString());
+    } catch (SQLException e) {
+      long loId = lo == null ? -1 : lo.getLongOID();
+      throw new IOException(
+          GT.tr("Can not read data from large object {0}, position: {1}, buffer size: {2}",
+              loId, absolutePosition, bufferSize),
+          e);
+    }
+  }
+
+  @Override
+  public int read(byte[] dest, int off, int len) throws IOException {
+    if (len == 0) {
+      return 0;
+    }
+    try (ResourceLock ignore = lock.obtain()) {
+      int bytesCopied = 0;
+      LargeObject lo = getLo();
+
+      // Check to make sure we aren't at the limit.
+      if (absolutePosition >= limit) {
+        return -1;
+      }
+
+      // Check to make sure we are not going to read past the limit
+      len = Math.min(len, (int) Math.min(limit - absolutePosition, Integer.MAX_VALUE));
+
+      // have we read anything into the buffer
+      if (buffer != null) {
+        // now figure out how much data is in the buffer
+        int bytesInBuffer = buffer.length - bufferPosition;
+        // figure out how many bytes the user wants
+        int bytesToCopy = Math.min(len, bytesInBuffer);
+        // copy them in
+        System.arraycopy(buffer, bufferPosition, dest, off, bytesToCopy);
+        // move the buffer position
+        bufferPosition += bytesToCopy;
+        if (bufferPosition >= buffer.length) {
+          // TODO: support buffer reuse in mark/reset
+          buffer = null;
+          bufferPosition = 0;
+        }
+        // position in the blob
+        absolutePosition += bytesToCopy;
+        // increment offset
+        off += bytesToCopy;
+        // decrement the length
+        len -= bytesToCopy;
+        bytesCopied = bytesToCopy;
+      }
+
+      if (len > 0) {
+        // We are going to read data past the existing buffer, so we release the memory
+        // before making a DB call
+        buffer = null;
+        bufferPosition = 0;
+        int bytesRead;
+        try {
+          if (len >= bufferSize) {
+            // Read directly into the user's buffer
+            bytesRead = lo.read(dest, off, len);
+          } else {
+            // Refill the buffer and copy from it
+            buffer = lo.read(bufferSize);
+            // Note that actual number of bytes read may be less than requested
+            bytesRead = Math.min(len, buffer.length);
+            System.arraycopy(buffer, 0, dest, off, bytesRead);
+            // If we at the end of the stream, and we just copied the last bytes,
+            // we can release the buffer
+            if (bytesRead == buffer.length) {
+              // TODO: if we want to reuse the buffer in mark/reset we should not release the
+              //  buffer here
+              buffer = null;
+              bufferPosition = 0;
+            } else {
+              bufferPosition = bytesRead;
+            }
+          }
+        } catch (SQLException ex) {
+          throw new IOException(
+              GT.tr("Can not read data from large object {0}, position: {1}, buffer size: {2}",
+                  lo.getLongOID(), absolutePosition, len),
+              ex);
+        }
+        bytesCopied += bytesRead;
+        absolutePosition += bytesRead;
+      }
+      return bytesCopied == 0 ? -1 : bytesCopied;
     }
   }
 
@@ -124,13 +214,19 @@ public class BlobInputStream extends InputStream {
    * @throws IOException if an I/O error occurs.
    */
   public void close() throws IOException {
-    if (lo != null) {
-      try {
+    long loId = 0;
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = this.lo;
+      if (lo != null) {
+        loId = lo.getLongOID();
         lo.close();
-        lo = null;
-      } catch (SQLException se) {
-        throw new IOException(se.toString());
       }
+      this.lo = null;
+    } catch (SQLException e) {
+      throw new IOException(
+          GT.tr("Can not close large object {0}",
+              loId),
+          e);
     }
   }
 
@@ -157,7 +253,7 @@ public class BlobInputStream extends InputStream {
    */
   public void mark(int readlimit) {
     try (ResourceLock ignore = lock.obtain()) {
-      mpos = apos;
+      markPosition = absolutePosition;
     }
   }
 
@@ -171,16 +267,20 @@ public class BlobInputStream extends InputStream {
   public void reset() throws IOException {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
+      long loId = lo.getLongOID();
       try {
-        if (mpos <= Integer.MAX_VALUE) {
-          lo.seek((int) mpos);
+        if (markPosition <= Integer.MAX_VALUE) {
+          lo.seek((int) markPosition);
         } else {
-          lo.seek64(mpos, LargeObject.SEEK_SET);
+          lo.seek64(markPosition, LargeObject.SEEK_SET);
         }
         buffer = null;
-        apos = mpos;
-      } catch (SQLException se) {
-        throw new IOException(se.toString());
+        absolutePosition = markPosition;
+      } catch (SQLException e) {
+        throw new IOException(
+            GT.tr("Can not reset stream for large object {0} to position {1}",
+                loId, markPosition),
+            e);
       }
     }
   }
