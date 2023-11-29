@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import org.postgresql.jdbc.ResourceLock;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
@@ -19,21 +21,22 @@ public class BlobOutputStream extends OutputStream {
    * The parent LargeObject.
    */
   private @Nullable LargeObject lo;
+  private final ResourceLock lock = new ResourceLock();
 
   /**
    * Buffer.
    */
-  private byte[] buf;
+  private byte @Nullable [] buf;
 
   /**
    * Size of the buffer (default 1K).
    */
-  private int bsize;
+  private final int bufferSize;
 
   /**
    * Position within the buffer.
    */
-  private int bpos;
+  private int bufferPosition;
 
   /**
    * Create an OutputStream to a large object.
@@ -48,40 +51,67 @@ public class BlobOutputStream extends OutputStream {
    * Create an OutputStream to a large object.
    *
    * @param lo LargeObject
-   * @param bsize The size of the buffer used to improve performance
+   * @param bufferSize The size of the buffer for single-byte writes
    */
-  public BlobOutputStream(LargeObject lo, int bsize) {
+  public BlobOutputStream(LargeObject lo, int bufferSize) {
     this.lo = lo;
-    this.bsize = bsize;
-    buf = new byte[bsize];
-    bpos = 0;
+    this.bufferSize = bufferSize;
   }
 
   public void write(int b) throws java.io.IOException {
     LargeObject lo = checkClosed();
-    try {
-      if (bpos >= bsize) {
-        lo.write(buf);
-        bpos = 0;
+    try (ResourceLock ignore = lock.obtain()) {
+      byte[] buf = this.buf;
+      if (buf == null) {
+        // Allocate the buffer on the first use
+        this.buf = buf = new byte[bufferSize];
       }
-      buf[bpos++] = (byte) b;
+      buf[bufferPosition++] = (byte) b;
+      if (bufferPosition >= bufferSize) {
+        lo.write(buf);
+        bufferPosition = 0;
+      }
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
   }
 
-  public void write(byte[] buf, int off, int len) throws java.io.IOException {
-    LargeObject lo = checkClosed();
-    try {
-      // If we have any internally buffered data, send it first
-      if (bpos > 0) {
-        flush();
+  public void write(byte[] b, int off, int len) throws java.io.IOException {
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = checkClosed();
+      byte[] buf = this.buf;
+      // Initialize the buffer if needed
+      // Suppose we have bufferPosition=10KiB buffered out of bufferSize=64KiB, and the user issues
+      // 100KiB write. We will copy 54KiB to the buffer and flush it, then we will copy
+      // the remaining 46KiB to the buffer without flushing to the DB. It avoids small writes
+      // hitting the database.
+      // If the incoming request is 300KiB, then we copy 54KiB to the buffer and flush it.
+      // Then we write the remaining 246KiB directly to the database.
+      // At worst, it results in two DB calls
+      // If the buffer was not there, we do not create one if the write request is big enough
+      if (buf == null && len < 2 * bufferSize) {
+        this.buf = buf = new byte[bufferSize];
       }
-
-      if (off == 0 && len == buf.length) {
-        lo.write(buf); // save a buffer creation and copy since full buffer written
+      if (buf != null && bufferPosition < bufferSize) {
+        // Copy the part of the user-provided data that fits in the buffer
+        int avail = Math.min(bufferSize - bufferPosition, len);
+        System.arraycopy(b, off, buf, bufferPosition, avail);
+        bufferPosition += avail;
+        len -= avail;
+        off += avail;
+      }
+      if (len == 0) {
+        return;
+      }
+      // TODO: ideally, we should be able to use lo.write(buffer1, buffer2) to avoid copying
+      flush();
+      if (buf == null || len >= bufferSize) {
+        // The remaining data exceeds the buffer, so we can write it directly to the database
+        lo.write(b, off, len);
       } else {
-        lo.write(buf, off, len);
+        // Buffer the remaining data
+        System.arraycopy(b, off, buf, bufferPosition, len);
+        bufferPosition += len;
       }
     } catch (SQLException se) {
       throw new IOException(se.toString());
@@ -97,27 +127,28 @@ public class BlobOutputStream extends OutputStream {
    * @throws IOException if an I/O error occurs.
    */
   public void flush() throws IOException {
-    LargeObject lo = checkClosed();
-    try {
-      if (bpos > 0) {
-        lo.write(buf, 0, bpos);
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = checkClosed();
+      byte[] buf = this.buf;
+      if (buf != null && bufferPosition > 0) {
+        lo.write(buf, 0, bufferPosition);
       }
-      bpos = 0;
+      bufferPosition = 0;
     } catch (SQLException se) {
       throw new IOException(se.toString());
     }
   }
 
   public void close() throws IOException {
-    LargeObject lo = this.lo;
-    if (lo != null) {
-      try {
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = this.lo;
+      if (lo != null) {
         flush();
         lo.close();
         this.lo = null;
-      } catch (SQLException se) {
-        throw new IOException(se.toString());
       }
+    } catch (SQLException se) {
+      throw new IOException(se.toString());
     }
   }
 
