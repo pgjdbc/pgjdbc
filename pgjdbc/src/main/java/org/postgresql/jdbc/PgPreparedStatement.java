@@ -690,7 +690,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Blob) {
           setBlob(parameterIndex, (Blob) in);
         } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, -1);
+          long oid = createBlob(parameterIndex, (InputStream) in, Long.MAX_VALUE);
           setLong(parameterIndex, oid);
         } else {
           throw new PSQLException(
@@ -1198,31 +1198,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
-    OutputStream outputStream = lob.getOutputStream();
-    byte[] buf = new byte[4096];
-    try {
-      long remaining;
-      if (length > 0) {
-        remaining = length;
-      } else {
-        remaining = Long.MAX_VALUE;
-      }
-      int numRead = inputStream.read(buf, 0,
-          (length > 0 && remaining < buf.length ? (int) remaining : buf.length));
-      while (numRead != -1 && remaining > 0) {
-        remaining -= numRead;
+    try (OutputStream outputStream = lob.getOutputStream();) {
+      // The actual buffer size does not matter much, see benchmarks
+      // https://github.com/pgjdbc/pgjdbc/pull/3044#issuecomment-1838057929
+      // BlobOutputStream would gradually increase the buffer, so it will level the number of
+      // database calls.
+      // At the same time, inputStream.read might produce less rows than requested, so we can not
+      // use a plain lob.write(buf, 0, numRead) as it might not align with 2K boundaries.
+      byte[] buf = new byte[(int) Math.min(length, 8192)];
+      int numRead;
+      while (length > 0 && (
+          numRead = inputStream.read(buf, 0, (int) Math.min(buf.length, length))) >= 0) {
+        length -= numRead;
         outputStream.write(buf, 0, numRead);
-        numRead = inputStream.read(buf, 0,
-            (length > 0 && remaining < buf.length ? (int) remaining : buf.length));
       }
     } catch (IOException se) {
       throw new PSQLException(GT.tr("Unexpected error writing large object to database."),
           PSQLState.UNEXPECTED_ERROR, se);
-    } finally {
-      try {
-        outputStream.close();
-      } catch (Exception e) {
-      }
     }
     return oid;
   }
@@ -1629,7 +1621,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    long oid = createBlob(parameterIndex, inputStream, -1);
+    long oid = createBlob(parameterIndex, inputStream, Long.MAX_VALUE);
     setLong(parameterIndex, oid);
   }
 
