@@ -6,7 +6,7 @@ dependencies {
     implementation(project(":basics"))
     implementation(project(":build-parameters"))
     implementation("com.github.autostyle:com.github.autostyle.gradle.plugin:3.2")
-    implementation("com.github.spotbugs:com.github.spotbugs.gradle.plugin:5.0.14")
+    implementation("com.github.spotbugs:com.github.spotbugs.gradle.plugin:5.2.5")
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:1.90")
     implementation("de.thetaphi.forbiddenapis:de.thetaphi.forbiddenapis.gradle.plugin:3.6")
     implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:3.1.0")
