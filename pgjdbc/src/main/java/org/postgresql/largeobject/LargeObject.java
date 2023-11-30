@@ -8,6 +8,7 @@ package org.postgresql.largeobject;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
+import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -247,6 +248,19 @@ public class LargeObject
     FastpathArg[] args = new FastpathArg[2];
     args[0] = new FastpathArg(fd);
     args[1] = new FastpathArg(buf, off, len);
+    fp.fastpath("lowrite", args);
+  }
+
+  /**
+   * Writes some data from a given writer to the object.
+   *
+   * @param writer the source of the data to write
+   * @throws SQLException if a database-access error occurs.
+   */
+  public void write(ByteStreamWriter writer) throws SQLException {
+    FastpathArg[] args = new FastpathArg[2];
+    args[0] = new FastpathArg(fd);
+    args[1] = FastpathArg.of(writer);
     fp.fastpath("lowrite", args);
   }
 

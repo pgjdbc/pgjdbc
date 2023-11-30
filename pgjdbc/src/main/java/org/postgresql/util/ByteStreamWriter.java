@@ -8,6 +8,7 @@ package org.postgresql.util;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
 /**
  * A class that can be used to set a byte array parameter by writing to an OutputStream.
@@ -50,6 +51,12 @@ public interface ByteStreamWriter {
    * @throws IOException if the underlying stream throws or there is some other error.
    */
   void writeTo(ByteStreamTarget target) throws IOException;
+
+  static ByteStreamWriter of(ByteBuffer... buf) {
+    return buf.length == 1
+        ? new ByteBufferByteStreamWriter(buf[0])
+        : new ByteBuffersByteStreamWriter(buf);
+  }
 
   /**
    * Provides a target to write bytes to.

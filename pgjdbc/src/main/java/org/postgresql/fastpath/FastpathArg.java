@@ -6,6 +6,9 @@
 package org.postgresql.fastpath;
 
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.ByteStreamWriter;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
 
@@ -28,9 +31,23 @@ public class FastpathArg {
   /**
    * Encoded byte value of argument.
    */
-  private final byte[] bytes;
+  private final byte @Nullable [] bytes;
   private final int bytesStart;
   private final int bytesLength;
+
+  static class ByteStreamWriterFastpathArg extends FastpathArg {
+    private final ByteStreamWriter writer;
+
+    ByteStreamWriterFastpathArg(ByteStreamWriter writer) {
+      super(null, 0, 0);
+      this.writer = writer;
+    }
+
+    @Override
+    void populateParameter(ParameterList params, int index) throws SQLException {
+      params.setBytea(index, writer);
+    }
+  }
 
   /**
    * Constructs an argument that consists of an integer value.
@@ -82,7 +99,7 @@ public class FastpathArg {
    * @param off offset within array
    * @param len length of data to include
    */
-  public FastpathArg(byte[] buf, int off, int len) {
+  public FastpathArg(byte @Nullable [] buf, int off, int len) {
     this.bytes = buf;
     this.bytesStart = off;
     this.bytesLength = len;
@@ -95,6 +112,10 @@ public class FastpathArg {
    */
   public FastpathArg(String s) {
     this(s.getBytes());
+  }
+
+  public static FastpathArg of(ByteStreamWriter writer) {
+    return new ByteStreamWriterFastpathArg(writer);
   }
 
   void populateParameter(ParameterList params, int index) throws SQLException {
