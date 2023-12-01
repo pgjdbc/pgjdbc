@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import org.postgresql.PGProperty;
+import org.postgresql.test.TestUtil;
 
 import java.util.Properties;
 
@@ -14,44 +15,42 @@ public class ConnectionUtil {
    * @return the Postgresql username
    */
   public static String getUser() {
-    return System.getProperty("user", "test");
+    return TestUtil.getUser();
   }
 
   /**
    * @return the user's password
    */
   public static String getPassword() {
-    return System.getProperty("password", "password");
+    return TestUtil.getPassword();
   }
 
   /**
    * @return the test server
    */
   public static String getServer() {
-    return System.getProperty("server", "localhost");
+    return TestUtil.getServer();
   }
 
   /**
    * @return the test port
    */
   public static int getPort() {
-    return Integer.parseInt(System.getProperty("port", System.getProperty("def_pgport", "5432")));
+    return TestUtil.getPort();
   }
 
   /**
    * @return the Test database
    */
   public static String getDatabase() {
-    return System.getProperty("database", "test");
+    return TestUtil.getDatabase();
   }
 
   /**
    * @return connection url to server
    */
   public static String getURL() {
-    return "jdbc:postgresql://" + ConnectionUtil.getServer() + ":" + ConnectionUtil.getPort() + "/"
-        + ConnectionUtil
-        .getDatabase();
+    return TestUtil.getURL();
   }
 
   /**

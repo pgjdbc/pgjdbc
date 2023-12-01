@@ -3,6 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 plugins {
+    id("java-test-fixtures")
     id("build-logic.java-library")
     id("me.champeau.jmh")
 }
@@ -10,6 +11,8 @@ plugins {
 dependencies {
     // Make jmhCompileClasspath resolvable
     jmhImplementation(project(":postgresql"))
+    jmhImplementation(testFixtures(project(":postgresql")))
+    jmhRuntimeOnly("com.ongres.scram:client:2.1")
     jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }

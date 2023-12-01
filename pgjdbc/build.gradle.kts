@@ -16,6 +16,7 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
+    id("java-test-fixtures")
     id("build-logic.java-published-library")
     id("build-logic.test-junit5")
     id("build-logic.java-comment-preprocessor")
@@ -87,6 +88,8 @@ dependencies {
 
     implementation("org.checkerframework:checker-qual:3.40.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
+    testFixturesImplementation("junit:junit:4.13.2")
+    testFixturesImplementation("org.checkerframework:checker-qual:3.40.0")
 }
 
 val skipReplicationTests by props()
@@ -381,6 +384,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
         }
+        from("$withoutAnnotations/src/testFixtures")
     }
     into("certdir") {
         from("$rootDir/certdir") {
