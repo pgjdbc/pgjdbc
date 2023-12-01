@@ -398,6 +398,11 @@ val sourceDistribution by tasks.registering(Tar::class) {
 }
 // </editor-fold>
 
+tasks.test {
+    // Gradle detected a problem with the following location: '/.../pgjdbc/pgjdbc/build/libs/postgresql-42.7.1-SNAPSHOT.jar'.
+    mustRunAfter(tasks.generateKar)
+}
+
 val extraMavenPublications by configurations.getting
 
 (artifacts) {
