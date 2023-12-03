@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
@@ -40,11 +41,30 @@ class ByteBuffersByteStreamWriter implements ByteStreamWriter {
 
   @Override
   public void writeTo(ByteStreamTarget target) throws IOException {
-    // this _does_ involve some copying to a temporary buffer, but that's unavoidable
-    // as OutputStream itself only accepts single bytes or heap allocated byte arrays
-    try (WritableByteChannel c = Channels.newChannel(target.getOutputStream());) {
+    boolean allArraysAreAccessible = true;
+    for (ByteBuffer buffer : buffers) {
+      if (!buffer.hasArray()) {
+        allArraysAreAccessible = false;
+        break;
+      }
+    }
+
+    OutputStream os = target.getOutputStream();
+    if (allArraysAreAccessible) {
       for (ByteBuffer buffer : buffers) {
-        c.write(buffer);
+        os.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
+      }
+      return;
+    }
+    // Channels.newChannel does not buffer writes, so we can mix writes to the channel with writes
+    // to the OutputStream
+    try (WritableByteChannel c = Channels.newChannel(os);) {
+      for (ByteBuffer buffer : buffers) {
+        if (buffer.hasArray()) {
+          os.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());
+        } else {
+          c.write(buffer);
+        }
       }
     }
   }

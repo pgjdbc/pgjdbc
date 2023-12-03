@@ -36,13 +36,17 @@ public class ByteBufferByteStreamWriter implements ByteStreamWriter {
 
   @Override
   public void writeTo(ByteStreamTarget target) throws IOException {
+    if (buf.hasArray()) {
+      // Avoid copying the array if possible
+      target.getOutputStream()
+          .write(buf.array(), buf.arrayOffset() + buf.position(), buf.remaining());
+      return;
+    }
+
     // this _does_ involve some copying to a temporary buffer, but that's unavoidable
     // as OutputStream itself only accepts single bytes or heap allocated byte arrays
-    WritableByteChannel c = Channels.newChannel(target.getOutputStream());
-    try {
+    try (WritableByteChannel c = Channels.newChannel(target.getOutputStream())) {
       c.write(buf);
-    } finally {
-      c.close();
     }
   }
 }
