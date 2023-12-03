@@ -439,7 +439,7 @@ public class LargeObject
    */
   public OutputStream getOutputStream() throws SQLException {
     if (os == null) {
-      os = new BlobOutputStream(this, 4096);
+      os = new BlobOutputStream(this);
     }
     return os;
   }

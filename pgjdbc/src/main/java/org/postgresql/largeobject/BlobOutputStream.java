@@ -21,6 +21,8 @@ import java.sql.SQLException;
  * This implements a basic output stream that writes to a LargeObject.
  */
 public class BlobOutputStream extends OutputStream {
+  static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
+
   /**
    * The parent LargeObject.
    */
@@ -35,7 +37,7 @@ public class BlobOutputStream extends OutputStream {
   /**
    * Size of the buffer (default 1K).
    */
-  private final @Positive int bufferSize;
+  private final @Positive int maxBufferSize;
 
   /**
    * Position within the buffer.
@@ -48,7 +50,7 @@ public class BlobOutputStream extends OutputStream {
    * @param lo LargeObject
    */
   public BlobOutputStream(LargeObject lo) {
-    this(lo, 1024);
+    this(lo, DEFAULT_MAX_BUFFER_SIZE);
   }
 
   /**
@@ -60,7 +62,7 @@ public class BlobOutputStream extends OutputStream {
   public BlobOutputStream(LargeObject lo, int bufferSize) {
     this.lo = lo;
     // Avoid "0" buffer size, and ensure the bufferSize will always be a power of two
-    this.bufferSize = Integer.highestOneBit(Math.max(bufferSize, 1));
+    this.maxBufferSize = Integer.highestOneBit(Math.max(bufferSize, 1));
   }
 
   /**
@@ -70,13 +72,13 @@ public class BlobOutputStream extends OutputStream {
    */
   private byte[] growBuffer(int extraBytes) {
     byte[] buf = this.buf;
-    if (buf != null && (buf.length == bufferSize || buf.length - bufferPosition >= extraBytes)) {
+    if (buf != null && (buf.length == maxBufferSize || buf.length - bufferPosition >= extraBytes)) {
       // Buffer is already large enough
       return buf;
     }
     // We use power-of-two buffers, so they align nicely with PostgreSQL's LargeObject slicing
     // By default PostgreSQL slices the data in 2KiB chunks
-    int newSize = Math.min(bufferSize, Integer.highestOneBit(bufferPosition + extraBytes) * 2);
+    int newSize = Math.min(maxBufferSize, Integer.highestOneBit(bufferPosition + extraBytes) * 2);
     byte[] newBuffer = new byte[newSize];
     if (buf != null && bufferPosition != 0) {
       // There was some data in the old buffer, copy it over
@@ -143,11 +145,11 @@ public class BlobOutputStream extends OutputStream {
 
       // We want aligned writes, so the write requests chunk nicely into large object rows
       int tailLength =
-          bufferSize >= 8192 ? totalData % 8192 : (
-              bufferSize >= 2048 ? totalData % 2048 : 0
+          maxBufferSize >= 8192 ? totalData % 8192 : (
+              maxBufferSize >= 2048 ? totalData % 2048 : 0
           );
 
-      if (totalData >= bufferSize) {
+      if (totalData >= maxBufferSize) {
         // The resulting data won't fit into the buffer, so we flush the data to the database
         int writeFromBuffer = Math.min(bufferPosition, totalData - tailLength);
         int writeFromB = Math.max(0, totalData - writeFromBuffer - tailLength);
