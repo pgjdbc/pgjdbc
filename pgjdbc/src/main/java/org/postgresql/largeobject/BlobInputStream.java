@@ -18,6 +18,9 @@ import java.sql.SQLException;
  * This is an implementation of an InputStream from a large object.
  */
 public class BlobInputStream extends InputStream {
+  static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
+  static final int INITIAL_BUFFER_SIZE = 64 * 1024;
+
   /**
    * The parent LargeObject.
    */
@@ -40,9 +43,15 @@ public class BlobInputStream extends InputStream {
   private int bufferPosition;
 
   /**
+   * The amount of bytes to read on the next read.
+   * Currently, we nullify {@link #buffer}, so we can't use {@code buffer.length}.
+   */
+  private int lastBufferSize;
+
+  /**
    * The buffer size.
    */
-  private final int bufferSize;
+  private final int maxBufferSize;
 
   /**
    * The mark position.
@@ -58,7 +67,7 @@ public class BlobInputStream extends InputStream {
    * @param lo LargeObject to read from
    */
   public BlobInputStream(LargeObject lo) {
-    this(lo, 1024);
+    this(lo, DEFAULT_MAX_BUFFER_SIZE);
   }
 
   /**
@@ -77,7 +86,10 @@ public class BlobInputStream extends InputStream {
    */
   public BlobInputStream(LargeObject lo, int bsize, long limit) {
     this.lo = lo;
-    this.bufferSize = bsize;
+    this.maxBufferSize = bsize;
+    // The very first read multiplies the last buffer size by two, so we divide by two to get
+    // the first read to be exactly the initial buffer size
+    this.lastBufferSize = INITIAL_BUFFER_SIZE / 2;
     // Treat -1 as no limit for backward compatibility
     this.limit = limit == -1 ? Long.MAX_VALUE : limit;
   }
@@ -89,6 +101,8 @@ public class BlobInputStream extends InputStream {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
       if (absolutePosition >= limit) {
+        buffer = null;
+        bufferPosition = 0;
         return -1;
       }
       // read more in if necessary
@@ -96,7 +110,8 @@ public class BlobInputStream extends InputStream {
         // Don't hold the buffer while waiting for DB to respond
         // Note: lo.read(...) does not support "fetching the response into the user-provided buffer"
         // See https://github.com/pgjdbc/pgjdbc/issues/3043
-        buffer = lo.read(bufferSize);
+        int nextBufferSize = getNextBufferSize(1);
+        buffer = lo.read(nextBufferSize);
         bufferPosition = 0;
 
         if (buffer.length == 0) {
@@ -120,9 +135,25 @@ public class BlobInputStream extends InputStream {
       long loId = lo == null ? -1 : lo.getLongOID();
       throw new IOException(
           GT.tr("Can not read data from large object {0}, position: {1}, buffer size: {2}",
-              loId, absolutePosition, bufferSize),
+              loId, absolutePosition, lastBufferSize),
           e);
     }
+  }
+
+  /**
+   * Computes the next buffer size to use for reading data from the large object.
+   * The idea is to avoid allocating too much memory, especially if the user will use just a few
+   * bytes of the data.
+   * @param len estimated read request
+   * @return next buffer size or {@link #maxBufferSize} if the buffer should not be increased
+   */
+  private int getNextBufferSize(int len) {
+    int nextBufferSize = Math.min(maxBufferSize, this.lastBufferSize * 2);
+    if (len > nextBufferSize) {
+      nextBufferSize = Math.min(maxBufferSize, Integer.highestOneBit(len * 2));
+    }
+    this.lastBufferSize = nextBufferSize;
+    return nextBufferSize;
   }
 
   @Override
@@ -167,18 +198,19 @@ public class BlobInputStream extends InputStream {
       }
 
       if (len > 0) {
+        int nextBufferSize = getNextBufferSize(len);
         // We are going to read data past the existing buffer, so we release the memory
         // before making a DB call
         buffer = null;
         bufferPosition = 0;
         int bytesRead;
         try {
-          if (len >= bufferSize) {
+          if (len >= nextBufferSize) {
             // Read directly into the user's buffer
             bytesRead = lo.read(dest, off, len);
           } else {
             // Refill the buffer and copy from it
-            buffer = lo.read(bufferSize);
+            buffer = lo.read(nextBufferSize);
             // Note that actual number of bytes read may be less than requested
             bytesRead = Math.min(len, buffer.length);
             System.arraycopy(buffer, 0, dest, off, bytesRead);

@@ -386,7 +386,7 @@ public class LargeObject
    * @throws SQLException if a database-access error occurs.
    */
   public InputStream getInputStream() throws SQLException {
-    return new BlobInputStream(this, 4096);
+    return new BlobInputStream(this);
   }
 
   /**
@@ -398,7 +398,7 @@ public class LargeObject
    * @throws SQLException if a database-access error occurs.
    */
   public InputStream getInputStream(long limit) throws SQLException {
-    return new BlobInputStream(this, 4096, limit);
+    return new BlobInputStream(this, BlobInputStream.DEFAULT_MAX_BUFFER_SIZE, limit);
   }
 
   /**
