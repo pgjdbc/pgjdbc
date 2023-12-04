@@ -24,7 +24,9 @@ matrix.addAxis({
     {value: 'liberica', vendor: 'bellsoft', weight: 1},
     {value: 'microsoft', vendor: 'microsoft', weight: 1},
     {value: 'oracle', vendor: 'oracle', weight: 1},
-    {value: 'semeru', vendor: 'ibm', weight: 4},
+    // There are issues running Semeru JDK with Gradle 8.5
+    // See https://github.com/gradle/gradle/issues/27273
+    // {value: 'semeru', vendor: 'ibm', weight: 4},
     {value: 'temurin', vendor: 'eclipse', weight: 1},
     {value: 'zulu', vendor: 'azul', weight: 1},
   ]
