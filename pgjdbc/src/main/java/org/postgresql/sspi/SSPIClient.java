@@ -9,6 +9,7 @@ package org.postgresql.sspi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -24,6 +25,7 @@ import waffle.windows.auth.impl.WindowsCredentialsHandleImpl;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -41,6 +43,7 @@ public class SSPIClient implements ISSPIClient {
   public static final String SSPI_DEFAULT_SPN_SERVICE_CLASS = "POSTGRES";
 
   private static final Logger LOGGER = Logger.getLogger(SSPIClient.class.getName());
+  private static final Constructor<? extends SecBufferDesc> SEC_BUFFER_DESC_FACTORY;
   private final PGStream pgStream;
   private final String spnServiceClass;
   private final boolean enableNegotiate;
@@ -48,6 +51,23 @@ public class SSPIClient implements ISSPIClient {
   private @Nullable IWindowsCredentialsHandle clientCredentials;
   private @Nullable WindowsSecurityContextImpl sspiContext;
   private @Nullable String targetName;
+
+  static {
+    Class<? extends SecBufferDesc> klass;
+    try {
+      klass = Class.forName("com.sun.jna.platform.win32.SspiUtil$ManagedSecBufferDesc")
+          .asSubclass(SecBufferDesc.class);
+    } catch (ReflectiveOperationException ex) {
+      klass = SecBufferDesc.class;
+    }
+    try {
+      SEC_BUFFER_DESC_FACTORY = klass.getConstructor(int.class, byte[].class);
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException(
+          GT.tr("Unable to instantiate SecBufferDesc, so SSPI is unavailable",
+              klass.getName()), e);
+    }
+  }
 
   /**
    * <p>Instantiate an SSPIClient for authentication of a connection.</p>
@@ -202,7 +222,15 @@ public class SSPIClient implements ISSPIClient {
     /* Read the response token from the server */
     byte[] receivedToken = pgStream.receive(msgLength);
 
-    SecBufferDesc continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
+    SecBufferDesc continueToken;
+
+    try {
+      continueToken =
+          SEC_BUFFER_DESC_FACTORY.newInstance(Sspi.SECBUFFER_TOKEN, receivedToken);
+    } catch (ReflectiveOperationException ex) {
+      // A fallback just in case
+      continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
+    }
 
     sspiContext.initialize(sspiContext.getHandle(), continueToken, castNonNull(targetName));
 
