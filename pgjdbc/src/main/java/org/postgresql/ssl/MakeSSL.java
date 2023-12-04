@@ -36,9 +36,8 @@ public class MakeSSL extends ObjectFactory {
     try {
       newConnection = (SSLSocket) factory.createSocket(stream.getSocket(),
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
-      // honour the network timeout set in the incoming stream. We have a report that SSL
-      // connections do not timeout.
-      newConnection.setSoTimeout(stream.getNetworkTimeout());
+      int connectTimeoutSeconds = PGProperty.CONNECT_TIMEOUT.getInt(info);
+      newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
       // We must invoke manually, otherwise the exceptions are hidden
       newConnection.setUseClientMode(true);
       newConnection.startHandshake();
@@ -54,7 +53,9 @@ public class MakeSSL extends ObjectFactory {
     if (sslMode.verifyPeerName()) {
       verifyPeerName(stream, info, newConnection);
     }
-
+    // Zero timeout (default) means infinite
+    int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
+    newConnection.setSoTimeout(socketTimeout * 1000);
     stream.changeSocket(newConnection);
   }
 
