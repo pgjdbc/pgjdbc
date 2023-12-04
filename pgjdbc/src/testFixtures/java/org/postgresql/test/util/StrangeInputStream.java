@@ -31,7 +31,27 @@ public class StrangeInputStream extends FilterInputStream {
 
   @Override
   public int read(byte[] b, int off, int len) throws IOException {
+    if (len > 0 && rand.nextInt(10) > 7) {
+      int next = super.read();
+      if (next == -1) {
+        return -1;
+      }
+      b[off] = (byte) next;
+      return 1;
+    }
     int maxRead = rand.nextInt(len);
     return super.read(b, off, maxRead);
+  }
+
+  @Override
+  public long skip(long n) throws IOException {
+    long maxSkip = rand.nextLong() % (n + 1);
+    return super.skip(maxSkip);
+  }
+
+  @Override
+  public int available() throws IOException {
+    int available = super.available();
+    return rand.nextInt(available + 1);
   }
 }
