@@ -51,13 +51,12 @@ To insert an image, you would use:
 
 ```java
 File file = new File("myimage.gif");
-FileInputStream fis = new FileInputStream(file);
-PreparedStatement ps = conn.prepareStatement("INSERT INTO images VALUES (?, ?)");
-ps.setString(1, file.getName());
-ps.setBinaryStream(2, fis, (int) file.length());
-ps.executeUpdate();
-ps.close();
-fis.close();
+try (FileInputStream fis = new FileInputStream(file);
+     PreparedStatement ps = conn.prepareStatement("INSERT INTO images VALUES (?, ?)"); ) {
+    ps.setString(1, file.getName());
+    ps.setBinaryStream(2, fis, (int) file.length());
+    ps.executeUpdate();
+}
 ```
 
 Here, `setBinaryStream()` transfers a set number of bytes from a stream into the column of type BYTEA. This also could
@@ -72,15 +71,15 @@ have been done using the `setBytes()` method if the contents of the image was al
 Retrieving an image is even easier. (We use `PreparedStatement` here, but the `Statement` class can equally be used.
 
 ```java
-PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?");
-ps.setString(1, "myimage.gif");
-ResultSet rs = ps.executeQuery();
-while (rs.next()) {
-    byte[] imgBytes = rs.getBytes(1);
-    // use the data in some way here
+try (PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?"); ) {
+    ps.setString(1,"myimage.gif");
+    try (ResultSet rs = ps.executeQuery();) {
+        while(rs.next()){
+            byte[] imgBytes = rs.getBytes(1);
+            // use the data in some way here
+        }
+    }
 }
-rs.close();
-ps.close();
 ```
 
 Here the binary data was retrieved as an `byte[]`.  You could have used a `InputStream` object instead.
@@ -97,37 +96,14 @@ To insert an image, you would use:
 // All LargeObject API calls must be within a transaction block
 conn.setAutoCommit(false);
 
-// Get the Large Object Manager to perform operations with
-LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();
-
-// Create a new large object
-long oid = lobj.createLO(LargeObjectManager.READ | LargeObjectManager.WRITE);
-
-// Open the large object for writing
-LargeObject obj = lobj.open(oid, LargeObjectManager.WRITE);
-
-// Now open the file
-File file = new File("myimage.gif");
-FileInputStream fis = new FileInputStream(file);
-
-// Copy the data from the file to the large object
-byte buf[] = new byte[2048];
-int s, tl = 0;
-while ((s = fis.read(buf, 0, 2048)) > 0) {
-    obj.write(buf, 0, s);
-    tl += s;
-}
-
-// Close the large object
-obj.close();
-
+File inputFile = new File("myimage.gif");
 // Now insert the row into imageslo
-PreparedStatement ps = conn.prepareStatement("INSERT INTO imageslo VALUES (?, ?)");
-ps.setString(1, file.getName());
-ps.setLong(2, oid);
-ps.executeUpdate();
-ps.close();
-fis.close();
+try (PreparedStatement ps = conn.prepareStatement("INSERT INTO imageslo VALUES (?, ?)");
+     FileInputStream fis = new FileInputStream(inputFile); ) {
+    ps.setString(1,file.getName());
+    ps.setBlob(2, fis, inputFile.length());
+    ps.executeUpdate();
+}
 
 // Finally, commit the transaction.
 conn.commit();
@@ -139,27 +115,48 @@ Retrieving the image from the Large Object:
 // All LargeObject API calls must be within a transaction block
 conn.setAutoCommit(false);
 
-// Get the Large Object Manager to perform operations with
-LargeObjectManager lobj = conn.unwrap(org.postgresql.PGConnection.class).getLargeObjectAPI();
-
-PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?");
-ps.setString(1, "myimage.gif");
-ResultSet rs = ps.executeQuery();
-while (rs.next()) {
-    // Open the large object for reading
-    long oid = rs.getLong(1);
-    LargeObject obj = lobj.open(oid, LargeObjectManager.READ);
-
-    // Read the data
-    byte buf[] = new byte[obj.size()];
-    obj.read(buf, 0, obj.size());
-    // Do something with the data read here
-
-    // Close the object
-    obj.close();
+try (PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?"); ) {
+    ps.setString(1, "myimage.gif");
+    try (ResultSet rs = ps.executeQuery(); ) {
+        while (rs.next()) {
+            // Read all data at once
+            byte[] contents = rs.getBytes(1);
+            // Read all data as InputStream
+            Blob blob = rs.getBlob(1);
+            try (InputStream is = blob.getBinaryStream(); ) {
+                // Process the input stream. The input stream is buffered, so you don't need to
+                // wrap it in a BufferedInputStream
+            } finally {
+                blob.free();
+            }
+        }
+    }
 }
-rs.close();
-ps.close();
+
+// Finally, commit the transaction.
+conn.commit();
+```
+
+Updating the contents of the Large Object:
+
+```java
+// All LargeObject API calls must be within a transaction block
+conn.setAutoCommit(false);
+
+try (PreparedStatement ps = conn.prepareStatement("SELECT imgoid FROM imageslo WHERE imgname = ?"); ) {
+    ps.setString(1, "myimage.gif");
+    try (ResultSet rs = ps.executeQuery(); ) {
+        while (rs.next()) {
+            Blob blob = rs.getBlob(1);
+            try (OutputStream os = blob.setBinaryStream(0); ) {
+                // Write data to the output stream. The output stream is buffered, so you don't need to
+                // wrap it in a BufferedOutputStream
+            } finally {
+                blob.free();
+            }
+        }
+    }
+}
 
 // Finally, commit the transaction.
 conn.commit();
