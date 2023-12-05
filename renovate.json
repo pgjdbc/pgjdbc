@@ -19,6 +19,11 @@
       "groupName": "com.github.vlsi"
     },
     {
+      "matchPackageNames": ["org.postgresql:postgresql"],
+      "matchCurrentVersion": "1.0.0-dev-master-SNAPSHOT",
+      "enabled": false
+    },
+    {
       "matchPackagePrefixes": ["ch.qos.logback"],
       "groupName": "logback",
       "allowedVersions": "< 1.3.0"
@@ -27,7 +32,7 @@
       "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
       "groupName": "system-stubs-jupiter",
       "matchCurrentVersion": "< 2.0",
-      "allowedVersions": "< 2.0"
+      "enabled": false
     },
     {
       "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
