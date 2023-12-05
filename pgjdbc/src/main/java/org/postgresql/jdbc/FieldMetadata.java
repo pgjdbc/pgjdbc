@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.JavaVersion;
 import org.postgresql.util.CanEstimateSize;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -14,7 +15,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * This class is not meant to be used outside of pgjdbc.
  */
 public class FieldMetadata implements CanEstimateSize {
-  public static class Key {
+  public static final class Key {
     final int tableOid;
     final int positionInTable;
 
@@ -28,16 +29,13 @@ public class FieldMetadata implements CanEstimateSize {
       if (this == o) {
         return true;
       }
-      if (o == null || getClass() != o.getClass()) {
+      if (!(o instanceof Key)) {
         return false;
       }
 
-      Key key = (Key) o;
+      final Key key = (Key) o;
 
-      if (tableOid != key.tableOid) {
-        return false;
-      }
-      return positionInTable == key.positionInTable;
+      return tableOid == key.tableOid && positionInTable == key.positionInTable;
     }
 
     @Override
@@ -75,10 +73,12 @@ public class FieldMetadata implements CanEstimateSize {
     this.autoIncrement = autoIncrement;
   }
 
+  @Override
   public long getSize() {
-    return columnName.length() * 2
-        + tableName.length() * 2
-        + schemaName.length() * 2
+    final JavaVersion runtimeVersion = JavaVersion.getRuntimeVersion();
+    return runtimeVersion.size(columnName)
+        + runtimeVersion.size(tableName)
+        + runtimeVersion.size(schemaName)
         + 4L
         + 1L;
   }

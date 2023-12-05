@@ -9,6 +9,8 @@ import org.postgresql.util.CanEstimateSize;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.util.Objects;
+
 /**
  * This class is used as a cache key for simple statements that have no "returning columns".
  * Prepared statements that have no returning columns use just {@code String sql} as a key.
@@ -37,10 +39,7 @@ class BaseQueryKey implements CanEstimateSize {
 
   @Override
   public long getSize() {
-    if (sql == null) { // just in case
-      return 16;
-    }
-    return 16 + sql.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+    return 16 + JavaVersion.getRuntimeVersion().size(sql);
   }
 
   @Override
@@ -54,14 +53,9 @@ class BaseQueryKey implements CanEstimateSize {
 
     BaseQueryKey that = (BaseQueryKey) o;
 
-    if (isParameterized != that.isParameterized) {
-      return false;
-    }
-    if (escapeProcessing != that.escapeProcessing) {
-      return false;
-    }
-    return sql != null ? sql.equals(that.sql) : that.sql == null;
-
+    return isParameterized == that.isParameterized
+        && escapeProcessing == that.escapeProcessing
+        && Objects.equals(sql, that.sql);
   }
 
   @Override
