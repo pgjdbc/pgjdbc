@@ -24,15 +24,15 @@
       "allowedVersions": "< 1.3.0"
     },
     {
-      "matchPackagePrefixes": ["uk.org.webcompere"],
-      "groupName": "uk.org.webcompere",
-      "matchCurrentVersion": "[,2.0)",
-      "matchUpdateTypes": ["minor", "patch"]
+      "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
+      "groupName": "system-stubs-jupiter",
+      "matchCurrentVersion": "< 2.0",
+      "allowedVersions": "< 2.0"
     },
     {
-      "matchPackagePrefixes": ["uk.org.webcompere"],
-      "groupName": "uk.org.webcompere",
-      "allowedVersions": "[2.0,)"
+      "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
+      "groupName": "system-stubs-jupiter",
+      "matchCurrentVersion": "> 2.0"
     }
   ]
 }
