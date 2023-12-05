@@ -26,13 +26,13 @@
     {
       "matchPackagePrefixes": ["uk.org.webcompere"],
       "groupName": "uk.org.webcompere",
-      "matchCurrentVersion": "< 2.0.0",
+      "matchCurrentVersion": "[,2.0)",
       "matchUpdateTypes": ["minor", "patch"]
     },
     {
       "matchPackagePrefixes": ["uk.org.webcompere"],
       "groupName": "uk.org.webcompere",
-      "allowedVersions": ">= 2.1.0"
+      "allowedVersions": "[2.0,)"
     }
   ]
 }
