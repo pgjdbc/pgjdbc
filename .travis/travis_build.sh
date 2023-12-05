@@ -61,7 +61,6 @@ then
   curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
 
   cd test-anorm-sbt
-  sed -i "s/\"org.postgresql\" % \"postgresql\" % \"[^\"]*\"/\"org.postgresql\" % \"postgresql\" % \"1.0.0-dev-master-SNAPSHOT\"/" build.sbt
   sbt test
 
   cd ..
