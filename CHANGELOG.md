@@ -9,10 +9,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
-## [42.7.1] (2023-11-27 09:33:00 -0500)
+## [42.7.1] (2023-12-05 09:51:00 -0500)
+
+### Changed
+*  perf: improve performance of PreparedStatement.setBlob, BlobInputStream, and BlobOutputStream with dynamic buffer sizing [PR #3044](https://github.com/pgjdbc/pgjdbc/pull/3044)
 
 ### Fixed
-*  fix: NoSuchMethodError on ByteBuffer#position When Running on Java 8  when accessing arrays, issue https://github.com/pgjdbc/pgjdbc/issues/3014
+
+*  fix: Apply connectTimeout before SSLSocket.startHandshake to avoid infinite wait in case the connection is broken [PR #3040](https://github.com/pgjdbc/pgjdbc/pull/3040)
+*  fix: support waffle-jna 2.x and 3.x by using reflective approach for ManagedSecBufferDesc [PR #2720](https://github.com/pgjdbc/pgjdbc/pull/2720) Fixes [Issue #2690](https://github.com/pgjdbc/pgjdbc/issues/2720).
+*  fix: NoSuchMethodError on ByteBuffer#position When Running on Java 8  when accessing arrays, fixes [Issue #3014](https://github.com/pgjdbc/pgjdbc/issues/3014)
 *  Revert "[PR #2925](https://github.com/pgjdbc/pgjdbc/pull/2925) Use canonical DateStyle name" [PR #3035](https://github.com/pgjdbc/pgjdbc/pull/3035)
    Fixes  [Issue #3008](https://github.com/pgjdbc/pgjdbc/issues/3008)
 *  Revert "[PR ##2973](https://github.com/pgjdbc/pgjdbc/pull/2973) feat: support SET statements combining with other queries with semicolon in PreparedStatement" [PR #3010](https://github.com/pgjdbc/pgjdbc/pull/3010)
