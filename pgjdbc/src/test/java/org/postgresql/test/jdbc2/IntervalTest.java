@@ -22,6 +22,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
+import java.time.Period;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -373,6 +375,32 @@ public class IntervalTest {
     PGInterval pgi = new PGInterval("0.0000007 seconds");
 
     assertEquals(1, pgi.getMicroSeconds());
+  }
+
+  @Test
+  public void testConverter() throws SQLException {
+    PGInterval fromString = new PGInterval("+2004 years -4 mons +20 days -15:57:12.100001");
+    Period period = fromString.getPeriodPart();
+    Period expectedPeriod = Period.of(2004, -4, 20);
+    assertEquals(expectedPeriod, period);
+
+    Duration duration = fromString.getDurationPart();
+    Duration expectedDuration = Duration.parse("-PT15H57M12.100001S");
+    assertEquals(expectedDuration, duration);
+
+    assertEquals(fromString, PGInterval.of(expectedPeriod, expectedDuration));
+  }
+
+  @Test
+  public void testConverterSupportsOnlyMicroseconds() throws SQLException {
+    PGInterval pgi = new PGInterval("0.0000007 seconds");
+    assertEquals(Duration.ofNanos(1000), pgi.getDurationPart());
+  }
+
+  @Test
+  public void testConverterSupportsMoreThan24Hours() throws SQLException {
+    PGInterval pgi = new PGInterval("1 year 1 month 1 day 300 hours");
+    assertEquals(Duration.ofHours(300), pgi.getDurationPart());
   }
 
   private java.sql.Date makeDate(int y, int m, int d) {

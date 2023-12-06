@@ -11,6 +11,9 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.time.Duration;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -40,9 +43,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * Initialize a interval with a given interval string representation.
+   * Initialize an interval with a given interval string representation.
    *
-   * @param value String representated interval (e.g. '3 years 2 mons')
+   * @param value String represented interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    * @see PGobject#setValue(String)
    */
@@ -56,9 +59,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     char [] tokens = find.toCharArray();
     int found = -1;
 
-    for ( int i = 0; i < tokens.length; i++ ) {
-      found = value.indexOf(tokens[i], position);
-      if ( found > 0 ) {
+    for (char token : tokens) {
+      found = value.indexOf(token, position);
+      if (found > 0) {
         return found;
       }
     }
@@ -66,7 +69,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   }
 
   private void parseISO8601Format(String value) {
-    int number = 0;
+    int number;
     String dateValue;
     String timeValue = null;
 
@@ -179,7 +182,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           // ISO intervals
           int offset = (token.charAt(0) == '-') ? 1 : 0;
 
-          hours = nullSafeIntGet(token.substring(offset + 0, endHours));
+          hours = nullSafeIntGet(token.substring(offset, endHours));
           minutes = nullSafeIntGet(token.substring(endHours + 1, endHours + 3));
 
           // Pre 7.4 servers do not put second information into the results
@@ -466,6 +469,41 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     setHours(factor * getHours());
     setMinutes(factor * getMinutes());
     setSeconds(factor * getSeconds());
+  }
+
+  /**
+   * Creates a new PGInterval with the given period and duration values.
+   *
+   * @param period the Period part (years, months and days) of the new interval.
+   * @param duration the Duration part (hours, minutes and seconds) of the new interval.
+   * @return a PGInterval with this filled values from the passed period and duration.
+   */
+  public static PGInterval of(Period period, Duration duration) {
+    int hoursPart = (int) (duration.toHours() % 24);
+    int minutesPart = (int) (duration.toMinutes() % 60);
+    int secondsPart = (int) (duration.getSeconds() % 60);
+    double seconds = secondsPart + (duration.getNano() / 1_000_000_000.0);
+    return new PGInterval(period.getYears(), period.getMonths(), period.getDays(), hoursPart, minutesPart, seconds);
+  }
+
+  /**
+   * Returns the Period part (year, months and days) of this interval.
+   * To get the Duration part (hours, minutes and seconds), use the getDurationPart method.
+   *
+   * @return the Period part of this interval.
+   */
+  public Period getPeriodPart() {
+    return Period.of(years, months, days);
+  }
+
+  /**
+   * Returns the Duration part (hours, minutes and seconds) of this interval.
+   * To get the Period part (years, months and days), use the getPeriodPart method.
+   *
+   * @return the Duration part of this interval.
+   */
+  public Duration getDurationPart() {
+    return Duration.ofHours(hours).plusMinutes(minutes).plusSeconds(wholeSeconds).plus(microSeconds, ChronoUnit.MICROS);
   }
 
   /**
