@@ -78,6 +78,7 @@ public class DatabaseMetaDataTest {
     }
     TestUtil.createTable(con, "metadatatest",
         "id int4, name text, updated timestamptz, colour text, quest text");
+    TestUtil.createTable(con, "varchartest", "v varchar(10) default 12");
     TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -154,6 +155,7 @@ public class DatabaseMetaDataTest {
 
     TestUtil.dropView(con, "viewtest");
     TestUtil.dropTable(con, "metadatatest");
+    TestUtil.dropTable(con, "varchartest");
     TestUtil.dropTable(con, "sercoltest");
     TestUtil.dropSequence(con, "sercoltest_b_seq");
     TestUtil.dropSequence(con, "sercoltest_c_seq");
@@ -566,6 +568,17 @@ public class DatabaseMetaDataTest {
       }
     }
     rs.close();
+  }
+
+  @Test
+  public void testVarCharColumns() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull( dbmd );
+
+    try ( ResultSet rs = dbmd.getColumns(null, null, "varchartest", "v")) {
+      assertTrue(rs.next());
+      assertEquals("12", rs.getString(13));
+    }
   }
 
   @Test
