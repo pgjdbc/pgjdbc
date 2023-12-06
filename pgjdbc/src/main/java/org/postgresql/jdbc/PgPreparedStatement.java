@@ -1406,8 +1406,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     bindString(i, getTimestampUtils().toString(cal, t), oid);
   }
 
-  public void setTimestamp(@Positive int i, @Nullable Timestamp t,
-      java.util.@Nullable Calendar cal) throws SQLException {
+  public void setTimestamp(@Positive int i, @Nullable Timestamp t, java.util.@Nullable Calendar cal) throws SQLException {
     checkClosed();
 
     if (t == null) {
@@ -1459,6 +1458,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     if (cal == null) {
       cal = getDefaultCalendar();
+    }
+
+    if (connection.isSqlTimestamptzAlways()) {
+      oid = Oid.TIMESTAMPTZ;
     }
     bindString(i, getTimestampUtils().toString(cal, t), oid);
   }
