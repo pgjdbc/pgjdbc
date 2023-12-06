@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
-## [42.7.1] (2023-12-05 09:51:00 -0500)
+## [42.7.1] (2023-12-06 08:34:00 -0500)
 
 ### Changed
 *  perf: improve performance of PreparedStatement.setBlob, BlobInputStream, and BlobOutputStream with dynamic buffer sizing [PR #3044](https://github.com/pgjdbc/pgjdbc/pull/3044)
@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
    Fixes  [Issue #3008](https://github.com/pgjdbc/pgjdbc/issues/3008)
 *  Revert "[PR ##2973](https://github.com/pgjdbc/pgjdbc/pull/2973) feat: support SET statements combining with other queries with semicolon in PreparedStatement" [PR #3010](https://github.com/pgjdbc/pgjdbc/pull/3010)
    Fixes [Issue #3007](https://github.com/pgjdbc/pgjdbc/issues/3007)
+*  fix: avoid timezone conversions when sending LocalDateTime to the database [#2852](https://github.com/pgjdbc/pgjdbc/pull/3010)  Fixes [Issue #1390](https://github.com/pgjdbc/pgjdbc/issues/1390)
+   ,[Issue #2850](https://github.com/pgjdbc/pgjdbc/issues/2850)
+   Closes [Issue #1391(https://github.com/pgjdbc/pgjdbc/issues/1391)
 
 
 ## [42.7.0] (2023-11-20 09:33:00 -0500)
