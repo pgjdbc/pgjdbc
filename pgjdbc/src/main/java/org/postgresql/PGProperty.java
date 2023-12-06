@@ -123,7 +123,8 @@ public enum PGProperty {
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
-      "Comma separated list of types to disable binary transfer. Either OID numbers or names. Overrides values in the driver default set and values set with binaryTransferEnable."),
+      "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
+          + "Overrides values in the driver default set and values set with binaryTransferEnable."),
 
   /**
    * Comma separated list of types to enable binary transfer. Either OID numbers or names
