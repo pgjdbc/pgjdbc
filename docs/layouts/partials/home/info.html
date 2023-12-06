@@ -15,9 +15,8 @@
             Latest Releases
         </h2>
         <p>
-            pgJDBC has released v42.7.0 on November 20, 2023. This release is mostly a maintenance release but the change
-            in allowing SET statemnts in <a href="https://github.com/pgjdbc/pgjdbc/pull/2973">PR #2973</a> is a breaking
-            change which necessitates the major version change.
+            pgJDBC has released v42.7.1 on November 27, 2023. This release primarily fixes 2 regressions <a href="https://github.com/pgjdbc/pgjdbc/issues/3007">SET followed by SHOW in one statement returns wrong result</a>
+            and <a href="https://github.com/pgjdbc/pgjdbc/issues/3008">Server default DateStyle is being overwritten</a>. Notably improved blob performance as well as a number of small changes See notes below for details.
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}
