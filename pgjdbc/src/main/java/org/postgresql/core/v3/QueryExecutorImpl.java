@@ -2371,6 +2371,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                   new PSQLException(GT.tr("Ran out of memory retrieving query results."),
                       PSQLState.OUT_OF_MEMORY, oome));
             }
+            throw oome;
           } catch (SQLException e) {
             handler.handleError(e);
           }
