@@ -350,11 +350,6 @@ public class PgConnection implements BaseConnection {
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
 
-    if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-      typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-      typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
-    }
-
     this.clientInfo = new Properties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
       String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
@@ -799,18 +794,6 @@ public class PgConnection implements BaseConnection {
 
   // This initialises the objectTypes hash map
   private void initObjectTypes(Properties info) throws SQLException {
-    // Add in the types that come packaged with the driver.
-    // These can be overridden later if desired.
-    addDataType("box", org.postgresql.geometric.PGbox.class);
-    addDataType("circle", org.postgresql.geometric.PGcircle.class);
-    addDataType("line", org.postgresql.geometric.PGline.class);
-    addDataType("lseg", org.postgresql.geometric.PGlseg.class);
-    addDataType("path", org.postgresql.geometric.PGpath.class);
-    addDataType("point", org.postgresql.geometric.PGpoint.class);
-    addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
-    addDataType("money", org.postgresql.util.PGmoney.class);
-    addDataType("interval", org.postgresql.util.PGInterval.class);
-
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();
