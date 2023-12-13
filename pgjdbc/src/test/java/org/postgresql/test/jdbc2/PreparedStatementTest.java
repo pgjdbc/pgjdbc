@@ -13,6 +13,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -263,6 +264,7 @@ public class PreparedStatementTest extends BaseTest4 {
   public void testBinds() throws SQLException {
     // braces around (42) are required to puzzle the parser
     String query = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
+
     PreparedStatement ps = con.prepareStatement(query);
     ps.setInt(1, 100500);
     ps.execute();
@@ -281,6 +283,7 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testSetNull() throws SQLException {
     // valid: fully qualified type to setNull()
+    ((PgConnection)con).setEscapeProcessing(false);
     PreparedStatement pstmt = con.prepareStatement("INSERT INTO texttable (te) VALUES (?)");
     pstmt.setNull(1, Types.VARCHAR);
     pstmt.executeUpdate();

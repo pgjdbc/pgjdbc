@@ -84,14 +84,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   private @Nullable TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
-    this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
+      int rsHoldability, boolean escapeProcessing) throws SQLException {
+    this(connection, connection.borrowQuery(sql, true, escapeProcessing), rsType, rsConcurrency, rsHoldability, escapeProcessing);
   }
 
   @SuppressWarnings("method.invocation")
   PgPreparedStatement(PgConnection connection, CachedQuery query, int rsType,
-      int rsConcurrency, int rsHoldability) throws SQLException {
-    super(connection, rsType, rsConcurrency, rsHoldability);
+      int rsConcurrency, int rsHoldability, boolean escapeProcessing) throws SQLException {
+    super(connection, rsType, rsConcurrency, rsHoldability, escapeProcessing);
 
     this.preparedQuery = query;
     this.preparedParameters = this.preparedQuery.query.createParameterList();

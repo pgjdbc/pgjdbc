@@ -246,7 +246,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   CachedQuery borrowQueryByKey(Object key) throws SQLException;
 
-  CachedQuery borrowQuery(String sql) throws SQLException;
+  CachedQuery borrowQuery(String sql, boolean isParameterized,  boolean escapeProcessing) throws SQLException;
 
   CachedQuery borrowCallableQuery(String sql) throws SQLException;
 
@@ -620,4 +620,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *                      Portal class.
    */
   void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
+
+  void setEscapeProcessing(boolean escapeProcessing);
+
+  boolean getEscapeProcessing();
 }
