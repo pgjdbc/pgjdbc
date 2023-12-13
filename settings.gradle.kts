@@ -26,6 +26,10 @@ plugins {
     id("com.github.burrunan.s3-build-cache")
 }
 
+if (JavaVersion.current() < JavaVersion.VERSION_17) {
+    throw UnsupportedOperationException("Please use Java 17 or 21 for launching Gradle when building pgjdbc, the current Java is ${JavaVersion.current().majorVersion}")
+}
+
 // This is the name of a current project
 // Note: it cannot be inferred from the directory name as developer might clone pgjdbc to pgjdbc_tmp (or whatever) folder
 rootProject.name = "pgjdbc"
