@@ -44,7 +44,7 @@ public class ConnectionTest {
   // Set up the fixture for this testcase: the tables for this test.
   @Before
   public void setUp() throws Exception {
-    con = TestUtil.openDB();
+    con = TestUtil.openPrivilegedDB();
 
     TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
     TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
@@ -57,7 +57,7 @@ public class ConnectionTest {
   public void tearDown() throws Exception {
     TestUtil.closeDB(con);
 
-    con = TestUtil.openDB();
+    con = TestUtil.openPrivilegedDB();
 
     TestUtil.dropTable(con, "test_a");
     TestUtil.dropTable(con, "test_c");
