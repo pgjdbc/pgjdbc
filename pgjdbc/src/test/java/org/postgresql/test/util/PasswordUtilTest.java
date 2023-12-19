@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
@@ -49,12 +50,24 @@ public class PasswordUtilTest {
   @Test
   public void testScramPassword() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      System.err.println( "Encryption: " + getEncryption());
+      System.err.println( "Changing password for user: " + TestUtil.getUser() + "to: " + TestUtil.getPassword());
       PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), null);
       con.close();
       con = TestUtil.openDB();
     }
   }
 
+  private String getEncryption() throws SQLException {
+    try (Statement statement = con.createStatement()) {
+      try (ResultSet rs = statement.executeQuery("show password_encryption")){
+        if (rs.next()) {
+          return rs.getString(1);
+        }
+      }
+    }
+    return "";
+  }
   private void setEncryption(String encryption) throws SQLException {
     try (Statement statement = con.createStatement()) {
       statement.execute("set password_encryption to " + encryption);
