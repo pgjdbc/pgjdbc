@@ -11,6 +11,7 @@ import com.ongres.scram.common.bouncycastle.base64.Base64;
 import com.ongres.scram.common.stringprep.StringPreparations;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -59,12 +60,12 @@ public class PasswordUtil {
       encodedPassword = encodeScram(password);
     } else if (encryption.equalsIgnoreCase(MD5)) {
       // libpq uses the user as the salt...
-      encodedPassword = new String(MD5Digest.encode(user.getBytes(), password.getBytes(), user.getBytes()));
+      encodedPassword = new String(MD5Digest.encode(user.getBytes(StandardCharsets.UTF_8), password.getBytes(StandardCharsets.UTF_8), user.getBytes(StandardCharsets.UTF_8)));
     } else {
       throw new PSQLException("Unable to determine the encryption type ", PSQLState.SYSTEM_ERROR);
     }
     try (Statement statement = con.createStatement()) {
-      statement.execute("ALTER USER " + user + " PASSWORD \'" + encodedPassword + '\'');
+      statement.execute("ALTER USER '" + user + "' PASSWORD \'" + encodedPassword + '\'');
     }
   }
 
