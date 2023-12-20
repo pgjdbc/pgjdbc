@@ -16,10 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Properties;
 
 public class PasswordUtilTest {
@@ -68,17 +65,19 @@ public class PasswordUtilTest {
    */
   private String getEncryptionForUser(String user) throws SQLException {
     try (Connection conn = TestUtil.openPrivilegedDB();
-          Statement statement = conn.createStatement();
-          ResultSet rs = statement.executeQuery("select passwd from pg_shadow where usename = " + user)) {
-      while (rs.next()) {
-        String encryption = rs.getString(1);
-        if (rs.wasNull()) {
-          return "none";
-        } else {
-          if (encryption.startsWith("md5")) {
-            return PasswordUtil.MD5;
+         PreparedStatement pstatement = conn.prepareStatement("select passwd from pg_shadow where usename = ?")) {
+      pstatement.setString(1, user);
+      try (ResultSet rs = pstatement.executeQuery()) {
+        while (rs.next()) {
+          String encryption = rs.getString(1);
+          if (rs.wasNull()) {
+            return "none";
           } else {
-            return PasswordUtil.SCRAM_ENCRYPTION;
+            if (encryption.startsWith("md5")) {
+              return PasswordUtil.MD5;
+            } else {
+              return PasswordUtil.SCRAM_ENCRYPTION;
+            }
           }
         }
       }
