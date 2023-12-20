@@ -50,6 +50,7 @@ public class PasswordUtilTest {
   @Test
   public void testScramPassword() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      System.err.println(getPgShadow());
       System.err.println( "Encryption: " + getEncryption());
       System.err.println( "Changing password for user: " + TestUtil.getUser() + " to: " + TestUtil.getPassword());
       PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), null);
@@ -67,6 +68,23 @@ public class PasswordUtilTest {
       }
     }
     return "";
+  }
+
+  private String getPgShadow() throws SQLException {
+    StringBuffer sb = new StringBuffer();
+    try (Connection conn = TestUtil.openPrivilegedDB();
+          Statement statement = conn.createStatement();
+          ResultSet rs = statement.executeQuery("table pg_shadow")){
+      while (rs.next()) {
+        sb.append("user: ")
+            .append(rs.getString(1))
+            .append(" password: ")
+            .append(rs.getString(7))
+            .append('\n');
+      }
+
+      return sb.toString();
+    }
   }
   private void setEncryption(String encryption) throws SQLException {
     try (Statement statement = con.createStatement()) {
