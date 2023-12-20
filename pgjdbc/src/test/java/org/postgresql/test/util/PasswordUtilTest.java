@@ -51,7 +51,7 @@ public class PasswordUtilTest {
   public void testScramPassword() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
       System.err.println( "Encryption: " + getEncryption());
-      System.err.println( "Changing password for user: " + TestUtil.getUser() + "to: " + TestUtil.getPassword());
+      System.err.println( "Changing password for user: " + TestUtil.getUser() + " to: " + TestUtil.getPassword());
       PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), null);
       con.close();
       con = TestUtil.openDB();
