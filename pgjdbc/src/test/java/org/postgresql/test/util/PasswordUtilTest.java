@@ -49,26 +49,41 @@ public class PasswordUtilTest {
 
   @Test
   public void testScramPassword() throws SQLException {
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
-      PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), PasswordUtil.SCRAM_ENCRYPTION);
-      con.close();
-      con = TestUtil.openDB();
-    } else {
-      PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), PasswordUtil.MD5);
-      con.close();
-      con = TestUtil.openDB();
+    String user = TestUtil.getUser();
+    String encryption = getEncryptionForUser(user);
+    if (encryption.equalsIgnoreCase("none")) {
+      return;
     }
+    PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), encryption);
+    con.close();
+    con = TestUtil.openDB();
   }
 
-  private String getEncryption() throws SQLException {
-    try (Statement statement = con.createStatement()) {
-      try (ResultSet rs = statement.executeQuery("show password_encryption")){
-        if (rs.next()) {
-          return rs.getString(1);
+  /***
+   * @param user user we want the encryption for
+   * @return md5 or scram-sha-256
+   * @throws SQLException
+   We use this instead of asking the server since the password encryption could be different for
+   each user
+   */
+  private String getEncryptionForUser(String user) throws SQLException {
+    try (Connection conn = TestUtil.openPrivilegedDB();
+          Statement statement = conn.createStatement();
+          ResultSet rs = statement.executeQuery("select passwd from pg_shadow where usename = " + user)) {
+      while (rs.next()) {
+        String encryption = rs.getString(1);
+        if (rs.wasNull()) {
+          return "none";
+        } else {
+          if (encryption.startsWith("md5")) {
+            return PasswordUtil.MD5;
+          } else {
+            return PasswordUtil.SCRAM_ENCRYPTION;
+          }
         }
       }
     }
-    return "";
+    return "none";
   }
 
   private void setEncryption(String encryption) throws SQLException {

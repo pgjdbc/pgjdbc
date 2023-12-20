@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import com.ongres.scram.common.ScramFunctions;
 import com.ongres.scram.common.ScramMechanisms;
 import com.ongres.scram.common.bouncycastle.base64.Base64;
@@ -74,15 +76,15 @@ public class PasswordUtil {
     try (Statement statement = con.createStatement()) {
       try (ResultSet rs = statement.executeQuery("show password_encryption ")) {
         if (rs.next()) {
-          String passwordEncryption = rs.getString(1);
+          String passwordEncryption = castNonNull(rs.getString(1));
 
           switch (passwordEncryption) {
             case "on":
             case "off":
-            case "md5":
-              return "md5";
-            case "scram-sha-256":
-              return "scram-sha-256";
+            case PasswordUtil.MD5:
+              return PasswordUtil.MD5;
+            case PasswordUtil.SCRAM_ENCRYPTION:
+              return PasswordUtil.SCRAM_ENCRYPTION;
             default:
               throw new PSQLException("Unable to determine encryption type", PSQLState.SYSTEM_ERROR);
           }
