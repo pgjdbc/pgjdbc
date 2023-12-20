@@ -20,8 +20,8 @@ import java.sql.Statement;
 
 public class PasswordUtil {
 
-  private static final String SCRAM_ENCRYPTION = "scram-sha-256";
-  private static final String MD5 = "md5";
+  public static final String SCRAM_ENCRYPTION = "scram-sha-256";
+  public static final String MD5 = "md5";
 
   private static final int SEED_LENGTH = 16;
   private static final int ITERATIONS = 4096;
