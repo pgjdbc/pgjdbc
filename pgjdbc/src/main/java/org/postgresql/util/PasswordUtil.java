@@ -62,7 +62,7 @@ public class PasswordUtil {
       encodedPassword = encodeScram(password);
     } else if (encryption.equalsIgnoreCase(MD5)) {
       // libpq uses the user as the salt...
-      encodedPassword = new String(MD5Digest.encode(user.getBytes(StandardCharsets.UTF_8), password.getBytes(StandardCharsets.UTF_8), user.getBytes(StandardCharsets.UTF_8)));
+      encodedPassword = new String(MD5Digest.encryptPassword(password.getBytes(StandardCharsets.UTF_8), user.getBytes(StandardCharsets.UTF_8)));
     } else {
       throw new PSQLException("Unable to determine the encryption type ", PSQLState.SYSTEM_ERROR);
     }

@@ -21,6 +21,32 @@ public class MD5Digest {
   }
 
   /**
+   * Encrypts a password the way PostgreSQL encrypts it.
+   * @param password secrete
+   * @param salt actually the user name
+   * @return hex representation of the password
+   */
+  public static byte[] encryptPassword (byte [] password, byte [] salt) {
+    try {
+      final MessageDigest md = MessageDigest.getInstance("MD5");
+
+      md.update(password);
+      md.update(salt);
+      byte[] digest = md.digest();
+
+      final byte[] hexDigest = new byte[35];
+      bytesToHex(digest, hexDigest, 3);
+      hexDigest[0] = (byte) 'm';
+      hexDigest[1] = (byte) 'd';
+      hexDigest[2] = (byte) '5';
+
+      return hexDigest;
+    } catch (NoSuchAlgorithmException e) {
+      throw new IllegalStateException("Unable to encode password with MD5", e);
+    }
+  }
+
+  /**
    * Encodes user/password/salt information in the following way: MD5(MD5(password + user) + salt).
    *
    * @param user The connecting user.
