@@ -37,7 +37,7 @@ public class PasswordUtilTest {
   public void tearDown() throws SQLException {
     con.close();
   }
-  
+
   public void testGetEncryption() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
       setEncryption("scram-sha-256");
@@ -76,11 +76,12 @@ public class PasswordUtilTest {
       pstatement.setString(1, user);
       try (ResultSet rs = pstatement.executeQuery()) {
         while (rs.next()) {
-          String encryption = rs.getString(1);
+          String passwd = rs.getString(1);
+          System.err.println("password is: " + passwd);
           if (rs.wasNull()) {
             return "none";
           } else {
-            if (encryption.startsWith("md5")) {
+            if (passwd.startsWith("md5")) {
               return PasswordUtil.MD5;
             } else {
               return PasswordUtil.SCRAM_ENCRYPTION;
