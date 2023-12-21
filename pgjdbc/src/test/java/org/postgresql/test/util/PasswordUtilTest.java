@@ -50,16 +50,18 @@ public class PasswordUtilTest {
 
   @Test
   public void testScramPassword() throws SQLException {
-    String user = TestUtil.getUser();
-    String encryption = getEncryptionForUser(user);
-    if (encryption.equalsIgnoreCase("none")) {
-      return;
+    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      String user = TestUtil.getUser();
+      String encryption = getEncryptionForUser(user);
+      if (encryption.equalsIgnoreCase("none")) {
+        return;
+      }
+      // the default encryption may be different
+      setEncryption(encryption);
+      PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), encryption);
+      con.close();
+      con = TestUtil.openDB();
     }
-    // the default encryption may be different
-    setEncryption(encryption);
-    PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), encryption);
-    con.close();
-    con = TestUtil.openDB();
   }
 
   /***
