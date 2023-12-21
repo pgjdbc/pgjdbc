@@ -58,7 +58,7 @@ public class PasswordUtil {
     } else {
       encryption = encryptionType;
     }
-    if ( encryption.equalsIgnoreCase( SCRAM_ENCRYPTION)) {
+    if ( encryption.equalsIgnoreCase(SCRAM_ENCRYPTION)) {
       encodedPassword = encodeScram(password);
     } else if (encryption.equalsIgnoreCase(MD5)) {
       // libpq uses the user as the salt...

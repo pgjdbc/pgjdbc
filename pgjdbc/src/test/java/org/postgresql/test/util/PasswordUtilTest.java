@@ -16,7 +16,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class PasswordUtilTest {
@@ -51,6 +55,8 @@ public class PasswordUtilTest {
     if (encryption.equalsIgnoreCase("none")) {
       return;
     }
+    // the default encryption may be different
+    setEncryption(encryption);
     PasswordUtil.alterPassword(con, TestUtil.getUser(), TestUtil.getPassword(), encryption);
     con.close();
     con = TestUtil.openDB();
