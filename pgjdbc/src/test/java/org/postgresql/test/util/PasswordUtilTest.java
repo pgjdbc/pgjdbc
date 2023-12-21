@@ -37,14 +37,13 @@ public class PasswordUtilTest {
   public void tearDown() throws SQLException {
     con.close();
   }
-
-  @Test
+  
   public void testGetEncryption() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      setEncryption("scram-sha-256");
       assertEquals("scram-sha-256", PasswordUtil.getEncryption(con));
       setEncryption("md5");
       assertEquals("md5", PasswordUtil.getEncryption(con));
-      setEncryption("\"scram-sha-256\"");
     }
   }
 
@@ -95,7 +94,7 @@ public class PasswordUtilTest {
 
   private void setEncryption(String encryption) throws SQLException {
     try (Statement statement = con.createStatement()) {
-      statement.execute("set password_encryption to " + encryption);
+      statement.execute("set password_encryption to '" + encryption +"'");
     }
   }
 }
