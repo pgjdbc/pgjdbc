@@ -67,7 +67,6 @@ public class PasswordUtil {
       throw new PSQLException("Unable to determine the encryption type ", PSQLState.SYSTEM_ERROR);
     }
     try (Statement statement = con.createStatement()) {
-      System.err.println("Executing " + "ALTER USER " + user + " PASSWORD \'" + encodedPassword + '\'');
       statement.execute("ALTER USER " + user + " PASSWORD \'" + encodedPassword + '\'');
     }
   }

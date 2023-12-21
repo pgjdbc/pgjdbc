@@ -26,7 +26,7 @@ public class MD5Digest {
    * @param salt actually the user name
    * @return hex representation of the password
    */
-  public static byte[] encryptPassword (byte [] password, byte [] salt) {
+  public static byte[] encryptPassword(byte [] password, byte [] salt) {
     try {
       final MessageDigest md = MessageDigest.getInstance("MD5");
 

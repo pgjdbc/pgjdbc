@@ -77,7 +77,6 @@ public class PasswordUtilTest {
       try (ResultSet rs = pstatement.executeQuery()) {
         while (rs.next()) {
           String passwd = rs.getString(1);
-          System.err.println("password is: " + passwd);
           if (rs.wasNull()) {
             return "none";
           } else {
@@ -95,7 +94,7 @@ public class PasswordUtilTest {
 
   private void setEncryption(String encryption) throws SQLException {
     try (Statement statement = con.createStatement()) {
-      statement.execute("set password_encryption to '" + encryption +"'");
+      statement.execute("set password_encryption to '" + encryption + "'");
     }
   }
 }
