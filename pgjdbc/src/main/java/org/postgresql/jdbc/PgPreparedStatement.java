@@ -19,6 +19,9 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.types.CompositeType;
+import org.postgresql.types.Type;
+import org.postgresql.types.TypeRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
@@ -52,6 +55,7 @@ import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -59,9 +63,12 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -734,10 +741,103 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           bindString(parameterIndex, in.toString(), Oid.UNSPECIFIED);
         }
         break;
+      case Types.STRUCT:
+        System.out.println(in.toString());
+        if (in instanceof Struct || in instanceof PGStruct) {
+          setStruct(parameterIndex, (Struct) in);
+        } else {
+          throw new PSQLException(
+              GT.tr("Cannot cast an instance of {0} to type {1}",
+                  in.getClass().getName(), "Types.STRUCT"),
+              PSQLState.INVALID_PARAMETER_TYPE);
+        }
+        break;
       default:
         throw new PSQLException(GT.tr("Unsupported Types value: {0}", targetSqlType),
             PSQLState.INVALID_PARAMETER_TYPE);
     }
+  }
+
+  // Relocate.
+  private void setStruct(int i, java.sql.@Nullable Struct x) throws SQLException {
+    checkClosed();
+    if (null == x) {
+      setNull(i, Types.STRUCT);
+      return;
+    }
+    String typeName = x.getSQLTypeName();
+    int oid = connection.getTypeInfo().getPGType(typeName);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new PSQLException(GT.tr("Unknown type {0}.", typeName), PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    if (x instanceof SQLData) {
+      SQLData sqlData = (SQLData) x;
+      Object[] attributes = constructAttributesFromString(sqlData.toString());
+      if (attributes != null) {
+        for (int j = 0; j < attributes.length; j++) {
+          setObject(i + j + 1, attributes[j]);
+        }
+      } else {
+        throw new PSQLException(GT.tr("Failed to retrieve attributes from Struct."), PSQLState.INVALID_PARAMETER_TYPE);
+      }
+    }
+    else if (x instanceof PGStruct) {
+      PGStruct pgStruct = (PGStruct) x;
+      byte[] bytes = pgStruct.toBytes();
+      if (bytes != null) {
+        bindBytes(i, bytes, oid);
+        return;
+      }
+    }
+    else {
+      throw new PSQLException(
+          GT.tr("Cannot cast an instance of {0} to type {1}", x.getClass().getName(), "Types.STRUCT"),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    /*
+    Object[] attributes = x.getAttributes();
+    if (attributes == null) {
+      throw new PSQLException(GT.tr("Failed to retrieve attributes from Struct."), PSQLState.INVALID_PARAMETER_TYPE);
+    }
+
+    // Create a Struct instance using the connection
+    Struct struct = connection.createStruct(typeName, x.getAttributes());
+    setObject(i, struct, Types.STRUCT);
+    */
+  }
+
+  private Object[] constructAttributesFromString(String str) {
+    // TODO: Implement the logic to parse the string and create the attributes array
+    // Replace the code below with the appropriate parsing logic
+
+    String[] parts = str.split(",");
+    Object[] attributes = new Object[parts.length];
+    for (int i = 0; i < parts.length; i++) {
+      attributes[i] = parts[i].trim();
+    }
+    return attributes;
+  }
+
+  // Helper method to convert Struct to a string representation
+  private String structToString(Object[] attributes) throws SQLException {
+    StringBuilder stringBuilder = new StringBuilder();
+    stringBuilder.append('(');
+    for (int i = 0; i < attributes.length; i++) {
+      if (i > 0) {
+        stringBuilder.append(',');
+      }
+      Object attribute = attributes[i];
+      if (attribute == null) {
+        stringBuilder.append("NULL");
+      } else if (attribute instanceof String || attribute instanceof java.sql.Date ||
+          attribute instanceof java.sql.Time || attribute instanceof java.sql.Timestamp) {
+        stringBuilder.append('\'').append(attribute).append('\'');
+      } else {
+        stringBuilder.append(attribute);
+      }
+    }
+    stringBuilder.append(')');
+    return stringBuilder.toString();
   }
 
   private Class<?> getArrayType(Class<?> type) {

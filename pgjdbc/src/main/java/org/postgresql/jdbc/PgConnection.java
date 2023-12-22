@@ -30,6 +30,9 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.types.CompositeType;
+import org.postgresql.types.Type;
+import org.postgresql.types.TypeRegistry;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
@@ -1443,10 +1446,56 @@ public class PgConnection implements BaseConnection {
     return makeSQLXML();
   }
 
+  /**
+   * @param typeName the SQL type name for the struct
+   * @param attributes the array of attribute values for the struct
+   * @return the created Struct object
+   * @throws SQLException if an SQL-related error occurs
+   * @throws IllegalArgumentException if typeName or attributes are null
+   */
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+
+    if (typeName == null) {
+      throw new IllegalArgumentException("Type name cannot be null");
+    }
+    if (typeName.isEmpty()) {
+      throw new IllegalArgumentException("Type name cannot be empty");
+    }
+    // isBlank can only be used with java 11+
+    if (typeName.trim().isEmpty()) {
+      throw new IllegalArgumentException("Type name cannot be blank");
+    }
+    if (attributes == null) {
+      throw new IllegalArgumentException("Object attributes cannot be null");
+    }
+    if (attributes.length == 0) {
+      throw new IllegalArgumentException("Object attributes cannot be empty");
+    }
+    Type type = loadType(typeName);
+    if (type == null) {
+      throw new IllegalArgumentException("Type cannot be null.");
+    }
+    try {
+      return PGBuffersStruct.Binary.encode(this, (CompositeType) type, attributes);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error encoding struct", e);
+    }
+  }
+
+  public Type loadType(String typeName) throws SQLException {
+    Type type;
+    try {
+      TypeRegistry typeRegistry = TypeRegistry.getInstance();
+      type = typeRegistry.loadType(typeName);
+    } catch (Exception e) {
+      throw new IllegalArgumentException("Error loading type", e);
+    }
+    if (type == null) {
+      throw new IllegalArgumentException("Type not found: " + typeName);
+    }
+    return type;
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })

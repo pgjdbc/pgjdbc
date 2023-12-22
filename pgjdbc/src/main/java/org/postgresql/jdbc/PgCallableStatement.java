@@ -200,6 +200,17 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       case Types.BOOLEAN:
         sqlType = Types.BIT;
         break;
+      case Types.STRUCT:
+        sqlType = Types.OTHER;
+        // sqlType = Types.STRUCT;
+        // Handle Types.STRUCT
+        break;
+      case Types.ARRAY:
+        sqlType = Types.OTHER;
+        // sqlType = Types.ARRAY;
+        // Handle Types.ARRAY
+        // preparedParameters.registerOutParameter(parameterIndex, Types.ARRAY);
+        break;
       default:
         break;
     }
