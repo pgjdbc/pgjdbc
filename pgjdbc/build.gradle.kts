@@ -86,10 +86,10 @@ dependencies {
     }
     shaded("com.ongres.scram:client:2.1")
 
-    implementation("org.checkerframework:checker-qual:3.41.0")
+    implementation("org.checkerframework:checker-qual:3.42.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
     testFixturesImplementation("junit:junit:4.13.2")
-    testFixturesImplementation("org.checkerframework:checker-qual:3.41.0")
+    testFixturesImplementation("org.checkerframework:checker-qual:3.42.0")
 }
 
 val skipReplicationTests by props()
