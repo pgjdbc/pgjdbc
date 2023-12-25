@@ -111,7 +111,7 @@ jobs:
           mvn --batch-mode --fail-at-end --show-version verify
       - name: Attach heap dump if any
         if: ${{ failure() && github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: pgjdbc-heapdump-source-distribution
           path: pgjdbc/build/distributions/postgresql-1.0-jdbc-src/target/surefire-reports/*.hprof
@@ -240,7 +240,7 @@ jobs:
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Attach heap dump if any
       if: ${{ failure() && github.event_name == 'pull_request' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: pgjdbc-heapdump
         path: pgjdbc/*.hprof
