@@ -7,13 +7,13 @@ package org.postgresql.util;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.jdbc.PgConnection;
+
 import com.ongres.scram.common.ScramFunctions;
 import com.ongres.scram.common.ScramMechanisms;
 import com.ongres.scram.common.bouncycastle.base64.Base64;
 import com.ongres.scram.common.stringprep.StringPreparations;
 import org.checkerframework.checker.nullness.qual.Nullable;
-
-import org.postgresql.jdbc.PgConnection;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
