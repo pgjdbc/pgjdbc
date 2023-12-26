@@ -13,6 +13,8 @@ import com.ongres.scram.common.bouncycastle.base64.Base64;
 import com.ongres.scram.common.stringprep.StringPreparations;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import org.postgresql.jdbc.PgConnection;
+
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.sql.Connection;
@@ -51,6 +53,7 @@ public class PasswordUtil {
   public static void alterPassword(Connection con, String user, String password, @Nullable String encryptionType) throws SQLException {
     String encodedPassword;
     String encryption;
+
     if (encryptionType == null ) {
       encryption = getEncryption(con);
     } else if ( !MD5.equalsIgnoreCase(encryptionType) && !SCRAM_ENCRYPTION.equalsIgnoreCase(encryptionType)) {
@@ -66,6 +69,7 @@ public class PasswordUtil {
     } else {
       throw new PSQLException("Unable to determine the encryption type ", PSQLState.SYSTEM_ERROR);
     }
+    encodedPassword = ((PgConnection)con).escapeLiteral(encodedPassword);
     try (Statement statement = con.createStatement()) {
       statement.execute("ALTER USER " + user + " PASSWORD \'" + encodedPassword + '\'');
     }
