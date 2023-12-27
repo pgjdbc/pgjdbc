@@ -587,7 +587,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *                      Portal class.
    * @return fetch size computed by adaptive fetch size for given query passed inside cursor
    */
-  int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor);
+  int getAdaptiveFetchSize(boolean adaptiveFetch, @Nullable ResultCursor cursor);
 
   /**
    * Get state of adaptive fetch inside QueryExecutor.

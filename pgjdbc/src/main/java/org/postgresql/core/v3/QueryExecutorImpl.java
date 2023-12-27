@@ -2608,7 +2608,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor) {
+  public int getAdaptiveFetchSize(boolean adaptiveFetch, @Nullable ResultCursor cursor) {
     if (cursor instanceof Portal) {
       Query query = ((Portal) cursor).getQuery();
       if (Objects.nonNull(query)) {
