@@ -1027,6 +1027,21 @@ public class TestUtil {
   }
 
   /**
+   * Same as queryForString(...) above but with a single string param.
+   */
+  public static String queryForString(Connection conn, String sql, String param) throws SQLException {
+    PreparedStatement stmt = conn.prepareStatement(sql);
+    stmt.setString(1, param);
+    ResultSet rs = stmt.executeQuery();
+    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    String value = rs.getString(1);
+    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    rs.close();
+    stmt.close();
+    return value;
+  }
+
+  /**
    * Execute a SQL query with a given connection, fetch the first row, and return its
    * boolean value.
    */
