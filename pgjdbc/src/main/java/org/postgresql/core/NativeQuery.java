@@ -31,7 +31,7 @@ public class NativeQuery {
     this(nativeSql, NO_BINDS, true, dml);
   }
 
-  public NativeQuery(String nativeSql, int[] bindPositions, boolean multiStatement, SqlCommand dml) {
+  public NativeQuery(String nativeSql, int @Nullable [] bindPositions, boolean multiStatement, SqlCommand dml) {
     this.nativeSql = nativeSql;
     this.bindPositions =
         bindPositions == null || bindPositions.length == 0 ? NO_BINDS : bindPositions;

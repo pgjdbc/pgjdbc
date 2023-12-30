@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
 import org.postgresql.util.GT;
+import org.postgresql.util.IntList;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -28,8 +29,6 @@ import java.util.List;
  * @author Christopher Deckers (chrriis@gmail.com)
  */
 public class Parser {
-  private static final int[] NO_BINDS = new int[0];
-
   /**
    * Parses JDBC query into PostgreSQL's native format. Several queries might be given if separated
    * by semicolon.
@@ -62,7 +61,7 @@ public class Parser {
     char[] aChars = query.toCharArray();
 
     StringBuilder nativeSql = new StringBuilder(query.length() + 10);
-    List<Integer> bindPositions = null; // initialized on demand
+    IntList bindPositions = null; // initialized on demand
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
     boolean isValuesFound = false;
@@ -135,7 +134,7 @@ public class Parser {
               nativeSql.append('?');
             } else {
               if (bindPositions == null) {
-                bindPositions = new ArrayList<Integer>();
+                bindPositions = new IntList();
               }
               bindPositions.add(nativeSql.length());
               int bindIndex = bindPositions.size();
@@ -407,21 +406,17 @@ public class Parser {
   }
 
   /**
-   * Converts {@code List<Integer>} to {@code int[]}. Empty and {@code null} lists are converted to
-   * empty array.
+   * Converts {@link IntList} to {@code int[]}. A {@code null} collection is converted to
+   * {@code null} array.
    *
    * @param list input list
    * @return output array
    */
-  private static int[] toIntArray(@Nullable List<Integer> list) {
-    if (list == null || list.isEmpty()) {
-      return NO_BINDS;
+  private static int @Nullable [] toIntArray(@Nullable IntList list) {
+    if (list == null) {
+      return null;
     }
-    int[] res = new int[list.size()];
-    for (int i = 0; i < list.size(); i++) {
-      res[i] = list.get(i); // must not be null
-    }
-    return res;
+    return list.toArray();
   }
 
   /**

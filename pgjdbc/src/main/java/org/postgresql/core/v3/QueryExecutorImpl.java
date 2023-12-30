@@ -3055,28 +3055,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final SimpleQuery beginTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN", null, false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery beginReadOnlyTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN READ ONLY", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN READ ONLY", null, false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery emptyQuery =
       new SimpleQuery(
-          new NativeQuery("", new int[0], false,
+          new NativeQuery("", null, false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
-          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
-          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
           null, false);
 
   /*
@@ -3084,6 +3084,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
-          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", new int[0], false, SqlCommand.BLANK),
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
           null, false);
 }
