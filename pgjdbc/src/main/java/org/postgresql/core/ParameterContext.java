@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.GT;
+import org.postgresql.util.IntList;
 import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -62,22 +63,21 @@ public class ParameterContext {
    */
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext(PlaceholderStyle.ANY) {
     @Override
-    public int addPositionalParameter(int position) throws SQLException {
+    public int addPositionalParameter(int position) {
       throw new UnsupportedOperationException();
     }
 
     @Override
-    public int addNamedParameter(int position, BindStyle bindStyle, String bindName)
-        throws SQLException {
+    public int addNamedParameter(int position, BindStyle bindStyle, String bindName) {
       throw new UnsupportedOperationException();
     }
   };
   static final String uninitializedName = "<UNINITIALIZED>";
-  private @Nullable BindStyle bindStyle = null;
-  private @Nullable List<Integer> placeholderPositions = null;
-  private @Nullable List<String> placeholderNames = null;
-  private @Nullable Map<String, Integer> placeholderNameToNativeParameterIndex = null;
-  private @Nullable List<Integer> nativeParameterIndexOfPlaceholderIndex = null;
+  private @Nullable BindStyle bindStyle;
+  private @Nullable IntList placeholderPositions;
+  private @Nullable List<String> placeholderNames;
+  private @Nullable Map<String, Integer> placeholderNameToNativeParameterIndex;
+  private @Nullable IntList nativeParameterIndexOfPlaceholderIndex;
 
   /**
    * Adds a positional parameter to this ParameterContext. Once a positional parameter have been
@@ -183,6 +183,7 @@ public class ParameterContext {
    * @return The 0-based index of the native parameter corresponding to the specified placeholder.
    */
   public int getNativeParameterIndexForPlaceholderIndex(@NonNegative int i) {
+    IntList nativeParameterIndexOfPlaceholderIndex = this.nativeParameterIndexOfPlaceholderIndex;
     if (nativeParameterIndexOfPlaceholderIndex == null
         || nativeParameterIndexOfPlaceholderIndex.isEmpty()) {
       throw new IllegalStateException(
@@ -192,6 +193,7 @@ public class ParameterContext {
   }
 
   public int getLastPlaceholderPosition() {
+    IntList placeholderPositions = this.placeholderPositions;
     if (placeholderPositions == null || placeholderPositions.isEmpty()) {
       throw new IllegalStateException("Call hasParameters() first.");
     }
@@ -288,8 +290,8 @@ public class ParameterContext {
   /**
    * @return Returns the starting positions of placeholders in the SQL text
    */
-  public List<Integer> getPlaceholderPositions() {
-    return placeholderPositions == null ? Collections.emptyList() : placeholderPositions;
+  public IntList getPlaceholderPositions() {
+    return placeholderPositions == null ? new IntList() : placeholderPositions;
   }
 
   /**
@@ -329,9 +331,9 @@ public class ParameterContext {
           + "position = " + position + ", LastPlaceholderPosition = "
           + getLastPlaceholderPosition());
     }
-    List<Integer> placeholderPositions = this.placeholderPositions;
+    IntList placeholderPositions = this.placeholderPositions;
     if (placeholderPositions == null) {
-      this.placeholderPositions = placeholderPositions = new ArrayList<>();
+      this.placeholderPositions = placeholderPositions = new IntList();
     }
     placeholderPositions.add(position);
     return placeholderPositions.size() - 1;
@@ -340,7 +342,7 @@ public class ParameterContext {
   private int checkAndAddNativeParameterIndexForPlaceholderIndex(
       @Positive int nativeParameterIndex) {
     if (nativeParameterIndexOfPlaceholderIndex == null) {
-      nativeParameterIndexOfPlaceholderIndex = new ArrayList<>();
+      nativeParameterIndexOfPlaceholderIndex = new IntList();
     }
     nativeParameterIndexOfPlaceholderIndex.add(nativeParameterIndex);
     return nativeParameterIndex + 1;

@@ -7,6 +7,7 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.IntList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -102,7 +103,7 @@ public class BatchedQuery extends SimpleQuery {
     }
     int valuesBlockCharCount = 0;
     // Split the values section around every dynamic parameter.
-    List<Integer> bindPositions = getNativeQuery().parameterCtx.getPlaceholderPositions();
+    IntList bindPositions = getNativeQuery().parameterCtx.getPlaceholderPositions();
 
     int[] chunkStart = new int[1 + bindPositions.size()];
     int[] chunkEnd = new int[1 + bindPositions.size()];
