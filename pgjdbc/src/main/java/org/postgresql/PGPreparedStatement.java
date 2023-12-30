@@ -25,10 +25,28 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.List;
 
+/**
+ * This interface defines the public PostgreSQL extensions to {@link java.sql.Statement}.
+ * All Statements constructed by the PostgreSQL driver implement {@code PGStatement}.
+ */
 public interface PGPreparedStatement extends PGStatement, PreparedStatement {
   /**
+   * @return returns true if a ParameterList exists, and it was created using a named placeholder strategy
+   * @throws SQLException if something goes wrong
+   * @see PGProperty#PLACEHOLDER_STYLE
+   */
+  boolean hasParameterNames() throws SQLException;
+
+  /**
+   * @return a List of placeholder names, corresponding to the first occurrence of each placeholder
+   * @throws SQLException if something goes wrong
+   * @see PGProperty#PLACEHOLDER_STYLE
+   */
+  List<String> getParameterNames() throws SQLException;
+
+  /**
    * @param parameterName the name of the parameter to be bound
-   * @param sqlType       the SQL type code defined in <code>java.sql.Types</code>
+   * @param sqlType       the SQL type code defined in {@link java.sql.Types}
    * @throws SQLException if something goes wrong
    * @see java.sql.PreparedStatement#setNull(int, int)
    */
@@ -479,16 +497,4 @@ public interface PGPreparedStatement extends PGStatement, PreparedStatement {
       throws SQLException {
     throw new SQLFeatureNotSupportedException("setObject not implemented");
   }
-
-  /**
-   * @return returns true if a ParameterList exists, and it was created using a named placeholder strategy
-   * @throws SQLException if something goes wrong
-   */
-  boolean hasParameterNames() throws SQLException;
-
-  /**
-   * @return a List of placeholder names, corresponding to the first occurrence of each placeholder
-   * @throws SQLException if something goes wrong
-   */
-  List<String> getParameterNames() throws SQLException;
 }
