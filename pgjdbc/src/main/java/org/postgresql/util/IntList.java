@@ -14,16 +14,16 @@ import java.util.Arrays;
 public final class IntList {
   private static final int[] EMPTY_INT_ARRAY = new int[0];
   private int[] ints = EMPTY_INT_ARRAY;
-  private int index = 0;
+  private int size = 0;
 
   public void add(int i) {
-    int index = this.index;
-    ensureSize(index);
-    ints[index] = i;
-    this.index = index + 1;
+    int size = this.size;
+    ensureCapacity(size);
+    ints[size] = i;
+    this.size = size + 1;
   }
 
-  private void ensureSize(int size) {
+  private void ensureCapacity(int size) {
     int length = ints.length;
     if (size >= length) {
       // double in size until 1024 in size, then grow by 1.5x
@@ -35,18 +35,18 @@ public final class IntList {
   }
 
   public int size() {
-    return index;
+    return size;
   }
 
   public int get(int i) {
-    if (i < 0 || i >= index) {
-      throw new ArrayIndexOutOfBoundsException("Index: " + i + ", Size: " + index);
+    if (i < 0 || i >= size) {
+      throw new ArrayIndexOutOfBoundsException("Index: " + i + ", Size: " + size);
     }
     return ints[i];
   }
 
   public void clear() {
-    index = 0;
+    size = 0;
   }
 
   /**
@@ -56,16 +56,16 @@ public final class IntList {
    * @return an array containing all the elements in this list
    */
   public int[] toArray() {
-    if (index == 0) {
+    if (size == 0) {
       return EMPTY_INT_ARRAY;
     }
-    return Arrays.copyOf(ints, index);
+    return Arrays.copyOf(ints, size);
   }
 
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("[");
-    for (int i = 0; i < index; ++i) {
+    for (int i = 0; i < size; ++i) {
       if (i > 0) {
         sb.append(", ");
       }
