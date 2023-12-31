@@ -14,8 +14,8 @@ public class messages_nl extends java.util.ResourceBundle {
     t[13] = "Fastpath aanroep {0} - Geen resultaat werd teruggegeven, terwijl we een integer verwacht hadden.";
     t[20] = "The fastpath function {0} is unknown.";
     t[21] = "De fastpath functie {0} is onbekend.";
-    t[22] = "No results were returned by the query.";
-    t[23] = "Geen resultaten werden teruggegeven door de query.";
+    t[22] = "No results were returned by the query for oid {0}.";
+    t[23] = "Geen resultaten werden teruggegeven door de query for oid {0}.";
     t[26] = "An unexpected result was returned by a query.";
     t[27] = "Een onverwacht resultaat werd teruggegeven door een query";
     table = t;

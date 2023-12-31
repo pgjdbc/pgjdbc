@@ -160,6 +160,18 @@ public interface PGConnection {
   int getPrepareThreshold();
 
   /**
+   * Set the type of timestamp, could be TIMESTAMP_WITH_TIMEZONE or TIMESTAMP
+   * @param timestampType one of TIMESTAMP_WITH_TIMEZONE or TIMESTAMP
+   */
+  void setTimestampType(int timestampType);
+
+  /**
+   *
+   * @return returns the timestamp type
+   */
+  int getTimestampType();
+
+  /**
    * Set the default fetch size for statements created from this connection.
    *
    * @param fetchSize new default fetch size

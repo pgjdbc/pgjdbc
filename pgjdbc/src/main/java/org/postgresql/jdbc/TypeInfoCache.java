@@ -167,11 +167,17 @@ public class TypeInfoCache implements TypeInfo {
     // from getPGTypeNamesWithSQLTypes()
     pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
     oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5)));
+    int timestampType = conn.getTimestampType();
 
     for (Object[] type : types) {
       String pgTypeName = (String) type[0];
       Integer oid = (Integer) type[1];
-      Integer sqlType = (Integer) type[2];
+      Integer sqlType;
+      if ( pgTypeName.equals("timestamptz")) {
+        sqlType = timestampType;
+      } else {
+        sqlType = (Integer) type[2];
+      }
       String javaClass = (String) type[3];
       Integer arrayOid = (Integer) type[4];
 
@@ -624,7 +630,7 @@ public class TypeInfoCache implements TypeInfo {
 
   public char getArrayDelimiter(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
+      if (oid == Oid.UNSPECIFIED || oid == Oid.UNKNOWN ) {
         return ',';
       }
 
@@ -640,12 +646,12 @@ public class TypeInfoCache implements TypeInfo {
       // Go through BaseStatement to avoid transaction start.
       if (!((BaseStatement) getArrayDelimiterStatement)
           .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}", oid), PSQLState.NO_DATA);
       }
 
       ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
       if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}", oid), PSQLState.NO_DATA);
       }
 
       String s = castNonNull(rs.getString(1));
@@ -672,8 +678,8 @@ public class TypeInfoCache implements TypeInfo {
 
   public int getPGArrayElement(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        return Oid.UNSPECIFIED;
+      if (oid == Oid.UNSPECIFIED || oid == Oid.UNKNOWN) {
+        return oid;
       }
 
       Integer pgType = pgArrayToPgType.get(oid);
@@ -689,12 +695,12 @@ public class TypeInfoCache implements TypeInfo {
       // Go through BaseStatement to avoid transaction start.
       if (!((BaseStatement) getArrayElementOidStatement)
           .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}.", oid), PSQLState.NO_DATA);
       }
 
       ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
       if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+        throw new PSQLException(GT.tr("No results were returned by the query for oid {0}.", oid), PSQLState.NO_DATA);
       }
 
       pgType = (int) rs.getLong(1);

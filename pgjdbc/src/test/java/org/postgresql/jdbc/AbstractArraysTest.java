@@ -42,6 +42,7 @@ import java.sql.SQLXML;
 import java.sql.Savepoint;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.sql.Types;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimerTask;
@@ -263,6 +264,8 @@ public abstract class AbstractArraysTest<A> {
   private static final class EncodingConnection implements BaseConnection {
     private final Encoding encoding;
     private final TypeInfo typeInfo = new TypeInfoCache(this, -1);
+
+    private int timestampType = Types.TIMESTAMP;
 
     EncodingConnection(Encoding encoding) {
       this.encoding = encoding;
@@ -894,6 +897,16 @@ public abstract class AbstractArraysTest<A> {
      */
     public int getPrepareThreshold() {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setTimestampType(int timestampType) {
+      this.timestampType = timestampType;
+    }
+
+    @Override
+    public int getTimestampType() {
+      return timestampType;
     }
 
     /**

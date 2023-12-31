@@ -171,6 +171,8 @@ public class PgConnection implements BaseConnection {
    */
   protected int defaultFetchSize;
 
+  protected int timestampType;
+
   // Default forcebinary option.
   protected boolean forcebinary = false;
 
@@ -257,6 +259,11 @@ public class PgConnection implements BaseConnection {
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
     if (prepareThreshold == -1) {
       setForceBinary(true);
+    }
+    if (castNonNull(PGProperty.TIMESTAMP_WITH_TIMEZONE.getOrDefault(info)).equalsIgnoreCase("timestamp_with_timezone") ) {
+      setTimestampType(Types.TIMESTAMP_WITH_TIMEZONE);
+    } else {
+      setTimestampType(Types.TIMESTAMP);
     }
 
     // Now make the initial connection and set up local state
@@ -1244,6 +1251,14 @@ public class PgConnection implements BaseConnection {
   public void setForceBinary(boolean newValue) {
     this.forcebinary = newValue;
     LOGGER.log(Level.FINE, "  setForceBinary = {0}", newValue);
+  }
+
+  public void setTimestampType(int timestampType) {
+    this.timestampType = timestampType;
+  }
+
+  public int getTimestampType() {
+    return timestampType;
   }
 
   public void setTypeMapImpl(Map<String, Class<?>> map) throws SQLException {

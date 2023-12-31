@@ -36,8 +36,8 @@ public class messages_es extends java.util.ResourceBundle {
     t[53] = "Una consulta retornó un resultado inesperado.";
     t[60] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
     t[61] = "Algo inusual ha ocurrido que provocó un fallo en el controlador. Por favor reporte esta excepción.";
-    t[64] = "No results were returned by the query.";
-    t[65] = "La consulta no retornó ningún resultado.";
+    t[64] = "No results were returned by the query for oid {0}.";
+    t[65] = "La consulta no retornó ningún resultado for oid {0}.";
     table = t;
   }
   public java.lang.Object handleGetObject (java.lang.String msgid) throws java.util.MissingResourceException {

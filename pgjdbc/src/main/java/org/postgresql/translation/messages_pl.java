@@ -108,8 +108,8 @@ public class messages_pl extends java.util.ResourceBundle {
     t[259] = "Nie powiodło się utworzenie obiektu dla: {0}.";
     t[262] = "Fetch size must be a value greater to or equal to 0.";
     t[263] = "Rozmiar pobierania musi być wartością dodatnią lub 0.";
-    t[270] = "No results were returned by the query.";
-    t[271] = "Zapytanie nie zwróciło żadnych wyników.";
+    t[270] = "No results were returned by the query for oid {0}.";
+    t[271] = "Zapytanie nie zwróciło żadnych wyników for oid {0}.";
     t[276] = "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.";
     t[277] = "Uwierzytelnienie typu {0} nie jest obsługiwane. Upewnij się, że skonfigurowałeś plik pg_hba.conf tak, że zawiera on adres IP lub podsieć klienta oraz że użyta metoda uwierzytelnienia jest wspierana przez ten sterownik.";
     t[280] = "Conversion to type {0} failed: {1}.";

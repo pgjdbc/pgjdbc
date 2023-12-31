@@ -19,6 +19,8 @@ import java.util.Map;
  */
 public class Oid {
   public static final int UNSPECIFIED = 0;
+  public static final int UNKNOWN = 705;
+
   public static final int INT2 = 21;
   public static final int INT2_ARRAY = 1005;
   public static final int INT4 = 23;

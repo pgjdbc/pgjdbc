@@ -118,8 +118,8 @@ public class messages_ru extends java.util.ResourceBundle {
     t[287] = "Невозможно удалить строку, т.к. в текущем ResultSet’е строк вообще нет";
     t[288] = "Expected an EOF from server, got: {0}";
     t[289] = "Неожиданный ответ от сервера. Ожидалось окончание потока, получен байт {0}";
-    t[304] = "No results were returned by the query.";
-    t[305] = "Запрос не вернул результатов.";
+    t[304] = "No results were returned by the query for oid {0}.";
+    t[305] = "Запрос не вернул результатов for oid {0}.";
     t[306] = "Invalid targetServerType value: {0}";
     t[307] = "Неверное значение targetServerType: {0}";
     t[310] = "Requested CopyOut but got {0}";

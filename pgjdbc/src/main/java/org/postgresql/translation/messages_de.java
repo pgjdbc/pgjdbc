@@ -278,8 +278,8 @@ public class messages_de extends java.util.ResourceBundle {
     t[773] = "Die Transaktions-Trennungsstufe {0} ist nicht unterstützt.";
     t[774] = "Zero bytes may not occur in identifiers.";
     t[775] = "Nullbytes dürfen in Bezeichnern nicht vorkommen.";
-    t[776] = "No results were returned by the query.";
-    t[777] = "Die Abfrage lieferte kein Ergebnis.";
+    t[776] = "No results were returned by the query for oid {0}.";
+    t[777] = "Die Abfrage lieferte kein Ergebnis for oid {0}.";
     t[778] = "A CallableStatement was executed with nothing returned.";
     t[779] = "Ein CallableStatement wurde ausgeführt ohne etwas zurückzugeben.";
     t[780] = "wasNull cannot be call before fetching a result.";

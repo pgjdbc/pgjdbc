@@ -784,8 +784,8 @@ msgstr ""
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:526
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:563
 #: src/main/java/org/postgresql/jdbc/TypeInfoCache.java:568
-msgid "No results were returned by the query."
-msgstr "La consulta no retornó ningún resultado."
+msgid "No results were returned by the query for oid {0}."
+msgstr "La consulta no retornó ningún resultado for oid {0}."
 
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:481
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:499

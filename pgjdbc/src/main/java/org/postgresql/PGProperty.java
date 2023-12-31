@@ -742,6 +742,18 @@ public enum PGProperty {
       "Enable or disable TCP no delay. The default is (@code true}."
   ),
   /**
+   * Specifies if timestamp with timezone should map to TIMESTAMP_WITH_TIMEZONE"
+   * default TIMESTAMP
+   */
+  TIMESTAMP_WITH_TIMEZONE(
+      "timestampWithTimezone",
+      "timestamp",
+      "Specifies if timestamp with timezone should map to TIMESTAMP_WITH_TIMEZONE",
+      false,
+      new String [] {"timestamp", "timestamp_with_timezone"}),
+
+
+  /**
    * Specifies the length to return for types of unknown length.
    */
   UNKNOWN_LENGTH(
