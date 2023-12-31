@@ -21,7 +21,6 @@ import org.ietf.jgss.MessageProp;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
-import java.io.FilterOutputStream;
 import java.io.Flushable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -306,12 +305,31 @@ public class PGStream implements Closeable, Flushable {
 
     // Intercept flush() downcalls from the writer; our caller
     // will call PGStream.flush() as needed.
-    OutputStream interceptor = new FilterOutputStream(pgOutput) {
+    OutputStream interceptor = new OutputStream() {
+      OutputStream dst = pgOutput;
+
+      @Override
+      public void write(int b) throws IOException {
+        dst.write(b);
+      }
+
+      @Override
+      public void write(byte[] b) throws IOException {
+        dst.write(b);
+      }
+
+      @Override
+      public void write(byte[] b, int off, int len) throws IOException {
+        dst.write(b, off, len);
+      }
+
+      @Override
       public void flush() throws IOException {
       }
 
+      @Override
       public void close() throws IOException {
-        super.flush();
+        dst.flush();
       }
     };
 
