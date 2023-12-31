@@ -13,9 +13,6 @@ import java.sql.SQLException;
 import java.util.Iterator;
 
 public interface TypeInfo {
-  void addCoreType(String pgTypeName, Integer oid, Integer sqlType, String javaClass,
-      Integer arrayOid);
-
   void addDataType(String type, Class<? extends PGobject> klass) throws SQLException;
 
   /**
@@ -36,7 +33,7 @@ public interface TypeInfo {
    */
   int getSQLType(String pgTypeName) throws SQLException;
 
-  int getJavaArrayType(String className) throws SQLException;
+  int getJavaArrayType(Class<?> className) throws SQLException;
 
   /**
    * Look up the oid for a given postgresql type name. This is the inverse of
@@ -56,6 +53,7 @@ public interface TypeInfo {
    * @return the server type name for that OID or null if unknown
    * @throws SQLException if an error occurs when retrieving PG type
    */
+  // TODO: @Deprecated
   @Nullable String getPGType(int oid) throws SQLException;
 
   /**
@@ -85,8 +83,6 @@ public interface TypeInfo {
    */
   char getArrayDelimiter(int oid) throws SQLException;
 
-  Iterator<String> getPGTypeNamesWithSQLTypes();
-
   Iterator<Integer> getPGTypeOidsWithSQLTypes();
 
   @Nullable Class<? extends PGobject> getPGobject(String type);
@@ -95,17 +91,17 @@ public interface TypeInfo {
 
   @Nullable String getTypeForAlias(String alias);
 
-  int getPrecision(int oid, int typmod);
+  int getPrecision(int oid, int typmod) throws SQLException;
 
-  int getScale(int oid, int typmod);
+  int getScale(int oid, int typmod) throws SQLException;
 
-  boolean isCaseSensitive(int oid);
+  boolean isCaseSensitive(int oid) throws SQLException;
 
-  boolean isSigned(int oid);
+  boolean isSigned(int oid) throws SQLException;
 
-  int getDisplaySize(int oid, int typmod);
+  int getDisplaySize(int oid, int typmod) throws SQLException;
 
-  int getMaximumPrecision(int oid);
+  int getMaximumPrecision(int oid) throws SQLException;
 
   boolean requiresQuoting(int oid) throws SQLException;
 
