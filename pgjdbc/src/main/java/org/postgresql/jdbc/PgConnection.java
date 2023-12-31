@@ -208,6 +208,12 @@ public class PgConnection implements BaseConnection {
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
 
+  private final boolean quietOutput;
+
+  protected boolean isQuietOutPut() {
+    return quietOutput;
+  }
+
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
   }
@@ -373,6 +379,8 @@ public class PgConnection implements BaseConnection {
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
     cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+
+    this.quietOutput = PGProperty.QUIET_OUTPUT.getBoolean(info);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {

@@ -13,6 +13,8 @@ import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -112,6 +114,76 @@ public class ParserTest {
     assertTrue("Failed to correctly parse mixed case command.", Parser.parseSelectKeyword(command, 0));
     "select".getChars(0, 6, command, 0);
     assertTrue("Failed to correctly parse lower case command.", Parser.parseSelectKeyword(command, 0));
+  }
+
+  /**
+   * Test BEGIN command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"BEGIN", "begin", "bEgin", "beGin", "begIn", "bEgIn", "beGIn", "begIN", "bEgIN", "beGIN", "bEGIN", "Begin", "bEgin"})
+  public void testBeginCommandParsing(String begin) {
+    char[] command = begin.toCharArray();
+    assertTrue("Parser.parseBeginKeyword(\"" + begin + "\", 0)", Parser.parseBeginKeyword(command, 0));
+  }
+
+  /**
+   * Test START command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"START", "start", "sTart", "stArt", "staRt", "sTArT", "stART", "sTART", "Start", "sTart"})
+  public void testStartCommandParsing(String start) {
+    char[] command = start.toCharArray();
+    assertTrue("Parser.parseStartKeyword(\"" + start + "\", 0)", Parser.parseStartKeyword(command, 0));
+  }
+
+  /**
+   * Test SET command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"SET", "set", "sEt", "seT", "Set", "sET", "SeT", "seT"})
+  public void testSetCommandParsing(String set) {
+    char[] command = set.toCharArray();
+    assertTrue("Parser.parseSetKeyword(\"" + set + "\", 0)", Parser.parseSetKeyword(command, 0));
+  }
+
+  /**
+   * Test SHOW command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"SHOW", "show", "sHow", "shOw", "shoW", "sHoW", "shOW", "sHOW", "Show", "sHow"})
+  public void testShowCommandParsing(String show) {
+    char[] command = show.toCharArray();
+    assertTrue("Parser.parseShowKeyword(\"" + show + "\", 0)", Parser.parseShowKeyword(command, 0));
+  }
+
+  /**
+   * Test COMMIT command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"COMMIT", "commit", "cOmmiT", "coMmIt", "comMit", "cOMmIt", "coMMit", "cOMMit", "comMIT", "cOMMIT", "Commit", "cOmmiT"})
+  public void testCommitCommandParsing(String commit) {
+    char[] command = commit.toCharArray();
+    assertTrue("Parser.parseCommitKeyword(\"" + commit + "\", 0)", Parser.parseCommitKeyword(command, 0));
+  }
+
+  /**
+   * Test ROLLBACK command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"ROLLBACK", "rollback", "rOllback", "roLlback", "rolLback", "rOLlback", "roLLback", "rOLLback", "Rollback", "rOllback"})
+  public void testRollbackCommandParsing(String rollback) {
+    char[] command = rollback.toCharArray();
+    assertTrue("Parser.parseRollbackKeyword(\"" + rollback + "\", 0)", Parser.parseRollbackKeyword(command, 0));
+  }
+
+  /**
+   * Test END command parsing.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {"END", "end", "eNd", "enD", "End", "eND", "EnD", "eND"})
+  public void testEndCommandParsing(String end) {
+    char[] command = end.toCharArray();
+    assertTrue("Parser.parseEndKeyword(\"" + end + "\", 0)", Parser.parseEndKeyword(command, 0));
   }
 
   @Test
@@ -228,6 +300,15 @@ public class ParserTest {
     SqlCommand command = qry.get(0).getCommand();
     Assert.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
     Assert.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+  }
+
+  @Test
+  public void setVariable() throws SQLException {
+    String query =
+        "set search_path to 'public'";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    Assert.assertEquals("command type of " + query, SqlCommandType.SET, command.getType());
   }
 
   @Test

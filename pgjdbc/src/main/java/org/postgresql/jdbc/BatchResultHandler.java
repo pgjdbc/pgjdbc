@@ -12,6 +12,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
+import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.util.GT;
@@ -98,14 +99,28 @@ public class BatchResultHandler extends ResultHandlerBase {
       this.latestGeneratedRows = null;
     }
 
-    if (resultIndex >= queries.length) {
-      handleError(new PSQLException(GT.tr("Too many update results were returned."),
-          PSQLState.TOO_MANY_RESULTS));
-      return;
-    }
-    latestGeneratedKeysRs = null;
+    if (this.pgStatement.isQuietOutPut()) {
+      SqlCommandType commandType = SqlCommandType.fromCommandStatus(status);
+      if (commandType.produceResult() && resultIndex >= queries.length) {
+        handleError(new PSQLException(GT.tr("Too many update results were returned."),
+            PSQLState.TOO_MANY_RESULTS));
+        return;
+      }
+      latestGeneratedKeysRs = null;
 
-    longUpdateCounts[resultIndex++] = updateCount;
+      if (commandType.produceResult()) {
+        longUpdateCounts[resultIndex++] = updateCount;
+      }
+    } else {
+      if (resultIndex >= queries.length) {
+        handleError(new PSQLException(GT.tr("Too many update results were returned."),
+            PSQLState.TOO_MANY_RESULTS));
+        return;
+      }
+      latestGeneratedKeysRs = null;
+
+      longUpdateCounts[resultIndex++] = updateCount;
+    }
   }
 
   private boolean isAutoCommit() {

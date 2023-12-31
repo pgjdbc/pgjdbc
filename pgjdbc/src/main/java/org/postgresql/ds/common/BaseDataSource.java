@@ -1847,4 +1847,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public boolean isReWriteBatchedInserts() {
     return getReWriteBatchedInserts();
   }
+
+  public boolean isQuietOutput() {
+    return PGProperty.QUIET_OUTPUT.getBoolean(properties);
+  }
+
+  public void setQuietOutput(boolean quietOutput) {
+    PGProperty.QUIET_OUTPUT.set(properties, quietOutput);
+  }
+
 }
