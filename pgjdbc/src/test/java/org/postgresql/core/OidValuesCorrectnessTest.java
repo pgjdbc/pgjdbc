@@ -49,6 +49,9 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents that some Oid values will be tested with a database not supporting given Oid.
    */
   private static Map<String, ServerVersion> oidsMinimumVersions = new HashMap<String, ServerVersion>() {{
+      put("INT4_RANGE", ServerVersion.v9_2);
+      put("INT8_RANGE", ServerVersion.v9_2);
+      put("NUM_RANGE", ServerVersion.v9_2);
       put("JSON", ServerVersion.v9_2);
       put("JSON_ARRAY", ServerVersion.v9_2);
       put("JSONB", ServerVersion.v9_4);
@@ -92,6 +95,12 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
       put("JSON_ARRAY", "_JSON");
       put("REF_CURSOR", "REFCURSOR");
       put("REF_CURSOR_ARRAY", "_REFCURSOR");
+      put("INT4_RANGE", "INT4RANGE");
+      put("INT8_RANGE", "INT8RANGE");
+      put("NUM_RANGE", "NUMRANGE");
+      put("INT4_RANGE_ARRAY", "_INT4RANGE");
+      put("INT8_RANGE_ARRAY", "_INT8RANGE");
+      put("NUM_RANGE_ARRAY", "_NUMRANGE");
     }};
 
   @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")
