@@ -49,6 +49,13 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents that some Oid values will be tested with a database not supporting given Oid.
    */
   private static Map<String, ServerVersion> oidsMinimumVersions = new HashMap<String, ServerVersion>() {{
+
+      put("INT4_RANGE",ServerVersion.v9_2);
+      put("INT8_RANGE",ServerVersion.v9_2);
+      put("NUM_RANGE",ServerVersion.v9_2);
+      put("DATE_RANGE",ServerVersion.v9_2);
+      put("TIMESTAMP_RANGE",ServerVersion.v9_2);
+      put("TIMESTAMPTZ_RANGE",ServerVersion.v9_2);
       put("JSON", ServerVersion.v9_2);
       put("JSON_ARRAY", ServerVersion.v9_2);
       put("JSONB", ServerVersion.v9_4);
@@ -92,6 +99,18 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
       put("JSON_ARRAY", "_JSON");
       put("REF_CURSOR", "REFCURSOR");
       put("REF_CURSOR_ARRAY", "_REFCURSOR");
+      put("INT4_RANGE", "INT4RANGE");
+      put("INT8_RANGE", "INT8RANGE");
+      put("NUM_RANGE", "NUMRANGE");
+      put("DATE_RANGE", "DATERANGE");
+      put("TIMESTAMP_RANGE", "TSRANGE");
+      put("TIMESTAMPTZ_RANGE", "TSTZRANGE");
+      put("INT4_RANGE_ARRAY", "_INT4RANGE");
+      put("INT8_RANGE_ARRAY", "_INT8RANGE");
+      put("NUM_RANGE_ARRAY", "_NUMRANGE");
+      put("DATE_RANGE_ARRAY", "_DATERANGE");
+      put("TIMESTAMP_RANGE_ARRAY", "_TSRANGE");
+      put("TIMESTAMPTZ_RANGE_ARRAY", "_TSTZRANGE");
     }};
 
   @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")
