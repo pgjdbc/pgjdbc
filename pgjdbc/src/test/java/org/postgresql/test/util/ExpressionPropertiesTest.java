@@ -5,9 +5,10 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.util.ExpressionProperties;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
@@ -18,14 +19,14 @@ class ExpressionPropertiesTest {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "pgjdbc_${server}.txt");
-    Assertions.assertEquals("pgjdbc_app1.txt", p.getProperty("file"), "${server} should be replaced");
+    assertEquals("pgjdbc_app1.txt", p.getProperty("file"), "${server} should be replaced");
   }
 
   @Test
   void replacementMissing() {
     ExpressionProperties p = new ExpressionProperties();
     p.put("file", "pgjdbc_${server}.txt");
-    Assertions.assertEquals("pgjdbc_${server}.txt", p.getProperty("file"), "${server} should be kept as is as there is no replacement");
+    assertEquals("pgjdbc_${server}.txt", p.getProperty("file"), "${server} should be kept as is as there is no replacement");
   }
 
   @Test
@@ -33,7 +34,7 @@ class ExpressionPropertiesTest {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "${server}${server}${server}${server}${server}");
-    Assertions.assertEquals("app1app1app1app1app1", p.getProperty("file"), "All the ${server} entries should be replaced");
+    assertEquals("app1app1app1app1app1", p.getProperty("file"), "All the ${server} entries should be replaced");
   }
 
   @Test
@@ -46,7 +47,7 @@ class ExpressionPropertiesTest {
     ExpressionProperties p = new ExpressionProperties(p1, p2);
     p.put("file", "pgjdbc_${server}.txt");
 
-    Assertions.assertEquals("pgjdbc_app1_production.txt", p.getProperty("file"), "All the ${...} entries should be replaced");
+    assertEquals("pgjdbc_app1_production.txt", p.getProperty("file"), "All the ${...} entries should be replaced");
   }
 
   @Test
@@ -54,6 +55,6 @@ class ExpressionPropertiesTest {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "${server}${server}${server}${server}${server}");
-    Assertions.assertEquals("${server}${server}${server}${server}${server}", p.getRawPropertyValue("file"), "No replacements in raw value expected");
+    assertEquals("${server}${server}${server}${server}${server}", p.getRawPropertyValue("file"), "No replacements in raw value expected");
   }
 }

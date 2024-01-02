@@ -5,12 +5,12 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.Oid;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Array;
@@ -41,7 +41,7 @@ public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
     final int expectedLength = Array.getLength(expected);
     assertEquals(expectedLength, Array.getLength(actual), message + " size");
     for (int i = 0; i < expectedLength; i++) {
-      Assertions.assertArrayEquals(expected[i], (byte[]) Array.get(actual, i), message + " value at " + i);
+      assertArrayEquals(expected[i], (byte[]) Array.get(actual, i), message + " value at " + i);
     }
   }
 

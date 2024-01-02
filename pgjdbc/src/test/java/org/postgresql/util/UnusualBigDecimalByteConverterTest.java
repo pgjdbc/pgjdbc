@@ -7,9 +7,9 @@ package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.math.BigDecimal;
-
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
 
 /**
  * Tests unusual binary representations of numeric values.

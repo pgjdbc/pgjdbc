@@ -5,11 +5,14 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.ssl.PKCS12KeyManager;
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -34,7 +37,7 @@ class PKCS12KeyTest {
 
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
-      Assertions.assertTrue(sslUsed, "SSL should be in use");
+      assertTrue(sslUsed, "SSL should be in use");
     }
   }
 
@@ -45,25 +48,25 @@ class PKCS12KeyTest {
     X500Principal[] issuers = new X500Principal[]{testPrincipal};
 
     String validKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
-    Assertions.assertNotNull(validKeyType);
+    assertNotNull(validKeyType);
 
     String ignoresCase = pkcs12KeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
-    Assertions.assertNotNull(ignoresCase);
+    assertNotNull(ignoresCase);
 
     String invalidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
-    Assertions.assertNull(invalidKeyType);
+    assertNull(invalidKeyType);
 
     String containsValidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
-    Assertions.assertNotNull(containsValidKeyType);
+    assertNotNull(containsValidKeyType);
 
     String ignoresBlank = pkcs12KeyManager.chooseClientAlias(new String[]{}, issuers, null);
-    Assertions.assertNotNull(ignoresBlank);
+    assertNotNull(ignoresBlank);
   }
 
   public static class TestCallbackHandler implements CallbackHandler {
     char [] password;
 
-    public TestCallbackHandler(String password) {
+    TestCallbackHandler(String password) {
       if (password != null) {
         this.password = password.toCharArray();
       }

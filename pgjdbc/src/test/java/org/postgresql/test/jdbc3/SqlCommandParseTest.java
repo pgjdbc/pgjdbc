@@ -11,11 +11,10 @@ import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
 
-import java.sql.SQLException;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -39,7 +38,7 @@ public class SqlCommandParseTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "expected={0}, sql={1}")
-  public void run(SqlCommandType type, String sql) throws SQLException {
+  void run(SqlCommandType type, String sql) throws SQLException {
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql(sql, true, true, false, true, true);
     NativeQuery query = queries.get(0);

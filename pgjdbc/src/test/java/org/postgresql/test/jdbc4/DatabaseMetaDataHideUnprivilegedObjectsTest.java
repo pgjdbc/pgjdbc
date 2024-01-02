@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-
 /**
  * Tests that database objects for which the current user has no privileges are filtered out from
  * the DatabaseMetaData depending on whether the connection parameter hideUnprivilegedObjects is

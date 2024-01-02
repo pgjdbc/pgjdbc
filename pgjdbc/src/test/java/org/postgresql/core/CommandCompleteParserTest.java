@@ -5,9 +5,10 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.util.PSQLException;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -38,11 +39,11 @@ public class CommandCompleteParserTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "input={0}, oid={1}, rows={2}")
-  public void run(String input, long oid, long rows) throws PSQLException {
+  void run(String input, long oid, long rows) throws PSQLException {
     CommandCompleteParser expected = new CommandCompleteParser();
     CommandCompleteParser actual = new CommandCompleteParser();
     expected.set(oid, rows);
     actual.parse(input);
-    Assertions.assertEquals(expected, actual, input);
+    assertEquals(expected, actual, input);
   }
 }

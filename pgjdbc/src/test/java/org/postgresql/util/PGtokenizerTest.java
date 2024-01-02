@@ -7,7 +7,6 @@ package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class PGtokenizerTest {
@@ -39,7 +38,7 @@ class PGtokenizerTest {
   @Test
   void removePara() {
     String string = PGtokenizer.removePara("(1,2EC1830300027,1,,)");
-    Assertions.assertEquals("1,2EC1830300027,1,,", string);
+    assertEquals("1,2EC1830300027,1,,", string);
   }
 
 }

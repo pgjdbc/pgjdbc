@@ -49,6 +49,7 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents that some Oid values will be tested with a database not supporting given Oid.
    */
   private static Map<String, ServerVersion> oidsMinimumVersions;
+
   static {
     oidsMinimumVersions = new HashMap<>();
     oidsMinimumVersions.put("JSON", ServerVersion.v9_2);
@@ -63,6 +64,7 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Helps in situation when variable name in Oid class isn't the same as typname in pg_type table.
    */
   private static Map<String, String> oidTypeNames;
+
   static {
     oidTypeNames = new HashMap<>();
     oidTypeNames.put("BOX_ARRAY", "_BOX");

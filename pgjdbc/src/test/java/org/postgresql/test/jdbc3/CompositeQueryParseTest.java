@@ -13,9 +13,9 @@ import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
 
-import java.sql.SQLException;
-
 import org.junit.jupiter.api.Test;
+
+import java.sql.SQLException;
 import java.util.List;
 
 class CompositeQueryParseTest {

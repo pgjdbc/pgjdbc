@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4.jdbc41;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -17,7 +18,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -103,7 +103,7 @@ class SchemaTest {
   void usingSchema() throws SQLException {
     Statement stmt = conn.createStatement();
     try {
-      Assertions.assertDoesNotThrow(() -> {
+      assertDoesNotThrow(() -> {
         conn.setSchema("schema1");
         stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
         stmt.executeQuery(TestUtil.selectSQL("schema2.table2", "*"));

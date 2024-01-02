@@ -5,13 +5,16 @@
 
 package org.postgresql.test.osgi;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.osgi.PGDataSourceFactory;
 import org.postgresql.xa.PGXADataSource;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.osgi.service.jdbc.DataSourceFactory;
@@ -35,13 +38,13 @@ class PGDataSourceFactoryTest {
   @Test
   void createDriverDefault() throws Exception {
     Driver driver = dataSourceFactory.createDriver(null);
-    Assertions.assertTrue(driver instanceof org.postgresql.Driver);
+    assertTrue(driver instanceof org.postgresql.Driver);
   }
 
   @Test
   void createDataSourceDefault() throws Exception {
     DataSource dataSource = dataSourceFactory.createDataSource(null);
-    Assertions.assertNotNull(dataSource);
+    assertNotNull(dataSource);
   }
 
   @Test
@@ -50,11 +53,11 @@ class PGDataSourceFactoryTest {
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     properties.put("currentSchema", "schema");
     DataSource dataSource = dataSourceFactory.createDataSource(properties);
-    Assertions.assertNotNull(dataSource);
-    Assertions.assertTrue(dataSource instanceof SimpleDataSource);
+    assertNotNull(dataSource);
+    assertTrue(dataSource instanceof SimpleDataSource);
     SimpleDataSource simpleDataSource = (SimpleDataSource) dataSource;
-    Assertions.assertEquals("db", simpleDataSource.getDatabaseName());
-    Assertions.assertEquals("schema", simpleDataSource.getCurrentSchema());
+    assertEquals("db", simpleDataSource.getDatabaseName());
+    assertEquals("schema", simpleDataSource.getCurrentSchema());
   }
 
   @Test
@@ -64,18 +67,18 @@ class PGDataSourceFactoryTest {
     properties.put(DataSourceFactory.JDBC_INITIAL_POOL_SIZE, "5");
     properties.put(DataSourceFactory.JDBC_MAX_POOL_SIZE, "10");
     DataSource dataSource = dataSourceFactory.createDataSource(properties);
-    Assertions.assertNotNull(dataSource);
-    Assertions.assertTrue(dataSource instanceof PoolingDataSource);
+    assertNotNull(dataSource);
+    assertTrue(dataSource instanceof PoolingDataSource);
     PoolingDataSource poolingDataSource = (PoolingDataSource) dataSource;
-    Assertions.assertEquals("db", poolingDataSource.getDatabaseName());
-    Assertions.assertEquals(5, poolingDataSource.getInitialConnections());
-    Assertions.assertEquals(10, poolingDataSource.getMaxConnections());
+    assertEquals("db", poolingDataSource.getDatabaseName());
+    assertEquals(5, poolingDataSource.getInitialConnections());
+    assertEquals(10, poolingDataSource.getMaxConnections());
   }
 
   @Test
   void createConnectionPoolDataSourceDefault() throws Exception {
     ConnectionPoolDataSource dataSource = dataSourceFactory.createConnectionPoolDataSource(null);
-    Assertions.assertNotNull(dataSource);
+    assertNotNull(dataSource);
   }
 
   @Test
@@ -84,16 +87,16 @@ class PGDataSourceFactoryTest {
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     ConnectionPoolDataSource dataSource =
         dataSourceFactory.createConnectionPoolDataSource(properties);
-    Assertions.assertNotNull(dataSource);
-    Assertions.assertTrue(dataSource instanceof ConnectionPool);
+    assertNotNull(dataSource);
+    assertTrue(dataSource instanceof ConnectionPool);
     ConnectionPool connectionPoolDataSource = (ConnectionPool) dataSource;
-    Assertions.assertEquals("db", connectionPoolDataSource.getDatabaseName());
+    assertEquals("db", connectionPoolDataSource.getDatabaseName());
   }
 
   @Test
   void createXADataSourceDefault() throws Exception {
     XADataSource dataSource = dataSourceFactory.createXADataSource(null);
-    Assertions.assertNotNull(dataSource);
+    assertNotNull(dataSource);
   }
 
   @Test
@@ -101,9 +104,9 @@ class PGDataSourceFactoryTest {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     XADataSource dataSource = dataSourceFactory.createXADataSource(properties);
-    Assertions.assertNotNull(dataSource);
-    Assertions.assertTrue(dataSource instanceof PGXADataSource);
+    assertNotNull(dataSource);
+    assertTrue(dataSource instanceof PGXADataSource);
     PGXADataSource xaDataSource = (PGXADataSource) dataSource;
-    Assertions.assertEquals("db", xaDataSource.getDatabaseName());
+    assertEquals("db", xaDataSource.getDatabaseName());
   }
 }

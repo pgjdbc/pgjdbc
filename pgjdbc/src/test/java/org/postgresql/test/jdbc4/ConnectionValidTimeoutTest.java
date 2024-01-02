@@ -35,7 +35,7 @@ public class ConnectionValidTimeoutTest {
   @MethodSource("data")
   @ParameterizedTest(name = "networkTimeoutMillis={0}, validationTimeoutSeconds={1}, expectedMaxValidationTimeMillis={2}")
   @Timeout(value = 30)
-  public void isValidRespectsSmallerTimeout(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) throws Exception {
+  void isValidRespectsSmallerTimeout(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) throws Exception {
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       final Properties props = new Properties();
       props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));

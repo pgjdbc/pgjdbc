@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import java.sql.Connection;
-
 import org.junit.jupiter.api.Test;
+
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;

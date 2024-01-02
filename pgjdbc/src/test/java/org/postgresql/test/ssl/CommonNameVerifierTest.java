@@ -5,9 +5,10 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.ssl.PGjdbcHostnameVerifier;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -28,9 +29,9 @@ public class CommonNameVerifierTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "a={0}, b={1}")
-  public void comparePatterns(String a, String b, int expected) throws Exception {
-    Assertions.assertEquals(expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b), a + " vs " + b);
+  void comparePatterns(String a, String b, int expected) throws Exception {
+    assertEquals(expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b), a + " vs " + b);
 
-    Assertions.assertEquals(-expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(b, a), b + " vs " + a);
+    assertEquals(-expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(b, a), b + " vs " + a);
   }
 }

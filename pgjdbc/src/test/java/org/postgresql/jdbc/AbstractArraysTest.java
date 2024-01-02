@@ -25,9 +25,9 @@ import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
-import java.lang.reflect.Array;
-
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;

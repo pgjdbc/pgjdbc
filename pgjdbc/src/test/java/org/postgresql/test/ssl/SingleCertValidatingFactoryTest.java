@@ -5,10 +5,12 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -79,13 +81,13 @@ public class SingleCertValidatingFactoryTest {
       // Basic SELECT test:
       ResultSet rs = stmt.executeQuery("SELECT 1");
       rs.next();
-      Assertions.assertEquals(1, rs.getInt(1));
+      assertEquals(1, rs.getInt(1));
       rs.close();
       // Verify SSL usage is as expected:
       rs = stmt.executeQuery("SELECT ssl_is_used()");
       rs.next();
       boolean sslActual = rs.getBoolean(1);
-      Assertions.assertEquals(sslExpected, sslActual);
+      assertEquals(sslExpected, sslActual);
       stmt.close();
     } catch (Exception e) {
       if (matchesExpected(e, expectedThrowable)) {
@@ -103,7 +105,7 @@ public class SingleCertValidatingFactoryTest {
     }
 
     if (expectedThrowable != null) {
-      Assertions.fail("Expected exception " + expectedThrowable.getName() + " but it did not occur.");
+      fail("Expected exception " + expectedThrowable.getName() + " but it did not occur.");
     }
   }
 

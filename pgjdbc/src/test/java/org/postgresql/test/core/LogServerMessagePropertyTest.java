@@ -5,12 +5,14 @@
 
 package org.postgresql.test.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -53,13 +55,13 @@ class LogServerMessagePropertyTest {
         TestUtil.execute(conn, INSERT_SQL);
       }
     } catch (SQLException e) {
-      Assertions.assertEquals(PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState(), "SQL state must be for a unique violation");
+      assertEquals(PSQLState.UNIQUE_VIOLATION.getState(), e.getSQLState(), "SQL state must be for a unique violation");
       return e.getMessage();
     } finally {
       conn.close();
     }
     // Should never get here:
-    Assertions.fail("A duplicate key exception should have occurred");
+    fail("A duplicate key exception should have occurred");
     return null;
   }
 
@@ -69,13 +71,13 @@ class LogServerMessagePropertyTest {
 
   private static void assertMessageContains(String message, String text) {
     if (!message.toLowerCase(Locale.ROOT).contains(text.toLowerCase(Locale.ROOT))) {
-      Assertions.fail(String.format("Message must contain text '%s': %s", text, message));
+      fail(String.format("Message must contain text '%s': %s", text, message));
     }
   }
 
   private static void assertMessageDoesNotContain(String message, String text) {
     if (message.toLowerCase(Locale.ROOT).contains(text.toLowerCase(Locale.ROOT))) {
-      Assertions.fail(String.format("Message must not contain text '%s': %s", text, message));
+      fail(String.format("Message must not contain text '%s': %s", text, message));
     }
   }
 

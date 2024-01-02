@@ -10,9 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.ds.common.BaseDataSource;
 
-import java.io.IOException;
-
 import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
 
 import javax.naming.NamingException;
 

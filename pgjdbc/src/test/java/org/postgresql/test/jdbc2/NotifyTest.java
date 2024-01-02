@@ -7,6 +7,8 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
@@ -14,7 +16,6 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -119,7 +120,7 @@ class NotifyTest {
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
     assertEquals("[]", Arrays.asList(notifications).toString(), "There have been notifications, although none have been expected.");
-    Assertions.assertTrue(runtime > 450, "We didn't wait long enough! runtime=" + runtime);
+    assertTrue(runtime > 450, "We didn't wait long enough! runtime=" + runtime);
 
     stmt.close();
   }
@@ -239,7 +240,7 @@ class NotifyTest {
 
     try {
       conn.unwrap(PGConnection.class).getNotifications(40000);
-      Assertions.fail("The getNotifications(...) call didn't return when the socket closed.");
+      fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
       // We expected that
     }

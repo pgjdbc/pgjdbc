@@ -10,9 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.Encoding;
 
-import java.io.ByteArrayInputStream;
-
 import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Locale;

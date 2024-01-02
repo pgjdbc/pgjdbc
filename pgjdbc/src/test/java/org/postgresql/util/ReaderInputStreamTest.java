@@ -8,9 +8,9 @@ package org.postgresql.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.ByteArrayInputStream;
-
 import org.junit.jupiter.api.Test;
+
+import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
 import java.io.IOException;
 import java.io.InputStream;

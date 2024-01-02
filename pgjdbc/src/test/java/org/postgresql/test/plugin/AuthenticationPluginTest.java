@@ -5,6 +5,9 @@
 
 package org.postgresql.test.plugin;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.plugin.AuthenticationPlugin;
@@ -13,7 +16,6 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -50,10 +52,10 @@ class AuthenticationPluginTest {
       boolean[] wasCalled = {false};
       DummyAuthenticationPlugin.onGetPassword = type -> {
         wasCalled[0] = true;
-        Assertions.assertEquals(expectedType, type, "The authentication type should match");
+        assertEquals(expectedType, type, "The authentication type should match");
       };
       try (Connection conn = TestUtil.openDB(props)) {
-        Assertions.assertTrue(wasCalled[0], "The custom authentication plugin should be invoked");
+        assertTrue(wasCalled[0], "The custom authentication plugin should be invoked");
       }
     } finally {
       dropRole(username);

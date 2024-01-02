@@ -5,10 +5,12 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -69,13 +71,13 @@ public class ServerVersionParseTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "str = {0}, expected = {1}")
-  public void run(String versionString, int versionNum, String rejectReason) {
+  void run(String versionString, int versionNum, String rejectReason) {
     try {
       Version version = ServerVersion.from(versionString);
       if (rejectReason == null) {
-        Assertions.assertEquals(versionNum, version.getVersionNum(), "Parsing " + versionString);
+        assertEquals(versionNum, version.getVersionNum(), "Parsing " + versionString);
       } else {
-        Assertions.fail("Should fail to parse " + versionString + ", " + rejectReason);
+        fail("Should fail to parse " + versionString + ", " + rejectReason);
       }
     } catch (NumberFormatException e) {
       if (rejectReason != null) {

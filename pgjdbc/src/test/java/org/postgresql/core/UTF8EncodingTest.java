@@ -7,11 +7,10 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.ArrayList;
-
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class UTF8EncodingTest {
@@ -79,7 +78,7 @@ public class UTF8EncodingTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "string={2}, encoding={0}")
-  public void test(Encoding encoding, String string, String shortString) throws Exception {
+  void test(Encoding encoding, String string, String shortString) throws Exception {
     final byte[] encoded = encoding.encode(string);
     assertEquals(string, encoding.decode(encoded));
   }

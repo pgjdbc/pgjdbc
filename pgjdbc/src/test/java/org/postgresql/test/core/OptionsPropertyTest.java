@@ -5,11 +5,13 @@
 
 package org.postgresql.test.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -43,9 +45,9 @@ class OptionsPropertyTest {
 
     ResultSet rs = stmt.getResultSet();
     if (!rs.next()) {
-      Assertions.fail("'options' connection initialization parameter should be passed to the database.");
+      fail("'options' connection initialization parameter should be passed to the database.");
     }
-    Assertions.assertEquals(schemaName, rs.getString(1), "'options' connection initialization parameter should be passed to the database.");
+    assertEquals(schemaName, rs.getString(1), "'options' connection initialization parameter should be passed to the database.");
 
     stmt.close();
     TestUtil.closeDB(con);

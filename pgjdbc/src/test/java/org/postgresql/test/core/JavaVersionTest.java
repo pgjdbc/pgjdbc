@@ -5,9 +5,10 @@
 
 package org.postgresql.test.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.core.JavaVersion;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class JavaVersionTest {
@@ -18,7 +19,7 @@ class JavaVersionTest {
         + JavaVersion.getRuntimeVersion();
     System.out.println(msg);
     if (currentVersion.startsWith("1.8")) {
-      Assertions.assertEquals(JavaVersion.v1_8, JavaVersion.getRuntimeVersion(), msg);
+      assertEquals(JavaVersion.v1_8, JavaVersion.getRuntimeVersion(), msg);
     }
   }
 }

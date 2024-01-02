@@ -73,12 +73,12 @@ public class BigDecimalByteConverterTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "number = {0,number,#,###.##################################################}")
-  public void binary(BigDecimal number) {
+  void binary(BigDecimal number) {
     testBinaryConversion(number);
   }
 
   @Test
-  void testBigDecimal10_pow_131072_minus_1() {
+  void bigDecimal10_pow_131072_minus_1() {
     testBinaryConversion(
         new BigDecimal(BigInteger.TEN.pow(131072).subtract(BigInteger.ONE))
     );

@@ -5,13 +5,14 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -42,16 +43,16 @@ public class PGPropertyMaxResultBufferParserTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
-  public void getMaxResultBufferValue(String valueToParse, long expectedResult) {
-    Assertions.assertDoesNotThrow(() -> {
+  void getMaxResultBufferValue(String valueToParse, long expectedResult) {
+    assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
-      Assertions.assertEquals(expectedResult, result);
+      assertEquals(expectedResult, result);
     });
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
-  public void getMaxResultBufferValueException(String valueToParse, long expectedResult) throws PSQLException {
+  void getMaxResultBufferValueException(String valueToParse, long expectedResult) throws PSQLException {
     assertThrows(PSQLException.class, () -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty("abc");
       fail();

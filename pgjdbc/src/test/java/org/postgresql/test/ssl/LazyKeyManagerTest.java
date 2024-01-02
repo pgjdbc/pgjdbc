@@ -5,11 +5,13 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+
 import org.postgresql.ssl.LazyKeyManager;
 import org.postgresql.ssl.PKCS12KeyManager;
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -30,9 +32,9 @@ class LazyKeyManagerTest {
         TestUtil.getSslTestCertPath("goodclient.p12"),
         new TestCallbackHandler("sslpwd"));
     PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
-    Assertions.assertNotNull(pk);
+    assertNotNull(pk);
     X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
-    Assertions.assertNotNull(chain);
+    assertNotNull(chain);
   }
 
   @Test
@@ -43,7 +45,7 @@ class LazyKeyManagerTest {
         new TestCallbackHandler("sslpwd"),
         true);
     PrivateKey pk = lazyKeyManager.getPrivateKey("user");
-    Assertions.assertNotNull(pk);
+    assertNotNull(pk);
   }
 
   @Test
@@ -57,25 +59,25 @@ class LazyKeyManagerTest {
     X500Principal[] issuers = new X500Principal[]{testPrincipal};
 
     String validKeyType = lazyKeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
-    Assertions.assertNotNull(validKeyType);
+    assertNotNull(validKeyType);
 
     String ignoresCase = lazyKeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
-    Assertions.assertNotNull(ignoresCase);
+    assertNotNull(ignoresCase);
 
     String invalidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
-    Assertions.assertNull(invalidKeyType);
+    assertNull(invalidKeyType);
 
     String containsValidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
-    Assertions.assertNotNull(containsValidKeyType);
+    assertNotNull(containsValidKeyType);
 
     String ignoresBlank = lazyKeyManager.chooseClientAlias(new String[]{}, issuers, null);
-    Assertions.assertNotNull(ignoresBlank);
+    assertNotNull(ignoresBlank);
   }
 
   public static class TestCallbackHandler implements CallbackHandler {
     char [] password;
 
-    public TestCallbackHandler(String password) {
+    TestCallbackHandler(String password) {
       if (password != null) {
         this.password = password.toCharArray();
       }

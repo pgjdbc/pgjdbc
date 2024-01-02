@@ -7,9 +7,9 @@ package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-import java.sql.SQLException;
-
 import org.junit.jupiter.api.Test;
+
+import java.sql.SQLException;
 import java.util.Random;
 
 class PGbyteaTest {

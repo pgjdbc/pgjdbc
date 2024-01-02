@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,7 +22,6 @@ import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -722,11 +722,11 @@ class StatementTest {
   void longQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setQueryTimeout(Integer.MAX_VALUE);
-    Assertions.assertEquals(Integer.MAX_VALUE,
+    assertEquals(Integer.MAX_VALUE,
         stmt.getQueryTimeout(),
         "setQueryTimeout(Integer.MAX_VALUE)");
     stmt.setQueryTimeout(Integer.MAX_VALUE - 1);
-    Assertions.assertEquals(Integer.MAX_VALUE - 1,
+    assertEquals(Integer.MAX_VALUE - 1,
         stmt.getQueryTimeout(),
         "setQueryTimeout(Integer.MAX_VALUE-1)");
   }
@@ -753,7 +753,7 @@ class StatementTest {
         // but anything else is fatal. We can't differentiate other causes of statement cancel like
         // "canceling statement due to user request" without error message matching though, and we
         // don't want to do that.
-        Assertions.assertEquals(
+        assertEquals(
             PSQLState.QUERY_CANCELED.getState(),
             e.getSQLState(),
             "Query is expected to be cancelled via st.close(), got " + e.getMessage());
@@ -930,7 +930,7 @@ class StatementTest {
         try {
           st.execute("select notify_then_sleep()");
         } catch (SQLException e) {
-          Assertions.assertEquals(
+          assertEquals(
               PSQLState.QUERY_CANCELED.getState(),
               e.getSQLState(),
               "Query is expected to be cancelled via st.close(), got " + e.getMessage()
@@ -941,7 +941,7 @@ class StatementTest {
           TestUtil.closeQuietly(st);
         }
       }
-      Assertions.assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
+      assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
     } finally {
       executor.shutdown();
       TestUtil.closeQuietly(outerLockCon);
@@ -1037,7 +1037,7 @@ class StatementTest {
         sqlState = e.getSQLState();
         if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
             && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
-          Assertions.assertEquals(
+          assertEquals(
               PSQLState.QUERY_CANCELED.getState(),
               e.getSQLState(),
               "Query is expected to be cancelled via st.close(), got " + e.getMessage()

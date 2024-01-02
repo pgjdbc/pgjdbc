@@ -6,6 +6,7 @@
 package org.postgresql.replication;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -24,7 +25,6 @@ import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 import org.hamcrest.CoreMatchers;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -107,7 +107,7 @@ public class ReplicationSlotTest {
 
     String slotName = "pgjdbc_test_create_temporary_physical_replication_slot_pg_10_or_higher";
 
-    Assertions.assertDoesNotThrow(() -> {
+    assertDoesNotThrow(() -> {
 
       baseConnection
           .getReplicationAPI()
@@ -279,7 +279,7 @@ public class ReplicationSlotTest {
 
     String slotName = "pgjdbc_test_create_temporary_logical_replication_slot_pg_10_or_higher";
 
-    Assertions.assertDoesNotThrow(() -> {
+    assertDoesNotThrow(() -> {
 
       baseConnection
           .getReplicationAPI()

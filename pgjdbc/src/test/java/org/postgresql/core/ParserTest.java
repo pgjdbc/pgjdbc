@@ -6,11 +6,12 @@
 package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -170,7 +171,7 @@ class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assertions.assertFalse(returningKeywordPresent, "Query does not have returning clause " + query);
+    assertFalse(returningKeywordPresent, "Query does not have returning clause " + query);
   }
 
   @Test
@@ -181,7 +182,7 @@ class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assertions.assertTrue(returningKeywordPresent, "Query has a returning clause " + query);
+    assertTrue(returningKeywordPresent, "Query has a returning clause " + query);
   }
 
   @Test
@@ -192,7 +193,7 @@ class ParserTest {
         Parser.parseJdbcSql(
             query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
-    Assertions.assertFalse(returningKeywordPresent, "There's no top-level <<returning>> clause " + query);
+    assertFalse(returningKeywordPresent, "There's no top-level <<returning>> clause " + query);
   }
 
   @Test
@@ -200,8 +201,8 @@ class ParserTest {
     String query = "insert into test(id, name) values (:id,:name) ON CONFLICT (id) DO NOTHING";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assertions.assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(44, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -209,7 +210,7 @@ class ParserTest {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name=?";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertFalse(command.isBatchedReWriteCompatible(), "update set name=? is NOT compatible with insert rewrite");
+    assertFalse(command.isBatchedReWriteCompatible(), "update set name=? is NOT compatible with insert rewrite");
   }
 
   @Test
@@ -217,7 +218,7 @@ class ParserTest {
     String query = "insert into test(id, name) values (?,?) ON CONFLICT (id) UPDATE SET name='default'";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertTrue(command.isBatchedReWriteCompatible(), "update set name='default' is compatible with insert rewrite");
+    assertTrue(command.isBatchedReWriteCompatible(), "update set name='default' is compatible with insert rewrite");
   }
 
   @Test
@@ -226,8 +227,8 @@ class ParserTest {
         "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
-    Assertions.assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(34, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(56, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -235,14 +236,14 @@ class ParserTest {
     String query = "insert into values_table (id, name) values (?,?)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
-    Assertions.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
 
     query = "insert into table_values (id, name) values (?,?)";
     qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     command = qry.get(0).getCommand();
-    Assertions.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
-    Assertions.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
+    assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test
@@ -251,8 +252,8 @@ class ParserTest {
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
-    Assertions.assertEquals(SqlCommandType.CREATE, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.CREATE, command.getType());
   }
 
   @Test
@@ -261,8 +262,8 @@ class ParserTest {
     String query = "create table \"testTable\" (\"id\" INT SERIAL NOT NULL PRIMARY KEY, \"foreignId\" INT REFERENCES \"otherTable\" (\"id\")) ON UPDATE NO ACTION";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
-    Assertions.assertEquals(SqlCommandType.CREATE, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.CREATE, command.getType());
   }
 
   @Test
@@ -271,8 +272,8 @@ class ParserTest {
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON DELETE NO ACTION";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
-    Assertions.assertEquals(SqlCommandType.ALTER, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.ALTER, command.getType());
   }
 
   @Test
@@ -281,8 +282,8 @@ class ParserTest {
     String query = "alter table \"testTable\" ADD \"foreignId\" INT REFERENCES \"otherTable\" (\"id\") ON UPDATE RESTRICT";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
     SqlCommand command = qry.get(0).getCommand();
-    Assertions.assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
-    Assertions.assertEquals(SqlCommandType.ALTER, command.getType());
+    assertFalse(command.isReturningKeywordPresent(), "No returning keyword should be present");
+    assertEquals(SqlCommandType.ALTER, command.getType());
   }
 
   @Test
@@ -295,7 +296,7 @@ class ParserTest {
         + "SELECT repeat('*', g) FROM generate_series (1, n) g; \n"
         + "END;";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, returningColumns);
-    Assertions.assertNotNull(qry);
-    Assertions.assertEquals(1, qry.size(), "There should only be one query returned here");
+    assertNotNull(qry);
+    assertEquals(1, qry.size(), "There should only be one query returned here");
   }
 }

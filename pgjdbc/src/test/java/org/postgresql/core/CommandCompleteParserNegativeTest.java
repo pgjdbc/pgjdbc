@@ -5,9 +5,10 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.util.PSQLException;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -24,11 +25,11 @@ public class CommandCompleteParserNegativeTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "input={0}")
-  public void run(String input) throws PSQLException {
+  void run(String input) throws PSQLException {
     CommandCompleteParser parser = new CommandCompleteParser();
     try {
       parser.parse(input);
-      Assertions.fail("CommandCompleteParser should throw NumberFormatException for " + input);
+      fail("CommandCompleteParser should throw NumberFormatException for " + input);
     } catch (PSQLException e) {
       Throwable cause = e.getCause();
       if (cause == null) {

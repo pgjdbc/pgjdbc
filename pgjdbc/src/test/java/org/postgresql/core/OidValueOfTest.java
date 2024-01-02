@@ -5,9 +5,10 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.util.PSQLException;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -25,7 +26,7 @@ public class OidValueOfTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "expected={0}, value={1}")
-  public void run(int expected, String value) throws PSQLException {
-    Assertions.assertEquals(expected, Oid.valueOf(value));
+  void run(int expected, String value) throws PSQLException {
+    assertEquals(expected, Oid.valueOf(value));
   }
 }

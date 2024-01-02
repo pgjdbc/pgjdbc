@@ -5,13 +5,14 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.Driver;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -80,7 +81,7 @@ class DriverSupportsClassUnloadingTest {
     // TODO: getMetaData throws AssertionError, however, it should probably not
     if (con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       ResultSetMetaData md = ps.getMetaData();
-      Assertions.assertEquals(
+      assertEquals(
           Types.INTEGER,
           md.getColumnType(1),
           ".getColumnType for column 1 c1 should be INTEGER"
@@ -91,7 +92,7 @@ class DriverSupportsClassUnloadingTest {
     ps.setQueryTimeout(1000);
     ResultSet rs = ps.executeQuery();
     rs.next();
-    Assertions.assertEquals(1, rs.getInt(1), ".getInt for column c1");
+    assertEquals(1, rs.getInt(1), ".getInt for column c1");
   }
 
   @Test
@@ -107,7 +108,7 @@ class DriverSupportsClassUnloadingTest {
         // TODO: getMetaData throws AssertionError, however, it should probably not
         if (con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
           ResultSetMetaData md = ps.getMetaData();
-          Assertions.assertEquals(
+          assertEquals(
               Types.INTEGER,
               md.getColumnType(1),
               ".getColumnType for column 1 c1 should be INTEGER"
@@ -118,7 +119,7 @@ class DriverSupportsClassUnloadingTest {
         ps.setQueryTimeout(1000);
         try (ResultSet rs = ps.executeQuery()) {
           rs.next();
-          Assertions.assertEquals(1, rs.getInt(1), ".getInt for column c1");
+          assertEquals(1, rs.getInt(1), ".getInt for column c1");
         }
       }
     }

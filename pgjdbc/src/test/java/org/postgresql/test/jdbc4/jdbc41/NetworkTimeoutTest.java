@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
-import java.sql.Connection;
-
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
@@ -23,7 +23,7 @@ class NetworkTimeoutTest {
   @Test
   void setNetworkTimeout() throws Exception {
     Connection conn = TestUtil.openDB();
-    Assertions.assertDoesNotThrow(() -> {
+    assertDoesNotThrow(() -> {
       conn.setNetworkTimeout(null, 0);
     }, "Connection.setNetworkTimeout() throw exception");
   }
@@ -44,7 +44,7 @@ class NetworkTimeoutTest {
   @Test
   void setNetworkTimeoutValid() throws Exception {
     Connection conn = TestUtil.openDB();
-    Assertions.assertDoesNotThrow(() -> {
+    assertDoesNotThrow(() -> {
       conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(5));
       assertEquals(TimeUnit.SECONDS.toMillis(5), conn.getNetworkTimeout());
     }, "Connection.setNetworkTimeout() throw exception");

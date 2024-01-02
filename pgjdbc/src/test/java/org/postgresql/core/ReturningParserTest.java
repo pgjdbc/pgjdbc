@@ -5,7 +5,8 @@
 
 package org.postgresql.core;
 
-import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -34,7 +35,7 @@ public class ReturningParserTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
-  public void test(String columnName, String returning, String prefix, String suffix) throws SQLException {
+  void test(String columnName, String returning, String prefix, String suffix) throws SQLException {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
@@ -45,7 +46,7 @@ public class ReturningParserTest {
         && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
         && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {
-      Assertions.assertEquals(expectedReturning,
+      assertEquals(expectedReturning,
           returningKeywordPresent,
           "Wrong <returning_clause> detected in SQL " + query);
     }

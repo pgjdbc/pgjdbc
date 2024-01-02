@@ -11,9 +11,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.postgresql.core.Oid;
 import org.postgresql.util.PSQLException;
 
-import java.math.BigDecimal;
-
 import org.junit.jupiter.api.Test;
+
+import java.math.BigDecimal;
 import java.sql.SQLFeatureNotSupportedException;
 
 class ArraysTest {
