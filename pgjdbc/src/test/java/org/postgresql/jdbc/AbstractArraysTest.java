@@ -5,7 +5,7 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGNotification;
 import org.postgresql.copy.CopyManager;
@@ -25,9 +25,9 @@ import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
-import org.junit.Test;
-
 import java.lang.reflect.Array;
+
+import org.junit.jupiter.api.Test;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
@@ -74,14 +74,14 @@ public abstract class AbstractArraysTest<A> {
 
   protected void assertArraysEquals(String message, A expected, Object actual) {
     final int expectedLength = Array.getLength(expected);
-    assertEquals(message + " size", expectedLength, Array.getLength(actual));
+    assertEquals(expectedLength, Array.getLength(actual), message + " size");
     for (int i = 0; i < expectedLength; i++) {
-      assertEquals(message + " value at " + i, Array.get(expected, i), Array.get(actual, i));
+      assertEquals(Array.get(expected, i), Array.get(actual, i), message + " value at " + i);
     }
   }
 
   @Test
-  public void testBinary() throws Exception {
+  public void binary() throws Exception {
 
     A data = testData[0][0];
 
@@ -103,7 +103,7 @@ public abstract class AbstractArraysTest<A> {
   }
 
   @Test
-  public void testString() throws Exception {
+  public void string() throws Exception {
 
     A data = testData[0][0];
 
@@ -183,7 +183,7 @@ public abstract class AbstractArraysTest<A> {
       assertEquals(testData.length, actual.length);
 
       for (int i = 0; i < testData.length; i++) {
-        assertEquals("array length at " + i, testData[i].length, actual[i].length);
+        assertEquals(testData[i].length, actual[i].length, "array length at " + i);
         for (int j = 0; j < testData[i].length; j++) {
           assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
         }
@@ -205,7 +205,7 @@ public abstract class AbstractArraysTest<A> {
     assertEquals(testData.length, actual.length);
 
     for (int i = 0; i < testData.length; i++) {
-      assertEquals("array length at " + i, testData[i].length, actual[i].length);
+      assertEquals(testData[i].length, actual[i].length, "array length at " + i);
       for (int j = 0; j < testData[i].length; j++) {
         assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
       }
@@ -213,7 +213,7 @@ public abstract class AbstractArraysTest<A> {
   }
 
   @Test
-  public void testObjectArrayCopy() throws Exception {
+  public void objectArrayCopy() throws Exception {
     final Object[] copy = new Object[testData.length];
     for (int i = 0; i < testData.length; i++) {
       copy[i] = testData[i];
@@ -229,7 +229,7 @@ public abstract class AbstractArraysTest<A> {
   }
 
   @Test
-  public void testObject2dArrayCopy() throws Exception {
+  public void object2dArrayCopy() throws Exception {
     final Object[][] copy = new Object[testData.length][];
     for (int  i = 0; i < testData.length; i++) {
       copy[i] = testData[i];
@@ -245,7 +245,7 @@ public abstract class AbstractArraysTest<A> {
   }
 
   @Test
-  public void testObject3dArrayCopy() throws Exception {
+  public void object3dArrayCopy() throws Exception {
     final A[][][] source = (A[][][]) Array.newInstance(testData.getClass(), 2);
     source[0] = testData;
     source[1] = testData;

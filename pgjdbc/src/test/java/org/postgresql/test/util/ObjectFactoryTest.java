@@ -5,6 +5,7 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -15,7 +16,6 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.MultipleFailuresError;
 
@@ -24,7 +24,7 @@ import java.util.Properties;
 
 import javax.net.SocketFactory;
 
-public class ObjectFactoryTest {
+class ObjectFactoryTest {
   Properties props = new Properties();
 
   static class BadObject {
@@ -45,7 +45,7 @@ public class ObjectFactoryTest {
     });
 
     try {
-      Assertions.assertAll(
+      assertAll(
           () -> assertFalse(BadObject.wasInstantiated, "ObjectFactory should not have "
               + "instantiated bad object for " + prop),
           () -> assertEquals(expectedSqlState.getState(), ex.getSQLState(), () -> "#getSQLState()"),
@@ -68,12 +68,12 @@ public class ObjectFactoryTest {
   }
 
   @Test
-  public void testInvalidSocketFactory() {
+  void invalidSocketFactory() {
     testInvalidInstantiation(PGProperty.SOCKET_FACTORY, PSQLState.CONNECTION_FAILURE);
   }
 
   @Test
-  public void testInvalidSSLFactory() {
+  void invalidSSLFactory() {
     TestUtil.assumeSslTestsEnabled();
     // We need at least "require" to trigger SslSockerFactory instantiation
     PGProperty.SSL_MODE.set(props, SslMode.REQUIRE.value);
@@ -81,13 +81,13 @@ public class ObjectFactoryTest {
   }
 
   @Test
-  public void testInvalidAuthenticationPlugin() {
+  void invalidAuthenticationPlugin() {
     testInvalidInstantiation(PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME,
         PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   @Test
-  public void testInvalidSslHostnameVerifier() {
+  void invalidSslHostnameVerifier() {
     TestUtil.assumeSslTestsEnabled();
     // Hostname verification is done at verify-full level only
     PGProperty.SSL_MODE.set(props, SslMode.VERIFY_FULL.value);
@@ -96,7 +96,7 @@ public class ObjectFactoryTest {
   }
 
   @Test
-  public void testInstantiateInvalidSocketFactory() {
+  void instantiateInvalidSocketFactory() {
     Properties props = new Properties();
     assertThrows(ClassCastException.class, () -> {
       ObjectFactory.instantiate(SocketFactory.class, BadObject.class.getName(), props,

@@ -13,19 +13,18 @@ import org.postgresql.copy.CopyDual;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -37,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
-@Category(Replication.class)
+@Tag("Replication")
 @HaveMinimalServerVersion("9.4")
 public class CopyBothResponseTest {
   @Rule
@@ -46,35 +45,35 @@ public class CopyBothResponseTest {
   private Connection sqlConnection;
   private Connection replConnection;
 
-  @BeforeClass
-  public static void beforeClass() throws Exception {
+  @BeforeAll
+  static void beforeClass() throws Exception {
     Connection con = TestUtil.openDB();
     TestUtil.createTable(con, "testreplication", "pk serial primary key, name varchar(100)");
     con.close();
   }
 
-  @AfterClass
-  public static void testAfterClass() throws Exception {
+  @AfterAll
+  static void testAfterClass() throws Exception {
     Connection con = TestUtil.openDB();
     TestUtil.dropTable(con, "testreplication");
     con.close();
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     sqlConnection = TestUtil.openDB();
     replConnection = TestUtil.openReplicationConnection();
     replConnection.setAutoCommit(true);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     sqlConnection.close();
     replConnection.close();
   }
 
   @Test
-  public void testOpenConnectByReplicationProtocol() throws Exception {
+  void openConnectByReplicationProtocol() throws Exception {
     CopyManager cm = ((PGConnection) replConnection).getCopyAPI();
 
     LogSequenceNumber logSequenceNumber = getCurrentLSN();
@@ -92,7 +91,7 @@ public class CopyBothResponseTest {
   }
 
   @Test
-  public void testReceiveKeepAliveMessage() throws Exception {
+  void receiveKeepAliveMessage() throws Exception {
     CopyManager cm = ((PGConnection) replConnection).getCopyAPI();
 
     LogSequenceNumber logSequenceNumber = getCurrentLSN();
@@ -112,7 +111,7 @@ public class CopyBothResponseTest {
   }
 
   @Test
-  public void testKeedAliveContainsCorrectLSN() throws Exception {
+  void keedAliveContainsCorrectLSN() throws Exception {
     CopyManager cm = ((PGConnection) replConnection).getCopyAPI();
 
     LogSequenceNumber startLsn = getCurrentLSN();
@@ -134,7 +133,7 @@ public class CopyBothResponseTest {
   }
 
   @Test
-  public void testReceiveXLogData() throws Exception {
+  void receiveXLogData() throws Exception {
     CopyManager cm = ((PGConnection) replConnection).getCopyAPI();
 
     LogSequenceNumber startLsn = getCurrentLSN();

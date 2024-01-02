@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 class ResourceLockTest {
   @Test
-  void testObtainClose() {
+  void obtainClose() {
     final ResourceLock lock = new ResourceLock();
 
     assertFalse(lock.isLocked(),

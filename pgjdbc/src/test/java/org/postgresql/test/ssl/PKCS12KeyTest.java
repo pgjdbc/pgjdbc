@@ -9,8 +9,8 @@ import org.postgresql.PGProperty;
 import org.postgresql.ssl.PKCS12KeyManager;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -22,9 +22,9 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
 
-public class PKCS12KeyTest {
+class PKCS12KeyTest {
   @Test
-  public void TestGoodClientP12() throws Exception {
+  void TestGoodClientP12() throws Exception {
     TestUtil.assumeSslTestsEnabled();
 
     Properties props = new Properties();
@@ -34,30 +34,30 @@ public class PKCS12KeyTest {
 
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
-      Assert.assertTrue("SSL should be in use", sslUsed);
+      Assertions.assertTrue(sslUsed, "SSL should be in use");
     }
   }
 
   @Test
-  public void TestChooseClientAlias() throws Exception {
+  void TestChooseClientAlias() throws Exception {
     PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(TestUtil.getSslTestCertPath("goodclient.p12"), new TestCallbackHandler("sslpwd"));
     X500Principal testPrincipal = new X500Principal("CN=root certificate, O=PgJdbc test, ST=CA, C=US");
     X500Principal[] issuers = new X500Principal[]{testPrincipal};
 
     String validKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
-    Assert.assertNotNull(validKeyType);
+    Assertions.assertNotNull(validKeyType);
 
     String ignoresCase = pkcs12KeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
-    Assert.assertNotNull(ignoresCase);
+    Assertions.assertNotNull(ignoresCase);
 
     String invalidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
-    Assert.assertNull(invalidKeyType);
+    Assertions.assertNull(invalidKeyType);
 
     String containsValidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
-    Assert.assertNotNull(containsValidKeyType);
+    Assertions.assertNotNull(containsValidKeyType);
 
     String ignoresBlank = pkcs12KeyManager.chooseClientAlias(new String[]{}, issuers, null);
-    Assert.assertNotNull(ignoresBlank);
+    Assertions.assertNotNull(ignoresBlank);
   }
 
   public static class TestCallbackHandler implements CallbackHandler {

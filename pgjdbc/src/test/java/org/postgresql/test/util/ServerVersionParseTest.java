@@ -8,27 +8,24 @@ package org.postgresql.test.util;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Version;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
 public class ServerVersionParseTest {
 
-  private final String versionString;
-  private final int versionNum;
-  private final String rejectReason;
+  private String versionString;
+  private int versionNum;
+  private String rejectReason;
 
-  public ServerVersionParseTest(String versionString, int versionNum, String rejectReason) {
+  public void initServerVersionParseTest(String versionString, int versionNum, String rejectReason) {
     this.versionString = versionString;
     this.versionNum = versionNum;
     this.rejectReason = rejectReason;
   }
 
-  @Parameterized.Parameters(name = "str = {0}, expected = {1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         /* 4 part version tests */
@@ -81,14 +78,16 @@ public class ServerVersionParseTest {
     });
   }
 
-  @Test
-  public void run() {
+  @MethodSource("data")
+  @ParameterizedTest(name = "str = {0}, expected = {1}")
+  public void run(String versionString, int versionNum, String rejectReason) {
+    initServerVersionParseTest(versionString, versionNum, rejectReason);
     try {
       Version version = ServerVersion.from(versionString);
       if (rejectReason == null) {
-        Assert.assertEquals("Parsing " + versionString, versionNum, version.getVersionNum());
+        Assertions.assertEquals(versionNum, version.getVersionNum(), "Parsing " + versionString);
       } else {
-        Assert.fail("Should fail to parse " + versionString + ", " + rejectReason);
+        Assertions.fail("Should fail to parse " + versionString + ", " + rejectReason);
       }
     } catch (NumberFormatException e) {
       if (rejectReason != null) {

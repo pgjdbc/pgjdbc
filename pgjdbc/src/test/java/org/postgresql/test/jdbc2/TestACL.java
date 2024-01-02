@@ -8,12 +8,12 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgDatabaseMetaData;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class TestACL {
+class TestACL {
 
   @Test
-  public void testParseACL() {
+  void parseACL() {
     PgConnection pgConnection = null;
     PgDatabaseMetaData a = new PgDatabaseMetaData(pgConnection) {
     };

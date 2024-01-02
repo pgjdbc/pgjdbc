@@ -5,14 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -24,15 +24,15 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class LoginTimeoutTest {
+class LoginTimeoutTest {
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
   }
 
   @Test
-  public void testIntTimeout() throws Exception {
+  void intTimeout() throws Exception {
     Properties props = new Properties();
     PGProperty.USER.set(props, TestUtil.getUser());
     PGProperty.PASSWORD.set(props, TestUtil.getPassword());
@@ -43,7 +43,7 @@ public class LoginTimeoutTest {
   }
 
   @Test
-  public void testFloatTimeout() throws Exception {
+  void floatTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
@@ -54,7 +54,7 @@ public class LoginTimeoutTest {
   }
 
   @Test
-  public void testZeroTimeout() throws Exception {
+  void zeroTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
@@ -65,7 +65,7 @@ public class LoginTimeoutTest {
   }
 
   @Test
-  public void testNegativeTimeout() throws Exception {
+  void negativeTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
@@ -76,7 +76,7 @@ public class LoginTimeoutTest {
   }
 
   @Test
-  public void testBadTimeout() throws Exception {
+  void badTimeout() throws Exception {
     Properties props = new Properties();
     props.setProperty("user", TestUtil.getUser());
     props.setProperty("password", TestUtil.getPassword());
@@ -132,7 +132,7 @@ public class LoginTimeoutTest {
   }
 
   @Test
-  public void testTimeoutOccurs() throws Exception {
+  void timeoutOccurs() throws Exception {
     // Spawn a helper thread to accept a connection and do nothing with it;
     // this should trigger a timeout.
     TimeoutHelper helper = new TimeoutHelper();
@@ -160,7 +160,7 @@ public class LoginTimeoutTest {
       }
 
       long endTime = System.nanoTime();
-      assertTrue("Connection timed before 2500ms", endTime > startTime + (2500L * 1E6));
+      assertTrue(endTime > startTime + (2500L * 1E6), "Connection timed before 2500ms");
     } finally {
       helper.kill();
     }

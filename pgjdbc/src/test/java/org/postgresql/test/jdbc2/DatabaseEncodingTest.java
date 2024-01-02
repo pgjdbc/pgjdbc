@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.Encoding;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,20 +23,20 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 /*
- * Test case for various encoding problems.
- *
- * Ensure that we can do a round-trip of all server-supported unicode values without trashing them,
- * and that bad encodings are detected.
- */
-public class DatabaseEncodingTest {
+* Test case for various encoding problems.
+*
+* Ensure that we can do a round-trip of all server-supported unicode values without trashing them,
+* and that bad encodings are detected.
+*/
+class DatabaseEncodingTest {
   private static final int STEP = 100;
 
   private Connection con;
 
   // Set up the fixture for this testcase: a connection to a database with
   // a table for this test.
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "testdbencoding",
         "unicode_ordinal integer primary key not null, unicode_string varchar(" + STEP + ")");
@@ -46,8 +46,8 @@ public class DatabaseEncodingTest {
   }
 
   // Tear down the fixture for this test case.
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     con.setAutoCommit(true);
     TestUtil.closeDB(con);
   }
@@ -66,9 +66,9 @@ public class DatabaseEncodingTest {
   }
 
   @Test
-  public void testEncoding() throws Exception {
+  void encoding() throws Exception {
     String databaseEncoding = TestUtil.queryForString(con, "SELECT getdatabaseencoding()");
-    Assume.assumeTrue("Database encoding must be UTF8", "UTF8".equals(databaseEncoding));
+    Assumptions.assumeTrue("UTF8".equals(databaseEncoding), "Database encoding must be UTF8");
 
     boolean testHighUnicode = true;
 
@@ -143,8 +143,9 @@ public class DatabaseEncodingTest {
 
       String testString = new String(testChars);
 
-      assertEquals("Test string: " + dumpString(testString), dumpString(testString),
-          dumpString(rs.getString(2)));
+      assertEquals(dumpString(testString),
+          dumpString(rs.getString(2)),
+          "Test string: " + dumpString(testString));
     }
 
     for (int i = 0xe000; i < 0x10000; i += STEP) {
@@ -159,8 +160,9 @@ public class DatabaseEncodingTest {
 
       String testString = new String(testChars);
 
-      assertEquals("Test string: " + dumpString(testString), dumpString(testString),
-          dumpString(rs.getString(2)));
+      assertEquals(dumpString(testString),
+          dumpString(rs.getString(2)),
+          "Test string: " + dumpString(testString));
     }
 
     if (testHighUnicode) {
@@ -177,14 +179,15 @@ public class DatabaseEncodingTest {
 
         String testString = new String(testChars);
 
-        assertEquals("Test string: " + dumpString(testString), dumpString(testString),
-            dumpString(rs.getString(2)));
+        assertEquals(dumpString(testString),
+            dumpString(rs.getString(2)),
+            "Test string: " + dumpString(testString));
       }
     }
   }
 
   @Test
-  public void testUTF8Decode() throws Exception {
+  void uTF8Decode() throws Exception {
     // Tests for our custom UTF-8 decoder.
 
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
@@ -206,10 +209,12 @@ public class DatabaseEncodingTest {
       String jvmDecoding = new String(jvmEncoding, 0, jvmEncoding.length, "UTF-8");
       String ourDecoding = utf8Encoding.decode(jvmEncoding, 0, jvmEncoding.length);
 
-      assertEquals("Test string: " + dumpString(testString), dumpString(testString),
-          dumpString(jvmDecoding));
-      assertEquals("Test string: " + dumpString(testString), dumpString(testString),
-          dumpString(ourDecoding));
+      assertEquals(dumpString(testString),
+          dumpString(jvmDecoding),
+          "Test string: " + dumpString(testString));
+      assertEquals(dumpString(testString),
+          dumpString(ourDecoding),
+          "Test string: " + dumpString(testString));
     }
   }
 
@@ -217,7 +222,7 @@ public class DatabaseEncodingTest {
    * Tests that invalid utf-8 values are replaced with the unicode replacement chart.
    */
   @Test
-  public void testTruncatedUTF8Decode() throws Exception {
+  void truncatedUTF8Decode() throws Exception {
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
 
     byte[][] shortSequences = new byte[][]{{(byte) 0xc0}, // Second byte must be present
@@ -239,14 +244,14 @@ public class DatabaseEncodingTest {
       }
 
       String str = utf8Encoding.decode(sequence, 0, sequence.length);
-      assertEquals("itr:" + i, expected, str);
+      assertEquals(expected, str, "itr:" + i);
 
       // Try it with padding and a truncated length.
       Arrays.fill(paddedSequence, (byte) 0);
       System.arraycopy(sequence, 0, paddedSequence, 0, sequence.length);
 
       str = utf8Encoding.decode(paddedSequence, 0, sequence.length);
-      assertEquals("itr:" + i, expected, str);
+      assertEquals(expected, str, "itr:" + i);
     }
   }
 }

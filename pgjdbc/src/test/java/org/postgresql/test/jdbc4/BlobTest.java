@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -29,19 +29,19 @@ import java.sql.Statement;
  * This test-case is only for JDBC4 blob methods. Take a look at
  * {@link org.postgresql.test.jdbc2.BlobTest} for base tests concerning blobs
  */
-public class BlobTest {
+class BlobTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "testblob", "id name,lo oid");
     conn.setAutoCommit(false);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     conn.setAutoCommit(true);
     try {
       Statement stmt = conn.createStatement();
@@ -60,7 +60,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSetBlobWithStream() throws Exception {
+  void setBlobWithStream() throws Exception {
     byte[] data = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque bibendum dapibus varius."
         .getBytes("UTF-8");
     try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
@@ -81,7 +81,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSetBlobWithStreamAndLength() throws Exception {
+  void setBlobWithStreamAndLength() throws Exception {
     byte[] fullData = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse placerat tristique tellus, id tempus lectus."
             .getBytes("UTF-8");
     byte[] data =
@@ -105,7 +105,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testGetBinaryStreamWithBoundaries() throws Exception {
+  void getBinaryStreamWithBoundaries() throws Exception {
     byte[] data =
         "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
     try ( PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testblob", "lo", "?")) ) {
@@ -121,7 +121,7 @@ public class BlobTest {
         InputStream stream = actualBlob.getBinaryStream(6, 10);
         try {
           stream.read(actualData);
-          assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+          assertEquals(-1, stream.read(new byte[1]), "Stream should be at end");
         } finally {
           stream.close();
         }
@@ -131,7 +131,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testGetBinaryStreamWithBoundaries2() throws Exception {
+  void getBinaryStreamWithBoundaries2() throws Exception {
     byte[] data =
         "Cras vestibulum tellus eu sapien imperdiet ornare.".getBytes("UTF-8");
 
@@ -152,9 +152,9 @@ public class BlobTest {
             actualData[i] = (byte) stream.read();
           }
           /* try to read past the end and make sure we get 1 byte */
-          assertEquals("There should be 1 byte left", 1, stream.read(new byte[2]));
+          assertEquals(1, stream.read(new byte[2]), "There should be 1 byte left");
           /* now read one more and we should get an EOF */
-          assertEquals("Stream should be at end", -1, stream.read(new byte[1]));
+          assertEquals(-1, stream.read(new byte[1]), "Stream should be at end");
         }
         assertEquals("vestibulu", new String(actualData, "UTF-8"));
       }
@@ -162,7 +162,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testFree() throws SQLException {
+  void free() throws SQLException {
     try ( Statement stmt = conn.createStatement() ) {
       stmt.execute("INSERT INTO testblob(lo) VALUES(lo_creat(-1))");
       try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob")) {

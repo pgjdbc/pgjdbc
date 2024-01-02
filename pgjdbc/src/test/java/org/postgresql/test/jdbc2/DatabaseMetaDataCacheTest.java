@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.TestLogHandler;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -25,10 +25,10 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 /*
- * Tests for caching of DatabaseMetadata
- *
- */
-public class DatabaseMetaDataCacheTest {
+* Tests for caching of DatabaseMetadata
+*
+*/
+class DatabaseMetaDataCacheTest {
   private PgConnection con;
   private TestLogHandler log;
   private Logger driverLogger;
@@ -37,8 +37,8 @@ public class DatabaseMetaDataCacheTest {
   private static final Pattern SQL_TYPE_QUERY_LOG_FILTER = Pattern.compile("querying SQL typecode for pg type");
   private static final Pattern SQL_TYPE_CACHE_LOG_FILTER = Pattern.compile("caching all SQL typecodes");
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = (PgConnection) TestUtil.openDB();
     log = new TestLogHandler();
     driverLogger = LogManager.getLogManager().getLogger("org.postgresql");
@@ -47,8 +47,8 @@ public class DatabaseMetaDataCacheTest {
     driverLogger.setLevel(Level.ALL);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(con);
     driverLogger.removeHandler(log);
     driverLogger.setLevel(driverLogLevel);
@@ -56,7 +56,7 @@ public class DatabaseMetaDataCacheTest {
   }
 
   @Test
-  public void testGetSQLTypeQueryCache() throws SQLException {
+  void getSQLTypeQueryCache() throws SQLException {
     TypeInfo ti = con.getTypeInfo();
 
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
@@ -72,18 +72,18 @@ public class DatabaseMetaDataCacheTest {
   }
 
   @Test
-  public void testGetTypeInfoUsesCache() throws SQLException {
+  void getTypeInfoUsesCache() throws SQLException {
     con.getMetaData().getTypeInfo();
 
     List<LogRecord> typeCacheQuery = log.getRecordsMatching(SQL_TYPE_CACHE_LOG_FILTER);
-    assertEquals("PgDatabaseMetadata.getTypeInfo() did not cache SQL typecodes", 1, typeCacheQuery.size());
+    assertEquals(1, typeCacheQuery.size(), "PgDatabaseMetadata.getTypeInfo() did not cache SQL typecodes");
 
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
-    assertEquals("PgDatabaseMetadata.getTypeInfo() resulted in individual queries for SQL typecodes", 0, typeQueries.size());
+    assertEquals(0, typeQueries.size(), "PgDatabaseMetadata.getTypeInfo() resulted in individual queries for SQL typecodes");
   }
 
   @Test
-  public void testTypeForAlias() {
+  void typeForAlias() {
     TypeInfo ti = con.getTypeInfo();
     assertEquals("bool", ti.getTypeForAlias("boolean"));
     assertEquals("bool", ti.getTypeForAlias("Boolean"));

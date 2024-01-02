@@ -5,36 +5,36 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 /*
- * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData's various
- * properties. Methods which return a ResultSet are tested elsewhere. This avoids a complicated
- * setUp/tearDown for something like assertTrue(dbmd.nullPlusNonNullIsNull());
- */
-public class DatabaseMetaDataPropertiesTest {
+* TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData's various
+* properties. Methods which return a ResultSet are tested elsewhere. This avoids a complicated
+* setUp/tearDown for something like assertTrue(dbmd.nullPlusNonNullIsNull());
+*/
+class DatabaseMetaDataPropertiesTest {
   private Connection con;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(con);
   }
 
@@ -42,7 +42,7 @@ public class DatabaseMetaDataPropertiesTest {
    * The spec says this may return null, but we always do!
    */
   @Test
-  public void testGetMetaData() throws SQLException {
+  void getMetaData() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
   }
@@ -51,7 +51,7 @@ public class DatabaseMetaDataPropertiesTest {
    * Test default capabilities
    */
   @Test
-  public void testCapabilities() throws SQLException {
+  void capabilities() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -59,7 +59,7 @@ public class DatabaseMetaDataPropertiesTest {
     assertTrue(dbmd.allTablesAreSelectable()); // not true all the time
 
     // This should always be false for postgresql (at least for 7.x)
-    assertTrue(!dbmd.isReadOnly());
+    assertFalse(dbmd.isReadOnly());
 
     // we support multiple resultsets via multiple statements in one execute() now
     assertTrue(dbmd.supportsMultipleResultSets());
@@ -68,18 +68,18 @@ public class DatabaseMetaDataPropertiesTest {
     assertTrue(dbmd.supportsMultipleTransactions());
 
     assertTrue(dbmd.supportsMinimumSQLGrammar());
-    assertTrue(!dbmd.supportsCoreSQLGrammar());
-    assertTrue(!dbmd.supportsExtendedSQLGrammar());
+    assertFalse(dbmd.supportsCoreSQLGrammar());
+    assertFalse(dbmd.supportsExtendedSQLGrammar());
     assertTrue(dbmd.supportsANSI92EntryLevelSQL());
-    assertTrue(!dbmd.supportsANSI92IntermediateSQL());
-    assertTrue(!dbmd.supportsANSI92FullSQL());
+    assertFalse(dbmd.supportsANSI92IntermediateSQL());
+    assertFalse(dbmd.supportsANSI92FullSQL());
 
     assertTrue(dbmd.supportsIntegrityEnhancementFacility());
 
   }
 
   @Test
-  public void testJoins() throws SQLException {
+  void joins() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -89,16 +89,16 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testCursors() throws SQLException {
+  void cursors() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(!dbmd.supportsPositionedDelete());
-    assertTrue(!dbmd.supportsPositionedUpdate());
+    assertFalse(dbmd.supportsPositionedDelete());
+    assertFalse(dbmd.supportsPositionedUpdate());
   }
 
   @Test
-  public void testValues() throws SQLException {
+  void values() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     int indexMaxKeys = dbmd.getMaxColumnsInIndex();
@@ -106,7 +106,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testNulls() throws SQLException {
+  void nulls() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -121,16 +121,16 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testLocalFiles() throws SQLException {
+  void localFiles() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    assertTrue(!dbmd.usesLocalFilePerTable());
-    assertTrue(!dbmd.usesLocalFiles());
+    assertFalse(dbmd.usesLocalFilePerTable());
+    assertFalse(dbmd.usesLocalFiles());
   }
 
   @Test
-  public void testIdentifiers() throws SQLException {
+  void identifiers() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -148,7 +148,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testTables() throws SQLException {
+  void tables() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -160,7 +160,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testSelect() throws SQLException {
+  void select() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -180,7 +180,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testDBParams() throws SQLException {
+  void dBParams() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -189,7 +189,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testDbProductDetails() throws SQLException {
+  void dbProductDetails() throws SQLException {
     assertTrue(con instanceof org.postgresql.PGConnection);
 
     DatabaseMetaData dbmd = con.getMetaData();
@@ -202,7 +202,7 @@ public class DatabaseMetaDataPropertiesTest {
   }
 
   @Test
-  public void testDriverVersioning() throws SQLException {
+  void driverVersioning() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 

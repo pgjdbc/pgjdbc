@@ -5,30 +5,22 @@
 
 package org.postgresql.core;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.ArrayList;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class UTF8EncodingTest {
 
   private static final int STEP = 8 * 1024;
-
-  @Parameterized.Parameter(0)
   public Encoding encoding;
-
-  @Parameterized.Parameter(1)
   public String string;
-
-  @Parameterized.Parameter(2)
   public String shortString;
 
-  @Parameterized.Parameters(name = "string={2}, encoding={0}")
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
     for (int i = 0; i < 185000; i++) {
@@ -88,9 +80,17 @@ public class UTF8EncodingTest {
     return data;
   }
 
-  @Test
-  public void test() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "string={2}, encoding={0}")
+  public void test(Encoding encoding, String string, String shortString) throws Exception {
+    initUTF8EncodingTest(encoding, string, shortString);
     final byte[] encoded = encoding.encode(string);
     assertEquals(string, encoding.decode(encoded));
+  }
+
+  public void initUTF8EncodingTest(Encoding encoding, String string, String shortString) {
+    this.encoding = encoding;
+    this.string = string;
+    this.shortString = shortString;
   }
 }

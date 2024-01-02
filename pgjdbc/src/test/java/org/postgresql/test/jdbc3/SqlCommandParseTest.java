@@ -5,28 +5,24 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-
 import java.sql.SQLException;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.util.Arrays;
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class SqlCommandParseTest {
-  @Parameterized.Parameter(0)
   public SqlCommandType type;
-  @Parameterized.Parameter(1)
   public String sql;
 
-  @Parameterized.Parameters(name = "expected={0}, sql={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {SqlCommandType.INSERT, "insert/**/ into table(select) values(1)"},
@@ -44,11 +40,18 @@ public class SqlCommandParseTest {
     });
   }
 
-  @Test
-  public void run() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "expected={0}, sql={1}")
+  public void run(SqlCommandType type, String sql) throws SQLException {
+    initSqlCommandParseTest(type, sql);
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql(sql, true, true, false, true, true);
     NativeQuery query = queries.get(0);
-    assertEquals(sql, type, query.command.getType());
+    assertEquals(type, query.command.getType(), sql);
+  }
+
+  public void initSqlCommandParseTest(SqlCommandType type, String sql) {
+    this.type = type;
+    this.sql = sql;
   }
 }

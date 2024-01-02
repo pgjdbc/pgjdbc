@@ -5,24 +5,24 @@
 
 package org.postgresql.util;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
+
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests unusual binary representations of numeric values.
  * @author Brett Okken
  */
-public class UnusualBigDecimalByteConverterTest {
+class UnusualBigDecimalByteConverterTest {
 
   /**
    * Typically a number < 1 would have sections of leading '0' values represented in weight
    * rather than including as short values.
    */
   @Test
-  public void test_4_leading_0() {
+  void test_4_leading_0() {
     //len 2
     //weight -1
     //scale 5

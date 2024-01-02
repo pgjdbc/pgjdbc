@@ -8,25 +8,24 @@ package org.postgresql.test.jdbc2;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
-import org.hamcrest.MatcherAssert;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -49,16 +48,14 @@ import java.util.Set;
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  *
  */
-@RunWith(Parameterized.class)
 public class DatabaseMetaDataTest {
   private Connection con;
-  private final BinaryMode binaryMode;
+  private BinaryMode binaryMode;
 
-  public DatabaseMetaDataTest(BinaryMode binaryMode) {
+  public void initDatabaseMetaDataTest(BinaryMode binaryMode) {
     this.binaryMode = binaryMode;
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -67,8 +64,8 @@ public class DatabaseMetaDataTest {
     return ids;
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     if (binaryMode == BinaryMode.FORCE) {
       final Properties props = new Properties();
       PGProperty.PREPARE_THRESHOLD.set(props, -1);
@@ -143,8 +140,8 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     // Drop function first because it depends on the
     // metadatatest table's type
     Statement stmt = con.createStatement();
@@ -183,8 +180,10 @@ public class DatabaseMetaDataTest {
     TestUtil.closeDB(con);
   }
 
-  @Test
-  public void testArrayTypeInfo() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void arrayTypeInfo(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "a");
     assertTrue(rs.next());
@@ -197,8 +196,10 @@ public class DatabaseMetaDataTest {
     TestUtil.closeQuietly(rs);
   }
 
-  @Test
-  public void testArrayInt4DoubleDim() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void arrayInt4DoubleDim(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "b");
     assertTrue(rs.next());
@@ -209,8 +210,10 @@ public class DatabaseMetaDataTest {
     assertEquals("_int4", rs.getString("TYPE_NAME")); // even int4[][] is represented as _int4
   }
 
-  @Test
-  public void testCustomArrayTypeInfo() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void customArrayTypeInfo(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet res = dbmd.getColumns(null, null, "customtable", null);
     assertTrue(res.next());
@@ -245,8 +248,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testTables() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void tables(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -256,15 +261,15 @@ public class DatabaseMetaDataTest {
     assertEquals("metadatatest", tableName);
     String tableType = rs.getString("TABLE_TYPE");
     assertEquals("TABLE", tableType);
-    assertEquals(rs.findColumn("REMARKS"), 5);
-    assertEquals(rs.findColumn("TYPE_CAT"), 6);
-    assertEquals(rs.findColumn("TYPE_SCHEM"), 7);
-    assertEquals(rs.findColumn("TYPE_NAME"), 8);
-    assertEquals(rs.findColumn("SELF_REFERENCING_COL_NAME"), 9);
-    assertEquals(rs.findColumn("REF_GENERATION"), 10);
+    assertEquals(5, rs.findColumn("REMARKS"));
+    assertEquals(6, rs.findColumn("TYPE_CAT"));
+    assertEquals(7, rs.findColumn("TYPE_SCHEM"));
+    assertEquals(8, rs.findColumn("TYPE_NAME"));
+    assertEquals(9, rs.findColumn("SELF_REFERENCING_COL_NAME"));
+    assertEquals(10, rs.findColumn("REF_GENERATION"));
 
     // There should only be one row returned
-    assertTrue("getTables() returned too many rows", rs.next() == false);
+    assertFalse(rs.next(), "getTables() returned too many rows");
 
     rs.close();
 
@@ -285,8 +290,10 @@ public class DatabaseMetaDataTest {
     assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
   }
 
-  @Test
-  public void testCrossReference() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void crossReference(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection con1 = TestUtil.openDB();
 
     TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
@@ -333,8 +340,10 @@ public class DatabaseMetaDataTest {
     TestUtil.closeDB(con1);
   }
 
-  @Test
-  public void testForeignKeyActions() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void foreignKeyActions(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection conn = TestUtil.openDB();
     TestUtil.createTable(conn, "pkt", "id int primary key");
     TestUtil.createTable(conn, "fkt1",
@@ -361,8 +370,10 @@ public class DatabaseMetaDataTest {
     TestUtil.closeDB(conn);
   }
 
-  @Test
-  public void testForeignKeysToUniqueIndexes() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void foreignKeysToUniqueIndexes(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection con1 = TestUtil.openDB();
     TestUtil.createTable(con1, "pkt",
         "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
@@ -385,8 +396,10 @@ public class DatabaseMetaDataTest {
     con1.close();
   }
 
-  @Test
-  public void testMultiColumnForeignKeys() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void multiColumnForeignKeys(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection con1 = TestUtil.openDB();
     TestUtil.createTable(con1, "pkt",
         "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
@@ -415,8 +428,10 @@ public class DatabaseMetaDataTest {
     con1.close();
   }
 
-  @Test
-  public void testSameTableForeignKeys() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void sameTableForeignKeys(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection con1 = TestUtil.openDB();
 
     TestUtil.createTable(con1, "person",
@@ -478,8 +493,10 @@ public class DatabaseMetaDataTest {
     TestUtil.closeDB(con1);
   }
 
-  @Test
-  public void testForeignKeys() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void foreignKeys(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Connection con1 = TestUtil.openDB();
     TestUtil.createTable(con1, "people", "id int4 primary key, name text");
     TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
@@ -537,18 +554,22 @@ public class DatabaseMetaDataTest {
     TestUtil.closeDB(con1);
   }
 
-  @Test
-  public void testNumericPrecision() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void numericPrecision(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getColumns(null, "public", "precision_test", "%");
-    assertTrue("It should have a row for the first column", rs.next());
-    assertEquals("The column size should be zero", 0, rs.getInt("COLUMN_SIZE"));
-    assertFalse("It should have a single column", rs.next());
+    assertTrue(rs.next(), "It should have a row for the first column");
+    assertEquals(0, rs.getInt("COLUMN_SIZE"), "The column size should be zero");
+    assertFalse(rs.next(), "It should have a single column");
   }
 
-  @Test
-  public void testColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void columns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     String [] metadataColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
                                  "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH",
@@ -568,8 +589,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testDroppedColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void droppedColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       return;
     }
@@ -618,8 +641,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testSerialColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void serialColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null);
     int rownum = 0;
@@ -643,8 +668,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testColumnPrivileges() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void columnPrivileges(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -672,24 +699,30 @@ public class DatabaseMetaDataTest {
     rs.close();
 
     // Check test condition
-    assertTrue("Couldn't find SELECT priv on relation "
-                + relationName + "  for " + TestUtil.getUser(),
-              foundSelect);
+    assertTrue(foundSelect,
+              "Couldn't find SELECT priv on relation "
+                + relationName + "  for " + TestUtil.getUser());
   }
 
-  @Test
-  public void testTablePrivileges() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void tablePrivileges(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     relationPrivilegesHelper("metadatatest");
   }
 
-  @Test
-  public void testViewPrivileges() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void viewPrivileges(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     relationPrivilegesHelper("viewtest");
   }
 
-  @Test
-  public void testMaterializedViewPrivileges() throws SQLException {
-    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void materializedViewPrivileges(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
     TestUtil.createMaterializedView(con, "matviewtest", "SELECT id, quest FROM metadatatest");
     try {
       relationPrivilegesHelper("matviewtest");
@@ -698,18 +731,22 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testNoTablePrivileges() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void noTablePrivileges(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     Statement stmt = con.createStatement();
     stmt.execute("REVOKE ALL ON metadatatest FROM PUBLIC");
     stmt.execute("REVOKE ALL ON metadatatest FROM " + TestUtil.getUser());
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
-  @Test
-  public void testPrimaryKeys() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void primaryKeys(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -717,8 +754,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testIndexInfo() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void indexInfo(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     Statement stmt = con.createStatement();
     stmt.execute("create index idx_id on metadatatest (id)");
     stmt.execute("create index idx_func_single on metadatatest (upper(colour))");
@@ -734,7 +773,7 @@ public class DatabaseMetaDataTest {
     assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
     assertEquals(1, rs.getInt("ORDINAL_POSITION"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertTrue(!rs.getBoolean("NON_UNIQUE"));
+    assertFalse(rs.getBoolean("NON_UNIQUE"));
 
     assertTrue(rs.next());
     assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
@@ -767,7 +806,7 @@ public class DatabaseMetaDataTest {
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertTrue(rs.getBoolean("NON_UNIQUE"));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
   }
@@ -776,30 +815,34 @@ public class DatabaseMetaDataTest {
    * Order defined at
    * https://docs.oracle.com/javase/8/docs/api/java/sql/DatabaseMetaData.html#getIndexInfo-java.lang.String-java.lang.String-java.lang.String-boolean-boolean-
    */
-  @Test
-  public void testIndexInfoColumnOrder() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void indexInfoColumnOrder(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
-    assertEquals(rs.findColumn("TABLE_CAT"), 1);
-    assertEquals(rs.findColumn("TABLE_SCHEM"), 2);
-    assertEquals(rs.findColumn("TABLE_NAME"), 3);
-    assertEquals(rs.findColumn("NON_UNIQUE"), 4);
-    assertEquals(rs.findColumn("INDEX_QUALIFIER"), 5);
-    assertEquals(rs.findColumn("INDEX_NAME"), 6);
-    assertEquals(rs.findColumn("TYPE"), 7);
-    assertEquals(rs.findColumn("ORDINAL_POSITION"), 8);
-    assertEquals(rs.findColumn("COLUMN_NAME"), 9);
-    assertEquals(rs.findColumn("ASC_OR_DESC"), 10);
-    assertEquals(rs.findColumn("CARDINALITY"), 11);
-    assertEquals(rs.findColumn("PAGES"), 12);
-    assertEquals(rs.findColumn("FILTER_CONDITION"), 13);
+    assertEquals(1, rs.findColumn("TABLE_CAT"));
+    assertEquals(2, rs.findColumn("TABLE_SCHEM"));
+    assertEquals(3, rs.findColumn("TABLE_NAME"));
+    assertEquals(4, rs.findColumn("NON_UNIQUE"));
+    assertEquals(5, rs.findColumn("INDEX_QUALIFIER"));
+    assertEquals(6, rs.findColumn("INDEX_NAME"));
+    assertEquals(7, rs.findColumn("TYPE"));
+    assertEquals(8, rs.findColumn("ORDINAL_POSITION"));
+    assertEquals(9, rs.findColumn("COLUMN_NAME"));
+    assertEquals(10, rs.findColumn("ASC_OR_DESC"));
+    assertEquals(11, rs.findColumn("CARDINALITY"));
+    assertEquals(12, rs.findColumn("PAGES"));
+    assertEquals(13, rs.findColumn("FILTER_CONDITION"));
 
     rs.close();
   }
 
-  @Test
-  public void testIndexInfoColumnCase() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void indexInfoColumnCase(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -809,15 +852,17 @@ public class DatabaseMetaDataTest {
         char[] chars = rsmd.getColumnName(i).toCharArray();
         for (int j = 0; j < chars.length; j++) {
           if (Character.isAlphabetic(chars[j])) {
-            assertTrue("Column: " + rsmd.getColumnName(i) + " is not UPPER CASE", Character.isUpperCase(chars[j]));
+            assertTrue(Character.isUpperCase(chars[j]), "Column: " + rsmd.getColumnName(i) + " is not UPPER CASE");
           }
         }
       }
     }
   }
 
-  @Test
-  public void testNotNullDomainColumn() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void notNullDomainColumn(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
     assertTrue(rs.next());
@@ -825,11 +870,13 @@ public class DatabaseMetaDataTest {
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertTrue(rs.next());
     assertTrue(rs.next());
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
-  @Test
-  public void testDomainColumnSize() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void domainColumnSize(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
     assertTrue(rs.next());
@@ -845,8 +892,10 @@ public class DatabaseMetaDataTest {
 
   }
 
-  @Test
-  public void testAscDescIndexInfo() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void ascDescIndexInfo(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       return;
     }
@@ -869,8 +918,10 @@ public class DatabaseMetaDataTest {
     assertEquals("D", rs.getString("ASC_OR_DESC"));
   }
 
-  @Test
-  public void testPartialIndexInfo() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void partialIndexInfo(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     Statement stmt = con.createStatement();
     stmt.execute("create index idx_p_name_id on metadatatest (name) where id > 5");
     stmt.close();
@@ -888,8 +939,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testTableTypes() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void tableTypes(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     final List<String> expectedTableTypes = new ArrayList<>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
@@ -909,12 +962,13 @@ public class DatabaseMetaDataTest {
     rs.close();
     Collections.sort(expectedTableTypes);
     Collections.sort(foundTableTypes);
-    Assert.assertEquals("The table types received from DatabaseMetaData should match the 18 expected types",
-        true, foundTableTypes.equals(expectedTableTypes));
+    Assertions.assertEquals(foundTableTypes, expectedTableTypes, "The table types received from DatabaseMetaData should match the 18 expected types");
   }
 
-  @Test
-  public void testFuncWithoutNames() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void funcWithoutNames(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f1", null);
@@ -933,13 +987,15 @@ public class DatabaseMetaDataTest {
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
     assertEquals(Types.VARCHAR, rs.getInt(6));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
   }
 
-  @Test
-  public void testFuncWithNames() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void funcWithNames(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f2", null);
 
@@ -951,13 +1007,15 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("b", rs.getString(4));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
   }
 
-  @Test
-  public void testFuncWithDirection() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void funcWithDirection(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f3", null);
 
@@ -979,8 +1037,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testFuncReturningComposite() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void funcReturningComposite(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f4", null);
 
@@ -1014,12 +1074,14 @@ public class DatabaseMetaDataTest {
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
     assertEquals(Types.VARCHAR, rs.getInt(6));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
   }
 
-  @Test
-  public void testFuncReturningTable() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void funcReturningTable(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       return;
     }
@@ -1033,12 +1095,14 @@ public class DatabaseMetaDataTest {
     assertEquals("i", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnReturn, rs.getInt(5));
     assertEquals(Types.INTEGER, rs.getInt(6));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
   }
 
-  @Test
-  public void testVersionColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void versionColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1046,8 +1110,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testBestRowIdentifier() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void bestRowIdentifier(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1056,8 +1122,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testProcedures() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void procedures(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1065,8 +1133,10 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
-  @Test
-  public void testCatalogs() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void catalogs(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     try (ResultSet rs = dbmd.getCatalogs()) {
       List<String> catalogs = new ArrayList<>();
@@ -1076,7 +1146,7 @@ public class DatabaseMetaDataTest {
       List<String> sortedCatalogs = new ArrayList<>(catalogs);
       Collections.sort(sortedCatalogs);
 
-      MatcherAssert.assertThat(
+      assertThat(
           catalogs,
           allOf(
               hasItem("test"),
@@ -1087,8 +1157,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testSchemas() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void schemas(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -1112,22 +1184,26 @@ public class DatabaseMetaDataTest {
     assertTrue(count >= 2);
     assertTrue(foundPublic);
     assertTrue(foundPGCatalog);
-    assertTrue(!foundEmpty);
+    assertFalse(foundEmpty);
   }
 
-  @Test
-  public void testEscaping() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void escaping(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "a'", new String[]{"TABLE"});
     assertTrue(rs.next());
     rs = dbmd.getTables(null, null, "a\\\\", new String[]{"TABLE"});
     assertTrue(rs.next());
     rs = dbmd.getTables(null, null, "a\\", new String[]{"TABLE"});
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
-  @Test
-  public void testSearchStringEscape() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void searchStringEscape(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     String pattern = dbmd.getSearchStringEscape() + "_";
     PreparedStatement pstmt = con.prepareStatement("SELECT 'a' LIKE ?, '_' LIKE ?");
@@ -1135,14 +1211,16 @@ public class DatabaseMetaDataTest {
     pstmt.setString(2, pattern);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(!rs.getBoolean(1));
+    assertFalse(rs.getBoolean(1));
     assertTrue(rs.getBoolean(2));
     rs.close();
     pstmt.close();
   }
 
-  @Test
-  public void testGetUDTQualified() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getUDTQualified(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     Statement stmt = null;
     try {
       stmt = con.createStatement();
@@ -1166,8 +1244,8 @@ public class DatabaseMetaDataTest {
       dataType = rs.getInt("data_type");
       remarks = rs.getString("remarks");
       baseType = rs.getInt("base_type");
-      assertEquals("type name ", "testint8", typeName);
-      assertEquals("schema name ", "jdbc", schema);
+      assertEquals("testint8", typeName, "type name ");
+      assertEquals("jdbc", schema, "schema name ");
 
       // now test to see if the fully qualified stuff works as planned
       rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
@@ -1179,8 +1257,8 @@ public class DatabaseMetaDataTest {
       dataType = rs.getInt("data_type");
       remarks = rs.getString("remarks");
       baseType = rs.getInt("base_type");
-      assertEquals("type name ", "testint8", typeName);
-      assertEquals("schema name ", "jdbc", schema);
+      assertEquals("testint8", typeName, "type name ");
+      assertEquals("jdbc", schema, "schema name ");
     } finally {
       try {
         if (stmt != null) {
@@ -1195,8 +1273,10 @@ public class DatabaseMetaDataTest {
 
   }
 
-  @Test
-  public void testGetUDT1() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getUDT1(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1213,10 +1293,10 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals("base type", java.sql.Types.BIGINT, baseType);
-      assertEquals("data type", Types.DISTINCT, dataType);
-      assertEquals("type name ", "testint8", typeName);
-      assertEquals("remarks", "jdbc123", remarks);
+      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.DISTINCT, dataType, "data type");
+      assertEquals("testint8", typeName, "type name ");
+      assertEquals("jdbc123", remarks, "remarks");
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1226,8 +1306,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testGetUDT2() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getUDT2(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1245,10 +1327,10 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals("base type", java.sql.Types.BIGINT, baseType);
-      assertEquals("data type", Types.DISTINCT, dataType);
-      assertEquals("type name ", "testint8", typeName);
-      assertEquals("remarks", "jdbc123", remarks);
+      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.DISTINCT, dataType, "data type");
+      assertEquals("testint8", typeName, "type name ");
+      assertEquals("jdbc123", remarks, "remarks");
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1258,8 +1340,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testGetUDT3() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getUDT3(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create domain testint8 as int8");
@@ -1276,10 +1360,10 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals("base type", java.sql.Types.BIGINT, baseType);
-      assertEquals("data type", Types.DISTINCT, dataType);
-      assertEquals("type name ", "testint8", typeName);
-      assertEquals("remarks", "jdbc123", remarks);
+      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.DISTINCT, dataType, "data type");
+      assertEquals("testint8", typeName, "type name ");
+      assertEquals("jdbc123", remarks, "remarks");
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1289,8 +1373,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testGetUDT4() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getUDT4(BinaryMode binaryMode) throws Exception {
+    initDatabaseMetaDataTest(binaryMode);
     try {
       Statement stmt = con.createStatement();
       stmt.execute("create type testint8 as (i int8)");
@@ -1306,9 +1392,9 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertTrue("base type", rs.wasNull());
-      assertEquals("data type", Types.STRUCT, dataType);
-      assertEquals("type name ", "testint8", typeName);
+      assertTrue(rs.wasNull(), "base type");
+      assertEquals(Types.STRUCT, dataType, "data type");
+      assertEquals("testint8", typeName, "type name ");
     } finally {
       try {
         Statement stmt = con.createStatement();
@@ -1318,8 +1404,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testTypes() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void types(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     // https://www.postgresql.org/docs/8.2/static/datatype.html
     List<String> stringTypeList = new ArrayList<>();
     stringTypeList.addAll(Arrays.asList("bit",
@@ -1379,23 +1467,27 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testTypeInfoSigned() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void typeInfoSigned(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
     while (rs.next()) {
       if ("int4".equals(rs.getString("TYPE_NAME"))) {
-        assertEquals(false, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+        assertFalse(rs.getBoolean("UNSIGNED_ATTRIBUTE"));
       } else if ("float8".equals(rs.getString("TYPE_NAME"))) {
-        assertEquals(false, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+        assertFalse(rs.getBoolean("UNSIGNED_ATTRIBUTE"));
       } else if ("text".equals(rs.getString("TYPE_NAME"))) {
-        assertEquals(true, rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+        assertTrue(rs.getBoolean("UNSIGNED_ATTRIBUTE"));
       }
     }
   }
 
-  @Test
-  public void testTypeInfoQuoting() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void typeInfoQuoting(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
     while (rs.next()) {
@@ -1408,8 +1500,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testInformationAboutArrayTypes() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void informationAboutArrayTypes(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns("", "", "arraytable", "");
     assertTrue(rs.next());
@@ -1419,11 +1513,13 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("b", rs.getString("COLUMN_NAME"));
     assertEquals(100, rs.getInt("COLUMN_SIZE"));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
-  @Test
-  public void testPartitionedTablesIndex() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void partitionedTablesIndex(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
       try {
@@ -1445,8 +1541,10 @@ public class DatabaseMetaDataTest {
 
   }
 
-  @Test
-  public void testPartitionedTables() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void partitionedTables(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
       try {
@@ -1471,8 +1569,10 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testIdentityColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void identityColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10) ) {
       Statement stmt = null;
       try {
@@ -1483,7 +1583,7 @@ public class DatabaseMetaDataTest {
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getColumns("", "", "test_new", "id");
         assertTrue(rs.next());
-        assertEquals(rs.getString("COLUMN_NAME"), "id");
+        assertEquals("id", rs.getString("COLUMN_NAME"));
         assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
 
       } finally {
@@ -1495,19 +1595,23 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @Test
-  public void testGeneratedColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void generatedColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v12) ) {
       DatabaseMetaData dbmd = con.getMetaData();
       ResultSet rs = dbmd.getColumns("", "", "employee", "gross_pay");
       assertTrue(rs.next());
-      assertEquals(rs.getString("COLUMN_NAME"), "gross_pay");
+      assertEquals("gross_pay", rs.getString("COLUMN_NAME"));
       assertTrue(rs.getBoolean("IS_GENERATEDCOLUMN"));
     }
   }
 
-  @Test
-  public void testGetSQLKeywords() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void getSQLKeywords(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     DatabaseMetaData dbmd = con.getMetaData();
     String keywords = dbmd.getSQLKeywords();
 
@@ -1565,19 +1669,21 @@ public class DatabaseMetaDataTest {
     String[] excludeSQL2003 = sql2003.split(",");
     String[] returned = keywords.split(",");
     Set<String> returnedSet = new HashSet<>(Arrays.asList(returned));
-    Assert.assertEquals("Returned keywords should be unique", returnedSet.size(), returned.length);
+    Assertions.assertEquals(returnedSet.size(), returned.length, "Returned keywords should be unique");
 
     for (String s : excludeSQL2003) {
-      assertFalse("Keyword from SQL:2003 \"" + s + "\" found", returnedSet.contains(s));
+      assertFalse(returnedSet.contains(s), "Keyword from SQL:2003 \"" + s + "\" found");
     }
 
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      Assert.assertTrue("reindex should be in keywords", returnedSet.contains("reindex"));
+      Assertions.assertTrue(returnedSet.contains("reindex"), "reindex should be in keywords");
     }
   }
 
-  @Test
-  public void testFunctionColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void functionColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       return;
     }
@@ -1606,7 +1712,7 @@ public class DatabaseMetaDataTest {
     assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
 
     assertTrue(rs.next());
-    assertEquals(null, rs.getString(1));
+    assertNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("returnValue", rs.getString(4));
@@ -1616,7 +1722,7 @@ public class DatabaseMetaDataTest {
     assertEquals(0, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertEquals(null, rs.getString(1));
+    assertNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$1", rs.getString(4));
@@ -1626,7 +1732,7 @@ public class DatabaseMetaDataTest {
     assertEquals(1, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertEquals(null, rs.getString(1));
+    assertNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$2", rs.getString(4));
@@ -1635,14 +1741,16 @@ public class DatabaseMetaDataTest {
     assertEquals("varchar", rs.getString(7));
     assertEquals(2, rs.getInt(15));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
   }
 
-  @Test
-  public void testSmallSerialColumns() throws SQLException {
-    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void smallSerialColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
+    org.junit.jupiter.api.Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     TestUtil.createTable(con, "smallserial_test", "a smallserial");
 
     DatabaseMetaData dbmd = con.getMetaData();
@@ -1660,8 +1768,10 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con, "smallserial_test");
   }
 
-  @Test
-  public void testSmallSerialSequenceLikeColumns() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void smallSerialSequenceLikeColumns(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     Statement stmt = con.createStatement();
     // This is the equivalent of the smallserial, not the actual smallserial
     stmt.execute("CREATE SEQUENCE smallserial_test_a_seq;\n"
@@ -1691,8 +1801,10 @@ public class DatabaseMetaDataTest {
     stmt.close();
   }
 
-  @Test
-  public void testUpperCaseMetaDataLabels() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  public void upperCaseMetaDataLabels(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
     ResultSet rs = con.getMetaData().getTables(null, null, null, null);
     ResultSetMetaData rsmd = rs.getMetaData();
 

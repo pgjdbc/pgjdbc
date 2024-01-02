@@ -5,51 +5,51 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.ds.common.BaseDataSource;
 
-import org.junit.Test;
-
 import java.io.IOException;
+
+import org.junit.jupiter.api.Test;
 
 import javax.naming.NamingException;
 
 /**
-* tests that failover urls survive the parse/rebuild roundtrip with and without specific ports
-*/
-public class BaseDataSourceFailoverUrlsTest {
+ * tests that failover urls survive the parse/rebuild roundtrip with and without specific ports
+ */
+class BaseDataSourceFailoverUrlsTest {
 
   private static final String DEFAULT_PORT = "5432";
 
   @Test
-  public void testFullDefault() throws ClassNotFoundException, NamingException, IOException {
+  void fullDefault() throws ClassNotFoundException, NamingException, IOException {
     roundTripFromUrl("jdbc:postgresql://server/database", "jdbc:postgresql://server:" + DEFAULT_PORT + "/database");
   }
 
   @Test
-  public void testTwoNoPorts() throws ClassNotFoundException, NamingException, IOException {
+  void twoNoPorts() throws ClassNotFoundException, NamingException, IOException {
     roundTripFromUrl("jdbc:postgresql://server1,server2/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:" + DEFAULT_PORT + "/database");
   }
 
   @Test
-  public void testTwoWithPorts() throws ClassNotFoundException, NamingException, IOException {
+  void twoWithPorts() throws ClassNotFoundException, NamingException, IOException {
     roundTripFromUrl("jdbc:postgresql://server1:1234,server2:2345/database", "jdbc:postgresql://server1:1234,server2:2345/database");
   }
 
   @Test
-  public void testTwoFirstPort() throws ClassNotFoundException, NamingException, IOException {
+  void twoFirstPort() throws ClassNotFoundException, NamingException, IOException {
     roundTripFromUrl("jdbc:postgresql://server1,server2:2345/database", "jdbc:postgresql://server1:" + DEFAULT_PORT + ",server2:2345/database");
   }
 
   @Test
-  public void testTwoLastPort() throws ClassNotFoundException, NamingException, IOException {
+  void twoLastPort() throws ClassNotFoundException, NamingException, IOException {
     roundTripFromUrl("jdbc:postgresql://server1:2345,server2/database", "jdbc:postgresql://server1:2345,server2:" + DEFAULT_PORT + "/database");
   }
 
   @Test
-  public void testNullPorts() {
+  void nullPorts() {
     BaseDataSource bds = newDS();
     bds.setDatabaseName("database");
     bds.setPortNumbers(null);
@@ -59,7 +59,7 @@ public class BaseDataSourceFailoverUrlsTest {
   }
 
   @Test
-  public void testEmptyPorts() {
+  void emptyPorts() {
     BaseDataSource bds = newDS();
     bds.setDatabaseName("database");
     bds.setPortNumbers(new int[0]);
@@ -69,13 +69,12 @@ public class BaseDataSourceFailoverUrlsTest {
   }
 
   @Test
-  public void testWrongNumberOfPorts() {
+  void wrongNumberOfPorts() {
     BaseDataSource bds = newDS();
     bds.setDatabaseName("database");
     bds.setServerNames(new String[]{"localhost", "localhost1"});
     bds.setPortNumbers(new int[]{6432});
-    assertThrows("Number of ports not equal to the number of servers should throw an exception",
-        IllegalArgumentException.class, bds::getUrl);
+    assertThrows(IllegalArgumentException.class, bds::getUrl, "Number of ports not equal to the number of servers should throw an exception");
   }
 
   private BaseDataSource newDS() {

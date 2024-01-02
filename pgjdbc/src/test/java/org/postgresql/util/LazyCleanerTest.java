@@ -23,20 +23,20 @@
 package org.postgresql.util;
 
 import static java.time.Duration.ofSeconds;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+
+import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 public class LazyCleanerTest {
   @Test
-  public void testPhantomCleaner() throws InterruptedException {
+  void phantomCleaner() throws InterruptedException {
     List<Object> list = new ArrayList<>(Arrays.asList(
         new Object(), new Object(), new Object()));
 
@@ -61,20 +61,20 @@ public class LazyCleanerTest {
       );
     }
     assertEquals(
-        "All objects are strongly-reachable, so getWatchedCount should reflect it",
         list.size(),
-        t.getWatchedCount()
+        t.getWatchedCount(),
+        "All objects are strongly-reachable, so getWatchedCount should reflect it"
     );
 
-    assertTrue("cleanup thread should be running, and it should wait for the leaks",
-        t.isThreadRunning());
+    assertTrue(t.isThreadRunning(),
+        "cleanup thread should be running, and it should wait for the leaks");
 
     cleaners.get(1).clean();
 
     assertEquals(
-        "One object has been released properly, so getWatchedCount should reflect it",
         list.size() - 1,
-        t.getWatchedCount()
+        t.getWatchedCount(),
+        "One object has been released properly, so getWatchedCount should reflect it"
     );
 
     list.set(0, null);
@@ -98,14 +98,14 @@ public class LazyCleanerTest {
     );
 
     assertEquals(
-        "Second object has been released properly, so it should be reported as NO LEAK",
         Arrays.asList("LEAK", "NO LEAK", "LEAK").toString(),
-        Arrays.asList(collected).toString()
+        Arrays.asList(collected).toString(),
+        "Second object has been released properly, so it should be reported as NO LEAK"
     );
   }
 
   @Test
-  public void testGetThread() throws InterruptedException {
+  void getThread() throws InterruptedException {
     String threadName = UUID.randomUUID().toString();
     LazyCleaner t = new LazyCleaner(ofSeconds(5), threadName);
     List<Object> list = new ArrayList<>();
@@ -117,8 +117,8 @@ public class LazyCleanerTest {
               throw new IllegalStateException("test exception from CleaningAction");
             }
         );
-    assertTrue("cleanup thread should be running, and it should wait for the leaks",
-        t.isThreadRunning());
+    assertTrue(t.isThreadRunning(),
+        "cleanup thread should be running, and it should wait for the leaks");
     Thread thread = getThreadByName(threadName);
     thread.interrupt();
     Await.until(
@@ -127,9 +127,9 @@ public class LazyCleanerTest {
         () -> !thread.isInterrupted()
     );
     assertThrows(
-        "Exception from cleanable.clean() should be rethrown",
         IllegalStateException.class,
-        cleanable::clean
+        cleanable::clean,
+        "Exception from cleanable.clean() should be rethrown"
     );
     thread.interrupt();
     Await.until(

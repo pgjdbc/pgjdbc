@@ -9,23 +9,22 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.PGConnection;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-@Category(Replication.class)
+@Tag("Replication")
 @HaveMinimalServerVersion("9.4")
 public class ReplicationConnectionTest {
   @Rule
@@ -33,19 +32,19 @@ public class ReplicationConnectionTest {
 
   private Connection replConnection;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     replConnection = TestUtil.openReplicationConnection();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     replConnection.close();
   }
 
   @Test
-  public void testIsValid() throws Exception {
+  void isValid() throws Exception {
     boolean result = replConnection.isValid(3);
 
     PGConnection connection = (PGConnection) replConnection;
@@ -57,7 +56,7 @@ public class ReplicationConnectionTest {
   }
 
   @Test
-  public void testConnectionNotValidWhenSessionTerminated() throws Exception {
+  void connectionNotValidWhenSessionTerminated() throws Exception {
     TestUtil.terminateBackend(replConnection);
 
     boolean result = replConnection.isValid(3);
@@ -69,7 +68,7 @@ public class ReplicationConnectionTest {
   }
 
   @Test
-  public void testReplicationCommandResultSetAccessByIndex() throws Exception {
+  void replicationCommandResultSetAccessByIndex() throws Exception {
     Statement statement = replConnection.createStatement();
     ResultSet resultSet = statement.executeQuery("IDENTIFY_SYSTEM");
 
@@ -89,7 +88,7 @@ public class ReplicationConnectionTest {
   }
 
   @Test
-  public void testReplicationCommandResultSetAccessByName() throws Exception {
+  void replicationCommandResultSetAccessByName() throws Exception {
     Statement statement = replConnection.createStatement();
     ResultSet resultSet = statement.executeQuery("IDENTIFY_SYSTEM");
 

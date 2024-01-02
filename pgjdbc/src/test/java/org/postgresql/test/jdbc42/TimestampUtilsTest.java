@@ -5,28 +5,28 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.jdbc.TimestampUtils;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.util.TimeZone;
 
-public class TimestampUtilsTest {
+class TimestampUtilsTest {
   private TimestampUtils timestampUtils;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
   }
 
   @Test
-  public void testToStringOfLocalTime() {
+  void toStringOfLocalTime() {
     assertToStringOfLocalTime("00:00:00");
     assertToStringOfLocalTime("00:00:00.1");
     assertToStringOfLocalTime("00:00:00.12");
@@ -53,14 +53,14 @@ public class TimestampUtilsTest {
 
   private void assertToStringOfLocalTime(String expectedOutput, String inputTime, String message) {
     assertEquals(
-        "timestampUtils.toString(LocalTime.parse(" + inputTime + "))"
-            + (message == null ? ": " + message : ""),
         expectedOutput,
-        timestampUtils.toString(LocalTime.parse(inputTime)));
+        timestampUtils.toString(LocalTime.parse(inputTime)),
+        "timestampUtils.toString(LocalTime.parse(" + inputTime + "))"
+            + (message == null ? ": " + message : ""));
   }
 
   @Test
-  public void testToLocalTime() throws SQLException {
+  void toLocalTime() throws SQLException {
     assertToLocalTime("00:00:00");
 
     assertToLocalTime("00:00:00.1");
@@ -85,14 +85,14 @@ public class TimestampUtilsTest {
 
   private void assertToLocalTime(String expectedOutput, String inputTime, String message) throws SQLException {
     assertEquals(
-        "timestampUtils.toLocalTime(" + inputTime + ")"
-            + (message == null ? ": " + message : ""),
         LocalTime.parse(expectedOutput),
-        timestampUtils.toLocalTime(inputTime));
+        timestampUtils.toLocalTime(inputTime),
+        "timestampUtils.toLocalTime(" + inputTime + ")"
+            + (message == null ? ": " + message : ""));
   }
 
   @Test
-  public void testToStringOfOffsetTime() {
+  void toStringOfOffsetTime() {
     assertToStringOfOffsetTime("00:00:00+00", "00:00:00+00:00");
     assertToStringOfOffsetTime("00:00:00.1+01", "00:00:00.1+01:00");
     assertToStringOfOffsetTime("00:00:00.12+12", "00:00:00.12+12:00");
@@ -111,13 +111,13 @@ public class TimestampUtilsTest {
   }
 
   private void assertToStringOfOffsetTime(String expectedOutput, String inputTime) {
-    assertEquals("timestampUtils.toString(OffsetTime.parse(" + inputTime + "))",
-        expectedOutput,
-        timestampUtils.toString(OffsetTime.parse(inputTime)));
+    assertEquals(expectedOutput,
+        timestampUtils.toString(OffsetTime.parse(inputTime)),
+        "timestampUtils.toString(OffsetTime.parse(" + inputTime + "))");
   }
 
   @Test
-  public void testToOffsetTime() throws SQLException {
+  void toOffsetTime() throws SQLException {
     assertToOffsetTime("00:00:00+00:00", "00:00:00+00");
     assertToOffsetTime("00:00:00.1+01:00", "00:00:00.1+01");
     assertToOffsetTime("00:00:00.12+12:00", "00:00:00.12+12");
@@ -135,8 +135,8 @@ public class TimestampUtilsTest {
   }
 
   private void assertToOffsetTime(String expectedOutput, String inputTime) throws SQLException {
-    assertEquals("timestampUtils.toOffsetTime(" + inputTime + ")",
-        OffsetTime.parse(expectedOutput),
-        timestampUtils.toOffsetTime(inputTime));
+    assertEquals(OffsetTime.parse(expectedOutput),
+        timestampUtils.toOffsetTime(inputTime),
+        "timestampUtils.toOffsetTime(" + inputTime + ")");
   }
 }

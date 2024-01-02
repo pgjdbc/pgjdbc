@@ -5,12 +5,12 @@
 
 package org.postgresql.test.jre8.core;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -19,10 +19,10 @@ import java.sql.DriverManager;
  * @author Joe Kutner on 10/9/17.
  *         Twitter: @codefinger
  */
-public class SocksProxyTest {
+class SocksProxyTest {
 
-  @After
-  public void cleanup() {
+  @AfterEach
+  void cleanup() {
     System.clearProperty("socksProxyHost");
     System.clearProperty("socksProxyPort");
     System.clearProperty("socksNonProxyHosts");
@@ -32,7 +32,7 @@ public class SocksProxyTest {
    * Tests the connect method by connecting to the test database.
    */
   @Test
-  public void testConnectWithSocksNonProxyHost() throws Exception {
+  void connectWithSocksNonProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     System.setProperty("socksProxyPort", "9999");
     System.setProperty("socksNonProxyHosts", TestUtil.getServer());

@@ -5,21 +5,21 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -36,7 +36,7 @@ import java.sql.Types;
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
  */
-public class BlobTest {
+class BlobTest {
   private static final String TEST_FILE =  "/test-file.xml";
 
   private static final int LOOP = 0; // LargeObject API using loop
@@ -47,8 +47,8 @@ public class BlobTest {
   /*
     Only do this once
   */
-  @BeforeClass
-  public static void createLargeBlob() throws Exception {
+  @BeforeAll
+  static void createLargeBlob() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "testblob", "id name,lo oid");
       con.setAutoCommit(false);
@@ -76,8 +76,8 @@ public class BlobTest {
     }
   }
 
-  @AfterClass
-  public static void cleanup() throws Exception {
+  @AfterAll
+  static void cleanup() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       try (Statement stmt = con.createStatement()) {
         stmt.execute("SELECT lo_unlink(lo) FROM testblob where id = 'l1'");
@@ -87,14 +87,14 @@ public class BlobTest {
     }
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     con.setAutoCommit(false);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     con.setAutoCommit(true);
     try (Statement stmt = con.createStatement()) {
       stmt.execute("SELECT lo_unlink(lo) FROM testblob where id != 'l1'");
@@ -105,7 +105,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSetNull() throws Exception {
+  void setNull() throws Exception {
     try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO testblob(lo) VALUES (?)")) {
 
       pstmt.setBlob(1, (Blob) null);
@@ -129,7 +129,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testSet() throws SQLException {
+  void set() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
       ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '1'");
@@ -173,7 +173,7 @@ public class BlobTest {
    * Tests one method of uploading a blob to the database
    */
   @Test
-  public void testUploadBlob_LOOP() throws Exception {
+  void uploadBlob_LOOP() throws Exception {
     assertTrue(uploadFile(TEST_FILE, LOOP) > 0);
 
     // Now compare the blob & the file. Note this actually tests the
@@ -187,7 +187,7 @@ public class BlobTest {
    * Tests one method of uploading a blob to the database
    */
   @Test
-  public void testUploadBlob_NATIVE() throws Exception {
+  void uploadBlob_NATIVE() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     // Now compare the blob & the file. Note this actually tests the
@@ -196,7 +196,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testMarkResetStream() throws Exception {
+  void markResetStream() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     try (Statement stmt = con.createStatement()) {
@@ -222,7 +222,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testGetBytesOffset() throws Exception {
+  void getBytesOffset() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     try (Statement stmt = con.createStatement()) {
@@ -232,17 +232,17 @@ public class BlobTest {
 
         Blob lob = rs.getBlob(1);
         byte[] data = lob.getBytes(2, 4);
-        assertEquals(data.length, 4);
-        assertEquals(data[0], '?');
-        assertEquals(data[1], 'x');
-        assertEquals(data[2], 'm');
-        assertEquals(data[3], 'l');
+        assertEquals(4, data.length);
+        assertEquals('?', data[0]);
+        assertEquals('x', data[1]);
+        assertEquals('m', data[2]);
+        assertEquals('l', data[3]);
       }
     }
   }
 
   @Test
-  public void testMultipleStreams() throws Exception {
+  void multipleStreams() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     try (Statement stmt = con.createStatement()) {
@@ -254,21 +254,21 @@ public class BlobTest {
 
         InputStream is = lob.getBinaryStream();
         assertEquals(data.length, is.read(data));
-        assertEquals(data[0], '<');
-        assertEquals(data[1], '?');
+        assertEquals('<', data[0]);
+        assertEquals('?', data[1]);
         is.close();
 
         is = lob.getBinaryStream();
         assertEquals(data.length, is.read(data));
-        assertEquals(data[0], '<');
-        assertEquals(data[1], '?');
+        assertEquals('<', data[0]);
+        assertEquals('?', data[1]);
         is.close();
       }
     }
   }
 
   @Test
-  public void testParallelStreams() throws Exception {
+  void parallelStreams() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
     try (Statement stmt = con.createStatement()) {
@@ -295,7 +295,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testLargeLargeObject() throws Exception {
+  void largeLargeObject() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3)) {
       return;
     }
@@ -314,7 +314,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testLargeObjectRead() throws Exception {
+  void largeObjectRead() throws Exception {
     con.setAutoCommit(false);
     LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
     try (Statement stmt = con.createStatement()) {
@@ -336,7 +336,7 @@ public class BlobTest {
   }
 
   @Test
-  public void testLargeObjectRead1() throws Exception {
+  void largeObjectRead1() throws Exception {
     con.setAutoCommit(false);
     LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
     try (Statement stmt = con.createStatement()) {

@@ -6,27 +6,28 @@
 package org.postgresql.replication;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeFalse;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -34,7 +35,7 @@ import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
-@Category(Replication.class)
+@Tag("Replication")
 @HaveMinimalServerVersion("9.4")
 public class ReplicationSlotTest {
   @Rule
@@ -45,36 +46,38 @@ public class ReplicationSlotTest {
 
   private String slotName;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     sqlConnection = TestUtil.openPrivilegedDB();
     replConnection = TestUtil.openReplicationConnection();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     replConnection.close();
     dropReplicationSlot();
     slotName = null;
     sqlConnection.close();
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testNotAvailableCreatePhysicalSlotWithoutSlotName() throws Exception {
-    PGConnection pgConnection = (PGConnection) replConnection;
+  @Test
+  void notAvailableCreatePhysicalSlotWithoutSlotName() throws Exception {
+    assertThrows(IllegalArgumentException.class, () -> {
+      PGConnection pgConnection = (PGConnection) replConnection;
 
-    pgConnection
-        .getReplicationAPI()
-        .createReplicationSlot()
-        .physical()
-        .make();
+      pgConnection
+          .getReplicationAPI()
+          .createReplicationSlot()
+          .physical()
+          .make();
 
-    fail("Replication slot name it required parameter and can't be null");
+      fail("Replication slot name it required parameter and can't be null");
+    });
   }
 
   @Test
-  public void testCreatePhysicalSlot() throws Exception {
+  void createPhysicalSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_physical_replication_slot";
@@ -96,7 +99,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryPhysicalSlotPg10AndHigher()
+  void createTemporaryPhysicalSlotPg10AndHigher()
       throws SQLException {
     assumeTrue(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
 
@@ -104,7 +107,7 @@ public class ReplicationSlotTest {
 
     String slotName = "pgjdbc_test_create_temporary_physical_replication_slot_pg_10_or_higher";
 
-    try {
+    Assertions.assertDoesNotThrow(() -> {
 
       baseConnection
           .getReplicationAPI()
@@ -114,11 +117,7 @@ public class ReplicationSlotTest {
           .withTemporaryOption()
           .make();
 
-    } catch (SQLFeatureNotSupportedException e) {
-
-      fail("PostgreSQL >= 10 should support temporary replication slots");
-
-    }
+    }, "PostgreSQL >= 10 should support temporary replication slots");
 
     boolean result = isSlotTemporary(slotName);
 
@@ -126,7 +125,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryPhysicalSlotPgLowerThan10()
+  void createTemporaryPhysicalSlotPgLowerThan10()
       throws SQLException {
     assumeFalse(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
 
@@ -152,7 +151,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testDropPhysicalSlot() throws Exception {
+  void dropPhysicalSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_physical_replication_slot";
@@ -175,36 +174,40 @@ public class ReplicationSlotTest {
     assertThat(result, CoreMatchers.equalTo(false));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void testNotAvailableCreateLogicalSlotWithoutSlotName() throws Exception {
-    PGConnection pgConnection = (PGConnection) replConnection;
+  @Test
+  void notAvailableCreateLogicalSlotWithoutSlotName() throws Exception {
+    assertThrows(IllegalArgumentException.class, () -> {
+      PGConnection pgConnection = (PGConnection) replConnection;
 
-    pgConnection
-        .getReplicationAPI()
-        .createReplicationSlot()
-        .logical()
-        .withOutputPlugin("test_decoding")
-        .make();
+      pgConnection
+          .getReplicationAPI()
+          .createReplicationSlot()
+          .logical()
+          .withOutputPlugin("test_decoding")
+          .make();
 
-    fail("Replication slot name it required parameter and can't be null");
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testNotAvailableCreateLogicalSlotWithoutOutputPlugin() throws Exception {
-    PGConnection pgConnection = (PGConnection) replConnection;
-
-    pgConnection
-        .getReplicationAPI()
-        .createReplicationSlot()
-        .logical()
-        .withSlotName("pgjdbc_test_create_logical_replication_slot")
-        .make();
-
-    fail("output plugin required parameter for logical replication slot and can't be null");
+      fail("Replication slot name it required parameter and can't be null");
+    });
   }
 
   @Test
-  public void testCreateLogicalSlot() throws Exception {
+  void notAvailableCreateLogicalSlotWithoutOutputPlugin() throws Exception {
+    assertThrows(IllegalArgumentException.class, () -> {
+      PGConnection pgConnection = (PGConnection) replConnection;
+
+      pgConnection
+          .getReplicationAPI()
+          .createReplicationSlot()
+          .logical()
+          .withSlotName("pgjdbc_test_create_logical_replication_slot")
+          .make();
+
+      fail("output plugin required parameter for logical replication slot and can't be null");
+    });
+  }
+
+  @Test
+  void createLogicalSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_logical_replication_slot";
@@ -227,7 +230,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateLogicalSlotReturnedInfo() throws Exception {
+  void createLogicalSlotReturnedInfo() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_logical_replication_slot_info";
@@ -248,7 +251,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreatePhysicalSlotReturnedInfo() throws Exception {
+  void createPhysicalSlotReturnedInfo() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_physical_replication_slot_info";
@@ -268,7 +271,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryLogicalSlotPg10AndHigher()
+  void createTemporaryLogicalSlotPg10AndHigher()
       throws SQLException {
     assumeTrue(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
 
@@ -276,7 +279,7 @@ public class ReplicationSlotTest {
 
     String slotName = "pgjdbc_test_create_temporary_logical_replication_slot_pg_10_or_higher";
 
-    try {
+    Assertions.assertDoesNotThrow(() -> {
 
       baseConnection
           .getReplicationAPI()
@@ -287,11 +290,7 @@ public class ReplicationSlotTest {
           .withTemporaryOption()
           .make();
 
-    } catch (SQLFeatureNotSupportedException e) {
-
-      fail("PostgreSQL >= 10 should support temporary replication slots");
-
-    }
+    }, "PostgreSQL >= 10 should support temporary replication slots");
 
     boolean result = isSlotTemporary(slotName);
 
@@ -299,7 +298,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testCreateTemporaryLogicalSlotPgLowerThan10()
+  void createTemporaryLogicalSlotPgLowerThan10()
       throws SQLException {
     assumeFalse(TestUtil.haveMinimumServerVersion(replConnection, ServerVersion.v10));
 
@@ -326,7 +325,7 @@ public class ReplicationSlotTest {
   }
 
   @Test
-  public void testDropLogicalSlot() throws Exception {
+  void dropLogicalSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     slotName = "pgjdbc_test_create_logical_replication_slot";

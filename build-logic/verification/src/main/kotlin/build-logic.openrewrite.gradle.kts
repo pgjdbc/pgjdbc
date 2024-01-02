@@ -33,6 +33,8 @@ rewrite {
 
     // It is unclear how to opt-out from rewriting certain files, so we just exclude them
     // https://github.com/openrewrite/rewrite-testing-frameworks/issues/422
+    // JUnit4 does not support JUnit5's assumeTrue, so we keep TestUtil with JUnit4 for now
+    exclusion("pgjdbc/src/testFixtures/java/org/postgresql/test/TestUtil.java")
     exclusion("pgjdbc/src/test/java/org/postgresql/test/jdbc2/BaseTest4.java")
     exclusion("pgjdbc/src/test/java/org/postgresql/core/OidValuesCorrectnessTest.java")
     exclusion("pgjdbc/src/test/java/org/postgresql/jdbc/BitFieldTest.java")

@@ -9,16 +9,16 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-;
 
 /**
  * Tests that database objects for which the current user has no privileges are filtered out from
@@ -45,8 +44,8 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   private static DatabaseMetaData hidingDatabaseMetaData;
   private static DatabaseMetaData nonHidingDatabaseMetaData;
 
-  @BeforeClass
-  public static void setUp() throws Exception {
+  @BeforeAll
+  static void setUp() throws Exception {
     Properties props = new Properties();
     privilegedCon = TestUtil.openPrivilegedDB();
     pgConnection = privilegedCon.unwrap(PgConnection.class);
@@ -224,8 +223,8 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     }
   }
 
-  @AfterClass
-  public static void tearDown() throws SQLException {
+  @AfterAll
+  static void tearDown() throws SQLException {
     TestUtil.closeDB(hidingCon);
     TestUtil.closeDB(nonHidingCon);
     TestUtil.dropSchema(privilegedCon, "high_privileges_schema");
@@ -246,7 +245,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetSchemas() throws SQLException {
+  void getSchemas() throws SQLException {
     List<String> schemasWithHiding = getSchemaNames(hidingDatabaseMetaData);
     assertThat(schemasWithHiding,
         hasItems("pg_catalog", "information_schema",
@@ -270,7 +269,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetTables() throws SQLException {
+  void getTables() throws SQLException {
     List<String> tablesWithHiding = getTableNames(hidingDatabaseMetaData, "high_privileges_schema");
 
     assertThat(tablesWithHiding,
@@ -348,7 +347,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetViews() throws SQLException {
+  void getViews() throws SQLException {
     List<String> viewsWithHiding = getViewNames(hidingDatabaseMetaData, "high_privileges_schema");
 
     assertThat(viewsWithHiding,
@@ -408,7 +407,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetFunctions() throws SQLException {
+  void getFunctions() throws SQLException {
     List<String> functionsWithHiding =
         getFunctionNames(hidingDatabaseMetaData, "high_privileges_schema");
     assertThat(functionsWithHiding,
@@ -458,7 +457,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetProcedures() throws SQLException {
+  void getProcedures() throws SQLException {
     String executeGranted = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "execute_granted_insert_procedure" : "execute_granted_add_function";
     String noGrants = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "no_grants_insert_procedure" : "no_grants_add_function";
 
@@ -511,11 +510,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     return procedureNames;
   }
 
-  @Test
   /*
    *  According to the JDBC JavaDoc, the applicable UDTs are: JAVA_OBJECT, STRUCT, or DISTINCT.
    */
-  public void testGetUDTs() throws SQLException {
+  @Test
+  void getUDTs() throws SQLException {
     if (pgConnection.haveMinimumServerVersion(ServerVersion.v9_2)) {
       List<String> typesWithHiding = getTypeNames(hidingDatabaseMetaData, "high_privileges_schema");
       assertThat(typesWithHiding,

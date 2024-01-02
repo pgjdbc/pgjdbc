@@ -5,77 +5,74 @@
 
 package org.postgresql.test.core;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.FixedLengthOutputStream;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.SQLException;
 
-public class FixedLengthOutputStreamTest {
+class FixedLengthOutputStreamTest {
 
   private ByteArrayOutputStream targetStream;
   private FixedLengthOutputStream fixedLengthStream;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     targetStream = new ByteArrayOutputStream();
     fixedLengthStream = new FixedLengthOutputStream(10, targetStream);
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
   }
 
   private void verifyExpectedOutput(byte[] expected) {
-    assertArrayEquals("Incorrect data written to target stream",
-        expected, targetStream.toByteArray());
+    assertArrayEquals(expected, targetStream.toByteArray(), "Incorrect data written to target stream");
   }
 
   @Test
-  public void testSingleByteWrites() throws IOException {
+  void singleByteWrites() throws IOException {
     fixedLengthStream.write((byte) 1);
-    assertEquals("Incorrect remaining value", 9, fixedLengthStream.remaining());
+    assertEquals(9, fixedLengthStream.remaining(), "Incorrect remaining value");
     fixedLengthStream.write((byte) 2);
-    assertEquals("Incorrect remaining value", 8, fixedLengthStream.remaining());
+    assertEquals(8, fixedLengthStream.remaining(), "Incorrect remaining value");
     verifyExpectedOutput(new byte[]{1, 2});
   }
 
   @Test
-  public void testMultipleByteWrites() throws IOException {
+  void multipleByteWrites() throws IOException {
     fixedLengthStream.write(new byte[]{1, 2, 3, 4});
-    assertEquals("Incorrect remaining value", 6, fixedLengthStream.remaining());
+    assertEquals(6, fixedLengthStream.remaining(), "Incorrect remaining value");
     fixedLengthStream.write(new byte[]{5, 6, 7, 8});
-    assertEquals("Incorrect remaining value", 2, fixedLengthStream.remaining());
+    assertEquals(2, fixedLengthStream.remaining(), "Incorrect remaining value");
     verifyExpectedOutput(new byte[]{1, 2, 3, 4, 5, 6, 7, 8});
   }
 
   @Test
-  public void testSingleByteOverLimit() throws IOException {
+  void singleByteOverLimit() throws IOException {
     byte[] data = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
     fixedLengthStream.write(data);
-    assertEquals("Incorrect remaining value", 0, fixedLengthStream.remaining());
+    assertEquals(0, fixedLengthStream.remaining(), "Incorrect remaining value");
     try {
       fixedLengthStream.write((byte) 'a');
       fail("Expected exception not thrown");
     } catch (IOException e) {
-      assertEquals("Incorrect exception message",
-          "Attempt to write more than the specified 10 bytes", e.getMessage());
+      assertEquals("Attempt to write more than the specified 10 bytes", e.getMessage(), "Incorrect exception message");
     }
-    assertEquals("Incorrect remaining value after exception",
-        0, fixedLengthStream.remaining());
+    assertEquals(0, fixedLengthStream.remaining(), "Incorrect remaining value after exception");
     verifyExpectedOutput(data);
   }
 
   @Test
-  public void testMultipleBytesOverLimit() throws IOException {
+  void multipleBytesOverLimit() throws IOException {
     byte[] data = new byte[]{1, 2, 3, 4, 5, 6, 7, 8};
     fixedLengthStream.write(data);
     assertEquals(2, fixedLengthStream.remaining());
@@ -83,11 +80,9 @@ public class FixedLengthOutputStreamTest {
       fixedLengthStream.write(new byte[]{'a', 'b', 'c', 'd'});
       fail("Expected exception not thrown");
     } catch (IOException e) {
-      assertEquals("Incorrect exception message",
-          "Attempt to write more than the specified 10 bytes", e.getMessage());
+      assertEquals("Attempt to write more than the specified 10 bytes", e.getMessage(), "Incorrect exception message");
     }
-    assertEquals("Incorrect remaining value after exception",
-        2, fixedLengthStream.remaining());
+    assertEquals(2, fixedLengthStream.remaining(), "Incorrect remaining value after exception");
     verifyExpectedOutput(data);
   }
 }

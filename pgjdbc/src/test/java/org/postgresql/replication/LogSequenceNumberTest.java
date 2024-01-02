@@ -10,27 +10,25 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.postgresql.test.Replication;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-
-@Category(Replication.class)
-public class LogSequenceNumberTest {
+@Tag("Replication")
+class LogSequenceNumberTest {
   @Test
-  public void testNotNullWhenCreateFromStr() throws Exception {
+  void notNullWhenCreateFromStr() throws Exception {
     LogSequenceNumber result = LogSequenceNumber.valueOf("0/15D68C50");
     assertThat(result, notNullValue());
   }
 
   @Test
-  public void testParseNotValidLSNStr() throws Exception {
+  void parseNotValidLSNStr() throws Exception {
     LogSequenceNumber result = LogSequenceNumber.valueOf("15D68C55");
     assertThat(result, equalTo(LogSequenceNumber.INVALID_LSN));
   }
 
   @Test
-  public void testParseLSNFromStringAndConvertToLong() throws Exception {
+  void parseLSNFromStringAndConvertToLong() throws Exception {
     LogSequenceNumber result = LogSequenceNumber.valueOf("16/3002D50");
     assertThat("64-bit number use in replication protocol, "
             + "that why we should can convert string represent LSN to long",
@@ -39,7 +37,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testConvertNumericLSNToString() throws Exception {
+  void convertNumericLSNToString() throws Exception {
     LogSequenceNumber result = LogSequenceNumber.valueOf(94539623760L);
 
     assertThat("64-bit number use in replication protocol, "
@@ -49,7 +47,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testConvertNumericLSNToString_2() throws Exception {
+  void convertNumericLSNToString_2() throws Exception {
     LogSequenceNumber result = LogSequenceNumber.valueOf(366383352L);
 
     assertThat("64-bit number use in replication protocol, "
@@ -59,7 +57,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testEqualLSN() throws Exception {
+  void equalLSN() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D690F8");
 
@@ -67,7 +65,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testEqualLSNCreateByDifferentWay() throws Exception {
+  void equalLSNCreateByDifferentWay() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf(366383352L);
 
@@ -78,7 +76,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testNotEqualLSN() throws Exception {
+  void notEqualLSN() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D68C50");
 
@@ -86,7 +84,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testDifferentLSNHaveDifferentHash() throws Exception {
+  void differentLSNHaveDifferentHash() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D68C50");
 
@@ -94,7 +92,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testSameLSNHaveSameHash() throws Exception {
+  void sameLSNHaveSameHash() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D690F8");
 
@@ -102,7 +100,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testCompareToSameValue() throws Exception {
+  void compareToSameValue() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf("0/15D690F8");
     LogSequenceNumber second = LogSequenceNumber.valueOf("0/15D690F8");
 
@@ -111,7 +109,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testCompareToPositiveValues() throws Exception {
+  void compareToPositiveValues() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf(1234);
     LogSequenceNumber second = LogSequenceNumber.valueOf(4321);
 
@@ -120,7 +118,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testCompareToNegativeValues() throws Exception {
+  void compareToNegativeValues() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf(0x8000000000000000L);
     LogSequenceNumber second = LogSequenceNumber.valueOf(0x8000000000000001L);
 
@@ -129,7 +127,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testCompareToMixedSign() throws Exception {
+  void compareToMixedSign() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.valueOf(1);
     LogSequenceNumber second = LogSequenceNumber.valueOf(0x8000000000000001L);
 
@@ -138,7 +136,7 @@ public class LogSequenceNumberTest {
   }
 
   @Test
-  public void testCompareToWithInvalid() throws Exception {
+  void compareToWithInvalid() throws Exception {
     LogSequenceNumber first = LogSequenceNumber.INVALID_LSN;
     LogSequenceNumber second = LogSequenceNumber.valueOf(1);
 

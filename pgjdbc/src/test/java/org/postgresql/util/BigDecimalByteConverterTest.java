@@ -5,14 +5,13 @@
 
 package org.postgresql.util;
 
-import static org.junit.Assert.assertEquals;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.math.BigDecimal;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,13 +20,9 @@ import java.util.Collection;
  *
  * @author Brett Okken
  */
-@RunWith(Parameterized.class)
 public class BigDecimalByteConverterTest {
-
-  @Parameter
   public BigDecimal number;
 
-  @Parameterized.Parameters(name = "number = {0,number,#,###.##################################################}")
   public static Iterable<Object[]> data() {
     final Collection<Object[]> numbers = new ArrayList<>();
     numbers.add(new Object[]{new BigDecimal("0.1")});
@@ -78,8 +73,10 @@ public class BigDecimalByteConverterTest {
     return numbers;
   }
 
-  @Test
-  public void testBinary() {
+  @MethodSource("data")
+  @ParameterizedTest(name = "number = {0,number,#,###.##################################################}")
+  public void binary(BigDecimal number) {
+    initBigDecimalByteConverterTest(number);
     testBinary(number);
   }
 
@@ -91,5 +88,9 @@ public class BigDecimalByteConverterTest {
     } else {
       assertEquals(number.toPlainString(), actual.toPlainString());
     }
+  }
+
+  public void initBigDecimalByteConverterTest(BigDecimal number) {
+    this.number = number;
   }
 }

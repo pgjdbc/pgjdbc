@@ -21,7 +21,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.function.Supplier;
 
-public class DatabaseMetaDataTransactionIsolationTest {
+class DatabaseMetaDataTransactionIsolationTest {
   static Connection con;
 
   @BeforeAll

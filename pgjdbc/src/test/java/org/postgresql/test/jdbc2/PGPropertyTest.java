@@ -5,11 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
@@ -19,9 +19,9 @@ import org.postgresql.jdbc.AutoSave;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.URLCoder;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.beans.BeanInfo;
 import java.beans.Introspector;
@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-public class PGPropertyTest {
+class PGPropertyTest {
 
   /**
    * Some tests modify the "ssl" system property. To not disturb other test cases in the suite store
@@ -41,13 +41,13 @@ public class PGPropertyTest {
    */
   private String bootSSLPropertyValue;
 
-  @Before
-  public void setUp() {
+  @BeforeEach
+  void setUp() {
     bootSSLPropertyValue = System.getProperty("ssl");
   }
 
-  @After
-  public void tearDown() {
+  @AfterEach
+  void tearDown() {
     if (bootSSLPropertyValue == null) {
       System.getProperties().remove("ssl");
     } else {
@@ -59,7 +59,7 @@ public class PGPropertyTest {
    * Test that we can get and set all default values and all choices (if any).
    */
   @Test
-  public void testGetSetAllProperties() {
+  void getSetAllProperties() {
     Properties properties = new Properties();
     for (PGProperty property : PGProperty.values()) {
       String value = property.getOrDefault(properties);
@@ -78,12 +78,12 @@ public class PGPropertyTest {
   }
 
   @Test
-  public void testSortOrder() {
+  void sortOrder() {
     String prevName = null;
     for (PGProperty property : PGProperty.values()) {
       String name = property.name();
       if (prevName != null) {
-        assertTrue("PGProperty names should be sorted in ascending order: " + name + " < " + prevName, name.compareTo(prevName) > 0);
+        assertTrue(name.compareTo(prevName) > 0, "PGProperty names should be sorted in ascending order: " + name + " < " + prevName);
       }
       prevName = name;
     }
@@ -93,17 +93,17 @@ public class PGPropertyTest {
    * Test that the enum constant is common with the underlying property name.
    */
   @Test
-  public void testEnumConstantNaming() {
+  void enumConstantNaming() {
     for (PGProperty property : PGProperty.values()) {
       String enumName = property.name().replaceAll("_", "");
-      assertEquals("Naming of the enum constant [" + property.name()
+      assertEquals(property.getName().toLowerCase(Locale.ROOT), enumName.toLowerCase(Locale.ROOT), "Naming of the enum constant [" + property.name()
           + "] should follow the naming of its underlying property [" + property.getName()
-          + "] in PGProperty", property.getName().toLowerCase(Locale.ROOT), enumName.toLowerCase(Locale.ROOT));
+          + "] in PGProperty");
     }
   }
 
   @Test
-  public void testDriverGetPropertyInfo() {
+  void driverGetPropertyInfo() {
     Driver driver = new Driver();
     DriverPropertyInfo[] infos = driver.getPropertyInfo(
         "jdbc:postgresql://localhost/test?user=fred&password=secret&ssl=true",
@@ -124,7 +124,7 @@ public class PGPropertyTest {
    * Test if the datasource has getter and setter for all properties.
    */
   @Test
-  public void testDataSourceProperties() throws Exception {
+  void dataSourceProperties() throws Exception {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     BeanInfo info = Introspector.getBeanInfo(dataSource.getClass());
 
@@ -139,16 +139,16 @@ public class PGPropertyTest {
     // known properties
     for (PGProperty property : PGProperty.values()) {
       if (!property.getName().startsWith("PG") && property != PGProperty.SERVICE) {
-        assertTrue("Missing getter/setter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]", propertyDescriptors.containsKey(property.getName()));
+        assertTrue(propertyDescriptors.containsKey(property.getName()), "Missing getter/setter for property [" + property.getName() + "] in ["
+            + BaseDataSource.class + "]");
 
-        assertNotNull("No getter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]",
-            propertyDescriptors.get(property.getName()).getReadMethod());
+        assertNotNull(propertyDescriptors.get(property.getName()).getReadMethod(),
+            "No getter for property [" + property.getName() + "] in ["
+            + BaseDataSource.class + "]");
 
-        assertNotNull("No setter for property [" + property.getName() + "] in ["
-            + BaseDataSource.class + "]",
-            propertyDescriptors.get(property.getName()).getWriteMethod());
+        assertNotNull(propertyDescriptors.get(property.getName()).getWriteMethod(),
+            "No setter for property [" + property.getName() + "] in ["
+            + BaseDataSource.class + "]");
       }
     }
 
@@ -168,18 +168,18 @@ public class PGPropertyTest {
    * more should be put in but this scratches the current itch
    */
   @Test
-  public void testOverWriteDSProperties() throws Exception {
+  void overWriteDSProperties() throws Exception {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
     dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
-    assertSame(dataSource.getAutosave(), AutoSave.CONSERVATIVE);
+    assertSame(AutoSave.CONSERVATIVE, dataSource.getAutosave());
   }
 
   /**
    * Test that {@link PGProperty#isPresent(Properties)} returns a correct result in all cases.
    */
   @Test
-  public void testIsPresentWithParseURLResult() throws Exception {
+  void isPresentWithParseURLResult() throws Exception {
     Properties givenProperties = new Properties();
     givenProperties.setProperty("user", TestUtil.getUser());
     givenProperties.setProperty("password", TestUtil.getPassword());
@@ -188,27 +188,27 @@ public class PGPropertyTest {
     sysProperties.remove("ssl");
     System.setProperties(sysProperties);
     Properties parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
-    assertFalse("SSL property should not be present",
-        PGProperty.SSL.isPresent(parsedProperties));
+    assertFalse(PGProperty.SSL.isPresent(parsedProperties),
+        "SSL property should not be present");
 
     System.setProperty("ssl", "true");
     givenProperties.setProperty("ssl", "true");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
-    assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
+    assertTrue(PGProperty.SSL.isPresent(parsedProperties), "SSL property should be present");
 
     givenProperties.setProperty("ssl", "anotherValue");
     parsedProperties = Driver.parseURL(TestUtil.getURL(), givenProperties);
-    assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
+    assertTrue(PGProperty.SSL.isPresent(parsedProperties), "SSL property should be present");
 
     parsedProperties = Driver.parseURL(TestUtil.getURL() + "&ssl=true", null);
-    assertTrue("SSL property should be present", PGProperty.SSL.isPresent(parsedProperties));
+    assertTrue(PGProperty.SSL.isPresent(parsedProperties), "SSL property should be present");
   }
 
   /**
    * Check whether the isPresent method really works.
    */
   @Test
-  public void testPresenceCheck() {
+  void presenceCheck() {
     Properties empty = new Properties();
     Object value = PGProperty.READ_ONLY.getOrDefault(empty);
     assertNotNull(value);
@@ -216,7 +216,7 @@ public class PGPropertyTest {
   }
 
   @Test
-  public void testEncodedUrlValues() {
+  void encodedUrlValues() {
     String databaseName = "d&a%ta+base";
     String userName = "&u%ser";
     String password = "p%a&s^s#w!o@r*";
@@ -226,13 +226,13 @@ public class PGPropertyTest {
         + "?user=" + URLCoder.encode(userName)
         + "&password=" + URLCoder.encode(password);
     Properties parsed = Driver.parseURL(url, new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
-    assertEquals("user", userName, PGProperty.USER.getOrDefault(parsed));
-    assertEquals("password", password, PGProperty.PASSWORD.getOrDefault(parsed));
+    assertEquals(databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed), "database");
+    assertEquals(userName, PGProperty.USER.getOrDefault(parsed), "user");
+    assertEquals(password, PGProperty.PASSWORD.getOrDefault(parsed), "password");
   }
 
   @Test
-  public void testLowerCamelCase() {
+  void lowerCamelCase() {
     // These are legacy properties excluded for backward compatibility.
     ArrayList<String> excluded = new ArrayList<>();
     excluded.add("LOG_LEVEL"); // Remove with PR #722
@@ -275,7 +275,7 @@ public class PGPropertyTest {
   }
 
   @Test
-  public void testEncodedUrlValuesFromDataSource() {
+  void encodedUrlValuesFromDataSource() {
     String databaseName = "d&a%ta+base";
     String userName = "&u%ser";
     String password = "p%a&s^s#w!o@r*";
@@ -288,10 +288,10 @@ public class PGPropertyTest {
     dataSource.setApplicationName(applicationName);
 
     Properties parsed = Driver.parseURL(dataSource.getURL(), new Properties());
-    assertEquals("database", databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed));
+    assertEquals(databaseName, PGProperty.PG_DBNAME.getOrDefault(parsed), "database");
     // datasources do not pass username and password as URL parameters
-    assertFalse("user", PGProperty.USER.isPresent(parsed));
-    assertFalse("password", PGProperty.PASSWORD.isPresent(parsed));
-    assertEquals("APPLICATION_NAME", applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed));
+    assertFalse(PGProperty.USER.isPresent(parsed), "user");
+    assertFalse(PGProperty.PASSWORD.isPresent(parsed), "password");
+    assertEquals(applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed), "APPLICATION_NAME");
   }
 }

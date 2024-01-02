@@ -40,7 +40,7 @@ class UUIDArrayTest {
   private static final UUID[][] uids2 = new UUID[][]{uids1};
 
   @BeforeAll
-  public static void setUp() throws Exception {
+  static void setUp() throws Exception {
     con = TestUtil.openDB();
     assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_6));
     try (Statement stmt = con.createStatement()) {
@@ -50,7 +50,7 @@ class UUIDArrayTest {
   }
 
   @AfterAll
-  public static void tearDown() throws Exception {
+  static void tearDown() throws Exception {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("DROP TABLE IF EXISTS " + TABLE_NAME);
     }

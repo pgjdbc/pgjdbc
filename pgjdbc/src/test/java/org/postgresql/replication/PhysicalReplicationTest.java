@@ -7,22 +7,21 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assume.assumeThat;
+import static org.hamcrest.junit.MatcherAssume.assumeThat;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.ServerVersionRule;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -31,7 +30,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-@Category(Replication.class)
+@Tag("Replication")
 @HaveMinimalServerVersion("9.4")
 public class PhysicalReplicationTest {
 
@@ -43,8 +42,8 @@ public class PhysicalReplicationTest {
   private Connection replConnection;
   private Connection sqlConnection;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     sqlConnection = TestUtil.openPrivilegedDB();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     replConnection = TestUtil.openReplicationConnection();
@@ -53,8 +52,8 @@ public class PhysicalReplicationTest {
     TestUtil.recreatePhysicalReplicationSlot(sqlConnection, SLOT_NAME);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     replConnection.close();
     TestUtil.dropTable(sqlConnection, "test_physic_table");
     TestUtil.dropReplicationSlot(sqlConnection, SLOT_NAME);
@@ -62,7 +61,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void testReceiveChangesWithoutReplicationSlot() throws Exception {
+  void receiveChangesWithoutReplicationSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -87,7 +86,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void testReceiveChangesWithReplicationSlot() throws Exception {
+  void receiveChangesWithReplicationSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -111,7 +110,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void testAfterStartStreamingDBSlotStatusActive() throws Exception {
+  void afterStartStreamingDBSlotStatusActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -135,7 +134,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void testAfterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
+  void afterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -163,7 +162,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void testWalRecordCanBeRepeatBeRestartReplication() throws Exception {
+  void walRecordCanBeRepeatBeRestartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -205,7 +204,7 @@ public class PhysicalReplicationTest {
   }
 
   @Test
-  public void restartPhysicalReplicationWithoutRepeatMessage() throws Exception {
+  void restartPhysicalReplicationWithoutRepeatMessage() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();

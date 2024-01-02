@@ -5,18 +5,18 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTimestamp;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -32,7 +32,7 @@ import java.util.TimeZone;
  * Tests {@link PGTimestamp} in various scenarios including setTimestamp, setObject for both
  * {@code timestamp with time zone} and {@code timestamp without time zone} data types.
  */
-public class PGTimestampTest {
+class PGTimestampTest {
   /**
    * The name of the test table.
    */
@@ -40,14 +40,14 @@ public class PGTimestampTest {
 
   private Connection con;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, TEST_TABLE, "ts timestamp, tz timestamp with time zone");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(con, TEST_TABLE);
     TestUtil.closeDB(con);
   }
@@ -58,7 +58,7 @@ public class PGTimestampTest {
    * @throws SQLException if a JDBC or database problem occurs.
    */
   @Test
-  public void testTimestampWithInterval() throws SQLException {
+  void timestampWithInterval() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
     PGTimestamp timestamp = new PGTimestamp(System.currentTimeMillis());
     PGInterval interval = new PGInterval(0, 0, 0, 1, 2, 3.14);
@@ -134,7 +134,7 @@ public class PGTimestampTest {
    * @throws SQLException if a JDBC or database problem occurs.
    */
   @Test
-  public void testTimeInsertAndSelect() throws SQLException {
+  void timeInsertAndSelect() throws SQLException {
     final long now = System.currentTimeMillis();
     verifyInsertAndSelect(new PGTimestamp(now), true);
     verifyInsertAndSelect(new PGTimestamp(now), false);

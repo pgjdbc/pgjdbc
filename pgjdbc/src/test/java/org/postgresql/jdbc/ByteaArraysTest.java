@@ -5,13 +5,13 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.Oid;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Array;
 
@@ -39,14 +39,14 @@ public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
   @Override
   protected void assertArraysEquals(String message, byte[][] expected, Object actual) {
     final int expectedLength = Array.getLength(expected);
-    assertEquals(message + " size", expectedLength, Array.getLength(actual));
+    assertEquals(expectedLength, Array.getLength(actual), message + " size");
     for (int i = 0; i < expectedLength; i++) {
-      Assert.assertArrayEquals(message + " value at " + i, expected[i], (byte[]) Array.get(actual, i));
+      Assertions.assertArrayEquals(expected[i], (byte[]) Array.get(actual, i), message + " value at " + i);
     }
   }
 
   @Test
-  public void testObjectArrayWrapper() throws Exception {
+  void objectArrayWrapper() throws Exception {
     final Object[] array = new Object[]{new byte[]{0x1, 0x2, (byte) 0xFF, 0x4}, new byte[]{0x5, 0x6, 0x7, (byte) 0xFF}};
 
     final ArrayEncoding.ArrayEncoder<Object[]> copySupport = ArrayEncoding.getArrayEncoder(array);

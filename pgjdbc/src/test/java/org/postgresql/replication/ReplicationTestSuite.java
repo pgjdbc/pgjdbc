@@ -9,7 +9,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.AssumptionViolatedException;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -28,10 +28,10 @@ import java.sql.Statement;
     ReplicationConnectionTest.class,
     ReplicationSlotTest.class,
 })
-public class ReplicationTestSuite {
+class ReplicationTestSuite {
 
-  @BeforeClass
-  public static void setUp() throws Exception {
+  @BeforeAll
+  static void setUp() throws Exception {
     Connection connection = TestUtil.openDB();
     try {
       if (TestUtil.haveMinimumServerVersion(connection, ServerVersion.v9_0)) {

@@ -5,11 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
@@ -21,9 +21,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.PSQLState;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -42,7 +42,7 @@ import java.util.Locale;
 /**
  * @author kato@iki.fi
  */
-public class CopyTest {
+class CopyTest {
   private Connection con;
   private CopyManager copyAPI;
   private String copyParams;
@@ -63,8 +63,8 @@ public class CopyTest {
     return buf.toByteArray();
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
 
     TestUtil.createTempTable(con, "copytest", "stringvalue text, intvalue int, numvalue numeric(5,2)");
@@ -77,8 +77,8 @@ public class CopyTest {
     }
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(con);
 
     // one of the tests will render the existing connection broken,
@@ -101,7 +101,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInByRow() throws SQLException {
+  void copyInByRow() throws SQLException {
     String sql = "COPY copytest FROM STDIN";
     CopyIn cp = copyAPI.copyIn(sql);
     for (String anOrigData : origData) {
@@ -126,7 +126,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInAsOutputStream() throws SQLException, IOException {
+  void copyInAsOutputStream() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     OutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
     for (String anOrigData : origData) {
@@ -139,7 +139,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInAsOutputStreamClosesAfterEndCopy() throws SQLException, IOException {
+  void copyInAsOutputStreamClosesAfterEndCopy() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
     try {
@@ -157,7 +157,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInAsOutputStreamFailsOnFlushAfterEndCopy() throws SQLException, IOException {
+  void copyInAsOutputStreamFailsOnFlushAfterEndCopy() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     PGCopyOutputStream os = new PGCopyOutputStream((PGConnection) con, sql, 1000);
     try {
@@ -182,7 +182,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInFromInputStream() throws SQLException, IOException {
+  void copyInFromInputStream() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     copyAPI.copyIn(sql, new ByteArrayInputStream(getData(origData)), 3);
     int rowCount = getCount();
@@ -190,7 +190,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInFromStreamFail() throws SQLException {
+  void copyInFromStreamFail() throws SQLException {
     String sql = "COPY copytest FROM STDIN";
     try {
       copyAPI.copyIn(sql, new InputStream() {
@@ -208,7 +208,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInFromReader() throws SQLException, IOException {
+  void copyInFromReader() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     copyAPI.copyIn(sql, new StringReader(new String(getData(origData))), 3);
     int rowCount = getCount();
@@ -216,7 +216,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyInFromByteStreamWriter() throws SQLException, IOException {
+  void copyInFromByteStreamWriter() throws SQLException, IOException {
     String sql = "COPY copytest FROM STDIN";
     copyAPI.copyIn(sql, new ByteBufferByteStreamWriter(ByteBuffer.wrap(getData(origData))));
     int rowCount = getCount();
@@ -228,7 +228,7 @@ public class CopyTest {
    * write(byte[]) and the driver specific write(ByteStreamWriter) API interleaved.
    */
   @Test
-  public void testCopyMultiApi() throws SQLException, IOException {
+  void copyMultiApi() throws SQLException, IOException {
     TestUtil.execute(con, "CREATE TABLE pg_temp.copy_api_test (data text)");
     String sql = "COPY pg_temp.copy_api_test (data) FROM STDIN";
     PGCopyOutputStream out = new PGCopyOutputStream(copyAPI.copyIn(sql));
@@ -242,11 +242,11 @@ public class CopyTest {
       out.close();
     }
     String data = TestUtil.queryForString(con, "SELECT data FROM pg_temp.copy_api_test");
-    assertEquals("The writes to the COPY should be in order", "abcd", data);
+    assertEquals("abcd", data, "The writes to the COPY should be in order");
   }
 
   @Test
-  public void testSkipping() {
+  void skipping() {
     String sql = "COPY copytest FROM STDIN";
     String at = "init";
     int rowCount = -1;
@@ -274,8 +274,8 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyOutByRow() throws SQLException, IOException {
-    testCopyInByRow(); // ensure we have some data.
+  void copyOutByRow() throws SQLException, IOException {
+    copyInByRow(); // ensure we have some data.
     String sql = "COPY copytest TO STDOUT";
     CopyOut cp = copyAPI.copyOut(sql);
     int count = 0;
@@ -283,7 +283,7 @@ public class CopyTest {
     while ((buf = cp.readFromCopy()) != null) {
       count++;
     }
-    assertEquals(false, cp.isActive());
+    assertFalse(cp.isActive());
     assertEquals(dataRows, count);
 
     long rowCount = cp.getHandledRowCount();
@@ -294,8 +294,8 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyOut() throws SQLException, IOException {
-    testCopyInByRow(); // ensure we have some data.
+  void copyOut() throws SQLException, IOException {
+    copyInByRow(); // ensure we have some data.
     String sql = "COPY copytest TO STDOUT";
     ByteArrayOutputStream copydata = new ByteArrayOutputStream();
     copyAPI.copyOut(sql, copydata);
@@ -305,16 +305,15 @@ public class CopyTest {
     assertNotNull(copybytes);
     for (int i = 0, l = 0; i < origData.length; i++) {
       byte[] origBytes = origData[i].getBytes();
-      assertTrue("Copy is shorter than original", copybytes.length >= l + origBytes.length);
+      assertTrue(copybytes.length >= l + origBytes.length, "Copy is shorter than original");
       for (int j = 0; j < origBytes.length; j++, l++) {
-        assertEquals("content changed at byte#" + j + ": " + origBytes[j] + copybytes[l],
-            origBytes[j], copybytes[l]);
+        assertEquals(origBytes[j], copybytes[l], "content changed at byte#" + j + ": " + origBytes[j] + copybytes[l]);
       }
     }
   }
 
   @Test
-  public void testNonCopyOut() throws SQLException, IOException {
+  void nonCopyOut() throws SQLException, IOException {
     String sql = "SELECT 1";
     try {
       copyAPI.copyOut(sql, new ByteArrayOutputStream());
@@ -326,7 +325,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testNonCopyIn() throws SQLException, IOException {
+  void nonCopyIn() throws SQLException, IOException {
     String sql = "SELECT 1";
     try {
       copyAPI.copyIn(sql, new ByteArrayInputStream(new byte[0]));
@@ -338,7 +337,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testStatementCopyIn() throws SQLException {
+  void statementCopyIn() throws SQLException {
     Statement stmt = con.createStatement();
     try {
       stmt.execute("COPY copytest FROM STDIN");
@@ -351,8 +350,8 @@ public class CopyTest {
   }
 
   @Test
-  public void testStatementCopyOut() throws SQLException {
-    testCopyInByRow(); // ensure we have some data.
+  void statementCopyOut() throws SQLException {
+    copyInByRow(); // ensure we have some data.
 
     Statement stmt = con.createStatement();
     try {
@@ -366,8 +365,8 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyQuery() throws SQLException, IOException {
-    testCopyInByRow(); // ensure we have some data.
+  void copyQuery() throws SQLException, IOException {
+    copyInByRow(); // ensure we have some data.
 
     long count = copyAPI.copyOut("COPY (SELECT generate_series(1,1000)) TO STDOUT",
         new ByteArrayOutputStream());
@@ -375,15 +374,15 @@ public class CopyTest {
   }
 
   @Test
-  public void testCopyRollback() throws SQLException {
+  void copyRollback() throws SQLException {
     con.setAutoCommit(false);
-    testCopyInByRow();
+    copyInByRow();
     con.rollback();
     assertEquals(0, getCount());
   }
 
   @Test
-  public void testChangeDateStyle() throws SQLException {
+  void changeDateStyle() throws SQLException {
     try {
       con.setAutoCommit(false);
       con.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
@@ -414,7 +413,7 @@ public class CopyTest {
   }
 
   @Test
-  public void testLockReleaseOnCancelFailure() throws SQLException, InterruptedException {
+  void lockReleaseOnCancelFailure() throws SQLException, InterruptedException {
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       // pg_backend_pid() requires PostgreSQL 8.4+
       return;
@@ -450,7 +449,7 @@ public class CopyTest {
     }
 
     // Now we'll execute rollback on another thread so that if the
-    // deadlock _does_ occur the testcase doesn't just hange forever.
+    // deadlock _does_ occur the case doesn't just hange forever.
     Rollback rollback = new Rollback(con);
     rollback.start();
     rollback.join(1000);

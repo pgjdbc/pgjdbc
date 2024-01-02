@@ -5,7 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyManager;
@@ -13,9 +13,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -29,15 +29,15 @@ import java.util.Random;
 /**
  * @author amozhenin on 30.09.2015.
  */
-public class CopyLargeFileTest {
+class CopyLargeFileTest {
 
   private static final int FEED_COUNT = 10;
 
   private Connection con;
   private CopyManager copyAPI;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
 
     TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
@@ -69,8 +69,8 @@ public class CopyLargeFileTest {
     stmt.executeUpdate();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     try {
       TestUtil.dropTable(con, "pgjdbc_issue366_test_data");
       TestUtil.dropTable(con, "pgjdbc_issue366_test_glossary");
@@ -81,7 +81,7 @@ public class CopyLargeFileTest {
   }
 
   @Test
-  public void testFeedTableSeveralTimesTest() throws Throwable {
+  void feedTableSeveralTimesTest() throws Throwable {
     for (int i = 1; i <= FEED_COUNT; i++) {
       feedTableAndCheckTableFeedIsOk(con);
       cleanupTable(con);

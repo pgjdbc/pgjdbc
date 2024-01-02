@@ -7,20 +7,15 @@ package org.postgresql.core;
 
 import org.postgresql.util.PSQLException;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
 public class CommandCompleteParserNegativeTest {
-
-  @Parameterized.Parameter(0)
   public String input;
 
-  @Parameterized.Parameters(name = "input={0}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"SELECT 0_0 42"},
@@ -29,12 +24,14 @@ public class CommandCompleteParserNegativeTest {
     });
   }
 
-  @Test
-  public void run() throws PSQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "input={0}")
+  public void run(String input) throws PSQLException {
+    initCommandCompleteParserNegativeTest(input);
     CommandCompleteParser parser = new CommandCompleteParser();
     try {
       parser.parse(input);
-      Assert.fail("CommandCompleteParser should throw NumberFormatException for " + input);
+      Assertions.fail("CommandCompleteParser should throw NumberFormatException for " + input);
     } catch (PSQLException e) {
       Throwable cause = e.getCause();
       if (cause == null) {
@@ -45,5 +42,9 @@ public class CommandCompleteParserNegativeTest {
       }
       // NumerFormatException is expected
     }
+  }
+
+  public void initCommandCompleteParserNegativeTest(String input) {
+    this.input = input;
   }
 }

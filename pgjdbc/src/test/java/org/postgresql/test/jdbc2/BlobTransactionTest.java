@@ -5,14 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,12 +31,12 @@ import javax.sql.rowset.serial.SerialBlob;
  * Test that oid/lob are accessible in concurrent connection, in presence of the lo_manage trigger.
  * Require the lo module accessible in $libdir
  */
-public class BlobTransactionTest {
+class BlobTransactionTest {
   private Connection con;
   private Connection con2;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     con2 = TestUtil.openDB();
@@ -74,8 +74,8 @@ public class BlobTransactionTest {
     con2.setAutoCommit(false);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(con2);
 
     con.setAutoCommit(true);
@@ -118,7 +118,7 @@ public class BlobTransactionTest {
   }
 
   @Test
-  public void testConcurrentReplace() throws SQLException, IOException {
+  void concurrentReplace() throws SQLException, IOException {
     // Statement stmt = con.createStatement();
     // stmt.execute("INSERT INTO testblob(id,lo) VALUES ('1', lo_creat(-1))");
     // ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob");

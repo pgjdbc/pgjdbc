@@ -11,10 +11,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.Timeout;
 
 import java.io.InputStream;
@@ -40,8 +40,8 @@ public class ConnectionValidTest {
 
   private ConnectionBreaker connectionBreaker;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     final Properties shadowProperties = new Properties();
     shadowProperties.setProperty(TestUtil.SERVER_HOST_PORT_PROP,
         String.format("%s:%s", "localhost", LOCAL_SHADOW_PORT));
@@ -53,8 +53,8 @@ public class ConnectionValidTest {
     connection = TestUtil.openDB(shadowProperties);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     connectionBreaker.close();
     connection.close();
   }
@@ -64,7 +64,7 @@ public class ConnectionValidTest {
    * @throws Exception if a database exception occurs.
    */
   @Test
-  public void testIsValid() throws Exception {
+  void isValid() throws Exception {
     connectionBreaker.breakConnection();
     boolean result = connection.isValid(5);
 

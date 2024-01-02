@@ -8,9 +8,9 @@ package org.postgresql.test.ssl;
 import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -23,8 +23,8 @@ import java.sql.Statement;
 import java.util.Properties;
 
 public class SingleCertValidatingFactoryTest {
-  @BeforeClass
-  public static void setUp() {
+  @BeforeAll
+  static void setUp() {
     TestUtil.assumeSslTestsEnabled();
   }
 
@@ -79,13 +79,13 @@ public class SingleCertValidatingFactoryTest {
       // Basic SELECT test:
       ResultSet rs = stmt.executeQuery("SELECT 1");
       rs.next();
-      Assert.assertEquals(1, rs.getInt(1));
+      Assertions.assertEquals(1, rs.getInt(1));
       rs.close();
       // Verify SSL usage is as expected:
       rs = stmt.executeQuery("SELECT ssl_is_used()");
       rs.next();
       boolean sslActual = rs.getBoolean(1);
-      Assert.assertEquals(sslExpected, sslActual);
+      Assertions.assertEquals(sslExpected, sslActual);
       stmt.close();
     } catch (Exception e) {
       if (matchesExpected(e, expectedThrowable)) {
@@ -103,7 +103,7 @@ public class SingleCertValidatingFactoryTest {
     }
 
     if (expectedThrowable != null) {
-      Assert.fail("Expected exception " + expectedThrowable.getName() + " but it did not occur.");
+      Assertions.fail("Expected exception " + expectedThrowable.getName() + " but it did not occur.");
     }
   }
 
@@ -112,7 +112,7 @@ public class SingleCertValidatingFactoryTest {
    * it. This connection attempt should *fail* as the client should reject the server.
    */
   @Test
-  public void connectSSLWithValidationNoCert() throws SQLException {
+  void connectSSLWithValidationNoCert() throws SQLException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory");
@@ -131,7 +131,7 @@ public class SingleCertValidatingFactoryTest {
    * certificate does not match.</p>
    */
   @Test
-  public void connectSSLWithValidationWrongCert() throws SQLException, IOException {
+  void connectSSLWithValidationWrongCert() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -140,7 +140,7 @@ public class SingleCertValidatingFactoryTest {
   }
 
   @Test
-  public void fileCertInvalid() throws SQLException, IOException {
+  void fileCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -149,7 +149,7 @@ public class SingleCertValidatingFactoryTest {
   }
 
   @Test
-  public void stringCertInvalid() throws SQLException, IOException {
+  void stringCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -163,7 +163,7 @@ public class SingleCertValidatingFactoryTest {
    * certificate from a local file.
    */
   @Test
-  public void connectSSLWithValidationProperCertFile() throws SQLException, IOException {
+  void connectSSLWithValidationProperCertFile() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -177,7 +177,7 @@ public class SingleCertValidatingFactoryTest {
    * ----- ... etc").
    */
   @Test
-  public void connectSSLWithValidationProperCertString() throws SQLException, IOException {
+  void connectSSLWithValidationProperCertString() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -190,7 +190,7 @@ public class SingleCertValidatingFactoryTest {
    * shared certificate. The certificate is specified as a system property.
    */
   @Test
-  public void connectSSLWithValidationProperCertSysProp() throws SQLException, IOException {
+  void connectSSLWithValidationProperCertSysProp() throws SQLException, IOException {
     // System property name we're using for the SSL cert. This can be anything.
     String sysPropName = "org.postgresql.jdbc.test.sslcert";
 
@@ -218,7 +218,7 @@ public class SingleCertValidatingFactoryTest {
    * <p>Here's one way to do it: $ DATASOURCE_SSL_CERT=$(cat certdir/goodroot.crt) ant clean test</p>
    */
   @Test
-  public void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
+  void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
     String envVarName = "DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) == null) {
       System.out.println(
@@ -238,7 +238,7 @@ public class SingleCertValidatingFactoryTest {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  public void connectSSLWithValidationMissingSysProp() throws SQLException, IOException {
+  void connectSSLWithValidationMissingSysProp() throws SQLException, IOException {
     // System property name we're using for the SSL cert. This can be anything.
     String sysPropName = "org.postgresql.jdbc.test.sslcert";
 
@@ -261,7 +261,7 @@ public class SingleCertValidatingFactoryTest {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  public void connectSSLWithValidationMissingEnvVar() throws SQLException, IOException {
+  void connectSSLWithValidationMissingEnvVar() throws SQLException, IOException {
     // Use an environment variable that does *not* exist:
     String envVarName = "MISSING_DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) != null) {

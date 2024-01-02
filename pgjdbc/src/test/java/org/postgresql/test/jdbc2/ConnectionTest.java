@@ -5,12 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
@@ -19,9 +19,9 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -38,12 +38,12 @@ import java.util.Properties;
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
  * superclass.
  */
-public class ConnectionTest {
+class ConnectionTest {
   private Connection con;
 
   // Set up the fixture for this testcase: the tables for this test.
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
 
     TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
@@ -53,8 +53,8 @@ public class ConnectionTest {
   }
 
   // Tear down the fixture for this test case.
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(con);
 
     con = TestUtil.openDB();
@@ -69,7 +69,7 @@ public class ConnectionTest {
    * Tests the two forms of createStatement()
    */
   @Test
-  public void testCreateStatement() throws Exception {
+  void createStatement() throws Exception {
     con = TestUtil.openDB();
 
     // A standard Statement
@@ -87,7 +87,7 @@ public class ConnectionTest {
    * Tests the two forms of prepareStatement()
    */
   @Test
-  public void testPrepareStatement() throws Exception {
+  void prepareStatement() throws Exception {
     con = TestUtil.openDB();
 
     String sql = "select source,cost,imageid from test_c";
@@ -107,14 +107,14 @@ public class ConnectionTest {
    * Put the test for createPrepareCall here
    */
   @Test
-  public void testPrepareCall() {
+  void prepareCall() {
   }
 
   /*
    * Test nativeSQL
    */
   @Test
-  public void testNativeSQL() throws Exception {
+  void nativeSQL() throws Exception {
     // test a simple escape
     con = TestUtil.openDB();
     assertEquals("DATE '2005-01-24'", con.nativeSQL("{d '2005-01-24'}"));
@@ -124,14 +124,14 @@ public class ConnectionTest {
    * Test autoCommit (both get & set)
    */
   @Test
-  public void testTransactions() throws Exception {
+  void transactions() throws Exception {
     con = TestUtil.openDB();
     Statement st;
     ResultSet rs;
 
     // Turn it off
     con.setAutoCommit(false);
-    assertTrue(!con.getAutoCommit());
+    assertFalse(con.getAutoCommit());
 
     // Turn it back on
     con.setAutoCommit(true);
@@ -166,7 +166,7 @@ public class ConnectionTest {
    * Tests for session and transaction read only behavior with "always" read only mode.
    */
   @Test
-  public void testReadOnly_always() throws Exception {
+  void readOnly_always() throws Exception {
     final Properties props = new Properties();
     PGProperty.READ_ONLY_MODE.set(props, "always");
     con = TestUtil.openDB(props);
@@ -201,8 +201,7 @@ public class ConnectionTest {
       con.setReadOnly(false);
       fail("cannot set read only during transaction");
     } catch (SQLException e) {
-      assertEquals("Expecting <<cannot change transaction read-only>>",
-          PSQLState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState());
+      assertEquals(PSQLState.ACTIVE_SQL_TRANSACTION.getState(), e.getSQLState(), "Expecting <<cannot change transaction read-only>>");
     }
 
     // end the transaction
@@ -262,7 +261,7 @@ public class ConnectionTest {
    * Tests for session and transaction read only behavior with "ignore" read only mode.
    */
   @Test
-  public void testReadOnly_ignore() throws Exception {
+  void readOnly_ignore() throws Exception {
     final Properties props = new Properties();
     PGProperty.READ_ONLY_MODE.set(props, "ignore");
     con = TestUtil.openDB(props);
@@ -303,7 +302,7 @@ public class ConnectionTest {
    * Tests for session and transaction read only behavior with "transaction" read only mode.
    */
   @Test
-  public void testReadOnly_transaction() throws Exception {
+  void readOnly_transaction() throws Exception {
     final Properties props = new Properties();
     PGProperty.READ_ONLY_MODE.set(props, "transaction");
     con = TestUtil.openDB(props);
@@ -375,11 +374,11 @@ public class ConnectionTest {
    * Simple test to see if isClosed works.
    */
   @Test
-  public void testIsClosed() throws Exception {
+  void isClosed() throws Exception {
     con = TestUtil.openDB();
 
     // Should not say closed
-    assertTrue(!con.isClosed());
+    assertFalse(con.isClosed());
 
     TestUtil.closeDB(con);
 
@@ -391,7 +390,7 @@ public class ConnectionTest {
    * Test the warnings system
    */
   @Test
-  public void testWarnings() throws Exception {
+  void warnings() throws Exception {
     con = TestUtil.openDB();
 
     String testStr = "This Is OuR TeSt message";
@@ -421,7 +420,7 @@ public class ConnectionTest {
    * Transaction Isolation Levels
    */
   @Test
-  public void testTransactionIsolation() throws Exception {
+  void transactionIsolation() throws Exception {
     con = TestUtil.openDB();
 
     int defaultLevel = con.getTransactionIsolation();
@@ -485,7 +484,7 @@ public class ConnectionTest {
    * JDBC2 Type mappings
    */
   @Test
-  public void testTypeMaps() throws Exception {
+  void typeMaps() throws Exception {
     con = TestUtil.openDB();
 
     // preserve the current map
@@ -507,7 +506,7 @@ public class ConnectionTest {
    * Closing a Connection more than once is not an error.
    */
   @Test
-  public void testDoubleClose() throws Exception {
+  void doubleClose() throws Exception {
     con = TestUtil.openDB();
     con.close();
     con.close();
@@ -517,16 +516,16 @@ public class ConnectionTest {
    * Make sure that type map is empty and not null
    */
   @Test
-  public void testGetTypeMapEmpty() throws Exception {
+  void getTypeMapEmpty() throws Exception {
     con = TestUtil.openDB();
     Map typeMap = con.getTypeMap();
     assertNotNull(typeMap);
-    assertTrue("TypeMap should be empty", typeMap.isEmpty());
+    assertTrue(typeMap.isEmpty(), "TypeMap should be empty");
     con.close();
   }
 
   @Test
-  public void testPGStreamSettings() throws Exception {
+  void pGStreamSettings() throws Exception {
     con = TestUtil.openDB();
     QueryExecutor queryExecutor = ((PgConnection) con).getQueryExecutor();
 

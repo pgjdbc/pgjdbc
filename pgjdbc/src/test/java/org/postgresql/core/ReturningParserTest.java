@@ -5,31 +5,28 @@
 
 package org.postgresql.core;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class ReturningParserTest {
-  private final String columnName;
-  private final String returning;
-  private final String prefix;
-  private final String suffix;
+  private String columnName;
+  private String returning;
+  private String prefix;
+  private String suffix;
 
-  public ReturningParserTest(String columnName, String returning, String prefix, String suffix) {
+  public void initReturningParserTest(String columnName, String returning, String prefix, String suffix) {
     this.columnName = columnName;
     this.returning = returning;
     this.prefix = prefix;
     this.suffix = suffix;
   }
 
-  @Parameterized.Parameters(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
 
@@ -47,8 +44,10 @@ public class ReturningParserTest {
     return ids;
   }
 
-  @Test
-  public void test() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
+  public void test(String columnName, String returning, String prefix, String suffix) throws SQLException {
+    initReturningParserTest(columnName, returning, prefix, suffix);
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
@@ -59,9 +58,9 @@ public class ReturningParserTest {
         && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
         && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {
-      Assert.assertEquals("Wrong <returning_clause> detected in SQL " + query,
-          expectedReturning,
-          returningKeywordPresent);
+      Assertions.assertEquals(expectedReturning,
+          returningKeywordPresent,
+          "Wrong <returning_clause> detected in SQL " + query);
     }
   }
 

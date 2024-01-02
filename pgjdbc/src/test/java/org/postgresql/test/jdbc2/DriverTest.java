@@ -43,10 +43,10 @@ import java.util.Properties;
  *
  */
 @StubEnvironmentAndProperties
-public class DriverTest {
+class DriverTest {
 
   @Test
-  public void urlIsNotForPostgreSQL() throws SQLException {
+  void urlIsNotForPostgreSQL() throws SQLException {
     Driver driver = new Driver();
 
     assertNull(driver.connect("jdbc:otherdb:database", new Properties()));
@@ -57,7 +57,7 @@ public class DriverTest {
    * results in SQLException
    */
   @Test
-  public void urlIsNull() throws SQLException {
+  void urlIsNull() throws SQLException {
     Driver driver = new Driver();
 
     assertThrows(SQLException.class, () -> driver.connect(null, new Properties()));
@@ -67,7 +67,7 @@ public class DriverTest {
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
    */
   @Test
-  public void testAcceptsURL() throws Exception {
+  void acceptsURL() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
     // Load the driver (note clients should never do it this way!)
@@ -150,7 +150,7 @@ public class DriverTest {
    * Tests the connect method by connecting to the test database.
    */
   @Test
-  public void testConnect() throws Exception {
+  void connect() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
     // Test with the url, username & password
@@ -174,7 +174,7 @@ public class DriverTest {
    * Tests the connect method by connecting to the test database.
    */
   @Test
-  public void testConnectService() throws Exception {
+  void connectService() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPort = "65536";
 
@@ -263,7 +263,7 @@ public class DriverTest {
    * password from .pgpass (correct)
    */
   @Test
-  public void testConnectPassword01() throws Exception {
+  void connectPassword01() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
     // Create temporary .pgpass file
@@ -296,7 +296,7 @@ public class DriverTest {
    * password from service (correct) and .pgpass (wrong)
    */
   @Test
-  public void testConnectPassword02() throws Exception {
+  void connectPassword02() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -334,7 +334,7 @@ public class DriverTest {
    * password from java property (correct) and service (wrong) and .pgpass (wrong)
    */
   @Test
-  public void testConnectPassword03() throws Exception {
+  void connectPassword03() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -374,7 +374,7 @@ public class DriverTest {
    * password from URL parameter (correct) and java property (wrong) and service (wrong) and .pgpass (wrong)
    */
   @Test
-  public void testConnectPassword04() throws Exception {
+  void connectPassword04() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPassword = "random wrong";
 
@@ -416,7 +416,7 @@ public class DriverTest {
    * @throws Exception if something wrong happens
    */
   @Test
-  public void testConnectFailover() throws Exception {
+  void connectFailover() throws Exception {
     String url = "jdbc:postgresql://invalidhost.not.here," + TestUtil.getServer() + ":"
         + TestUtil.getPort() + "/" + TestUtil.getDatabase() + "?connectTimeout=5";
     Connection con = DriverManager.getConnection(url, TestUtil.getUser(), TestUtil.getPassword());
@@ -428,7 +428,7 @@ public class DriverTest {
    * Test that the readOnly property works.
    */
   @Test
-  public void testReadOnly() throws Exception {
+  void readOnly() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
 
     Connection con = DriverManager.getConnection(TestUtil.getURL() + "&readOnly=true",
@@ -451,7 +451,7 @@ public class DriverTest {
   }
 
   @Test
-  public void testRegistration() throws Exception {
+  void registration() throws Exception {
     TestUtil.initDriver();
 
     // Driver is initially registered because it is automatically done when class is loaded
@@ -493,7 +493,7 @@ public class DriverTest {
   }
 
   @Test
-  public void testSystemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
+  void systemErrIsNotClosedWhenCreatedMultipleConnections() throws Exception {
     TestUtil.initDriver();
     PrintStream err = System.err;
     PrintStream buffer = new PrintStream(new ByteArrayOutputStream());

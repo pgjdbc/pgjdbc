@@ -9,18 +9,18 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -31,12 +31,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DatabaseMetaDataTest {
+class DatabaseMetaDataTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.createTable(conn, "sercoltest", "a serial, b int");
@@ -52,8 +52,8 @@ public class DatabaseMetaDataTest {
     }
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropSequence(conn, "sercoltest_a_seq");
     TestUtil.dropTable(conn, "sercoltest");
     TestUtil.dropSchema(conn, "hasfunctions");
@@ -64,12 +64,12 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetClientInfoProperties() throws Exception {
+  void getClientInfoProperties() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getClientInfoProperties();
     if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
-      assertTrue(!rs.next());
+      assertFalse(rs.next());
       return;
     }
 
@@ -78,7 +78,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetColumnsForAutoIncrement() throws Exception {
+  void getColumnsForAutoIncrement() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
@@ -90,11 +90,11 @@ public class DatabaseMetaDataTest {
     assertEquals("b", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_AUTOINCREMENT"));
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
-  public void testGetSchemas() throws SQLException {
+  void getSchemas() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getSchemas("", "publ%");
@@ -102,60 +102,60 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNull(rs.getString("TABLE_CATALOG"));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
-  public void testGetFunctionsInSchemaForFunctions() throws SQLException {
+  void getFunctionsInSchemaForFunctions() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "")) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
-      assertEquals("There should be one function in the hasfunctions schema", list.size(), 1);
+      assertEquals(1, list.size(), "There should be one function in the hasfunctions schema");
       assertListContains("getFunctions('', 'hasfunctions', '') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
     try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "addfunction")) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
-      assertEquals("There should be one function in the hasfunctions schema with name addfunction", list.size(), 1);
+      assertEquals(1, list.size(), "There should be one function in the hasfunctions schema with name addfunction");
       assertListContains("getFunctions('', 'hasfunctions', 'addfunction') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
     try (ResultSet rs = dbmd.getFunctions("", "nofunctions", "")) {
       boolean hasFunctions = rs.next();
-      assertFalse("There should be no functions in the nofunctions schema", hasFunctions);
+      assertFalse(hasFunctions, "There should be no functions in the nofunctions schema");
     }
   }
 
   @Test
-  public void testGetFunctionsInSchemaForProcedures() throws SQLException {
+  void getFunctionsInSchemaForProcedures() throws SQLException {
     // Due to the introduction of actual stored procedures in PostgreSQL 11, getFunctions should not return procedures for PostgreSQL versions 11+
     // On older installation we do not create the procedures so the below schemas should all be empty
     DatabaseMetaData dbmd = conn.getMetaData();
 
     // Search for functions in schema "hasprocedures"
     try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", null)) {
-      assertFalse("The hasprocedures schema not return procedures from getFunctions", rs.next());
+      assertFalse(rs.next(), "The hasprocedures schema not return procedures from getFunctions");
     }
     // Search for functions in schema "noprocedures" (which should never expect records)
     try (ResultSet rs = dbmd.getFunctions("", "noprocedures", null)) {
-      assertFalse("The noprocedures schema should not have functions", rs.next());
+      assertFalse(rs.next(), "The noprocedures schema should not have functions");
     }
     // Search for functions by procedure name "addprocedure"
     try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", "addprocedure")) {
-      assertFalse("Should not return procedures from getFunctions by schema + name", rs.next());
+      assertFalse(rs.next(), "Should not return procedures from getFunctions by schema + name");
     }
   }
 
   @Test
-  public void testGetProceduresInSchemaForFunctions() throws SQLException {
+  void getProceduresInSchemaForFunctions() throws SQLException {
     // Due to the introduction of actual stored procedures in PostgreSQL 11, getProcedures should not return functions for PostgreSQL versions 11+
     DatabaseMetaData dbmd = conn.getMetaData();
 
     // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-        assertFalse("PostgreSQL11+ should not return functions from getProcedures", rs.next());
+        assertFalse(rs.next(), "PostgreSQL11+ should not return functions from getProcedures");
       } else {
         // PostgreSQL prior to 11 should return functions from getProcedures
         assertProcedureRS(rs);
@@ -164,13 +164,13 @@ public class DatabaseMetaDataTest {
 
     // Search for procedures in schema "nofunctions" (which should never expect records)
     try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
-      assertFalse("getProcedures(...) should not return procedures for schema nofunctions", rs.next());
+      assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions");
     }
 
     // Search for procedures by function name "addfunction" within schema "hasfunctions" (which should expect a record for PostgreSQL < 11)
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", "addfunction")) {
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-        assertFalse("PostgreSQL11+ should not return functions from getProcedures", rs.next());
+        assertFalse(rs.next(), "PostgreSQL11+ should not return functions from getProcedures");
       } else {
         // PostgreSQL prior to 11 should return functions from getProcedures
         assertProcedureRS(rs);
@@ -179,37 +179,37 @@ public class DatabaseMetaDataTest {
 
     // Search for procedures by function name "addfunction" within schema "nofunctions"  (which should never expect records)
     try (ResultSet rs = dbmd.getProcedures("", "nofunctions", "addfunction")) {
-      assertFalse("getProcedures(...) should not return procedures for schema nofunctions + addfunction", rs.next());
+      assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions + addfunction");
     }
   }
 
   @Test
-  public void testGetProceduresInSchemaForProcedures() throws SQLException {
+  void getProceduresInSchemaForProcedures() throws SQLException {
     // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
-    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
 
     DatabaseMetaData dbmd = conn.getMetaData();
 
     try (ResultSet rs = dbmd.getProcedures("", "hasprocedures", null)) {
       int count = assertProcedureRS(rs);
-      assertTrue("getProcedures() should be non-empty for the hasprocedures schema", count == 1);
+      assertEquals(1, count, "getProcedures() should be non-empty for the hasprocedures schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "noprocedures", null)) {
-      assertFalse("getProcedures() should be empty for the hasprocedures schema", rs.next());
+      assertFalse(rs.next(), "getProcedures() should be empty for the hasprocedures schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
-      assertFalse("getProcedures() should be empty for the nofunctions schema", rs.next());
+      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
-      assertFalse("getProcedures() should be empty for the nofunctions schema", rs.next());
+      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
     }
   }
 
   @Test
-  public void testGetFunctionsWithBlankPatterns() throws SQLException {
+  void getFunctionsWithBlankPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -394,11 +394,11 @@ public class DatabaseMetaDataTest {
 
   private void assertListContains(String message, List<CatalogObject> list, String schema, String name) throws SQLException {
     boolean found = list.stream().anyMatch(item -> item.schema.equals(schema) && item.name.equals(name));
-    assertTrue(message + "; schema=" + schema + " name=" + name, found);
+    assertTrue(found, message + "; schema=" + schema + " name=" + name);
   }
 
   @Test
-  public void testGetFunctionsWithSpecificTypes() throws SQLException {
+  void getFunctionsWithSpecificTypes() throws SQLException {
     // These function creation are borrow from jdbc2/DatabaseMetaDataTest
     // We modify to ensure new function created are returned by getFunctions()
 
@@ -462,7 +462,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testSortedDataTypes() throws SQLException {
+  void sortedDataTypes() throws SQLException {
     // https://github.com/pgjdbc/pgjdbc/issues/716
     DatabaseMetaData dbmd = conn.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
@@ -475,7 +475,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetSqlTypes() throws SQLException {
+  void getSqlTypes() throws SQLException {
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v10)) {
       try (Connection privileged = TestUtil.openPrivilegedDB()) {
         try (Statement stmt = privileged.createStatement()) {

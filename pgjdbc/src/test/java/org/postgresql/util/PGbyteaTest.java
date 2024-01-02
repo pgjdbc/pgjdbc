@@ -5,14 +5,14 @@
 
 package org.postgresql.util;
 
-import static org.junit.Assert.assertArrayEquals;
-
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.sql.SQLException;
+
+import org.junit.jupiter.api.Test;
 import java.util.Random;
 
-public class PGbyteaTest {
+class PGbyteaTest {
 
   private static final byte[] HEX_DIGITS_U = new byte[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
       'C', 'D', 'E', 'F'};
@@ -20,7 +20,7 @@ public class PGbyteaTest {
       'c', 'd', 'e', 'f'};
 
   @Test
-  public void testHexDecode_lower() throws SQLException {
+  void hexDecode_lower() throws SQLException {
     final byte[] data = new byte[1023];
     new Random(7).nextBytes(data);
     final byte[] encoded = hexEncode(data, HEX_DIGITS_L);
@@ -29,7 +29,7 @@ public class PGbyteaTest {
   }
 
   @Test
-  public void testHexDecode_upper() throws SQLException {
+  void hexDecode_upper() throws SQLException {
     final byte[] data = new byte[9513];
     new Random(-8).nextBytes(data);
     final byte[] encoded = hexEncode(data, HEX_DIGITS_U);
