@@ -15,17 +15,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class LibPQFactoryHostNameTest {
-
-  private String hostname;
-  private String pattern;
-  private boolean expected;
-
-  public void initLibPQFactoryHostNameTest(String hostname, String pattern, boolean expected) {
-    this.hostname = hostname;
-    this.pattern = pattern;
-    this.expected = expected;
-  }
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"host.com", "pattern.com", false},
@@ -52,7 +41,6 @@ public class LibPQFactoryHostNameTest {
   @MethodSource("data")
   @ParameterizedTest(name = "host={0}, pattern={1}")
   public void checkPattern(String hostname, String pattern, boolean expected) throws Exception {
-    initLibPQFactoryHostNameTest(hostname, pattern, expected);
     Assertions.assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
 
     Assertions.assertEquals(expected, PGjdbcHostnameVerifier.INSTANCE.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);

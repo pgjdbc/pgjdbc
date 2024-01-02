@@ -17,9 +17,6 @@ import java.util.List;
 public class UTF8EncodingTest {
 
   private static final int STEP = 8 * 1024;
-  public Encoding encoding;
-  public String string;
-  public String shortString;
 
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
@@ -83,14 +80,7 @@ public class UTF8EncodingTest {
   @MethodSource("data")
   @ParameterizedTest(name = "string={2}, encoding={0}")
   public void test(Encoding encoding, String string, String shortString) throws Exception {
-    initUTF8EncodingTest(encoding, string, shortString);
     final byte[] encoded = encoding.encode(string);
     assertEquals(string, encoding.decode(encoded));
-  }
-
-  public void initUTF8EncodingTest(Encoding encoding, String string, String shortString) {
-    this.encoding = encoding;
-    this.string = string;
-    this.shortString = shortString;
   }
 }

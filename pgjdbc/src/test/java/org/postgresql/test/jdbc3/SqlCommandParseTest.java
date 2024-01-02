@@ -20,9 +20,6 @@ import java.util.Arrays;
 import java.util.List;
 
 public class SqlCommandParseTest {
-  public SqlCommandType type;
-  public String sql;
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {SqlCommandType.INSERT, "insert/**/ into table(select) values(1)"},
@@ -43,15 +40,9 @@ public class SqlCommandParseTest {
   @MethodSource("data")
   @ParameterizedTest(name = "expected={0}, sql={1}")
   public void run(SqlCommandType type, String sql) throws SQLException {
-    initSqlCommandParseTest(type, sql);
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql(sql, true, true, false, true, true);
     NativeQuery query = queries.get(0);
     assertEquals(type, query.command.getType(), sql);
-  }
-
-  public void initSqlCommandParseTest(SqlCommandType type, String sql) {
-    this.type = type;
-    this.sql = sql;
   }
 }

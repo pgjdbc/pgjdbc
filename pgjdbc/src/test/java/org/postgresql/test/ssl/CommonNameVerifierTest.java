@@ -14,17 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class CommonNameVerifierTest {
-
-  private String a;
-  private String b;
-  private int expected;
-
-  public void initCommonNameVerifierTest(String a, String b, int expected) {
-    this.a = a;
-    this.b = b;
-    this.expected = expected;
-  }
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"com", "host.com", -1},
@@ -40,7 +29,6 @@ public class CommonNameVerifierTest {
   @MethodSource("data")
   @ParameterizedTest(name = "a={0}, b={1}")
   public void comparePatterns(String a, String b, int expected) throws Exception {
-    initCommonNameVerifierTest(a, b, expected);
     Assertions.assertEquals(expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b), a + " vs " + b);
 
     Assertions.assertEquals(-expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(b, a), b + " vs " + a);

@@ -15,17 +15,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class ServerVersionParseTest {
-
-  private String versionString;
-  private int versionNum;
-  private String rejectReason;
-
-  public void initServerVersionParseTest(String versionString, int versionNum, String rejectReason) {
-    this.versionString = versionString;
-    this.versionNum = versionNum;
-    this.rejectReason = rejectReason;
-  }
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         /* 4 part version tests */
@@ -81,7 +70,6 @@ public class ServerVersionParseTest {
   @MethodSource("data")
   @ParameterizedTest(name = "str = {0}, expected = {1}")
   public void run(String versionString, int versionNum, String rejectReason) {
-    initServerVersionParseTest(versionString, versionNum, rejectReason);
     try {
       Version version = ServerVersion.from(versionString);
       if (rejectReason == null) {

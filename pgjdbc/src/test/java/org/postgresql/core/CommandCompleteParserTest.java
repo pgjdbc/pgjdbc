@@ -14,10 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class CommandCompleteParserTest {
-  public String input;
-  public long oid;
-  public long rows;
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"SELECT 0", 0, 0},
@@ -43,17 +39,10 @@ public class CommandCompleteParserTest {
   @MethodSource("data")
   @ParameterizedTest(name = "input={0}, oid={1}, rows={2}")
   public void run(String input, long oid, long rows) throws PSQLException {
-    initCommandCompleteParserTest(input, oid, rows);
     CommandCompleteParser expected = new CommandCompleteParser();
     CommandCompleteParser actual = new CommandCompleteParser();
     expected.set(oid, rows);
     actual.parse(input);
     Assertions.assertEquals(expected, actual, input);
-  }
-
-  public void initCommandCompleteParserTest(String input, long oid, long rows) {
-    this.input = input;
-    this.oid = oid;
-    this.rows = rows;
   }
 }

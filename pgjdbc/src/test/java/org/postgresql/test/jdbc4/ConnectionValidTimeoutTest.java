@@ -12,24 +12,16 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
-import org.junit.Rule;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.rules.Timeout;
 
 import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
 @HaveMinimalServerVersion("9.4")
 public class ConnectionValidTimeoutTest {
-
-  @Rule
-  public Timeout timeout = new Timeout(30, TimeUnit.SECONDS);
-  public int networkTimeoutMillis;
-  public int validationTimeoutSeconds;
-  public int expectedMaxValidationTimeMillis;
 
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
@@ -42,8 +34,8 @@ public class ConnectionValidTimeoutTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "networkTimeoutMillis={0}, validationTimeoutSeconds={1}, expectedMaxValidationTimeMillis={2}")
+  @Timeout(value = 30)
   public void isValidRespectsSmallerTimeout(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) throws Exception {
-    initConnectionValidTimeoutTest(networkTimeoutMillis, validationTimeoutSeconds, expectedMaxValidationTimeMillis);
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       final Properties props = new Properties();
       props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
@@ -73,11 +65,5 @@ public class ConnectionValidTimeoutTest {
         );
       }
     }
-  }
-
-  public void initConnectionValidTimeoutTest(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) {
-    this.networkTimeoutMillis = networkTimeoutMillis;
-    this.validationTimeoutSeconds = validationTimeoutSeconds;
-    this.expectedMaxValidationTimeMillis = expectedMaxValidationTimeMillis;
   }
 }

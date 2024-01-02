@@ -15,18 +15,6 @@ import java.util.Collection;
 import java.util.List;
 
 public class ReturningParserTest {
-  private String columnName;
-  private String returning;
-  private String prefix;
-  private String suffix;
-
-  public void initReturningParserTest(String columnName, String returning, String prefix, String suffix) {
-    this.columnName = columnName;
-    this.returning = returning;
-    this.prefix = prefix;
-    this.suffix = suffix;
-  }
-
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
 
@@ -47,14 +35,13 @@ public class ReturningParserTest {
   @MethodSource("data")
   @ParameterizedTest(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public void test(String columnName, String returning, String prefix, String suffix) throws SQLException {
-    initReturningParserTest(columnName, returning, prefix, suffix);
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
-    boolean expectedReturning = "returning".equalsIgnoreCase(this.returning)
+    boolean expectedReturning = "returning".equalsIgnoreCase(returning)
         && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
         && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {

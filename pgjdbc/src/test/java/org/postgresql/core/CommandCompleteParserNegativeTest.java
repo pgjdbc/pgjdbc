@@ -14,8 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class CommandCompleteParserNegativeTest {
-  public String input;
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"SELECT 0_0 42"},
@@ -27,7 +25,6 @@ public class CommandCompleteParserNegativeTest {
   @MethodSource("data")
   @ParameterizedTest(name = "input={0}")
   public void run(String input) throws PSQLException {
-    initCommandCompleteParserNegativeTest(input);
     CommandCompleteParser parser = new CommandCompleteParser();
     try {
       parser.parse(input);
@@ -42,9 +39,5 @@ public class CommandCompleteParserNegativeTest {
       }
       // NumerFormatException is expected
     }
-  }
-
-  public void initCommandCompleteParserNegativeTest(String input) {
-    this.input = input;
   }
 }

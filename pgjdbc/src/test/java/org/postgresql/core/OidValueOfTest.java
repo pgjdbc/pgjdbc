@@ -14,9 +14,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.util.Arrays;
 
 public class OidValueOfTest {
-  public int expected;
-  public String value;
-
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {25, "TEXT"},
@@ -29,12 +26,6 @@ public class OidValueOfTest {
   @MethodSource("data")
   @ParameterizedTest(name = "expected={0}, value={1}")
   public void run(int expected, String value) throws PSQLException {
-    initOidValueOfTest(expected, value);
     Assertions.assertEquals(expected, Oid.valueOf(value));
-  }
-
-  public void initOidValueOfTest(int expected, String value) {
-    this.expected = expected;
-    this.value = value;
   }
 }

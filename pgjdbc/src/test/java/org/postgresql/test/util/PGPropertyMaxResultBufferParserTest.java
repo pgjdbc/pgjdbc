@@ -20,9 +20,6 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class PGPropertyMaxResultBufferParserTest {
-  public String valueToParse;
-  public long expectedResult;
-
   public static Collection<Object[]> data() {
     Object[][] data = new Object[][]{
       {"100", 100L},
@@ -46,7 +43,6 @@ public class PGPropertyMaxResultBufferParserTest {
   @MethodSource("data")
   @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
   public void getMaxResultBufferValue(String valueToParse, long expectedResult) {
-    initPGPropertyMaxResultBufferParserTest(valueToParse, expectedResult);
     Assertions.assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
       Assertions.assertEquals(expectedResult, result);
@@ -56,16 +52,9 @@ public class PGPropertyMaxResultBufferParserTest {
   @MethodSource("data")
   @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
   public void getMaxResultBufferValueException(String valueToParse, long expectedResult) throws PSQLException {
-    initPGPropertyMaxResultBufferParserTest(valueToParse, expectedResult);
     assertThrows(PSQLException.class, () -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty("abc");
       fail();
     });
   }
-
-  public void initPGPropertyMaxResultBufferParserTest(String valueToParse, long expectedResult) {
-    this.valueToParse = valueToParse;
-    this.expectedResult = expectedResult;
-  }
-
 }
