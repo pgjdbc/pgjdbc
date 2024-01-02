@@ -202,7 +202,7 @@ class SchemaTest {
 
   @Test
   void searchPathPreparedStatementAutoCommitTrue() throws SQLException {
-    searchPathPreparedStatementAutoCommitTrue();
+    searchPathPreparedStatement();
   }
 
   @Test

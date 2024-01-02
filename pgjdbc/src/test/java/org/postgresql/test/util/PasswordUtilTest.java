@@ -5,7 +5,11 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.Utils;
@@ -15,9 +19,8 @@ import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 import org.postgresql.util.PasswordUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Assert;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.security.SecureRandom;
 import java.sql.Connection;
@@ -41,7 +44,7 @@ public class PasswordUtilTest {
     props.setProperty("password", password);
     try (Connection conn = TestUtil.openDB(props)) {
       String actualUser = TestUtil.queryForString(conn, "SELECT USER");
-      Assert.assertEquals("User should match", user, actualUser);
+      assertEquals(user, actualUser, "User should match");
     } catch (SQLException e) {
       throw new RuntimeException("Failed to authenticate using supplied user and password", e);
     }
@@ -51,17 +54,17 @@ public class PasswordUtilTest {
     Properties props = new Properties();
     props.setProperty("user", user);
     props.setProperty("password", password);
-    Assert.assertThrows("User should not be able to authenticate", SQLException.class, () -> {
+    assertThrows(SQLException.class, () -> {
       try (Connection conn = TestUtil.openDB(props)) {
         conn.getSchema(); // Do something with conn to appease checkstyle
       }
-    });
+    }, "User should not be able to authenticate");
   }
 
   private void assertWiped(char[] passwordChars) {
     char[] expected = Arrays.copyOf(passwordChars, passwordChars.length);
     Arrays.fill(passwordChars, (char) 0);
-    assertArrayEquals("password array should be all zeros after use", expected, passwordChars);
+    assertArrayEquals(expected, passwordChars, "password array should be all zeros after use");
   }
 
   private void testUserPassword(@Nullable String encryptionType, String username, String password,
@@ -75,7 +78,7 @@ public class PasswordUtilTest {
 
       String shadowPass = TestUtil.queryForString(superConn, //
           "SELECT passwd FROM pg_shadow WHERE usename = ?", username);
-      Assert.assertEquals("pg_shadow value of password must match encoded", shadowPass, encodedPassword);
+      assertEquals(shadowPass, encodedPassword, "pg_shadow value of password must match encoded");
 
       // We should be able to log in using our new user:
       assertValidUsernamePassword(username, password);
@@ -87,7 +90,7 @@ public class PasswordUtilTest {
       PGConnection pgConn = superConn.unwrap(PGConnection.class);
       char[] newPasswordChars = newPassword.toCharArray();
       pgConn.alterUserPassword(username, newPasswordChars, encryptionType);
-      Assert.assertNotEquals("newPassword char[] array should be wiped and not match original after encoding", newPassword, String.valueOf(newPasswordChars));
+      assertNotEquals(newPassword, String.valueOf(newPasswordChars), "newPassword char[] array should be wiped and not match original after encoding");
       assertWiped(newPasswordChars);
 
       // We should be able to log in using our new password
@@ -107,7 +110,7 @@ public class PasswordUtilTest {
     String encodedPassword = PasswordUtil.encodePassword(
         username, passwordChars,
         encryptionType == null ? "md5" : encryptionType);
-    Assert.assertNotEquals("password char[] array should be wiped and not match original password after encoding", password, String.valueOf(passwordChars));
+    assertNotEquals(password, String.valueOf(passwordChars), "password char[] array should be wiped and not match original password after encoding");
     assertWiped(passwordChars);
     testUserPassword(encryptionType, username, password, encodedPassword);
   }
@@ -126,7 +129,7 @@ public class PasswordUtilTest {
   }
 
   @Test
-  public void encodePasswordWithServersPasswordEncryption() throws SQLException {
+  void encodePasswordWithServersPasswordEncryption() throws SQLException {
     String encryptionType;
     try (Connection conn = TestUtil.openPrivilegedDB()) {
       encryptionType = TestUtil.queryForString(conn, "SHOW password_encryption");
@@ -135,50 +138,50 @@ public class PasswordUtilTest {
   }
 
   @Test
-  public void alterUserPasswordSupportsNullEncoding() throws SQLException {
+  void alterUserPasswordSupportsNullEncoding() throws SQLException {
     testUserPassword(null);
   }
 
   @Test
-  public void testMD5() throws SQLException {
+  void mD5() throws SQLException {
     testUserPassword("md5");
   }
 
   @Test
-  public void testEncryptionTypeValueOfOn() throws SQLException {
+  void encryptionTypeValueOfOn() throws SQLException {
     testUserPassword("on");
   }
 
   @Test
-  public void testEncryptionTypeValueOfOff() throws SQLException {
+  void encryptionTypeValueOfOff() throws SQLException {
     testUserPassword("off");
   }
 
   @Test
   @HaveMinimalServerVersion("10.0")
-  public void testScramSha256() throws SQLException {
+  void scramSha256() throws SQLException {
     testUserPassword("scram-sha-256");
   }
 
   @Test
   @HaveMinimalServerVersion("10.0")
-  public void testCustomScramParams() throws SQLException {
+  void customScramParams() throws SQLException {
     String username = "test_password_" + randomSuffix();
     String password = "t0pSecret" + randomSuffix();
     byte[] salt = new byte[32];
     rng.nextBytes(salt);
     int iterations = 12345;
     String encodedPassword = PasswordUtil.encodeScramSha256(password.toCharArray(), iterations, salt);
-    Assert.assertTrue("encoded password should have custom iteration count", encodedPassword.startsWith("SCRAM-SHA-256$" + iterations + ":"));
+    assertTrue(encodedPassword.startsWith("SCRAM-SHA-256$" + iterations + ":"), "encoded password should have custom iteration count");
     testUserPassword("scram-sha-256", username, password, encodedPassword);
   }
 
   @Test
-  public void testUnknownEncryptionType() throws SQLException {
+  void unknownEncryptionType() throws SQLException {
     String username = "test_password_" + randomSuffix();
     String password = "t0pSecret" + randomSuffix();
     char[] passwordChars = password.toCharArray();
-    Assert.assertThrows(SQLException.class, () -> {
+    assertThrows(SQLException.class, () -> {
       PasswordUtil.encodePassword(username, passwordChars, "not-a-real-encryption-type");
     });
     assertWiped(passwordChars);
