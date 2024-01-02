@@ -52,8 +52,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   protected final PgConnection connection; // The connection association
 
-  private int nameDataLength = 0; // length for name datatype
-  private int indexMaxKeys = 0; // maximum number of keys in an index.
+  private int nameDataLength; // length for name datatype
+  private int indexMaxKeys; // maximum number of keys in an index.
 
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
@@ -977,15 +977,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // PostgreSQL returns the value in lower case, so using "toLowerCase" here would be
       // slightly more efficient.
       switch (level.toLowerCase(Locale.ROOT)) {
-        case "read committed":
-        default: // Best guess.
-          return Connection.TRANSACTION_READ_COMMITTED;
         case "read uncommitted":
           return Connection.TRANSACTION_READ_UNCOMMITTED;
         case "repeatable read":
           return Connection.TRANSACTION_REPEATABLE_READ;
         case "serializable":
           return Connection.TRANSACTION_SERIALIZABLE;
+        case "read committed":
+        default: // Best guess.
+          return Connection.TRANSACTION_READ_COMMITTED;
       }
     }
   }
@@ -1221,11 +1221,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         }
 
         int columnMode = DatabaseMetaData.procedureColumnIn;
-        if (argModes != null && argModes[i].equals("o")) {
+        if (argModes != null && "o".equals(argModes[i])) {
           columnMode = DatabaseMetaData.procedureColumnOut;
-        } else if (argModes != null && argModes[i].equals("b")) {
+        } else if (argModes != null && "b".equals(argModes[i])) {
           columnMode = DatabaseMetaData.procedureColumnInOut;
-        } else if (argModes != null && argModes[i].equals("t")) {
+        } else if (argModes != null && "t".equals(argModes[i])) {
           columnMode = DatabaseMetaData.procedureColumnReturn;
         }
 
@@ -1374,7 +1374,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     String sql = select + orderby;
 
-    return ((PgResultSet)createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
+    return ((PgResultSet) createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
   }
 
   private static final Map<String, Map<String, String>> tableTypeClauses;
@@ -2470,7 +2470,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[11] = bf; // false - it isn't autoincrement
       tuple[13] = bZero; // min scale is zero
       // only numeric can supports a scale.
-      tuple[14] = (typeOid == Oid.NUMERIC) ? connection.encodeString("1000") : bZero;
+      tuple[14] = typeOid == Oid.NUMERIC ? connection.encodeString("1000") : bZero;
 
       // 12 - LOCAL_TYPE_NAME is null
       // 15 & 16 are unused so we return null
@@ -2507,7 +2507,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       public int compare(Tuple o1, Tuple o2) {
         int i1 = ByteConverter.bytesToInt(castNonNull(o1.get(18)));
         int i2 = ByteConverter.bytesToInt(castNonNull(o2.get(18)));
-        return (i1 < i2) ? -1 : ((i1 == i2) ? 0 : 1);
+        return i1 < i2 ? -1 : (i1 == i2 ? 0 : 1);
       }
     });
     return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
@@ -2636,7 +2636,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
 
-    return ((PgResultSet)createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
+    return ((PgResultSet) createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
   }
 
   // ** JDBC 2 Extensions **
@@ -3024,11 +3024,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
         int columnMode = DatabaseMetaData.functionColumnIn;
         if (argModes != null && argModes[i] != null) {
-          if (argModes[i].equals("o")) {
+          if ("o".equals(argModes[i])) {
             columnMode = DatabaseMetaData.functionColumnOut;
-          } else if (argModes[i].equals("b")) {
+          } else if ("b".equals(argModes[i])) {
             columnMode = DatabaseMetaData.functionColumnInOut;
-          } else if (argModes[i].equals("t")) {
+          } else if ("t".equals(argModes[i])) {
             columnMode = DatabaseMetaData.functionReturn;
           }
         }

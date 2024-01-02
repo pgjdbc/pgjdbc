@@ -195,7 +195,7 @@ public class InsertBatch {
   public void insertCopy(Blackhole b) throws SQLException, IOException {
     CopyManager copyAPI = ((PGConnection) connection).getCopyAPI();
     CharArrayWriter wr = new CharArrayWriter();
-    for (int i = 0; i < p1nrows;) {
+    for (int i = 0; i < p1nrows; ) {
       CopyIn copyIn = copyAPI.copyIn("COPY batch_perf_test FROM STDIN");
       wr.reset();
       for (int k = 0; k < p2multi; k++, i++) {

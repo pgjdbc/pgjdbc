@@ -528,11 +528,11 @@ public class ConnectionTest {
   @Test
   public void testPGStreamSettings() throws Exception {
     con = TestUtil.openDB();
-    QueryExecutor queryExecutor = ((PgConnection)con).getQueryExecutor();
+    QueryExecutor queryExecutor = ((PgConnection) con).getQueryExecutor();
 
     Field f = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
     f.setAccessible(true);
-    PGStream pgStream = (PGStream)f.get(queryExecutor);
+    PGStream pgStream = (PGStream) f.get(queryExecutor);
     pgStream.setNetworkTimeout(1000);
     pgStream.getSocket().setKeepAlive(true);
     pgStream.getSocket().setSendBufferSize(8192);

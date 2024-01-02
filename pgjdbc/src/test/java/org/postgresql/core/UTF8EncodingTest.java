@@ -31,7 +31,7 @@ public class UTF8EncodingTest {
   @Parameterized.Parameters(name = "string={2}, encoding={0}")
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
-    for (int i = 0; i < 185000; ++i) {
+    for (int i = 0; i < 185000; i++) {
       reallyLongString.append(i);
     }
 
@@ -49,7 +49,7 @@ public class UTF8EncodingTest {
     for (int i = 1; i < 0xd800; i += STEP) {
       int count = (i + STEP) > 0xd800 ? 0xd800 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -59,7 +59,7 @@ public class UTF8EncodingTest {
     for (int i = 0xe000; i < 0x10000; i += STEP) {
       int count = (i + STEP) > 0x10000 ? 0x10000 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -69,7 +69,7 @@ public class UTF8EncodingTest {
     for (int i = 0x10000; i < 0x110000; i += STEP) {
       int count = (i + STEP) > 0x110000 ? 0x110000 - i : STEP;
       char[] testChars = new char[count * 2];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j * 2] = (char) (0xd800 + ((i + j - 0x10000) >> 10));
         testChars[j * 2 + 1] = (char) (0xdc00 + ((i + j - 0x10000) & 0x3ff));
       }
@@ -83,7 +83,7 @@ public class UTF8EncodingTest {
       if (shortString != null && shortString.length() > 1000) {
         shortString = shortString.substring(0, 100) + "...(" + string.length() + " chars)";
       }
-      data.add(new Object[] { Encoding.getDatabaseEncoding("UNICODE"), string, shortString });
+      data.add(new Object[]{Encoding.getDatabaseEncoding("UNICODE"), string, shortString});
     }
     return data;
   }

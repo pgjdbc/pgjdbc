@@ -53,7 +53,7 @@ public class PKCS12KeyTest {
     String invalidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
     Assert.assertNull(invalidKeyType);
 
-    String containsValidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC","RSA"}, issuers, null);
+    String containsValidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
     Assert.assertNotNull(containsValidKeyType);
 
     String ignoresBlank = pkcs12KeyManager.chooseClientAlias(new String[]{}, issuers, null);

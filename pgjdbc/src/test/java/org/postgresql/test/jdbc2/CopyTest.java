@@ -47,12 +47,12 @@ public class CopyTest {
   private CopyManager copyAPI;
   private String copyParams;
   // 0's required to match DB output for numeric(5,2)
-  private String[] origData =
+  private final String[] origData =
       {"First Row\t1\t1.10\n",
           "Second Row\t2\t-22.20\n",
           "\\N\t\\N\t\\N\n",
           "\t4\t444.40\n"};
-  private int dataRows = origData.length;
+  private final int dataRows = origData.length;
 
   private byte[] getData(String[] origData) {
     ByteArrayOutputStream buf = new ByteArrayOutputStream();

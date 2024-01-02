@@ -264,7 +264,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
+                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException | IOException ee) {
@@ -543,11 +543,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
-          if ( gssEncMode == GSSEncMode.PREFER) {
+          if (gssEncMode == GSSEncMode.PREFER) {
             // we have to reconnect to continue
             return new PGStream(pgStream, connectTimeout);
           }
         }
+        // fallthrough
 
       default:
         throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
@@ -630,7 +631,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
-      for (int i = 0; i < params.size(); ++i) {
+      for (int i = 0; i < params.size(); i++) {
         if (i != 0) {
           details.append(", ");
         }
@@ -642,7 +643,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Precalculate message length and encode params.
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
-    for (int i = 0; i < params.size(); ++i) {
+    for (int i = 0; i < params.size(); i++) {
       encodedParams[i * 2] = params.get(i).getEncodedKey();
       encodedParams[i * 2 + 1] = params.get(i).getEncodedValue();
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
@@ -970,6 +971,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
     Tuple nonNullResults = castNonNull(results);
     String queriedTransactionReadonly = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
-    return queriedTransactionReadonly.equalsIgnoreCase("off");
+    return "off".equalsIgnoreCase(queriedTransactionReadonly);
   }
 }

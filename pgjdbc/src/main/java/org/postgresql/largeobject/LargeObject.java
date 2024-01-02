@@ -69,7 +69,7 @@ public class LargeObject
 
   private @Nullable BlobOutputStream os; // The current output stream
 
-  private boolean closed = false; // true when we are closed
+  private boolean closed; // true when we are closed
 
   private @Nullable BaseConnection conn; // Only initialized when open a LOB with CommitOnClose
   private final boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose

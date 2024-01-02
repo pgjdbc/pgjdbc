@@ -28,7 +28,7 @@ public class ObjectFactoryTest {
   Properties props = new Properties();
 
   static class BadObject {
-    static boolean wasInstantiated = false;
+    static boolean wasInstantiated;
 
     BadObject() {
       wasInstantiated = true;

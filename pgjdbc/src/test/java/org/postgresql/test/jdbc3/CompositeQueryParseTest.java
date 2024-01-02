@@ -130,7 +130,7 @@ public class CompositeQueryParseTest {
   public void testMultiQueryWithBind() throws SQLException {
     // braces around (42) are required to puzzle the parser
     String sql = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
-    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true,true, true);
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true);
     NativeQuery query = queries.get(0);
     assertEquals("query(0) of " + sql,
         "INSERT: INSERT INTO inttable(a) VALUES ($1)",

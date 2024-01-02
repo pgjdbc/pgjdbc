@@ -435,7 +435,7 @@ public class BlobTest {
           int b = bis.read();
           int c = 0;
           while (f >= 0 && b >= 0 & result) {
-            result = (f == b);
+            result = f == b;
             f = fis.read();
             b = bis.read();
             c++;
@@ -475,7 +475,7 @@ public class BlobTest {
           int b = bis.read();
           int c = 0;
           while (f >= 0 && b >= 0 & result) {
-            result = (f == b);
+            result = f == b;
             f = fis.read();
             b = bis.read();
             c++;
@@ -515,7 +515,7 @@ public class BlobTest {
           int b = bis.read();
           int c = 0;
           while (f >= 0 && b >= 0 & result) {
-            result = (f == b);
+            result = f == b;
             f = fis.read();
             b = bis.read();
             c++;

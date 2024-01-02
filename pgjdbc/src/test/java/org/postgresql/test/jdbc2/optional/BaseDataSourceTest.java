@@ -208,7 +208,7 @@ public abstract class BaseDataSourceTest {
     String url = bds.getURL();
     testUseConnection();
     assertSame("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
-        oldbds , bds);
+        oldbds, bds);
     assertEquals("Test should not have changed DataSource URL",
         oldurl, url);
   }

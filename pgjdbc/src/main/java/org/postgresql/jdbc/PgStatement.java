@@ -54,13 +54,13 @@ public class PgStatement implements Statement, BaseStatement {
   private boolean forceBinaryTransfers = DEFAULT_FORCE_BINARY_TRANSFERS;
 
   protected final ResourceLock lock = new ResourceLock();
-  protected @Nullable ArrayList<Query> batchStatements = null;
-  protected @Nullable ArrayList<@Nullable ParameterList> batchParameters = null;
+  protected @Nullable ArrayList<Query> batchStatements;
+  protected @Nullable ArrayList<@Nullable ParameterList> batchParameters;
   protected final int resultsettype; // the resultset type to return (ResultSet.TYPE_xxx)
   protected final int concurrency; // is it updateable or not? (ResultSet.CONCUR_xxx)
   private final int rsHoldability;
   private boolean poolable;
-  private boolean closeOnCompletion = false;
+  private boolean closeOnCompletion;
   protected int fetchdirection = ResultSet.FETCH_FORWARD;
   // fetch direction hint (currently ignored)
 
@@ -71,7 +71,7 @@ public class PgStatement implements Statement, BaseStatement {
    * cancelTask was created. Note: the field must be set/get/compareAndSet via
    * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
-  private volatile @Nullable TimerTask cancelTimerTask = null;
+  private volatile @Nullable TimerTask cancelTimerTask;
   private static final AtomicReferenceFieldUpdater<PgStatement, @Nullable TimerTask> CANCEL_TIMER_UPDATER =
       AtomicReferenceFieldUpdater.<PgStatement, @Nullable TimerTask>newUpdater(
           PgStatement.class, TimerTask.class, "cancelTimerTask");
@@ -97,13 +97,13 @@ public class PgStatement implements Statement, BaseStatement {
    * Does the caller of execute/executeUpdate want generated keys for this execution? This is set by
    * Statement methods that have generated keys arguments and cleared after execution is complete.
    */
-  protected boolean wantsGeneratedKeysOnce = false;
+  protected boolean wantsGeneratedKeysOnce;
 
   /**
    * Was this PreparedStatement created to return generated keys for every execution? This is set at
    * creation time and never cleared by execution.
    */
-  public boolean wantsGeneratedKeysAlways = false;
+  public boolean wantsGeneratedKeysAlways;
 
   // The connection who created us
   protected final PgConnection connection;
@@ -111,45 +111,45 @@ public class PgStatement implements Statement, BaseStatement {
   /**
    * The warnings chain.
    */
-  protected volatile @Nullable PSQLWarningWrapper warnings = null;
+  protected volatile @Nullable PSQLWarningWrapper warnings;
 
   /**
    * Maximum number of rows to return, 0 = unlimited.
    */
-  protected int maxrows = 0;
+  protected int maxrows;
 
   /**
    * Number of rows to get in a batch.
    */
-  protected int fetchSize = 0;
+  protected int fetchSize;
 
   /**
    * Timeout (in milliseconds) for a query.
    */
-  protected long timeout = 0;
+  protected long timeout;
 
   protected boolean replaceProcessingEnabled = true;
 
   /**
    * The current results.
    */
-  protected @Nullable ResultWrapper result = null;
+  protected @Nullable ResultWrapper result;
 
   /**
    * The first unclosed result.
    */
-  protected @Nullable @GuardedBy("<self>") ResultWrapper firstUnclosedResult = null;
+  protected @Nullable @GuardedBy("<self>") ResultWrapper firstUnclosedResult;
 
   /**
    * Results returned by a statement that wants generated keys.
    */
-  protected @Nullable ResultWrapper generatedKeys = null;
+  protected @Nullable ResultWrapper generatedKeys;
 
   protected int mPrepareThreshold; // Reuse threshold to enable use of PREPARE
 
-  protected int maxFieldSize = 0;
+  protected int maxFieldSize;
 
-  protected boolean adaptiveFetch = false;
+  protected boolean adaptiveFetch;
 
   private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
@@ -335,7 +335,7 @@ public class PgStatement implements Statement, BaseStatement {
     execute(simpleQuery, null, flags);
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
-      return (result != null && result.getResultSet() != null);
+      return result != null && result.getResultSet() != null;
     }
   }
 
@@ -522,7 +522,7 @@ public class PgStatement implements Statement, BaseStatement {
     // No-op.
   }
 
-  private volatile int isClosed = 0;
+  private volatile int isClosed;
   private static final AtomicIntegerFieldUpdater<PgStatement> IS_CLOSED_UPDATER =
       AtomicIntegerFieldUpdater.newUpdater(
           PgStatement.class, "isClosed");
@@ -1220,7 +1220,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
 
       // Done.
-      return (result != null && result.getResultSet() != null);
+      return result != null && result.getResultSet() != null;
     }
   }
 
@@ -1317,7 +1317,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected TimestampUtils getTimestampUtils() {
     if (timestampUtils == null) {
-      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
     }
     return timestampUtils;
   }

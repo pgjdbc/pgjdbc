@@ -35,7 +35,7 @@ public class ConnectTimeoutTest {
   @Test
   public void testTimeout() {
     final Properties props = new Properties();
-    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.USER.set(props, TestUtil.getUser());
     PGProperty.PASSWORD.set(props, TestUtil.getPassword());
     // with 0 (default value) it hangs for about 60 seconds (platform dependent)
     PGProperty.CONNECT_TIMEOUT.set(props, CONNECT_TIMEOUT);
@@ -61,7 +61,7 @@ public class ConnectTimeoutTest {
                         + UNREACHABLE_HOST + " after " + interval + " ms, "
                         + " before timeout should have triggered.",
                         e.getCause() instanceof NoRouteToHostException
-                        && interval < connectTimeoutMillis );
+                        && interval < connectTimeoutMillis);
 
       assertTrue("Unexpected " + e.toString() + " with cause " + e.getCause(),
           e.getCause() instanceof SocketTimeoutException);

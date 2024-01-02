@@ -481,7 +481,7 @@ public class Driver implements java.sql.Driver {
 
     PGProperty[] knownProperties = PGProperty.values();
     DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
-    for (int i = 0; i < props.length; ++i) {
+    for (int i = 0; i < props.length; i++) {
       props[i] = knownProperties[i].toDriverPropertyInfo(copy);
     }
 
@@ -554,7 +554,7 @@ public class Driver implements java.sql.Driver {
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-    if (urlServer.equals("//") || urlServer.equals("///")) {
+    if ("//".equals(urlServer) || "///".equals(urlServer)) {
       urlServer = "";
     } else if (urlServer.startsWith("//")) {
       urlServer = urlServer.substring(2);
@@ -702,7 +702,7 @@ public class Driver implements java.sql.Driver {
     String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
-    for (int i = 0; i < hostSpecs.length; ++i) {
+    for (int i = 0; i < hostSpecs.length; i++) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
     }
     return hostSpecs;

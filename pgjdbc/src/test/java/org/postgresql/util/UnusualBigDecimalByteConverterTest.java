@@ -26,7 +26,7 @@ public class UnusualBigDecimalByteConverterTest {
     //len 2
     //weight -1
     //scale 5
-    final byte[] data = new byte[] {0, 2, -1, -1, 0, 0, 0, 5, 0, 0, 23, 112};
+    final byte[] data = new byte[]{0, 2, -1, -1, 0, 0, 0, 5, 0, 0, 23, 112};
     final BigDecimal actual = (BigDecimal) ByteConverter.numeric(data);
     assertEquals(new BigDecimal("0.00006"), actual);
   }

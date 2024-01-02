@@ -59,7 +59,7 @@ public class PGStream implements Closeable, Flushable {
     return gssEncrypted;
   }
 
-  boolean gssEncrypted = false;
+  boolean gssEncrypted;
 
   public void setSecContext(GSSContext secContext) {
     MessageProp messageProp =  new MessageProp(0, true);
@@ -78,7 +78,7 @@ public class PGStream implements Closeable, Flushable {
   private Writer encodingWriter;
 
   private long maxResultBuffer = -1;
-  private long resultBufferByteCount = 0;
+  private long resultBufferByteCount;
 
   private int maxRowSizeBytes = -1;
 
@@ -104,7 +104,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
-  public PGStream(PGStream pgStream, int timeout ) throws IOException {
+  public PGStream(PGStream pgStream, int timeout) throws IOException {
 
     /*
     Some defaults
@@ -203,7 +203,7 @@ public class PGStream implements Closeable, Flushable {
       if (!pgInput.ensureBytes(1, false)) {
         return false;
       }
-      available = (pgInput.peek() != -1);
+      available = pgInput.peek() != -1;
     } catch (SocketTimeoutException e) {
       return false;
     } finally {
@@ -409,7 +409,7 @@ public class PGStream implements Closeable, Flushable {
   public void send(byte[] buf, int off, int siz) throws IOException {
     int bufamt = buf.length - off;
     pgOutput.write(buf, off, bufamt < siz ? bufamt : siz);
-    for (int i = bufamt; i < siz; ++i) {
+    for (int i = bufamt; i < siz; i++) {
       pgOutput.write(0);
     }
   }
@@ -610,7 +610,7 @@ public class PGStream implements Closeable, Flushable {
 
     increaseByteCounter(dataToReadSize);
     OutOfMemoryError oom = null;
-    for (int i = 0; i < nf; ++i) {
+    for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
         try {
@@ -685,7 +685,7 @@ public class PGStream implements Closeable, Flushable {
     }
 
     while (remaining > 0) {
-      int count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
+      int count = remaining > streamBuffer.length ? streamBuffer.length : remaining;
       int readCount;
 
       try {
@@ -699,7 +699,7 @@ public class PGStream implements Closeable, Flushable {
         while (remaining > 0) {
           send(streamBuffer, count);
           remaining -= count;
-          count = (remaining > streamBuffer.length ? streamBuffer.length : remaining);
+          count = remaining > streamBuffer.length ? streamBuffer.length : remaining;
         }
         throw new PGBindException(ioe);
       }
@@ -834,7 +834,7 @@ public class PGStream implements Closeable, Flushable {
       if (resultBufferByteCount > maxResultBuffer) {
         throw new PSQLException(GT.tr(
           "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}",
-          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)),PSQLState.COMMUNICATION_ERROR);
+          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)), PSQLState.COMMUNICATION_ERROR);
       }
     }
   }

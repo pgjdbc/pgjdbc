@@ -47,7 +47,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
-  private int lastIndex = 0;
+  private int lastIndex;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
@@ -315,7 +315,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public byte @Nullable [] getBytes(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
-    return ((byte @Nullable []) result);
+    return (byte @Nullable []) result;
   }
 
   public java.sql.@Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
@@ -422,7 +422,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   public java.math.@Nullable BigDecimal getBigDecimal(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
-    return ((BigDecimal) result);
+    return (BigDecimal) result;
   }
 
   public @Nullable Blob getBlob(int i) throws SQLException {

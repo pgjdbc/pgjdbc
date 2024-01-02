@@ -48,13 +48,13 @@ import javax.security.auth.x500.X500Principal;
  * A Key manager that only loads the keys, if necessary.
  */
 public class LazyKeyManager implements X509KeyManager {
-  private X509Certificate @Nullable [] cert = null;
-  private @Nullable PrivateKey key = null;
+  private X509Certificate @Nullable [] cert;
+  private @Nullable PrivateKey key;
   private final @Nullable String certfile;
   private final @Nullable String keyfile;
   private final CallbackHandler cbh;
   private final boolean defaultfile;
-  private @Nullable PSQLException error = null;
+  private @Nullable PSQLException error;
 
   /**
    * Constructor. certfile and keyfile can be null, in that case no certificate is presented to the
@@ -125,7 +125,7 @@ public class LazyKeyManager implements X509KeyManager {
               }
             }
           }
-          return (found ? "user" : null);
+          return found ? "user" : null;
         }
       }
     }
@@ -191,7 +191,7 @@ public class LazyKeyManager implements X509KeyManager {
   public String @Nullable [] getClientAliases(String keyType,
       Principal @Nullable [] issuers) {
     String alias = chooseClientAlias(new String[]{keyType}, issuers, (Socket) null);
-    return (alias == null ? new String[]{} : new String[]{alias});
+    return alias == null ? new String[]{} : new String[]{alias};
   }
 
   private static byte[] readFileFully(String path) throws IOException {

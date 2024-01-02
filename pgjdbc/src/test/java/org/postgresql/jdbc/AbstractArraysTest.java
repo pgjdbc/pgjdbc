@@ -75,7 +75,7 @@ public abstract class AbstractArraysTest<A> {
   protected void assertArraysEquals(String message, A expected, Object actual) {
     final int expectedLength = Array.getLength(expected);
     assertEquals(message + " size", expectedLength, Array.getLength(actual));
-    for (int i = 0; i < expectedLength; ++i) {
+    for (int i = 0; i < expectedLength; i++) {
       assertEquals(message + " value at " + i, Array.get(expected, i), Array.get(actual, i));
     }
   }
@@ -138,7 +138,7 @@ public abstract class AbstractArraysTest<A> {
 
       assertEquals(data.length, actual.length);
 
-      for (int i = 0; i < data.length; ++i) {
+      for (int i = 0; i < data.length; i++) {
         assertArraysEquals("array at position " + i, data[i], actual[i]);
       }
     }
@@ -159,7 +159,7 @@ public abstract class AbstractArraysTest<A> {
 
     assertEquals(data.length, actual.length);
 
-    for (int i = 0; i < data.length; ++i) {
+    for (int i = 0; i < data.length; i++) {
       assertArraysEquals("array at position " + i, data[i], actual[i]);
     }
   }
@@ -182,9 +182,9 @@ public abstract class AbstractArraysTest<A> {
 
       assertEquals(testData.length, actual.length);
 
-      for (int i = 0; i < testData.length; ++i) {
+      for (int i = 0; i < testData.length; i++) {
         assertEquals("array length at " + i, testData[i].length, actual[i].length);
-        for (int j = 0; j < testData[i].length; ++j) {
+        for (int j = 0; j < testData[i].length; j++) {
           assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
         }
       }
@@ -204,9 +204,9 @@ public abstract class AbstractArraysTest<A> {
 
     assertEquals(testData.length, actual.length);
 
-    for (int i = 0; i < testData.length; ++i) {
+    for (int i = 0; i < testData.length; i++) {
       assertEquals("array length at " + i, testData[i].length, actual[i].length);
-      for (int j = 0; j < testData[i].length; ++j) {
+      for (int j = 0; j < testData[i].length; j++) {
         assertArraysEquals("array at " + i + ',' + j, testData[i][j], actual[i][j]);
       }
     }
@@ -215,7 +215,7 @@ public abstract class AbstractArraysTest<A> {
   @Test
   public void testObjectArrayCopy() throws Exception {
     final Object[] copy = new Object[testData.length];
-    for (int i = 0; i < testData.length; ++i) {
+    for (int i = 0; i < testData.length; i++) {
       copy[i] = testData[i];
     }
 
@@ -231,7 +231,7 @@ public abstract class AbstractArraysTest<A> {
   @Test
   public void testObject2dArrayCopy() throws Exception {
     final Object[][] copy = new Object[testData.length][];
-    for (int  i = 0; i < testData.length; ++i) {
+    for (int  i = 0; i < testData.length; i++) {
       copy[i] = testData[i];
     }
 
@@ -249,7 +249,7 @@ public abstract class AbstractArraysTest<A> {
     final A[][][] source = (A[][][]) Array.newInstance(testData.getClass(), 2);
     source[0] = testData;
     source[1] = testData;
-    final Object[][][] copy = new Object[][][] { testData, testData };
+    final Object[][][] copy = new Object[][][]{testData, testData};
 
     final ArrayEncoding.ArrayEncoder<A[][][]> support = ArrayEncoding.getArrayEncoder(source);
     final String arrayString = support.toArrayString(',', source);

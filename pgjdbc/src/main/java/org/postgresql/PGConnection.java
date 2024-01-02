@@ -353,7 +353,7 @@ public interface PGConnection {
    * @return unmodifiable map of case-insensitive parameter names to parameter values
    * @since 42.2.6
    */
-  Map<String,String> getParameterStatuses();
+  Map<String, String> getParameterStatuses();
 
   /**
    * Shorthand for getParameterStatuses().get(...) .

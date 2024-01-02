@@ -95,7 +95,7 @@ public class TestReturning extends BaseTest4 {
     super.tearDown();
   }
 
-  private void testGeneratedKeys(Connection conn, String sql, String[] columnNames,  boolean exceptionExpected) throws SQLException {
+  private void testGeneratedKeys(Connection conn, String sql, String[] columnNames, boolean exceptionExpected) throws SQLException {
 
     try (PreparedStatement stmt = conn.prepareStatement(sql, columnNames)) {
       stmt.execute();
@@ -115,10 +115,10 @@ public class TestReturning extends BaseTest4 {
 
     String insertSql = "INSERT INTO genkeys (b,c) VALUES ('hello', 1)";
 
-    testGeneratedKeys(con, insertSql, new String[] {"Id"},  quoteReturning.equals("false") );
-    testGeneratedKeys(con, insertSql, new String[] {"id"},  true);
-    testGeneratedKeys(con, insertSql, new String[] {"ID"},  true);
-    testGeneratedKeys(con, insertSql, new String[] {"\"Id\""}, quoteReturning.equals("true"));
-    testGeneratedKeys(con, insertSql, new String[] {"bad"},  true);
+    testGeneratedKeys(con, insertSql, new String[]{"Id"}, "false".equals(quoteReturning));
+    testGeneratedKeys(con, insertSql, new String[]{"id"}, true);
+    testGeneratedKeys(con, insertSql, new String[]{"ID"}, true);
+    testGeneratedKeys(con, insertSql, new String[]{"\"Id\""}, "true".equals(quoteReturning));
+    testGeneratedKeys(con, insertSql, new String[]{"bad"}, true);
   }
 }

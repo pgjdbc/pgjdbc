@@ -488,7 +488,7 @@ public class ResultSetTest extends BaseTest4 {
         rs.getByte(1);
         fail("Exception expected.");
       } catch (SQLException e) {
-        assertEquals(e.getSQLState(),"22003");
+        assertEquals(e.getSQLState(), "22003");
       }
     }
     rs.close();

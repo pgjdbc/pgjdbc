@@ -212,7 +212,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
       stmt.executeUpdate("REVOKE ALL ON TABLE " + schema + "." + table + " FROM public RESTRICT");
       stmt.executeUpdate(
           "REVOKE ALL ON TABLE  " + schema + "." + table + " FROM " + TestUtil.getUser()
-          +   " RESTRICT");
+          + " RESTRICT");
     }
     stmt.close();
   }
@@ -240,7 +240,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     st.executeQuery("SHOW is_superuser;");
     ResultSet rs = st.getResultSet();
     rs.next(); // One row is guaranteed
-    boolean connIsSuper = rs.getString(1).equalsIgnoreCase("on");
+    boolean connIsSuper = "on".equalsIgnoreCase(rs.getString(1));
     st.close();
     return connIsSuper;
   }

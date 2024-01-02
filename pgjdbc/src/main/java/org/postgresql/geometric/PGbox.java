@@ -164,7 +164,7 @@ public class PGbox extends PGobject implements PGBinaryObject, Serializable, Clo
     PGbox newPGbox = (PGbox) super.clone();
     if (newPGbox.point != null) {
       newPGbox.point = newPGbox.point.clone();
-      for (int i = 0; i < newPGbox.point.length; ++i) {
+      for (int i = 0; i < newPGbox.point.length; i++) {
         if (newPGbox.point[i] != null) {
           newPGbox.point[i] = (PGpoint) newPGbox.point[i].clone();
         }

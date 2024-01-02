@@ -184,7 +184,7 @@ public class PgArray implements java.sql.Array {
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
-    for (int d = 0; d < dimensions; ++d) {
+    for (int d = 0; d < dimensions; d++) {
       dims[d] = ByteConverter.int4(fieldBytes, pos);
       pos += 4;
       /* int lbound = ByteConverter.int4(fieldBytes, pos); */
@@ -212,7 +212,7 @@ public class PgArray implements java.sql.Array {
       fields[0].setFormat(Field.BINARY_FORMAT);
       fields[1] = new Field("VALUE", elementOid);
       fields[1].setFormat(Field.BINARY_FORMAT);
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len != -1) {
@@ -224,14 +224,14 @@ public class PgArray implements java.sql.Array {
       fields[0].setFormat(Field.BINARY_FORMAT);
       fields[1] = new Field("VALUE", elementOid);
       fields[1].setFormat(Field.BINARY_FORMAT);
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len != -1) {
           pos += len;
         }
       }
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
         ByteConverter.int4(rowData[0], 0, i + index);
@@ -252,10 +252,10 @@ public class PgArray implements java.sql.Array {
       fields[1].setFormat(Field.BINARY_FORMAT);
       int nextDimension = thisDimension + 1;
       int dimensionsLeft = dims.length - nextDimension;
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         pos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, nextDimension);
       }
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
         ByteConverter.int4(rowData[0], 0, i + index);
@@ -276,7 +276,7 @@ public class PgArray implements java.sql.Array {
   private int calcRemainingDataLength(byte[] fieldBytes,
       int[] dims, int pos, int elementOid, int thisDimension) {
     if (thisDimension == dims.length - 1) {
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len == -1) {

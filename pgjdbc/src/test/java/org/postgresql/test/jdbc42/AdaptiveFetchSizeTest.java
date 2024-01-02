@@ -32,8 +32,8 @@ public class AdaptiveFetchSizeTest {
   private PreparedStatement statement;
   private ResultSet resultSet;
 
-  private String table = "test_adaptive_fetch";
-  private String columns = "value VARCHAR";
+  private final String table = "test_adaptive_fetch";
+  private final String columns = "value VARCHAR";
 
   /**
    * Drop table and close connection.

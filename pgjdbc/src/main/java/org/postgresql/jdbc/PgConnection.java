@@ -159,7 +159,7 @@ public class PgConnection implements BaseConnection {
 
   private final TypeInfo typeCache;
 
-  private boolean disableColumnSanitiser = false;
+  private boolean disableColumnSanitiser;
 
   // Default statement prepare threshold.
   protected int prepareThreshold;
@@ -172,7 +172,7 @@ public class PgConnection implements BaseConnection {
   protected int defaultFetchSize;
 
   // Default forcebinary option.
-  protected boolean forcebinary = false;
+  protected boolean forcebinary;
 
   /**
    * Oids for which binary transfer should be disabled.
@@ -180,11 +180,11 @@ public class PgConnection implements BaseConnection {
   private final Set<? extends Integer> binaryDisabledOids;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
-  private int savepointId = 0;
+  private int savepointId;
   // Connection's autocommit state.
   private boolean autoCommit = true;
   // Connection's readonly state.
-  private boolean readOnly = false;
+  private boolean readOnly;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private final boolean  hideUnprivilegedObjects ;
   // Whether to include error details in logging and exceptions
@@ -312,9 +312,9 @@ public class PgConnection implements BaseConnection {
 
     String stringType = PGProperty.STRING_TYPE.getOrDefault(info);
     if (stringType != null) {
-      if (stringType.equalsIgnoreCase("unspecified")) {
+      if ("unspecified".equalsIgnoreCase(stringType)) {
         bindStringAsVarchar = false;
-      } else if (stringType.equalsIgnoreCase("varchar")) {
+      } else if ("varchar".equalsIgnoreCase(stringType)) {
         bindStringAsVarchar = true;
       } else {
         throw new PSQLException(
@@ -1032,16 +1032,16 @@ public class PgConnection implements BaseConnection {
     }
 
     level = level.toUpperCase(Locale.US);
-    if (level.equals("READ COMMITTED")) {
+    if ("READ COMMITTED".equals(level)) {
       return Connection.TRANSACTION_READ_COMMITTED;
     }
-    if (level.equals("READ UNCOMMITTED")) {
+    if ("READ UNCOMMITTED".equals(level)) {
       return Connection.TRANSACTION_READ_UNCOMMITTED;
     }
-    if (level.equals("REPEATABLE READ")) {
+    if ("REPEATABLE READ".equals(level)) {
       return Connection.TRANSACTION_REPEATABLE_READ;
     }
-    if (level.equals("SERIALIZABLE")) {
+    if ("SERIALIZABLE".equals(level)) {
       return Connection.TRANSACTION_SERIALIZABLE;
     }
 
@@ -1449,7 +1449,7 @@ public class PgConnection implements BaseConnection {
     throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
@@ -1877,7 +1877,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public final Map<String,String> getParameterStatuses() {
+  public final Map<String, String> getParameterStatuses() {
     return queryExecutor.getParameterStatuses();
   }
 
@@ -1902,9 +1902,9 @@ public class PgConnection implements BaseConnection {
     if (xmlFactoryFactory != null) {
       return xmlFactoryFactory;
     }
-    if (xmlFactoryFactoryClass == null || xmlFactoryFactoryClass.equals("")) {
+    if (xmlFactoryFactoryClass == null || "".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = DefaultPGXmlFactoryFactory.INSTANCE;
-    } else if (xmlFactoryFactoryClass.equals("LEGACY_INSECURE")) {
+    } else if ("LEGACY_INSECURE".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = LegacyInsecurePGXmlFactoryFactory.INSTANCE;
     } else {
       Class<?> clazz;

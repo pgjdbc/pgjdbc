@@ -56,9 +56,9 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     char [] tokens = find.toCharArray();
     int found = -1;
 
-    for ( int i = 0; i < tokens.length; i++ ) {
+    for (int i = 0; i < tokens.length; i++) {
       found = value.indexOf(tokens[i], position);
-      if ( found > 0 ) {
+      if (found > 0) {
         return found;
       }
     }
@@ -73,14 +73,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     int hasTime = value.indexOf('T');
     if ( hasTime > 0 ) {
       /* skip over the P */
-      dateValue = value.substring(1,hasTime);
+      dateValue = value.substring(1, hasTime);
       timeValue = value.substring(hasTime + 1);
     } else {
       /* skip over the P */
       dateValue = value.substring(1);
     }
 
-    for ( int i = 0; i < dateValue.length(); i++ ) {
+    for (int i = 0; i < dateValue.length(); i++) {
       int lookAhead = lookAhead(dateValue, i, "YMD");
       if (lookAhead > 0) {
         number = Integer.parseInt(dateValue.substring(i, lookAhead));
@@ -177,7 +177,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
 
           // This handles hours, minutes, seconds and microseconds for
           // ISO intervals
-          int offset = (token.charAt(0) == '-') ? 1 : 0;
+          int offset = token.charAt(0) == '-' ? 1 : 0;
 
           hours = nullSafeIntGet(token.substring(offset + 0, endHours));
           minutes = nullSafeIntGet(token.substring(endHours + 1, endHours + 3));
@@ -405,7 +405,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       return;
     }
 
-    final int milliseconds = (microSeconds + ((microSeconds < 0) ? -500 : 500)) / 1000 + wholeSeconds * 1000;
+    final int milliseconds = (microSeconds + (microSeconds < 0 ? -500 : 500)) / 1000 + wholeSeconds * 1000;
 
     cal.add(Calendar.MILLISECOND, milliseconds);
     cal.add(Calendar.MINUTE, getMinutes());
@@ -476,7 +476,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @throws NumberFormatException if the string contains invalid chars
    */
   private static int nullSafeIntGet(@Nullable String value) throws NumberFormatException {
-    return (value == null) ? 0 : Integer.parseInt(value);
+    return value == null ? 0 : Integer.parseInt(value);
   }
 
   /**
@@ -487,7 +487,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @throws NumberFormatException if the string contains invalid chars
    */
   private static double nullSafeDoubleGet(@Nullable String value) throws NumberFormatException {
-    return (value == null) ? 0 : Double.parseDouble(value);
+    return value == null ? 0 : Double.parseDouble(value);
   }
 
   /**

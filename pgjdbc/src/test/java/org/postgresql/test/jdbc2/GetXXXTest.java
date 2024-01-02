@@ -28,7 +28,7 @@ import java.util.HashMap;
  * Test for getObject
  */
 public class GetXXXTest {
-  private Connection con = null;
+  private Connection con;
 
   @Before
   public void setUp() throws Exception {

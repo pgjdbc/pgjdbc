@@ -54,7 +54,7 @@ public class BlobWrite {
 
   private byte[] buffer;
 
-  private long lastLoId = 0;
+  private long lastLoId;
 
   @Setup
   public void setup() throws SQLException {

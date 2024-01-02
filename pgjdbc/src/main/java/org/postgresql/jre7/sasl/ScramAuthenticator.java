@@ -140,7 +140,7 @@ public class ScramAuthenticator {
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST,
                  " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
-                 new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
+                 new Object[]{serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration()}
                  );
     }
 

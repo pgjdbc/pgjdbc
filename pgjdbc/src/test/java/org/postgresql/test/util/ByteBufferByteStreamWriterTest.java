@@ -29,7 +29,7 @@ public class ByteBufferByteStreamWriterTest {
   @Before
   public void setUp() throws Exception {
     targetStream = new ByteArrayOutputStream();
-    data = new byte[] { 1, 2, 3, 4 };
+    data = new byte[]{1, 2, 3, 4};
     ByteBuffer buffer = ByteBuffer.wrap(data);
     writer = new ByteBufferByteStreamWriter(buffer);
   }

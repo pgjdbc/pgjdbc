@@ -49,11 +49,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private static final Logger LOGGER = Logger.getLogger(BaseDataSource.class.getName());
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
-  private String[] serverNames = new String[] {"localhost"};
+  private String[] serverNames = new String[]{"localhost"};
   private @Nullable String databaseName = "";
   private @Nullable String user;
   private @Nullable String password;
-  private int[] portNumbers = new int[] {0};
+  private int[] portNumbers = new int[]{0};
 
   // Map for all other properties
   private Properties properties = new Properties();
@@ -103,12 +103,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       Connection con = DriverManager.getConnection(getUrl(), user, password);
       if (LOGGER.isLoggable(Level.FINE)) {
         LOGGER.log(Level.FINE, "Created a {0} for {1} at {2}",
-            new Object[] {getDescription(), user, getUrl()});
+            new Object[]{getDescription(), user, getUrl()});
       }
       return con;
     } catch (SQLException e) {
       LOGGER.log(Level.FINE, "Failed to create a {0} for {1} at {2}: {3}",
-          new Object[] {getDescription(), user, getUrl(), e});
+          new Object[]{getDescription(), user, getUrl(), e});
       throw e;
     }
   }
@@ -160,7 +160,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   @Deprecated
   public void setServerName(String serverName) {
-    this.setServerNames(new String[] { serverName });
+    this.setServerNames(new String[]{serverName});
   }
 
   /**
@@ -172,12 +172,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   @SuppressWarnings("nullness")
   public void setServerNames(@Nullable String @Nullable [] serverNames) {
     if (serverNames == null || serverNames.length == 0) {
-      this.serverNames = new String[] {"localhost"};
+      this.serverNames = new String[]{"localhost"};
     } else {
       serverNames = serverNames.clone();
       for (int i = 0; i < serverNames.length; i++) {
         String serverName = serverNames[i];
-        if (serverName == null || serverName.equals("")) {
+        if (serverName == null || "".equals(serverName)) {
           serverNames[i] = "localhost";
         }
       }
@@ -287,7 +287,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   @Deprecated
   public void setPortNumber(int portNumber) {
-    setPortNumbers(new int[] { portNumber });
+    setPortNumbers(new int[]{portNumber});
   }
 
   /**
@@ -299,7 +299,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setPortNumbers(int @Nullable [] portNumbers) {
     if (portNumbers == null || portNumbers.length == 0) {
-      portNumbers = new int[] { 0 };
+      portNumbers = new int[]{0};
     }
     this.portNumbers = Arrays.copyOf(portNumbers, portNumbers.length);
   }
@@ -369,7 +369,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#GSS_RESPONSE_TIMEOUT
    */
   public void setGssResponseTimeout(int gssResponseTimeout) {
-    PGProperty.GSS_RESPONSE_TIMEOUT.set(properties,gssResponseTimeout);
+    PGProperty.GSS_RESPONSE_TIMEOUT.set(properties, gssResponseTimeout);
   }
 
   /**
@@ -387,7 +387,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#SSL_RESPONSE_TIMEOUT
    */
   public void setSslResponseTimeout(int sslResponseTimeout) {
-    PGProperty.SSL_RESPONSE_TIMEOUT.set(properties,sslResponseTimeout);
+    PGProperty.SSL_RESPONSE_TIMEOUT.set(properties, sslResponseTimeout);
   }
 
   /**
@@ -857,8 +857,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param enabled if TCP no delay should be enabled
    * @see PGProperty#TCP_NO_DELAY
    */
-  public void setTcpNoDelay( boolean enabled ) {
-    PGProperty.TCP_NO_DELAY.set(properties,enabled);
+  public void setTcpNoDelay(boolean enabled) {
+    PGProperty.TCP_NO_DELAY.set(properties, enabled);
   }
 
   /**
@@ -866,7 +866,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#TCP_NO_DELAY
    */
   public boolean getTcpNoDelay() {
-    return PGProperty.TCP_NO_DELAY.getBoolean( properties );
+    return PGProperty.TCP_NO_DELAY.getBoolean(properties);
   }
 
   /**
@@ -1279,8 +1279,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param localSocketAddress local address to bind client side to
    * @see PGProperty#LOCAL_SOCKET_ADDRESS
    */
-  public void setLocalSocketAddress( String localSocketAddress ) {
-    PGProperty.LOCAL_SOCKET_ADDRESS.set(properties,localSocketAddress);
+  public void setLocalSocketAddress(String localSocketAddress) {
+    PGProperty.LOCAL_SOCKET_ADDRESS.set(properties, localSocketAddress);
   }
 
   /**
@@ -1470,7 +1470,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       case PG_PORT:
         String[] ps = value.split(",");
         int[] ports = new int[ps.length];
-        for (int i = 0 ; i < ps.length; i++) {
+        for (int i = 0; i < ps.length; i++) {
           try {
             ports[i] = Integer.parseInt(ps[i]);
           } catch (NumberFormatException e) {

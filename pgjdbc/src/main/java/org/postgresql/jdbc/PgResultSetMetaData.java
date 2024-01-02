@@ -202,7 +202,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     } else {
       sql.append("pg_catalog.pg_get_expr(d.adbin, d.adrelid) LIKE '%nextval(%' ");
     }
-    sql.append( "FROM pg_catalog.pg_class c "
+    sql.append("FROM pg_catalog.pg_class c "
             + "JOIN pg_catalog.pg_namespace n ON (c.relnamespace = n.oid) "
             + "JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) "
             + "JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
@@ -426,13 +426,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     int sqlType = getSQLType(column);
     switch (sqlType) {
       case Types.ARRAY:
-        return ("java.sql.Array");
+        return "java.sql.Array";
       default:
         String type = getPGType(column);
         if ("unknown".equals(type)) {
-          return ("java.lang.String");
+          return "java.lang.String";
         }
-        return ("java.lang.Object");
+        return "java.lang.Object";
     }
   }
 

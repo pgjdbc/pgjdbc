@@ -101,13 +101,13 @@ public class AsciiStringInternerTest {
   @Test
   public void testGarbageCleaning() throws Exception {
     final byte[] bytes = new byte[100000];
-    for (int i = 0; i < 100000; ++i) {
+    for (int i = 0; i < 100000; i++) {
       bytes[i] = (byte) ThreadLocalRandom.current().nextInt(128);
     }
     final AsciiStringInterner interner = new AsciiStringInterner();
     final LongAdder length = new LongAdder();
     final Callable<Void> c = () -> {
-      for (int i = 0; i < 25000; ++i) {
+      for (int i = 0; i < 25000; i++) {
         String str;
         try {
           str = interner.getString(bytes, 0, ThreadLocalRandom.current().nextInt(1000, bytes.length), null);

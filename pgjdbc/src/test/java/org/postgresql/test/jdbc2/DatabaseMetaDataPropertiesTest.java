@@ -143,7 +143,7 @@ public class DatabaseMetaDataPropertiesTest {
     assertFalse(dbmd.storesLowerCaseQuotedIdentifiers());
     assertFalse(dbmd.storesMixedCaseQuotedIdentifiers());
 
-    assertEquals( "\"", dbmd.getIdentifierQuoteString());
+    assertEquals("\"", dbmd.getIdentifierQuoteString());
 
   }
 

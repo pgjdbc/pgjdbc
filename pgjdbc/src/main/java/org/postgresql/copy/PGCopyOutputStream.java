@@ -24,7 +24,7 @@ public class PGCopyOutputStream extends OutputStream implements CopyIn {
   private @Nullable CopyIn op;
   private final byte[] copyBuffer;
   private final byte[] singleByteBuffer = new byte[1];
-  private int at = 0;
+  private int at;
 
   /**
    * Uses given connection for specified COPY FROM STDIN operation.

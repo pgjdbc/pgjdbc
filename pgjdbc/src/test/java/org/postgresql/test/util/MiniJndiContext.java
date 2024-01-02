@@ -29,7 +29,7 @@ import javax.naming.spi.ObjectFactory;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class MiniJndiContext implements Context {
-  private Map<String, Object> map = new HashMap<String, Object>();
+  private final Map<String, Object> map = new HashMap<String, Object>();
 
   public MiniJndiContext() {
   }

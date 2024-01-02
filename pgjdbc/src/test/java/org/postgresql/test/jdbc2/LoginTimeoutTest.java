@@ -34,7 +34,7 @@ public class LoginTimeoutTest {
   @Test
   public void testIntTimeout() throws Exception {
     Properties props = new Properties();
-    PGProperty.USER.set(props,TestUtil.getUser());
+    PGProperty.USER.set(props, TestUtil.getUser());
     PGProperty.PASSWORD.set(props, TestUtil.getPassword());
     PGProperty.LOGIN_TIMEOUT.set(props, 10);
 
@@ -160,7 +160,7 @@ public class LoginTimeoutTest {
       }
 
       long endTime = System.nanoTime();
-      assertTrue("Connection timed before 2500ms",endTime > startTime + (2500L * 1E6));
+      assertTrue("Connection timed before 2500ms", endTime > startTime + (2500L * 1E6));
     } finally {
       helper.kill();
     }

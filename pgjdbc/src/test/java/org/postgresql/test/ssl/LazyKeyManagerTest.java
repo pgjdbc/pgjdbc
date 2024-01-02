@@ -65,7 +65,7 @@ public class LazyKeyManagerTest {
     String invalidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
     Assert.assertNull(invalidKeyType);
 
-    String containsValidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC","RSA"}, issuers, null);
+    String containsValidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
     Assert.assertNotNull(containsValidKeyType);
 
     String ignoresBlank = lazyKeyManager.chooseClientAlias(new String[]{}, issuers, null);

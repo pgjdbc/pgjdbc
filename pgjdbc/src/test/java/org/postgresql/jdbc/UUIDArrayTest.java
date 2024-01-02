@@ -70,7 +70,7 @@ class UUIDArrayTest {
       stmt2.execute();
       try (ResultSet rs = stmt2.getResultSet()) {
         assertTrue(rs.next());
-        UUID[] array = (UUID[])rs.getArray(1).getArray();
+        UUID[] array = (UUID[]) rs.getArray(1).getArray();
         assertEquals(uids1[0], array[0]);
         assertEquals(uids1[1], array[1]);
       }
@@ -90,7 +90,7 @@ class UUIDArrayTest {
       stmt2.execute();
       try (ResultSet rs = stmt2.getResultSet()) {
         assertTrue(rs.next());
-        UUID[] array = (UUID[])rs.getArray(1).getArray();
+        UUID[] array = (UUID[]) rs.getArray(1).getArray();
         assertEquals(uids1[0], array[0]);
         assertEquals(uids1[1], array[1]);
       }
@@ -110,7 +110,7 @@ class UUIDArrayTest {
       stmt2.execute();
       try (ResultSet rs = stmt2.getResultSet()) {
         assertTrue(rs.next());
-        UUID[][] array = (UUID[][])rs.getArray(1).getArray();
+        UUID[][] array = (UUID[][]) rs.getArray(1).getArray();
         assertEquals(uids2[0][0], array[0][0]);
         assertEquals(uids2[0][1], array[0][1]);
       }
@@ -130,7 +130,7 @@ class UUIDArrayTest {
       stmt2.execute();
       try (ResultSet rs = stmt2.getResultSet()) {
         assertTrue(rs.next());
-        UUID[][] array = (UUID[][])rs.getArray(1).getArray();
+        UUID[][] array = (UUID[][]) rs.getArray(1).getArray();
         assertEquals(uids2[0][0], array[0][0]);
         assertEquals(uids2[0][1], array[0][1]);
       }

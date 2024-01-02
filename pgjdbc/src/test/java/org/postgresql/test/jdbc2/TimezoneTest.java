@@ -65,10 +65,10 @@ public class TimezoneTest {
   // server timezone: GMT+0300
   // test timezones: GMT+0000 GMT+0100 GMT+0300 GMT+1300 GMT-0500
 
-  private Calendar cUTC;
-  private Calendar cGMT03;
-  private Calendar cGMT05;
-  private Calendar cGMT13;
+  private final Calendar cUTC;
+  private final Calendar cGMT03;
+  private final Calendar cGMT05;
+  private final Calendar cGMT13;
 
   public TimezoneTest() {
     TimeZone tzUTC = TimeZone.getTimeZone("UTC"); // +0000 always
@@ -938,9 +938,9 @@ public class TimezoneTest {
     assertFalse(s.execute("set time zone 'UTC'"));
     assertTrue(s.execute(query));
     ResultSet rs = s.getResultSet();
-    for (int j = 0; j < correct.length; ++j) {
+    for (int j = 0; j < correct.length; j++) {
       assertTrue(rs.next());
-      for (int i = 0; i < correct[j].length; ++i) {
+      for (int i = 0; i < correct[j].length; i++) {
         assertEquals("On row " + (j + 1), correct[j][i], rs.getString(i + 1));
       }
     }

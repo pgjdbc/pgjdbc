@@ -55,7 +55,7 @@ public class ReturningParserTest {
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
-    boolean expectedReturning = this.returning.equalsIgnoreCase("returning")
+    boolean expectedReturning = "returning".equalsIgnoreCase(this.returning)
         && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
         && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {

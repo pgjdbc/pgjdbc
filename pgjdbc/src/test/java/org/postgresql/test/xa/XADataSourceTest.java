@@ -469,7 +469,7 @@ public class XADataSourceTest {
       xaRes.prepare(xid);
       fail("Prepare is expected to fail with XAER_PROTO as xid was already prepared");
     } catch (XAException xae) {
-      assertEquals("Prepare call on already prepared xid " +  xid + " expects XAER_PROTO",
+      assertEquals("Prepare call on already prepared xid " + xid + " expects XAER_PROTO",
           XAException.XAER_PROTO, xae.errorCode);
     } finally {
       xaRes.rollback(xid);
@@ -492,7 +492,7 @@ public class XADataSourceTest {
       xaRes.commit(xid, false);
       fail("Commit is expected to fail with XAER_NOTA as xid was already committed");
     } catch (XAException xae) {
-      assertEquals("Commit call on already committed xid " +  xid + " expects XAER_NOTA",
+      assertEquals("Commit call on already committed xid " + xid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     }
   }
@@ -525,7 +525,7 @@ public class XADataSourceTest {
       xaRes.commit(xid, false);
       fail("Commit is expected to fail with XAER_RMERR as somebody else already committed");
     } catch (XAException xae) {
-      assertEquals("Commit call on already committed xid " +  xid + " expects XAER_RMERR",
+      assertEquals("Commit call on already committed xid " + xid + " expects XAER_RMERR",
           XAException.XAER_RMERR, xae.errorCode);
     }
   }
@@ -558,7 +558,7 @@ public class XADataSourceTest {
       xaRes.rollback(xid);
       fail("Rollback is expected to fail with XAER_RMERR as somebody else already rolled-back");
     } catch (XAException xae) {
-      assertEquals("Rollback call on already rolled-back xid " +  xid + " expects XAER_RMERR",
+      assertEquals("Rollback call on already rolled-back xid " + xid + " expects XAER_RMERR",
           XAException.XAER_RMERR, xae.errorCode);
     }
   }
@@ -577,7 +577,7 @@ public class XADataSourceTest {
       xaRes.commit(xid, true);
       fail("One-phase commit is expected to fail with XAER_PROTO when called on prepared xid");
     } catch (XAException xae) {
-      assertEquals("One-phase commit of prepared xid " +  xid + " expects XAER_PROTO",
+      assertEquals("One-phase commit of prepared xid " + xid + " expects XAER_PROTO",
           XAException.XAER_PROTO, xae.errorCode);
     }
   }
@@ -597,7 +597,7 @@ public class XADataSourceTest {
       xaRes.commit(xid, true);
       fail("One-phase commit is expected to fail with XAER_NOTA as xid was already committed");
     } catch (XAException xae) {
-      assertEquals("One-phase commit call on already committed xid " +  xid + " expects XAER_NOTA",
+      assertEquals("One-phase commit call on already committed xid " + xid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     }
   }
@@ -613,7 +613,7 @@ public class XADataSourceTest {
       xaRes.prepare(xid);
       fail("Prepare is expected to fail with XAER_NOTA as used unknown xid");
     } catch (XAException xae) {
-      assertEquals("Prepare call on unknown xid " +  xid + " expects XAER_NOTA",
+      assertEquals("Prepare call on unknown xid " + xid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     }
   }
@@ -633,7 +633,7 @@ public class XADataSourceTest {
       xaRes.commit(unknownXid, false);
       fail("Commit is expected to fail with XAER_NOTA as used unknown xid");
     } catch (XAException xae) {
-      assertEquals("Commit call on unknown xid " +  unknownXid + " expects XAER_NOTA",
+      assertEquals("Commit call on unknown xid " + unknownXid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     } finally {
       xaRes.rollback(xid);
@@ -654,7 +654,7 @@ public class XADataSourceTest {
       xaRes.commit(unknownXid, true);
       fail("One-phase commit is expected to fail with XAER_NOTA as used unknown xid");
     } catch (XAException xae) {
-      assertEquals("Commit call on unknown xid " +  unknownXid + " expects XAER_NOTA",
+      assertEquals("Commit call on unknown xid " + unknownXid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     } finally {
       xaRes.rollback(xid);
@@ -676,7 +676,7 @@ public class XADataSourceTest {
       xaRes.rollback(unknownXid);
       fail("Rollback is expected to fail as used unknown xid");
     } catch (XAException xae) {
-      assertEquals("Commit call on unknown xid " +  unknownXid + " expects XAER_NOTA",
+      assertEquals("Commit call on unknown xid " + unknownXid + " expects XAER_NOTA",
           XAException.XAER_NOTA, xae.errorCode);
     } finally {
       xaRes.rollback(xid);
@@ -700,7 +700,7 @@ public class XADataSourceTest {
       xaRes.commit(xid, false);
       fail("Commit is expected to fail as committed xid was removed before");
     } catch (XAException xae) {
-      assertEquals("Commit call on xid " +  xid + " not known to DB expects XAER_RMERR",
+      assertEquals("Commit call on xid " + xid + " not known to DB expects XAER_RMERR",
           XAException.XAER_RMERR, xae.errorCode);
     }
   }
@@ -722,7 +722,7 @@ public class XADataSourceTest {
       xaRes.rollback(xid);
       fail("Rollback is expected to fail as committed xid was removed before");
     } catch (XAException xae) {
-      assertEquals("Rollback call on xid " +  xid + " not known to DB expects XAER_RMERR",
+      assertEquals("Rollback call on xid " + xid + " not known to DB expects XAER_RMERR",
           XAException.XAER_RMERR, xae.errorCode);
     }
   }

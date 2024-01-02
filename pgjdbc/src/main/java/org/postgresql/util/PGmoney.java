@@ -54,7 +54,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
       String s1;
       boolean negative;
 
-      negative = (s.charAt(0) == '(');
+      negative = s.charAt(0) == '(';
 
       // Remove any () (for negative) & currency symbol
       s1 = PGtokenizer.removePara(s).substring(1);

@@ -88,7 +88,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
   private static final String SYS_PROP_PREFIX = "sys:";
 
   public SingleCertValidatingFactory(String sslFactoryArg) throws GeneralSecurityException {
-    if (sslFactoryArg == null || sslFactoryArg.equals("")) {
+    if (sslFactoryArg == null || "".equals(sslFactoryArg)) {
       throw new GeneralSecurityException(GT.tr("The sslfactoryarg property may not be empty."));
     }
     InputStream in = null;

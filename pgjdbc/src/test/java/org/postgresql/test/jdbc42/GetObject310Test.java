@@ -144,7 +144,7 @@ public class GetObject310Test extends BaseTest4 {
   public void localDate(ZoneId zoneId, String date) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     try (Statement stmt = con.createStatement(); ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","date_column","DATE '" + date + "'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "DATE '" + date + "'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column")); ) {
         assertTrue(rs.next());
@@ -169,7 +169,7 @@ public class GetObject310Test extends BaseTest4 {
 
     for (String time : timesToTest) {
       try (Statement stmt = con.createStatement(); ) {
-        stmt.executeUpdate(TestUtil.insertSQL("table1","time_with_time_zone_column","time with time zone '" + time + "'"));
+        stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "time with time zone '" + time + "'"));
 
         try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column")); ) {
           assertTrue(rs.next());
@@ -197,7 +197,7 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTime() throws SQLException {
     try (Statement stmt = con.createStatement(); ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","TIME '04:05:06.123456'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '04:05:06.123456'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
         assertTrue(rs.next());
@@ -220,7 +220,7 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTimeNull() throws SQLException {
     try (Statement stmt = con.createStatement(); ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","time_without_time_zone_column","NULL"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "NULL"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
         assertTrue(rs.next());
@@ -237,7 +237,7 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTimeInvalidType() throws SQLException {
     try (Statement stmt = con.createStatement(); ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column"))) {
         assertTrue(rs.next());
@@ -305,7 +305,7 @@ public class GetObject310Test extends BaseTest4 {
   public void localTimestamps(ZoneId zoneId, String timestamp) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     try (Statement stmt = con.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_without_time_zone_column","TIMESTAMP '" + timestamp + "'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_without_time_zone_column", "TIMESTAMP '" + timestamp + "'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"))) {
         assertTrue(rs.next());
@@ -338,7 +338,7 @@ public class GetObject310Test extends BaseTest4 {
 
   private void runGetOffsetDateTime(ZoneOffset offset) throws SQLException {
     try (Statement stmt = con.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1","timestamp_with_time_zone_column","TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_with_time_zone_column"))) {
         assertTrue(rs.next());

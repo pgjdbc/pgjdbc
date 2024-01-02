@@ -152,14 +152,17 @@ public class PGPropertyMaxResultBufferParser {
       case 'T':
       case 't':
         multiplier *= mul;
+        break;
 
       case 'G':
       case 'g':
         multiplier *= mul;
+        break;
 
       case 'M':
       case 'm':
         multiplier *= mul;
+        break;
 
       case 'K':
       case 'k':

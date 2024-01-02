@@ -30,7 +30,7 @@ import java.sql.Types;
 @RunWith(JUnitClassloaderRunner.class)
 @LeakPreventor(DriverSupportsClassUnloadingTest.LeakPreventor.class)
 @PackagesLoadedOutsideClassLoader(
-    packages = {"java.", "javax.",  "jdk.", "com.sun.", "sun.", "org.w3c", "org.junit.", "junit.",
+    packages = {"java.", "javax.", "jdk.", "com.sun.", "sun.", "org.w3c", "org.junit.", "junit.",
         "se.jiderhamn."}
 )
 public class DriverSupportsClassUnloadingTest {

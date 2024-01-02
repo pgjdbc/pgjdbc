@@ -135,7 +135,7 @@ public class WrapperTest {
   public void testStatementUnwrapPGStatement() throws SQLException {
     Object v = statement.unwrap(PGStatement.class);
     assertNotNull(v);
-    assertTrue("Should be instance of PGStatement, actual instance of " + v,v instanceof PGStatement);
+    assertTrue("Should be instance of PGStatement, actual instance of " + v, v instanceof PGStatement);
   }
 
 }

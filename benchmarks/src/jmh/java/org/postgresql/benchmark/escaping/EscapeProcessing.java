@@ -44,7 +44,7 @@ public class EscapeProcessing {
       "{fn concat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)}"})
   private String fnEscapeSQL;
   private boolean replaceProcessingEnabled = true;
-  private boolean standardConformingStrings = false;
+  private boolean standardConformingStrings;
 
   @Benchmark
   public String escapeFunctionWithDate() throws Exception {

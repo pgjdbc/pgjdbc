@@ -318,7 +318,7 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
 
     assertTrue(rs.next());
-    assertEquals("ok",rs.getObject(1));
+    assertEquals("ok", rs.getObject(1));
 
     rs.close();
     pstmt.close();
@@ -359,7 +359,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
     // Test with standard_conforming_strings turned off.
     stmt.execute("SET standard_conforming_strings TO off");
-    for (int i = 0; i < testStrings.length; ++i) {
+    for (int i = 0; i < testStrings.length; i++) {
       PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStrings[i] + "'");
       ResultSet rs = pstmt.executeQuery();
       assertTrue(rs.next());
@@ -371,7 +371,7 @@ public class PreparedStatementTest extends BaseTest4 {
     // Test with standard_conforming_strings turned off...
     // ... using the escape string syntax (E'').
     stmt.execute("SET standard_conforming_strings TO on");
-    for (int i = 0; i < testStrings.length; ++i) {
+    for (int i = 0; i < testStrings.length; i++) {
       PreparedStatement pstmt = con.prepareStatement("SELECT E'" + testStrings[i] + "'");
       ResultSet rs = pstmt.executeQuery();
       assertTrue(rs.next());
@@ -380,7 +380,7 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.close();
     }
     // ... using standard conforming input strings.
-    for (int i = 0; i < testStrings.length; ++i) {
+    for (int i = 0; i < testStrings.length; i++) {
       PreparedStatement pstmt = con.prepareStatement("SELECT '" + testStringsStdConf[i] + "'");
       ResultSet rs = pstmt.executeQuery();
       assertTrue(rs.next());
@@ -546,7 +546,7 @@ public class PreparedStatementTest extends BaseTest4 {
     values[3] = new BigDecimal("-" + minValueString);
 
     pstmt = con.prepareStatement("insert into numeric_tab values (?,?,?,?,?)");
-    for (int i = 1; i < 5 ; i++) {
+    for (int i = 1; i < 5; i++) {
       pstmt.setBigDecimal(i, values[i - 1]);
     }
 
@@ -557,7 +557,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt = con.prepareStatement("select * from numeric_tab");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    for (int i = 1; i < 5 ; i++) {
+    for (int i = 1; i < 5; i++) {
       assertTrue(rs.getBigDecimal(i).compareTo(values[i - 1]) == 0);
     }
     rs.getDouble(5);
@@ -1464,7 +1464,7 @@ public class PreparedStatementTest extends BaseTest4 {
     try {
       Timestamp ts = new Timestamp(1474997614836L);
       // Since PreparedStatement isn't cached immediately, we need to some warm up
-      for (int i = 0; i < 3; ++i) {
+      for (int i = 0; i < 3; i++) {
         ResultSet rs;
 
         // Flip statement to use Oid.DATE

@@ -47,7 +47,7 @@ public class AuthenticationPluginTest {
       props.setProperty(PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.getName(), DummyAuthenticationPlugin.class.getName());
       PGProperty.USER.set(props, username);
 
-      boolean[] wasCalled = { false };
+      boolean[] wasCalled = {false};
       DummyAuthenticationPlugin.onGetPassword = type -> {
         wasCalled[0] = true;
         Assert.assertEquals("The authentication type should match", expectedType, type);

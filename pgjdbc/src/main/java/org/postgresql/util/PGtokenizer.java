@@ -28,13 +28,13 @@ public class PGtokenizer {
   private static final Map<Character, Character> CLOSING_TO_OPENING_CHARACTER = new HashMap<>();
 
   static 	{
-    CLOSING_TO_OPENING_CHARACTER.put( ')', '(');
+    CLOSING_TO_OPENING_CHARACTER.put(')', '(');
 
-    CLOSING_TO_OPENING_CHARACTER.put( ']', '[');
+    CLOSING_TO_OPENING_CHARACTER.put(']', '[');
 
-    CLOSING_TO_OPENING_CHARACTER.put( '>', '<');
+    CLOSING_TO_OPENING_CHARACTER.put('>', '<');
 
-    CLOSING_TO_OPENING_CHARACTER.put( '"', '"');
+    CLOSING_TO_OPENING_CHARACTER.put('"', '"');
   }
 
   // Our tokens
@@ -77,7 +77,7 @@ public class PGtokenizer {
     int s;
     boolean skipChar = false;
     boolean nestedDoubleQuote = false;
-    char c = (char)0;
+    char c = (char) 0;
     for (p = 0, s = 0; p < string.length(); p++) {
       c = string.charAt(p);
 

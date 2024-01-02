@@ -119,7 +119,7 @@ final class ArrayDecoding {
     public void populateFromString(A arr, List<@Nullable String> strings, BaseConnection connection) throws SQLException {
       final @Nullable Object[] array = (Object[]) arr;
 
-      for (int i = 0, j = strings.size(); i < j; ++i) {
+      for (int i = 0, j = strings.size(); i < j; i++) {
         final String stringVal = strings.get(i);
         array[i] = stringVal != null ? parseValue(stringVal, connection) : null;
       }
@@ -148,14 +148,14 @@ final class ArrayDecoding {
       final @Nullable Object[] array = (Object[]) arr;
 
       // skip through to the requested index
-      for (int i = 0; i < index; ++i) {
+      for (int i = 0; i < index; i++) {
         final int length = bytes.getInt();
         if (length > 0) {
           bytes.position(bytes.position() + length);
         }
       }
 
-      for (int i = 0; i < count; ++i) {
+      for (int i = 0; i < count; i++) {
         final int length = bytes.getInt();
         if (length != -1) {
           array[i] = parseValue(length, bytes, connection);
@@ -532,7 +532,7 @@ final class ArrayDecoding {
     }
 
     final int[] dimensionLengths = new int[dimensions];
-    for (int i = 0; i < dimensions; ++i) {
+    for (int i = 0; i < dimensions; i++) {
       dimensionLengths[i] = buffer.getInt();
       buffer.position(buffer.position() + 4);
     }
@@ -557,7 +557,7 @@ final class ArrayDecoding {
       int skip, int[] dimensionLengths, int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
-    for (int i = 0; i < skip; ++i) {
+    for (int i = 0; i < skip; i++) {
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromBinary(array[0], 0, dimensionLengths[dim + 1], bytes, connection);
       } else {
@@ -565,7 +565,7 @@ final class ArrayDecoding {
       }
     }
 
-    for (int i = 0; i < dimensionLengths[dim]; ++i) {
+    for (int i = 0; i < dimensionLengths[dim]; i++) {
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromBinary(array[i], 0, dimensionLengths[dim + 1], bytes, connection);
       } else {
@@ -675,7 +675,7 @@ final class ArrayDecoding {
 
         // add element to current array
         if (b != null && (!b.isEmpty() || wasInsideString)) {
-          curArray.add(!wasInsideString && b.equals("NULL") ? null : b);
+          curArray.add(!wasInsideString && "NULL".equals(b) ? null : b);
         }
 
         wasInsideString = false;
@@ -723,7 +723,7 @@ final class ArrayDecoding {
    * @throws SQLException
    *           For failures encountered during parsing.
    */
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({"unchecked", "rawtypes"})
   public static Object readStringArray(int index, int count, int oid, PgArrayList list, BaseConnection connection)
       throws SQLException {
 
@@ -783,12 +783,12 @@ final class ArrayDecoding {
     return array;
   }
 
-  @SuppressWarnings({ "unchecked", "rawtypes" })
+  @SuppressWarnings({"unchecked", "rawtypes"})
   private static <A extends @NonNull Object> void storeStringValues(A[] array, ArrayDecoder<A> decoder, List list, int [] dimensionLengths,
       int dim, BaseConnection connection) throws SQLException {
     assert dim <= dimensionLengths.length - 2;
 
-    for (int i = 0; i < dimensionLengths[dim]; ++i) {
+    for (int i = 0; i < dimensionLengths[dim]; i++) {
       Object element = castNonNull(list.get(i), "list.get(i)");
       if (dim == dimensionLengths.length - 2) {
         decoder.populateFromString(array[i], (List<@Nullable String>) element, connection);

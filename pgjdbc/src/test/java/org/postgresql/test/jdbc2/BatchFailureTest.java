@@ -126,7 +126,7 @@ public class BatchFailureTest extends BaseTest4 {
   @Parameterized.Parameters(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
-    boolean[] booleans = new boolean[] {true, false};
+    boolean[] booleans = new boolean[]{true, false};
     for (BatchType batchType : BatchType.values()) {
       for (FailMode failMode : FailMode.values()) {
         if (!failMode.supports(batchType)) {

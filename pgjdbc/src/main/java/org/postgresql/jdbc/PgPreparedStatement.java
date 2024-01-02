@@ -190,7 +190,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         execute(preparedQuery, preparedParameters, flags);
 
         checkClosed();
-        return (result != null && result.getResultSet() != null);
+        return result != null && result.getResultSet() != null;
       }
     } finally {
       defaultTimeZone = null;
@@ -374,7 +374,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private int getStringType() {
-    return (connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED);
+    return connection.getStringVarcharFlag() ? Oid.VARCHAR : Oid.UNSPECIFIED;
   }
 
   protected void setString(@Positive int parameterIndex,
@@ -607,7 +607,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         break;
       case Types.LONGVARCHAR:
         if (in instanceof InputStream) {
-          preparedParameters.setText(parameterIndex, (InputStream)in);
+          preparedParameters.setText(parameterIndex, (InputStream) in);
         } else {
           setString(parameterIndex, castToString(in), getStringType());
         }
@@ -914,7 +914,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       if (in instanceof String) {
         rc = new BigDecimal((String) in);
       } else if (in instanceof BigDecimal) {
-        rc = ((BigDecimal) in);
+        rc = (BigDecimal) in;
       } else if (in instanceof BigInteger) {
         rc = new BigDecimal((BigInteger) in);
       } else if (in instanceof Long || in instanceof Integer || in instanceof Short
@@ -1102,8 +1102,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public boolean isUseServerPrepare() {
-    return (preparedQuery != null && mPrepareThreshold != 0
-        && preparedQuery.getExecuteCount() + 1 >= mPrepareThreshold);
+    return preparedQuery != null && mPrepareThreshold != 0
+        && preparedQuery.getExecuteCount() + 1 >= mPrepareThreshold;
   }
 
   @Override
@@ -1534,11 +1534,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public void setCharacterStream(@Positive int parameterIndex,
       @Nullable Reader value) throws SQLException {
     if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
-      String s = (value != null) ? readerToString(value, Integer.MAX_VALUE) : null;
+      String s = value != null ? readerToString(value, Integer.MAX_VALUE) : null;
       setString(parameterIndex, s);
       return;
     }
-    InputStream is = (value != null) ? new ReaderInputStream(value) : null;
+    InputStream is = value != null ? new ReaderInputStream(value) : null;
     setObject(parameterIndex, is, Types.LONGVARCHAR);
   }
 

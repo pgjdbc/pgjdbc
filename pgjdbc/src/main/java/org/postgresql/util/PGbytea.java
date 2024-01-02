@@ -22,10 +22,10 @@ public class PGbytea {
   private static final int[] HEX_VALS = new int['f' + 1 - '0'];
 
   static {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
       HEX_VALS[i] = (byte) i;
     }
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 6; i++) {
       HEX_VALS['A' + i - '0'] = (byte) (10 + i);
       HEX_VALS['a' + i - '0'] = (byte) (10 + i);
     }
@@ -75,7 +75,7 @@ public class PGbytea {
       // count backslash escapes, they will be either
       // backslashes or an octal escape \\ or \003
       //
-      for (int i = 0; i < slength; ++i) {
+      for (int i = 0; i < slength; i++) {
         byte current = s[i];
         if (current == '\\') {
           byte next = s[++i];

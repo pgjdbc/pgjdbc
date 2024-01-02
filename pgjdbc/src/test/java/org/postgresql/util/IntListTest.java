@@ -24,7 +24,7 @@ public class IntListTest {
     list.add(3);
     assertEquals(1, list.size());
 
-    for (int i = 0; i < 48; ++i) {
+    for (int i = 0; i < 48; i++) {
       list.add(i);
     }
     assertEquals(49, list.size());
@@ -59,13 +59,13 @@ public class IntListTest {
     list.add(3);
     assertEquals(3, list.get(0));
 
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       list.add(i);
     }
 
     assertEquals(3, list.get(0));
 
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       assertEquals(i, list.get(i + 1));
     }
 
@@ -87,7 +87,7 @@ public class IntListTest {
     assertSame(emptyArray, list.toArray(), "emptyList.toArray() after clearing the list");
 
     final int[] expected = new int[1048];
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       list.add(i);
       expected[i] = i;
     }

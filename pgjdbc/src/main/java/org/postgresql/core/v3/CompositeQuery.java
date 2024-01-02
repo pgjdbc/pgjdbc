@@ -29,7 +29,7 @@ class CompositeQuery implements Query {
 
   public ParameterList createParameterList() {
     SimpleParameterList[] subparams = new SimpleParameterList[subqueries.length];
-    for (int i = 0; i < subqueries.length; ++i) {
+    for (int i = 0; i < subqueries.length; i++) {
       subparams[i] = (SimpleParameterList) subqueries[i].createParameterList();
     }
     return new CompositeParameterList(subparams, offsets);
@@ -37,7 +37,7 @@ class CompositeQuery implements Query {
 
   public String toString(@Nullable ParameterList parameters) {
     StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
-    for (int i = 1; i < subqueries.length; ++i) {
+    for (int i = 1; i < subqueries.length; i++) {
       sbuf.append(';');
       sbuf.append(subqueries[i]);
     }
@@ -47,7 +47,7 @@ class CompositeQuery implements Query {
   @Override
   public String getNativeSql() {
     StringBuilder sbuf = new StringBuilder(subqueries[0].getNativeSql());
-    for (int i = 1; i < subqueries.length; ++i) {
+    for (int i = 1; i < subqueries.length; i++) {
       sbuf.append(';');
       sbuf.append(subqueries[i].getNativeSql());
     }

@@ -196,7 +196,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       clean.execute();
       clean.close();
 
-      pstmt = con.prepareStatement("INSERT INTO testbatch " +  values + "(?,?,?)" + suffix);
+      pstmt = con.prepareStatement("INSERT INTO testbatch " + values + "(?,?,?)" + suffix);
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);

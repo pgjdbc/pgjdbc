@@ -35,7 +35,7 @@ import java.util.List;
 public class BatchResultHandler extends ResultHandlerBase {
 
   private final PgStatement pgStatement;
-  private int resultIndex = 0;
+  private int resultIndex;
 
   private final Query[] queries;
   private final long[] longUpdateCounts;

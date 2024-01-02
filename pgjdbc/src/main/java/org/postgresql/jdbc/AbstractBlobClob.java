@@ -33,7 +33,7 @@ public abstract class AbstractBlobClob {
 
   private @Nullable LargeObject currentLo;
   private boolean currentLoIsWriteable;
-  private boolean support64bit;
+  private final boolean support64bit;
 
   /**
    * We create separate LargeObjects for methods that use streams so they won't interfere with each
@@ -198,7 +198,7 @@ public abstract class AbstractBlobClob {
       } else {
         numBytes = getLo(false).read(buffer, 0, BUFFER_SIZE);
         idx = 0;
-        result = (numBytes > 0);
+        result = numBytes > 0;
       }
       return result;
     }

@@ -1304,7 +1304,7 @@ Server SQLState: 25001)
       int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 2;
       Assert.assertEquals(
           "Inserting two multi-valued statements with two rows each. Expecting {2, 2} rows inserted (or SUCCESS_NO_INFO)",
-          Arrays.toString(new int[] { rowsInserted, rowsInserted }),
+          Arrays.toString(new int[]{rowsInserted, rowsInserted}),
           Arrays.toString(outcome));
     } catch (SQLException sqle) {
       Assert.fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());

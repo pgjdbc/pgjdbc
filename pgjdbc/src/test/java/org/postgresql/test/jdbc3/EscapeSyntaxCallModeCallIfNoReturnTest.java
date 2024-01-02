@@ -46,7 +46,7 @@ public class EscapeSyntaxCallModeCallIfNoReturnTest extends EscapeSyntaxCallMode
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertEquals(expected.getState(),ex.getSQLState());
+      assertEquals(expected.getState(), ex.getSQLState());
     }
   }
 

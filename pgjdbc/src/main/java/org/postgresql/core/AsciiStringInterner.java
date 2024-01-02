@@ -93,7 +93,7 @@ final class AsciiStringInterner {
 
     @Override
     void appendString(StringBuilder sb) {
-      for (int i = offset, j = offset + length; i < j; ++i) {
+      for (int i = offset, j = offset + length; i < j; i++) {
         sb.append((char) bytes[i]);
       }
     }
@@ -129,7 +129,7 @@ final class AsciiStringInterner {
      */
     @Override
     void appendString(StringBuilder sb) {
-      for (int i = 0; i < key.length; ++i) {
+      for (int i = 0; i < key.length; i++) {
         sb.append((char) key[i]);
       }
     }
@@ -231,7 +231,7 @@ final class AsciiStringInterner {
     final String value = new String(copy, StandardCharsets.US_ASCII);
 
     // handle case where a concurrent thread has populated the map or existing value has cleared reference
-    ref = cache.compute(key, (k,v) -> {
+    ref = cache.compute(key, (k, v) -> {
       if (v == null) {
         return new StringReference(key, value);
       }
@@ -293,7 +293,7 @@ final class AsciiStringInterner {
   private void cleanQueue() {
     Reference<?> ref;
     while ((ref = refQueue.poll()) != null) {
-      ((StringReference)ref).dispose();
+      ((StringReference) ref).dispose();
     }
   }
 
@@ -303,7 +303,7 @@ final class AsciiStringInterner {
    */
   private static int hashKey(byte[] bytes, int offset, int length) {
     int result = 1;
-    for (int i = offset, j = offset + length; i < j; ++i) {
+    for (int i = offset, j = offset + length; i < j; i++) {
       final byte b = bytes[i];
       // bytes are signed values. all ascii values are positive
       if (b < 0) {
@@ -327,7 +327,7 @@ final class AsciiStringInterner {
     }
     //TODO: in jdk9, could use VarHandle to read 4 bytes at a time as an int for comparison
     // or 8 bytes as a long - though we likely expect short values here
-    for (int i = 0; i < aLength; ++i) {
+    for (int i = 0; i < aLength; i++) {
       if (a[aOffset + i] != b[bOffset + i]) {
         return false;
       }
@@ -342,7 +342,7 @@ final class AsciiStringInterner {
   public String toString() {
     final StringBuilder sb = new StringBuilder(32 + (8 * cache.size()));
     sb.append("AsciiStringInterner [");
-    cache.forEach((k,v) -> {
+    cache.forEach((k, v) -> {
       sb.append('\'');
       k.appendString(sb);
       sb.append("', ");

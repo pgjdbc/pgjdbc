@@ -97,7 +97,7 @@ public class BlobTransactionTest {
 
   private byte[] randomData() {
     byte[] data = new byte[64 * 1024 * 8];
-    for (int i = 0; i < data.length; ++i) {
+    for (int i = 0; i < data.length; i++) {
       data[i] = (byte) (Math.random() * 256);
     }
     return data;
@@ -153,7 +153,7 @@ public class BlobTransactionTest {
     Blob initContentBlob = rs2.getBlob(1);
     byte[] initialContentReRead = readInputStream(initContentBlob.getBinaryStream());
     assertEquals(initialContentReRead.length, initialData.length);
-    for (int i = 0; i < initialContentReRead.length; ++i) {
+    for (int i = 0; i < initialContentReRead.length; i++) {
       assertEquals(initialContentReRead[i], initialData[i]);
     }
 
@@ -169,7 +169,7 @@ public class BlobTransactionTest {
     initContentBlob = rs2.getBlob(1);
     initialContentReRead = readInputStream(initContentBlob.getBinaryStream());
     assertEquals(initialContentReRead.length, initialData.length);
-    for (int i = 0; i < initialContentReRead.length; ++i) {
+    for (int i = 0; i < initialContentReRead.length; i++) {
       assertEquals(initialContentReRead[i], initialData[i]);
     }
 

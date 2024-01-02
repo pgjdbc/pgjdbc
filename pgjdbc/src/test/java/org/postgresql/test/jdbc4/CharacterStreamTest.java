@@ -38,8 +38,8 @@ public class CharacterStreamTest extends BaseTest4 {
   private void insertStreamKnownIntLength(String data) throws Exception {
     PreparedStatement insertPS = con.prepareStatement(_insert);
     try {
-      Reader reader = (data != null) ? new StringReader(data) : null;
-      int length = (data != null) ? data.length() : 0;
+      Reader reader = data != null ? new StringReader(data) : null;
+      int length = data != null ? data.length() : 0;
       insertPS.setCharacterStream(1, reader, length);
       insertPS.executeUpdate();
     } finally {
@@ -50,8 +50,8 @@ public class CharacterStreamTest extends BaseTest4 {
   private void insertStreamKnownLongLength(String data) throws Exception {
     PreparedStatement insertPS = con.prepareStatement(_insert);
     try {
-      Reader reader = (data != null) ? new StringReader(data) : null;
-      long length = (data != null) ? data.length() : 0;
+      Reader reader = data != null ? new StringReader(data) : null;
+      long length = data != null ? data.length() : 0;
       insertPS.setCharacterStream(1, reader, length);
       insertPS.executeUpdate();
     } finally {
@@ -62,7 +62,7 @@ public class CharacterStreamTest extends BaseTest4 {
   private void insertStreamUnknownLength(String data) throws Exception {
     PreparedStatement insertPS = con.prepareStatement(_insert);
     try {
-      Reader reader = (data != null) ? new StringReader(data) : null;
+      Reader reader = data != null ? new StringReader(data) : null;
       insertPS.setCharacterStream(1, reader);
       insertPS.executeUpdate();
     } finally {

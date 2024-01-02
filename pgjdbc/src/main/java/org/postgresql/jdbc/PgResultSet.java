@@ -93,15 +93,15 @@ import java.util.logging.Level;
 public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
 
   // needed for updateable result set support
-  private boolean updateable = false;
-  private boolean doingUpdates = false;
-  private @Nullable HashMap<String, Object> updateValues = null;
-  private boolean usingOID = false; // are we using the OID for the primary key?
+  private boolean updateable;
+  private boolean doingUpdates;
+  private @Nullable HashMap<String, Object> updateValues;
+  private boolean usingOID; // are we using the OID for the primary key?
   private @Nullable List<PrimaryKey> primaryKeys; // list of primary keys
-  private boolean singleTable = false;
+  private boolean singleTable;
   private String onlyTable = "";
-  private @Nullable String tableName = null;
-  private @Nullable PreparedStatement deleteStatement = null;
+  private @Nullable String tableName;
+  private @Nullable PreparedStatement deleteStatement;
   private final int resultsettype;
   private final int resultsetconcurrency;
   private int fetchdirection = ResultSet.FETCH_UNKNOWN;
@@ -119,20 +119,20 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   protected int currentRow = -1; // Index into 'rows' of our current row (0-based)
   protected int rowOffset; // Offset of row 0 in the actual resultset
   protected @Nullable Tuple thisRow; // copy of the current result row
-  protected @Nullable SQLWarning warnings = null; // The warning chain
+  protected @Nullable SQLWarning warnings; // The warning chain
   /**
    * True if the last obtained column value was SQL NULL as specified by {@link #wasNull}. The value
    * is always updated by the {@link #getRawValue} method.
    */
-  protected boolean wasNullFlag = false;
-  protected boolean onInsertRow = false;
+  protected boolean wasNullFlag;
+  protected boolean onInsertRow;
   // are we on the insert row (for JDBC2 updatable resultsets)?
 
-  private @Nullable Tuple rowBuffer = null; // updateable rowbuffer
+  private @Nullable Tuple rowBuffer; // updateable rowbuffer
 
   protected int fetchSize; // Current fetch size (might be 0).
   protected int lastUsedFetchSize; // Fetch size used during last fetch
-  protected boolean adaptiveFetch = false;
+  protected boolean adaptiveFetch;
   protected @Nullable ResultCursor cursor; // Cursor for fetching additional data.
 
   // Speed up findColumn by caching lookups
@@ -225,7 +225,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       case Types.NUMERIC:
       case Types.DECIMAL:
         return getNumeric(columnIndex,
-            (field.getMod() == -1) ? -1 : ((field.getMod() - 4) & 0xffff), true);
+            field.getMod() == -1 ? -1 : ((field.getMod() - 4) & 0xffff), true);
       case Types.REAL:
         return getFloat(columnIndex);
       case Types.FLOAT:
@@ -256,11 +256,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         String type = getPGType(columnIndex);
 
         // if the backend doesn't know the type then coerce to String
-        if (type.equals("unknown")) {
+        if ("unknown".equals(type)) {
           return getString(columnIndex);
         }
 
-        if (type.equals("uuid")) {
+        if ("uuid".equals(type)) {
           if (isBinary(columnIndex)) {
             return getUUID(castNonNull(thisRow.get(columnIndex - 1)));
           }
@@ -268,7 +268,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         }
 
         // Specialized support for ref cursors is neater.
-        if (type.equals("refcursor")) {
+        if ("refcursor".equals(type)) {
           // Fetch all results.
           String cursorName = castNonNull(getString(columnIndex));
 
@@ -870,7 +870,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (rowOffset + rows_size == 0) {
       return false;
     }
-    return (currentRow >= rows_size);
+    return currentRow >= rows_size;
   }
 
   @Pure
@@ -881,7 +881,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return false;
     }
 
-    return ((rowOffset + currentRow) < 0 && !castNonNull(rows, "rows").isEmpty());
+    return (rowOffset + currentRow) < 0 && !castNonNull(rows, "rows").isEmpty();
   }
 
   @Override
@@ -896,7 +896,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       return false;
     }
 
-    return ((rowOffset + currentRow) == 0);
+    return (rowOffset + currentRow) == 0;
   }
 
   @Override
@@ -970,7 +970,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     currentRow = 0;
 
     // Finally, now we can tell if we're the last row or not.
-    return (rows.size() == 1);
+    return rows.size() == 1;
   }
 
   @Override
@@ -1810,7 +1810,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     @Nullable String[] s = quotelessTableName(castNonNull(tableName));
     String quotelessTableName = castNonNull(s[0]);
     @Nullable String quotelessSchemaName = s[1];
-    java.sql.ResultSet rs = ((PgDatabaseMetaData)connection.getMetaData()).getPrimaryUniqueKeys("",
+    java.sql.ResultSet rs = ((PgDatabaseMetaData) connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
     String lastConstraintName = null;
@@ -1982,7 +1982,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
           }
           break;
         default:
-          acc.append((betweenQuotes) ? c : Character.toLowerCase(c));
+          acc.append(betweenQuotes ? c : Character.toLowerCase(c));
           break;
       }
     }
@@ -2021,7 +2021,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
       int columnIndex, @Nullable Object valueObject) throws SQLException {
     if (valueObject instanceof PGobject) {
       String value = ((PGobject) valueObject).getValue();
-      rowBuffer.set(columnIndex, (value == null) ? null : connection.encodeString(value));
+      rowBuffer.set(columnIndex, value == null ? null : connection.encodeString(value));
     } else {
       if (valueObject == null) {
         rowBuffer.set(columnIndex, null);
@@ -3424,8 +3424,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
   private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
-  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double)Long.MAX_VALUE);
-  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double)Long.MIN_VALUE);
+  private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double) Long.MAX_VALUE);
+  private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
 
   /**
    * <p>Converts any numeric binary field to long value.</p>
@@ -3881,7 +3881,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public boolean isClosed() throws SQLException {
-    return (rows == null);
+    return rows == null;
   }
 
   public void updateNString(@Positive int columnIndex, @Nullable String nString) throws SQLException {
@@ -4130,7 +4130,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   private TimestampUtils getTimestampUtils() {
     if (timestampUtils == null) {
-      timestampUtils = new TimestampUtils(! connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>)new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
     }
     return timestampUtils;
   }

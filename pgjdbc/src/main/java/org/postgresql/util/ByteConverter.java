@@ -22,7 +22,7 @@ public class ByteConverter {
    */
   private static final class PositiveShorts {
     private short[] shorts = new short[8];
-    private int idx = 0;
+    private int idx;
 
     PositiveShorts() {
     }
@@ -68,13 +68,13 @@ public class ByteConverter {
   private static final BigInteger BI_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
 
   static {
-    for (int i = 0; i < INT_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < INT_TEN_POWERS.length; i++) {
       INT_TEN_POWERS[i] = (int) Math.pow(10, i);
     }
-    for (int i = 0; i < LONG_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < LONG_TEN_POWERS.length; i++) {
       LONG_TEN_POWERS[i] = (long) Math.pow(10, i);
     }
-    for (int i = 0; i < BI_TEN_POWERS.length; ++i) {
+    for (int i = 0; i < BI_TEN_POWERS.length; i++) {
       BI_TEN_POWERS[i] = BigInteger.TEN.pow(i);
     }
   }
@@ -90,7 +90,7 @@ public class ByteConverter {
    */
   public static int bytesToInt(byte []bytes) {
     if ( bytes.length == 1 ) {
-      return (int)bytes[0];
+      return (int) bytes[0];
     }
     if ( bytes.length == SHORT_BYTES ) {
       return int2(bytes, 0);
@@ -128,7 +128,7 @@ public class ByteConverter {
     }
 
     //number of 2-byte shorts representing 4 decimal digits - should be treated as unsigned
-    int len = (ByteConverter.int2(bytes, pos) & 0xFFFF);
+    int len = ByteConverter.int2(bytes, pos) & 0xFFFF;
     //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
     //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
@@ -188,13 +188,13 @@ public class ByteConverter {
       //before the provided values/digits actually begin
       ++weight;
       if (weight < 0) {
-        effectiveScale += (4 * weight);
+        effectiveScale += 4 * weight;
       }
 
       int i = 1;
       //typically there should not be leading 0 short values, as it is more
       //efficient to represent that in the weight value
-      for ( ; i < len && d == 0; ++i) {
+      for (; i < len && d == 0; i++) {
         //each leading 0 value removes 4 from the effective scale
         effectiveScale -= 4;
         idx += 2;
@@ -215,7 +215,7 @@ public class ByteConverter {
       //operations on the long are much faster
       BigInteger unscaledBI = null;
       long unscaledInt = d;
-      for ( ; i < len; ++i) {
+      for (; i < len; i++) {
         if (i == 4 && effectiveScale > 2) {
           unscaledBI = BigInteger.valueOf(unscaledInt);
         }
@@ -272,7 +272,7 @@ public class ByteConverter {
       BigInteger unscaledBI = null;
       long unscaledInt = d;
       //loop over all of the len shorts to process as the unscaled int
-      for (int i = 1; i < len; ++i) {
+      for (int i = 1; i < len; i++) {
         if (i == 4) {
           unscaledBI = BigInteger.valueOf(unscaledInt);
         }
@@ -311,7 +311,7 @@ public class ByteConverter {
     //maintain the effective values to massage as we process through values
     int effectiveWeight = weight;
     int effectiveScale = scale;
-    for (int i = 1 ; i < len; ++i) {
+    for (int i = 1; i < len; i++) {
       if (i == 4) {
         unscaledBI = BigInteger.valueOf(unscaledInt);
       }
@@ -384,7 +384,7 @@ public class ByteConverter {
     BigInteger unscaled = nbr.unscaledValue().abs();
     int scale = nbr.scale();
     if (unscaled.equals(BigInteger.ZERO)) {
-      final byte[] bytes = new byte[] {0,0,-1,-1,0,0,0,0};
+      final byte[] bytes = new byte[]{0, 0, -1, -1, 0, 0, 0, 0};
       ByteConverter.int2(bytes, 6, Math.max(0, scale));
       return bytes;
     }
@@ -448,7 +448,7 @@ public class ByteConverter {
           weight -= segments;
         } else {
           //now add leading 0 shorts
-          for (int i = 0; i < segments; ++i) {
+          for (int i = 0; i < segments; i++) {
             shorts.push((short) 0);
           }
         }
@@ -526,7 +526,7 @@ public class ByteConverter {
         ((bytes[idx] & 255) << 24)
             + ((bytes[idx + 1] & 255) << 16)
             + ((bytes[idx + 2] & 255) << 8)
-            + ((bytes[idx + 3] & 255));
+            + (bytes[idx + 3] & 255);
   }
 
   /**
@@ -537,7 +537,7 @@ public class ByteConverter {
    * @return parsed short value.
    */
   public static short int2(byte[] bytes, int idx) {
-    return (short) (((bytes[idx] & 255) << 8) + ((bytes[idx + 1] & 255)));
+    return (short) (((bytes[idx] & 255) << 8) + (bytes[idx + 1] & 255));
   }
 
   /**

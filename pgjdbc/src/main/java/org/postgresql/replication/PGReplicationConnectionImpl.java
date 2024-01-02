@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 public class PGReplicationConnectionImpl implements PGReplicationConnection {
-  private BaseConnection connection;
+  private final BaseConnection connection;
 
   public PGReplicationConnectionImpl(BaseConnection connection) {
     this.connection = connection;

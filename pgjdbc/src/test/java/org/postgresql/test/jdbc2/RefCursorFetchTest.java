@@ -93,7 +93,7 @@ public class RefCursorFetchTest extends BaseTest4 {
           + "END;\n"
           + "$body$ LANGUAGE plpgsql STABLE");
 
-      TestUtil.execute(con,"--generate 101 rows with 4096 bytes:\n"
+      TestUtil.execute(con, "--generate 101 rows with 4096 bytes:\n"
           + "insert into test_blob\n"
           + "select(select decode(string_agg(lpad(to_hex(width_bucket(random(), 0, 1, 256) - 1), 2, '0'), ''), 'hex')"
           + " FROM generate_series(1, 4096))\n"
@@ -105,7 +105,7 @@ public class RefCursorFetchTest extends BaseTest4 {
   public static void afterClass() throws Exception {
     try (Connection con = TestUtil.openDB();) {
       TestUtil.dropTable(con, "test_blob");
-      TestUtil.dropFunction(con,"test_blob", "REFCURSOR, int4");
+      TestUtil.dropFunction(con, "test_blob", "REFCURSOR, int4");
     }
   }
 

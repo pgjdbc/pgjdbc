@@ -279,7 +279,7 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void checkAllParametersSet() throws SQLException {
-    for (int i = 0; i < paramTypes.length; ++i) {
+    for (int i = 0; i < paramTypes.length; i++) {
       if (direction(i) != OUT && paramValues[i] == null) {
         throw new PSQLException(GT.tr("No value specified for parameter {0}.", i + 1),
             PSQLState.INVALID_PARAMETER_VALUE);
@@ -289,7 +289,7 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void convertFunctionOutParameters() {
-    for (int i = 0; i < paramTypes.length; ++i) {
+    for (int i = 0; i < paramTypes.length; i++) {
       if (direction(i) == OUT) {
         paramTypes[i] = Oid.VOID;
         paramValues[i] = NULL_OBJECT;
@@ -351,7 +351,7 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   boolean isNull(@Positive int index) {
-    return (paramValues[index - 1] == NULL_OBJECT);
+    return paramValues[index - 1] == NULL_OBJECT;
   }
 
   boolean isBinary(@Positive int index) {
@@ -519,5 +519,5 @@ class SimpleParameterList implements V3ParameterList {
    */
   private static final Object NULL_OBJECT = new Object();
 
-  private int pos = 0;
+  private int pos;
 }

@@ -81,7 +81,7 @@ public class TestUtil {
     }
 
     String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
+    if (getBinaryTransfer() != null && !"".equals(getBinaryTransfer())) {
       binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
     }
 
@@ -223,7 +223,7 @@ public class TestUtil {
     }
   }
 
-  private static boolean initialized = false;
+  private static boolean initialized;
 
   public static Properties loadPropertyFiles(String... names) {
     Properties p = new Properties();
@@ -249,7 +249,7 @@ public class TestUtil {
     return p;
   }
 
-  private static Properties sslTestProperties = null;
+  private static Properties sslTestProperties;
 
   private static void initSslTestProperties() {
     try (ResourceLock ignore = lock.obtain()) {
@@ -320,7 +320,7 @@ public class TestUtil {
     initDriver();
     Properties properties = new Properties();
 
-    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
+    PGProperty.GSS_ENC_MODE.set(properties, getGSSEncMode().value);
     PGProperty.USER.set(properties, getPrivilegedUser());
     PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
     PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
@@ -791,7 +791,7 @@ public class TestUtil {
 
   public static boolean haveMinimumJVMVersion(String version) {
     String jvm = java.lang.System.getProperty("java.version");
-    return (jvm.compareTo(version) >= 0);
+    return jvm.compareTo(version) >= 0;
   }
 
   public static boolean haveIntegerDateTimes(Connection con) {

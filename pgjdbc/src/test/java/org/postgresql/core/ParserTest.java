@@ -235,14 +235,14 @@ public class ParserTest {
     String query = "insert into values_table (id, name) values (?,?)";
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     SqlCommand command = qry.get(0).getCommand();
-    Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
+    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
 
     query = "insert into table_values (id, name) values (?,?)";
     qry = Parser.parseJdbcSql(query, true, true, true, true, true);
     command = qry.get(0).getCommand();
-    Assert.assertEquals(43,command.getBatchRewriteValuesBraceOpenPosition());
-    Assert.assertEquals(49,command.getBatchRewriteValuesBraceClosePosition());
+    Assert.assertEquals(43, command.getBatchRewriteValuesBraceOpenPosition());
+    Assert.assertEquals(49, command.getBatchRewriteValuesBraceClosePosition());
   }
 
   @Test

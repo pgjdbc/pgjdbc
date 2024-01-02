@@ -172,7 +172,7 @@ public class PGPropertyTest {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setAutosave(AutoSave.CONSERVATIVE);
     dataSource.setURL("jdbc:postgresql://localhost:5432/postgres");
-    assertSame(dataSource.getAutosave(),AutoSave.CONSERVATIVE);
+    assertSame(dataSource.getAutosave(), AutoSave.CONSERVATIVE);
   }
 
   /**

@@ -31,11 +31,11 @@ public class AdaptiveFetchCacheTest {
   private int size;
 
   // Strings containing variables names in AdaptiveFetchCache class
-  private static String infoMapVariableName = "adaptiveFetchInfoMap";
-  private static String minimumSizeVariableName = "minimumAdaptiveFetchSize";
-  private static String maximumSizeVariableName = "maximumAdaptiveFetchSize";
-  private static String adaptiveFetchVariableName = "adaptiveFetch";
-  private static String maximumBufferSizeVariableName = "maximumResultBufferSize";
+  private static final String infoMapVariableName = "adaptiveFetchInfoMap";
+  private static final String minimumSizeVariableName = "minimumAdaptiveFetchSize";
+  private static final String maximumSizeVariableName = "maximumAdaptiveFetchSize";
+  private static final String adaptiveFetchVariableName = "adaptiveFetch";
+  private static final String maximumBufferSizeVariableName = "maximumResultBufferSize";
 
   /**
    * Simple setup to create new AdaptiveFetchCache with buffer size 1000.

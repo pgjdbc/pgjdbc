@@ -832,8 +832,8 @@ public class UpdateableResultTest extends BaseTest4 {
     ResultSet rs = st.executeQuery("SELECT id, id2, dt from uniquekeys");
     assertTrue(rs.next());
     assertTrue(rs.first());
-    id = rs.getInt(("id"));
-    id2 = rs.getInt(("id2"));
+    id = rs.getInt("id");
+    id2 = rs.getInt("id2");
     rs.updateDate("dt", Date.valueOf("1999-01-01"));
     rs.updateRow();
     rs.close();
@@ -853,7 +853,7 @@ public class UpdateableResultTest extends BaseTest4 {
     ResultSet rs = st.executeQuery("SELECT id, dt from uniquekeys");
     assertTrue(rs.next());
     assertTrue(rs.first());
-    id = rs.getInt(("id"));
+    id = rs.getInt("id");
     rs.updateDate("dt", Date.valueOf("1999-01-01"));
     rs.updateRow();
     rs.close();

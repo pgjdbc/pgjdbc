@@ -54,8 +54,8 @@ public class LazyCleaner {
   private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
   private final long threadTtl;
   private final ThreadFactory threadFactory;
-  private boolean threadRunning = false;
-  private int watchedCount = 0;
+  private boolean threadRunning;
+  private int watchedCount;
   private @Nullable Node<?> first;
 
   /**

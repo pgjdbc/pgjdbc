@@ -180,7 +180,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
-    boolean[] booleans = new boolean[] {true, false};
+    boolean[] booleans = new boolean[]{true, false};
     for (AutoSave autoSave : AutoSave.values()) {
       for (CleanSavePoint cleanSavePoint:CleanSavePoint.values()) {
         for (AutoCommit autoCommit : AutoCommit.values()) {

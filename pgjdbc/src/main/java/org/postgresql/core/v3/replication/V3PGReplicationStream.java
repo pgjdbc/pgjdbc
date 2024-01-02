@@ -33,7 +33,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private final long updateInterval;
   private final ReplicationType replicationType;
   private long lastStatusUpdate;
-  private boolean closeFlag = false;
+  private boolean closeFlag;
 
   private LogSequenceNumber lastServerLSN = LogSequenceNumber.INVALID_LSN;
   /**

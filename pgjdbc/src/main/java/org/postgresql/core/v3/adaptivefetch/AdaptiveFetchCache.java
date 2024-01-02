@@ -26,8 +26,8 @@ import java.util.Properties;
 public class AdaptiveFetchCache {
 
   private final Map<String, AdaptiveFetchCacheEntry> adaptiveFetchInfoMap;
-  private boolean adaptiveFetch = false;
-  private int minimumAdaptiveFetchSize = 0;
+  private boolean adaptiveFetch;
+  private final int minimumAdaptiveFetchSize;
   private int maximumAdaptiveFetchSize = -1;
   private long maximumResultBufferSize = -1;
 

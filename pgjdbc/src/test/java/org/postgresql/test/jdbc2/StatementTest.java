@@ -1016,7 +1016,7 @@ public class StatementTest {
           if (s > 8) {
             try {
               Thread.sleep(s - 9);
-            } catch (InterruptedException ex ) {
+            } catch (InterruptedException ex) {
               // don't execute the close here as this thread was cancelled below in shutdownNow
               return null;
             }

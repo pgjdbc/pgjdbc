@@ -106,7 +106,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
     if (points == null) {
       return hash;
     }
-    for (int i = 0; i < points.length && i < 5; ++i) {
+    for (int i = 0; i < points.length && i < 5; i++) {
       hash = hash * 31 + points[i].hashCode();
     }
     return hash;
@@ -117,7 +117,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
     if (newPGpolygon.points != null) {
       PGpoint[] newPoints = newPGpolygon.points.clone();
       newPGpolygon.points = newPoints;
-      for (int i = 0; i < newPGpolygon.points.length; ++i) {
+      for (int i = 0; i < newPGpolygon.points.length; i++) {
         if (newPGpolygon.points[i] != null) {
           newPoints[i] = (PGpoint) newPGpolygon.points[i].clone();
         }

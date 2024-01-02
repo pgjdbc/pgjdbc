@@ -163,7 +163,7 @@ class SimpleQuery implements Query {
         preparedTypes.length);
     // Check for compatible types.
     BitSet unspecified = this.unspecifiedParams;
-    for (int i = 0; i < paramTypes.length; ++i) {
+    for (int i = 0; i < paramTypes.length; i++) {
       int paramType = paramTypes[i];
       // Either paramType should match prepared type
       // Or paramType==UNSPECIFIED and the prepare type was UNSPECIFIED

@@ -24,7 +24,7 @@ public class HStoreConverter {
     int numElements = ByteConverter.int4(b, pos);
     pos += 4;
     try {
-      for (int i = 0; i < numElements; ++i) {
+      for (int i = 0; i < numElements; i++) {
         int keyLen = ByteConverter.int4(b, pos);
         pos += 4;
         String key = encoding.decode(b, pos, keyLen);

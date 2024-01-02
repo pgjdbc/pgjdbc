@@ -54,7 +54,7 @@ public class DatabaseEncodingTest {
 
   private static String dumpString(String s) {
     StringBuffer sb = new StringBuffer(s.length() * 6);
-    for (int i = 0; i < s.length(); ++i) {
+    for (int i = 0; i < s.length(); i++) {
       sb.append("\\u");
       char c = s.charAt(i);
       sb.append(Integer.toHexString((c >> 12) & 15));
@@ -68,7 +68,7 @@ public class DatabaseEncodingTest {
   @Test
   public void testEncoding() throws Exception {
     String databaseEncoding = TestUtil.queryForString(con, "SELECT getdatabaseencoding()");
-    Assume.assumeTrue("Database encoding must be UTF8", databaseEncoding.equals("UTF8"));
+    Assume.assumeTrue("Database encoding must be UTF8", "UTF8".equals(databaseEncoding));
 
     boolean testHighUnicode = true;
 
@@ -79,7 +79,7 @@ public class DatabaseEncodingTest {
     for (int i = 1; i < 0xd800; i += STEP) {
       int count = (i + STEP) > 0xd800 ? 0xd800 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -93,7 +93,7 @@ public class DatabaseEncodingTest {
     for (int i = 0xe000; i < 0x10000; i += STEP) {
       int count = (i + STEP) > 0x10000 ? 0x10000 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -108,7 +108,7 @@ public class DatabaseEncodingTest {
       for (int i = 0x10000; i < 0x110000; i += STEP) {
         int count = (i + STEP) > 0x110000 ? 0x110000 - i : STEP;
         char[] testChars = new char[count * 2];
-        for (int j = 0; j < count; ++j) {
+        for (int j = 0; j < count; j++) {
           testChars[j * 2] = (char) (0xd800 + ((i + j - 0x10000) >> 10));
           testChars[j * 2 + 1] = (char) (0xdc00 + ((i + j - 0x10000) & 0x3ff));
         }
@@ -137,7 +137,7 @@ public class DatabaseEncodingTest {
 
       int count = (i + STEP) > 0xd800 ? 0xd800 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -153,7 +153,7 @@ public class DatabaseEncodingTest {
 
       int count = (i + STEP) > 0x10000 ? 0x10000 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -170,7 +170,7 @@ public class DatabaseEncodingTest {
 
         int count = (i + STEP) > 0x110000 ? 0x110000 - i : STEP;
         char[] testChars = new char[count * 2];
-        for (int j = 0; j < count; ++j) {
+        for (int j = 0; j < count; j++) {
           testChars[j * 2] = (char) (0xd800 + ((i + j - 0x10000) >> 10));
           testChars[j * 2 + 1] = (char) (0xdc00 + ((i + j - 0x10000) & 0x3ff));
         }
@@ -189,7 +189,7 @@ public class DatabaseEncodingTest {
 
     Encoding utf8Encoding = Encoding.getJVMEncoding("UTF-8");
 
-    for (int ch = 0; ch < 0x110000; ++ch) {
+    for (int ch = 0; ch < 0x110000; ch++) {
       if (ch >= 0xd800 && ch < 0xe000) {
         continue; // Surrogate range.
       }
@@ -231,10 +231,10 @@ public class DatabaseEncodingTest {
     };
 
     byte[] paddedSequence = new byte[32];
-    for (int i = 0; i < shortSequences.length; ++i) {
+    for (int i = 0; i < shortSequences.length; i++) {
       byte[] sequence = shortSequences[i];
       String expected = "\uFFFD";
-      for (int j = 1; j < sequence.length; ++j) {
+      for (int j = 1; j < sequence.length; j++) {
         expected += "\uFFFD";
       }
 

@@ -246,7 +246,7 @@ public class NotifyTest {
       stmt2.executeUpdate("NOTIFY " + channel);
       stmt2.close();
     } catch (Exception e) {
-      throw new RuntimeException("Couldn't notify '" + channel + "'.",e);
+      throw new RuntimeException("Couldn't notify '" + channel + "'.", e);
     } finally {
       try {
         conn2.close();

@@ -575,7 +575,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int getNetworkTimeout() throws IOException;
 
   // Expose parameter status to PGConnection
-  Map<String,String> getParameterStatuses();
+  Map<String, String> getParameterStatuses();
 
   @Nullable String getParameterStatus(String parameterName);
 

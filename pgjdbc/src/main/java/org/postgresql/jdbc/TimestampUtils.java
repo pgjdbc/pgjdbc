@@ -153,7 +153,7 @@ public class TimestampUtils {
     // normally we would use:
     // calCache = new GregorianCalendar(TimeZone.getTimeZone(offset));
     // But this seems to cause issues for some crazy offsets as returned by server for BC dates!
-    final String tzid = (offset.getTotalSeconds() == 0) ? "UTC" : "GMT".concat(offset.getId());
+    final String tzid = offset.getTotalSeconds() == 0 ? "UTC" : "GMT".concat(offset.getId());
     final TimeZone syntheticTZ = new SimpleTimeZone(offset.getTotalSeconds() * 1000, tzid);
     calCache = new GregorianCalendar(syntheticTZ);
     calCacheZone = offset;
@@ -161,26 +161,26 @@ public class TimestampUtils {
   }
 
   private static class ParsedTimestamp {
-    boolean hasDate = false;
+    boolean hasDate;
     int era = GregorianCalendar.AD;
     int year = 1970;
     int month = 1;
 
-    boolean hasTime = false;
+    boolean hasTime;
     int day = 1;
-    int hour = 0;
-    int minute = 0;
-    int second = 0;
-    int nanos = 0;
+    int hour;
+    int minute;
+    int second;
+    int nanos;
 
-    boolean hasOffset = false;
+    boolean hasOffset;
     ZoneOffset offset = ZoneOffset.UTC;
   }
 
   private static class ParsedBinaryTimestamp {
-    @Nullable Infinity infinity = null;
-    long millis = 0;
-    int nanos = 0;
+    @Nullable Infinity infinity;
+    long millis;
+    int nanos;
   }
 
   enum Infinity {
@@ -291,7 +291,7 @@ public class TimestampUtils {
           end = firstNonDigit(s, start + 1); // Skip '.'
           num = number(s, start + 1, end);
 
-          for (int numlength = (end - (start + 1)); numlength < 9; ++numlength) {
+          for (int numlength = end - (start + 1); numlength < 9; numlength++) {
             num *= 10;
           }
 
@@ -307,7 +307,7 @@ public class TimestampUtils {
       if (sep == '-' || sep == '+') {
         result.hasOffset = true;
 
-        int tzsign = (sep == '-') ? -1 : 1;
+        int tzsign = sep == '-' ? -1 : 1;
         int tzhr;
         int tzmin;
         int tzsec;
@@ -385,11 +385,11 @@ public class TimestampUtils {
       int slen = s.length();
 
       // convert postgres's infinity values to internal infinity magic value
-      if (slen == 8 && s.equals("infinity")) {
+      if (slen == 8 && "infinity".equals(s)) {
         return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
       }
 
-      if (slen == 9 && s.equals("-infinity")) {
+      if (slen == 9 && "-infinity".equals(s)) {
         return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
       }
 
@@ -422,7 +422,7 @@ public class TimestampUtils {
       return null;
     }
 
-    if (s.equals("24:00:00")) {
+    if ("24:00:00".equals(s)) {
       return LocalTime.MAX;
     }
 
@@ -499,11 +499,11 @@ public class TimestampUtils {
     int slen = s.length();
 
     // convert postgres's infinity values to internal infinity magic value
-    if (slen == 8 && s.equals("infinity")) {
+    if (slen == 8 && "infinity".equals(s)) {
       return LocalDateTime.MAX;
     }
 
-    if (slen == 9 && s.equals("-infinity")) {
+    if (slen == 9 && "-infinity".equals(s)) {
       return LocalDateTime.MIN;
     }
 
@@ -550,11 +550,11 @@ public class TimestampUtils {
     int slen = s.length();
 
     // convert postgres's infinity values to internal infinity magic value
-    if (slen == 8 && s.equals("infinity")) {
+    if (slen == 8 && "infinity".equals(s)) {
       return OffsetDateTime.MAX;
     }
 
-    if (slen == 9 && s.equals("-infinity")) {
+    if (slen == 9 && "-infinity".equals(s)) {
       return OffsetDateTime.MIN;
     }
 
@@ -861,7 +861,7 @@ public class TimestampUtils {
     int mins = (absoff - hours * 60 * 60) / 60;
     int secs = absoff - hours * 60 * 60 - mins * 60;
 
-    sb.append((offset >= 0) ? "+" : "-");
+    sb.append(offset >= 0 ? "+" : "-");
 
     sb.append(NUMBERS[hours]);
 
@@ -1199,7 +1199,7 @@ public class TimestampUtils {
    * @throws PSQLException If binary format could not be parsed.
    */
   public Time toTimeBin(@Nullable TimeZone tz, byte[] bytes) throws PSQLException {
-    if ((bytes.length != 8 && bytes.length != 12)) {
+    if (bytes.length != 8 && bytes.length != 12) {
       throw new PSQLException(GT.tr("Unsupported binary encoding of {0}.", "time"),
           PSQLState.BAD_DATETIME_FORMAT);
     }
@@ -1287,7 +1287,7 @@ public class TimestampUtils {
     return ts;
   }
 
-  private ParsedBinaryTimestamp toParsedTimestampBinPlain( byte[] bytes)
+  private ParsedBinaryTimestamp toParsedTimestampBinPlain(byte[] bytes)
       throws PSQLException {
 
     if (bytes.length != 8) {

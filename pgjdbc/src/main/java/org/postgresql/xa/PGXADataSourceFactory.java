@@ -30,7 +30,7 @@ public class PGXADataSourceFactory extends PGObjectFactory {
       Hashtable<?, ?> environment) throws Exception {
     Reference ref = (Reference) obj;
     String className = ref.getClassName();
-    if (className.equals("org.postgresql.xa.PGXADataSource")) {
+    if ("org.postgresql.xa.PGXADataSource".equals(className)) {
       return loadXADataSource(ref);
     } else {
       return null;

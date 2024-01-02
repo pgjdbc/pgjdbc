@@ -39,7 +39,7 @@ public class DatabaseMetaDataCacheTest {
 
   @Before
   public void setUp() throws Exception {
-    con = (PgConnection)TestUtil.openDB();
+    con = (PgConnection) TestUtil.openDB();
     log = new TestLogHandler();
     driverLogger = LogManager.getLogManager().getLogger("org.postgresql");
     driverLogger.addHandler(log);

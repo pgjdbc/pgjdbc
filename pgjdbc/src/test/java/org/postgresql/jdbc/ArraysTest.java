@@ -24,15 +24,15 @@ public class ArraysTest {
 
   @Test(expected = PSQLException.class)
   public void testNoByteArray() throws Exception {
-    ArrayEncoding.getArrayEncoder(new byte[] {});
+    ArrayEncoding.getArrayEncoder(new byte[]{});
   }
 
   @Test(expected = SQLFeatureNotSupportedException.class)
   public void testBinaryNotSupported() throws Exception {
-    final ArrayEncoding.ArrayEncoder<BigDecimal[]> support = ArrayEncoding.getArrayEncoder(new BigDecimal[] {});
+    final ArrayEncoding.ArrayEncoder<BigDecimal[]> support = ArrayEncoding.getArrayEncoder(new BigDecimal[]{});
 
     assertFalse(support.supportBinaryRepresentation(Oid.FLOAT8_ARRAY));
 
-    support.toBinaryRepresentation(null, new BigDecimal[] { BigDecimal.valueOf(3) }, Oid.FLOAT8_ARRAY);
+    support.toBinaryRepresentation(null, new BigDecimal[]{BigDecimal.valueOf(3)}, Oid.FLOAT8_ARRAY);
   }
 }

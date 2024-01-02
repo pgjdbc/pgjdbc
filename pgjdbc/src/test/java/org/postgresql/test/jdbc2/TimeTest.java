@@ -32,7 +32,7 @@ import java.util.TimeZone;
  */
 public class TimeTest {
   private Connection con;
-  private boolean testSetTime = false;
+  private boolean testSetTime;
 
   @Before
   public void setUp() throws Exception {
@@ -47,7 +47,7 @@ public class TimeTest {
   }
 
   private long extractMillis(long time) {
-    return (time >= 0) ? (time % 1000) : (time % 1000 + 1000);
+    return time >= 0 ? (time % 1000) : (time % 1000 + 1000);
   }
 
   /*

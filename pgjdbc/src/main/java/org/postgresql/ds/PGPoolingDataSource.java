@@ -75,10 +75,10 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
 
   // Additional Data Source properties
   protected @Nullable String dataSourceName; // Must be protected for subclasses to sync updates to it
-  private int initialConnections = 0;
-  private int maxConnections = 0;
+  private int initialConnections;
+  private int maxConnections;
   // State variables
-  private boolean initialized = false;
+  private boolean initialized;
   private final Stack<PooledConnection> available = new Stack<PooledConnection>();
   private final Stack<PooledConnection> used = new Stack<PooledConnection>();
   private boolean isClosed;

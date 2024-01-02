@@ -104,8 +104,8 @@ public class MultiHostsConnectionTest {
   private static Properties userAndPassword() {
     Properties props = new Properties();
 
-    PGProperty.USER.set(props,TestUtil.getUser());
-    PGProperty.PASSWORD.set(props,TestUtil.getPassword());
+    PGProperty.USER.set(props, TestUtil.getUser());
+    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
     return props;
   }
 
@@ -156,12 +156,12 @@ public class MultiHostsConnectionTest {
     }
 
     Properties props = new Properties();
-    PGProperty.USER.set(props,user);
-    PGProperty.PASSWORD.set(props,password);
-    PGProperty.TARGET_SERVER_TYPE.set(props,hostType.name());
+    PGProperty.USER.set(props, user);
+    PGProperty.PASSWORD.set(props, password);
+    PGProperty.TARGET_SERVER_TYPE.set(props, hostType.name());
     PGProperty.HOST_RECHECK_SECONDS.set(props, 2);
     if (lb) {
-      PGProperty.LOAD_BALANCE_HOSTS.set(props,"true");
+      PGProperty.LOAD_BALANCE_HOSTS.set(props, "true");
     }
 
     StringBuilder sb = new StringBuilder();
@@ -331,7 +331,7 @@ public class MultiHostsConnectionTest {
   public void testLoadBalancing() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     boolean fake1FoundTried = false;
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(any, true, true, fake1, primary1, secondary1);
       connectedHosts.add(getRemoteHostSpec());
       fake1FoundTried |= hostStatusMap.containsKey(hostSpec(fake1));
@@ -348,7 +348,7 @@ public class MultiHostsConnectionTest {
   public void testLoadBalancing_preferPrimary() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(preferPrimary, true, true, fake1, secondary1, secondary2, primary1);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
@@ -367,7 +367,7 @@ public class MultiHostsConnectionTest {
 
     // connect to secondaries when there's no primary - with load balancing
     connectedHosts.clear();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(preferPrimary, false, true, fake1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       if (connectedHosts.size() == 2) {
@@ -389,7 +389,7 @@ public class MultiHostsConnectionTest {
   public void testLoadBalancing_preferSecondary() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(preferSecondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
@@ -399,12 +399,12 @@ public class MultiHostsConnectionTest {
     }
     assertEquals("Never connected to all secondary hosts", new HashSet<String>(asList(secondaryIP, secondaryIP2)),
         connectedHosts);
-    assertEquals("Never tried to connect to fake node",4, tryConnectedHosts.size());
+    assertEquals("Never tried to connect to fake node", 4, tryConnectedHosts.size());
 
     getConnection(preferSecondary, false, true, fake1, primary1, secondary1);
     assertRemote(secondaryIP);
     connectedHosts.clear();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(preferSecondary, false, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       if (connectedHosts.size() == 2) {
@@ -426,7 +426,7 @@ public class MultiHostsConnectionTest {
   public void testLoadBalancing_secondary() throws SQLException {
     Set<String> connectedHosts = new HashSet<String>();
     Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(secondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       tryConnectedHosts.addAll(hostStatusMap.keySet());
@@ -441,7 +441,7 @@ public class MultiHostsConnectionTest {
     getConnection(preferSecondary, false, true, fake1, primary1, secondary1);
     assertRemote(secondaryIP);
     connectedHosts.clear();
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 20; i++) {
       getConnection(secondary, false, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
       if (connectedHosts.size() == 2) {

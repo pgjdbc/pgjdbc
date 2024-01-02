@@ -39,7 +39,7 @@ class CompositeParameterList implements V3ParameterList {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    for (int i = offsets.length - 1; i >= 0; --i) {
+    for (int i = offsets.length - 1; i >= 0; i--) {
       if (offsets[i] < index) {
         return i;
       }
@@ -138,7 +138,7 @@ class CompositeParameterList implements V3ParameterList {
 
   public ParameterList copy() {
     SimpleParameterList[] copySub = new SimpleParameterList[subparams.length];
-    for (int sub = 0; sub < subparams.length; ++sub) {
+    for (int sub = 0; sub < subparams.length; sub++) {
       copySub[sub] = (SimpleParameterList) subparams[sub].copy();
     }
 

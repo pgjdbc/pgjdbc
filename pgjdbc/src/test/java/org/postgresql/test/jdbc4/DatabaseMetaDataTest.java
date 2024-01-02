@@ -109,7 +109,7 @@ public class DatabaseMetaDataTest {
   public void testGetFunctionsInSchemaForFunctions() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions","")) {
+    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "")) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
       assertEquals("There should be one function in the hasfunctions schema", list.size(), 1);
       assertListContains("getFunctions('', 'hasfunctions', '') must contain addfunction", list, "hasfunctions", "addfunction");
@@ -121,7 +121,7 @@ public class DatabaseMetaDataTest {
       assertListContains("getFunctions('', 'hasfunctions', 'addfunction') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
-    try (ResultSet rs = dbmd.getFunctions("", "nofunctions","")) {
+    try (ResultSet rs = dbmd.getFunctions("", "nofunctions", "")) {
       boolean hasFunctions = rs.next();
       assertFalse("There should be no functions in the nofunctions schema", hasFunctions);
     }
@@ -153,7 +153,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
-    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions",null)) {
+    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
         assertFalse("PostgreSQL11+ should not return functions from getProcedures", rs.next());
       } else {
@@ -269,10 +269,10 @@ public class DatabaseMetaDataTest {
     public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((catalog == null) ? 0 : catalog.hashCode());
-      result = prime * result + ((name == null) ? 0 : name.hashCode());
-      result = prime * result + ((schema == null) ? 0 : schema.hashCode());
-      result = prime * result + ((specificName == null) ? 0 : specificName.hashCode());
+      result = prime * result + (catalog == null ? 0 : catalog.hashCode());
+      result = prime * result + (name == null ? 0 : name.hashCode());
+      result = prime * result + (schema == null ? 0 : schema.hashCode());
+      result = prime * result + (specificName == null ? 0 : specificName.hashCode());
       return result;
     }
 
@@ -283,7 +283,7 @@ public class DatabaseMetaDataTest {
       } else if (obj == this) {
         return true;
       }
-      return compareTo((CatalogObject)obj) == 0;
+      return compareTo((CatalogObject) obj) == 0;
     }
 
     @Override
@@ -410,7 +410,7 @@ public class DatabaseMetaDataTest {
       ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
+      assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionNoTable));
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
@@ -420,7 +420,7 @@ public class DatabaseMetaDataTest {
       rs = dbmd.getFunctions("", "", "getfunc_f3");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionNoTable));
+      assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionNoTable));
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
@@ -432,7 +432,7 @@ public class DatabaseMetaDataTest {
       rs = dbmd.getFunctions("", "", "getfunc_f5");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f5"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionReturnsTable));
+      assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionReturnsTable));
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f5()");
@@ -444,7 +444,7 @@ public class DatabaseMetaDataTest {
       ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionResultUnknown));
+      assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionResultUnknown));
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
@@ -454,7 +454,7 @@ public class DatabaseMetaDataTest {
       rs = dbmd.getFunctions("", "", "getfunc_f3");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
-      assertThat(rs.getShort("FUNCTION_TYPE"), is((short)DatabaseMetaData.functionResultUnknown));
+      assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionResultUnknown));
       assertThat(rs.next(), is(false));
       rs.close();
       stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");

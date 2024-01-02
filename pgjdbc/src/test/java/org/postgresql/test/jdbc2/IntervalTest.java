@@ -282,23 +282,23 @@ public class IntervalTest {
   @Test
   public void testISO8601() throws Exception {
     PGInterval pgi = new PGInterval("P1Y2M3DT4H5M6S");
-    assertEquals(1, pgi.getYears() );
-    assertEquals(2, pgi.getMonths() );
-    assertEquals(3, pgi.getDays() );
-    assertEquals(4, pgi.getHours() );
-    assertEquals( 5, pgi.getMinutes() );
-    assertEquals( 6, pgi.getSeconds(), .1 );
+    assertEquals(1, pgi.getYears());
+    assertEquals(2, pgi.getMonths());
+    assertEquals(3, pgi.getDays());
+    assertEquals(4, pgi.getHours());
+    assertEquals(5, pgi.getMinutes());
+    assertEquals(6, pgi.getSeconds(), .1);
 
     pgi = new PGInterval("P-1Y2M3DT4H5M6S");
     assertEquals(-1, pgi.getYears());
 
     pgi = new PGInterval("P1Y2M");
-    assertEquals(1,pgi.getYears());
+    assertEquals(1, pgi.getYears());
     assertEquals(2, pgi.getMonths());
     assertEquals(0, pgi.getDays());
 
     pgi = new PGInterval("P3DT4H5M6S");
-    assertEquals(0,pgi.getYears());
+    assertEquals(0, pgi.getYears());
 
     pgi = new PGInterval("P-1Y-2M3DT-4H-5M-6S");
     assertEquals(-1, pgi.getYears());

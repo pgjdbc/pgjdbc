@@ -39,29 +39,29 @@ public class TypeInfoCache implements TypeInfo {
   private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
   // pgname (String) -> java.sql.Types (Integer)
-  private Map<String, Integer> pgNameToSQLType;
+  private final Map<String, Integer> pgNameToSQLType;
 
-  private Map<Integer, Integer> oidToSQLType;
+  private final Map<Integer, Integer> oidToSQLType;
 
   // pgname (String) -> java class name (String)
   // ie "text" -> "java.lang.String"
-  private Map<String, String> pgNameToJavaClass;
+  private final Map<String, String> pgNameToJavaClass;
 
   // oid (Integer) -> pgname (String)
-  private Map<Integer, String> oidToPgName;
+  private final Map<Integer, String> oidToPgName;
   // pgname (String) -> oid (Integer)
-  private Map<String, Integer> pgNameToOid;
+  private final Map<String, Integer> pgNameToOid;
 
-  private Map<String, Integer> javaArrayTypeToOid;
+  private final Map<String, Integer> javaArrayTypeToOid;
 
   // pgname (String) -> extension pgobject (Class)
-  private Map<String, Class<? extends PGobject>> pgNameToPgObject;
+  private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
 
   // type array oid -> base type's oid
-  private Map<Integer, Integer> pgArrayToPgType;
+  private final Map<Integer, Integer> pgArrayToPgType;
 
   // array type oid -> base type array element delimiter
-  private Map<Integer, Character> arrayOidToDelimiter;
+  private final Map<Integer, Character> arrayOidToDelimiter;
 
   private final BaseConnection conn;
   private final int unknownLength;
@@ -197,7 +197,7 @@ public class TypeInfoCache implements TypeInfo {
       // the box datatype and it's not a JDBC core type.
       //
       Character delim = ',';
-      if (pgTypeName.equals("box")) {
+      if ("box".equals(pgTypeName)) {
         delim = ';';
       }
       arrayOidToDelimiter.put(oid, delim);

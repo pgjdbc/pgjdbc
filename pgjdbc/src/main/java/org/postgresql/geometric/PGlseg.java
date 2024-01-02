@@ -117,7 +117,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
     PGlseg newPGlseg = (PGlseg) super.clone();
     if (newPGlseg.point != null) {
       newPGlseg.point = (PGpoint[]) newPGlseg.point.clone();
-      for (int i = 0; i < newPGlseg.point.length; ++i) {
+      for (int i = 0; i < newPGlseg.point.length; i++) {
         if (newPGlseg.point[i] != null) {
           newPGlseg.point[i] = (PGpoint) newPGlseg.point[i].clone();
         }

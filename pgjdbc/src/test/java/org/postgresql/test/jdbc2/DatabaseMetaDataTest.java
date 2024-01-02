@@ -189,7 +189,7 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "a");
     assertTrue(rs.next());
     assertEquals("_int4", rs.getString("TYPE_NAME"));
-    con.createArrayOf("integer", new Integer[] {});
+    con.createArrayOf("integer", new Integer[]{});
     TestUtil.closeQuietly(rs);
     rs = dbmd.getColumns(null, null, "intarraytable", "a");
     assertTrue(rs.next());
@@ -258,7 +258,7 @@ public class DatabaseMetaDataTest {
     assertEquals("TABLE", tableType);
     assertEquals(rs.findColumn("REMARKS"), 5);
     assertEquals(rs.findColumn("TYPE_CAT"), 6);
-    assertEquals(rs.findColumn("TYPE_SCHEM"),7);
+    assertEquals(rs.findColumn("TYPE_SCHEM"), 7);
     assertEquals(rs.findColumn("TYPE_NAME"), 8);
     assertEquals(rs.findColumn("SELF_REFERENCING_COL_NAME"), 9);
     assertEquals(rs.findColumn("REF_GENERATION"), 10);
@@ -497,7 +497,7 @@ public class DatabaseMetaDataTest {
     for (; rs.next(); j++) {
 
       String pkTableName = rs.getString("PKTABLE_NAME");
-      assertTrue(pkTableName.equals("people") || pkTableName.equals("policy"));
+      assertTrue("people".equals(pkTableName) || "policy".equals(pkTableName));
 
       String pkColumnName = rs.getString("PKCOLUMN_NAME");
       assertEquals("id", pkColumnName);
@@ -506,13 +506,13 @@ public class DatabaseMetaDataTest {
       assertEquals("users", fkTableName);
 
       String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertTrue(fkColumnName.equals("people_id") || fkColumnName.equals("policy_id"));
+      assertTrue("people_id".equals(fkColumnName) || "policy_id".equals(fkColumnName));
 
       String fkName = rs.getString("FK_NAME");
       assertTrue(fkName.startsWith("people") || fkName.startsWith("policy"));
 
       String pkName = rs.getString("PK_NAME");
-      assertTrue(pkName.equals("people_pkey") || pkName.equals("policy_pkey"));
+      assertTrue("people_pkey".equals(pkName) || "policy_pkey".equals(pkName));
 
     }
 
@@ -553,7 +553,7 @@ public class DatabaseMetaDataTest {
     String [] metadataColumns = {"TABLE_CAT", "TABLE_SCHEM", "TABLE_NAME", "COLUMN_NAME",
                                  "DATA_TYPE", "TYPE_NAME", "COLUMN_SIZE", "BUFFER_LENGTH",
                                  "DECIMAL_DIGITS", "NUM_PREC_RADIX", "NULLABLE", "REMARKS",
-                                 "COLUMN_DEF","SQL_DATA_TYPE","SQL_DATETIME_SUB","CHAR_OCTET_LENGTH",
+                                 "COLUMN_DEF", "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "CHAR_OCTET_LENGTH",
                                  "ORDINAL_POSITION", "IS_NULLABLE", "SCOPE_CATALOG", "SCOPE_SCHEMA",
                                  "SCOPE_TABLE", "SOURCE_DATA_TYPE", "IS_AUTOINCREMENT", "IS_GENERATEDCOLUMN"};
 
@@ -562,7 +562,7 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getColumns(null, null, "pg_class", null);
     if ( rs.next() ) {
       for (int i = 0; i < metadataColumns.length; i++) {
-        assertEquals(i + 1,  rs.findColumn(metadataColumns[i]));
+        assertEquals(i + 1, rs.findColumn(metadataColumns[i]));
       }
     }
     rs.close();
@@ -665,7 +665,7 @@ public class DatabaseMetaDataTest {
     boolean foundSelect = false;
     while (rs.next()) {
       if (rs.getString("GRANTEE").equals(TestUtil.getUser())
-          && rs.getString("PRIVILEGE").equals("SELECT")) {
+          && "SELECT".equals(rs.getString("PRIVILEGE"))) {
         foundSelect = true;
       }
     }
@@ -841,7 +841,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("f", rs.getString("COLUMN_NAME"));
     assertEquals(8, rs.getInt("COLUMN_SIZE"));
-    assertEquals( 3, rs.getInt("DECIMAL_DIGITS"));
+    assertEquals(3, rs.getInt("DECIMAL_DIGITS"));
 
   }
 
@@ -1488,7 +1488,7 @@ public class DatabaseMetaDataTest {
 
       } finally {
         if ( stmt != null ) {
-          stmt.execute( "drop table test_new");
+          stmt.execute("drop table test_new");
           stmt.close();
         }
       }

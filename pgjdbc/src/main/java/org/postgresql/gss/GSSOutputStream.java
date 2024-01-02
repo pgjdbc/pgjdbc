@@ -15,12 +15,12 @@ import java.io.OutputStream;
 public class GSSOutputStream extends OutputStream {
   private final GSSContext gssContext;
   private final MessageProp messageProp;
-  private byte[] buffer;
-  private byte[] int4Buf = new byte[4];
+  private final byte[] buffer;
+  private final byte[] int4Buf = new byte[4];
   private int index;
-  private OutputStream wrapped;
+  private final OutputStream wrapped;
 
-  public GSSOutputStream(OutputStream out, GSSContext gssContext, MessageProp messageProp, int bufferSize)  {
+  public GSSOutputStream(OutputStream out, GSSContext gssContext, MessageProp messageProp, int bufferSize) {
     wrapped = out;
     this.gssContext = gssContext;
     this.messageProp = messageProp;
@@ -29,7 +29,7 @@ public class GSSOutputStream extends OutputStream {
 
   @Override
   public void write(int b) throws IOException {
-    buffer[index++] = (byte)b;
+    buffer[index++] = (byte) b;
     if (index >= buffer.length) {
       flush();
     }
@@ -47,11 +47,11 @@ public class GSSOutputStream extends OutputStream {
     while ( len > 0 ) {
       int roomToWrite = buffer.length - index;
       if ( len < roomToWrite ) {
-        System.arraycopy(b, pos,buffer, index, len);
+        System.arraycopy(b, pos, buffer, index, len);
         index += len;
         len -= roomToWrite;
       } else {
-        System.arraycopy(b, pos, buffer, index, roomToWrite );
+        System.arraycopy(b, pos, buffer, index, roomToWrite);
         index += roomToWrite;
         len -= roomToWrite;
       }

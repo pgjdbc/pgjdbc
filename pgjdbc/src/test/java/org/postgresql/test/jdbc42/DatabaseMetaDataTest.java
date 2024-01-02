@@ -91,13 +91,13 @@ public class DatabaseMetaDataTest {
 
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
-    assertEquals("Correctly maps types from other schemas","\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"));
+    assertEquals("Correctly maps types from other schemas", "\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"));
     assertEquals(Types.ARRAY, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("b", rs.getString("COLUMN_NAME"));
     // = TYPE _test_enum AS ENUM ('evil')
-    assertEquals( "_test_enum", rs.getString("TYPE_NAME"));
+    assertEquals("_test_enum", rs.getString("TYPE_NAME"));
     assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
