@@ -8,11 +8,11 @@ package org.postgresql.test.util;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -50,12 +50,10 @@ public class PGPropertyMaxResultBufferParserTest {
     });
   }
 
-  @MethodSource("data")
-  @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
-  void getMaxResultBufferValueException(String valueToParse, long expectedResult) throws PSQLException {
+  @Test
+  void getMaxResultBufferValueException() throws PSQLException {
     assertThrows(PSQLException.class, () -> {
-      long result = PGPropertyMaxResultBufferParser.parseProperty("abc");
-      fail();
+      long ignore = PGPropertyMaxResultBufferParser.parseProperty("abc");
     });
   }
 }
