@@ -187,8 +187,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
-      final long value = bytes.getInt() & 0xFFFFFFFFL;
-      return value;
+      return bytes.getInt() & 0xFFFFFFFFL;
     }
 
     @Override
@@ -360,7 +359,7 @@ final class ArrayDecoding {
    * entries.
    */
   @SuppressWarnings("rawtypes")
-  private static final Map<Integer, ArrayDecoder> OID_TO_DECODER = new HashMap<Integer, ArrayDecoder>(
+  private static final Map<Integer, ArrayDecoder> OID_TO_DECODER = new HashMap<>(
       (int) (21 / .75) + 1);
 
   static {
@@ -599,7 +598,7 @@ final class ArrayDecoding {
     boolean wasInsideString = false;
 
     // array dimension arrays
-    final List<PgArrayList> dims = new ArrayList<PgArrayList>();
+    final List<PgArrayList> dims = new ArrayList<>();
 
     // currently processed array
     PgArrayList curArray = arrayList;

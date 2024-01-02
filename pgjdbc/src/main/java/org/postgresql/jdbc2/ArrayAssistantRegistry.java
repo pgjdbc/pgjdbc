@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class ArrayAssistantRegistry {
   private static final ConcurrentMap<Integer, ArrayAssistant> ARRAY_ASSISTANT_MAP =
-      new ConcurrentHashMap<Integer, ArrayAssistant>();
+      new ConcurrentHashMap<>();
 
   public static @Nullable ArrayAssistant getAssistant(int oid) {
     return ARRAY_ASSISTANT_MAP.get(oid);

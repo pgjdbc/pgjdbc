@@ -66,7 +66,7 @@ public class DatabaseMetaDataTransactionIsolationTest {
   @ParameterizedTest
   @ValueSource(strings = {"read committed", "read uncommitted", "repeatable read", "serializable"})
   void alterDatabaseDefaultTransactionIsolation(String isolationLevel) throws SQLException {
-    try (Statement st = con.createStatement();) {
+    try (Statement st = con.createStatement()) {
       st.execute(
           "alter database test set default_transaction_isolation to '" + isolationLevel + "'");
     }
@@ -92,7 +92,7 @@ public class DatabaseMetaDataTransactionIsolationTest {
   @ValueSource(strings = {"read committed", "read uncommitted", "repeatable read", "serializable"})
   void alterConnectionTransactionIsolation(String isolationLevel) throws SQLException {
     con.setAutoCommit(false);
-    try (Statement st = con.createStatement();) {
+    try (Statement st = con.createStatement()) {
       st.execute("set transaction ISOLATION LEVEL " + isolationLevel);
     }
 

@@ -38,7 +38,7 @@ public class PGtokenizer {
   }
 
   // Our tokens
-  protected List<String> tokens = new ArrayList<String>();
+  protected List<String> tokens = new ArrayList<>();
 
   /**
    * <p>Create a tokeniser.</p>

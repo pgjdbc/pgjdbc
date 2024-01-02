@@ -1120,7 +1120,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
     ArrayList<Query> batchStatements = this.batchStatements;
     if (batchStatements == null) {
-      this.batchStatements = batchStatements = new ArrayList<Query>();
+      this.batchStatements = batchStatements = new ArrayList<>();
     }
     ArrayList<@Nullable ParameterList> batchParameters = this.batchParameters;
     if (batchParameters == null) {
@@ -1198,7 +1198,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
-    try (OutputStream outputStream = lob.getOutputStream();) {
+    try (OutputStream outputStream = lob.getOutputStream()) {
       // The actual buffer size does not matter much, see benchmarks
       // https://github.com/pgjdbc/pgjdbc/pull/3044#issuecomment-1838057929
       // BlobOutputStream would gradually increase the buffer, so it will level the number of
@@ -1724,7 +1724,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     final int fullValueBlocksCount = unprocessedBatchCount / maxValueBlocks;
     final int partialValueBlocksCount = Integer.bitCount(unprocessedBatchCount % maxValueBlocks);
     final int count = fullValueBlocksCount + partialValueBlocksCount;
-    ArrayList<Query> newBatchStatements = new ArrayList<Query>(count);
+    ArrayList<Query> newBatchStatements = new ArrayList<>(count);
     ArrayList<@Nullable ParameterList> newBatchParameters =
         new ArrayList<@Nullable ParameterList>(count);
     int offset = 0;

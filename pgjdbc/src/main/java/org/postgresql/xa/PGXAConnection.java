@@ -404,7 +404,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           // in practise.
           ResultSet rs = stmt.executeQuery(
               "SELECT gid FROM pg_prepared_xacts where database = current_database()");
-          LinkedList<Xid> l = new LinkedList<Xid>();
+          LinkedList<Xid> l = new LinkedList<>();
           while (rs.next()) {
             Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
             if (recoveredXid != null) {

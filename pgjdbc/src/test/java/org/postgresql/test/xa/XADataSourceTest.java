@@ -55,7 +55,7 @@ public class XADataSourceTest {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       assumeTrue("max_prepared_transactions should be non-zero for XA tests", isPreparedTransactionEnabled(con));
     }
   }
@@ -174,11 +174,7 @@ public class XADataSourceTest {
       if (!Arrays.equals(other.getBranchQualifier(), this.getBranchQualifier())) {
         return false;
       }
-      if (!Arrays.equals(other.getGlobalTransactionId(), this.getGlobalTransactionId())) {
-        return false;
-      }
-
-      return true;
+      return Arrays.equals(other.getGlobalTransactionId(), this.getGlobalTransactionId());
     }
 
     @Override

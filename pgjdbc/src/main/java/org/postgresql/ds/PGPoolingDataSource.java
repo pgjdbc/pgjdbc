@@ -67,7 +67,7 @@ import javax.sql.PooledConnection;
 @Deprecated
 public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   protected static ConcurrentMap<String, PGPoolingDataSource> dataSources =
-      new ConcurrentHashMap<String, PGPoolingDataSource>();
+      new ConcurrentHashMap<>();
 
   public static @Nullable PGPoolingDataSource getDataSource(String name) {
     return dataSources.get(name);
@@ -79,8 +79,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private int maxConnections;
   // State variables
   private boolean initialized;
-  private final Stack<PooledConnection> available = new Stack<PooledConnection>();
-  private final Stack<PooledConnection> used = new Stack<PooledConnection>();
+  private final Stack<PooledConnection> available = new Stack<>();
+  private final Stack<PooledConnection> used = new Stack<>();
   private boolean isClosed;
   private final ResourceLock lock = new ResourceLock();
   private final Condition lockCondition = lock.newCondition();

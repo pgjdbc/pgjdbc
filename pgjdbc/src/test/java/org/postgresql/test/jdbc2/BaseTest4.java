@@ -40,7 +40,7 @@ public class BaseTest4 {
   }
 
   public enum StringType {
-    UNSPECIFIED, VARCHAR;
+    UNSPECIFIED, VARCHAR
   }
 
   protected Connection con;

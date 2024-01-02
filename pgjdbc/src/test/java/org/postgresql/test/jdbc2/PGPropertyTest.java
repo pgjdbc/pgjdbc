@@ -130,7 +130,7 @@ public class PGPropertyTest {
 
     // index PropertyDescriptors by name
     Map<String, PropertyDescriptor> propertyDescriptors =
-        new TreeMap<String, PropertyDescriptor>(String.CASE_INSENSITIVE_ORDER);
+        new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     for (PropertyDescriptor propertyDescriptor : info.getPropertyDescriptors()) {
       propertyDescriptors.put(propertyDescriptor.getName(), propertyDescriptor);
     }
@@ -234,7 +234,7 @@ public class PGPropertyTest {
   @Test
   public void testLowerCamelCase() {
     // These are legacy properties excluded for backward compatibility.
-    ArrayList<String> excluded = new ArrayList<String>();
+    ArrayList<String> excluded = new ArrayList<>();
     excluded.add("LOG_LEVEL"); // Remove with PR #722
     excluded.add("PREPARED_STATEMENT_CACHE_SIZE_MIB"); // preparedStatementCacheSizeMi[B]
     excluded.add("DATABASE_METADATA_CACHE_FIELDS_MIB"); // databaseMetadataCacheFieldsMi[B]

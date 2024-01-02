@@ -828,7 +828,7 @@ public class TestUtil {
   }
 
   public static List<String> resultSetToLines(ResultSet rs) throws SQLException {
-    List<String> res = new ArrayList<String>();
+    List<String> res = new ArrayList<>();
     ResultSetMetaData rsmd = rs.getMetaData();
     StringBuilder sb = new StringBuilder();
     while (rs.next()) {

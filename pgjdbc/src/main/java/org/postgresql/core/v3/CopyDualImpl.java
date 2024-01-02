@@ -16,7 +16,7 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class CopyDualImpl extends CopyOperationImpl implements CopyDual {
-  private final Queue<byte[]> received = new ArrayDeque<byte[]>();
+  private final Queue<byte[]> received = new ArrayDeque<>();
 
   public void writeToCopy(byte[] data, int off, int siz) throws SQLException {
     getQueryExecutor().writeToCopy(this, data, off, siz);

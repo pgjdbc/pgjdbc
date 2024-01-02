@@ -33,7 +33,7 @@ public class ConcurrentStatementFetch extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: fetch(autoCommit={0}, fetchSize={1}, binaryMode={2})")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
       for (int fetchSize : new int[]{1, 2, 20}) {
         for (BinaryMode binaryMode : BinaryMode.values()) {

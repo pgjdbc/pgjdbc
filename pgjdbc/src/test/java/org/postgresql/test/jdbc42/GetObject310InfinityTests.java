@@ -51,7 +51,7 @@ public class GetObject310InfinityTests extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
   public static Iterable<Object[]> data() throws IllegalAccessException {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (String expression : Arrays.asList("-infinity", "infinity")) {
         for (String pgType : Arrays.asList("date", "timestamp",

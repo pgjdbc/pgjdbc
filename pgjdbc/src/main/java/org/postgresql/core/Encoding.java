@@ -34,7 +34,7 @@ public class Encoding {
   /*
    * Preferred JVM encodings for backend encodings.
    */
-  private static final HashMap<String, String[]> encodings = new HashMap<String, String[]>();
+  private static final HashMap<String, String[]> encodings = new HashMap<>();
 
   static {
     //Note: this list should match the set of supported server

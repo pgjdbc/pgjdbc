@@ -29,7 +29,7 @@ import javax.naming.spi.ObjectFactory;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class MiniJndiContext implements Context {
-  private final Map<String, Object> map = new HashMap<String, Object>();
+  private final Map<String, Object> map = new HashMap<>();
 
   public MiniJndiContext() {
   }
@@ -48,15 +48,13 @@ public class MiniJndiContext implements Context {
       try {
         Class<?> factoryClass = Class.forName(ref.getFactoryClassName());
         ObjectFactory fac = (ObjectFactory) factoryClass.newInstance();
-        Object result = fac.getObjectInstance(ref, null, this, null);
-        return result;
+        return fac.getObjectInstance(ref, null, this, null);
       } catch (Exception e) {
         throw new NamingException("Unable to dereference to object: " + e);
       }
     } else if (o instanceof MarshalledObject) {
       try {
-        Object result = ((MarshalledObject<?>) o).get();
-        return result;
+        return ((MarshalledObject<?>) o).get();
       } catch (java.io.IOException e) {
         throw new NamingException("Unable to deserialize object: " + e);
       } catch (ClassNotFoundException e) {
@@ -85,7 +83,7 @@ public class MiniJndiContext implements Context {
       map.put(name, ref);
     } else if (obj instanceof Serializable) {
       try {
-        MarshalledObject<Object> mo = new MarshalledObject<Object>(obj);
+        MarshalledObject<Object> mo = new MarshalledObject<>(obj);
         map.put(name, mo);
       } catch (java.io.IOException e) {
         throw new NamingException("Unable to serialize object to JNDI: " + e);

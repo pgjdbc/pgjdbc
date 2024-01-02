@@ -78,7 +78,7 @@ public class GeneratedKeysTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "returningInQuery = {0}, binary = {1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (ReturningInQuery returningInQuery : ReturningInQuery.values()) {
       for (BinaryMode binaryMode : BinaryMode.values()) {
         ids.add(new Object[]{returningInQuery, binaryMode});

@@ -492,7 +492,7 @@ public class ConnectionTest {
     Map<String, Class<?>> oldmap = con.getTypeMap();
 
     // now change it for an empty one
-    Map<String, Class<?>> newmap = new HashMap<String, Class<?>>();
+    Map<String, Class<?>> newmap = new HashMap<>();
     con.setTypeMap(newmap);
     assertEquals(newmap, con.getTypeMap());
 

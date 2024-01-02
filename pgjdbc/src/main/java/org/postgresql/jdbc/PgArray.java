@@ -193,7 +193,7 @@ public class PgArray implements java.sql.Array {
     if (count > 0 && dimensions > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
     Field[] fields = new Field[2];
 
     storeValues(fieldBytes, rows, fields, elementOid, dims, pos, 0, index);
@@ -376,7 +376,7 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
 
     Field[] fields = new Field[2];
 

@@ -63,7 +63,7 @@ public class ScramAuthenticator {
     } while (pgStream.peekChar() != 0);
     int c = pgStream.receiveChar();
     assert c == 0;
-    if (mechanisms.size() < 1) {
+    if (mechanisms.isEmpty()) {
       throw new PSQLException(
           GT.tr("No SCRAM mechanism(s) advertised by the server"),
           PSQLState.CONNECTION_REJECTED

@@ -73,7 +73,7 @@ public class PgStatement implements Statement, BaseStatement {
    */
   private volatile @Nullable TimerTask cancelTimerTask;
   private static final AtomicReferenceFieldUpdater<PgStatement, @Nullable TimerTask> CANCEL_TIMER_UPDATER =
-      AtomicReferenceFieldUpdater.<PgStatement, @Nullable TimerTask>newUpdater(
+      AtomicReferenceFieldUpdater.newUpdater(
           PgStatement.class, TimerTask.class, "cancelTimerTask");
 
   /**
@@ -400,11 +400,8 @@ public class PgStatement implements Statement, BaseStatement {
       return true;
     }
     cachedQuery.increaseExecuteCount();
-    if ((mPrepareThreshold == 0 || cachedQuery.getExecuteCount() < mPrepareThreshold)
-        && !getForceBinaryTransfer()) {
-      return true;
-    }
-    return false;
+    return (mPrepareThreshold == 0 || cachedQuery.getExecuteCount() < mPrepareThreshold)
+        && !getForceBinaryTransfer();
   }
 
   protected final void execute(CachedQuery cachedQuery,
@@ -755,7 +752,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     ArrayList<Query> batchStatements = this.batchStatements;
     if (batchStatements == null) {
-      this.batchStatements = batchStatements = new ArrayList<Query>();
+      this.batchStatements = batchStatements = new ArrayList<>();
     }
     ArrayList<@Nullable ParameterList> batchParameters = this.batchParameters;
     if (batchParameters == null) {
@@ -1228,7 +1225,7 @@ public class PgStatement implements Statement, BaseStatement {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
       if (generatedKeys == null || generatedKeys.getResultSet() == null) {
-        return createDriverResultSet(new Field[0], new ArrayList<Tuple>());
+        return createDriverResultSet(new Field[0], new ArrayList<>());
       }
 
       return generatedKeys.getResultSet();

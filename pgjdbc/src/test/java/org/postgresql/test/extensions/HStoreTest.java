@@ -62,7 +62,7 @@ public class HStoreTest extends BaseTest4 {
     if (!("\"a\"=>\"1\", \"b\"=>\"2\"".equals(str) || "\"b\"=>\"2\", \"a\"=>\"1\"".equals(str))) {
       fail("Expected " + "\"a\"=>\"1\", \"b\"=>\"2\"" + " but got " + str);
     }
-    Map<String, String> correct = new HashMap<String, String>();
+    Map<String, String> correct = new HashMap<>();
     correct.put("a", "1");
     correct.put("b", "2");
     assertEquals(correct, rs.getObject(1));

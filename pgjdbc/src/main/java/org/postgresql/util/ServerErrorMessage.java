@@ -36,7 +36,7 @@ public class ServerErrorMessage implements Serializable {
   private static final Character DATATYPE = 'd';
   private static final Character CONSTRAINT = 'n';
 
-  private final Map<Character, String> mesgParts = new HashMap<Character, String>();
+  private final Map<Character, String> mesgParts = new HashMap<>();
 
   public ServerErrorMessage(EncodingPredictor.DecodeResult serverError) {
     this(serverError.result);

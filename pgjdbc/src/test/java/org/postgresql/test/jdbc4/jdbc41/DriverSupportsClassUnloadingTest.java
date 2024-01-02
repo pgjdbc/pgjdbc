@@ -102,8 +102,8 @@ public class DriverSupportsClassUnloadingTest {
     }
     // This code intentionally leaks connection, prepared statement to verify if the classes
     // will still be able to unload
-    try (Connection con = TestUtil.openDB();) {
-      try (PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2");) {
+    try (Connection con = TestUtil.openDB()) {
+      try (PreparedStatement ps = con.prepareStatement("select 1 c1, 'hello' c2")) {
         // TODO: getMetaData throws AssertionError, however, it should probably not
         if (con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
           ResultSetMetaData md = ps.getMetaData();
@@ -116,7 +116,7 @@ public class DriverSupportsClassUnloadingTest {
 
         // This is to trigger "query timeout" code to increase the chances for memory leaks
         ps.setQueryTimeout(1000);
-        try (ResultSet rs = ps.executeQuery();) {
+        try (ResultSet rs = ps.executeQuery()) {
           rs.next();
           Assert.assertEquals(".getInt for column c1", rs.getInt(1), 1);
         }

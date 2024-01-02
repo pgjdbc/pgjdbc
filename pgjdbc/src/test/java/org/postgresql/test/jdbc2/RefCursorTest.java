@@ -53,7 +53,7 @@ public class RefCursorTest extends BaseTest4 {
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
     }
   }

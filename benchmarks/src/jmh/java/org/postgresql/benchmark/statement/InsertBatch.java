@@ -117,13 +117,12 @@ public class InsertBatch {
     if (p2multi > 1) {
       // Multi values(),(),() case
       for (int i = 0; i < p1nrows; ) {
-        for (int k = 0, pos = 1; k < p2multi; k++, i++) {
+        for (int k = 0, pos = 1; k < p2multi; k++, pos++, i++) {
           ps.setInt(pos, i);
           pos++;
           ps.setString(pos, strings[i]);
           pos++;
           ps.setInt(pos, i);
-          pos++;
         }
         ps.addBatch();
       }

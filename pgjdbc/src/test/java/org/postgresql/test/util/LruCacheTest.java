@@ -43,13 +43,13 @@ public class LruCacheTest {
   }
 
   private final Integer[] expectCreate = new Integer[1];
-  private final Deque<Entry> expectEvict = new ArrayDeque<Entry>();
+  private final Deque<Entry> expectEvict = new ArrayDeque<>();
   private final Entry dummy = new Entry(-999);
   private LruCache<Integer, Entry> cache;
 
   @Before
   public void setUp() throws Exception {
-    cache = new LruCache<Integer, Entry>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
+    cache = new LruCache<>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
         assertEquals("Unexpected create", expectCreate[0], key);

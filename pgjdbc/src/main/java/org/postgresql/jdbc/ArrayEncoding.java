@@ -1097,7 +1097,7 @@ final class ArrayEncoding {
   };
 
   @SuppressWarnings("rawtypes")
-  private static final Map<Class, AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<Class, AbstractArrayEncoder>(
+  private static final Map<Class, AbstractArrayEncoder> ARRAY_CLASS_TO_ENCODER = new HashMap<>(
       (int) (14 / .75) + 1);
 
   static {

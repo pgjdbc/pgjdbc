@@ -138,7 +138,7 @@ public class PGbytea {
       // we must escape all 8bit characters otherwise when converting
       // from java unicode to the db character set we may end up with
       // question marks if the character set is SQL_ASCII
-      if (elementAsInt < 040 || elementAsInt > 0176) {
+      if (elementAsInt < 32 || elementAsInt > 126) {
         // escape character with the form \000, but need two \\ because of
         // the Java parser
         stringBuilder.append("\\");

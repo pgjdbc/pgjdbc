@@ -42,7 +42,7 @@ public final class EscapedFunctions2 {
 
   private static ConcurrentMap<String, Method> createFunctionMap(String prefix) {
     Method[] methods = EscapedFunctions2.class.getMethods();
-    ConcurrentMap<String, Method> functionMap = new ConcurrentHashMap<String, Method>(methods.length * 2);
+    ConcurrentMap<String, Method> functionMap = new ConcurrentHashMap<>(methods.length * 2);
     for (Method method : methods) {
       if (method.getName().startsWith(prefix)) {
         functionMap.put(method.getName().substring(prefix.length()).toLowerCase(Locale.US), method);

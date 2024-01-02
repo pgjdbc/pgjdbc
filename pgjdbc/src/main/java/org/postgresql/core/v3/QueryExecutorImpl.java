@@ -121,12 +121,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   /**
    * Bit set that has a bit set for each oid which should be received using binary format.
    */
-  private final Set<Integer> useBinaryReceiveForOids = new HashSet<Integer>();
+  private final Set<Integer> useBinaryReceiveForOids = new HashSet<>();
 
   /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
-  private final Set<Integer> useBinarySendForOids = new HashSet<Integer>();
+  private final Set<Integer> useBinarySendForOids = new HashSet<>();
 
   /**
    * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
@@ -2069,9 +2069,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private final HashMap<PhantomReference<SimpleQuery>, String> parsedQueryMap =
-      new HashMap<PhantomReference<SimpleQuery>, String>();
+      new HashMap<>();
   private final ReferenceQueue<SimpleQuery> parsedQueryCleanupQueue =
-      new ReferenceQueue<SimpleQuery>();
+      new ReferenceQueue<>();
 
   private void registerParsedQuery(SimpleQuery query, String statementName) {
     if (statementName == null) {
@@ -2079,7 +2079,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     PhantomReference<SimpleQuery> cleanupRef =
-        new PhantomReference<SimpleQuery>(query, parsedQueryCleanupQueue);
+        new PhantomReference<>(query, parsedQueryCleanupQueue);
     parsedQueryMap.put(cleanupRef, statementName);
     query.setCleanupRef(cleanupRef);
   }
@@ -2103,8 +2103,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private final HashMap<PhantomReference<Portal>, String> openPortalMap =
-      new HashMap<PhantomReference<Portal>, String>();
-  private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<Portal>();
+      new HashMap<>();
+  private final ReferenceQueue<Portal> openPortalCleanupQueue = new ReferenceQueue<>();
 
   private static final Portal UNNAMED_PORTAL = new Portal(null, "unnamed");
 
@@ -2115,7 +2115,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     String portalName = portal.getPortalName();
     PhantomReference<Portal> cleanupRef =
-        new PhantomReference<Portal>(portal, openPortalCleanupQueue);
+        new PhantomReference<>(portal, openPortalCleanupQueue);
     openPortalMap.put(cleanupRef, portalName);
     portal.setCleanupRef(cleanupRef);
   }
@@ -2232,7 +2232,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             Field[] fields = currentQuery.getFields();
 
             if (fields != null) { // There was a resultset.
-              tuples = new ArrayList<Tuple>();
+              tuples = new ArrayList<>();
               handler.handleResultRows(currentQuery, fields, tuples, null);
               tuples = null;
             }
@@ -2261,7 +2261,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
+            tuples = noResults ? Collections.emptyList() : new ArrayList<Tuple>();
           }
 
           if (fields != null && tuples != null) {
@@ -2325,7 +2325,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (fields != null && tuples == null) {
             // When no results expected, pretend an empty resultset was returned
             // Not sure if new ArrayList can be always replaced with emptyList
-            tuples = noResults ? Collections.<Tuple>emptyList() : new ArrayList<Tuple>();
+            tuples = noResults ? Collections.emptyList() : new ArrayList<Tuple>();
           }
 
           // If we received tuples we must know the structure of the
@@ -2376,7 +2376,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           if (!noResults) {
             if (tuples == null) {
-              tuples = new ArrayList<Tuple>();
+              tuples = new ArrayList<>();
             }
             if (tuple != null) {
               tuples.add(tuple);
@@ -2442,7 +2442,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case 'T': // Row Description (response to Describe)
           Field[] fields = receiveFields();
-          tuples = new ArrayList<Tuple>();
+          tuples = new ArrayList<>();
 
           SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
           if (!pendingExecuteQueue.isEmpty()
@@ -2581,7 +2581,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       handler = new ResultHandlerDelegate(delegateHandler) {
         @Override
         public void handleCommandStatus(String status, long updateCount, long insertOID) {
-          handleResultRows(query, NO_FIELDS, new ArrayList<Tuple>(), null);
+          handleResultRows(query, NO_FIELDS, new ArrayList<>(), null);
         }
       };
 
@@ -3032,12 +3032,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return integerDateTimes;
   }
 
-  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<SimpleQuery>();
-  private final Deque<Portal> pendingBindQueue = new ArrayDeque<Portal>();
-  private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<ExecuteRequest>();
+  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<>();
+  private final Deque<Portal> pendingBindQueue = new ArrayDeque<>();
+  private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<>();
   private final Deque<DescribeRequest> pendingDescribeStatementQueue =
-      new ArrayDeque<DescribeRequest>();
-  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<SimpleQuery>();
+      new ArrayDeque<>();
+  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<>();
 
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;

@@ -60,14 +60,14 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private boolean standardConformingStrings;
 
   private @Nullable SQLWarning warnings;
-  private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
+  private final ArrayList<PGNotification> notifications = new ArrayList<>();
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
   // For getParameterStatuses(), GUC_REPORT tracking
   private final TreeMap<String,String> parameterStatuses
-      = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
+      = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
@@ -89,7 +89,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     // assignment, argument
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
-    statementCache = new LruCache<Object, CachedQuery>(
+    statementCache = new LruCache<>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024L * 1024L),
         false,
@@ -451,7 +451,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   protected boolean hasNotifications() {
-    return notifications.size() > 0;
+    return !notifications.isEmpty();
   }
 
   @Override

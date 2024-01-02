@@ -29,7 +29,7 @@ public class BigDecimalByteConverterTest {
 
   @Parameterized.Parameters(name = "number = {0,number,#,###.##################################################}")
   public static Iterable<Object[]> data() {
-    final Collection<Object[]> numbers = new ArrayList<Object[]>();
+    final Collection<Object[]> numbers = new ArrayList<>();
     numbers.add(new Object[]{new BigDecimal("0.1")});
     numbers.add(new Object[]{new BigDecimal("0.10")});
     numbers.add(new Object[]{new BigDecimal("0.01")});

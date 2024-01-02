@@ -128,8 +128,7 @@ public class PGPropertyMaxResultBufferParser {
   private static long calculatePercentOfMemory(String value, int percentPhraseLength) {
     String realValue = value.substring(0, value.length() - percentPhraseLength);
     double percent = Double.parseDouble(realValue) / 100;
-    long result = (long) (percent * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
-    return result;
+    return (long) (percent * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
   }
 
   /**

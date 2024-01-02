@@ -173,7 +173,7 @@ public class Driver implements java.sql.Driver {
     // in later files in the classpath to override settings specified in
     // earlier files. To do this we've got to read the returned
     // Enumeration into temporary storage.
-    ArrayList<URL> urls = new ArrayList<URL>();
+    ArrayList<URL> urls = new ArrayList<>();
     Enumeration<URL> urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
     while (urlEnum.hasMoreElements()) {
       urls.add(urlEnum.nextElement());

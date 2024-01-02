@@ -329,7 +329,7 @@ public class MultiHostsConnectionTest {
 
   @Test
   public void testLoadBalancing() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
+    Set<String> connectedHosts = new HashSet<>();
     boolean fake1FoundTried = false;
     for (int i = 0; i < 20; i++) {
       getConnection(any, true, true, fake1, primary1, secondary1);
@@ -346,8 +346,8 @@ public class MultiHostsConnectionTest {
 
   @Test
   public void testLoadBalancing_preferPrimary() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
-    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    Set<String> connectedHosts = new HashSet<>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<>();
     for (int i = 0; i < 20; i++) {
       getConnection(preferPrimary, true, true, fake1, secondary1, secondary2, primary1);
       connectedHosts.add(getRemoteHostSpec());
@@ -387,8 +387,8 @@ public class MultiHostsConnectionTest {
 
   @Test
   public void testLoadBalancing_preferSecondary() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
-    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    Set<String> connectedHosts = new HashSet<>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<>();
     for (int i = 0; i < 20; i++) {
       getConnection(preferSecondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());
@@ -424,8 +424,8 @@ public class MultiHostsConnectionTest {
 
   @Test
   public void testLoadBalancing_secondary() throws SQLException {
-    Set<String> connectedHosts = new HashSet<String>();
-    Set<HostSpec> tryConnectedHosts = new HashSet<HostSpec>();
+    Set<String> connectedHosts = new HashSet<>();
+    Set<HostSpec> tryConnectedHosts = new HashSet<>();
     for (int i = 0; i < 20; i++) {
       getConnection(secondary, true, true, fake1, primary1, secondary1, secondary2);
       connectedHosts.add(getRemoteHostSpec());

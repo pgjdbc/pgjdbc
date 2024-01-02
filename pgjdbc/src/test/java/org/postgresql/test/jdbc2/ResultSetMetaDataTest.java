@@ -46,7 +46,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "databaseMetadataCacheFields = {0}, databaseMetadataCacheFieldsMib = {1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (Integer fields : new Integer[]{null, 0}) {
       for (Integer fieldsMib : new Integer[]{null, 0}) {
         ids.add(new Object[]{fields, fieldsMib});
@@ -308,8 +308,8 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   // when disabled.
   @Test
   public void testCache() throws Exception {
-    boolean isCacheDisabled = new Integer(0).equals(databaseMetadataCacheFields)
-                           || new Integer(0).equals(databaseMetadataCacheFieldsMib);
+    boolean isCacheDisabled = Integer.valueOf(0).equals(databaseMetadataCacheFields)
+                           || Integer.valueOf(0).equals(databaseMetadataCacheFieldsMib);
 
     {
       PreparedStatement pstmt = conn.prepareStatement("SELECT a FROM rsmd_cache");

@@ -410,7 +410,7 @@ public class LogicalReplicationStatusTest {
   }
 
   private void insertPreviousChanges(Connection sqlConnection) throws SQLException {
-    try (Statement st = sqlConnection.createStatement();) {
+    try (Statement st = sqlConnection.createStatement()) {
       st.execute("insert into test_logic_table(name) values('previous changes')");
     }
   }
@@ -485,7 +485,7 @@ public class LogicalReplicationStatusTest {
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
-    List<String> result = new ArrayList<String>(3);
+    List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
       ByteBuffer message;
       do {
@@ -517,7 +517,7 @@ public class LogicalReplicationStatusTest {
     while (true) {
       try (
           Statement st = sqlConnection.createStatement();
-          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid);
+          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid)
       ) {
         String result = null;
         if (rs.next()) {
@@ -542,7 +542,7 @@ public class LogicalReplicationStatusTest {
     try (Statement st = sqlConnection.createStatement();
          ResultSet rs = st.executeQuery("select "
              + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-             ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
+             ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"))
     ) {
       if (rs.next()) {
         String lsn = rs.getString(1);

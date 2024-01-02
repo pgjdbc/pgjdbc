@@ -160,7 +160,7 @@ public class Parser {
 
               if (splitStatements) {
                 if (nativeQueries == null) {
-                  nativeQueries = new ArrayList<NativeQuery>();
+                  nativeQueries = new ArrayList<>();
                 }
 
                 if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
@@ -260,7 +260,7 @@ public class Parser {
             isBeginPresent = true;
           } else {
             // found begin, now look for atomic
-            if (isBeginPresent == true) {
+            if (isBeginPresent) {
               if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
                 isBeginAtomicPresent = true;
               }
@@ -307,7 +307,7 @@ public class Parser {
     }
 
     if (nativeSql.length() == 0) {
-      return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
+      return nativeQueries != null ? nativeQueries : Collections.emptyList();
     }
 
     if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
@@ -444,11 +444,8 @@ public class Parser {
     if (standardConformingStrings) {
       // do NOT treat backslashes as escape characters
       while (++offset < query.length) {
-        switch (query[offset]) {
-          case '\'':
-            return offset;
-          default:
-            break;
+        if (query[offset] == '\'') {
+          return offset;
         }
       }
     } else {
@@ -1471,7 +1468,7 @@ public class Parser {
       boolean stdStrings)
       throws SQLException {
     // Maximum arity of functions in EscapedFunctions is 3
-    List<CharSequence> parsedArgs = new ArrayList<CharSequence>(3);
+    List<CharSequence> parsedArgs = new ArrayList<>(3);
     while (true) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;

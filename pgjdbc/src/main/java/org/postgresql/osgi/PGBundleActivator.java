@@ -42,7 +42,7 @@ public class PGBundleActivator implements BundleActivator {
   }
 
   private void registerDataSourceFactory(BundleContext context) {
-    Dictionary<String, Object> properties = new Hashtable<String, Object>();
+    Dictionary<String, Object> properties = new Hashtable<>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME,
         org.postgresql.util.DriverInfo.DRIVER_NAME);

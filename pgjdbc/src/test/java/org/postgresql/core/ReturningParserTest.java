@@ -31,7 +31,7 @@ public class ReturningParserTest {
 
   @Parameterized.Parameters(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
 
     String[] delimiters = {"", "_", "3", "*", " "};
 

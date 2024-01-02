@@ -23,7 +23,7 @@ public class QueryExecutorCloseAction implements Closeable {
   private static final Logger LOGGER = Logger.getLogger(QueryExecutorBase.class.getName());
 
   private static final AtomicReferenceFieldUpdater<QueryExecutorCloseAction, @Nullable PGStream> PG_STREAM_UPDATER =
-      AtomicReferenceFieldUpdater.<QueryExecutorCloseAction, @Nullable PGStream>newUpdater(
+      AtomicReferenceFieldUpdater.newUpdater(
           QueryExecutorCloseAction.class, PGStream.class, "pgStream");
 
   private volatile @Nullable PGStream pgStream;

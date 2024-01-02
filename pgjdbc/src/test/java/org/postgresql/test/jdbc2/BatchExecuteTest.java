@@ -47,7 +47,7 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (boolean insertRewrite : new boolean[]{false, true}) {
         ids.add(new Object[]{binaryMode, insertRewrite});

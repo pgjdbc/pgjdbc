@@ -12,7 +12,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -158,8 +157,7 @@ public class PKCS12KeyManager implements X509KeyManager {
       if (pkEntry == null) {
         return null;
       }
-      PrivateKey myPrivateKey = pkEntry.getPrivateKey();
-      return myPrivateKey;
+      return pkEntry.getPrivateKey();
     } catch (Exception ioex ) {
       error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
         PSQLState.CONNECTION_FAILURE, ioex);
@@ -192,7 +190,7 @@ public class PKCS12KeyManager implements X509KeyManager {
 
       }
 
-      keyStore.load(new FileInputStream(new File(keyfile)), pwdcb.getPassword());
+      keyStore.load(new FileInputStream(keyfile), pwdcb.getPassword());
       keystoreLoaded = true;
     }
   }

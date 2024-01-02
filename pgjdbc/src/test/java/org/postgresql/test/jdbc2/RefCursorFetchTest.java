@@ -82,7 +82,7 @@ public class RefCursorFetchTest extends BaseTest4 {
   @BeforeClass
   public static void beforeClass() throws Exception {
     TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_0);
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
       TestUtil.createTable(con, "test_blob", "content bytea");
       TestUtil.execute(con, "");
@@ -103,7 +103,7 @@ public class RefCursorFetchTest extends BaseTest4 {
 
   @AfterClass
   public static void afterClass() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "test_blob");
       TestUtil.dropFunction(con, "test_blob", "REFCURSOR, int4");
     }

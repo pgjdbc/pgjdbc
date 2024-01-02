@@ -246,7 +246,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
     Statement stmt = connection.createStatement();
     ResultSet rs = null;
-    GettableHashMap<FieldMetadata.Key, FieldMetadata> md = new GettableHashMap<FieldMetadata.Key, FieldMetadata>();
+    GettableHashMap<FieldMetadata.Key, FieldMetadata> md = new GettableHashMap<>();
     try {
       rs = stmt.executeQuery(sql.toString());
       while (rs.next()) {
@@ -424,15 +424,14 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     }
 
     int sqlType = getSQLType(column);
-    switch (sqlType) {
-      case Types.ARRAY:
-        return "java.sql.Array";
-      default:
-        String type = getPGType(column);
-        if ("unknown".equals(type)) {
-          return "java.lang.String";
-        }
-        return "java.lang.Object";
+    if (sqlType == Types.ARRAY) {
+      return "java.sql.Array";
+    } else {
+      String type = getPGType(column);
+      if ("unknown".equals(type)) {
+        return "java.lang.String";
+      }
+      return "java.lang.Object";
     }
   }
 

@@ -229,7 +229,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
-    Map<HostSpec, HostStatus> knownStates = new HashMap<HostSpec, HostStatus>();
+    Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
       HostSpec hostSpec = candidateHost.hostSpec;

@@ -262,14 +262,11 @@ public class V3PGReplicationStream implements PGReplicationStream {
     lastServerLSN = LogSequenceNumber.valueOf(buffer.getLong());
     long systemClock = buffer.getLong();
 
-    switch (replicationType) {
-      case LOGICAL:
-        lastReceiveLSN = LogSequenceNumber.valueOf(startLsn);
-        break;
-      case PHYSICAL:
-        int payloadSize = buffer.limit() - buffer.position();
-        lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
-        break;
+    if (replicationType == ReplicationType.LOGICAL) {
+      lastReceiveLSN = LogSequenceNumber.valueOf(startLsn);
+    } else if (replicationType == ReplicationType.PHYSICAL) {
+      int payloadSize = buffer.limit() - buffer.position();
+      lastReceiveLSN = LogSequenceNumber.valueOf(startLsn + payloadSize);
     }
 
     if (LOGGER.isLoggable(Level.FINEST)) {

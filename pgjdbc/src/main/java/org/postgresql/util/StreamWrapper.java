@@ -52,7 +52,7 @@ public final class StreamWrapper implements Closeable {
       if (memoryLength == -1) {
         final int diskLength;
         final Path tempFile = Files.createTempFile(TEMP_FILE_PREFIX, ".tmp");
-        try (OutputStream diskOutputStream = Files.newOutputStream(tempFile);) {
+        try (OutputStream diskOutputStream = Files.newOutputStream(tempFile)) {
           diskOutputStream.write(rawData);
           diskLength = copyStream(stream, diskOutputStream, Integer.MAX_VALUE - rawData.length);
           if (diskLength == -1) {

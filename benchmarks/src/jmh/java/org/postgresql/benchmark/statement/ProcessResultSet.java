@@ -138,7 +138,7 @@ public class ProcessResultSet {
       } else if (type == FieldType.BOOL) {
         sb.append("TRUE");
       }
-      String columnName = "c" + String.valueOf(System.currentTimeMillis()) + String.valueOf(i);
+      String columnName = "c" + System.currentTimeMillis() + i;
       columnNames[i] = columnName;
       sb.append(' ').append(columnName);
     }

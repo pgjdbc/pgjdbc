@@ -43,7 +43,7 @@ public class NumericTransferTest2 extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, value = {1,number,#,###.##################################################}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> numbers = new ArrayList<Object[]>();
+    Collection<Object[]> numbers = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       numbers.add(new Object[]{binaryMode, new BigDecimal("1.0")});
       numbers.add(new Object[]{binaryMode, new BigDecimal("0.000000000000000000000000000000000000000000000000000")});

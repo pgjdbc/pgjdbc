@@ -48,7 +48,7 @@ public class PGObjectGetTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, sql = {1}, type = {2}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode, "null::inet", PGobject.class,
           "PGobject(type=inet, value=null)", null});

@@ -64,7 +64,7 @@ public class StringTypeParameterTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "stringType = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (String stringType : new String[]{null, "varchar", UNSPECIFIED_STRING_TYPE}) {
       ids.add(new Object[]{stringType});
     }

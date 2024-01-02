@@ -40,7 +40,7 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
-  private final List<ConnectionEventListener> listeners = new LinkedList<ConnectionEventListener>();
+  private final List<ConnectionEventListener> listeners = new LinkedList<>();
   private @Nullable Connection con;
   private @Nullable ConnectionHandler last;
   private final boolean autoCommit;

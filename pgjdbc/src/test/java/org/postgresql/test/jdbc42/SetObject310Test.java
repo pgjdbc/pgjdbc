@@ -77,7 +77,7 @@ public class SetObject310Test extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BaseTest4.BinaryMode binaryMode : BaseTest4.BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -86,7 +86,7 @@ public class SetObject310Test extends BaseTest4 {
 
   @BeforeClass
   public static void createTables() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
               + "timestamp_with_time_zone_column timestamp with time zone,"
               + "date_column date,"
@@ -98,7 +98,7 @@ public class SetObject310Test extends BaseTest4 {
 
   @AfterClass
   public static void dropTables() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "table1");
     }
     TimeZone.setDefault(saveTZ);
@@ -253,7 +253,7 @@ public class SetObject310Test extends BaseTest4 {
   @Test
   public void testSetOffsetDateTime() throws SQLException {
     List<String> zoneIdsToTest = getZoneIdsToTest();
-    List<TimeZone> storeZones = new ArrayList<TimeZone>();
+    List<TimeZone> storeZones = new ArrayList<>();
     for (String zoneId : zoneIdsToTest) {
       storeZones.add(TimeZone.getTimeZone(zoneId));
     }
@@ -294,7 +294,7 @@ public class SetObject310Test extends BaseTest4 {
   }
 
   private List<String> getZoneIdsToTest() {
-    List<String> zoneIdsToTest = new ArrayList<String>();
+    List<String> zoneIdsToTest = new ArrayList<>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
     zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0
@@ -396,7 +396,7 @@ public class SetObject310Test extends BaseTest4 {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
     // use BC for funsies
-    List<LocalDateTime> bcDates = new ArrayList<LocalDateTime>();
+    List<LocalDateTime> bcDates = new ArrayList<>();
     bcDates.add(LocalDateTime.parse("1997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
     bcDates.add(LocalDateTime.parse("0997-06-30T23:59:59.999999").with(ChronoField.ERA, IsoEra.BCE.getValue()));
 

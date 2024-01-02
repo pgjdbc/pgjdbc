@@ -322,7 +322,7 @@ public class BlobTest {
         assertTrue(rs.next());
 
         long oid = rs.getLong(1);
-        try (InputStream lois = lom.open(oid).getInputStream();) {
+        try (InputStream lois = lom.open(oid).getInputStream()) {
           // read half of the data with read
           for (int j = 0; j < 512; j++) {
             lois.read();
@@ -344,7 +344,7 @@ public class BlobTest {
         assertTrue(rs.next());
 
         long oid = rs.getLong(1);
-        try (InputStream lois = lom.open(oid).getInputStream(512, 1024);) {
+        try (InputStream lois = lom.open(oid).getInputStream(512, 1024)) {
           // read one byte
           assertEquals(0, lois.read());
           byte[] buf2 = new byte[1024];

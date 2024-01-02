@@ -1005,7 +1005,7 @@ public class StatementTest {
             + "END "
             + "$BODY$ "
             + "LANGUAGE plpgsql;");
-    Map<String, Integer> cnt = new HashMap<String, Integer>();
+    Map<String, Integer> cnt = new HashMap<>();
     final Random rnd = new Random();
     for (int i = 0; i < 1000; i++) {
       final Statement st = con.createStatement();
@@ -1061,7 +1061,7 @@ public class StatementTest {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
-    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
+    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<>();
     // Create several cleaners, so they can clean leaks concurrently
     List<LazyCleaner> cleaners = new ArrayList<>();
     for (int i = 0; i < 16; i++) {

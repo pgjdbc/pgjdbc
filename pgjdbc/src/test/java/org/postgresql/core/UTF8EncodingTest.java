@@ -35,7 +35,7 @@ public class UTF8EncodingTest {
       reallyLongString.append(i);
     }
 
-    final List<String> strings = new ArrayList<String>(150);
+    final List<String> strings = new ArrayList<>(150);
     strings.add("short simple");
     strings.add("longer but still not really all that long");
     strings.add(reallyLongString.toString());
@@ -77,7 +77,7 @@ public class UTF8EncodingTest {
       strings.add(new String(testChars));
     }
 
-    final List<Object[]> data = new ArrayList<Object[]>(strings.size() * 2);
+    final List<Object[]> data = new ArrayList<>(strings.size() * 2);
     for (String string : strings) {
       String shortString = string;
       if (shortString != null && shortString.length() > 1000) {

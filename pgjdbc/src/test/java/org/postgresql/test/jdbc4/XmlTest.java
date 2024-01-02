@@ -263,7 +263,7 @@ public class XmlTest extends BaseTest4 {
     SQLXML xml = (SQLXML) Proxy.newProxyInstance(getClass().getClassLoader(), new Class[]{SQLXML.class}, new InvocationHandler() {
       SQLXML xml = con.createSQLXML();
       boolean consumed = false;
-      Set<Method> consumingMethods = new HashSet<Method>(Arrays.asList(
+      Set<Method> consumingMethods = new HashSet<>(Arrays.asList(
           SQLXML.class.getMethod("getBinaryStream"),
           SQLXML.class.getMethod("getCharacterStream"),
           SQLXML.class.getMethod("getString")

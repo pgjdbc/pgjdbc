@@ -44,7 +44,7 @@ public class Fastpath {
 
   // This maps the functions names to their id's (possible unique just
   // to a connection).
-  private final Map<String, Integer> func = new HashMap<String, Integer>();
+  private final Map<String, Integer> func = new HashMap<>();
   private final QueryExecutor executor;
   private final BaseConnection connection;
 

@@ -60,7 +60,7 @@ public class DatabaseMetaDataTest {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -437,7 +437,7 @@ public class DatabaseMetaDataTest {
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getImportedKeys(null, "", "person");
 
-    final List<String> fkNames = new ArrayList<String>();
+    final List<String> fkNames = new ArrayList<>();
 
     int lastFieldCount = -1;
     while (rs.next()) {
@@ -890,11 +890,11 @@ public class DatabaseMetaDataTest {
 
   @Test
   public void testTableTypes() throws SQLException {
-    final List<String> expectedTableTypes = new ArrayList<String>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
+    final List<String> expectedTableTypes = new ArrayList<>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
         "TEMPORARY VIEW", "TYPE", "VIEW"));
-    final List<String> foundTableTypes = new ArrayList<String>();
+    final List<String> foundTableTypes = new ArrayList<>();
 
     // Test that no exceptions are thrown
     DatabaseMetaData dbmd = con.getMetaData();
@@ -1068,7 +1068,7 @@ public class DatabaseMetaDataTest {
   @Test
   public void testCatalogs() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    try (ResultSet rs = dbmd.getCatalogs();) {
+    try (ResultSet rs = dbmd.getCatalogs()) {
       List<String> catalogs = new ArrayList<>();
       while (rs.next()) {
         catalogs.add(rs.getString("TABLE_CAT"));
@@ -1321,7 +1321,7 @@ public class DatabaseMetaDataTest {
   @Test
   public void testTypes() throws SQLException {
     // https://www.postgresql.org/docs/8.2/static/datatype.html
-    List<String> stringTypeList = new ArrayList<String>();
+    List<String> stringTypeList = new ArrayList<>();
     stringTypeList.addAll(Arrays.asList("bit",
             "bool",
             "box",
@@ -1369,7 +1369,7 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTypeInfo();
-    List<String> types = new ArrayList<String>();
+    List<String> types = new ArrayList<>();
 
     while (rs.next()) {
       types.add(rs.getString("TYPE_NAME"));
@@ -1564,7 +1564,7 @@ public class DatabaseMetaDataTest {
 
     String[] excludeSQL2003 = sql2003.split(",");
     String[] returned = keywords.split(",");
-    Set<String> returnedSet = new HashSet<String>(Arrays.asList(returned));
+    Set<String> returnedSet = new HashSet<>(Arrays.asList(returned));
     Assert.assertEquals("Returned keywords should be unique", returnedSet.size(), returned.length);
 
     for (String s : excludeSQL2003) {

@@ -167,7 +167,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
 
     Statement st = sqlConnection.createStatement();
     st.execute(
@@ -443,7 +443,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     result.addAll(receiveMessage(stream, 3));
 
     replConnection.close();
@@ -644,7 +644,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
 
     //emulate replication break
@@ -709,7 +709,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -789,7 +789,7 @@ public class LogicalReplicationTest {
     tx1Connection.close();
     tx2Connection.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -902,7 +902,7 @@ public class LogicalReplicationTest {
   }
 
   private List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
-    List<String> result = new ArrayList<String>(count);
+    List<String> result = new ArrayList<>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
     }
@@ -912,7 +912,7 @@ public class LogicalReplicationTest {
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
-    List<String> result = new ArrayList<String>(3);
+    List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
       ByteBuffer message;
       do {

@@ -265,7 +265,7 @@ public class CopyTest {
         rowCount = getCount();
       }
     } catch (Exception e) {
-      if (!(skipChar == '\t')) {
+      if (skipChar != '\t') {
         // error expected when field separator consumed
         fail("testSkipping at " + at + " round " + skip + ": " + e.toString());
       }

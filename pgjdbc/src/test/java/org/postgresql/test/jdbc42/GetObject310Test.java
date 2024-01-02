@@ -63,7 +63,7 @@ public class GetObject310Test extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -95,7 +95,7 @@ public class GetObject310Test extends BaseTest4 {
   public void testGetLocalDate() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    List<String> zoneIdsToTest = new ArrayList<String>();
+    List<String> zoneIdsToTest = new ArrayList<>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
     zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0
@@ -143,10 +143,10 @@ public class GetObject310Test extends BaseTest4 {
 
   public void localDate(ZoneId zoneId, String date) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
-    try (Statement stmt = con.createStatement(); ) {
+    try (Statement stmt = con.createStatement() ) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "DATE '" + date + "'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column")); ) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column")) ) {
         assertTrue(rs.next());
         LocalDate localDate = LocalDate.parse(date);
         assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
@@ -168,10 +168,10 @@ public class GetObject310Test extends BaseTest4 {
     );
 
     for (String time : timesToTest) {
-      try (Statement stmt = con.createStatement(); ) {
+      try (Statement stmt = con.createStatement() ) {
         stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "time with time zone '" + time + "'"));
 
-        try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column")); ) {
+        try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column")) ) {
           assertTrue(rs.next());
           OffsetTime offsetTime = OffsetTime.parse(time);
           assertEquals(offsetTime, rs.getObject("time_with_time_zone_column", OffsetTime.class));
@@ -196,7 +196,7 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetLocalTime() throws SQLException {
-    try (Statement stmt = con.createStatement(); ) {
+    try (Statement stmt = con.createStatement() ) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '04:05:06.123456'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
@@ -219,7 +219,7 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetLocalTimeNull() throws SQLException {
-    try (Statement stmt = con.createStatement(); ) {
+    try (Statement stmt = con.createStatement() ) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "NULL"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
@@ -236,7 +236,7 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetLocalTimeInvalidType() throws SQLException {
-    try (Statement stmt = con.createStatement(); ) {
+    try (Statement stmt = con.createStatement() ) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
 
       try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column"))) {
@@ -256,7 +256,7 @@ public class GetObject310Test extends BaseTest4 {
   public void testGetLocalDateTime() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    List<String> zoneIdsToTest = new ArrayList<String>();
+    List<String> zoneIdsToTest = new ArrayList<>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9
     zoneIdsToTest.add("Atlantic/Azores"); // It is something like GMT-1..GMT+0

@@ -62,7 +62,7 @@ public class TestReturning extends BaseTest4 {
 
   @Parameterized.Parameters(name = "returningInQuery = {0}, quoteReturning = {1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (ColumnsReturned columnsReturned : ColumnsReturned.values()) {
       for (String q : returningOptions) {
         ids.add(new Object[]{columnsReturned, q});

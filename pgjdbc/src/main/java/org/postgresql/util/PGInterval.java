@@ -142,13 +142,13 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       isNull = true;
       return;
     }
-    final boolean PostgresFormat = !value.startsWith("@");
+    final boolean postgresFormat = !value.startsWith("@");
     if (value.startsWith("P")) {
       parseISO8601Format(value);
       return;
     }
     // Just a simple '0'
-    if (!PostgresFormat && value.length() == 3 && value.charAt(2) == '0') {
+    if (!postgresFormat && value.length() == 3 && value.charAt(2) == '0') {
       setValue(0, 0, 0, 0, 0, 0.0);
       return;
     }
@@ -221,7 +221,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
           PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE, e);
     }
 
-    if (!PostgresFormat && value.endsWith("ago")) {
+    if (!postgresFormat && value.endsWith("ago")) {
       // Inverse the leading sign
       setValue(-years, -months, -days, -hours, -minutes, -seconds);
     } else {

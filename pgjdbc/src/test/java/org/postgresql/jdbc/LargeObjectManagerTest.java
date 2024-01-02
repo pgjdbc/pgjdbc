@@ -97,7 +97,7 @@ class LargeObjectManagerTest {
 
   private void objectWriteThenRead(LargeObjectManager lom, long seed, MessageDigest md) throws SQLException, IOException {
     long loId = lom.createLO();
-    try (LargeObject lo = lom.open(loId);) {
+    try (LargeObject lo = lom.open(loId)) {
       Random rnd = new Random(seed);
       int expectedLength = rnd.nextInt(1000000);
       // Write data to the stream
@@ -134,7 +134,7 @@ class LargeObjectManagerTest {
       // Do not use try-with-resources to avoid closing the large object
       InputStream is = lo.getInputStream();
       {
-        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong());) {
+        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong())) {
           while (true) {
             int bufferIndex = rnd.nextInt(buffers.length);
             byte[] buf = buffers[bufferIndex];

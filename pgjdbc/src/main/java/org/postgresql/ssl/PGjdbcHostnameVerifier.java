@@ -188,7 +188,7 @@ public class PGjdbcHostnameVerifier implements HostnameVerifier {
       return false;
     }
 
-    List<String> commonNames = new ArrayList<String>(1);
+    List<String> commonNames = new ArrayList<>(1);
     for (Rdn rdn : dn.getRdns()) {
       if ("CN".equals(rdn.getType())) {
         commonNames.add((String) rdn.getValue());

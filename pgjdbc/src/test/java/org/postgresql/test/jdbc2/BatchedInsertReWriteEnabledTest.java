@@ -35,7 +35,7 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: autoCommit={0}, binary={1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
       for (BinaryMode binaryMode : BinaryMode.values()) {
         ids.add(new Object[]{autoCommit, binaryMode});

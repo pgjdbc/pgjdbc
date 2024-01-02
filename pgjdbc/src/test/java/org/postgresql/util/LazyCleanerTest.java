@@ -37,7 +37,7 @@ import java.util.UUID;
 public class LazyCleanerTest {
   @Test
   public void testPhantomCleaner() throws InterruptedException {
-    List<Object> list = new ArrayList<Object>(Arrays.asList(
+    List<Object> list = new ArrayList<>(Arrays.asList(
         new Object(), new Object(), new Object()));
 
     LazyCleaner t = new LazyCleaner(ofSeconds(5), "Cleaner");

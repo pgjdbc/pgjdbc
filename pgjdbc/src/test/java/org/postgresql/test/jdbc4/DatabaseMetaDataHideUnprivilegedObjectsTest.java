@@ -261,7 +261,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   List<String> getSchemaNames(DatabaseMetaData databaseMetaData) throws SQLException {
-    List<String> schemaNames = new ArrayList<String>();
+    List<String> schemaNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getSchemas();
     while (rs.next()) {
       schemaNames.add(rs.getString("TABLE_SCHEM"));
@@ -339,7 +339,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getTableNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> tableNames = new ArrayList<String>();
+    List<String> tableNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"TABLE"});
     while (rs.next()) {
       tableNames.add(rs.getString("TABLE_NAME"));
@@ -399,7 +399,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getViewNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> viewNames = new ArrayList<String>();
+    List<String> viewNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"VIEW"});
     while (rs.next()) {
       viewNames.add(rs.getString("TABLE_NAME"));
@@ -449,7 +449,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getFunctionNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> functionNames = new ArrayList<String>();
+    List<String> functionNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getFunctions(null, schemaPattern, null);
     while (rs.next()) {
       functionNames.add(rs.getString("FUNCTION_NAME"));
@@ -503,7 +503,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getProcedureNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> procedureNames = new ArrayList<String>();
+    List<String> procedureNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getProcedures(null, schemaPattern, null);
     while (rs.next()) {
       procedureNames.add(rs.getString("PROCEDURE_NAME"));
@@ -562,7 +562,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
       java.sql.Types.STRUCT   to the Postgres type:  TYPTYPE_DOMAIN     'd'   # domain over another type
    */
   List<String> getTypeNames(DatabaseMetaData databaseMetaData, String schemaPattern) throws SQLException {
-    List<String> typeNames = new ArrayList<String>();
+    List<String> typeNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getUDTs(null, schemaPattern, null, null);
     while (rs.next()) {
       typeNames.add(rs.getString("TYPE_NAME"));

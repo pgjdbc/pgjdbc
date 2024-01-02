@@ -58,7 +58,7 @@ class ByteBuffersByteStreamWriter implements ByteStreamWriter {
     }
     // Channels.newChannel does not buffer writes, so we can mix writes to the channel with writes
     // to the OutputStream
-    try (WritableByteChannel c = Channels.newChannel(os);) {
+    try (WritableByteChannel c = Channels.newChannel(os)) {
       for (ByteBuffer buffer : buffers) {
         if (buffer.hasArray()) {
           os.write(buffer.array(), buffer.arrayOffset() + buffer.position(), buffer.remaining());

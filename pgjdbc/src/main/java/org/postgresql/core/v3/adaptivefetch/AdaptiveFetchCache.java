@@ -33,7 +33,7 @@ public class AdaptiveFetchCache {
 
   public AdaptiveFetchCache(long maximumResultBufferSize, Properties info)
       throws SQLException {
-    this.adaptiveFetchInfoMap = new HashMap<String, AdaptiveFetchCacheEntry>();
+    this.adaptiveFetchInfoMap = new HashMap<>();
 
     this.adaptiveFetch = PGProperty.ADAPTIVE_FETCH.getBoolean(info);
     this.minimumAdaptiveFetchSize = PGProperty.ADAPTIVE_FETCH_MINIMUM.getInt(info);

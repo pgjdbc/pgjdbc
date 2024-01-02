@@ -61,7 +61,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -1010,9 +1010,9 @@ public class PreparedStatementTest extends BaseTest4 {
     assertNull("rs.getBigDecimal(scale=0)", rs.getBigDecimal(3, 0));
     assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
     assertEquals("maxInt as rs.getBigDecimal(scale=1)",
-        BigDecimal.valueOf(maxInt).setScale(1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(1, 1));
+        BigDecimal.valueOf(maxInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, 1));
     assertEquals("minInt as rs.getBigDecimal(scale=1)",
-        BigDecimal.valueOf(minInt).setScale(1, BigDecimal.ROUND_HALF_EVEN), rs.getBigDecimal(2, 1));
+        BigDecimal.valueOf(minInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, 1));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();

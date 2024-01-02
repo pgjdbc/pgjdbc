@@ -25,5 +25,5 @@ public enum SqlCommandType {
   SELECT,
   WITH,
   CREATE,
-  ALTER;
+  ALTER
 }

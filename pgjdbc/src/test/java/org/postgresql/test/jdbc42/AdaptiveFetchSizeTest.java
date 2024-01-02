@@ -81,7 +81,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i == 4) {
         addStringWithSize(40);
       } else {
@@ -91,12 +91,12 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
     }
-    for (int i = 0; i != 8; i++) {
+    for (int i = 0; i < 8; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(expectedFirstSize, resultSet.getFetchSize());
@@ -135,7 +135,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i == 0) {
         addStringWithSize(270);
       } else {
@@ -145,7 +145,7 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -185,7 +185,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i < 4) {
         addStringWithSize(10);
       } else {
@@ -195,7 +195,7 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -234,13 +234,13 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       addStringWithSize(10);
     }
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -272,7 +272,7 @@ public class AdaptiveFetchSizeTest {
   private void addStringWithSize(int size) throws SQLException {
     StringBuilder sb = new StringBuilder(size + 2);
     sb.append("'");
-    for (int i = 0; i != size; i++) {
+    for (int i = 0; i < size; i++) {
       sb.append('H');
     }
     sb.append("'");

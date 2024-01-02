@@ -40,7 +40,7 @@ import javax.sql.PooledConnection;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class ConnectionPoolTest extends BaseDataSourceTest {
-  private final ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
+  private final ArrayList<PooledConnection> connections = new ArrayList<>();
 
   /**
    * Creates and configures a ConnectionPool.

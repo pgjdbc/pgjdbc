@@ -117,7 +117,7 @@ public class SslTest {
   public static Iterable<Object[]> data() {
     TestUtil.assumeSslTestsEnabled();
 
-    Collection<Object[]> tests = new ArrayList<Object[]>();
+    Collection<Object[]> tests = new ArrayList<>();
 
     for (SslMode sslMode : SslMode.VALUES) {
       for (Hostname hostname : Hostname.values()) {
@@ -294,7 +294,7 @@ public class SslTest {
 
   private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
-      errors = new ArrayList<AssertionError>();
+      errors = new ArrayList<>();
     }
     errors.add(ae);
     return errors;

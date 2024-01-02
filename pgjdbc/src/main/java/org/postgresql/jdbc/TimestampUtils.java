@@ -52,7 +52,7 @@ public class TimestampUtils {
   private static final int ONEDAY = 24 * 3600 * 1000;
   private static final char[] ZEROS = {'0', '0', '0', '0', '0', '0', '0', '0', '0'};
   private static final char[][] NUMBERS;
-  private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<String, TimeZone>();
+  private static final HashMap<String, TimeZone> GMT_ZONES = new HashMap<>();
   private static final int MAX_NANOS_BEFORE_WRAP_ON_ROUND = 999999500;
   private static final Duration ONE_MICROSECOND = Duration.ofNanos(1000);
   // LocalTime.MAX is 23:59:59.999_999_999, and it wraps to 24:00:00 when nanos exceed 999_999_499
@@ -185,7 +185,7 @@ public class TimestampUtils {
 
   enum Infinity {
     POSITIVE,
-    NEGATIVE;
+    NEGATIVE
   }
 
   /**
