@@ -341,6 +341,8 @@ include.forEach(v => {
       jvmArgs.push('-XX:+StressCCP');
     }
   }
+  // Force using /dev/urandom so we do not worry about draining entropy pool
+  testJvmArgs.push('-Djava.security.egd=file:/dev/./urandom')
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;
