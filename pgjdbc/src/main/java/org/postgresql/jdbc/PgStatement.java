@@ -72,9 +72,12 @@ public class PgStatement implements Statement, BaseStatement {
    * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
   private volatile @Nullable TimerTask cancelTimerTask;
+
+  @SuppressWarnings("RedundantCast")
+  // Cast is needed for checkerframework to accept the code
   private static final AtomicReferenceFieldUpdater<PgStatement, @Nullable TimerTask> CANCEL_TIMER_UPDATER =
       AtomicReferenceFieldUpdater.newUpdater(
-          PgStatement.class, TimerTask.class, "cancelTimerTask");
+          PgStatement.class, (Class<@Nullable TimerTask>) TimerTask.class, "cancelTimerTask");
 
   /**
    * Protects statement from out-of-order cancels. It protects from both
