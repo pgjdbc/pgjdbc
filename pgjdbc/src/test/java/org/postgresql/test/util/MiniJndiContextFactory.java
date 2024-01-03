@@ -18,6 +18,7 @@ import javax.naming.spi.InitialContextFactory;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class MiniJndiContextFactory implements InitialContextFactory {
+  @Override
   public Context getInitialContext(Hashtable<?, ?> environment) throws NamingException {
     return new MiniJndiContext();
   }

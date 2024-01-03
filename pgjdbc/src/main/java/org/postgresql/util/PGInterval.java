@@ -135,6 +135,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param value String representated interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
+  @Override
   public void setValue(@Nullable String value) throws SQLException {
     isNull = value == null;
     if (value == null) {
@@ -253,6 +254,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @return String represented interval
    */
+  @Override
   public @Nullable String getValue() {
     if (isNull) {
       return null;
@@ -496,6 +498,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two intervals are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj == null) {
       return false;

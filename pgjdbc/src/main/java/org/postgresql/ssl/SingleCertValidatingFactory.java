@@ -187,15 +187,18 @@ public class SingleCertValidatingFactory extends WrappedFactory {
       }
     }
 
+    @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType)
         throws CertificateException {
     }
 
+    @Override
     public void checkServerTrusted(X509Certificate[] chain, String authType)
         throws CertificateException {
       trustManager.checkServerTrusted(chain, authType);
     }
 
+    @Override
     public X509Certificate[] getAcceptedIssuers() {
       return new X509Certificate[]{cert};
     }

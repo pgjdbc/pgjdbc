@@ -118,6 +118,7 @@ public final class StreamWrapper implements Closeable {
     return rawData;
   }
 
+  @Override
   public String toString() {
     return "<stream of " + length + " bytes>";
   }

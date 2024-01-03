@@ -171,6 +171,7 @@ class NotifyTest {
     // Now we check the case where notifications are send after we have started to listen for
     // notifications
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(200);
@@ -198,6 +199,7 @@ class NotifyTest {
     // Now we check the case where notifications are send after we have started to listen for
     // notifications forever
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(200);
@@ -226,6 +228,7 @@ class NotifyTest {
     // should be able, and this test ensures that no synchronized statements will stop the
     // connection from becoming closed.
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(500);

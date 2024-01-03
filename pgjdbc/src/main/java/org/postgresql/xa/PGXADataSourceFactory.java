@@ -26,6 +26,7 @@ public class PGXADataSourceFactory extends PGObjectFactory {
    * "JDBC2 Enterprise" edition build which doesn't include PGXADataSource.
    */
 
+  @Override
   public @Nullable Object getObjectInstance(Object obj, Name name, Context nameCtx,
       Hashtable<?, ?> environment) throws Exception {
     Reference ref = (Reference) obj;

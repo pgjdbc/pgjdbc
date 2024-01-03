@@ -53,6 +53,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the polygon in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(@Nullable String s) throws SQLException {
     if (s == null) {
       points = null;
@@ -73,6 +74,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two polygons are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpolygon) {
       PGpolygon p = (PGpolygon) obj;
@@ -100,6 +102,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     int hash = 0;
     PGpoint[] points = this.points;
@@ -112,6 +115,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
     return hash;
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGpolygon newPGpolygon = (PGpolygon) super.clone();
     if (newPGpolygon.points != null) {
@@ -129,6 +133,7 @@ public class PGpolygon extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGpolygon in the syntax expected by org.postgresql
    */
+  @Override
   public @Nullable String getValue() {
     PGpoint[] points = this.points;
     if (points == null) {

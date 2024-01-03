@@ -44,6 +44,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
   /**
    * Gets a description of this DataSource.
    */
+  @Override
   public String getDescription() {
     return "ConnectionPoolDataSource from " + DriverInfo.DRIVER_FULL_NAME;
   }
@@ -55,6 +56,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * @throws java.sql.SQLException Occurs when the physical database connection cannot be
    *         established.
    */
+  @Override
   public PooledConnection getPooledConnection() throws SQLException {
     return new PGPooledConnection(getConnection(), defaultAutoCommit);
   }
@@ -66,6 +68,7 @@ public class PGConnectionPoolDataSource extends BaseDataSource
    * @throws java.sql.SQLException Occurs when the physical database connection cannot be
    *         established.
    */
+  @Override
   public PooledConnection getPooledConnection(String user, String password) throws SQLException {
     return new PGPooledConnection(getConnection(user, password), defaultAutoCommit);
   }

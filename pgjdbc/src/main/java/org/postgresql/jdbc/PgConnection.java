@@ -499,6 +499,7 @@ public class PgConnection implements BaseConnection {
   private final TimestampUtils timestampUtils;
 
   @Deprecated
+  @Override
   public TimestampUtils getTimestampUtils() {
     return timestampUtils;
   }
@@ -545,10 +546,12 @@ public class PgConnection implements BaseConnection {
     return typemap;
   }
 
+  @Override
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
   }
 
+  @Override
   public ReplicationProtocol getReplicationProtocol() {
     return queryExecutor.getReplicationProtocol();
   }
@@ -681,6 +684,7 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getUser();
   }
 
+  @Override
   @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
@@ -694,6 +698,7 @@ public class PgConnection implements BaseConnection {
   @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   private @Nullable Fastpath fastpath;
 
+  @Override
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
     if (largeobject == null) {
@@ -777,6 +782,7 @@ public class PgConnection implements BaseConnection {
     return new TypeInfoCache(conn, unknownLength);
   }
 
+  @Override
   public TypeInfo getTypeInfo() {
     return typeCache;
   }
@@ -1023,10 +1029,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public TransactionState getTransactionState() {
     return queryExecutor.getTransactionState();
   }
 
+  @Override
   public int getTransactionIsolation() throws SQLException {
     checkClosed();
 
@@ -1059,6 +1067,7 @@ public class PgConnection implements BaseConnection {
     return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
   }
 
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
@@ -1095,11 +1104,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     checkClosed();
     // no-op
   }
 
+  @Override
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
@@ -1216,6 +1227,7 @@ public class PgConnection implements BaseConnection {
    * Handler for transaction queries.
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
+    @Override
     public void handleCompletion() throws SQLException {
       SQLWarning warning = getWarning();
       if (warning != null) {
@@ -1225,10 +1237,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getPrepareThreshold() {
     return prepareThreshold;
   }
 
+  @Override
   public void setDefaultFetchSize(int fetchSize) throws SQLException {
     if (fetchSize < 0) {
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
@@ -1239,10 +1253,12 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
   }
 
+  @Override
   public int getDefaultFetchSize() {
     return defaultFetchSize;
   }
 
+  @Override
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
     LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
@@ -1261,6 +1277,7 @@ public class PgConnection implements BaseConnection {
     typemap = map;
   }
 
+  @Override
   public Logger getLogger() {
     return LOGGER;
   }
@@ -1269,12 +1286,14 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getProtocolVersion();
   }
 
+  @Override
   public boolean getStringVarcharFlag() {
     return bindStringAsVarchar;
   }
 
   private @Nullable CopyManager copyManager;
 
+  @Override
   public CopyManager getCopyAPI() throws SQLException {
     checkClosed();
     if (copyManager == null) {
@@ -1283,14 +1302,17 @@ public class PgConnection implements BaseConnection {
     return copyManager;
   }
 
+  @Override
   public boolean binaryTransferSend(int oid) {
     return queryExecutor.useBinaryForSend(oid);
   }
 
+  @Override
   public int getBackendPID() {
     return queryExecutor.getBackendPID();
   }
 
+  @Override
   public boolean isColumnSanitiserDisabled() {
     return this.disableColumnSanitiser;
   }
@@ -1633,6 +1655,7 @@ public class PgConnection implements BaseConnection {
     throw Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
   }
 
+  @Override
   public boolean getLogServerErrorDetail() {
     return logServerErrorDetail;
   }
@@ -1652,6 +1675,7 @@ public class PgConnection implements BaseConnection {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
+  @Override
   public @Nullable String getSchema() throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
@@ -1664,6 +1688,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setSchema(@Nullable String schema) throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
@@ -1681,11 +1706,13 @@ public class PgConnection implements BaseConnection {
   }
 
   public class AbortCommand implements Runnable {
+    @Override
     public void run() {
       abort();
     }
   }
 
+  @Override
   public void abort(Executor executor) throws SQLException {
     if (executor == null) {
       throw new SQLException("executor is null");
@@ -1700,6 +1727,7 @@ public class PgConnection implements BaseConnection {
     executor.execute(command);
   }
 
+  @Override
   public void setNetworkTimeout(@Nullable Executor executor /*not used*/, int milliseconds)
       throws SQLException {
     checkClosed();
@@ -1732,6 +1760,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
     checkClosed();
 

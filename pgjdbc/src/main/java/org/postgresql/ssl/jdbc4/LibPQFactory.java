@@ -75,6 +75,7 @@ public class LibPQFactory extends org.postgresql.ssl.LibPQFactory implements Hos
    * @deprecated use PgjdbcHostnameVerifier
    */
   @Deprecated
+  @Override
   public boolean verify(String hostname, SSLSession session) {
     if (!sslMode.verifyPeerName()) {
       return true;

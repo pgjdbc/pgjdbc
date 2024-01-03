@@ -32,6 +32,7 @@ public class PGXADataSource extends BaseDataSource implements XADataSource {
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
    */
+  @Override
   public XAConnection getXAConnection() throws SQLException {
     return getXAConnection(getUser(), getPassword());
   }
@@ -45,12 +46,14 @@ public class PGXADataSource extends BaseDataSource implements XADataSource {
    * @return A valid database connection.
    * @throws SQLException Occurs when the database connection cannot be established.
    */
+  @Override
   public XAConnection getXAConnection(@Nullable String user, @Nullable String password)
       throws SQLException {
     Connection con = super.getConnection(user, password);
     return new PGXAConnection((BaseConnection) con);
   }
 
+  @Override
   public String getDescription() {
     return "XA-enabled DataSource from " + DriverInfo.DRIVER_FULL_NAME;
   }

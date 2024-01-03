@@ -44,6 +44,7 @@ class SimpleQuery implements Query {
     this.sanitiserDisabled = sanitiserDisabled;
   }
 
+  @Override
   public ParameterList createParameterList() {
     if (nativeQuery.bindPositions.length == 0) {
       return NO_PARAMETERS;
@@ -52,18 +53,22 @@ class SimpleQuery implements Query {
     return new SimpleParameterList(getBindCount(), transferModeRegistry);
   }
 
+  @Override
   public String toString(@Nullable ParameterList parameters) {
     return nativeQuery.toString(parameters);
   }
 
+  @Override
   public String toString() {
     return toString(null);
   }
 
+  @Override
   public void close() {
     unprepare();
   }
 
+  @Override
   public SimpleQuery @Nullable [] getSubqueries() {
     return null;
   }
@@ -109,6 +114,7 @@ class SimpleQuery implements Query {
   // Implementation guts
   //
 
+  @Override
   public String getNativeSql() {
     return nativeQuery.nativeSql;
   }
@@ -273,6 +279,7 @@ class SimpleQuery implements Query {
 
   // Have we sent a Describe Statement message for this query yet?
   // Note that we might not have need to, so this may always be false.
+  @Override
   public boolean isStatementDescribed() {
     return statementDescribed;
   }
@@ -282,6 +289,7 @@ class SimpleQuery implements Query {
     this.cachedMaxResultRowSize = null;
   }
 
+  @Override
   public boolean isEmpty() {
     return getNativeSql().isEmpty();
   }
@@ -315,6 +323,7 @@ class SimpleQuery implements Query {
     cachedMaxResultRowSize = null;
   }
 
+  @Override
   public int getBatchSize() {
     return 1;
   }

@@ -18,22 +18,27 @@ import java.util.Queue;
 public class CopyDualImpl extends CopyOperationImpl implements CopyDual {
   private final Queue<byte[]> received = new ArrayDeque<>();
 
+  @Override
   public void writeToCopy(byte[] data, int off, int siz) throws SQLException {
     getQueryExecutor().writeToCopy(this, data, off, siz);
   }
 
+  @Override
   public void writeToCopy(ByteStreamWriter from) throws SQLException {
     getQueryExecutor().writeToCopy(this, from);
   }
 
+  @Override
   public void flushCopy() throws SQLException {
     getQueryExecutor().flushCopy(this);
   }
 
+  @Override
   public long endCopy() throws SQLException {
     return getQueryExecutor().endCopy(this);
   }
 
+  @Override
   public byte @Nullable [] readFromCopy() throws SQLException {
     return readFromCopy(true);
   }
@@ -51,6 +56,7 @@ public class CopyDualImpl extends CopyOperationImpl implements CopyDual {
   public void handleCommandStatus(String status) throws PSQLException {
   }
 
+  @Override
   protected void handleCopydata(byte[] data) {
     received.add(data);
   }

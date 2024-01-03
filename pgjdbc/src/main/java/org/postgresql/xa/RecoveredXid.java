@@ -26,14 +26,17 @@ class RecoveredXid implements Xid {
     this.branchQualifier = branchQualifier;
   }
 
+  @Override
   public int getFormatId() {
     return formatId;
   }
 
+  @Override
   public byte[] getGlobalTransactionId() {
     return globalTransactionId;
   }
 
+  @Override
   public byte[] getBranchQualifier() {
     return branchQualifier;
   }
@@ -48,6 +51,7 @@ class RecoveredXid implements Xid {
     return result;
   }
 
+  @Override
   public boolean equals(@Nullable Object o) {
     if (o == this) {
       // optimization for the common case.
@@ -67,6 +71,7 @@ class RecoveredXid implements Xid {
   /**
    * This is for debugging purposes only.
    */
+  @Override
   public String toString() {
     return xidToString(this);
   }

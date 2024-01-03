@@ -157,6 +157,7 @@ public class ServerErrorMessage implements Serializable {
     return totalMessage.toString();
   }
 
+  @Override
   public String toString() {
     // Now construct the message from what the server sent
     // The general format is:

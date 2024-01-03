@@ -395,10 +395,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  @Override
   public AutoSave getAutoSave() {
     return autoSave;
   }
 
+  @Override
   public void setAutoSave(AutoSave autoSave) {
     this.autoSave = autoSave;
   }
@@ -446,6 +448,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return flushCacheOnDeallocate;
   }
 
+  @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }

@@ -42,6 +42,7 @@ public class PgParameterMetaData implements ParameterMetaData {
    * {@inheritDoc} For now report all parameters as inputs. CallableStatements may have one output,
    * but ignore that for now.
    */
+  @Override
   public int getParameterMode(int param) throws SQLException {
     checkParamIndex(param);
     return ParameterMetaData.parameterModeIn;
@@ -60,18 +61,21 @@ public class PgParameterMetaData implements ParameterMetaData {
   }
 
   // we don't know this
+  @Override
   public int getPrecision(int param) throws SQLException {
     checkParamIndex(param);
     return 0;
   }
 
   // we don't know this
+  @Override
   public int getScale(int param) throws SQLException {
     checkParamIndex(param);
     return 0;
   }
 
   // we can't tell anything about nullability
+  @Override
   public int isNullable(int param) throws SQLException {
     checkParamIndex(param);
     return ParameterMetaData.parameterNullableUnknown;
@@ -95,10 +99,12 @@ public class PgParameterMetaData implements ParameterMetaData {
     }
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

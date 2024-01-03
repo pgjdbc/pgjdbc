@@ -110,11 +110,13 @@ public class PgArray implements Array {
     return castNonNull(connection);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray() throws SQLException {
     return getArrayImpl(1, 0, null);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(long index, int count) throws SQLException {
     return getArrayImpl(index, count, null);
@@ -125,11 +127,13 @@ public class PgArray implements Array {
     return getArrayImpl(1, 0, map);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(map);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
@@ -316,27 +320,33 @@ public class PgArray implements Array {
     return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
+  @Override
   public int getBaseType() throws SQLException {
     return getConnection().getTypeInfo().getSQLType(getBaseTypeName());
   }
 
+  @Override
   public String getBaseTypeName() throws SQLException {
     int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
     return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
 
+  @Override
   public ResultSet getResultSet() throws SQLException {
     return getResultSetImpl(1, 0, null);
   }
 
+  @Override
   public ResultSet getResultSet(long index, int count) throws SQLException {
     return getResultSetImpl(index, count, null);
   }
 
+  @Override
   public ResultSet getResultSet(@Nullable Map<String, Class<?>> map) throws SQLException {
     return getResultSetImpl(map);
   }
 
+  @Override
   public ResultSet getResultSet(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getResultSetImpl(index, count, map);
@@ -417,6 +427,7 @@ public class PgArray implements Array {
     return stat.createDriverResultSet(fields, rows);
   }
 
+  @Override
   @SuppressWarnings("nullness")
   public @Nullable String toString() {
     if (fieldString == null && fieldBytes != null) {
@@ -487,6 +498,7 @@ public class PgArray implements Array {
     return fieldBytes;
   }
 
+  @Override
   public void free() throws SQLException {
     connection = null;
     fieldString = null;

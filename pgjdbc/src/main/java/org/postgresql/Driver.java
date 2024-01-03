@@ -95,6 +95,7 @@ public class Driver implements java.sql.Driver {
       try {
         defaultProperties =
             doPrivileged(new PrivilegedExceptionAction<Properties>() {
+              @Override
               public Properties run() throws IOException {
                 return loadDefaultProperties();
               }
@@ -345,6 +346,7 @@ public class Driver implements java.sql.Driver {
       this.props = props;
     }
 
+    @Override
     public void run() {
       Connection conn;
       Throwable error;

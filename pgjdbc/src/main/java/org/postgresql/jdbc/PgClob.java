@@ -24,6 +24,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     super(conn, oid);
   }
 
+  @Override
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -31,6 +32,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public int setString(long pos, String str) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -38,6 +40,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public int setString(long pos, String str, int offset, int len) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -45,6 +48,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public OutputStream setAsciiStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -52,6 +56,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public Writer setCharacterStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -59,10 +64,12 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public InputStream getAsciiStream() throws SQLException {
     return getBinaryStream();
   }
 
+  @Override
   public Reader getCharacterStream() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       Charset connectionCharset = Charset.forName(conn.getEncoding().name());
@@ -70,6 +77,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
     }
   }
 
+  @Override
   public String getSubString(long i, int j) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       assertPosition(i, j);
@@ -82,6 +90,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
   /**
    * For now, this is not implemented.
    */
+  @Override
   public long position(String pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
@@ -92,6 +101,7 @@ public class PgClob extends AbstractBlobClob implements Clob {
   /**
    * This should be simply passing the byte value of the pattern Blob.
    */
+  @Override
   public long position(Clob pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();

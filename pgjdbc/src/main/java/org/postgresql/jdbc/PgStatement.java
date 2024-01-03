@@ -166,6 +166,7 @@ public class PgStatement implements Statement, BaseStatement {
     this.rsHoldability = rsHoldability;
   }
 
+  @Override
   @SuppressWarnings("method.invocation")
   public ResultSet createResultSet(@Nullable Query originalQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) throws SQLException {
@@ -185,6 +186,7 @@ public class PgStatement implements Statement, BaseStatement {
     return null;
   }
 
+  @Override
   public @NonNegative int getFetchSize() {
     return fetchSize;
   }
@@ -327,6 +329,7 @@ public class PgStatement implements Statement, BaseStatement {
     return res;
   }
 
+  @Override
   public boolean executeWithFlags(CachedQuery simpleQuery, int flags) throws SQLException {
     checkClosed();
     if (connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
@@ -339,6 +342,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean executeWithFlags(int flags) throws SQLException {
     checkClosed();
     throw new PSQLException(GT.tr("Can''t use executeWithFlags(int) on a Statement."),
@@ -514,6 +518,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setCursorName(String name) throws SQLException {
     checkClosed();
     // No-op.
@@ -537,15 +542,18 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean getMoreResults() throws SQLException {
     return getMoreResults(CLOSE_ALL_RESULTS);
   }
 
+  @Override
   public int getMaxRows() throws SQLException {
     checkClosed();
     return maxrows;
   }
 
+  @Override
   public void setMaxRows(int max) throws SQLException {
     checkClosed();
     if (max < 0) {
@@ -556,11 +564,13 @@ public class PgStatement implements Statement, BaseStatement {
     maxrows = max;
   }
 
+  @Override
   public void setEscapeProcessing(boolean enable) throws SQLException {
     checkClosed();
     replaceProcessingEnabled = enable;
   }
 
+  @Override
   public int getQueryTimeout() throws SQLException {
     checkClosed();
     long seconds = timeout / 1000;
@@ -570,6 +580,7 @@ public class PgStatement implements Statement, BaseStatement {
     return (int) seconds;
   }
 
+  @Override
   public void setQueryTimeout(int seconds) throws SQLException {
     setQueryTimeoutMs(seconds * 1000L);
   }
@@ -621,6 +632,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public @Nullable SQLWarning getWarnings() throws SQLException {
     checkClosed();
     //copy reference to avoid NPE from concurrent modification of this.warnings
@@ -651,10 +663,12 @@ public class PgStatement implements Statement, BaseStatement {
    * Therefore you should hold a reference to the tail of the previous warning chain
    * and verify if its {@link SQLWarning#getNextWarning()} value is holds any new value.</p>
    */
+  @Override
   public void clearWarnings() throws SQLException {
     warnings = null;
   }
 
+  @Override
   public @Nullable ResultSet getResultSet() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
@@ -673,6 +687,7 @@ public class PgStatement implements Statement, BaseStatement {
    *
    * {@inheritDoc}
    */
+  @Override
   public final void close() throws SQLException {
     // closing an already closed Statement is a no-op.
     if (!IS_CLOSED_UPDATER.compareAndSet(this, 0, 1)) {
@@ -699,6 +714,7 @@ public class PgStatement implements Statement, BaseStatement {
    *
    */
 
+  @Override
   public long getLastOID() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
@@ -905,6 +921,7 @@ public class PgStatement implements Statement, BaseStatement {
     return handler;
   }
 
+  @Override
   public int[] executeBatch() throws SQLException {
     checkClosed();
     closeForNextExecution();
@@ -916,6 +933,7 @@ public class PgStatement implements Statement, BaseStatement {
     return internalExecuteBatch().getUpdateCount();
   }
 
+  @Override
   public void cancel() throws SQLException {
     if (statementState == StatementCancelState.IDLE) {
       return;
@@ -936,22 +954,27 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public Connection getConnection() throws SQLException {
     return connection;
   }
 
+  @Override
   public int getFetchDirection() {
     return fetchdirection;
   }
 
+  @Override
   public int getResultSetConcurrency() {
     return concurrency;
   }
 
+  @Override
   public int getResultSetType() {
     return resultsettype;
   }
 
+  @Override
   public void setFetchDirection(int direction) throws SQLException {
     switch (direction) {
       case ResultSet.FETCH_FORWARD:
@@ -965,6 +988,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setFetchSize(@NonNegative int rows) throws SQLException {
     checkClosed();
     if (rows < 0) {
@@ -1074,10 +1098,12 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public void setLargeMaxRows(long max) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setLargeMaxRows");
   }
 
+  @Override
   public long getLargeMaxRows() throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getLargeMaxRows");
   }
@@ -1137,24 +1163,29 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean isClosed() throws SQLException {
     return isClosed == 1;
   }
 
+  @Override
   public void setPoolable(boolean poolable) throws SQLException {
     checkClosed();
     this.poolable = poolable;
   }
 
+  @Override
   public boolean isPoolable() throws SQLException {
     checkClosed();
     return poolable;
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);
@@ -1162,10 +1193,12 @@ public class PgStatement implements Statement, BaseStatement {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
+  @Override
   public void closeOnCompletion() throws SQLException {
     closeOnCompletion = true;
   }
 
+  @Override
   public boolean isCloseOnCompletion() throws SQLException {
     return closeOnCompletion;
   }
@@ -1196,6 +1229,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean getMoreResults(int current) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
@@ -1221,6 +1255,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public ResultSet getGeneratedKeys() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
@@ -1232,6 +1267,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public int executeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return executeUpdate(sql);
@@ -1240,6 +1276,7 @@ public class PgStatement implements Statement, BaseStatement {
     return executeUpdate(sql, (String[]) null);
   }
 
+  @Override
   public int executeUpdate(String sql, int[] columnIndexes) throws SQLException {
     if (columnIndexes == null || columnIndexes.length == 0) {
       return executeUpdate(sql);
@@ -1249,6 +1286,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
+  @Override
   public int executeUpdate(String sql, String @Nullable [] columnNames) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (columnNames != null && columnNames.length == 0) {
@@ -1263,6 +1301,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public boolean execute(String sql, int autoGeneratedKeys) throws SQLException {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return execute(sql);
@@ -1270,6 +1309,7 @@ public class PgStatement implements Statement, BaseStatement {
     return execute(sql, (String[]) null);
   }
 
+  @Override
   public boolean execute(String sql, int @Nullable [] columnIndexes) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
       return execute(sql);
@@ -1279,6 +1319,7 @@ public class PgStatement implements Statement, BaseStatement {
         PSQLState.NOT_IMPLEMENTED);
   }
 
+  @Override
   public boolean execute(String sql, String @Nullable [] columnNames) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (columnNames != null && columnNames.length == 0) {
@@ -1290,10 +1331,12 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Override
   public int getResultSetHoldability() throws SQLException {
     return rsHoldability;
   }
 
+  @Override
   public ResultSet createDriverResultSet(Field[] fields, List<Tuple> tuples)
       throws SQLException {
     return createResultSet(null, fields, tuples, null);

@@ -118,6 +118,7 @@ public class LazyCleaner {
 
   private boolean startThread() {
     Thread thread = threadFactory.newThread(new Runnable() {
+      @Override
       public void run() {
         while (true) {
           try {

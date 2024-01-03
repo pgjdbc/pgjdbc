@@ -181,6 +181,7 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToJavaClass.put("hstore", Map.class.getName());
   }
 
+  @Override
   public void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
       String javaClass, Integer arrayOid) {
     try (ResourceLock ignore = lock.obtain()) {
@@ -218,6 +219,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -226,10 +228,12 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public Iterator<String> getPGTypeNamesWithSQLTypes() {
     return pgNameToSQLType.keySet().iterator();
   }
 
+  @Override
   public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
     return oidToSQLType.keySet().iterator();
   }
@@ -323,6 +327,7 @@ public class TypeInfoCache implements TypeInfo {
     return getTypeInfoStatement;
   }
 
+  @Override
   public int getSQLType(String pgTypeName) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       /*
@@ -358,6 +363,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getSQLType(int typeOid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (typeOid == Oid.UNSPECIFIED) {
@@ -503,6 +509,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidStatementComplex;
   }
 
+  @Override
   public int getPGType(String pgTypeName) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       // there really isn't anything else to return other than UNSPECIFIED here.
@@ -537,6 +544,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public @Nullable String getPGType(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (oid == Oid.UNSPECIFIED) {
@@ -598,6 +606,7 @@ public class TypeInfoCache implements TypeInfo {
     return getNameStatement;
   }
 
+  @Override
   public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
     elementTypeName = getTypeForAlias(elementTypeName);
     return getPGType(elementTypeName + "[]");
@@ -622,6 +631,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public char getArrayDelimiter(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (oid == Oid.UNSPECIFIED) {
@@ -670,6 +680,7 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayDelimiterStatement;
   }
 
+  @Override
   public int getPGArrayElement(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (oid == Oid.UNSPECIFIED) {
@@ -730,12 +741,14 @@ public class TypeInfoCache implements TypeInfo {
     return getArrayElementOidStatement;
   }
 
+  @Override
   public @Nullable Class<? extends PGobject> getPGobject(String type) {
     try (ResourceLock ignore = lock.obtain()) {
       return pgNameToPgObject.get(type);
     }
   }
 
+  @Override
   public String getJavaClass(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       String pgTypeName = getPGType(oid);
@@ -760,6 +773,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public @Nullable String getTypeForAlias(@Nullable String alias) {
     if ( alias == null ) {
       return null;
@@ -777,6 +791,7 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
+  @Override
   public int getPrecision(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -842,6 +857,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getScale(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -872,6 +888,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean isCaseSensitive(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -897,6 +914,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean isSigned(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -912,6 +930,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getDisplaySize(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -1005,6 +1024,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public int getMaximumPrecision(int oid) {
     oid = convertArrayToBaseOid(oid);
     switch (oid) {
@@ -1030,6 +1050,7 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
+  @Override
   public boolean requiresQuoting(int oid) throws SQLException {
     int sqlType = getSQLType(oid);
     return requiresQuotingSqlType(sqlType);
@@ -1043,6 +1064,7 @@ public class TypeInfoCache implements TypeInfo {
    * @return true if the type requires quoting
    * @throws SQLException if something goes wrong
    */
+  @Override
   public boolean requiresQuotingSqlType(int sqlType) throws SQLException {
     switch (sqlType) {
       case Types.BIGINT:

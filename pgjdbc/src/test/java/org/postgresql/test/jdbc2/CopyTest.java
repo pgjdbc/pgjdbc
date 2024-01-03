@@ -194,6 +194,7 @@ class CopyTest {
     String sql = "COPY copytest FROM STDIN";
     try {
       copyAPI.copyIn(sql, new InputStream() {
+        @Override
         public int read() {
           throw new RuntimeException("COPYTEST");
         }

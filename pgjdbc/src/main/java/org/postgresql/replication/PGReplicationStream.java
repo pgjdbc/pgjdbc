@@ -140,5 +140,6 @@ public interface PGReplicationStream
    *
    * @throws SQLException when some internal exception occurs during end streaming
    */
+  @Override
   void close() throws SQLException;
 }

@@ -23,6 +23,7 @@ import java.util.Hashtable;
 public class PGBundleActivator implements BundleActivator {
   private @Nullable ServiceRegistration<?> registration;
 
+  @Override
   public void start(BundleContext context) throws Exception {
     if (!Driver.isRegistered()) {
       Driver.register();
@@ -53,6 +54,7 @@ public class PGBundleActivator implements BundleActivator {
         new PGDataSourceFactory(), properties);
   }
 
+  @Override
   public void stop(BundleContext context) throws Exception {
     if (registration != null) {
       registration.unregister();

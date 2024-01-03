@@ -37,6 +37,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     this.pgStream = pgStream;
   }
 
+  @Override
   public PGReplicationStream startLogical(LogicalReplicationOptions options)
       throws SQLException {
 
@@ -44,6 +45,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
     return initializeReplication(query, options, ReplicationType.LOGICAL);
   }
 
+  @Override
   public PGReplicationStream startPhysical(PhysicalReplicationOptions options)
       throws SQLException {
 

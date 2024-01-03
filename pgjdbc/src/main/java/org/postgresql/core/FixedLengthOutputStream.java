@@ -29,6 +29,7 @@ public class FixedLengthOutputStream extends OutputStream {
     target.write(b);
   }
 
+  @Override
   public void write(byte[] buf, int offset, int len) throws IOException {
     if ((offset < 0) || (len < 0) || ((offset + len) > buf.length)) {
       throw new IndexOutOfBoundsException();

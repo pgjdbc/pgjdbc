@@ -307,9 +307,11 @@ public class PGStream implements Closeable, Flushable {
     // Intercept flush() downcalls from the writer; our caller
     // will call PGStream.flush() as needed.
     OutputStream interceptor = new FilterOutputStream(pgOutput) {
+      @Override
       public void flush() throws IOException {
       }
 
+      @Override
       public void close() throws IOException {
         super.flush();
       }

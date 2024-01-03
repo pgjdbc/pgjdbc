@@ -97,6 +97,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The minimum required to implement input stream.
    */
+  @Override
   public int read() throws IOException {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
@@ -245,6 +246,7 @@ public class BlobInputStream extends InputStream {
    *
    * @throws IOException if an I/O error occurs.
    */
+  @Override
   public void close() throws IOException {
     long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
@@ -283,6 +285,7 @@ public class BlobInputStream extends InputStream {
    *        invalid.
    * @see java.io.InputStream#reset()
    */
+  @Override
   public void mark(int readlimit) {
     try (ResourceLock ignore = lock.obtain()) {
       markPosition = absolutePosition;
@@ -296,6 +299,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#mark(int)
    * @see java.io.IOException
    */
+  @Override
   public void reset() throws IOException {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
@@ -326,6 +330,7 @@ public class BlobInputStream extends InputStream {
    * @see java.io.InputStream#mark(int)
    * @see java.io.InputStream#reset()
    */
+  @Override
   public boolean markSupported() {
     return true;
   }

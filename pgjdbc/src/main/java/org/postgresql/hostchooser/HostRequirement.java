@@ -12,6 +12,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public enum HostRequirement {
   any {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
@@ -22,26 +23,31 @@ public enum HostRequirement {
    */
   @Deprecated
   master {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return primary.allowConnectingTo(status);
     }
   },
   primary {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status == HostStatus.Primary || status == HostStatus.ConnectOK;
     }
   },
   secondary {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status == HostStatus.Secondary || status == HostStatus.ConnectOK;
     }
   },
   preferSecondary {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }
   },
   preferPrimary {
+    @Override
     public boolean allowConnectingTo(@Nullable HostStatus status) {
       return status != HostStatus.ConnectFail;
     }

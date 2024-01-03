@@ -149,6 +149,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new PgResultSetMetaData(connection, fields);
   }
 
+  @Override
   public ResultSetMetaData getMetaData() throws SQLException {
     checkClosed();
     if (rsMetaData == null) {
@@ -185,12 +186,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     this.lastUsedFetchSize = tuples.size();
   }
 
+  @Override
   public URL getURL(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getURL columnIndex: {0}", columnIndex);
     checkClosed();
     throw Driver.notImplemented(this.getClass(), "getURL(int)");
   }
 
+  @Override
   public URL getURL(String columnName) throws SQLException {
     return getURL(findColumn(columnName));
   }
@@ -435,14 +438,17 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return makeArray(oid, castNonNull(getFixedString(i)));
   }
 
+  @Override
   public @Nullable BigDecimal getBigDecimal(@Positive int columnIndex) throws SQLException {
     return getBigDecimal(columnIndex, -1);
   }
 
+  @Override
   public @Nullable BigDecimal getBigDecimal(String columnName) throws SQLException {
     return getBigDecimal(findColumn(columnName));
   }
 
+  @Override
   public @Nullable Blob getBlob(String columnName) throws SQLException {
     return getBlob(findColumn(columnName));
   }
@@ -451,6 +457,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new PgBlob(connection, oid);
   }
 
+  @Override
   @Pure
   public @Nullable Blob getBlob(int i) throws SQLException {
     byte[] value = getRawValue(i);
@@ -461,10 +468,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return makeBlob(getLong(i));
   }
 
+  @Override
   public @Nullable Reader getCharacterStream(String columnName) throws SQLException {
     return getCharacterStream(findColumn(columnName));
   }
 
+  @Override
   public @Nullable Reader getCharacterStream(int i) throws SQLException {
     String value = getString(i);
     if (value == null) {
@@ -480,6 +489,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new CharArrayReader(value.toCharArray());
   }
 
+  @Override
   public @Nullable Clob getClob(String columnName) throws SQLException {
     return getClob(findColumn(columnName));
   }
@@ -488,6 +498,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new PgClob(connection, oid);
   }
 
+  @Override
   @Pure
   public @Nullable Clob getClob(int i) throws SQLException {
     byte[] value = getRawValue(i);
@@ -498,6 +509,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return makeClob(getLong(i));
   }
 
+  @Override
   public int getConcurrency() throws SQLException {
     checkClosed();
     return resultsetconcurrency;
@@ -785,21 +797,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
+  @Override
   public @Nullable Date getDate(
       String c, @Nullable Calendar cal) throws SQLException {
     return getDate(findColumn(c), cal);
   }
 
+  @Override
   public @Nullable Time getTime(
       String c, @Nullable Calendar cal) throws SQLException {
     return getTime(findColumn(c), cal);
   }
 
+  @Override
   public @Nullable Timestamp getTimestamp(
       String c, @Nullable Calendar cal) throws SQLException {
     return getTimestamp(findColumn(c), cal);
   }
 
+  @Override
   public int getFetchDirection() throws SQLException {
     checkClosed();
     return fetchdirection;
@@ -823,10 +839,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
   }
 
+  @Override
   public @Nullable Ref getRef(String columnName) throws SQLException {
     return getRef(findColumn(columnName));
   }
 
+  @Override
   public @Nullable Ref getRef(int i) throws SQLException {
     checkClosed();
     // The backend doesn't yet have SQL3 REF types
@@ -851,11 +869,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   // This one needs some thought, as not all ResultSets come from a statement
+  @Override
   public Statement getStatement() throws SQLException {
     checkClosed();
     return statement;
   }
 
+  @Override
   public int getType() throws SQLException {
     checkClosed();
     return resultsettype;
@@ -1032,6 +1052,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return absolute(index);
   }
 
+  @Override
   public void setFetchDirection(int direction) throws SQLException {
     checkClosed();
     switch (direction) {
@@ -1049,6 +1070,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     this.fetchdirection = direction;
   }
 
+  @Override
   public void cancelRowUpdates() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkClosed();
@@ -1065,6 +1087,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void deleteRow() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkUpdateable();
@@ -1250,21 +1273,25 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public boolean rowDeleted() throws SQLException {
     checkClosed();
     return false;
   }
 
+  @Override
   public boolean rowInserted() throws SQLException {
     checkClosed();
     return false;
   }
 
+  @Override
   public boolean rowUpdated() throws SQLException {
     checkClosed();
     return false;
   }
 
+  @Override
   public void updateAsciiStream(@Positive int columnIndex,
       @Nullable InputStream x, int length)
       throws SQLException {
@@ -1297,6 +1324,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateBigDecimal(@Positive int columnIndex, @Nullable BigDecimal x)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1304,6 +1332,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateBinaryStream(@Positive int columnIndex,
       @Nullable InputStream x, int length)
       throws SQLException {
@@ -1344,24 +1373,28 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateBoolean(@Positive int columnIndex, boolean x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateByte(@Positive int columnIndex, byte x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, String.valueOf(x));
     }
   }
 
+  @Override
   public void updateBytes(@Positive int columnIndex, byte @Nullable [] x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader x, int length)
       throws SQLException {
@@ -1393,6 +1426,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateDate(@Positive int columnIndex,
       @Nullable Date x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1400,30 +1434,35 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateDouble(@Positive int columnIndex, double x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateFloat(@Positive int columnIndex, float x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateInt(@Positive int columnIndex, int x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateLong(@Positive int columnIndex, long x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateNull(@Positive int columnIndex) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkColumnIndex(columnIndex);
@@ -1432,6 +1471,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateObject(
       int columnIndex, @Nullable Object x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1439,6 +1479,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateObject(
       int columnIndex, @Nullable Object x, int scale) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1610,24 +1651,28 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateShort(@Positive int columnIndex, short x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateString(@Positive int columnIndex, @Nullable String x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateTime(@Positive int columnIndex, @Nullable Time x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
   }
 
+  @Override
   public void updateTimestamp(
       int columnIndex, @Nullable Timestamp x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1635,54 +1680,63 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateNull(String columnName) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateNull(findColumn(columnName));
     }
   }
 
+  @Override
   public void updateBoolean(String columnName, boolean x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateBoolean(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateByte(String columnName, byte x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateByte(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateShort(String columnName, short x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateShort(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateInt(String columnName, int x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateInt(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateLong(String columnName, long x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateLong(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateFloat(String columnName, float x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateFloat(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateDouble(String columnName, double x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateDouble(findColumn(columnName), x);
     }
   }
 
+  @Override
   public void updateBigDecimal(
       String columnName, @Nullable BigDecimal x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1690,6 +1744,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateString(
       String columnName, @Nullable String x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1697,6 +1752,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateBytes(
       String columnName, byte @Nullable [] x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1704,6 +1760,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateDate(
       String columnName, @Nullable Date x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1711,6 +1768,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateTime(
       String columnName, @Nullable Time x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -1718,6 +1776,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateTimestamp(
       String columnName, @Nullable Timestamp x)
       throws SQLException {
@@ -1726,6 +1785,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateAsciiStream(
       String columnName, @Nullable InputStream x, int length)
       throws SQLException {
@@ -1734,6 +1794,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateBinaryStream(
       String columnName, @Nullable InputStream x, int length)
       throws SQLException {
@@ -1742,6 +1803,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateCharacterStream(
       String columnName, @Nullable Reader reader,
       int length) throws SQLException {
@@ -1750,6 +1812,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateObject(
       String columnName, @Nullable Object x, int scale)
       throws SQLException {
@@ -1758,6 +1821,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public void updateObject(
       String columnName, @Nullable Object x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -2156,6 +2220,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   private @Nullable String refCursorName;
 
+  @Override
   @SuppressWarnings("deprecation")
   public @Nullable String getRefCursor() {
     // Can't check this because the PGRefCursorResultSet
@@ -2169,6 +2234,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     this.refCursorName = refCursorName;
   }
 
+  @Override
   public void setFetchSize(int rows) throws SQLException {
     checkClosed();
     if (rows < 0) {
@@ -2178,6 +2244,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     fetchSize = rows;
   }
 
+  @Override
   public int getFetchSize() throws SQLException {
     checkClosed();
     if (adaptiveFetch) {
@@ -2263,6 +2330,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return true;
   }
 
+  @Override
   public void close() throws SQLException {
     try {
       closeInternally();
@@ -2309,6 +2377,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public boolean wasNull() throws SQLException {
     checkClosed();
     return wasNullFlag;
@@ -2679,6 +2748,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return toDouble(getFixedString(columnIndex));
   }
 
+  @Override
   @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(
       int columnIndex, int scale) throws SQLException {
@@ -2763,24 +2833,28 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   @Pure
   public @Nullable Date getDate(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getDate columnIndex: {0}", columnIndex);
     return getDate(columnIndex, null);
   }
 
+  @Override
   @Pure
   public @Nullable Time getTime(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getTime columnIndex: {0}", columnIndex);
     return getTime(columnIndex, null);
   }
 
+  @Override
   @Pure
   public @Nullable Timestamp getTimestamp(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getTimestamp columnIndex: {0}", columnIndex);
     return getTimestamp(columnIndex, null);
   }
 
+  @Override
   @Pure
   public @Nullable InputStream getAsciiStream(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getAsciiStream columnIndex: {0}", columnIndex);
@@ -2799,6 +2873,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new ByteArrayInputStream(stringValue.getBytes(StandardCharsets.US_ASCII));
   }
 
+  @Override
   @Pure
   @SuppressWarnings("deprecation")
   public @Nullable InputStream getUnicodeStream(@Positive int columnIndex) throws SQLException {
@@ -2818,6 +2893,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new ByteArrayInputStream(stringValue.getBytes(StandardCharsets.UTF_8));
   }
 
+  @Override
   @Pure
   public @Nullable InputStream getBinaryStream(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getBinaryStream columnIndex: {0}", columnIndex);
@@ -2839,6 +2915,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return null;
   }
 
+  @Override
   @Pure
   public @Nullable String getString(String columnName) throws SQLException {
     return getString(findColumn(columnName));
@@ -2850,84 +2927,100 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return getBoolean(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public byte getByte(String columnName) throws SQLException {
     return getByte(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public short getShort(String columnName) throws SQLException {
     return getShort(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public int getInt(String columnName) throws SQLException {
     return getInt(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public long getLong(String columnName) throws SQLException {
     return getLong(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public float getFloat(String columnName) throws SQLException {
     return getFloat(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public double getDouble(String columnName) throws SQLException {
     return getDouble(findColumn(columnName));
   }
 
+  @Override
   @Pure
   @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
     return getBigDecimal(findColumn(columnName), scale);
   }
 
+  @Override
   @Pure
   public byte @Nullable [] getBytes(String columnName) throws SQLException {
     return getBytes(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public @Nullable Date getDate(String columnName) throws SQLException {
     return getDate(findColumn(columnName), null);
   }
 
+  @Override
   @Pure
   public @Nullable Time getTime(String columnName) throws SQLException {
     return getTime(findColumn(columnName), null);
   }
 
+  @Override
   @Pure
   public @Nullable Timestamp getTimestamp(String columnName) throws SQLException {
     return getTimestamp(findColumn(columnName), null);
   }
 
+  @Override
   @Pure
   public @Nullable InputStream getAsciiStream(String columnName) throws SQLException {
     return getAsciiStream(findColumn(columnName));
   }
 
+  @Override
   @Pure
   @SuppressWarnings("deprecation")
   public @Nullable InputStream getUnicodeStream(String columnName) throws SQLException {
     return getUnicodeStream(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public @Nullable InputStream getBinaryStream(String columnName) throws SQLException {
     return getBinaryStream(findColumn(columnName));
   }
 
+  @Override
   @Pure
   public @Nullable SQLWarning getWarnings() throws SQLException {
     checkClosed();
     return warnings;
   }
 
+  @Override
   public void clearWarnings() throws SQLException {
     checkClosed();
     warnings = null;
@@ -2941,6 +3034,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
+  @Override
   public @Nullable String getCursorName() throws SQLException {
     checkClosed();
     return null;
@@ -2976,10 +3070,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return connection.getObject(getPGType(columnIndex), stringValue, null);
   }
 
+  @Override
   public @Nullable Object getObject(String columnName) throws SQLException {
     return getObject(findColumn(columnName));
   }
 
+  @Override
   public @NonNegative int findColumn(String columnName) throws SQLException {
     checkClosed();
 
@@ -3575,6 +3671,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       this.type = type;
     }
 
+    @Override
     public @Nullable String getValue() {
       return null;
     }
@@ -3588,38 +3685,47 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     castNonNull(rows, "rows").addAll(tuples);
   }
 
+  @Override
   public void updateRef(@Positive int columnIndex, @Nullable Ref x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateRef(int,Ref)");
   }
 
+  @Override
   public void updateRef(String columnName, @Nullable Ref x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateRef(String,Ref)");
   }
 
+  @Override
   public void updateBlob(@Positive int columnIndex, @Nullable Blob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateBlob(int,Blob)");
   }
 
+  @Override
   public void updateBlob(String columnName, @Nullable Blob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateBlob(String,Blob)");
   }
 
+  @Override
   public void updateClob(@Positive int columnIndex, @Nullable Clob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateClob(int,Clob)");
   }
 
+  @Override
   public void updateClob(String columnName, @Nullable Clob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateClob(String,Clob)");
   }
 
+  @Override
   public void updateArray(@Positive int columnIndex, @Nullable Array x) throws SQLException {
     updateObject(columnIndex, x);
   }
 
+  @Override
   public void updateArray(String columnName, @Nullable Array x) throws SQLException {
     updateArray(findColumn(columnName), x);
   }
 
+  @Override
   public <T> @Nullable T getObject(@Positive int columnIndex, Class<T> type) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
@@ -3831,139 +3937,171 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
             PSQLState.INVALID_PARAMETER_VALUE);
   }
 
+  @Override
   public <T> @Nullable T getObject(String columnLabel, Class<T> type) throws SQLException {
     return getObject(findColumn(columnLabel), type);
   }
 
+  @Override
   public @Nullable Object getObject(String s, @Nullable Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(s, map);
   }
 
+  @Override
   public @Nullable Object getObject(@Positive int i, @Nullable Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(i, map);
   }
 
+  @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  @Override
   public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  @Override
   public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
+  @Override
   public @Nullable RowId getRowId(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getRowId columnIndex: {0}", columnIndex);
     throw Driver.notImplemented(this.getClass(), "getRowId(int)");
   }
 
+  @Override
   public @Nullable RowId getRowId(String columnName) throws SQLException {
     return getRowId(findColumn(columnName));
   }
 
+  @Override
   public void updateRowId(@Positive int columnIndex, @Nullable RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateRowId(int, RowId)");
   }
 
+  @Override
   public void updateRowId(String columnName, @Nullable RowId x) throws SQLException {
     updateRowId(findColumn(columnName), x);
   }
 
+  @Override
   public int getHoldability() throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getHoldability()");
   }
 
+  @Override
   public boolean isClosed() throws SQLException {
     return rows == null;
   }
 
+  @Override
   public void updateNString(@Positive int columnIndex, @Nullable String nString) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateNString(int, String)");
   }
 
+  @Override
   public void updateNString(String columnName, @Nullable String nString) throws SQLException {
     updateNString(findColumn(columnName), nString);
   }
 
+  @Override
   public void updateNClob(@Positive int columnIndex, @Nullable NClob nClob) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateNClob(int, NClob)");
   }
 
+  @Override
   public void updateNClob(String columnName, @Nullable NClob nClob) throws SQLException {
     updateNClob(findColumn(columnName), nClob);
   }
 
+  @Override
   public void updateNClob(@Positive int columnIndex, @Nullable Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateNClob(int, Reader)");
   }
 
+  @Override
   public void updateNClob(String columnName, @Nullable Reader reader) throws SQLException {
     updateNClob(findColumn(columnName), reader);
   }
 
+  @Override
   public void updateNClob(@Positive int columnIndex, @Nullable Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateNClob(int, Reader, long)");
   }
 
+  @Override
   public void updateNClob(String columnName, @Nullable Reader reader, long length) throws SQLException {
     updateNClob(findColumn(columnName), reader, length);
   }
 
+  @Override
   public @Nullable NClob getNClob(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNClob columnIndex: {0}", columnIndex);
     throw Driver.notImplemented(this.getClass(), "getNClob(int)");
   }
 
+  @Override
   public @Nullable NClob getNClob(String columnName) throws SQLException {
     return getNClob(findColumn(columnName));
   }
 
+  @Override
   public void updateBlob(@Positive int columnIndex, @Nullable InputStream inputStream, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateBlob(int, InputStream, long)");
   }
 
+  @Override
   public void updateBlob(String columnName, @Nullable InputStream inputStream, long length)
       throws SQLException {
     updateBlob(findColumn(columnName), inputStream, length);
   }
 
+  @Override
   public void updateBlob(@Positive int columnIndex, @Nullable InputStream inputStream) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateBlob(int, InputStream)");
   }
 
+  @Override
   public void updateBlob(String columnName, @Nullable InputStream inputStream) throws SQLException {
     updateBlob(findColumn(columnName), inputStream);
   }
 
+  @Override
   public void updateClob(@Positive int columnIndex, @Nullable Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateClob(int, Reader, long)");
   }
 
+  @Override
   public void updateClob(String columnName, @Nullable Reader reader, long length) throws SQLException {
     updateClob(findColumn(columnName), reader, length);
   }
 
+  @Override
   public void updateClob(@Positive int columnIndex, @Nullable Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "updateClob(int, Reader)");
   }
 
+  @Override
   public void updateClob(String columnName, @Nullable Reader reader) throws SQLException {
     updateClob(findColumn(columnName), reader);
   }
 
+  @Override
   @Pure
   public @Nullable SQLXML getSQLXML(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getSQLXML columnIndex: {0}", columnIndex);
@@ -3975,32 +4113,39 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return new PgSQLXML(connection, data);
   }
 
+  @Override
   public @Nullable SQLXML getSQLXML(String columnName) throws SQLException {
     return getSQLXML(findColumn(columnName));
   }
 
+  @Override
   public void updateSQLXML(@Positive int columnIndex, @Nullable SQLXML xmlObject) throws SQLException {
     updateValue(columnIndex, xmlObject);
   }
 
+  @Override
   public void updateSQLXML(String columnName, @Nullable SQLXML xmlObject) throws SQLException {
     updateSQLXML(findColumn(columnName), xmlObject);
   }
 
+  @Override
   public @Nullable String getNString(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNString columnIndex: {0}", columnIndex);
     throw Driver.notImplemented(this.getClass(), "getNString(int)");
   }
 
+  @Override
   public @Nullable String getNString(String columnName) throws SQLException {
     return getNString(findColumn(columnName));
   }
 
+  @Override
   public @Nullable Reader getNCharacterStream(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNCharacterStream columnIndex: {0}", columnIndex);
     throw Driver.notImplemented(this.getClass(), "getNCharacterStream(int)");
   }
 
+  @Override
   public @Nullable Reader getNCharacterStream(String columnName) throws SQLException {
     return getNCharacterStream(findColumn(columnName));
   }
@@ -4016,28 +4161,33 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     updateNCharacterStream(findColumn(columnName), x, length);
   }
 
+  @Override
   public void updateNCharacterStream(@Positive int columnIndex,
       @Nullable Reader x) throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateNCharacterStream(int, Reader)");
   }
 
+  @Override
   public void updateNCharacterStream(String columnName,
       @Nullable Reader x) throws SQLException {
     updateNCharacterStream(findColumn(columnName), x);
   }
 
+  @Override
   public void updateNCharacterStream(@Positive int columnIndex,
       @Nullable Reader x, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateNCharacterStream(int, Reader, long)");
   }
 
+  @Override
   public void updateNCharacterStream(String columnName,
       @Nullable Reader x, long length) throws SQLException {
     updateNCharacterStream(findColumn(columnName), x, length);
   }
 
+  @Override
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader, long length)
       throws SQLException {
@@ -4045,23 +4195,27 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         "updateCharacterStream(int, Reader, long)");
   }
 
+  @Override
   public void updateCharacterStream(String columnName,
       @Nullable Reader reader, long length)
       throws SQLException {
     updateCharacterStream(findColumn(columnName), reader, length);
   }
 
+  @Override
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateCharacterStream(int, Reader)");
   }
 
+  @Override
   public void updateCharacterStream(String columnName,
       @Nullable Reader reader) throws SQLException {
     updateCharacterStream(findColumn(columnName), reader);
   }
 
+  @Override
   public void updateBinaryStream(@Positive int columnIndex,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
@@ -4069,23 +4223,27 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         "updateBinaryStream(int, InputStream, long)");
   }
 
+  @Override
   public void updateBinaryStream(String columnName,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
     updateBinaryStream(findColumn(columnName), inputStream, length);
   }
 
+  @Override
   public void updateBinaryStream(@Positive int columnIndex,
       @Nullable InputStream inputStream) throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateBinaryStream(int, InputStream)");
   }
 
+  @Override
   public void updateBinaryStream(String columnName,
       @Nullable InputStream inputStream) throws SQLException {
     updateBinaryStream(findColumn(columnName), inputStream);
   }
 
+  @Override
   public void updateAsciiStream(@Positive int columnIndex,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
@@ -4093,27 +4251,32 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         "updateAsciiStream(int, InputStream, long)");
   }
 
+  @Override
   public void updateAsciiStream(String columnName,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
     updateAsciiStream(findColumn(columnName), inputStream, length);
   }
 
+  @Override
   public void updateAsciiStream(@Positive int columnIndex,
       @Nullable InputStream inputStream) throws SQLException {
     throw Driver.notImplemented(this.getClass(),
         "updateAsciiStream(int, InputStream)");
   }
 
+  @Override
   public void updateAsciiStream(String columnName,
       @Nullable InputStream inputStream) throws SQLException {
     updateAsciiStream(findColumn(columnName), inputStream);
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

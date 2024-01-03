@@ -27,6 +27,7 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
   /**
    * Gets a description of this DataSource.
    */
+  @Override
   public String getDescription() {
     return "Non-Pooling DataSource from " + DriverInfo.DRIVER_FULL_NAME;
   }
@@ -39,10 +40,12 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
     readBaseObject(in);
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

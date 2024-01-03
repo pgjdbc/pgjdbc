@@ -90,6 +90,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   /**
    * Gets a description of this DataSource.
    */
+  @Override
   public String getDescription() {
     return "Pooling DataSource '" + dataSourceName + " from " + DriverInfo.DRIVER_FULL_NAME;
   }
@@ -100,6 +101,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Server Name cannot be changed after the DataSource has been
    *         used.
    */
+  @Override
   public void setServerName(String serverName) {
     if (initialized) {
       throw new IllegalStateException(
@@ -114,6 +116,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Database Name cannot be changed after the DataSource has been
    *         used.
    */
+  @Override
   public void setDatabaseName(@Nullable String databaseName) {
     if (initialized) {
       throw new IllegalStateException(
@@ -127,6 +130,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    *
    * @throws IllegalStateException The User cannot be changed after the DataSource has been used.
    */
+  @Override
   public void setUser(@Nullable String user) {
     if (initialized) {
       throw new IllegalStateException(
@@ -141,6 +145,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Password cannot be changed after the DataSource has been
    *         used.
    */
+  @Override
   public void setPassword(@Nullable String password) {
     if (initialized) {
       throw new IllegalStateException(
@@ -155,6 +160,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws IllegalStateException The Port Number cannot be changed after the DataSource has been
    *         used.
    */
+  @Override
   public void setPortNumber(int portNumber) {
     if (initialized) {
       throw new IllegalStateException(
@@ -310,6 +316,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws SQLException Occurs when no pooled connection is available, and a new physical
    *         connection cannot be created.
    */
+  @Override
   public Connection getConnection(@Nullable String user, @Nullable String password)
       throws SQLException {
     // If this is for the default user/password, use a pooled connection
@@ -331,6 +338,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * @throws SQLException Occurs when no pooled connection is available, and a new physical
    *         connection cannot be created.
    */
+  @Override
   public Connection getConnection() throws SQLException {
     if (!initialized) {
       initialize();
@@ -410,6 +418,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * This is the only way connections are marked as unused.
    */
   private final ConnectionEventListener connectionEventListener = new ConnectionEventListener() {
+    @Override
     public void connectionClosed(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
       try (ResourceLock ignore = lock.obtain()) {
@@ -431,6 +440,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
      * This is only called for fatal errors, where the physical connection is useless afterward and
      * should be removed from the pool.
      */
+    @Override
     public void connectionErrorOccurred(ConnectionEvent event) {
       ((PooledConnection) event.getSource()).removeConnectionEventListener(this);
       try (ResourceLock ignore = lock.obtain()) {
@@ -447,6 +457,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   /**
    * Adds custom properties for this DataSource to the properties defined in the superclass.
    */
+  @Override
   public Reference getReference() throws NamingException {
     Reference ref = super.getReference();
     ref.add(new StringRefAddr("dataSourceName", dataSourceName));
@@ -459,10 +470,12 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
     return ref;
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

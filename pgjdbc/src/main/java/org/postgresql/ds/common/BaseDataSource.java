@@ -1503,6 +1503,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return new Reference(getClass().getName(), PGObjectFactory.class.getName(), null);
   }
 
+  @Override
   public Reference getReference() throws NamingException {
     Reference ref = createReference();
     StringBuilder serverString = new StringBuilder();

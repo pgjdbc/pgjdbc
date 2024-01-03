@@ -26,6 +26,7 @@ public class Notification implements PGNotification {
   /*
    * Returns name of this notification
    */
+  @Override
   public String getName() {
     return name;
   }
@@ -33,10 +34,12 @@ public class Notification implements PGNotification {
   /*
    * Returns the process id of the backend process making this notification
    */
+  @Override
   public int getPID() {
     return pid;
   }
 
+  @Override
   public String getParameter() {
     return parameter;
   }

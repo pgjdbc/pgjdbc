@@ -21,6 +21,7 @@ class CallableBatchResultHandler extends BatchResultHandler {
     super(statement, queries, parameterLists, false);
   }
 
+  @Override
   public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor) {
     /* ignore */

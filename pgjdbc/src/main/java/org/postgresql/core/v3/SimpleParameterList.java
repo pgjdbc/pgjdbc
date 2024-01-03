@@ -90,10 +90,12 @@ class SimpleParameterList implements V3ParameterList {
     pos = index + 1;
   }
 
+  @Override
   public @NonNegative int getParameterCount() {
     return paramValues.length;
   }
 
+  @Override
   public @NonNegative int getOutParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
@@ -109,6 +111,7 @@ class SimpleParameterList implements V3ParameterList {
 
   }
 
+  @Override
   public @NonNegative int getInParameterCount() {
     int count = 0;
     for (int i = 0; i < paramTypes.length; i++) {
@@ -119,20 +122,24 @@ class SimpleParameterList implements V3ParameterList {
     return count;
   }
 
+  @Override
   public void setIntParameter(@Positive int index, int value) throws SQLException {
     byte[] data = new byte[4];
     ByteConverter.int4(data, 0, value);
     bind(index, data, Oid.INT4, BINARY);
   }
 
+  @Override
   public void setLiteralParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
+  @Override
   public void setStringParameter(@Positive int index, String value, int oid) throws SQLException {
     bind(index, value, oid, TEXT);
   }
 
+  @Override
   public void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException {
     bind(index, value, oid, BINARY);
   }
@@ -319,6 +326,7 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(writer);
   }
 
+  @Override
   public int[] getTypeOIDs() {
     return paramTypes;
   }
@@ -432,6 +440,7 @@ class SimpleParameterList implements V3ParameterList {
     pgStream.send(encoded[index]);
   }
 
+  @Override
   public ParameterList copy() {
     SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
@@ -441,6 +450,7 @@ class SimpleParameterList implements V3ParameterList {
     return newCopy;
   }
 
+  @Override
   public void clear() {
     Arrays.fill(paramValues, null);
     Arrays.fill(paramTypes, 0);
@@ -449,22 +459,27 @@ class SimpleParameterList implements V3ParameterList {
     pos = 0;
   }
 
+  @Override
   public SimpleParameterList @Nullable [] getSubparams() {
     return null;
   }
 
+  @Override
   public @Nullable Object[] getValues() {
     return paramValues;
   }
 
+  @Override
   public int[] getParamTypes() {
     return paramTypes;
   }
 
+  @Override
   public byte[] getFlags() {
     return flags;
   }
 
+  @Override
   public byte[] @Nullable [] getEncoding() {
     return encoded;
   }

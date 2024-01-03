@@ -61,6 +61,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param s Definition of the path in PostgreSQL's syntax
    * @throws SQLException on conversion failure
    */
+  @Override
   public void setValue(@Nullable String s) throws SQLException {
     if (s == null) {
       points = null;
@@ -91,6 +92,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two paths are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpath) {
       PGpath p = (PGpath) obj;
@@ -122,6 +124,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     PGpoint[] points = this.points;
     if (points == null) {
@@ -135,6 +138,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
     return hash;
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGpath newPGpath = (PGpath) super.clone();
     if (newPGpath.points != null) {
@@ -151,6 +155,7 @@ public class PGpath extends PGobject implements Serializable, Cloneable {
    * This returns the path in the syntax expected by org.postgresql.
    * @return the value of this object
    */
+  @Override
   public @Nullable String getValue() {
     PGpoint[] points = this.points;
     if (points == null) {

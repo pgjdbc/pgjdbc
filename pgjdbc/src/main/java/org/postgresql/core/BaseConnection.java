@@ -31,6 +31,7 @@ public interface BaseConnection extends PGConnection, Connection {
    *
    * @throws SQLException if something goes wrong.
    */
+  @Override
   void cancelQuery() throws SQLException;
 
   /**

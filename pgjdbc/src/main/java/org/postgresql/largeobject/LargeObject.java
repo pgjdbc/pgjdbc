@@ -158,6 +158,7 @@ public class LargeObject
    *
    * @throws SQLException if a database-access error occurs.
    */
+  @Override
   public void close() throws SQLException {
     if (!closed) {
       // flush any open output streams

@@ -79,6 +79,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     return payload;
   }
 
+  @Override
   public @Nullable ByteBuffer readPending() throws SQLException {
     checkClose();
     return readInternal(false);
@@ -284,6 +285,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     }
   }
 
+  @Override
   public void close() throws SQLException {
     if (isClosed()) {
       return;

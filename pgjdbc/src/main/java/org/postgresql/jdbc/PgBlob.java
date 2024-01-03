@@ -18,6 +18,7 @@ public class PgBlob extends AbstractBlobClob implements Blob {
     super(conn, oid);
   }
 
+  @Override
   public InputStream getBinaryStream(long pos, long length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -33,10 +34,12 @@ public class PgBlob extends AbstractBlobClob implements Blob {
     }
   }
 
+  @Override
   public int setBytes(long pos, byte[] bytes) throws SQLException {
     return setBytes(pos, bytes, 0, bytes.length);
   }
 
+  @Override
   public int setBytes(long pos, byte[] bytes, int offset, int len)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {

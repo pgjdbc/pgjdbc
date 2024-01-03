@@ -264,6 +264,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Query parsing
   //
 
+  @Override
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
         getStandardConformingStrings(), false, true,
@@ -321,12 +322,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  @Override
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags) throws SQLException {
     execute(query, parameters, handler, maxRows, fetchSize, flags, false);
   }
 
+  @Override
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
@@ -516,11 +519,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private static final int MAX_BUFFERED_RECV_BYTES = 64000;
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
+  @Override
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags) throws SQLException {
     execute(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, false);
   }
 
+  @Override
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
       throws SQLException {
@@ -621,6 +626,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return new ResultHandlerDelegate(delegateHandler) {
       private boolean sawBegin = false;
 
+      @Override
       public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
           @Nullable ResultCursor cursor) {
         if (sawBegin) {
@@ -647,6 +653,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Fastpath
   //
 
+  @Override
   @SuppressWarnings("deprecation")
   public byte @Nullable [] fastpathCall(int fnid, ParameterList parameters,
       boolean suppressBegin)
@@ -718,6 +725,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   }
 
+  @Override
   @SuppressWarnings("deprecation")
   public ParameterList createFastpathParameters(int count) {
     return new SimpleParameterList(count, this);
@@ -767,6 +775,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   // Just for API compatibility with previous versions.
+  @Override
   public void processNotifies() throws SQLException {
     processNotifies(-1);
   }
@@ -776,6 +785,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *                      when =0, block forever
    *                      when &lt; 0, don't block
    */
+  @Override
   public void processNotifies(int timeoutMillis) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
@@ -947,6 +957,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * @return CopyIn or CopyOut operation object
    * @throws SQLException on failure
    */
+  @Override
   public CopyOperation startCopy(String sql, boolean suppressBegin)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -2569,6 +2580,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.skip(len - 4);
   }
 
+  @Override
   public void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize,
       boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -2929,6 +2941,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.timeZone = timeZone;
   }
 
+  @Override
   public @Nullable TimeZone getTimeZone() {
     return timeZone;
   }
@@ -2937,6 +2950,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.applicationName = applicationName;
   }
 
+  @Override
   public String getApplicationName() {
     if (applicationName == null) {
       return "";
@@ -3029,6 +3043,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     integerDateTimes = state;
   }
 
+  @Override
   public boolean getIntegerDateTimes() {
     return integerDateTimes;
   }

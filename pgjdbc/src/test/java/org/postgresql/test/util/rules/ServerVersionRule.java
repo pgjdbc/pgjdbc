@@ -69,6 +69,7 @@ public class ServerVersionRule implements TestRule {
     }
   }
 
+  @Override
   public Statement apply(final Statement base, final Description description) {
     return new Statement() {
       @Override

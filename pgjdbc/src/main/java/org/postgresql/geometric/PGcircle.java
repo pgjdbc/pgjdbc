@@ -95,6 +95,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two circles are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGcircle) {
       PGcircle p = (PGcircle) obj;
@@ -111,6 +112,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     if (center == null) {
       return 0;
@@ -121,6 +123,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
     return v;
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGcircle newPGcircle = (PGcircle) super.clone();
     if (newPGcircle.center != null) {
@@ -132,6 +135,7 @@ public class PGcircle extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGcircle in the syntax expected by org.postgresql
    */
+  @Override
   public @Nullable String getValue() {
     return center == null ? null : "<" + center + "," + radius + ">";
   }
