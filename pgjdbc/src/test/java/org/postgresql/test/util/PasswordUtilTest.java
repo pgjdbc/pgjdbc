@@ -5,6 +5,8 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.Assert.assertArrayEquals;
+
 import org.postgresql.PGConnection;
 import org.postgresql.core.Utils;
 import org.postgresql.test.TestUtil;
@@ -20,6 +22,7 @@ import org.junit.Test;
 import java.security.SecureRandom;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Properties;
 
 public class PasswordUtilTest {
@@ -56,9 +59,9 @@ public class PasswordUtilTest {
   }
 
   private void assertWiped(char[] passwordChars) {
-    for (int i = 0; i < passwordChars.length; i++) {
-      Assert.assertEquals("passwordChars[" + i + "] should be wiped", ' ', passwordChars[i]);
-    }
+    char[] expected = Arrays.copyOf(passwordChars, passwordChars.length);
+    Arrays.fill(passwordChars, (char) 0);
+    assertArrayEquals("password array should be all zeros after use", expected, passwordChars);
   }
 
   private void testUserPassword(@Nullable String encryptionType, String username, String password,
@@ -101,7 +104,9 @@ public class PasswordUtilTest {
 
   private void testUserPassword(@Nullable String encryptionType, String username, String password) throws SQLException {
     char[] passwordChars = password.toCharArray();
-    String encodedPassword = PasswordUtil.encodePassword(username, passwordChars, encryptionType);
+    String encodedPassword = PasswordUtil.encodePassword(
+        username, passwordChars,
+        encryptionType == null ? "md5" : encryptionType);
     Assert.assertNotEquals("password char[] array should be wiped and not match original password after encoding", password, String.valueOf(passwordChars));
     assertWiped(passwordChars);
     testUserPassword(encryptionType, username, password, encodedPassword);
@@ -121,7 +126,7 @@ public class PasswordUtilTest {
   }
 
   @Test
-  public void testServerDefault() throws SQLException {
+  public void encodePasswordWithServersPasswordEncryption() throws SQLException {
     String encryptionType;
     try (Connection conn = TestUtil.openPrivilegedDB()) {
       encryptionType = TestUtil.queryForString(conn, "SHOW password_encryption");
@@ -130,8 +135,7 @@ public class PasswordUtilTest {
   }
 
   @Test
-  @HaveMinimalServerVersion("10.0")
-  public void testDriverDefault() throws SQLException {
+  public void alterUserPasswordSupportsNullEncoding() throws SQLException {
     testUserPassword(null);
   }
 

@@ -24,6 +24,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -265,7 +266,8 @@ public interface PGConnection {
    * </p>
    *
    * @param user The username of the database user
-   * @param newPassword The new password for the database user
+   * @param newPassword The new password for the database user. The implementation will zero
+   *                    out the array after use
    * @param encryptionType The type of password encryption to use or null if the database server default should be used.
    * @throws SQLException If the password could not be altered
    */
@@ -278,10 +280,16 @@ public interface PGConnection {
                 PSQLState.NO_DATA);
           }
           encryptionType = rs.getString(1);
+          if (encryptionType == null) {
+            throw new PSQLException(GT.tr("SHOW password_encryption returned null value"),
+                PSQLState.NO_DATA);
+          }
         }
       }
       String sql = PasswordUtil.genAlterUserPasswordSQL(user, newPassword, encryptionType);
       stmt.execute(sql);
+    } finally {
+      Arrays.fill(newPassword, (char) 0);
     }
   }
 

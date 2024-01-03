@@ -11,7 +11,6 @@ import com.ongres.scram.common.ScramFunctions;
 import com.ongres.scram.common.ScramMechanisms;
 import com.ongres.scram.common.bouncycastle.base64.Base64;
 import com.ongres.scram.common.stringprep.StringPreparations;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -24,7 +23,6 @@ import java.util.Arrays;
 import java.util.Objects;
 
 public class PasswordUtil {
-  private static final String DEFAULT_PASSWORD_ENCRYPTION = "scram-sha-256";
   private static final int DEFAULT_ITERATIONS = 4096;
   private static final int DEFAULT_SALT_LENGTH = 16;
 
@@ -42,7 +40,8 @@ public class PasswordUtil {
    * text that may be used when creating or modifying a user with the given
    * password without the surrounding single quotes.
    *
-   * @param password   The plain text of the user's password
+   * @param password   The plain text of the user's password. The implementation will zero out
+   *                   the array after use
    * @param iterations The number of iterations of the hashing algorithm to
    *                   perform
    * @param salt       The random salt value
@@ -51,6 +50,7 @@ public class PasswordUtil {
    */
   public static String encodeScramSha256(char[] password, int iterations, byte[] salt) {
     Objects.requireNonNull(password, "password");
+    Objects.requireNonNull(salt, "salt");
     if (iterations <= 0) {
       throw new IllegalArgumentException("iterations must be greater than zero");
     }
@@ -65,13 +65,13 @@ public class PasswordUtil {
       byte[] storedKey = ScramFunctions.storedKey(ScramMechanisms.SCRAM_SHA_256, clientKey);
       byte[] serverKey = ScramFunctions.serverKey(ScramMechanisms.SCRAM_SHA_256, saltedPassword);
 
-      return "SCRAM-SHA-256" //
-        + "$" + iterations //
-        + ":" + Base64.toBase64String(salt) //
-        + "$" + Base64.toBase64String(storedKey) //
+      return "SCRAM-SHA-256"
+        + "$" + iterations
+        + ":" + Base64.toBase64String(salt)
+        + "$" + Base64.toBase64String(storedKey)
         + ":" + Base64.toBase64String(serverKey);
     } finally {
-      Arrays.fill(password, ' ');
+      Arrays.fill(password, (char) 0);
     }
   }
 
@@ -79,7 +79,8 @@ public class PasswordUtil {
    * Encode the given password for SCRAM-SHA-256 authentication using the default
    * iteration count and a random salt.
    *
-   * @param password The plain text of the user's password
+   * @param password The plain text of the user's password. The implementation will zero out the
+   *                 array after use
    * @return The text representation of the password encrypted for SCRAM-SHA-256
    *         authentication
    */
@@ -90,23 +91,29 @@ public class PasswordUtil {
       byte[] salt = rng.generateSeed(DEFAULT_SALT_LENGTH);
       return encodeScramSha256(password, DEFAULT_ITERATIONS, salt);
     } finally {
-      Arrays.fill(password, ' ');
+      Arrays.fill(password, (char) 0);
     }
   }
 
   /**
-   * Encode the the given password for use with md5 authentication. The PostgreSQL
+   * Encode the given password for use with md5 authentication. The PostgreSQL
    * server uses the username as the per-user salt so that must also be provided.
    * The return value of this method is the literal text that may be used when
    * creating or modifying a user with the given password without the surrounding
    * single quotes.
    *
    * @param user     The username of the database user
-   * @param password The plain text of the user's password
+   * @param password The plain text of the user's password. The implementation will zero out the
+   *                 array after use
    * @return The text representation of the password encrypted for md5
    *         authentication.
+   * @deprecated prefer {@link org.postgresql.PGConnection#alterUserPassword(String, char[], String)}
+   *             or {@link #encodeScramSha256(char[])} for better security.
    */
+  @Deprecated
+  @SuppressWarnings("DeprecatedIsStillUsed")
   public static String encodeMd5(String user, char[] password) {
+    Objects.requireNonNull(user, "user");
     Objects.requireNonNull(password, "password");
     ByteBuffer passwordBytes = null;
     try {
@@ -128,7 +135,7 @@ public class PasswordUtil {
     } catch (NoSuchAlgorithmException e) {
       throw new IllegalStateException("Unable to encode password with MD5", e);
     } finally {
-      Arrays.fill(password, ' ');
+      Arrays.fill(password, (char) 0);
       if (passwordBytes != null) {
         if (passwordBytes.hasArray()) {
           Arrays.fill(passwordBytes.array(), (byte) 0);
@@ -143,18 +150,6 @@ public class PasswordUtil {
   }
 
   /**
-   * Encode the given password using the driver's default encryption method.
-   *
-   * @param user     The username of the database user
-   * @param password The plain text of the user's password
-   * @return The encoded password
-   * @throws SQLException If an error occurs encoding the password
-   */
-  public static String encodePassword(String user, char[] password) throws SQLException {
-    return encodePassword(user, password, null);
-  }
-
-  /**
    * Encode the given password for the specified encryption type.
    * The word "encryption" is used here to match the verbiage in the PostgreSQL
    * server, i.e. the "password_encryption" setting. In reality, a cryptographic
@@ -162,19 +157,18 @@ public class PasswordUtil {
    * The database user is only required for the md5 encryption type.
    *
    * @param user           The username of the database user
-   * @param password       The plain text of the user's password
+   * @param password       The plain text of the user's password. The implementation will zero
+   *                       out the array after use
    * @param encryptionType The encryption type for which to encode the user's
    *                       password. This should match the database's supported
    *                       methods and value of the password_encryption setting.
    * @return The encoded password
    * @throws SQLException If an error occurs encoding the password
    */
-  public static String encodePassword(String user, char[] password, @Nullable String encryptionType)
+  public static String encodePassword(String user, char[] password, String encryptionType)
       throws SQLException {
     Objects.requireNonNull(password, "password");
-    if (encryptionType == null) {
-      encryptionType = DEFAULT_PASSWORD_ENCRYPTION;
-    }
+    Objects.requireNonNull(encryptionType, "encryptionType");
     switch (encryptionType) {
       case "on":
       case "off":
@@ -184,37 +178,39 @@ public class PasswordUtil {
         return encodeScramSha256(password);
     }
     // If we get here then it's an unhandled encryption type so we must wipe the array ourselves
-    Arrays.fill(password, ' ');
+    Arrays.fill(password, (char) 0);
     throw new PSQLException("Unable to determine encryption type: " + encryptionType, PSQLState.SYSTEM_ERROR);
   }
 
   /**
    * Generate the SQL statement to alter a user's password using the given
    * encryption.
-   * If the encryption type is not specified, the driver's default will be used.
    * All other encryption settings for the password will use the driver's
    * defaults.
    *
    * @param user           The username of the database user
-   * @param password       The plain text of the user's password
-   * @param encryptionType The encryption type of the password or null to use the
-   *                       default
+   * @param password       The plain text of the user's password. The implementation will zero
+   *                       out the array after use
+   * @param encryptionType The encryption type of the password
    * @return An SQL statement that may be executed to change the user's password
    * @throws SQLException If an error occurs encoding the password
    */
-  public static String genAlterUserPasswordSQL(String user, char[] password, @Nullable String encryptionType)
+  public static String genAlterUserPasswordSQL(String user, char[] password, String encryptionType)
       throws SQLException {
-    // This will also wipe the password array for us:
-    String encodedPassword = encodePassword(user, password, encryptionType);
-    StringBuilder sb = new StringBuilder();
-    sb.append("ALTER USER ");
-    Utils.escapeIdentifier(sb, user);
-    sb.append(" PASSWORD '");
-    // The choice of true / false for standard conforming strings does not matter
-    // here as the value being escaped is generated by us and known to be hex
-    // characters for all of the implemented password encryption methods.
-    Utils.escapeLiteral(sb, encodedPassword, true);
-    sb.append("'");
-    return sb.toString();
+    try {
+      String encodedPassword = encodePassword(user, password, encryptionType);
+      StringBuilder sb = new StringBuilder();
+      sb.append("ALTER USER ");
+      Utils.escapeIdentifier(sb, user);
+      sb.append(" PASSWORD '");
+      // The choice of true / false for standard conforming strings does not matter
+      // here as the value being escaped is generated by us and known to be hex
+      // characters for all of the implemented password encryption methods.
+      Utils.escapeLiteral(sb, encodedPassword, true);
+      sb.append("'");
+      return sb.toString();
+    } finally {
+      Arrays.fill(password, (char) 0);
+    }
   }
 }
