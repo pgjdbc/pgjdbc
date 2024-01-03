@@ -60,8 +60,7 @@ recipeList:
   - org.openrewrite.staticanalysis.ChainStringBuilderAppendCalls
   - org.openrewrite.staticanalysis.ReplaceStringBuilderWithString
   - org.openrewrite.java.ShortenFullyQualifiedTypeReferences
-  # See https://github.com/openrewrite/rewrite-static-analysis/issues/232 is resolved
-  # - org.openrewrite.staticanalysis.MissingOverrideAnnotation
+  - org.openrewrite.staticanalysis.MissingOverrideAnnotation
   - org.openrewrite.java.OrderImports
 ---
 # Copied from https://github.com/openrewrite/rewrite-static-analysis/blob/8c803a9c50b480841a4af031f60bac5ee443eb4e/src/main/resources/META-INF/rewrite/common-static-analysis.yml#L17-L93
