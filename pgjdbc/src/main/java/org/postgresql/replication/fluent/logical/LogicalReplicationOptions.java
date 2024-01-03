@@ -17,9 +17,8 @@ public interface LogicalReplicationOptions extends CommonOptions {
    *
    * @return not null logical replication slot name that already exists on server and free.
    */
-  @Nullable
   @Override
-  String getSlotName();
+  @Nullable String getSlotName();
 
   /**
    * Parameters for output plugin. Parameters will be set to output plugin that register for
