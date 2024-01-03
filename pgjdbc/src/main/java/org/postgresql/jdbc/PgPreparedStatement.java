@@ -48,10 +48,12 @@ import java.io.Writer;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -61,6 +63,7 @@ import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -408,7 +411,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setDate(@Positive int parameterIndex,
-      java.sql.@Nullable Date x) throws SQLException {
+      @Nullable Date x) throws SQLException {
     setDate(parameterIndex, x, null);
   }
 
@@ -613,12 +616,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.DATE:
-        if (in instanceof java.sql.Date) {
-          setDate(parameterIndex, (java.sql.Date) in);
+        if (in instanceof Date) {
+          setDate(parameterIndex, (Date) in);
         } else {
-          java.sql.Date tmpd;
+          Date tmpd;
           if (in instanceof java.util.Date) {
-            tmpd = new java.sql.Date(((java.util.Date) in).getTime());
+            tmpd = new Date(((java.util.Date) in).getTime());
           } else if (in instanceof LocalDate) {
             setDate(parameterIndex, (LocalDate) in);
             break;
@@ -629,12 +632,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         }
         break;
       case Types.TIME:
-        if (in instanceof java.sql.Time) {
-          setTime(parameterIndex, (java.sql.Time) in);
+        if (in instanceof Time) {
+          setTime(parameterIndex, (Time) in);
         } else {
-          java.sql.Time tmpt;
+          Time tmpt;
           if (in instanceof java.util.Date) {
-            tmpt = new java.sql.Time(((java.util.Date) in).getTime());
+            tmpt = new Time(((java.util.Date) in).getTime());
           } else if (in instanceof LocalTime) {
             setTime(parameterIndex, (LocalTime) in);
             break;
@@ -650,12 +653,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.TIMESTAMP:
         if (in instanceof PGTimestamp) {
           setObject(parameterIndex, in);
-        } else if (in instanceof java.sql.Timestamp) {
-          setTimestamp(parameterIndex, (java.sql.Timestamp) in);
+        } else if (in instanceof Timestamp) {
+          setTimestamp(parameterIndex, (Timestamp) in);
         } else {
-          java.sql.Timestamp tmpts;
+          Timestamp tmpts;
           if (in instanceof java.util.Date) {
-            tmpts = new java.sql.Timestamp(((java.util.Date) in).getTime());
+            tmpts = new Timestamp(((java.util.Date) in).getTime());
           } else if (in instanceof LocalDateTime) {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
@@ -1004,8 +1007,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setBytes(parameterIndex, (byte[]) x);
     } else if (x instanceof ByteStreamWriter) {
       setByteStreamWriter(parameterIndex, (ByteStreamWriter) x);
-    } else if (x instanceof java.sql.Date) {
-      setDate(parameterIndex, (java.sql.Date) x);
+    } else if (x instanceof Date) {
+      setDate(parameterIndex, (Date) x);
     } else if (x instanceof Time) {
       setTime(parameterIndex, (Time) x);
     } else if (x instanceof Timestamp) {
@@ -1162,7 +1165,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return null;
   }
 
-  public void setArray(int i, java.sql.@Nullable Array x) throws SQLException {
+  public void setArray(int i, @Nullable Array x) throws SQLException {
     checkClosed();
 
     if (null == x) {
@@ -1257,7 +1260,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  public void setCharacterStream(@Positive int i, java.io.@Nullable Reader x,
+  public void setCharacterStream(@Positive int i, @Nullable Reader x,
       @NonNegative int length) throws SQLException {
     checkClosed();
 
@@ -1336,8 +1339,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     throw Driver.notImplemented(this.getClass(), "setRef(int,Ref)");
   }
 
-  public void setDate(@Positive int i, java.sql.@Nullable Date d,
-      java.util.@Nullable Calendar cal) throws SQLException {
+  public void setDate(@Positive int i, @Nullable Date d,
+      @Nullable Calendar cal) throws SQLException {
     checkClosed();
 
     if (d == null) {
@@ -1379,7 +1382,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setTime(@Positive int i, @Nullable Time t,
-      java.util.@Nullable Calendar cal) throws SQLException {
+      @Nullable Calendar cal) throws SQLException {
     checkClosed();
 
     if (t == null) {
@@ -1407,7 +1410,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setTimestamp(@Positive int i, @Nullable Timestamp t,
-      java.util.@Nullable Calendar cal) throws SQLException {
+      @Nullable Calendar cal) throws SQLException {
     checkClosed();
 
     if (t == null) {
@@ -1496,13 +1499,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
-      java.sql.SQLType targetSqlType,
+      SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
   public void setObject(@Positive int parameterIndex, @Nullable Object x,
-      java.sql.SQLType targetSqlType)
+      SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
@@ -1657,7 +1660,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  public void setURL(@Positive int parameterIndex, java.net.@Nullable URL x) throws SQLException {
+  public void setURL(@Positive int parameterIndex, @Nullable URL x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(int,URL)");
   }
 

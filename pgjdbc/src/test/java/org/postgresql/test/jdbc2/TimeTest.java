@@ -23,6 +23,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -158,28 +159,28 @@ class TimeTest {
     ps.setTime(1, makeTime(23, 59, 59));
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("12:00:00"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:00:00"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("05:15:21"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("05:15:21"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("16:21:51"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("16:21:51"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("12:15:12"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:15:12"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "22:12:1", java.sql.Types.TIME);
+    ps.setObject(1, "22:12:1", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "8:46:44", java.sql.Types.TIME);
+    ps.setObject(1, "8:46:44", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "5:1:2-03", java.sql.Types.TIME);
+    ps.setObject(1, "5:1:2-03", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "23:59:59+11", java.sql.Types.TIME);
+    ps.setObject(1, "23:59:59+11", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
     // Need to let the test know this one has extra test cases.

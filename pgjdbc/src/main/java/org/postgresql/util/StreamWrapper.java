@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -95,7 +96,7 @@ public final class StreamWrapper implements Closeable {
       return finalizeAction.getStream();
     }
 
-    return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
+    return new ByteArrayInputStream(castNonNull(rawData), offset, length);
   }
 
   @Override

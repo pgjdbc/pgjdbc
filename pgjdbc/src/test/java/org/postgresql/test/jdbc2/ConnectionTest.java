@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -396,7 +397,7 @@ class ConnectionTest {
     String testStr = "This Is OuR TeSt message";
 
     // The connection must be ours!
-    assertTrue(con instanceof org.postgresql.PGConnection);
+    assertTrue(con instanceof PGConnection);
 
     // Clear any existing warnings
     con.clearWarnings();

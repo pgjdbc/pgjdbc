@@ -6,6 +6,7 @@
 package org.postgresql.osgi;
 
 import org.postgresql.Driver;
+import org.postgresql.util.DriverInfo;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.framework.BundleActivator;
@@ -45,9 +46,9 @@ public class PGBundleActivator implements BundleActivator {
     Dictionary<String, Object> properties = new Hashtable<>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME,
-        org.postgresql.util.DriverInfo.DRIVER_NAME);
+        DriverInfo.DRIVER_NAME);
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
-        org.postgresql.util.DriverInfo.DRIVER_VERSION);
+        DriverInfo.DRIVER_VERSION);
     registration = context.registerService(DataSourceFactory.class,
         new PGDataSourceFactory(), properties);
   }

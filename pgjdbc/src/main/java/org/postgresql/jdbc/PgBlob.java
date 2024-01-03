@@ -5,17 +5,20 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.core.BaseConnection;
 import org.postgresql.largeobject.LargeObject;
 
+import java.io.InputStream;
+import java.sql.Blob;
 import java.sql.SQLException;
 
-public class PgBlob extends AbstractBlobClob implements java.sql.Blob {
+public class PgBlob extends AbstractBlobClob implements Blob {
 
-  public PgBlob(org.postgresql.core.BaseConnection conn, long oid) throws SQLException {
+  public PgBlob(BaseConnection conn, long oid) throws SQLException {
     super(conn, oid);
   }
 
-  public java.io.InputStream getBinaryStream(long pos, long length)
+  public InputStream getBinaryStream(long pos, long length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();

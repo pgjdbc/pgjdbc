@@ -27,6 +27,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Random;
 
@@ -337,13 +338,13 @@ public class XADataSourceTest {
 
     conn.createStatement().executeQuery("SELECT * FROM testxa1");
 
-    java.sql.Timestamp ts1 = getTransactionTimestamp(conn);
+    Timestamp ts1 = getTransactionTimestamp(conn);
 
     conn.close();
     conn = xaconn.getConnection();
     assertFalse(conn.getAutoCommit());
 
-    java.sql.Timestamp ts2 = getTransactionTimestamp(conn);
+    Timestamp ts2 = getTransactionTimestamp(conn);
 
     /*
      * Check that we're still in the same transaction. close+getConnection() should not rollback the
@@ -366,7 +367,7 @@ public class XADataSourceTest {
    * runs fast enough, and/or the server clock is very coarse grained. But it'll do for testing
    * purposes.</p>
    */
-  private static java.sql.Timestamp getTransactionTimestamp(Connection conn) throws SQLException {
+  private static Timestamp getTransactionTimestamp(Connection conn) throws SQLException {
     ResultSet rs = conn.createStatement().executeQuery("SELECT now()");
     rs.next();
     return rs.getTimestamp(1);

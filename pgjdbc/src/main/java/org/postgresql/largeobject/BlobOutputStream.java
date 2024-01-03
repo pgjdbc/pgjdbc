@@ -88,7 +88,7 @@ public class BlobOutputStream extends OutputStream {
     return newBuffer;
   }
 
-  public void write(int b) throws java.io.IOException {
+  public void write(int b) throws IOException {
     long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = checkClosed();
@@ -107,7 +107,7 @@ public class BlobOutputStream extends OutputStream {
     }
   }
 
-  public void write(byte[] b, int off, int len) throws java.io.IOException {
+  public void write(byte[] b, int off, int len) throws IOException {
     long loId = 0;
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = checkClosed();

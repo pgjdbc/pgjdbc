@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
+import org.postgresql.PGRefCursorResultSet;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
@@ -50,6 +52,7 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Array;
@@ -63,6 +66,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
@@ -90,7 +94,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultSet {
+public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   // needed for updateable result set support
   private boolean updateable;
@@ -181,13 +185,13 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     this.lastUsedFetchSize = tuples.size();
   }
 
-  public java.net.URL getURL(@Positive int columnIndex) throws SQLException {
+  public URL getURL(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getURL columnIndex: {0}", columnIndex);
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getURL(int)");
+    throw Driver.notImplemented(this.getClass(), "getURL(int)");
   }
 
-  public java.net.URL getURL(String columnName) throws SQLException {
+  public URL getURL(String columnName) throws SQLException {
     return getURL(findColumn(columnName));
   }
 
@@ -431,11 +435,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return makeArray(oid, castNonNull(getFixedString(i)));
   }
 
-  public java.math.@Nullable BigDecimal getBigDecimal(@Positive int columnIndex) throws SQLException {
+  public @Nullable BigDecimal getBigDecimal(@Positive int columnIndex) throws SQLException {
     return getBigDecimal(columnIndex, -1);
   }
 
-  public java.math.@Nullable BigDecimal getBigDecimal(String columnName) throws SQLException {
+  public @Nullable BigDecimal getBigDecimal(String columnName) throws SQLException {
     return getBigDecimal(findColumn(columnName));
   }
 
@@ -457,11 +461,11 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return makeBlob(getLong(i));
   }
 
-  public java.io.@Nullable Reader getCharacterStream(String columnName) throws SQLException {
+  public @Nullable Reader getCharacterStream(String columnName) throws SQLException {
     return getCharacterStream(findColumn(columnName));
   }
 
-  public java.io.@Nullable Reader getCharacterStream(int i) throws SQLException {
+  public @Nullable Reader getCharacterStream(int i) throws SQLException {
     String value = getString(i);
     if (value == null) {
       return null;
@@ -500,8 +504,8 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Override
-  public java.sql.@Nullable Date getDate(
-      int i, java.util.@Nullable Calendar cal) throws SQLException {
+  public @Nullable Date getDate(
+      int i, @Nullable Calendar cal) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -535,7 +539,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   @Override
   public @Nullable Time getTime(
-      int i, java.util.@Nullable Calendar cal) throws SQLException {
+      int i, @Nullable Calendar cal) throws SQLException {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
@@ -580,7 +584,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   @Pure
   @Override
   public @Nullable Timestamp getTimestamp(
-      int i, java.util.@Nullable Calendar cal) throws SQLException {
+      int i, @Nullable Calendar cal) throws SQLException {
 
     byte[] value = getRawValue(i);
     if (value == null) {
@@ -781,18 +785,18 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
         PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  public java.sql.@Nullable Date getDate(
-      String c, java.util.@Nullable Calendar cal) throws SQLException {
+  public @Nullable Date getDate(
+      String c, @Nullable Calendar cal) throws SQLException {
     return getDate(findColumn(c), cal);
   }
 
   public @Nullable Time getTime(
-      String c, java.util.@Nullable Calendar cal) throws SQLException {
+      String c, @Nullable Calendar cal) throws SQLException {
     return getTime(findColumn(c), cal);
   }
 
   public @Nullable Timestamp getTimestamp(
-      String c, java.util.@Nullable Calendar cal) throws SQLException {
+      String c, @Nullable Calendar cal) throws SQLException {
     return getTimestamp(findColumn(c), cal);
   }
 
@@ -816,7 +820,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+    throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
   }
 
   public @Nullable Ref getRef(String columnName) throws SQLException {
@@ -826,7 +830,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public @Nullable Ref getRef(int i) throws SQLException {
     checkClosed();
     // The backend doesn't yet have SQL3 REF types
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getRef(int)");
+    throw Driver.notImplemented(this.getClass(), "getRef(int)");
   }
 
   @Override
@@ -1262,7 +1266,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateAsciiStream(@Positive int columnIndex,
-      java.io.@Nullable InputStream x, int length)
+      @Nullable InputStream x, int length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (x == null) {
@@ -1293,7 +1297,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     }
   }
 
-  public void updateBigDecimal(@Positive int columnIndex, java.math.@Nullable BigDecimal x)
+  public void updateBigDecimal(@Positive int columnIndex, @Nullable BigDecimal x)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
@@ -1301,7 +1305,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateBinaryStream(@Positive int columnIndex,
-      java.io.@Nullable InputStream x, int length)
+      @Nullable InputStream x, int length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (x == null) {
@@ -1359,7 +1363,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateCharacterStream(@Positive int columnIndex,
-      java.io.@Nullable Reader x, int length)
+      @Nullable Reader x, int length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (x == null) {
@@ -1390,7 +1394,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateDate(@Positive int columnIndex,
-      java.sql.@Nullable Date x) throws SQLException {
+      @Nullable Date x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateValue(columnIndex, x);
     }
@@ -1701,21 +1705,21 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateDate(
-      String columnName, java.sql.@Nullable Date x) throws SQLException {
+      String columnName, @Nullable Date x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateDate(findColumn(columnName), x);
     }
   }
 
   public void updateTime(
-      String columnName, java.sql.@Nullable Time x) throws SQLException {
+      String columnName, @Nullable Time x) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateTime(findColumn(columnName), x);
     }
   }
 
   public void updateTimestamp(
-      String columnName, java.sql.@Nullable Timestamp x)
+      String columnName, @Nullable Timestamp x)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateTimestamp(findColumn(columnName), x);
@@ -1723,7 +1727,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateAsciiStream(
-      String columnName, java.io.@Nullable InputStream x, int length)
+      String columnName, @Nullable InputStream x, int length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateAsciiStream(findColumn(columnName), x, length);
@@ -1731,7 +1735,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateBinaryStream(
-      String columnName, java.io.@Nullable InputStream x, int length)
+      String columnName, @Nullable InputStream x, int length)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateBinaryStream(findColumn(columnName), x, length);
@@ -1739,7 +1743,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateCharacterStream(
-      String columnName, java.io.@Nullable Reader reader,
+      String columnName, @Nullable Reader reader,
       int length) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       updateCharacterStream(findColumn(columnName), reader, length);
@@ -1810,7 +1814,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     @Nullable String[] s = quotelessTableName(castNonNull(tableName));
     String quotelessTableName = castNonNull(s[0]);
     @Nullable String quotelessSchemaName = s[1];
-    java.sql.ResultSet rs = ((PgDatabaseMetaData) connection.getMetaData()).getPrimaryUniqueKeys("",
+    ResultSet rs = ((PgDatabaseMetaData) connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
     String lastConstraintName = null;
@@ -2760,7 +2764,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Pure
-  public java.sql.@Nullable Date getDate(@Positive int columnIndex) throws SQLException {
+  public @Nullable Date getDate(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getDate columnIndex: {0}", columnIndex);
     return getDate(columnIndex, null);
   }
@@ -2888,7 +2892,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   @Pure
-  public java.sql.@Nullable Date getDate(String columnName) throws SQLException {
+  public @Nullable Date getDate(String columnName) throws SQLException {
     return getDate(findColumn(columnName), null);
   }
 
@@ -3585,27 +3589,27 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateRef(@Positive int columnIndex, @Nullable Ref x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateRef(int,Ref)");
+    throw Driver.notImplemented(this.getClass(), "updateRef(int,Ref)");
   }
 
   public void updateRef(String columnName, @Nullable Ref x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateRef(String,Ref)");
+    throw Driver.notImplemented(this.getClass(), "updateRef(String,Ref)");
   }
 
   public void updateBlob(@Positive int columnIndex, @Nullable Blob x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(int,Blob)");
+    throw Driver.notImplemented(this.getClass(), "updateBlob(int,Blob)");
   }
 
   public void updateBlob(String columnName, @Nullable Blob x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(String,Blob)");
+    throw Driver.notImplemented(this.getClass(), "updateBlob(String,Blob)");
   }
 
   public void updateClob(@Positive int columnIndex, @Nullable Clob x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int,Clob)");
+    throw Driver.notImplemented(this.getClass(), "updateClob(int,Clob)");
   }
 
   public void updateClob(String columnName, @Nullable Clob x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(String,Clob)");
+    throw Driver.notImplemented(this.getClass(), "updateClob(String,Clob)");
   }
 
   public void updateArray(@Positive int columnIndex, @Nullable Array x) throws SQLException {
@@ -3839,29 +3843,29 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
     return getObjectImpl(i, map);
   }
 
-  public void updateObject(@Positive int columnIndex, @Nullable Object x, java.sql.SQLType targetSqlType,
+  public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
+    throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
-  public void updateObject(String columnLabel, @Nullable Object x, java.sql.SQLType targetSqlType,
+  public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
+    throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
-  public void updateObject(@Positive int columnIndex, @Nullable Object x, java.sql.SQLType targetSqlType)
+  public void updateObject(@Positive int columnIndex, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
+    throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
-  public void updateObject(String columnLabel, @Nullable Object x, java.sql.SQLType targetSqlType)
+  public void updateObject(String columnLabel, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateObject");
+    throw Driver.notImplemented(this.getClass(), "updateObject");
   }
 
   public @Nullable RowId getRowId(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getRowId columnIndex: {0}", columnIndex);
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getRowId(int)");
+    throw Driver.notImplemented(this.getClass(), "getRowId(int)");
   }
 
   public @Nullable RowId getRowId(String columnName) throws SQLException {
@@ -3869,7 +3873,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateRowId(@Positive int columnIndex, @Nullable RowId x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateRowId(int, RowId)");
+    throw Driver.notImplemented(this.getClass(), "updateRowId(int, RowId)");
   }
 
   public void updateRowId(String columnName, @Nullable RowId x) throws SQLException {
@@ -3877,7 +3881,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public int getHoldability() throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getHoldability()");
+    throw Driver.notImplemented(this.getClass(), "getHoldability()");
   }
 
   public boolean isClosed() throws SQLException {
@@ -3885,7 +3889,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateNString(@Positive int columnIndex, @Nullable String nString) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNString(int, String)");
+    throw Driver.notImplemented(this.getClass(), "updateNString(int, String)");
   }
 
   public void updateNString(String columnName, @Nullable String nString) throws SQLException {
@@ -3893,7 +3897,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateNClob(@Positive int columnIndex, @Nullable NClob nClob) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNClob(int, NClob)");
+    throw Driver.notImplemented(this.getClass(), "updateNClob(int, NClob)");
   }
 
   public void updateNClob(String columnName, @Nullable NClob nClob) throws SQLException {
@@ -3901,7 +3905,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateNClob(@Positive int columnIndex, @Nullable Reader reader) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNClob(int, Reader)");
+    throw Driver.notImplemented(this.getClass(), "updateNClob(int, Reader)");
   }
 
   public void updateNClob(String columnName, @Nullable Reader reader) throws SQLException {
@@ -3909,7 +3913,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateNClob(@Positive int columnIndex, @Nullable Reader reader, long length) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateNClob(int, Reader, long)");
+    throw Driver.notImplemented(this.getClass(), "updateNClob(int, Reader, long)");
   }
 
   public void updateNClob(String columnName, @Nullable Reader reader, long length) throws SQLException {
@@ -3918,7 +3922,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public @Nullable NClob getNClob(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNClob columnIndex: {0}", columnIndex);
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getNClob(int)");
+    throw Driver.notImplemented(this.getClass(), "getNClob(int)");
   }
 
   public @Nullable NClob getNClob(String columnName) throws SQLException {
@@ -3927,7 +3931,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateBlob(@Positive int columnIndex, @Nullable InputStream inputStream, long length)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateBlob(int, InputStream, long)");
   }
 
@@ -3937,7 +3941,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateBlob(@Positive int columnIndex, @Nullable InputStream inputStream) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateBlob(int, InputStream)");
+    throw Driver.notImplemented(this.getClass(), "updateBlob(int, InputStream)");
   }
 
   public void updateBlob(String columnName, @Nullable InputStream inputStream) throws SQLException {
@@ -3945,7 +3949,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateClob(@Positive int columnIndex, @Nullable Reader reader, long length) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int, Reader, long)");
+    throw Driver.notImplemented(this.getClass(), "updateClob(int, Reader, long)");
   }
 
   public void updateClob(String columnName, @Nullable Reader reader, long length) throws SQLException {
@@ -3953,7 +3957,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   }
 
   public void updateClob(@Positive int columnIndex, @Nullable Reader reader) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "updateClob(int, Reader)");
+    throw Driver.notImplemented(this.getClass(), "updateClob(int, Reader)");
   }
 
   public void updateClob(String columnName, @Nullable Reader reader) throws SQLException {
@@ -3985,7 +3989,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public @Nullable String getNString(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNString columnIndex: {0}", columnIndex);
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getNString(int)");
+    throw Driver.notImplemented(this.getClass(), "getNString(int)");
   }
 
   public @Nullable String getNString(String columnName) throws SQLException {
@@ -3994,7 +3998,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public @Nullable Reader getNCharacterStream(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getNCharacterStream columnIndex: {0}", columnIndex);
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getNCharacterStream(int)");
+    throw Driver.notImplemented(this.getClass(), "getNCharacterStream(int)");
   }
 
   public @Nullable Reader getNCharacterStream(String columnName) throws SQLException {
@@ -4003,7 +4007,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateNCharacterStream(@Positive int columnIndex,
       @Nullable Reader x, int length) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateNCharacterStream(int, Reader, int)");
   }
 
@@ -4014,7 +4018,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateNCharacterStream(@Positive int columnIndex,
       @Nullable Reader x) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateNCharacterStream(int, Reader)");
   }
 
@@ -4025,7 +4029,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateNCharacterStream(@Positive int columnIndex,
       @Nullable Reader x, long length) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateNCharacterStream(int, Reader, long)");
   }
 
@@ -4037,7 +4041,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader, long length)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateCharacterStream(int, Reader, long)");
   }
 
@@ -4049,7 +4053,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateCharacterStream(@Positive int columnIndex,
       @Nullable Reader reader) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateCharacterStream(int, Reader)");
   }
 
@@ -4061,7 +4065,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void updateBinaryStream(@Positive int columnIndex,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateBinaryStream(int, InputStream, long)");
   }
 
@@ -4073,7 +4077,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateBinaryStream(@Positive int columnIndex,
       @Nullable InputStream inputStream) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateBinaryStream(int, InputStream)");
   }
 
@@ -4085,7 +4089,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
   public void updateAsciiStream(@Positive int columnIndex,
       @Nullable InputStream inputStream, long length)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateAsciiStream(int, InputStream, long)");
   }
 
@@ -4097,7 +4101,7 @@ public class PgResultSet implements ResultSet, org.postgresql.PGRefCursorResultS
 
   public void updateAsciiStream(@Positive int columnIndex,
       @Nullable InputStream inputStream) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "updateAsciiStream(int, InputStream)");
   }
 

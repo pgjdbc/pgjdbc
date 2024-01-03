@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
@@ -21,6 +22,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ import java.util.Map;
  *
  * @see ResultSet#getArray
  */
-public class PgArray implements java.sql.Array {
+public class PgArray implements Array {
 
   static {
     ArrayAssistantRegistry.register(Oid.UUID, new UUIDArrayAssistant());
@@ -139,7 +141,7 @@ public class PgArray implements java.sql.Array {
 
     // for now maps aren't supported.
     if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+      throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
     }
 
     // array index is out of range
@@ -323,11 +325,11 @@ public class PgArray implements java.sql.Array {
     return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
 
-  public java.sql.ResultSet getResultSet() throws SQLException {
+  public ResultSet getResultSet() throws SQLException {
     return getResultSetImpl(1, 0, null);
   }
 
-  public java.sql.ResultSet getResultSet(long index, int count) throws SQLException {
+  public ResultSet getResultSet(long index, int count) throws SQLException {
     return getResultSetImpl(index, count, null);
   }
 
@@ -349,7 +351,7 @@ public class PgArray implements java.sql.Array {
 
     // for now maps aren't supported.
     if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
+      throw Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
     }
 
     // array index is out of range

@@ -16,13 +16,17 @@ import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.GeneralSecurityException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+
+import javax.net.ssl.SSLHandshakeException;
 
 public class SingleCertValidatingFactoryTest {
   @BeforeAll
@@ -118,7 +122,7 @@ public class SingleCertValidatingFactoryTest {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory");
-    testConnect(info, true, javax.net.ssl.SSLHandshakeException.class);
+    testConnect(info, true, SSLHandshakeException.class);
   }
 
   /**
@@ -138,7 +142,7 @@ public class SingleCertValidatingFactoryTest {
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
     info.setProperty("sslfactoryarg", "file:" + badServerCertPath);
-    testConnect(info, true, javax.net.ssl.SSLHandshakeException.class);
+    testConnect(info, true, SSLHandshakeException.class);
   }
 
   @Test
@@ -147,7 +151,7 @@ public class SingleCertValidatingFactoryTest {
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
     info.setProperty("sslfactoryarg", "file:foo/bar/baz");
-    testConnect(info, true, java.io.FileNotFoundException.class);
+    testConnect(info, true, FileNotFoundException.class);
   }
 
   @Test
@@ -156,7 +160,7 @@ public class SingleCertValidatingFactoryTest {
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
     info.setProperty("sslfactoryarg", "foobar!");
-    testConnect(info, true, java.security.GeneralSecurityException.class);
+    testConnect(info, true, GeneralSecurityException.class);
   }
 
   /**
@@ -251,7 +255,7 @@ public class SingleCertValidatingFactoryTest {
       info.setProperty("ssl", "true");
       info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
       info.setProperty("sslfactoryarg", "sys:" + sysPropName);
-      testConnect(info, true, java.security.GeneralSecurityException.class);
+      testConnect(info, true, GeneralSecurityException.class);
     } finally {
       // Clear it out when we're done:
       System.setProperty(sysPropName, "");
@@ -276,7 +280,7 @@ public class SingleCertValidatingFactoryTest {
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
     info.setProperty("sslfactoryarg", "env:" + envVarName);
-    testConnect(info, true, java.security.GeneralSecurityException.class);
+    testConnect(info, true, GeneralSecurityException.class);
   }
 
   ///////////////////////////////////////////////////////////////////

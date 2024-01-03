@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -27,14 +28,24 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGcircle;
+import org.postgresql.geometric.PGline;
+import org.postgresql.geometric.PGlseg;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -246,7 +257,7 @@ public class PgConnection implements BaseConnection {
                       Properties info,
                       String url) throws SQLException {
     // Print out the driver version number
-    LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+    LOGGER.log(Level.FINE, DriverInfo.DRIVER_FULL_NAME);
 
     this.creatingURL = url;
 
@@ -801,15 +812,15 @@ public class PgConnection implements BaseConnection {
   private void initObjectTypes(Properties info) throws SQLException {
     // Add in the types that come packaged with the driver.
     // These can be overridden later if desired.
-    addDataType("box", org.postgresql.geometric.PGbox.class);
-    addDataType("circle", org.postgresql.geometric.PGcircle.class);
-    addDataType("line", org.postgresql.geometric.PGline.class);
-    addDataType("lseg", org.postgresql.geometric.PGlseg.class);
-    addDataType("path", org.postgresql.geometric.PGpath.class);
-    addDataType("point", org.postgresql.geometric.PGpoint.class);
-    addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
-    addDataType("money", org.postgresql.util.PGmoney.class);
-    addDataType("interval", org.postgresql.util.PGInterval.class);
+    addDataType("box", PGbox.class);
+    addDataType("circle", PGcircle.class);
+    addDataType("line", PGline.class);
+    addDataType("lseg", PGlseg.class);
+    addDataType("path", PGpath.class);
+    addDataType("point", PGpoint.class);
+    addDataType("polygon", PGpolygon.class);
+    addDataType("money", PGmoney.class);
+    addDataType("interval", PGInterval.class);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
@@ -1174,7 +1185,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This is a cache of the DatabaseMetaData instance for this connection
-  protected java.sql.@Nullable DatabaseMetaData metadata;
+  protected @Nullable DatabaseMetaData metadata;
 
   @Override
   public boolean isClosed() throws SQLException {
@@ -1422,19 +1433,19 @@ public class PgConnection implements BaseConnection {
   @Override
   public Clob createClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    throw Driver.notImplemented(this.getClass(), "createClob()");
   }
 
   @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    throw Driver.notImplemented(this.getClass(), "createBlob()");
   }
 
   @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
+    throw Driver.notImplemented(this.getClass(), "createNClob()");
   }
 
   @Override
@@ -1446,7 +1457,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+    throw Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
@@ -1619,7 +1630,7 @@ public class PgConnection implements BaseConnection {
 
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
+    throw Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
   }
 
   public boolean getLogServerErrorDetail() {

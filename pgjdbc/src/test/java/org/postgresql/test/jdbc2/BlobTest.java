@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
@@ -52,7 +53,7 @@ class BlobTest {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "testblob", "id name,lo oid");
       con.setAutoCommit(false);
-      LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+      LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
       long oid = lom.createLO(LargeObjectManager.READWRITE);
       LargeObject blob = lom.open(oid);
 
@@ -203,7 +204,7 @@ class BlobTest {
       try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'")) {
         assertTrue(rs.next());
 
-        LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+        LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
 
         long oid = rs.getLong(1);
         LargeObject blob = lom.open(oid);
@@ -316,7 +317,7 @@ class BlobTest {
   @Test
   void largeObjectRead() throws Exception {
     con.setAutoCommit(false);
-    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     try (Statement stmt = con.createStatement()) {
       try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id='l1'")) {
         assertTrue(rs.next());
@@ -338,7 +339,7 @@ class BlobTest {
   @Test
   void largeObjectRead1() throws Exception {
     con.setAutoCommit(false);
-    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     try (Statement stmt = con.createStatement()) {
       try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id='l1'")) {
         assertTrue(rs.next());
@@ -362,7 +363,7 @@ class BlobTest {
    * works, and we can use it as a base to test the new methods.
    */
   private long uploadFile(String file, int method) throws Exception {
-    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
 
     InputStream fis = getClass().getResourceAsStream(file);
 
@@ -417,7 +418,7 @@ class BlobTest {
   private boolean compareBlobsLOAPI(String id) throws Exception {
     boolean result = true;
 
-    LargeObjectManager lom = ((org.postgresql.PGConnection) con).getLargeObjectAPI();
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
 
     try (Statement st = con.createStatement()) {
       try (ResultSet rs = st.executeQuery(TestUtil.selectSQL("testblob", "id,lo", "id = '" + id + "'"))) {

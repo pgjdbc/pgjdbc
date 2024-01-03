@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGInterval;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,7 +75,7 @@ class GetXXXTest {
       Object obj = rs.getObject(1, new HashMap<>());
 
       // it should not be an instance of PGInterval
-      assertTrue(obj instanceof org.postgresql.util.PGInterval);
+      assertTrue(obj instanceof PGInterval);
 
     }
 

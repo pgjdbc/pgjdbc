@@ -17,6 +17,7 @@ import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
+import org.postgresql.core.Notification;
 import org.postgresql.core.Oid;
 import org.postgresql.core.PGBindException;
 import org.postgresql.core.PGStream;
@@ -2686,7 +2687,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int pid = pgStream.receiveInteger4();
     String msg = pgStream.receiveCanonicalString();
     String param = pgStream.receiveString();
-    addNotification(new org.postgresql.core.Notification(msg, pid, param));
+    addNotification(new Notification(msg, pid, param));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE AsyncNotify({0},{1},{2})", new Object[]{pid, msg, param});

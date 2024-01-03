@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
@@ -14,6 +15,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
@@ -157,22 +159,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public String getDriverName() {
-    return org.postgresql.util.DriverInfo.DRIVER_NAME;
+    return DriverInfo.DRIVER_NAME;
   }
 
   @Override
   public String getDriverVersion() {
-    return org.postgresql.util.DriverInfo.DRIVER_VERSION;
+    return DriverInfo.DRIVER_VERSION;
   }
 
   @Override
   public int getDriverMajorVersion() {
-    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
+    return DriverInfo.MAJOR_VERSION;
   }
 
   @Override
   public int getDriverMinorVersion() {
-    return org.postgresql.util.DriverInfo.MINOR_VERSION;
+    return DriverInfo.MINOR_VERSION;
   }
 
   /**
@@ -1189,7 +1191,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[2] = procedureName;
         tuple[3] = connection.encodeString("returnValue");
         tuple[4] = connection
-            .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnReturn));
+            .encodeString(Integer.toString(DatabaseMetaData.procedureColumnReturn));
         tuple[5] = connection
             .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
         tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
@@ -1198,7 +1200,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[9] = null;
         tuple[10] = null;
         tuple[11] = connection
-            .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+            .encodeString(Integer.toString(DatabaseMetaData.procedureNullableUnknown));
         tuple[12] = null;
         tuple[17] = connection.encodeString(Integer.toString(0));
         tuple[18] = isnullableUnknown;
@@ -1271,7 +1273,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[2] = procedureName;
           tuple[3] = columnrs.getBytes("attname");
           tuple[4] = connection
-              .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureColumnResult));
+              .encodeString(Integer.toString(DatabaseMetaData.procedureColumnResult));
           tuple[5] = connection
               .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
           tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
@@ -1280,7 +1282,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[9] = null;
           tuple[10] = null;
           tuple[11] = connection
-              .encodeString(Integer.toString(java.sql.DatabaseMetaData.procedureNullableUnknown));
+              .encodeString(Integer.toString(DatabaseMetaData.procedureNullableUnknown));
           tuple[12] = null;
           tuple[17] = connection.encodeString(Integer.toString(0));
           tuple[18] = isnullableUnknown;
@@ -1700,7 +1702,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       tuple[10] = connection.encodeString(Integer.toString(rs.getBoolean("attnotnull")
-          ? java.sql.DatabaseMetaData.columnNoNulls : java.sql.DatabaseMetaData.columnNullable)); // Nullable
+          ? DatabaseMetaData.columnNoNulls : DatabaseMetaData.columnNullable)); // Nullable
       tuple[11] = rs.getBytes("description"); // Description (if any)
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
@@ -2117,7 +2119,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[5] = null; // unused
       tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
       tuple[7] =
-          connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.bestRowNotPseudo));
+          connection.encodeString(Integer.toString(DatabaseMetaData.bestRowNotPseudo));
       v.add(new Tuple(tuple));
     }
     rs.close();
@@ -2160,7 +2162,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     tuple[5] = null;
     tuple[6] = null;
     tuple[7] =
-        connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.versionColumnPseudo));
+        connection.encodeString(Integer.toString(DatabaseMetaData.versionColumnPseudo));
     v.add(new Tuple(tuple));
 
     /*
@@ -2429,9 +2431,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     byte[] bt = connection.encodeString("t");
     byte[] bliteral = connection.encodeString("'");
     byte[] bNullable =
-              connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeNullable));
+              connection.encodeString(Integer.toString(DatabaseMetaData.typeNullable));
     byte[] bSearchable =
-              connection.encodeString(Integer.toString(java.sql.DatabaseMetaData.typeSearchable));
+              connection.encodeString(Integer.toString(DatabaseMetaData.typeSearchable));
 
     TypeInfo ti = connection.getTypeInfo();
     if (ti instanceof TypeInfoCache) {
@@ -2531,10 +2533,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
             + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
             + "  CASE i.indisclustered "
-            + "    WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
+            + "    WHEN true THEN " + DatabaseMetaData.tableIndexClustered
             + "    ELSE CASE am.amname "
-            + "      WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
-            + "      ELSE " + java.sql.DatabaseMetaData.tableIndexOther
+            + "      WHEN 'hash' THEN " + DatabaseMetaData.tableIndexHashed
+            + "      ELSE " + DatabaseMetaData.tableIndexOther
             + "    END "
             + "  END AS TYPE, "
             + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
@@ -2610,10 +2612,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = select
             + " ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
             + " CASE i.indisclustered "
-            + " WHEN true THEN " + java.sql.DatabaseMetaData.tableIndexClustered
+            + " WHEN true THEN " + DatabaseMetaData.tableIndexClustered
             + " ELSE CASE am.amname "
-            + " WHEN 'hash' THEN " + java.sql.DatabaseMetaData.tableIndexHashed
-            + " ELSE " + java.sql.DatabaseMetaData.tableIndexOther
+            + " WHEN 'hash' THEN " + DatabaseMetaData.tableIndexHashed
+            + " ELSE " + DatabaseMetaData.tableIndexOther
             + " END "
             + " END AS TYPE, "
             + " a.attnum AS ORDINAL_POSITION, "
@@ -2707,8 +2709,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
     String sql = "select "
         + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
-        + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else "
-        + java.sql.Types.DISTINCT
+        + "CASE WHEN t.typtype='c' then " + Types.STRUCT + " else "
+        + Types.DISTINCT
         + " end as data_type, pg_catalog.obj_description(t.oid, 'pg_type')  "
         + "as remarks, CASE WHEN t.typtype = 'd' then  (select CASE";
     TypeInfo typeInfo = connection.getTypeInfo();
@@ -2726,7 +2728,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
     sql += sqlwhen.toString();
 
-    sql += " else " + java.sql.Types.OTHER + " end from pg_type base_type where base_type.oid=t.typbasetype) "
+    sql += " else " + Types.OTHER + " end from pg_type base_type where base_type.oid=t.typbasetype) "
         + "else null end as base_type "
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
 
@@ -2802,7 +2804,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public RowIdLifetime getRowIdLifetime() throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "getRowIdLifetime()");
+    throw Driver.notImplemented(this.getClass(), "getRowIdLifetime()");
   }
 
   @Override
@@ -2988,7 +2990,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[2] = functionName;
         tuple[3] = connection.encodeString("returnValue");
         tuple[4] = connection
-            .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionReturn));
+            .encodeString(Integer.toString(DatabaseMetaData.functionReturn));
         tuple[5] = connection
             .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
         tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
@@ -2997,7 +2999,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[9] = null;
         tuple[10] = null;
         tuple[11] = connection
-            .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionNullableUnknown));
+            .encodeString(Integer.toString(DatabaseMetaData.functionNullableUnknown));
         tuple[12] = null;
         tuple[14] = connection.encodeString(Integer.toString(0));
         tuple[15] = isnullableUnknown;
@@ -3071,7 +3073,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[2] = functionName;
           tuple[3] = columnrs.getBytes("attname");
           tuple[4] = connection
-              .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionColumnResult));
+              .encodeString(Integer.toString(DatabaseMetaData.functionColumnResult));
           tuple[5] = connection
               .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
           tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
@@ -3080,7 +3082,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[9] = null;
           tuple[10] = null;
           tuple[11] = connection
-              .encodeString(Integer.toString(java.sql.DatabaseMetaData.functionNullableUnknown));
+              .encodeString(Integer.toString(DatabaseMetaData.functionNullableUnknown));
           tuple[12] = null;
           tuple[14] = connection.encodeString(Integer.toString(0));
           tuple[15] = isnullableUnknown;
@@ -3101,7 +3103,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPseudoColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "getPseudoColumns(String, String, String, String)");
   }
 
@@ -3131,20 +3133,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getSuperTypes(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "getSuperTypes(String,String,String)");
   }
 
   public ResultSet getSuperTables(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern)
       throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "getSuperTables(String,String,String,String)");
   }
 
   public ResultSet getAttributes(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, @Nullable String attributeNamePattern) throws SQLException {
-    throw org.postgresql.Driver.notImplemented(this.getClass(),
+    throw Driver.notImplemented(this.getClass(),
         "getAttributes(String,String,String,String)");
   }
 
@@ -3168,12 +3170,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public int getJDBCMajorVersion() {
-    return org.postgresql.util.DriverInfo.JDBC_MAJOR_VERSION;
+    return DriverInfo.JDBC_MAJOR_VERSION;
   }
 
   @Override
   public int getJDBCMinorVersion() {
-    return org.postgresql.util.DriverInfo.JDBC_MINOR_VERSION;
+    return DriverInfo.JDBC_MINOR_VERSION;
   }
 
   public int getSQLStateType() throws SQLException {

@@ -9,6 +9,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.ResourceLock;
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -90,7 +91,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
    * Gets a description of this DataSource.
    */
   public String getDescription() {
-    return "Pooling DataSource '" + dataSourceName + " from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
+    return "Pooling DataSource '" + dataSourceName + " from " + DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**

@@ -471,7 +471,7 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public void appendAll(ParameterList list) throws SQLException {
-    if (list instanceof org.postgresql.core.v3.SimpleParameterList ) {
+    if (list instanceof SimpleParameterList ) {
       /* only v3.SimpleParameterList is compatible with this type
       we need to create copies of our parameters, otherwise the values can be changed */
       SimpleParameterList spl = (SimpleParameterList) list;

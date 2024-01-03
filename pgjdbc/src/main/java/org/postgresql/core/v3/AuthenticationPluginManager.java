@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,7 +82,7 @@ class AuthenticationPluginManager {
       return action.apply(password);
     } finally {
       if (password != null) {
-        java.util.Arrays.fill(password, (char) 0);
+        Arrays.fill(password, (char) 0);
       }
     }
   }
@@ -120,7 +121,7 @@ class AuthenticationPluginManager {
     try {
       return action.apply(encodedPassword);
     } finally {
-      java.util.Arrays.fill(encodedPassword, (byte) 0);
+      Arrays.fill(encodedPassword, (byte) 0);
     }
   }
 }

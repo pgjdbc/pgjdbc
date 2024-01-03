@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.TimerTask;
+import java.util.logging.Logger;
 
 /**
  * Driver-internal connection interface. Application code should not use this interface.
@@ -151,7 +152,7 @@ public interface BaseConnection extends PGConnection, Connection {
   TimestampUtils getTimestampUtils();
 
   // Get the per-connection logger.
-  java.util.logging.Logger getLogger();
+  Logger getLogger();
 
   // Get the bind-string-as-varchar config flag
   boolean getStringVarcharFlag();

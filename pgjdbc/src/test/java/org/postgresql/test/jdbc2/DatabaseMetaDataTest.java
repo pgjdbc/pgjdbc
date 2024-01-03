@@ -276,17 +276,17 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.INTEGER, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.INTEGER, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("name", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.VARCHAR, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(java.sql.Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
   }
 
   @MethodSource("data")
@@ -1292,7 +1292,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.BIGINT, baseType, "base type");
       assertEquals(Types.DISTINCT, dataType, "data type");
       assertEquals("testint8", typeName, "type name ");
       assertEquals("jdbc123", remarks, "remarks");
@@ -1326,7 +1326,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.BIGINT, baseType, "base type");
       assertEquals(Types.DISTINCT, dataType, "data type");
       assertEquals("testint8", typeName, "type name ");
       assertEquals("jdbc123", remarks, "remarks");
@@ -1359,7 +1359,7 @@ public class DatabaseMetaDataTest {
       String remarks = rs.getString("remarks");
 
       int baseType = rs.getInt("base_type");
-      assertEquals(java.sql.Types.BIGINT, baseType, "base type");
+      assertEquals(Types.BIGINT, baseType, "base type");
       assertEquals(Types.DISTINCT, dataType, "data type");
       assertEquals("testint8", typeName, "type name ");
       assertEquals("jdbc123", remarks, "remarks");
@@ -1749,7 +1749,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void smallSerialColumns(BinaryMode binaryMode) throws SQLException {
     initDatabaseMetaDataTest(binaryMode);
-    org.junit.jupiter.api.Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     TestUtil.createTable(con, "smallserial_test", "a smallserial");
 
     DatabaseMetaData dbmd = con.getMetaData();

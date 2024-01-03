@@ -5,53 +5,57 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.Driver;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.largeobject.LargeObject;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 
-public class PgClob extends AbstractBlobClob implements java.sql.Clob {
+public class PgClob extends AbstractBlobClob implements Clob {
 
-  public PgClob(org.postgresql.core.BaseConnection conn, long oid) throws java.sql.SQLException {
+  public PgClob(BaseConnection conn, long oid) throws SQLException {
     super(conn, oid);
   }
 
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getCharacterStream(long, long)");
+      throw Driver.notImplemented(this.getClass(), "getCharacterStream(long, long)");
     }
   }
 
   public int setString(long pos, String str) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,str)");
+      throw Driver.notImplemented(this.getClass(), "setString(long,str)");
     }
   }
 
   public int setString(long pos, String str, int offset, int len) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
+      throw Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
     }
   }
 
-  public java.io.OutputStream setAsciiStream(long pos) throws SQLException {
+  public OutputStream setAsciiStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
+      throw Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
     }
   }
 
-  public java.io.Writer setCharacterStream(long pos) throws SQLException {
+  public Writer setCharacterStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(long)");
+      throw Driver.notImplemented(this.getClass(), "setCharacterStream(long)");
     }
   }
 
@@ -81,7 +85,7 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
   public long position(String pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "position(String,long)");
+      throw Driver.notImplemented(this.getClass(), "position(String,long)");
     }
   }
 
@@ -91,7 +95,7 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
   public long position(Clob pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "position(Clob,start)");
+      throw Driver.notImplemented(this.getClass(), "position(Clob,start)");
     }
   }
 }

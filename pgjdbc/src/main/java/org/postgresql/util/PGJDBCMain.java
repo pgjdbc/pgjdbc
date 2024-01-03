@@ -7,12 +7,14 @@ package org.postgresql.util;
 
 import org.postgresql.Driver;
 
+import java.net.URL;
+
 public class PGJDBCMain {
 
   public static void main(String[] args) {
 
-    java.net.URL url = Driver.class.getResource("/org/postgresql/Driver.class");
-    System.out.printf("%n%s%n", org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+    URL url = Driver.class.getResource("/org/postgresql/Driver.class");
+    System.out.printf("%n%s%n", DriverInfo.DRIVER_FULL_NAME);
     System.out.printf("Found in: %s%n%n", url);
 
     System.out.printf("The PgJDBC driver is not an executable Java program.%n%n"

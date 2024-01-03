@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Parser;
@@ -27,8 +28,11 @@ import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -327,8 +331,8 @@ final class ArrayDecoding {
     }
   };
 
-  private static final ArrayDecoder<java.sql.Date[]> DATE_DECODER = new AbstractObjectStringArrayDecoder<java.sql.Date[]>(
-      java.sql.Date.class) {
+  private static final ArrayDecoder<Date[]> DATE_DECODER = new AbstractObjectStringArrayDecoder<Date[]>(
+      Date.class) {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
@@ -336,8 +340,8 @@ final class ArrayDecoding {
     }
   };
 
-  private static final ArrayDecoder<java.sql.Time[]> TIME_DECODER = new AbstractObjectStringArrayDecoder<java.sql.Time[]>(
-      java.sql.Time.class) {
+  private static final ArrayDecoder<Time[]> TIME_DECODER = new AbstractObjectStringArrayDecoder<Time[]>(
+      Time.class) {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
@@ -345,8 +349,8 @@ final class ArrayDecoding {
     }
   };
 
-  private static final ArrayDecoder<java.sql.Timestamp[]> TIMESTAMP_DECODER = new AbstractObjectStringArrayDecoder<java.sql.Timestamp[]>(
-      java.sql.Timestamp.class) {
+  private static final ArrayDecoder<Timestamp[]> TIMESTAMP_DECODER = new AbstractObjectStringArrayDecoder<Timestamp[]>(
+      Timestamp.class) {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
@@ -468,7 +472,7 @@ final class ArrayDecoding {
 
     final String typeName = connection.getTypeInfo().getPGType(oid);
     if (typeName == null) {
-      throw org.postgresql.Driver.notImplemented(PgArray.class, "readArray(data,oid)");
+      throw Driver.notImplemented(PgArray.class, "readArray(data,oid)");
     }
 
     // 42.2.x should return enums as strings
@@ -509,7 +513,7 @@ final class ArrayDecoding {
     final ArrayDecoder decoder = getDecoder(elementOid, connection);
 
     if (!decoder.supportBinary()) {
-      throw org.postgresql.Driver.notImplemented(PgArray.class, "readBinaryArray(data,oid)");
+      throw Driver.notImplemented(PgArray.class, "readBinaryArray(data,oid)");
     }
 
     if (dimensions == 0) {

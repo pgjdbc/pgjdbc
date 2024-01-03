@@ -19,6 +19,7 @@ import org.postgresql.xa.PGXADataSource;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.service.jdbc.DataSourceFactory;
 
+import java.sql.Driver;
 import java.sql.SQLException;
 import java.util.Map.Entry;
 import java.util.Properties;
@@ -82,7 +83,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
     }
   }
 
-  public java.sql.Driver createDriver(Properties props) throws SQLException {
+  public Driver createDriver(Properties props) throws SQLException {
     if (props != null && !props.isEmpty()) {
       throw new PSQLException(GT.tr("Unsupported properties: {0}", props.stringPropertyNames()),
           PSQLState.INVALID_PARAMETER_VALUE);

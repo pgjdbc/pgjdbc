@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
@@ -20,6 +21,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assumptions;
@@ -823,7 +825,7 @@ class StatementTest {
 
   @Test
   void multipleCancels() throws Exception {
-    org.postgresql.util.SharedTimer sharedTimer = org.postgresql.Driver.getSharedTimer();
+    SharedTimer sharedTimer = Driver.getSharedTimer();
 
     Connection connA = null;
     Connection connB = null;

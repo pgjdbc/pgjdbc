@@ -71,7 +71,7 @@ class DriverTest {
     TestUtil.initDriver(); // Set up log levels, etc.
 
     // Load the driver (note clients should never do it this way!)
-    org.postgresql.Driver drv = new org.postgresql.Driver();
+    Driver drv = new Driver();
     assertNotNull(drv);
 
     // These are always correct
@@ -455,13 +455,13 @@ class DriverTest {
     TestUtil.initDriver();
 
     // Driver is initially registered because it is automatically done when class is loaded
-    assertTrue(org.postgresql.Driver.isRegistered());
+    assertTrue(Driver.isRegistered());
 
     ArrayList<java.sql.Driver> drivers = Collections.list(DriverManager.getDrivers());
     searchInstanceOf: {
 
       for (java.sql.Driver driver : drivers) {
-        if (driver instanceof org.postgresql.Driver) {
+        if (driver instanceof Driver) {
           break searchInstanceOf;
         }
       }
@@ -474,7 +474,7 @@ class DriverTest {
 
     drivers = Collections.list(DriverManager.getDrivers());
     for (java.sql.Driver driver : drivers) {
-      if (driver instanceof org.postgresql.Driver) {
+      if (driver instanceof Driver) {
         fail("Driver should be deregistered but it is still present in DriverManager's list");
       }
     }
@@ -485,7 +485,7 @@ class DriverTest {
 
     drivers = Collections.list(DriverManager.getDrivers());
     for (java.sql.Driver driver : drivers) {
-      if (driver instanceof org.postgresql.Driver) {
+      if (driver instanceof Driver) {
         return;
       }
     }

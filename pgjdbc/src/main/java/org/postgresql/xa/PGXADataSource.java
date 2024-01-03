@@ -7,6 +7,7 @@ package org.postgresql.xa;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.util.DriverInfo;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -51,7 +52,7 @@ public class PGXADataSource extends BaseDataSource implements XADataSource {
   }
 
   public String getDescription() {
-    return "XA-enabled DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
+    return "XA-enabled DataSource from " + DriverInfo.DRIVER_FULL_NAME;
   }
 
   /**

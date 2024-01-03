@@ -20,15 +20,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -318,19 +321,19 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (byte @Nullable []) result;
   }
 
-  public java.sql.@Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
+  public @Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.DATE, "Date");
-    return (java.sql.@Nullable Date) result;
+    return (@Nullable Date) result;
   }
 
-  public java.sql.@Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
+  public @Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.TIME, "Time");
-    return (java.sql.@Nullable Time) result;
+    return (@Nullable Time) result;
   }
 
-  public java.sql.@Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
+  public @Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (java.sql.@Nullable Timestamp) result;
+    return (@Nullable Timestamp) result;
   }
 
   public @Nullable Object getObject(@Positive int parameterIndex) throws SQLException {
@@ -415,12 +418,12 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return new CallableBatchResultHandler(this, queries, parameterLists);
   }
 
-  public java.sql.@Nullable Array getArray(int i) throws SQLException {
+  public @Nullable Array getArray(int i) throws SQLException {
     Object result = checkIndex(i, Types.ARRAY, "Array");
     return (Array) result;
   }
 
-  public java.math.@Nullable BigDecimal getBigDecimal(@Positive int parameterIndex) throws SQLException {
+  public @Nullable BigDecimal getBigDecimal(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
     return (BigDecimal) result;
   }
@@ -444,7 +447,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getRef(int)");
   }
 
-  public java.sql.@Nullable Date getDate(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  public @Nullable Date getDate(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.DATE, "Date");
 
     if (result == null) {
@@ -455,7 +458,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return getTimestampUtils().toDate(cal, value);
   }
 
-  public @Nullable Time getTime(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  public @Nullable Time getTime(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.TIME, "Time");
 
     if (result == null) {
@@ -466,7 +469,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return getTimestampUtils().toTime(cal, value);
   }
 
-  public @Nullable Timestamp getTimestamp(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  public @Nullable Timestamp getTimestamp(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.TIMESTAMP, "Timestamp");
 
     if (result == null) {
@@ -482,42 +485,42 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
   }
 
-  public void setObject(String parameterName, @Nullable Object x, java.sql.SQLType targetSqlType,
+  public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
-  public void setObject(String parameterName, @Nullable Object x, java.sql.SQLType targetSqlType)
+  public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType)
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType, int scale)
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType, String typeName)
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType)
+  public void registerOutParameter(String parameterName, SQLType sqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType, int scale)
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType, String typeName)
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
@@ -683,11 +686,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,String)");
   }
 
-  public java.net.@Nullable URL getURL(@Positive int parameterIndex) throws SQLException {
+  public @Nullable URL getURL(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
   }
 
-  public void setURL(String parameterName, java.net.@Nullable URL val) throws SQLException {
+  public void setURL(String parameterName, @Nullable URL val) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(String,URL)");
   }
 
@@ -735,7 +738,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
   }
 
-  public void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException {
+  public void setDate(String parameterName, @Nullable Date x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date)");
   }
 
@@ -773,7 +776,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(String,Reader,int)");
   }
 
-  public void setDate(String parameterName, java.sql.@Nullable Date x, @Nullable Calendar cal) throws SQLException {
+  public void setDate(String parameterName, @Nullable Date x, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date,Calendar)");
   }
 
@@ -825,7 +828,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getBytes(String)");
   }
 
-  public java.sql.@Nullable Date getDate(String parameterName) throws SQLException {
+  public @Nullable Date getDate(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDate(String)");
   }
 
@@ -865,7 +868,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getArray(String)");
   }
 
-  public java.sql.@Nullable Date getDate(String parameterName, @Nullable Calendar cal) throws SQLException {
+  public @Nullable Date getDate(String parameterName, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDate(String,Calendar)");
   }
 
@@ -877,7 +880,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getTimestamp(String,Calendar)");
   }
 
-  public java.net.@Nullable URL getURL(String parameterName) throws SQLException {
+  public @Nullable URL getURL(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
   }
 

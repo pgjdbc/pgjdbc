@@ -8,6 +8,7 @@ package org.postgresql.ds;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGStatement;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -337,17 +338,17 @@ public class PGPooledConnection implements PooledConnection {
         if ("createStatement".equals(methodName)) {
           Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
-              new Class[]{Statement.class, org.postgresql.PGStatement.class},
+              new Class[]{Statement.class, PGStatement.class},
               new StatementHandler(this, st));
         } else if ("prepareCall".equals(methodName)) {
           Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
-              new Class[]{CallableStatement.class, org.postgresql.PGStatement.class},
+              new Class[]{CallableStatement.class, PGStatement.class},
               new StatementHandler(this, st));
         } else if ("prepareStatement".equals(methodName)) {
           Statement st = castNonNull((Statement) method.invoke(con, args));
           return Proxy.newProxyInstance(getClass().getClassLoader(),
-              new Class[]{PreparedStatement.class, org.postgresql.PGStatement.class},
+              new Class[]{PreparedStatement.class, PGStatement.class},
               new StatementHandler(this, st));
         } else {
           return method.invoke(con, args);

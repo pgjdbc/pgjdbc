@@ -7,6 +7,7 @@ package org.postgresql.ds.common;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -1391,7 +1392,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setUrl(String url) {
 
-    Properties p = org.postgresql.Driver.parseURL(url, null);
+    Properties p = Driver.parseURL(url, null);
 
     if (p == null) {
       throw new IllegalArgumentException("URL invalid " + url);
@@ -1719,7 +1720,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   @Override
-  public java.util.logging.Logger getParentLogger() {
+  public Logger getParentLogger() {
     return Logger.getLogger("org.postgresql");
   }
 

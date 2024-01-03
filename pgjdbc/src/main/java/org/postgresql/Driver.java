@@ -490,12 +490,12 @@ public class Driver implements java.sql.Driver {
 
   @Override
   public int getMajorVersion() {
-    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
+    return DriverInfo.MAJOR_VERSION;
   }
 
   @Override
   public int getMinorVersion() {
-    return org.postgresql.util.DriverInfo.MINOR_VERSION;
+    return DriverInfo.MINOR_VERSION;
   }
 
   /**
@@ -742,7 +742,7 @@ public class Driver implements java.sql.Driver {
   }
 
   @Override
-  public java.util.logging.Logger getParentLogger() {
+  public Logger getParentLogger() {
     return PARENT_LOGGER;
   }
 

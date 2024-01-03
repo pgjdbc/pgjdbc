@@ -97,7 +97,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The minimum required to implement input stream.
    */
-  public int read() throws java.io.IOException {
+  public int read() throws IOException {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
       if (absolutePosition >= limit) {

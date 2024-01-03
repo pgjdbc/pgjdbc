@@ -5,14 +5,17 @@
 
 package org.postgresql.ssl;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
-public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.WrappedFactory {
+public abstract class DbKeyStoreSocketFactory extends WrappedFactory {
   /*
    * Populate the WrappedFactory member factory with an SSL Socket Factory that uses the JKS
    * keystore provided by getKeyStorePassword() and getKeyStoreStream(). A subclass only needs to
@@ -30,11 +33,11 @@ public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
       // Currently we suppress it with method.invocation
       password = getKeyStorePassword();
       keys.load(getKeyStoreStream(), password);
-    } catch (java.security.GeneralSecurityException gse) {
+    } catch (GeneralSecurityException gse) {
       throw new DbKeyStoreSocketException("Failed to load keystore: " + gse.getMessage());
-    } catch (java.io.FileNotFoundException fnfe) {
+    } catch (FileNotFoundException fnfe) {
       throw new DbKeyStoreSocketException("Failed to find keystore file." + fnfe.getMessage());
-    } catch (java.io.IOException ioe) {
+    } catch (IOException ioe) {
       throw new DbKeyStoreSocketException("Failed to read keystore file: " + ioe.getMessage());
     }
     try {
@@ -49,7 +52,7 @@ public abstract class DbKeyStoreSocketFactory extends org.postgresql.ssl.Wrapped
       SSLContext ctx = SSLContext.getInstance("SSL");
       ctx.init(keyfact.getKeyManagers(), trustfact.getTrustManagers(), null);
       factory = ctx.getSocketFactory();
-    } catch (java.security.GeneralSecurityException gse) {
+    } catch (GeneralSecurityException gse) {
       throw new DbKeyStoreSocketException(
           "Failed to set up database socket factory: " + gse.getMessage());
     }

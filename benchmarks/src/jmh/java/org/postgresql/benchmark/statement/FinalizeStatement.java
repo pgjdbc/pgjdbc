@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -78,7 +79,7 @@ public class FinalizeStatement {
   public Statement createAndLeak() throws SQLException {
     Statement statement = connection.createStatement();
     Random rnd;
-    rnd = java.util.concurrent.ThreadLocalRandom.current();
+    rnd = ThreadLocalRandom.current();
     if (rnd.nextFloat() >= leakPctFloat) {
       statement.close();
     }

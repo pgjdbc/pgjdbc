@@ -5,6 +5,7 @@
 
 package org.postgresql.test.util;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.rmi.MarshalledObject;
 import java.util.HashMap;
@@ -55,7 +56,7 @@ public class MiniJndiContext implements Context {
     } else if (o instanceof MarshalledObject) {
       try {
         return ((MarshalledObject<?>) o).get();
-      } catch (java.io.IOException e) {
+      } catch (IOException e) {
         throw new NamingException("Unable to deserialize object: " + e);
       } catch (ClassNotFoundException e) {
         throw new NamingException("Unable to deserialize object: " + e);
@@ -85,7 +86,7 @@ public class MiniJndiContext implements Context {
       try {
         MarshalledObject<Object> mo = new MarshalledObject<>(obj);
         map.put(name, mo);
-      } catch (java.io.IOException e) {
+      } catch (IOException e) {
         throw new NamingException("Unable to serialize object to JNDI: " + e);
       }
     } else {

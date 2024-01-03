@@ -10,7 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.Driver;
+import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.DriverInfo;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -190,7 +193,7 @@ class DatabaseMetaDataPropertiesTest {
 
   @Test
   void dbProductDetails() throws SQLException {
-    assertTrue(con instanceof org.postgresql.PGConnection);
+    assertTrue(con instanceof PGConnection);
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -207,9 +210,9 @@ class DatabaseMetaDataPropertiesTest {
     assertNotNull(dbmd);
 
     assertEquals("PostgreSQL JDBC Driver", dbmd.getDriverName());
-    assertEquals(org.postgresql.util.DriverInfo.DRIVER_VERSION, dbmd.getDriverVersion());
-    assertEquals(new org.postgresql.Driver().getMajorVersion(), dbmd.getDriverMajorVersion());
-    assertEquals(new org.postgresql.Driver().getMinorVersion(), dbmd.getDriverMinorVersion());
+    assertEquals(DriverInfo.DRIVER_VERSION, dbmd.getDriverVersion());
+    assertEquals(new Driver().getMajorVersion(), dbmd.getDriverMajorVersion());
+    assertEquals(new Driver().getMinorVersion(), dbmd.getDriverMinorVersion());
     assertTrue(dbmd.getJDBCMajorVersion() >= 4);
     assertTrue(dbmd.getJDBCMinorVersion() >= 0);
   }
