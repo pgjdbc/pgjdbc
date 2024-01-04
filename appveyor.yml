@@ -8,8 +8,6 @@ environment:
   matrix:
   - pg: 9.6.11-1
     PlatformToolset: v120
-  - pg: 15.2-1
-    PlatformToolset: v120
 matrix:
   allow_failures:
     - pg: master
