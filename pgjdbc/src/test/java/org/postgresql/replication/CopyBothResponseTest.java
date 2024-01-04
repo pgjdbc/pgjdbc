@@ -14,11 +14,9 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -37,11 +35,8 @@ import java.util.concurrent.TimeUnit;
  * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
 @Tag("Replication")
-@HaveMinimalServerVersion("9.4")
-public class CopyBothResponseTest {
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
-
+@DisabledIfServerVersionBelow("9.4")
+class CopyBothResponseTest {
   private Connection sqlConnection;
   private Connection replConnection;
 

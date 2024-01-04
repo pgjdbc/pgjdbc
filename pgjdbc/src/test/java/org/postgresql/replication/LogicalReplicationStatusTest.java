@@ -13,10 +13,8 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -32,12 +30,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Tag("Replication")
-@HaveMinimalServerVersion("9.4")
-public class LogicalReplicationStatusTest {
+@DisabledIfServerVersionBelow("9.4")
+class LogicalReplicationStatusTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
-
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
 
   private Connection replicationConnection;
   private Connection sqlConnection;
@@ -103,7 +98,7 @@ public class LogicalReplicationStatusTest {
    * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
-  @HaveMinimalServerVersion("9.4.8")
+  @DisabledIfServerVersionBelow("9.4.8")
   void receivedLSNDependentOnProcessMessage() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
@@ -299,7 +294,7 @@ public class LogicalReplicationStatusTest {
    * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
-  @HaveMinimalServerVersion("9.4.8")
+  @DisabledIfServerVersionBelow("9.4.8")
   void applyLocationDoNotDependOnFlushLocation() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 

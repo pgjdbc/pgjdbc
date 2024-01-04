@@ -14,12 +14,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.core.Utils;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.util.PasswordUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
 
 import java.security.SecureRandom;
@@ -28,10 +26,7 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Properties;
 
-public class PasswordUtilTest {
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
-
+class PasswordUtilTest {
   private static final SecureRandom rng = new SecureRandom();
 
   private static String randomSuffix() {
@@ -158,13 +153,13 @@ public class PasswordUtilTest {
   }
 
   @Test
-  @HaveMinimalServerVersion("10.0")
+  @DisabledIfServerVersionBelow("10.0")
   void scramSha256() throws SQLException {
     testUserPassword("scram-sha-256");
   }
 
   @Test
-  @HaveMinimalServerVersion("10.0")
+  @DisabledIfServerVersionBelow("10.0")
   void customScramParams() throws SQLException {
     String username = "test_password_" + randomSuffix();
     String password = "t0pSecret" + randomSuffix();

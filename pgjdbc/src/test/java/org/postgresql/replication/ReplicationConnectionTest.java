@@ -10,11 +10,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -25,11 +23,8 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 @Tag("Replication")
-@HaveMinimalServerVersion("9.4")
-public class ReplicationConnectionTest {
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
-
+@DisabledIfServerVersionBelow("9.4")
+class ReplicationConnectionTest {
   private Connection replConnection;
 
   @BeforeEach

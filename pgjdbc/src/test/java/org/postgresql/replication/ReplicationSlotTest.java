@@ -19,11 +19,9 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -36,11 +34,8 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
 @Tag("Replication")
-@HaveMinimalServerVersion("9.4")
-public class ReplicationSlotTest {
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
-
+@DisabledIfServerVersionBelow("9.4")
+class ReplicationSlotTest {
   private Connection sqlConnection;
   private Connection replConnection;
 

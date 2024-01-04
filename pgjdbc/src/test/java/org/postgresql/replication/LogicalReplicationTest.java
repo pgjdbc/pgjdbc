@@ -14,13 +14,11 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -44,12 +42,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Tag("Replication")
-@HaveMinimalServerVersion("9.4")
-public class LogicalReplicationTest {
+@DisabledIfServerVersionBelow("9.4")
+class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
-
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
 
   private Connection replConnection;
   private Connection sqlConnection;
@@ -265,7 +260,7 @@ public class LogicalReplicationTest {
    */
   @Test
   @Timeout(1)
-  @HaveMinimalServerVersion("11.1")
+  @DisabledIfServerVersionBelow("11.1")
   void afterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -338,7 +333,7 @@ public class LogicalReplicationTest {
    */
   @Test
   @Timeout(10)
-  @HaveMinimalServerVersion("12.1")
+  @DisabledIfServerVersionBelow("12.1")
   void duringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -393,7 +388,7 @@ public class LogicalReplicationTest {
    */
   @Test
   @Timeout(60)
-  @HaveMinimalServerVersion("11.1")
+  @DisabledIfServerVersionBelow("11.1")
   void duringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 

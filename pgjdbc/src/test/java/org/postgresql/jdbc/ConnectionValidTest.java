@@ -9,13 +9,12 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.Timeout;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -28,12 +27,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-@HaveMinimalServerVersion("9.4")
-public class ConnectionValidTest {
-
-  @Rule
-  public Timeout timeout = new Timeout(30, TimeUnit.SECONDS);
-
+@DisabledIfServerVersionBelow("9.4")
+class ConnectionValidTest {
   private static final int LOCAL_SHADOW_PORT = 9009;
 
   private Connection connection;
@@ -64,6 +59,7 @@ public class ConnectionValidTest {
    * @throws Exception if a database exception occurs.
    */
   @Test
+  @Timeout(30)
   void isValid() throws Exception {
     connectionBreaker.breakConnection();
     boolean result = connection.isValid(5);
