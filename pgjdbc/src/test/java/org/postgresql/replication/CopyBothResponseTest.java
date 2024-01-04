@@ -15,13 +15,13 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
-@Tag("Replication")
+@Replication
 @DisabledIfServerVersionBelow("9.4")
 class CopyBothResponseTest {
   private Connection sqlConnection;

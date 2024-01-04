@@ -293,13 +293,13 @@ include.forEach(v => {
   includeTestTags.push('none()'); // untagged tests
 
   if (v.replication === 'yes') {
-      includeTestTags.push('org.postgresql.test.Replication');
+      includeTestTags.push('replication');
   }
   if (v.slow_tests === 'yes') {
       includeTestTags.push('org.postgresql.test.SlowTests');
   }
   if (v.xa === 'yes') {
-      includeTestTags.push('org.postgresql.test.XaTests');
+      includeTestTags.push('xa');
   }
 
   v.includeTestTags = includeTestTags.join(' | ');

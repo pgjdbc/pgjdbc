@@ -11,18 +11,18 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-@Tag("Replication")
+@Replication
 @DisabledIfServerVersionBelow("9.4")
 class ReplicationConnectionTest {
   private Connection replConnection;

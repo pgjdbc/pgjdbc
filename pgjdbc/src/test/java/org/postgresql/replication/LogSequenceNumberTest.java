@@ -10,10 +10,11 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import org.junit.jupiter.api.Tag;
+import org.postgresql.test.annotations.tags.Replication;
+
 import org.junit.jupiter.api.Test;
 
-@Tag("Replication")
+@Replication
 class LogSequenceNumberTest {
   @Test
   void notNullWhenCreateFromStr() throws Exception {
