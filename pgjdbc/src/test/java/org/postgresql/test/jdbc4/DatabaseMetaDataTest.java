@@ -16,8 +16,10 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,6 +34,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class DatabaseMetaDataTest {
+  private static final String INVALID_CATALOG_MESSAGE =
+      "PostgreSQL only supports metadata queries related to the connection's catalog.";
 
   private Connection conn;
 
@@ -81,7 +85,7 @@ public class DatabaseMetaDataTest {
   public void testGetColumnsForAutoIncrement() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "sercoltest", "%");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals("YES", rs.getString("IS_AUTOINCREMENT"));
@@ -103,6 +107,15 @@ public class DatabaseMetaDataTest {
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNull(rs.getString("TABLE_CATALOG"));
     assertTrue(!rs.next());
+  }
+
+  @Test
+  public void testGetSchemasInvalidCatalog() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getSchemas("invalid", "publ%");
+    });
   }
 
   @Test
@@ -145,6 +158,15 @@ public class DatabaseMetaDataTest {
     try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", "addprocedure")) {
       assertFalse("Should not return procedures from getFunctions by schema + name", rs.next());
     }
+  }
+
+  @Test
+  public void testGetFunctionsInvalidCatalog() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getFunctions("invalid", "hasfunctions", "");
+    });
   }
 
   @Test
@@ -227,8 +249,8 @@ public class DatabaseMetaDataTest {
       assertThat(count, is(totalCount));
     }
 
-    // Catalog parameter has no affect on our getFunctions filtering
-    try (ResultSet rs = dbmd.getFunctions("ANYTHING_WILL_WORK", null, null)) {
+    // Catalog parameter with connection catalog value has no effect on our getFunctions filtering
+    try (ResultSet rs = dbmd.getFunctions(conn.getCatalog(), null, null)) {
       int count = assertGetFunctionRS(rs);
       assertThat(count, is(totalCount));
     }

@@ -18,6 +18,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
+import org.postgresql.util.PSQLException;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.After;
@@ -51,6 +52,9 @@ import java.util.Set;
  */
 @RunWith(Parameterized.class)
 public class DatabaseMetaDataTest {
+  private static final String INVALID_CATALOG_MESSAGE =
+      "PostgreSQL only supports metadata queries related to the connection's catalog.";
+
   private Connection con;
   private final BinaryMode binaryMode;
 
@@ -286,6 +290,16 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testTablesInvalidCatalog() throws Exception {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getTables("invalid", null, "metadatates%", new String[]{"TABLE"});
+    });
+  }
+
+  @Test
   public void testCrossReference() throws Exception {
     Connection con1 = TestUtil.openDB();
 
@@ -331,6 +345,19 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con1, "vv");
     TestUtil.dropTable(con1, "ww");
     TestUtil.closeDB(con1);
+  }
+
+  @Test
+  public void testCrossReferenceInvalidCatalog() throws Exception {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getCrossReference("invalid", "", "vv", null, "", "ww");
+    });
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getCrossReference(null, "", "vv", "invalid", "", "ww");
+    });
   }
 
   @Test
@@ -569,6 +596,16 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testColumnsInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getColumns("invalid", null, "pg_class", null);
+    });
+  }
+
+  @Test
   public void testDroppedColumns() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
       return;
@@ -652,6 +689,16 @@ public class DatabaseMetaDataTest {
     rs.close();
   }
 
+  @Test
+  public void testColumnPrivilegesInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getColumnPrivileges("invalid", null, "pg_statistic", null);
+    });
+  }
+
   /*
    * Helper function - this logic is used several times to test relation privileges
    */
@@ -709,12 +756,32 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testTablePrivilegesInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getTablePrivileges("invalid", null, "metadatatest");
+    });
+  }
+
+  @Test
   public void testPrimaryKeys() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getPrimaryKeys(null, null, "pg_class");
     rs.close();
+  }
+
+  @Test
+  public void testPrimaryKeysInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getPrimaryKeys("invalid", null, "pg_class");
+    });
   }
 
   @Test
@@ -770,6 +837,16 @@ public class DatabaseMetaDataTest {
     assertTrue(!rs.next());
 
     rs.close();
+  }
+
+  @Test
+  public void testIndexInfoInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getIndexInfo("invalid", null, "metadatatest", false, false);
+    });
   }
 
   /**
@@ -914,6 +991,16 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testProcedureColumnsInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getProcedureColumns("invalid", null, "f1", null);
+    });
+  }
+
+  @Test
   public void testFuncWithoutNames() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
@@ -1047,6 +1134,16 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testVersionColumnsInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getVersionColumns("invalid", null, "pg_class");
+    });
+  }
+
+  @Test
   public void testBestRowIdentifier() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
@@ -1057,12 +1154,32 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  public void testBestRowIdentifierInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getBestRowIdentifier("invalid", null, "pg_type", DatabaseMetaData.bestRowSession, false);
+    });
+  }
+
+  @Test
   public void testProcedures() throws SQLException {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     ResultSet rs = dbmd.getProcedures(null, null, null);
     rs.close();
+  }
+
+  @Test
+  public void testProceduresInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getProcedures("invalid", null, null);
+    });
   }
 
   @Test
@@ -1170,7 +1287,7 @@ public class DatabaseMetaDataTest {
       assertEquals("schema name ", "jdbc", schema);
 
       // now test to see if the fully qualified stuff works as planned
-      rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
+      rs = dbmd.getUDTs(con.getCatalog(), "public", con.getCatalog() + ".jdbc.testint8", null);
       assertTrue(rs.next());
       cat = rs.getString("type_cat");
       schema = rs.getString("type_schem");
@@ -1193,6 +1310,16 @@ public class DatabaseMetaDataTest {
       }
     }
 
+  }
+
+  @Test
+  public void testGetUDTsInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getUDTs("invalid", null, "doesnotexist", null);
+    });
   }
 
   @Test
@@ -1638,6 +1765,16 @@ public class DatabaseMetaDataTest {
     assertTrue(!rs.next());
 
     rs.close();
+  }
+
+  @Test
+  public void testFunctionColumnsInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    Assert.assertThrows(INVALID_CATALOG_MESSAGE, PSQLException.class, () -> {
+      dbmd.getFunctionColumns("invalid", null, "f1", null);
+    });
   }
 
   @Test

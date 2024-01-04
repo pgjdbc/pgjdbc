@@ -1069,6 +1069,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedures(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String procedureNamePattern)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     String sql;
     sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, "
           + "NULL, NULL, NULL, d.description AS REMARKS, "
@@ -1100,6 +1102,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedureColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     int columns = 20;
 
     Field[] f = new Field[columns];
@@ -1301,6 +1305,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern, String @Nullable [] types) throws SQLException {
+    validateCatalogParameter(catalog);
+
     String select;
     String orderby;
     String useSchemas = "SCHEMAS";
@@ -1471,6 +1477,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     String sql;
     sql = "SELECT nspname AS TABLE_SCHEM, NULL AS TABLE_CATALOG FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
@@ -1515,6 +1523,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern,
       @Nullable String columnNamePattern) throws SQLException {
+    validateCatalogParameter(catalog);
 
     int numberOfFields = 24; // JDBC4
     List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
@@ -1740,6 +1749,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getColumnPrivileges(@Nullable String catalog, @Nullable String schema,
       String table, @Nullable String columnNamePattern) throws SQLException {
+    validateCatalogParameter(catalog);
+
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<Tuple>();
 
@@ -1825,6 +1836,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTablePrivileges(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern) throws SQLException {
+    validateCatalogParameter(catalog);
+
     Field[] f = new Field[7];
     List<Tuple> v = new ArrayList<Tuple>();
 
@@ -2060,6 +2073,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getBestRowIdentifier(
       @Nullable String catalog, @Nullable String schema, String table,
       int scope, boolean nullable) throws SQLException {
+    validateCatalogParameter(catalog);
+
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
@@ -2129,6 +2144,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getVersionColumns(
       @Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     Field[] f = new Field[8];
     List<Tuple> v = new ArrayList<Tuple>(); // The new ResultSet tuple stuff
 
@@ -2171,6 +2188,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     String sql;
     sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
@@ -2282,6 +2301,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * foreign keys are not necessarily added to pg_constraint. Also multiple unique indexes
      * covering the same keys can be created which make it difficult to determine the PK_NAME field.
      */
+
+    validateCatalogParameter(primaryCatalog);
+    validateCatalogParameter(foreignCatalog);
 
     String sql =
         "SELECT NULL::text AS PKTABLE_CAT, pkn.nspname AS PKTABLE_SCHEM, pkc.relname AS PKTABLE_NAME, pka.attname AS PKCOLUMN_NAME, "
@@ -2525,6 +2547,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * with the single column functional index we need an extra join to the table's pg_attribute
      * data to get the column the function operates on.
      */
+
+    validateCatalogParameter(catalog);
+
     String sql;
     if (connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
       sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
@@ -2705,6 +2730,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
+    validateCatalogParameter(catalog);
+
     String sql = "select "
         + "null as type_cat, n.nspname as type_schem, t.typname as type_name,  null as class_name, "
         + "CASE WHEN t.typtype='c' then " + java.sql.Types.STRUCT + " else "
@@ -2855,6 +2882,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getFunctions(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String functionNamePattern)
       throws SQLException {
+    validateCatalogParameter(catalog);
 
     // The pg_get_function_result only exists 8.4 or later
     boolean pgFuncResultExists = connection.haveMinimumServerVersion(ServerVersion.v8_4);
@@ -2905,6 +2933,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getFunctionColumns(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String functionNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
+    validateCatalogParameter(catalog);
+
     int columns = 17;
 
     Field[] f = new Field[columns];
@@ -3195,4 +3225,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public boolean supportsStatementPooling() throws SQLException {
     return false;
   }
+
+  private void validateCatalogParameter(@Nullable String catalog) throws SQLException {
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(getConnection().getCatalog())) {
+      throw new PSQLException(
+          GT.tr("PostgreSQL only supports metadata queries related to the connection's catalog."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+  }
+
 }

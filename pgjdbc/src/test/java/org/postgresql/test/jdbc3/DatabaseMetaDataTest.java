@@ -44,7 +44,7 @@ public class DatabaseMetaDataTest {
   public void testGetColumnsForDomain() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "domtab", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "domtab", "%");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));
