@@ -39,7 +39,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void testNotify() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -55,7 +55,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void notifyArgument() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
       return;
@@ -75,7 +75,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotify() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -109,7 +109,7 @@ class NotifyTest {
    * listener is blocking.
    */
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -126,7 +126,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -145,7 +145,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithEndlessTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -163,7 +163,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -191,7 +191,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithEndlessTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
@@ -219,7 +219,7 @@ class NotifyTest {
   }
 
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   void asyncNotifyWithTimeoutAndSocketThatBecomesClosed() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");

@@ -82,7 +82,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void notAvailableStartNotExistReplicationSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -112,7 +112,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void receiveChangesOccursBeforeStartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -150,7 +150,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void receiveChangesAfterStartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -201,7 +201,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void startFromCurrentServerLSNWithoutSpecifyLSNExplicitly() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -233,7 +233,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void afterStartStreamingDBSlotStatusActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -264,7 +264,7 @@ public class LogicalReplicationTest {
    * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   @HaveMinimalServerVersion("11.1")
   void afterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
@@ -292,7 +292,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(1000)
+  @Timeout(1)
   void afterCloseConnectionDBSLotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -337,7 +337,7 @@ public class LogicalReplicationTest {
    * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test
-  @Timeout(10000)
+  @Timeout(10)
   @HaveMinimalServerVersion("12.1")
   void duringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
@@ -392,7 +392,7 @@ public class LogicalReplicationTest {
    * wait new changes and until waiting messages from client ignores.</p>
    */
   @Test
-  @Timeout(60000)
+  @Timeout(60)
   @HaveMinimalServerVersion("11.1")
   void duringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
@@ -429,7 +429,7 @@ public class LogicalReplicationTest {
 
   //todo fix, fail because backend for logical decoding not reply with CommandComplate & ReadyForQuery
   @Test
-  @Timeout(5000)
+  @Timeout(5)
   void repeatWalPositionTwice() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -489,7 +489,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(3000)
+  @Timeout(3)
   void doesNotHavePendingMessageWhenStartFromLastLSN() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -512,7 +512,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(3000)
+  @Timeout(3)
   void readPreviousChangesWithoutBlock() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -549,7 +549,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(3000)
+  @Timeout(3)
   void readActualChangesWithoutBlock() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -584,7 +584,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  @Timeout(10000)
+  @Timeout(10)
   void avoidTimeoutDisconnectWithDefaultStatusInterval() throws Exception {
     final int statusInterval = getKeepAliveTimeout();
 

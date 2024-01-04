@@ -864,7 +864,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(30000)
+  @Timeout(30)
   void cancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
     // check that stmt.cancel() doesn't hang forever if the network is broken
 
@@ -892,7 +892,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(10000)
+  @Timeout(10)
   void closeInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     final Connection outerLockCon = TestUtil.openDB();
@@ -951,7 +951,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(10000)
+  @Timeout(10)
   void concurrentIsValid() throws Throwable {
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -997,7 +997,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(20000)
+  @Timeout(20)
   void fastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
