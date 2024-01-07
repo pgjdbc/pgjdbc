@@ -304,7 +304,7 @@ public class PgStatement implements Statement, BaseStatement {
     boolean shouldUseParameterized = false;
     QueryExecutor queryExecutor = connection.getQueryExecutor();
     Object key = queryExecutor
-        .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
+        .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, PlaceholderStyle.NONE, columnNames);
     CachedQuery cachedQuery;
     boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTHING;
     if (shouldCache) {

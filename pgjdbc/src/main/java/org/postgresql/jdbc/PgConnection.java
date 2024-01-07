@@ -207,18 +207,19 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  private PlaceholderStyle placeholderStyle;
 
-  final CachedQuery borrowQuery(String sql) throws SQLException {
-    return queryExecutor.borrowQuery(sql);
+  final CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException {
+    return queryExecutor.borrowQuery(sql, placeholderStyle);
   }
 
   final CachedQuery borrowCallableQuery(String sql) throws SQLException {
     return queryExecutor.borrowCallableQuery(sql);
   }
 
-  private CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+  private CachedQuery borrowReturningQuery(String sql,  PlaceholderStyle placeholderStyle, String @Nullable [] columnNames)
       throws SQLException {
-    return queryExecutor.borrowReturningQuery(sql, columnNames);
+    return queryExecutor.borrowReturningQuery(sql, placeholderStyle, columnNames);
   }
 
   @Override
@@ -373,6 +374,8 @@ public class PgConnection implements BaseConnection {
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
     cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+
+    this.placeholderStyle = PlaceholderStyle.of(PGProperty.PLACEHOLDER_STYLE.get(info));
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
@@ -1377,7 +1380,7 @@ public class PgConnection implements BaseConnection {
       int resultSetHoldability) throws SQLException {
     checkClosed();
     return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+        resultSetHoldability, placeholderStyle);
   }
 
   @Override
@@ -1860,7 +1863,7 @@ public class PgConnection implements BaseConnection {
       return prepareStatement(sql);
     }
 
-    CachedQuery cachedQuery = borrowReturningQuery(sql, columnNames);
+    CachedQuery cachedQuery = borrowReturningQuery(sql, getPlaceholderStyle(), columnNames);
     PgPreparedStatement ps =
         new PgPreparedStatement(this, cachedQuery,
             ResultSet.TYPE_FORWARD_ONLY,
@@ -1893,12 +1896,12 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
-    queryExecutor.setPlaceholderStyle(placeholderStyle);
+    this.placeholderStyle = placeholderStyle;
   }
 
   @Override
   public PlaceholderStyle getPlaceholderStyle() {
-    return queryExecutor.getPlaceholderStyle();
+    return this.placeholderStyle;
   }
 
   @Override

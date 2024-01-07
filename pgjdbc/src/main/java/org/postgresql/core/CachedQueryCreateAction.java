@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
@@ -31,9 +32,11 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
         + key;
     BaseQueryKey queryKey;
     String parsedSql;
+    PlaceholderStyle placeholderStyle = PlaceholderStyle.NONE;
     if (key instanceof BaseQueryKey) {
       queryKey = (BaseQueryKey) key;
       parsedSql = queryKey.sql;
+      placeholderStyle = queryKey.placeholderStyle;
     } else {
       queryKey = null;
       parsedSql = (String) key;
@@ -65,7 +68,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
         queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
-        queryExecutor.getPlaceholderStyle(), returningColumns
+        placeholderStyle, returningColumns
         );
 
     Query query = queryExecutor.wrap(queries);

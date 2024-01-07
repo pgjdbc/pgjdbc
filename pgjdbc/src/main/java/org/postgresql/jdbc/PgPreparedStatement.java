@@ -88,8 +88,8 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
   private @Nullable TimeZone defaultTimeZone;
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
-    this(connection, connection.borrowQuery(sql), rsType, rsConcurrency, rsHoldability);
+      int rsHoldability, PlaceholderStyle placeholderStyle) throws SQLException {
+    this(connection, connection.borrowQuery(sql, placeholderStyle), rsType, rsConcurrency, rsHoldability);
   }
 
   @SuppressWarnings("method.invocation")

@@ -53,7 +53,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final boolean quoteReturningIdentifiers;
   private final PreferQueryMode preferQueryMode;
-  private PlaceholderStyle placeholderStyle;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
@@ -89,7 +88,6 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.getOrDefault(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
-    this.placeholderStyle = PlaceholderStyle.of(PGProperty.PLACEHOLDER_STYLE.get(info));
     // assignment, argument
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<Object, CachedQuery>(
@@ -324,8 +322,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery borrowQuery(String sql) throws SQLException {
-    return statementCache.borrow(sql);
+  public final CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException {
+    return statementCache.borrow(new BaseQueryKey(sql, true, true, placeholderStyle));
   }
 
   @Override
@@ -334,11 +332,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+  public final CachedQuery borrowReturningQuery(String sql, PlaceholderStyle placeholderStyle, String @Nullable [] columnNames)
       throws SQLException {
     return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, true,
-        columnNames
-    ));
+        columnNames, placeholderStyle));
   }
 
   @Override
@@ -353,16 +350,17 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final Object createQueryKey(String sql, boolean escapeProcessing,
-      boolean isParameterized, String @Nullable ... columnNames) {
+      boolean isParameterized, PlaceholderStyle placeholderStyle, String @Nullable ... columnNames) {
     Object key;
     if (columnNames == null || columnNames.length != 0) {
       // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
-      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing, columnNames);
+      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing, columnNames,
+          placeholderStyle);
     } else if (isParameterized) {
       // If no generated columns requested, just use the SQL as a cache key
       key = sql;
     } else {
-      key = new BaseQueryKey(sql, false, escapeProcessing);
+      key = new BaseQueryKey(sql, false, escapeProcessing, placeholderStyle);
     }
     return key;
   }
@@ -376,7 +374,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   public final CachedQuery createQuery(String sql, boolean escapeProcessing,
       boolean isParameterized, String @Nullable ... columnNames)
       throws SQLException {
-    Object key = createQueryKey(sql, escapeProcessing, isParameterized, columnNames);
+    Object key = createQueryKey(sql, escapeProcessing, isParameterized, PlaceholderStyle.NONE, columnNames);
     // Note: cache is not reused here for two reasons:
     //   1) Simplify initial implementation for simple statements
     //   2) Non-prepared statements are likely to have literals, thus query reuse would not be often
@@ -493,15 +491,5 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     }
 
     parameterStatuses.put(parameterName, parameterStatus);
-  }
-
-  @Override
-  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
-    this.placeholderStyle = placeholderStyle;
-  }
-
-  @Override
-  public PlaceholderStyle getPlaceholderStyle() {
-    return this.placeholderStyle;
   }
 }

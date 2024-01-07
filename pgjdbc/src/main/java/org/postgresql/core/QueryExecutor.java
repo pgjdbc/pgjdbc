@@ -241,17 +241,17 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
       throws SQLException;
 
   Object createQueryKey(String sql, boolean escapeProcessing, boolean isParameterized,
-      String @Nullable ... columnNames);
+      PlaceholderStyle placeholderStyle, String @Nullable ... columnNames);
 
   CachedQuery createQueryByKey(Object key) throws SQLException;
 
   CachedQuery borrowQueryByKey(Object key) throws SQLException;
 
-  CachedQuery borrowQuery(String sql) throws SQLException;
+  CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException;
 
   CachedQuery borrowCallableQuery(String sql) throws SQLException;
 
-  CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames) throws SQLException;
+  CachedQuery borrowReturningQuery(String sql, PlaceholderStyle placeholderStyle, String @Nullable [] columnNames) throws SQLException;
 
   void releaseQuery(CachedQuery cachedQuery);
 
@@ -621,8 +621,4 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    *                      Portal class.
    */
   void removeQueryFromAdaptiveFetchCache(boolean adaptiveFetch, ResultCursor cursor);
-
-  void setPlaceholderStyle(PlaceholderStyle placeholderStyle);
-
-  PlaceholderStyle getPlaceholderStyle();
 }

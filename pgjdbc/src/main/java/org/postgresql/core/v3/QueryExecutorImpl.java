@@ -38,6 +38,7 @@ import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
@@ -267,7 +268,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
         getStandardConformingStrings(), false, true,
         isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers(),
-        getPlaceholderStyle());
+        PlaceholderStyle.NONE);
     return wrap(queries);
   }
 
