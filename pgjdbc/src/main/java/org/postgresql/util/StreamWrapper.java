@@ -16,6 +16,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.ref.Cleaner;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -26,9 +27,12 @@ import java.nio.file.Path;
  */
 public final class StreamWrapper implements Closeable {
 
+  private static final Cleaner cleaner = Cleaner.create();
+
   private static final int MAX_MEMORY_BUFFER_BYTES = 51200;
 
   private static final String TEMP_FILE_PREFIX = "postgres-pgjdbc-stream";
+  private Cleaner.Cleanable cleanable;
 
   public StreamWrapper(byte[] data, int offset, int length) {
     this.stream = null;
@@ -74,7 +78,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null; // The stream is opened on demand
         TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
         this.tempFileHolder = tempFileHolder;
-        cleaner = LazyCleaner.getInstance().register(leakHandle, tempFileHolder);
+        cleanable = cleaner.register(leakHandle, tempFileHolder);
       } else {
         this.rawData = rawData;
         this.stream = null;
@@ -101,8 +105,8 @@ public final class StreamWrapper implements Closeable {
 
   @Override
   public void close() throws IOException {
-    if (cleaner != null) {
-      cleaner.clean();
+    if (cleanable != null) {
+      cleanable.clean();
     }
   }
 
@@ -142,7 +146,6 @@ public final class StreamWrapper implements Closeable {
   private final @Nullable InputStream stream;
   private @Nullable TempFileHolder tempFileHolder;
   private final Object leakHandle = new Object();
-  private LazyCleaner.@Nullable Cleanable<IOException> cleaner;
   private final byte @Nullable [] rawData;
   private final int offset;
   private final int length;
