@@ -49,7 +49,7 @@ plugins.withId("java-base") {
     }
 }
 
-if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipForbiddenApis) {
+if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipForbiddenApis || !skipOpenrewrite) {
     tasks.register("style") {
         group = LifecycleBasePlugin.VERIFICATION_GROUP
         description = "Formats code (license header, import order, whitespace at end of line, ...) and executes Checkstyle verifications"
