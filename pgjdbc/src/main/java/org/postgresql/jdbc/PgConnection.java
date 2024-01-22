@@ -1540,12 +1540,8 @@ public class PgConnection implements BaseConnection {
             statement.execute("IDENTIFY_SYSTEM");
           }
         } else {
-          PreferQueryMode preferQueryMode = queryExecutor.getPreferQueryMode();
-          queryExecutor.setPreferQueryMode(PreferQueryMode.SIMPLE);
           try (Statement checkConnectionQuery = createStatement()) {
-            checkConnectionQuery.execute("");
-          } finally {
-            queryExecutor.setPreferQueryMode(preferQueryMode);
+            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
           }
         }
         return true;
