@@ -51,7 +51,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final boolean quoteReturningIdentifiers;
-  private final PreferQueryMode preferQueryMode;
+  private PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
@@ -393,6 +393,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public PreferQueryMode getPreferQueryMode() {
     return preferQueryMode;
+  }
+
+  public void setPreferQueryMode(PreferQueryMode mode) {
+    preferQueryMode = mode;
   }
 
   @Override
