@@ -70,11 +70,11 @@ This creates a valid JSP file which could lead to a Remote Code Execution
 
 #### Patches
 
-Problem has not been patched
+As of version 42.3.3 loggerFile is ignored by the driver.
 
 #### Workarounds
 
-sanitize the inputs to the driver
+upgrade to latest version.
 
 Reported by Allan Lou v3ged0ge@gmail.com
 
