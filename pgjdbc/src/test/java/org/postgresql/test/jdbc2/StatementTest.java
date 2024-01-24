@@ -961,7 +961,7 @@ class StatementTest {
         Future<?> future = executor.submit(() -> {
           try {
             for (int j = 0; j < 50; j++) {
-              con.isValid(1);
+              con.isValid(2);
               try (PreparedStatement ps =
                        con.prepareStatement("select * from generate_series(1,?) as x(id)")) {
                 int limit = rnd.nextInt(10);

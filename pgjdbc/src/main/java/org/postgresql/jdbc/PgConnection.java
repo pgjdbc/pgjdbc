@@ -206,7 +206,6 @@ public class PgConnection implements BaseConnection {
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
 
-  private @Nullable PreparedStatement checkConnectionQuery;
   /**
    * Replication protocol in current version postgresql(10devel) supports a limited number of
    * commands.
@@ -1537,19 +1536,13 @@ public class PgConnection implements BaseConnection {
           setNetworkTimeout(null, newNetworkTimeout);
         }
         if (replicationConnection) {
-          Statement statement = createStatement();
-          statement.execute("IDENTIFY_SYSTEM");
-          statement.close();
-        } else {
-          PreparedStatement checkConnectionQuery;
-          try (ResourceLock ignore = lock.obtain()) {
-            checkConnectionQuery = this.checkConnectionQuery;
-            if (checkConnectionQuery == null) {
-              checkConnectionQuery = prepareStatement("");
-              this.checkConnectionQuery = checkConnectionQuery;
-            }
+          try (Statement statement = createStatement()) {
+            statement.execute("IDENTIFY_SYSTEM");
           }
-          checkConnectionQuery.executeUpdate();
+        } else {
+          try (Statement checkConnectionQuery = createStatement()) {
+            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+          }
         }
         return true;
       } finally {

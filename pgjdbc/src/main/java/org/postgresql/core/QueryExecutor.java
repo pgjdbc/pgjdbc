@@ -550,6 +550,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   PreferQueryMode getPreferQueryMode();
 
+  void setPreferQueryMode(PreferQueryMode mode);
+
   AutoSave getAutoSave();
 
   void setAutoSave(AutoSave autoSave);
