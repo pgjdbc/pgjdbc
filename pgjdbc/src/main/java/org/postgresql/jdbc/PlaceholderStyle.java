@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Arrays;
 
 /**
@@ -28,7 +30,7 @@ public enum PlaceholderStyle {
     this.value = value;
   }
 
-  public static PlaceholderStyle of(String mode) throws PSQLException {
+  public static PlaceholderStyle of(@Nullable String mode) throws PSQLException {
     for (PlaceholderStyle placeholderStyle : values()) {
       if (placeholderStyle.value.equals(mode)) {
         return placeholderStyle;
