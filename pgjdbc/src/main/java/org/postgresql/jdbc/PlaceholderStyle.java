@@ -13,6 +13,7 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * @see org.postgresql.PGProperty#PLACEHOLDER_STYLE
@@ -37,7 +38,8 @@ public enum PlaceholderStyle {
       }
     }
     throw new PSQLException(GT.tr("Parameter value must be one of {0} but was: {1}",
-        Arrays.toString(PlaceholderStyle.values()), mode), PSQLState.INVALID_PARAMETER_VALUE);
+        Arrays.stream(PlaceholderStyle.values()).map(
+            PlaceholderStyle::value).collect(Collectors.toList()), mode), PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   public boolean isAcceptedBySetting(ParameterContext.BindStyle bindStyle) {

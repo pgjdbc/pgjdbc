@@ -36,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 class PGPropertyTest {
 
@@ -305,6 +306,7 @@ class PGPropertyTest {
         Assertions.assertThrows(PSQLException.class,
             () -> PlaceholderStyle.of("Kaudervælsk"));
     Assertions.assertEquals(
-        String.format("Parameter value must be one of %s but was: Kaudervælsk", Arrays.toString(PlaceholderStyle.values())), psqlException.getMessage());
+        String.format("Parameter value must be one of %s but was: Kaudervælsk", Arrays.stream(PlaceholderStyle.values()).map(
+            PlaceholderStyle::value).collect(Collectors.toList())), psqlException.getMessage());
   }
 }
