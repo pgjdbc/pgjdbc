@@ -428,15 +428,15 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
-   * Controls the styles of parameter placeholders accepted in prepared statements. The default value of {@code none}
+   * Controls the styles of parameter placeholders accepted in prepared statements. The default value of {@code jdbc}
    * disables non-standard placeholders.
    */
   PLACEHOLDER_STYLE(
       "placeholderStyle",
-      "none",
-      "Specifies which extra non-standard styles of placeholders are to be recognized by the driver, if any.",
+      "jdbc",
+      "Specifies which extra non-standard styles of placeholders are to be recognized by the driver, if any. None will disable parameters in Prepared Statements",
       false,
-      new String [] {"any", "named", "native"}),
+      new String [] {"any", "jdbc", "named", "native", "none"}),
 
   /**
    * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),

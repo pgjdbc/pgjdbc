@@ -55,8 +55,8 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     } else {
       isFunction = false;
     }
-    boolean isParameterized = key instanceof String || castNonNull(queryKey).isParameterized;
-    boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
+
+    boolean splitStatements = placeholderStyle != PlaceholderStyle.NONE || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
     String[] returningColumns;
     if (key instanceof QueryWithReturningColumnsKey) {
@@ -66,7 +66,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     }
 
     List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
-        queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
+        queryExecutor.getStandardConformingStrings(), splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
         placeholderStyle, returningColumns
         );

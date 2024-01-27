@@ -37,27 +37,34 @@ public class Parser {
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
    *                                  in single quote literals
-   * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
-   * @param allowedPlaceholderStyle  whether non-standard placeholder are allowed or not
+   * @param placeholderSetting   specifies placeholder processing, PlaceholderStyle.NONE disables parameters
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
-      boolean withParameters, boolean splitStatements,
+      boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       boolean quoteReturningIdentifiers,
-      PlaceholderStyle allowedPlaceholderStyle,
+      PlaceholderStyle placeholderSetting,
       String... returningColumnNames) throws SQLException {
-    if (!withParameters && !splitStatements
-        && returningColumnNames != null && returningColumnNames.length == 0) {
+
+    final boolean processParameters = placeholderSetting != PlaceholderStyle.NONE;
+
+    isBatchedReWriteConfigured &= processParameters; // We need parameters to perform a rewrite.
+
+    if (!splitStatements
+        && !isBatchedReWriteConfigured
+        && !quoteReturningIdentifiers
+        && !processParameters
+        && returningColumnNames.length == 0
+    ) {
       return Collections.singletonList(new NativeQuery(query,
         SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
-    final boolean processParameters = !isBatchedReWriteConfigured || !withParameters;
 
     int fragmentStart = 0;
     int inParen = 0;
@@ -65,7 +72,7 @@ public class Parser {
     char[] aChars = query.toCharArray();
 
     StringBuilder nativeSql = new StringBuilder(query.length() + 10);
-    ParameterContext paramCtx = new ParameterContext(allowedPlaceholderStyle);
+    ParameterContext paramCtx = new ParameterContext(placeholderSetting);
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
     boolean isValuesFound = false;
@@ -116,8 +123,7 @@ public class Parser {
 
         case '$': { // possibly dollar quote start or a native placeholder
           int end = Parser.parseDollarQuotes(aChars, i);
-          if (end == i && (processParameters && PlaceholderStyle.NATIVE.placeholderStyleIsAccepted(
-              allowedPlaceholderStyle)) && currentCommandType.supportsParameters()) {
+          if (end == i && (processParameters && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NATIVE)) && currentCommandType.supportsParameters()) {
             // look for a native placeholder instead.
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -158,11 +164,12 @@ public class Parser {
             nativeSql.append('?');
             i++; // make sure the coming ? is not treated as a bind
           } else {
-            if (!withParameters) {
-              nativeSql.append('?');
-            } else {
-              int bindIndex = paramCtx.addPositionalParameter(nativeSql.length());
+            if (processParameters && placeholderSetting.isAcceptedBySetting(
+                ParameterContext.BindStyle.JDBC)) {
+              int bindIndex = paramCtx.addJDBCParameter(nativeSql.length());
               NativeQuery.appendBindName(nativeSql, bindIndex);
+            } else {
+              nativeSql.append('?');
             }
           }
           fragmentStart = i + 1;
@@ -208,7 +215,7 @@ public class Parser {
             isReturningPresent = false;
             if (splitStatements) {
               // Prepare for next query
-              paramCtx = new ParameterContext(allowedPlaceholderStyle);
+              paramCtx = new ParameterContext(placeholderSetting);
               nativeSql.setLength(0);
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
@@ -220,8 +227,8 @@ public class Parser {
           break;
 
         case ':': // possibly named placerholder start'
-          if (processParameters && PlaceholderStyle.NAMED.placeholderStyleIsAccepted(
-              allowedPlaceholderStyle) && currentCommandType.supportsParameters()) {
+          if (processParameters && placeholderSetting.isAcceptedBySetting(
+              ParameterContext.BindStyle.NAMED) && currentCommandType.supportsParameters()) {
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);

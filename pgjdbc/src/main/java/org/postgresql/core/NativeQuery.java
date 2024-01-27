@@ -27,7 +27,7 @@ public class NativeQuery {
   }
 
   public NativeQuery(String nativeSql, SqlCommand dml) {
-    this(nativeSql, ParameterContext.EMPTY_CONTEXT, true, dml);
+    this(nativeSql, ParameterContext.EMPTY_CONTEXT, false, dml);
   }
 
   public NativeQuery(String nativeSql, boolean multiStatement,

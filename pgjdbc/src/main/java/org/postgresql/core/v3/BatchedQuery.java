@@ -11,8 +11,6 @@ import org.postgresql.util.IntList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.util.List;
-
 /**
  * Purpose of this object is to support batched query re write behaviour. Responsibility for
  * tracking the batch size and implement the clean up of the query fragments after the batch execute
@@ -139,7 +137,7 @@ public class BatchedQuery extends SimpleQuery {
     StringBuilder s = new StringBuilder(length);
     // Add query until end of values parameter block.
     int pos;
-    if (bindPositions.size() > 0 && params == null) {
+    if (!bindPositions.isEmpty() && params == null) {
       // Add the first values (...) clause, it would be values($1,..., $n), and it matches with
       // the values clause of a simple non-rewritten SQL
       s.append(nativeSql, 0, valuesBraceClosePosition + 1);

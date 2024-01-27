@@ -44,7 +44,7 @@ public class ParameterContext {
   }
 
   public enum BindStyle {
-    POSITIONAL(false, "?"),
+    JDBC(false, "?"),
     NAMED(true, ":"),
     NATIVE(true, "$");
 
@@ -63,7 +63,7 @@ public class ParameterContext {
    */
   public static final ParameterContext EMPTY_CONTEXT = new ParameterContext(PlaceholderStyle.ANY) {
     @Override
-    public int addPositionalParameter(int position) {
+    public int addJDBCParameter(int position) {
       throw new UnsupportedOperationException();
     }
 
@@ -80,16 +80,16 @@ public class ParameterContext {
   private @Nullable IntList nativeParameterIndexOfPlaceholderIndex;
 
   /**
-   * Adds a positional parameter to this ParameterContext. Once a positional parameter have been
+   * Adds a JDBC (positional) parameter to this ParameterContext. Once a positional parameter have been
    * added all subsequent parameters must be positional. Positional parameters cannot be reused, and
    * their order of appearance will correspond to the parameters sent to the PostgreSQL backend.
    *
    * @param position in the SQL text where the parser captured the placeholder.
    * @return 1-indexed position in the order of appearance of positional parameters
-   * @throws SQLException if positional and named parameters are mixed.
+   * @throws SQLException if JDBC (positional) and named or native parameters are mixed.
    */
-  public int addPositionalParameter(@NonNegative int position) throws SQLException {
-    checkAndSetBindStyle(BindStyle.POSITIONAL);
+  public int addJDBCParameter(@NonNegative int position) throws SQLException {
+    checkAndSetBindStyle(BindStyle.JDBC);
 
     // There is a 1-1 correspondence between positional and the associated native parameter:
     int nativeParameterIndex = checkAndAddPlaceholderPosition(position);

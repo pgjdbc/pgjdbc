@@ -50,7 +50,7 @@ import java.util.concurrent.TimeUnit;
 public class ParseStatement {
   @Param({"false"})
   public boolean unique;
-  @Param({"POSITIONAL", "NAMED", "NATIVE"})
+  @Param({"JDBC", "NAMED", "NATIVE"})
   public ParameterContext.BindStyle bindStyle;
   @Param({"0", "1", "10", "20", "50", "100", "1000"})
   private int bindCount;
@@ -84,7 +84,7 @@ public class ParseStatement {
         sb.append(',');
       }
       switch (bindStyle) {
-        case POSITIONAL:
+        case JDBC:
           sb.append('?');
           break;
 
@@ -117,7 +117,7 @@ public class ParseStatement {
     PGPreparedStatement ps = connection.prepareStatement(sql).unwrap(PGPreparedStatement.class);
     for (int i = 1; i <= bindCount; i++) {
       switch (bindStyle) {
-        case POSITIONAL:
+        case JDBC:
           ps.setInt(i, i);
           break;
 

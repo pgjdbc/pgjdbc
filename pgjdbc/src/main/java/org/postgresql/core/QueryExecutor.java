@@ -35,7 +35,7 @@ import java.util.TimeZone;
  *
  * <ul>
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
- * {@link #createQuery(String, boolean, boolean, String...)})
+ * {@link #createQuery(String, boolean, PlaceholderStyle, String...)})
  * <li>execution methods for created Query objects (
  * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
@@ -236,12 +236,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isReWriteBatchedInsertsEnabled();
 
-  CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+  CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
       String @Nullable ... columnNames)
       throws SQLException;
 
-  Object createQueryKey(String sql, boolean escapeProcessing, boolean isParameterized,
-      PlaceholderStyle placeholderStyle, String @Nullable ... columnNames);
+  Object createQueryKey(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
+      String @Nullable ... columnNames);
 
   CachedQuery createQueryByKey(Object key) throws SQLException;
 

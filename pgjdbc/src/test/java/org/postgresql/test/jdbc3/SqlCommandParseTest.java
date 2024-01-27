@@ -43,7 +43,7 @@ public class SqlCommandParseTest {
   @ParameterizedTest(name = "expected={0}, sql={1}")
   void run(SqlCommandType type, String sql) throws SQLException {
     List<NativeQuery> queries;
-    queries = Parser.parseJdbcSql(sql, true, true, false, true, true, PlaceholderStyle.NONE);
+    queries = Parser.parseJdbcSql(sql,true, false, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
     assertEquals(type, query.command.getType(), sql);
   }

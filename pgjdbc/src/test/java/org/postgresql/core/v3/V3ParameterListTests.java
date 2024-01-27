@@ -5,8 +5,8 @@
 
 package org.postgresql.core.v3;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
@@ -15,8 +15,11 @@ import org.postgresql.core.Parser;
 import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -50,6 +53,7 @@ class V3ParameterListTests {
       return ctx;
     }
   }
+
   private TypeTransferModeRegistry transferModeRegistry;
 
   @BeforeEach
@@ -72,14 +76,14 @@ class V3ParameterListTests {
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext(PlaceholderStyle.ANY);
-          parameterContext.addPositionalParameter(0);
-          parameterContext.addPositionalParameter(0);
+          parameterContext.addJDBCParameter(0);
+          parameterContext.addJDBCParameter(0);
         });
     assertThrows(IllegalArgumentException.class,
         () -> {
           final ParameterContext parameterContext = new ParameterContext(PlaceholderStyle.ANY);
-          parameterContext.addPositionalParameter(1);
-          parameterContext.addPositionalParameter(0);
+          parameterContext.addJDBCParameter(1);
+          parameterContext.addJDBCParameter(0);
         });
 
     assertThrows(IllegalArgumentException.class,
@@ -104,7 +108,7 @@ class V3ParameterListTests {
     NativeQuery nativeQuery;
 
     query = "SELECT :a+:a+:a+:b+:c+:b+:c AS a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, false, true, PlaceholderStyle.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -118,7 +122,7 @@ class V3ParameterListTests {
     assertEquals(query, nativeQuery.toString(parameters));
 
     query = "select :ASTR||:bStr||:c AS \nteststr";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, false, true, PlaceholderStyle.ANY);
     assertEquals(1, qry.size());
     nativeQuery = qry.get(0);
 
@@ -146,7 +150,7 @@ class V3ParameterListTests {
   @Test
   public void dontModifyEMPTY_CONTEXT() throws SQLException {
     assertThrows(UnsupportedOperationException.class,
-        () -> ParameterContext.EMPTY_CONTEXT.addPositionalParameter(0));
+        () -> ParameterContext.EMPTY_CONTEXT.addJDBCParameter(0));
     assertThrows(UnsupportedOperationException.class,
         () -> ParameterContext.EMPTY_CONTEXT.addNamedParameter(0, ParameterContext.BindStyle.NAMED,"dummy"));
   }
@@ -184,22 +188,28 @@ class V3ParameterListTests {
     NativeQuery nativeQuery;
 
     query = "SELECT ?";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, false, true, PlaceholderStyle.ANY);
     nativeQuery = qry.get(0);
     Assert.assertFalse(nativeQuery.parameterCtx.hasNamedParameters());
     IllegalStateException illegalStateException = assertThrows(IllegalStateException.class, nativeQuery.parameterCtx::getPlaceholderNames);
     Assert.assertEquals("Call hasNamedParameters() first.",illegalStateException.getMessage());
 
     query = "SELECT :a";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, false, true, PlaceholderStyle.ANY);
     nativeQuery = qry.get(0);
     Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
     Assert.assertEquals(Collections.singletonList("a"),nativeQuery.parameterCtx.getPlaceholderNames());
 
     query = "SELECT $1";
-    qry = Parser.parseJdbcSql(query, true, true, true, false, true, PlaceholderStyle.ANY);
+    qry = Parser.parseJdbcSql(query, true, true, false, true, PlaceholderStyle.ANY);
     nativeQuery = qry.get(0);
     Assert.assertTrue(nativeQuery.parameterCtx.hasNamedParameters());
     Assert.assertEquals(Collections.singletonList("$1"),nativeQuery.parameterCtx.getPlaceholderNames());
+  }
+
+  @ParameterizedTest
+  @EnumSource(ParameterContext.BindStyle.class)
+  void nameMustBeInSetting(ParameterContext.BindStyle bindStyle) {
+    Assertions.assertDoesNotThrow(() -> PlaceholderStyle.valueOf(bindStyle.name()),"Each bindStyle must be controllable by PlaceholderStyle.");
   }
 }

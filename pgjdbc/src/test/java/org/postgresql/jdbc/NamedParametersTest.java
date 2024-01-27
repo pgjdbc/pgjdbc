@@ -45,8 +45,8 @@ class NamedParametersTest extends BaseTest5 {
   }
 
   @ParameterizedTest
-  @CsvSource({"SELECT ?+:dummy,POSITIONAL,NAMED",
-      "SELECT :dummy+?,NAMED,POSITIONAL",
+  @CsvSource({"SELECT ?+:dummy,JDBC,NAMED",
+      "SELECT :dummy+?,NAMED,JDBC",
       "SELECT :dummy+$1,NAMED,NATIVE"
   })
   @DisplayName("Mixing placeholder styles must cause an SQLException")
@@ -254,28 +254,51 @@ class NamedParametersTest extends BaseTest5 {
 
   @Test
   public void testToString() throws Exception {
-    {
-      final String sql = "select :b||:b||:a AS teststr";
-      try (PGPreparedStatement ps = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
+    final String sql = "select :b||:b||:a AS teststr";
+    try (PGPreparedStatement ps = con.prepareStatement(sql).unwrap(PGPreparedStatement.class)) {
 
-        // Test toString before bind
-        Assertions.assertEquals(sql, ps.toString(),
-            "Equals the input SQL text, as values are not yet bound");
+      // Test toString before bind
+      Assertions.assertEquals(sql, ps.toString(),
+          "Equals the input SQL text, as values are not yet bound");
 
-        ps.setString("a", "1");
-        ps.setString("b", "2");
+      ps.setString("a", "1");
+      ps.setString("b", "2");
 
-        // Test toString after bind
-        Assertions.assertEquals("select '2'||'2'||'1' AS teststr", ps.toString(),
-            "The bound values must now be present");
-        ps.execute();
-        try (ResultSet resultSet = ps.getResultSet()) {
-          resultSet.next();
+      // Test toString after bind
+      Assertions.assertEquals("select '2'||'2'||'1' AS teststr", ps.toString(),
+          "The bound values must now be present");
+      ps.execute();
+      try (ResultSet resultSet = ps.getResultSet()) {
+        resultSet.next();
 
-          final String testStr = resultSet.getString("testStr");
-          Assertions.assertEquals("221", testStr);
-        }
+        final String testStr = resultSet.getString("testStr");
+        Assertions.assertEquals("221", testStr);
       }
+    }
+  }
+
+  @Test
+  public void testBatchToString() throws SQLException {
+    // Drop the test table if it already exists for some reason. It is
+    // not an error if it doesn't exist.
+    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER, col2 INTEGER");
+
+    try (PGPreparedStatement pstmt = con.prepareStatement(
+            "INSERT INTO testbatch VALUES (:int1,:int2,:int1)")
+        .unwrap(PGPreparedStatement.class)) {
+
+      pstmt.setInt("int1", 1);
+      pstmt.setInt("int2", 2);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (1,2,1)", pstmt.toString());
+      pstmt.addBatch();
+      pstmt.setInt("int1", 3);
+      pstmt.setInt("int2", 4);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (3,4,3)", pstmt.toString());
+      pstmt.addBatch();
+      pstmt.setInt("int1", 5);
+      pstmt.setInt("int2", 6);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (5,6,5)", pstmt.toString());
+      pstmt.addBatch();
     }
   }
 

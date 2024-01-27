@@ -42,8 +42,8 @@ public class NativeParametersTest extends BaseTest5 {
   }
 
   @ParameterizedTest
-  @CsvSource({"SELECT ?+$1,POSITIONAL,NATIVE",
-      "SELECT $1+?,NATIVE,POSITIONAL",
+  @CsvSource({"SELECT ?+$1,JDBC,NATIVE",
+      "SELECT $1+?,NATIVE,JDBC",
       "SELECT $1+:dummy,NATIVE,NAMED"
   })
   @DisplayName("Mixing placeholder styles must cause an SQLException")
@@ -284,6 +284,31 @@ public class NativeParametersTest extends BaseTest5 {
         final String testStr = resultSet.getString("testStr");
         Assertions.assertEquals("221", testStr);
       }
+    }
+  }
+
+  @Test
+  public void testBatchToString() throws SQLException {
+    // Drop the test table if it already exists for some reason. It is
+    // not an error if it doesn't exist.
+    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER, col2 INTEGER");
+
+    try (PGPreparedStatement pstmt = con.prepareStatement(
+            "INSERT INTO testbatch VALUES ($1,$2,$1)")
+        .unwrap(PGPreparedStatement.class)) {
+
+      pstmt.setInt("$1", 1);
+      pstmt.setInt("$2", 2);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (1,2,1)", pstmt.toString());
+      pstmt.addBatch();
+      pstmt.setInt("$1", 3);
+      pstmt.setInt("$2", 4);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (3,4,3)", pstmt.toString());
+      pstmt.addBatch();
+      pstmt.setInt("$1", 5);
+      pstmt.setInt("$2", 6);
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (5,6,5)", pstmt.toString());
+      pstmt.addBatch();
     }
   }
 

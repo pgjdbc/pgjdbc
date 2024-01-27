@@ -16,10 +16,13 @@ import org.postgresql.PGProperty;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 import org.postgresql.util.URLCoder;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +31,7 @@ import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.sql.DriverPropertyInfo;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
@@ -293,5 +297,14 @@ class PGPropertyTest {
     assertFalse(PGProperty.USER.isPresent(parsed), "user");
     assertFalse(PGProperty.PASSWORD.isPresent(parsed), "password");
     assertEquals(applicationName, PGProperty.APPLICATION_NAME.getOrDefault(parsed), "APPLICATION_NAME");
+  }
+
+  @Test
+  void invalidPlaceholderStyle() {
+    final PSQLException psqlException =
+        Assertions.assertThrows(PSQLException.class,
+            () -> PlaceholderStyle.of("Kaudervælsk"));
+    Assertions.assertEquals(
+        String.format("Parameter value must be one of %s but was: Kaudervælsk", Arrays.toString(PlaceholderStyle.values())), psqlException.getMessage());
   }
 }

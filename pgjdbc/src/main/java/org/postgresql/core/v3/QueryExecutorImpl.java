@@ -135,7 +135,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * from Sync messages vs from simple execute (aka 'Q').
    */
   @SuppressWarnings("method.invocation")
-  private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
+  private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, PlaceholderStyle.NONE).query;
 
   private short deallocateEpoch;
 
@@ -268,7 +268,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
-        getStandardConformingStrings(), false, true,
+        getStandardConformingStrings(), true,
         isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers(),
         PlaceholderStyle.NONE);
     return wrap(queries);

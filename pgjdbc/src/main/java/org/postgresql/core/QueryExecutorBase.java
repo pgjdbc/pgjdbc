@@ -323,7 +323,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public final CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException {
-    return statementCache.borrow(new BaseQueryKey(sql, true, true, placeholderStyle));
+    return statementCache.borrow(new BaseQueryKey(sql,  true, placeholderStyle));
   }
 
   @Override
@@ -334,8 +334,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public final CachedQuery borrowReturningQuery(String sql, PlaceholderStyle placeholderStyle, String @Nullable [] columnNames)
       throws SQLException {
-    return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, true,
-        columnNames, placeholderStyle));
+    return statementCache.borrow(new QueryWithReturningColumnsKey(sql, true, columnNames, placeholderStyle));
   }
 
   @Override
@@ -349,18 +348,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final Object createQueryKey(String sql, boolean escapeProcessing,
-      boolean isParameterized, PlaceholderStyle placeholderStyle, String @Nullable ... columnNames) {
+  public final Object createQueryKey(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle, String @Nullable ... columnNames) {
     Object key;
     if (columnNames == null || columnNames.length != 0) {
       // Null means "return whatever sensible columns are" (e.g. primary key, or serial, or something like that)
-      key = new QueryWithReturningColumnsKey(sql, isParameterized, escapeProcessing, columnNames,
-          placeholderStyle);
-    } else if (isParameterized) {
+      key = new QueryWithReturningColumnsKey(sql, escapeProcessing, columnNames, placeholderStyle);
+    } else if (placeholderStyle == PlaceholderStyle.NONE) {
       // If no generated columns requested, just use the SQL as a cache key
       key = sql;
     } else {
-      key = new BaseQueryKey(sql, false, escapeProcessing, placeholderStyle);
+      key = new BaseQueryKey(sql, escapeProcessing, placeholderStyle);
     }
     return key;
   }
@@ -371,10 +368,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery createQuery(String sql, boolean escapeProcessing,
-      boolean isParameterized, String @Nullable ... columnNames)
+  public final CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle, String @Nullable ... columnNames)
       throws SQLException {
-    Object key = createQueryKey(sql, escapeProcessing, isParameterized, PlaceholderStyle.NONE, columnNames);
+    Object key = createQueryKey(sql, escapeProcessing, placeholderStyle, columnNames);
     // Note: cache is not reused here for two reasons:
     //   1) Simplify initial implementation for simple statements
     //   2) Non-prepared statements are likely to have literals, thus query reuse would not be often

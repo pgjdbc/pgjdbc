@@ -20,7 +20,7 @@ The following must be considered when using the extension interface `PGPreparedS
 * Parameter names in the `PGPreparedStatement` can be obtained from the method `getParameterNames()`.
 * Setter methods defined in `PGPreparedStatement` can be used to set the parameter values corresponding to the parameter name.
 * Values can also be assigned to parameters using the setter methods in `PreparedStatement` using the 1-based index of the parameter name as returned by `getParameterNames()`.
-* PgJDBC does not allow mixing positional (`?`) and named (`:`) or native (`$`) placeholders.
+* PgJDBC does not allow mixing JDBC (positional) (`?`) and named (`:`) or native (`$`) placeholders.
 * Only one value is sent to the backend for each unique name. This means that all occurrences of each placeholder name shares the same value, and cannot be set individually.
 
 <a name="named-parameters"></a>

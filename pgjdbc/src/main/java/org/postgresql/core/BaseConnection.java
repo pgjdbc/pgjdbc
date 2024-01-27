@@ -202,8 +202,7 @@ public interface BaseConnection extends PGConnection, Connection {
    */
   LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache();
 
-  CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
-      String... columnNames)
+  CachedQuery createQuery(String sql, boolean escapeProcessing, String... columnNames)
       throws SQLException;
 
   /**

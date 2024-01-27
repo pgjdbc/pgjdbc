@@ -1725,7 +1725,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.PLACEHOLDER_STYLE.set(properties, placeholderStyle.value());
   }
 
-  public PlaceholderStyle getPlaceholderStyle() {
+  public PlaceholderStyle getPlaceholderStyle() throws PSQLException {
     return PlaceholderStyle.of(castNonNull(PGProperty.PLACEHOLDER_STYLE.get(properties)));
   }
 
