@@ -54,7 +54,7 @@ public class IsValidTest extends BaseTest4 {
     assertTrue("The backend should be terminated", wasTerminated);
 
     // Keeps checking for up to 5-seconds that the connection is marked invalid
-    for (int i = 0;i < 500;i++) {
+    for (int i = 0; i < 500; i++) {
       if (!con.isValid(0)) {
         break;
       }

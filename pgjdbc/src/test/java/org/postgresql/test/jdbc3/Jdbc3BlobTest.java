@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,15 +33,15 @@ public class Jdbc3BlobTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
     conn.setAutoCommit(false);
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     conn.setAutoCommit(true);
     try {
       Statement stmt = conn.createStatement();
@@ -63,7 +63,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a single byte.
    */
   @Test
-  public void test1Byte() throws SQLException {
+  void test1Byte() throws SQLException {
     byte[] data = {(byte) 'a'};
     readWrite(data);
   }
@@ -72,7 +72,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a few bytes.
    */
   @Test
-  public void testManyBytes() throws SQLException {
+  void manyBytes() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(data);
   }
@@ -81,7 +81,7 @@ public class Jdbc3BlobTest {
    * Test writing a single byte with an offset.
    */
   @Test
-  public void test1ByteOffset() throws SQLException {
+  void test1ByteOffset() throws SQLException {
     byte[] data = {(byte) 'a'};
     readWrite(10, data);
   }
@@ -90,7 +90,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a few bytes with an offset.
    */
   @Test
-  public void testManyBytesOffset() throws SQLException {
+  void manyBytesOffset() throws SQLException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWrite(10, data);
   }
@@ -99,7 +99,7 @@ public class Jdbc3BlobTest {
    * Tests all of the byte values from 0 - 255.
    */
   @Test
-  public void testAllBytes() throws SQLException {
+  void allBytes() throws SQLException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
       data[i] = (byte) i;
@@ -108,7 +108,7 @@ public class Jdbc3BlobTest {
   }
 
   @Test
-  public void testTruncate() throws SQLException {
+  void truncate() throws SQLException {
     if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3)) {
       return;
     }
@@ -180,7 +180,7 @@ public class Jdbc3BlobTest {
     assertTrue(rs.next());
     b = rs.getBlob("DATA");
     byte[] rspData = b.getBytes(offset, data.length);
-    assertArrayEquals("Request should be the same as the response", data, rspData);
+    assertArrayEquals(data, rspData, "Request should be the same as the response");
 
     rs.close();
     ps.close();
@@ -190,7 +190,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a single byte.
    */
   @Test
-  public void test1ByteStream() throws SQLException, IOException {
+  void test1ByteStream() throws SQLException, IOException {
     byte[] data = {(byte) 'a'};
     readWriteStream(data);
   }
@@ -199,7 +199,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a few bytes.
    */
   @Test
-  public void testManyBytesStream() throws SQLException, IOException {
+  void manyBytesStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(data);
   }
@@ -208,7 +208,7 @@ public class Jdbc3BlobTest {
    * Test writing a single byte with an offset.
    */
   @Test
-  public void test1ByteOffsetStream() throws SQLException, IOException {
+  void test1ByteOffsetStream() throws SQLException, IOException {
     byte[] data = {(byte) 'a'};
     readWriteStream(10, data);
   }
@@ -217,7 +217,7 @@ public class Jdbc3BlobTest {
    * Test the writing and reading of a few bytes with an offset.
    */
   @Test
-  public void testManyBytesOffsetStream() throws SQLException, IOException {
+  void manyBytesOffsetStream() throws SQLException, IOException {
     byte[] data = "aaaaaaaaaa".getBytes();
     readWriteStream(10, data);
   }
@@ -226,7 +226,7 @@ public class Jdbc3BlobTest {
    * Tests all of the byte values from 0 - 255.
    */
   @Test
-  public void testAllBytesStream() throws SQLException, IOException {
+  void allBytesStream() throws SQLException, IOException {
     byte[] data = new byte[256];
     for (int i = 0; i < data.length; i++) {
       data[i] = (byte) i;
@@ -270,14 +270,14 @@ public class Jdbc3BlobTest {
     in.read(rspData);
     in.close();
 
-    assertArrayEquals("Request should be the same as the response", data, rspData);
+    assertArrayEquals(data, rspData, "Request should be the same as the response");
 
     rs.close();
     ps.close();
   }
 
   @Test
-  public void testPattern() throws SQLException {
+  void pattern() throws SQLException {
     byte[] data = "abcdefghijklmnopqrstuvwxyz0123456789".getBytes();
     byte[] pattern = "def".getBytes();
 
@@ -302,7 +302,7 @@ public class Jdbc3BlobTest {
     b = rs.getBlob("DATA");
     long position = b.position(pattern, 1);
     byte[] rspData = b.getBytes(position, pattern.length);
-    assertArrayEquals("Request should be the same as the response", pattern, rspData);
+    assertArrayEquals(pattern, rspData, "Request should be the same as the response");
 
     rs.close();
     ps.close();

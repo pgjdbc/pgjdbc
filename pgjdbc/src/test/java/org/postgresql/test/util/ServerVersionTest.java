@@ -5,31 +5,33 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.core.ServerVersion;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class ServerVersionTest {
+class ServerVersionTest {
   @Test
-  public void versionIncreases() {
+  void versionIncreases() {
     ServerVersion prev = null;
     for (ServerVersion serverVersion : ServerVersion.values()) {
       if (prev != null) {
-        Assert.assertTrue(prev + " should be less than " + serverVersion,
-            prev.getVersionNum() < serverVersion.getVersionNum());
+        assertTrue(prev.getVersionNum() < serverVersion.getVersionNum(),
+            prev + " should be less than " + serverVersion);
       }
       prev = serverVersion;
     }
   }
 
   @Test
-  public void testVersions() {
-    Assert.assertEquals(ServerVersion.v12.getVersionNum(), ServerVersion.from("12.0").getVersionNum());
-    Assert.assertEquals(120004, ServerVersion.from("12.4").getVersionNum());
-    Assert.assertEquals(ServerVersion.v11.getVersionNum(), ServerVersion.from("11.0").getVersionNum());
-    Assert.assertEquals(110006, ServerVersion.from("11.6").getVersionNum());
-    Assert.assertEquals(ServerVersion.v10.getVersionNum(), ServerVersion.from("10.0").getVersionNum());
-    Assert.assertTrue(ServerVersion.v9_6.getVersionNum() < ServerVersion.from("9.6.4").getVersionNum());
+  void versions() {
+    assertEquals(ServerVersion.v12.getVersionNum(), ServerVersion.from("12.0").getVersionNum());
+    assertEquals(120004, ServerVersion.from("12.4").getVersionNum());
+    assertEquals(ServerVersion.v11.getVersionNum(), ServerVersion.from("11.0").getVersionNum());
+    assertEquals(110006, ServerVersion.from("11.6").getVersionNum());
+    assertEquals(ServerVersion.v10.getVersionNum(), ServerVersion.from("10.0").getVersionNum());
+    assertTrue(ServerVersion.v9_6.getVersionNum() < ServerVersion.from("9.6.4").getVersionNum());
   }
 }

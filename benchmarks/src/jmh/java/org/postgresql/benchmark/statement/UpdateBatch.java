@@ -5,6 +5,7 @@
 
 package org.postgresql.benchmark.statement;
 
+import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
 import org.postgresql.util.ConnectionUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -20,6 +21,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.BenchmarkParams;
+import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
@@ -75,8 +77,8 @@ public class UpdateBatch {
     //Driver.setLogLevel(2);
     Options opt = new OptionsBuilder()
         .include(UpdateBatch.class.getSimpleName())
-        .addProfiler(org.openjdk.jmh.profile.GCProfiler.class)
-        .addProfiler(org.postgresql.benchmark.profilers.FlightRecorderProfiler.class)
+        .addProfiler(GCProfiler.class)
+        .addProfiler(FlightRecorderProfiler.class)
         .detectJvmArgs()
         .build();
 

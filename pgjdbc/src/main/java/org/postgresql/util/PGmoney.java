@@ -45,6 +45,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     type = "money";
   }
 
+  @Override
   public void setValue(@Nullable String s) throws SQLException {
     isNull = s == null;
     if (s == null) {
@@ -54,7 +55,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
       String s1;
       boolean negative;
 
-      negative = (s.charAt(0) == '(');
+      negative = s.charAt(0) == '(';
 
       // Remove any () (for negative) & currency symbol
       s1 = PGtokenizer.removePara(s).substring(1);
@@ -88,6 +89,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     return result;
   }
 
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGmoney) {
       PGmoney p = (PGmoney) obj;
@@ -101,6 +103,7 @@ public class PGmoney extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public @Nullable String getValue() {
     if (isNull) {
       return null;

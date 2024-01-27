@@ -28,7 +28,7 @@ public class NoColumnMetadataIssue1613Test extends BaseTest4 {
   @Before
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTempTable(con, "test_no_column_metadata","id int");
+    TestUtil.createTempTable(con, "test_no_column_metadata", "id int");
   }
 
   @Test

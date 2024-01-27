@@ -93,6 +93,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * @param b Definition of this point in PostgreSQL's binary syntax
    */
+  @Override
   public void setByteValue(byte[] b, int offset) {
     this.isNull = false;
     x = ByteConverter.float8(b, offset);
@@ -103,6 +104,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
    * @param obj Object to compare with
    * @return true if the two points are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGpoint) {
       PGpoint p = (PGpoint) obj;
@@ -116,6 +118,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
     return false;
   }
 
+  @Override
   public int hashCode() {
     if (isNull) {
       return 0;
@@ -128,10 +131,12 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * @return the PGpoint in the syntax expected by org.postgresql
    */
+  @Override
   public @Nullable String getValue() {
     return isNull ? null : "(" + x + "," + y + ")";
   }
 
+  @Override
   public int lengthInBytes() {
     return isNull ? 0 : 16;
   }
@@ -139,6 +144,7 @@ public class PGpoint extends PGobject implements PGBinaryObject, Serializable, C
   /**
    * Populate the byte array with PGpoint in the binary syntax expected by org.postgresql.
    */
+  @Override
   public void toBytes(byte[] b, int offset) {
     if (isNull) {
       return;

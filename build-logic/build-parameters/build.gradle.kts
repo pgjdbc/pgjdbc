@@ -62,6 +62,11 @@ buildParameters {
         defaultValue.set(false)
         description.set("Skip AutoStyle verifications")
     }
+    bool("skipOpenrewrite") {
+        // For now, we skip OpenRewrite since the -SNAPSHOT version is not very stable
+        defaultValue.set(true)
+        description.set("Skip OpenRewrite processing")
+    }
     bool("skipForbiddenApis") {
         defaultValue.set(false)
         description.set("Skip forbidden-apis verifications")
@@ -81,7 +86,7 @@ buildParameters {
     // Note: it does not work in tr_TR locale due to https://github.com/gradlex-org/build-parameters/issues/87
     string("includeTestTags") {
         defaultValue.set("")
-        description.set("Lists tags to include in test execution. For instance -PincludeTestTags=!org.postgresql.test.SlowTests, or or -PincludeTestTags=!org.postgresql.test.Replication")
+        description.set("Lists tags to include in test execution. For instance -PincludeTestTags=!org.postgresql.test.SlowTests, or or -PincludeTestTags=!replication")
     }
     bool("useGpgCmd") {
         defaultValue.set(false)

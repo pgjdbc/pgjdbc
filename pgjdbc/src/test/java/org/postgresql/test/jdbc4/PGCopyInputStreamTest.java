@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGConnection;
 import org.postgresql.copy.PGCopyInputStream;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -24,7 +24,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PGCopyInputStreamTest {
+class PGCopyInputStreamTest {
   private static final int NUM_TEST_ROWS = 4;
   /**
    * COPY .. TO STDOUT terminates each row of data with a LF regardless of platform so the size of
@@ -36,66 +36,64 @@ public class PGCopyInputStreamTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     TestUtil.closeDB(conn);
   }
 
   @Test
-  public void testReadBytesCorrectlyHandlesEof() throws SQLException, IOException {
+  void readBytesCorrectlyHandlesEof() throws SQLException, IOException {
     PGConnection pgConn = conn.unwrap(PGConnection.class);
     try (PGCopyInputStream in = new PGCopyInputStream(pgConn, COPY_SQL)) {
       // large enough to read everything on the next step
       byte[] buf = new byte[COPY_DATA_SIZE + 100];
-      assertEquals("First read should get the entire table into the byte array",
-          COPY_DATA_SIZE, in.read(buf));
-      assertEquals("Subsequent read should return -1 to indicate stream is finished",
-          -1, in.read(buf));
+      assertEquals(COPY_DATA_SIZE, in.read(buf), "First read should get the entire table into the byte array");
+      assertEquals(-1, in.read(buf), "Subsequent read should return -1 to indicate stream is finished");
     }
   }
 
   @Test
-  public void testReadBytesCorrectlyReadsDataInChunks() throws SQLException, IOException {
+  void readBytesCorrectlyReadsDataInChunks() throws SQLException, IOException {
     PGConnection pgConn = conn.unwrap(PGConnection.class);
     try (PGCopyInputStream in = new PGCopyInputStream(pgConn, COPY_SQL)) {
       // Read in row sized chunks
       List<byte[]> chunks = readFully(in, COPY_ROW_SIZE);
-      assertEquals("Should read one chunk per row", NUM_TEST_ROWS, chunks.size());
-      assertEquals("Entire table should have be read", "0\n1\n2\n3\n", chunksToString(chunks));
+      assertEquals(NUM_TEST_ROWS, chunks.size(), "Should read one chunk per row");
+      assertEquals("0\n1\n2\n3\n", chunksToString(chunks), "Entire table should have be read");
     }
   }
 
   @Test
-  public void testCopyAPI() throws SQLException, IOException {
+  void copyAPI() throws SQLException, IOException {
     PGConnection pgConn = conn.unwrap(PGConnection.class);
     try (PGCopyInputStream in = new PGCopyInputStream(pgConn, COPY_SQL)) {
       List<byte[]> chunks = readFromCopyFully(in);
-      assertEquals("Should read one chunk per row", NUM_TEST_ROWS, chunks.size());
-      assertEquals("Entire table should have be read", "0\n1\n2\n3\n", chunksToString(chunks));
+      assertEquals(NUM_TEST_ROWS, chunks.size(), "Should read one chunk per row");
+      assertEquals("0\n1\n2\n3\n", chunksToString(chunks), "Entire table should have be read");
     }
   }
 
   @Test
-  public void testMixedAPI() throws SQLException, IOException {
+  void mixedAPI() throws SQLException, IOException {
     PGConnection pgConn = conn.unwrap(PGConnection.class);
     try (PGCopyInputStream in = new PGCopyInputStream(pgConn, COPY_SQL)) {
       // First read using java.io.InputStream API
       byte[] firstChar = new byte[1];
       in.read(firstChar);
-      assertArrayEquals("IO API should read first character", "0".getBytes(), firstChar);
+      assertArrayEquals("0".getBytes(), firstChar, "IO API should read first character");
 
       // Read remainder of first row using CopyOut API
-      assertArrayEquals("readFromCopy() should return remainder of first row", "\n".getBytes(), in.readFromCopy());
+      assertArrayEquals("\n".getBytes(), in.readFromCopy(), "readFromCopy() should return remainder of first row");
 
       // Then read the rest using CopyOut API
       List<byte[]> chunks = readFromCopyFully(in);
-      assertEquals("Should read one chunk per row", NUM_TEST_ROWS - 1, chunks.size());
-      assertEquals("Rest of table should have be read", "1\n2\n3\n", chunksToString(chunks));
+      assertEquals(NUM_TEST_ROWS - 1, chunks.size(), "Should read one chunk per row");
+      assertEquals("1\n2\n3\n", chunksToString(chunks), "Rest of table should have be read");
     }
   }
 

@@ -125,8 +125,8 @@ public class BatchFailureTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
-    boolean[] booleans = new boolean[] {true, false};
+    Collection<Object[]> ids = new ArrayList<>();
+    boolean[] booleans = new boolean[]{true, false};
     for (BatchType batchType : BatchType.values()) {
       for (FailMode failMode : FailMode.values()) {
         if (!failMode.supports(batchType)) {
@@ -205,7 +205,7 @@ public class BatchFailureTest extends BaseTest4 {
       minBatchResults = pos;
     }
 
-    List<String> keys = new ArrayList<String>();
+    List<String> keys = new ArrayList<>();
     int[] batchResult;
     int expectedRows = 1;
     try {
@@ -259,7 +259,7 @@ public class BatchFailureTest extends BaseTest4 {
       Assert.assertFalse((finalCount - 1) + " rows were inserted, thus expecting generated keys",
           keys.isEmpty());
     }
-    Set<String> uniqueKeys = new HashSet<String>(keys);
+    Set<String> uniqueKeys = new HashSet<>(keys);
     Assert.assertEquals("Generated keys should be unique: " + keys, keys.size(), uniqueKeys.size());
     Assert.assertEquals("Number of generated keys should match the number of inserted rows" + keys,
         keys.size(), finalCount - 1);

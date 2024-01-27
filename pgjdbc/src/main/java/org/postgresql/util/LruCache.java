@@ -106,6 +106,7 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param key cache key
    * @return entry from cache or null if cache does not contain given key.
    */
+  @Override
   public @Nullable Value get(Key key) {
     try (ResourceLock ignore = lock.obtain()) {
       return cache.get(key);

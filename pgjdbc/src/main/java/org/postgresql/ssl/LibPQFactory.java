@@ -204,10 +204,10 @@ public class LibPQFactory extends WrappedFactory {
   public void throwKeyManagerException() throws PSQLException {
     if (km != null) {
       if (km instanceof LazyKeyManager) {
-        ((LazyKeyManager)km).throwKeyManagerException();
+        ((LazyKeyManager) km).throwKeyManagerException();
       }
       if (km instanceof PKCS12KeyManager) {
-        ((PKCS12KeyManager)km).throwKeyManagerException();
+        ((PKCS12KeyManager) km).throwKeyManagerException();
       }
     }
   }
@@ -218,7 +218,7 @@ public class LibPQFactory extends WrappedFactory {
    */
   public static class ConsoleCallbackHandler implements CallbackHandler {
 
-    private char @Nullable [] password = null;
+    private char @Nullable [] password;
 
     ConsoleCallbackHandler(@Nullable String password) {
       if (password != null) {

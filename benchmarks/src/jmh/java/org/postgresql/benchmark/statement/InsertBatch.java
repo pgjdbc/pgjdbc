@@ -117,13 +117,12 @@ public class InsertBatch {
     if (p2multi > 1) {
       // Multi values(),(),() case
       for (int i = 0; i < p1nrows; ) {
-        for (int k = 0, pos = 1; k < p2multi; k++, i++) {
+        for (int k = 0, pos = 1; k < p2multi; k++, pos++, i++) {
           ps.setInt(pos, i);
           pos++;
           ps.setString(pos, strings[i]);
           pos++;
           ps.setInt(pos, i);
-          pos++;
         }
         ps.addBatch();
       }
@@ -195,7 +194,7 @@ public class InsertBatch {
   public void insertCopy(Blackhole b) throws SQLException, IOException {
     CopyManager copyAPI = ((PGConnection) connection).getCopyAPI();
     CharArrayWriter wr = new CharArrayWriter();
-    for (int i = 0; i < p1nrows;) {
+    for (int i = 0; i < p1nrows; ) {
       CopyIn copyIn = copyAPI.copyIn("COPY batch_perf_test FROM STDIN");
       wr.reset();
       for (int k = 0; k < p2multi; k++, i++) {

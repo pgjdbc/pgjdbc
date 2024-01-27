@@ -75,7 +75,7 @@ public class PGTime extends Time {
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((calendar == null) ? 0 : calendar.hashCode());
+    result = prime * result + (calendar == null ? 0 : calendar.hashCode());
     return result;
   }
 

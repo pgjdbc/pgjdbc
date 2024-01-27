@@ -31,7 +31,7 @@ public class Jdbc42CallableStatementTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
 
-    try (Statement stmt = con.createStatement();) {
+    try (Statement stmt = con.createStatement()) {
       stmt.execute(
               "CREATE OR REPLACE FUNCTION testspg__getResultSetWithoutArg() "
                       + "RETURNS refcursor AS '  "

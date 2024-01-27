@@ -14,6 +14,12 @@ plugins {
     id("jacoco")
 }
 
+buildscript {
+    configurations.classpath {
+        exclude("xerces")
+    }
+}
+
 ide {
     // TODO: set copyright to PostgreSQL Global Development Group
     ideaInstructionsUri =

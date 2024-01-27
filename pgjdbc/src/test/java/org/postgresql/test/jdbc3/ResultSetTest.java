@@ -5,26 +5,27 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class ResultSetTest {
+class ResultSetTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     Statement stmt = conn.createStatement();
     stmt.execute("CREATE TEMP TABLE hold(a int)");
@@ -33,8 +34,8 @@ public class ResultSetTest {
     stmt.close();
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.execute("DROP TABLE hold");
     stmt.close();
@@ -42,7 +43,7 @@ public class ResultSetTest {
   }
 
   @Test
-  public void testHoldableResultSet() throws SQLException {
+  void holdableResultSet() throws SQLException {
     Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
         ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
@@ -58,7 +59,7 @@ public class ResultSetTest {
 
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
     stmt.close();

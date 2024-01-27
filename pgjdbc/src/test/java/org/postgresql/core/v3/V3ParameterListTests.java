@@ -5,7 +5,7 @@
 
 package org.postgresql.core.v3;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import org.postgresql.core.NativeQuery;
@@ -15,8 +15,8 @@ import org.postgresql.core.Parser;
 import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -29,7 +29,7 @@ import java.util.List;
  * @author Jeremy Whiting jwhiting@redhat.com
  *
  */
-public class V3ParameterListTests {
+class V3ParameterListTests {
 
   private static class TestParameterContext extends ParameterContext {
     TestParameterContext(PlaceholderStyle allowedPlaceholderStyle) {
@@ -50,11 +50,10 @@ public class V3ParameterListTests {
       return ctx;
     }
   }
-
   private TypeTransferModeRegistry transferModeRegistry;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     transferModeRegistry = new TypeTransferModeRegistry() {
         @Override
         public boolean useBinaryForSend(int oid) {
@@ -160,7 +159,7 @@ public class V3ParameterListTests {
    *           raised exception if setting parameter fails.
    */
   @Test
-  public void testMergeOfParameterLists() throws SQLException {
+  void mergeOfParameterLists() throws SQLException {
     SimpleParameterList s1SPL = new SimpleParameterList(8, transferModeRegistry);
     s1SPL.setIntParameter(1, 1);
     s1SPL.setIntParameter(2, 2);
@@ -175,8 +174,7 @@ public class V3ParameterListTests {
 
     s1SPL.appendAll(s2SPL);
     assertEquals(
-        "Expected string representation of values does not match outcome.",
-        "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString());
+        "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString(), "Expected string representation of values does not match outcome.");
   }
 
   @Test

@@ -47,7 +47,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -139,9 +139,9 @@ public class ArrayTest extends BaseTest4 {
     final Object[][][] origDblObjArray = new Object[2][2][2];
     final Object[][][] origStringObjArray = new Object[2][2][2];
     int i = 0;
-    for (int x = 0; x < 2; ++x) {
-      for (int y = 0; y < 2; ++y) {
-        for (int z = 0; z < 2; ++z) {
+    for (int x = 0; x < 2; x++) {
+      for (int y = 0; y < 2; y++) {
+        for (int z = 0; z < 2; z++) {
           origIntArray[x][y][z] = i;
           origDblArray[x][y][z] = i / 10;
           origStringArray[x][y][z] = Integer.toString(i);
@@ -176,7 +176,7 @@ public class ArrayTest extends BaseTest4 {
     pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
     pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0][0]), Types.ARRAY);
     pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0][0]), Types.ARRAY);
-    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0][0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar", origStringObjArray[0][0]), Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -197,7 +197,7 @@ public class ArrayTest extends BaseTest4 {
     pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
     pstmt.setObject(1, conn.createArrayOf("int4", origIntArray[0]), Types.ARRAY);
     pstmt.setObject(2, conn.createArrayOf("float8", origDblArray[0]), Types.ARRAY);
-    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar", origStringArray[0]), Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -221,7 +221,7 @@ public class ArrayTest extends BaseTest4 {
     pstmt = conn.prepareStatement("INSERT INTO arrtest VALUES (?,?,?)");
     pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray[0]), Types.ARRAY);
     pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray[0]), Types.ARRAY);
-    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray[0]), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar", origStringObjArray[0]), Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -246,7 +246,7 @@ public class ArrayTest extends BaseTest4 {
 
     pstmt.setObject(1, conn.createArrayOf("int4", origIntArray), Types.ARRAY);
     pstmt.setObject(2, conn.createArrayOf("float8", origDblArray), Types.ARRAY);
-    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar", origStringArray), Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -271,7 +271,7 @@ public class ArrayTest extends BaseTest4 {
 
     pstmt.setObject(1, conn.createArrayOf("int4", origIntObjArray), Types.ARRAY);
     pstmt.setObject(2, conn.createArrayOf("float8", origDblObjArray), Types.ARRAY);
-    pstmt.setObject(3, conn.createArrayOf("varchar",  origStringObjArray), Types.ARRAY);
+    pstmt.setObject(3, conn.createArrayOf("varchar", origStringObjArray), Types.ARRAY);
     pstmt.executeUpdate();
     pstmt.close();
 
@@ -295,9 +295,9 @@ public class ArrayTest extends BaseTest4 {
 
     final PGConnection arraySupport = conn.unwrap(PGConnection.class);
 
-    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[] { 1, 2, 3 }));
-    pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[] { 3.1d, 1.4d }));
-    pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[] { "abc", "f'a", "fa\"b" }));
+    pstmt.setArray(1, arraySupport.createArrayOf("int4", new int[]{1, 2, 3}));
+    pstmt.setObject(2, arraySupport.createArrayOf("float8", new double[]{3.1d, 1.4d}));
+    pstmt.setObject(3, arraySupport.createArrayOf("varchar", new String[]{"abc", "f'a", "fa\"b"}));
 
     pstmt.executeUpdate();
     pstmt.close();
@@ -356,25 +356,25 @@ public class ArrayTest extends BaseTest4 {
 
       final PGConnection arraySupport = conn.unwrap(PGConnection.class);
 
-      pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[] {1d, 4d}));
-      pstmt.setArray(2, arraySupport.createArrayOf("real", new Object[] {0f, 3f}));
+      pstmt.setArray(1, arraySupport.createArrayOf("double precision", new Object[]{1d, 4d}));
+      pstmt.setArray(2, arraySupport.createArrayOf("real", new Object[]{0f, 3f}));
       pstmt.setObject(
-          3, arraySupport.createArrayOf("character varying", new String[] {"abc", "f'a", "fa\"b"}));
+          3, arraySupport.createArrayOf("character varying", new String[]{"abc", "f'a", "fa\"b"}));
       pstmt.setObject(
           4,
           arraySupport.createArrayOf(
               "time without time zone",
-              new Object[] {Time.valueOf("12:34:56"), Time.valueOf("03:30:25")}));
+              new Object[]{Time.valueOf("12:34:56"), Time.valueOf("03:30:25")}));
       pstmt.setObject(
           5,
           arraySupport.createArrayOf(
               "timestamp without time zone",
-              new Object[] {"2023-09-05 16:21:50", "2012-01-01 13:02:03"}));
+              new Object[]{"2023-09-05 16:21:50", "2012-01-01 13:02:03"}));
       pstmt.setObject(
           6,
           arraySupport.createArrayOf(
               "timestamp with time zone",
-              new Object[] {"1996-01-23 12:00:00-08", "1997-08-16 16:51:00-04"}));
+              new Object[]{"1996-01-23 12:00:00-08", "1997-08-16 16:51:00-04"}));
 
       pstmt.executeUpdate();
       pstmt.close();

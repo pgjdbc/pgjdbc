@@ -22,10 +22,10 @@ public class PGbytea {
   private static final int[] HEX_VALS = new int['f' + 1 - '0'];
 
   static {
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
       HEX_VALS[i] = (byte) i;
     }
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 6; i++) {
       HEX_VALS['A' + i - '0'] = (byte) (10 + i);
       HEX_VALS['a' + i - '0'] = (byte) (10 + i);
     }
@@ -75,7 +75,7 @@ public class PGbytea {
       // count backslash escapes, they will be either
       // backslashes or an octal escape \\ or \003
       //
-      for (int i = 0; i < slength; ++i) {
+      for (int i = 0; i < slength; i++) {
         byte current = s[i];
         if (current == '\\') {
           byte next = s[++i];
@@ -138,7 +138,7 @@ public class PGbytea {
       // we must escape all 8bit characters otherwise when converting
       // from java unicode to the db character set we may end up with
       // question marks if the character set is SQL_ASCII
-      if (elementAsInt < 040 || elementAsInt > 0176) {
+      if (elementAsInt < 32 || elementAsInt > 126) {
         // escape character with the form \000, but need two \\ because of
         // the Java parser
         stringBuilder.append("\\");

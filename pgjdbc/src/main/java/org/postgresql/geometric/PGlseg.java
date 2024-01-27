@@ -89,6 +89,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two line segments are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGlseg) {
       PGlseg p = (PGlseg) obj;
@@ -105,6 +106,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
     return false;
   }
 
+  @Override
   public int hashCode() {
     PGpoint[] point = this.point;
     if (point == null) {
@@ -113,11 +115,12 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
     return point[0].hashCode() ^ point[1].hashCode();
   }
 
+  @Override
   public Object clone() throws CloneNotSupportedException {
     PGlseg newPGlseg = (PGlseg) super.clone();
     if (newPGlseg.point != null) {
       newPGlseg.point = (PGpoint[]) newPGlseg.point.clone();
-      for (int i = 0; i < newPGlseg.point.length; ++i) {
+      for (int i = 0; i < newPGlseg.point.length; i++) {
         if (newPGlseg.point[i] != null) {
           newPGlseg.point[i] = (PGpoint) newPGlseg.point[i].clone();
         }
@@ -129,6 +132,7 @@ public class PGlseg extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGlseg in the syntax expected by org.postgresql
    */
+  @Override
   public @Nullable String getValue() {
     PGpoint[] point = this.point;
     if (point == null) {

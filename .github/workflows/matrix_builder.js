@@ -1,6 +1,7 @@
 // License: Apache-2.0
 // Copyright Vladimir Sitnikov, 2021
 // See https://github.com/vlsi/github-actions-random-matrix
+const { RNG } = require('./rng');
 
 class Axis {
   constructor({name, title, values}) {
@@ -45,10 +46,10 @@ class Axis {
       return values[0];
     }
     if (this.uniform) {
-      return values[Math.floor(Math.random() * values.length)];
+      return values[Math.floor(RNG.random() * values.length)];
     }
     const totalWeight = !filter ? this.totalWeight : values.reduce((a, b) => a + (b.weight || 1), 0);
-    let weight = Math.random() * totalWeight;
+    let weight = RNG.random() * totalWeight;
     for (let i = 0; i < values.length; i++) {
       const value = values[i];
       weight -= value.weight || 1;

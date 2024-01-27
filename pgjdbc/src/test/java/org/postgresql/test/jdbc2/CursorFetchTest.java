@@ -33,7 +33,7 @@ public class CursorFetchTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -60,7 +60,7 @@ public class CursorFetchTest extends BaseTest4 {
 
   protected void createRows(int count) throws Exception {
     PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value) values(?)");
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; i++) {
       stmt.setInt(1, i);
       stmt.executeUpdate();
     }
@@ -106,14 +106,14 @@ public class CursorFetchTest extends BaseTest4 {
       ResultSet rs = stmt.executeQuery();
       assertEquals(testSize, rs.getFetchSize());
 
-      for (int j = 0; j <= 50; ++j) {
+      for (int j = 0; j <= 50; j++) {
         assertTrue("ran out of rows at position " + j + " with fetch size " + testSize, rs.next());
         assertEquals("query value error with fetch size " + testSize, j, rs.getInt(1));
       }
 
       int position = 50;
-      for (int j = 1; j < 100; ++j) {
-        for (int k = 0; k < j; ++k) {
+      for (int j = 1; j < 100; j++) {
+        for (int k = 0; k < j; k++) {
           if (j % 2 == 0) {
             ++position;
             assertTrue("ran out of rows doing a forward fetch on iteration " + j + "/" + k
@@ -154,7 +154,7 @@ public class CursorFetchTest extends BaseTest4 {
           + testSize, rs.absolute(position + 1));
       assertEquals("query value error with fetch size " + testSize, position, rs.getInt(1));
 
-      for (int j = 1; j < 100; ++j) {
+      for (int j = 1; j < 100; j++) {
         if (j % 2 == 0) {
           position += j;
         } else {
@@ -336,7 +336,7 @@ public class CursorFetchTest extends BaseTest4 {
       assertTrue(msg, !rs.isFirst());
       assertTrue(msg, !rs.isLast());
 
-      for (int j = 0; j < 100; ++j) {
+      for (int j = 0; j < 100; j++) {
         msg = "row " + j + " positioning error with fetchsize=" + size;
         assertTrue(msg, rs.next());
         assertEquals(msg, j, rs.getInt(1));
@@ -452,7 +452,7 @@ public class CursorFetchTest extends BaseTest4 {
       assertTrue(msg, !rs.isAfterLast());
       assertTrue(msg, !rs.isFirst());
 
-      for (int j = 0; j < rowCount; ++j) {
+      for (int j = 0; j < rowCount; j++) {
         msg = "row " + j + " positioning error with fetchsize=" + size;
         assertTrue(msg, rs.next());
         assertEquals(msg, j, rs.getInt(1));

@@ -6,6 +6,7 @@
 package org.postgresql.osgi;
 
 import org.postgresql.Driver;
+import org.postgresql.util.DriverInfo;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.osgi.framework.BundleActivator;
@@ -22,6 +23,7 @@ import java.util.Hashtable;
 public class PGBundleActivator implements BundleActivator {
   private @Nullable ServiceRegistration<?> registration;
 
+  @Override
   public void start(BundleContext context) throws Exception {
     if (!Driver.isRegistered()) {
       Driver.register();
@@ -42,16 +44,17 @@ public class PGBundleActivator implements BundleActivator {
   }
 
   private void registerDataSourceFactory(BundleContext context) {
-    Dictionary<String, Object> properties = new Hashtable<String, Object>();
+    Dictionary<String, Object> properties = new Hashtable<>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME,
-        org.postgresql.util.DriverInfo.DRIVER_NAME);
+        DriverInfo.DRIVER_NAME);
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION,
-        org.postgresql.util.DriverInfo.DRIVER_VERSION);
+        DriverInfo.DRIVER_VERSION);
     registration = context.registerService(DataSourceFactory.class,
         new PGDataSourceFactory(), properties);
   }
 
+  @Override
   public void stop(BundleContext context) throws Exception {
     if (registration != null) {
       registration.unregister();

@@ -5,12 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.Encoding;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -20,20 +20,19 @@ import java.util.Locale;
 /**
  * Tests for the Encoding class.
  */
-public class EncodingTest {
+class EncodingTest {
 
   @Test
-  public void testCreation() throws Exception {
+  void creation() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
     assertEquals("UTF", encoding.name().substring(0, 3).toUpperCase(Locale.US));
     encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
     assertTrue(encoding.name().toUpperCase(Locale.US).contains("ASCII"));
-    assertEquals("When encoding is unknown the default encoding should be used",
-        Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"));
+    assertEquals(Encoding.defaultEncoding(), Encoding.getDatabaseEncoding("UNKNOWN"), "When encoding is unknown the default encoding should be used");
   }
 
   @Test
-  public void testTransformations() throws Exception {
+  void transformations() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("UTF8");
     assertEquals("ab", encoding.decode(new byte[]{97, 98}));
 
@@ -47,7 +46,7 @@ public class EncodingTest {
   }
 
   @Test
-  public void testReader() throws Exception {
+  void reader() throws Exception {
     Encoding encoding = Encoding.getDatabaseEncoding("SQL_ASCII");
     InputStream stream = new ByteArrayInputStream(new byte[]{97, 98});
     Reader reader = encoding.getDecodingReader(stream);

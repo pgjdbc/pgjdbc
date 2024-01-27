@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.Test;
 
 import java.lang.management.ManagementFactory;
 import java.sql.Connection;
@@ -26,20 +26,20 @@ import java.util.Properties;
 /**
  * Integration tests for adaptive fetch process.
  */
-public class AdaptiveFetchSizeTest {
+class AdaptiveFetchSizeTest {
 
   private Connection connection;
   private PreparedStatement statement;
   private ResultSet resultSet;
 
-  private String table = "test_adaptive_fetch";
-  private String columns = "value VARCHAR";
+  private final String table = "test_adaptive_fetch";
+  private final String columns = "value VARCHAR";
 
   /**
    * Drop table and close connection.
    */
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     if (connection != null && !connection.isClosed()) {
       connection.setAutoCommit(true);
       if (resultSet != null) {
@@ -67,7 +67,7 @@ public class AdaptiveFetchSizeTest {
    * - check if all 50 rows were read.
    */
   @Test
-  public void testAdaptiveFetching() throws SQLException {
+  void adaptiveFetching() throws SQLException {
     int startFetchSize = 4;
     int expectedFirstSize = 8;
     int expectedSecondSize = 7;
@@ -81,7 +81,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i == 4) {
         addStringWithSize(40);
       } else {
@@ -91,12 +91,12 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
     }
-    for (int i = 0; i != 8; i++) {
+    for (int i = 0; i < 8; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(expectedFirstSize, resultSet.getFetchSize());
@@ -121,7 +121,7 @@ public class AdaptiveFetchSizeTest {
    * - check if all 50 rows were read.
    */
   @Test
-  public void testAdaptiveFetchingWithMinimumSize() throws SQLException {
+  void adaptiveFetchingWithMinimumSize() throws SQLException {
     int startFetchSize = 4;
     int expectedSize = 10;
     int expectedCounter = 50;
@@ -135,7 +135,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i == 0) {
         addStringWithSize(270);
       } else {
@@ -145,7 +145,7 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -171,7 +171,7 @@ public class AdaptiveFetchSizeTest {
    * - check if all 50 rows were read.
    */
   @Test
-  public void testAdaptiveFetchingWithMaximumSize() throws SQLException {
+  void adaptiveFetchingWithMaximumSize() throws SQLException {
     int startFetchSize = 4;
     int expectedSize = 10;
     int expectedCounter = 50;
@@ -185,7 +185,7 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       if (i < 4) {
         addStringWithSize(10);
       } else {
@@ -195,7 +195,7 @@ public class AdaptiveFetchSizeTest {
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -220,7 +220,7 @@ public class AdaptiveFetchSizeTest {
    * - check if all 1000 rows were read.
    */
   @Test
-  public void testAdaptiveFetchingWithMoreData() throws SQLException {
+  void adaptiveFetchingWithMoreData() throws SQLException {
     int startFetchSize = 4;
     int expectedCounter = 1000;
     int resultCounter = 0;
@@ -234,13 +234,13 @@ public class AdaptiveFetchSizeTest {
 
     openConnectionAndCreateTable(properties);
 
-    for (int i = 0; i != expectedCounter; i++) {
+    for (int i = 0; i < expectedCounter; i++) {
       addStringWithSize(10);
     }
 
     executeFetchingQuery();
 
-    for (int i = 0; i != 4; i++) {
+    for (int i = 0; i < 4; i++) {
       resultSet.next();
       resultCounter++;
       assertEquals(startFetchSize, resultSet.getFetchSize());
@@ -272,7 +272,7 @@ public class AdaptiveFetchSizeTest {
   private void addStringWithSize(int size) throws SQLException {
     StringBuilder sb = new StringBuilder(size + 2);
     sb.append("'");
-    for (int i = 0; i != size; i++) {
+    for (int i = 0; i < size; i++) {
       sb.append('H');
     }
     sb.append("'");
@@ -301,8 +301,8 @@ public class AdaptiveFetchSizeTest {
     PGConnection pgConnection = connection.unwrap(PGConnection.class);
     PreferQueryMode preferQueryMode =
         pgConnection == null ? PreferQueryMode.EXTENDED : pgConnection.getPreferQueryMode();
-    Assume.assumeTrue("Fetching tests can't be performed in simple mode",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    Assumptions.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+        "Fetching tests can't be performed in simple mode");
   }
 
 }

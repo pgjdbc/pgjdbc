@@ -5,13 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
@@ -19,12 +21,13 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.SharedTimer;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -52,13 +55,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /*
- * Test for getObject
- */
-public class StatementTest {
+* Test for getObject
+*/
+class StatementTest {
   private Connection con;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_statement", "i int");
     TestUtil.createTempTable(con, "escapetest",
@@ -71,8 +74,8 @@ public class StatementTest {
     stmt.close();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
@@ -87,12 +90,12 @@ public class StatementTest {
     //   Travis: in PG_VERSION=HEAD
     //   Other: always
     if ("true".equals(System.getenv("TRAVIS"))) {
-      Assume.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
+      Assumptions.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
     }
   }
 
   @Test
-  public void testClose() throws SQLException {
+  void close() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.close();
 
@@ -104,7 +107,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testResultSetClosed() throws SQLException {
+  void resultSetClosed() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select 1");
     stmt.close();
@@ -115,14 +118,14 @@ public class StatementTest {
    * Closing a Statement twice is not an error.
    */
   @Test
-  public void testDoubleClose() throws SQLException {
+  void doubleClose() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.close();
     stmt.close();
   }
 
   @Test
-  public void testMultiExecute() throws SQLException {
+  void multiExecute() throws SQLException {
     Statement stmt = con.createStatement();
     assertTrue(stmt.execute("SELECT 1 as a; UPDATE test_statement SET i=1; SELECT 2 as b, 3 as c"));
 
@@ -131,7 +134,7 @@ public class StatementTest {
     assertEquals(1, rs.getInt(1));
     rs.close();
 
-    assertTrue(!stmt.getMoreResults());
+    assertFalse(stmt.getMoreResults());
     assertEquals(0, stmt.getUpdateCount());
 
     assertTrue(stmt.getMoreResults());
@@ -140,21 +143,21 @@ public class StatementTest {
     assertEquals(2, rs.getInt(1));
     rs.close();
 
-    assertTrue(!stmt.getMoreResults());
+    assertFalse(stmt.getMoreResults());
     assertEquals(-1, stmt.getUpdateCount());
     stmt.close();
   }
 
   @Test
-  public void testEmptyQuery() throws SQLException {
+  void emptyQuery() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute("");
     assertNull(stmt.getResultSet());
-    assertTrue(!stmt.getMoreResults());
+    assertFalse(stmt.getMoreResults());
   }
 
   @Test
-  public void testUpdateCount() throws SQLException {
+  void updateCount() throws SQLException {
     Statement stmt = con.createStatement();
     int count;
 
@@ -176,7 +179,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testEscapeProcessing() throws SQLException {
+  void escapeProcessing() throws SQLException {
     Statement stmt = con.createStatement();
     int count;
 
@@ -215,7 +218,7 @@ public class StatementTest {
     assertEquals(0, count);
 
     rs = stmt.executeQuery("select * from {oj test_statement a left outer join b on (a.i=b.i)} ");
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     // test escape character
     rs = stmt
         .executeQuery("select str2 from comparisontest where str1 like '|_abcd' {escape '|'} ");
@@ -228,7 +231,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testPreparedFunction() throws SQLException {
+  void preparedFunction() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT {fn concat('a', ?)}");
     pstmt.setInt(1, 5);
     ResultSet rs = pstmt.executeQuery();
@@ -237,23 +240,23 @@ public class StatementTest {
   }
 
   @Test
-  public void testDollarInComment() throws SQLException {
+  void dollarInComment() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT /* $ */ {fn curdate()}");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertNotNull("{fn curdate()} should be not null", rs.getString(1));
+    assertNotNull(rs.getString(1), "{fn curdate()} should be not null");
   }
 
   @Test
-  public void testDollarInCommentTwoComments() throws SQLException {
+  void dollarInCommentTwoComments() throws SQLException {
     PreparedStatement pstmt = con.prepareStatement("SELECT /* $ *//* $ */ {fn curdate()}");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertNotNull("{fn curdate()} should be not null", rs.getString(1));
+    assertNotNull(rs.getString(1), "{fn curdate()} should be not null");
   }
 
   @Test
-  public void testNumericFunctions() throws SQLException {
+  void numericFunctions() throws SQLException {
     Statement stmt = con.createStatement();
 
     ResultSet rs = stmt.executeQuery("select {fn abs(-2.3)} as abs ");
@@ -317,7 +320,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testStringFunctions() throws SQLException {
+  void stringFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery(
         "select {fn ascii(' test')},{fn char(32)}"
@@ -357,7 +360,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testDateFuncWithParam() throws SQLException {
+  void dateFuncWithParam() throws SQLException {
     // Prior to 8.0 there is not an interval + timestamp operator,
     // so timestampadd does not work.
     //
@@ -372,7 +375,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testDateFunctions() throws SQLException {
+  void dateFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select {fn curdate()},{fn curtime()}"
         + ",{fn dayname({fn now()})}, {fn dayofmonth({fn now()})}"
@@ -451,7 +454,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testSystemFunctions() throws SQLException {
+  void systemFunctions() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery(
         "select {fn ifnull(null,'2')}"
@@ -466,7 +469,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testWarningsAreCleared() throws SQLException {
+  void warningsAreCleared() throws SQLException {
     Statement stmt = con.createStatement();
     // Will generate a NOTICE: for primary key index creation
     stmt.execute("CREATE TEMP TABLE unused (a int primary key)");
@@ -477,7 +480,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testWarningsAreAvailableAsap()
+  void warningsAreAvailableAsap()
       throws Exception {
     try (Connection outerLockCon = TestUtil.openDB()) {
       outerLockCon.setAutoCommit(false);
@@ -503,12 +506,10 @@ public class StatementTest {
           while (true) {
             SQLWarning warning = preparedStatement.getWarnings();
             if (warning != null) {
-              assertEquals("First warning received not first notice raised",
-                  "Test 1", warning.getMessage());
+              assertEquals("Test 1", warning.getMessage(), "First warning received not first notice raised");
               SQLWarning next = warning.getNextWarning();
               if (next != null) {
-                assertEquals("Second warning received not second notice raised",
-                    "Test 2", next.getMessage());
+                assertEquals("Test 2", next.getMessage(), "Second warning received not second notice raised");
                 //Release the lock so that the notice generating statement can end.
                 outerLockCon.commit();
                 return null;
@@ -543,7 +544,7 @@ public class StatementTest {
    * this should happen more or less instantaneously even if you receive a lot of warnings.</p>
    */
   @Test
-  public void testConcurrentWarningReadAndClear()
+  void concurrentWarningReadAndClear()
       throws SQLException, InterruptedException, ExecutionException, TimeoutException {
     final int iterations = 1000;
     con.createStatement()
@@ -574,8 +575,7 @@ public class StatementTest {
           if (warn != null) {
             warnings++;
             //System.out.println("Processing " + warn.getMessage());
-            assertEquals("Received warning out of expected order",
-                "Warning " + warnings, warn.getMessage());
+            assertEquals("Warning " + warnings, warn.getMessage(), "Received warning out of expected order");
             lastProcessed = warn;
             //If the processed warning was the head of the chain clear
             if (warn == statement.getWarnings()) {
@@ -589,8 +589,7 @@ public class StatementTest {
             Thread.sleep(10);
           }
         }
-        assertEquals("Didn't receive expected last warning",
-            "Warning " + iterations, lastProcessed.getMessage());
+        assertEquals("Warning " + iterations, lastProcessed.getMessage(), "Didn't receive expected last warning");
         return null;
       }
     };
@@ -612,7 +611,7 @@ public class StatementTest {
    * multiple rule actions together in one statement.
    */
   @Test
-  public void testParsingSemiColons() throws SQLException {
+  void parsingSemiColons() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.execute(
         "CREATE RULE r1 AS ON INSERT TO escapetest DO (DELETE FROM test_statement ; INSERT INTO test_statement VALUES (1); INSERT INTO test_statement VALUES (2); );");
@@ -622,11 +621,11 @@ public class StatementTest {
     assertEquals(1, rs.getInt(1));
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
-  public void testParsingDollarQuotes() throws SQLException {
+  void parsingDollarQuotes() throws SQLException {
     // dollar-quotes are supported in the backend since version 8.0
     Statement st = con.createStatement();
     ResultSet rs;
@@ -670,7 +669,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testUnbalancedParensParseError() throws SQLException {
+  void unbalancedParensParseError() throws SQLException {
     Statement stmt = con.createStatement();
     try {
       stmt.executeQuery("SELECT i FROM test_statement WHERE (1 > 0)) ORDER BY i");
@@ -680,7 +679,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testExecuteUpdateFailsOnSelect() throws SQLException {
+  void executeUpdateFailsOnSelect() throws SQLException {
     Statement stmt = con.createStatement();
     try {
       stmt.executeUpdate("SELECT 1");
@@ -690,7 +689,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testExecuteUpdateFailsOnMultiStatementSelect() throws SQLException {
+  void executeUpdateFailsOnMultiStatementSelect() throws SQLException {
     Statement stmt = con.createStatement();
     try {
       stmt.executeUpdate("/* */; SELECT 1");
@@ -700,7 +699,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testSetQueryTimeout() throws SQLException {
+  void setQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     long start = 0;
     boolean cancelReceived = false;
@@ -722,14 +721,16 @@ public class StatementTest {
   }
 
   @Test
-  public void testLongQueryTimeout() throws SQLException {
+  void longQueryTimeout() throws SQLException {
     Statement stmt = con.createStatement();
     stmt.setQueryTimeout(Integer.MAX_VALUE);
-    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE)", Integer.MAX_VALUE,
-        stmt.getQueryTimeout());
+    assertEquals(Integer.MAX_VALUE,
+        stmt.getQueryTimeout(),
+        "setQueryTimeout(Integer.MAX_VALUE)");
     stmt.setQueryTimeout(Integer.MAX_VALUE - 1);
-    Assert.assertEquals("setQueryTimeout(Integer.MAX_VALUE-1)", Integer.MAX_VALUE - 1,
-        stmt.getQueryTimeout());
+    assertEquals(Integer.MAX_VALUE - 1,
+        stmt.getQueryTimeout(),
+        "setQueryTimeout(Integer.MAX_VALUE-1)");
   }
 
   /**
@@ -737,7 +738,7 @@ public class StatementTest {
    * one does not. The timeout of the first query should not impact the second one.
    */
   @Test
-  public void testShortQueryTimeout() throws SQLException {
+  void shortQueryTimeout() throws SQLException {
     assumeLongTest();
 
     long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
@@ -754,10 +755,10 @@ public class StatementTest {
         // but anything else is fatal. We can't differentiate other causes of statement cancel like
         // "canceling statement due to user request" without error message matching though, and we
         // don't want to do that.
-        Assert.assertEquals(
-            "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+        assertEquals(
             PSQLState.QUERY_CANCELED.getState(),
-            e.getSQLState());
+            e.getSQLState(),
+            "Query is expected to be cancelled via st.close(), got " + e.getMessage());
       }
       // Must never time out.
       stmt2.executeQuery("select 1;");
@@ -765,7 +766,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testSetQueryTimeoutWithSleep() throws SQLException, InterruptedException {
+  void setQueryTimeoutWithSleep() throws SQLException, InterruptedException {
     // check that the timeout starts ticking at execute, not at the
     // setQueryTimeout call.
     Statement stmt = con.createStatement();
@@ -783,7 +784,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testSetQueryTimeoutOnPrepared() throws SQLException, InterruptedException {
+  void setQueryTimeoutOnPrepared() throws SQLException, InterruptedException {
     // check that a timeout set on a prepared statement works on every
     // execution.
     PreparedStatement pstmt = con.prepareStatement("select pg_sleep(5)");
@@ -802,7 +803,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testSetQueryTimeoutWithoutExecute() throws SQLException, InterruptedException {
+  void setQueryTimeoutWithoutExecute() throws SQLException, InterruptedException {
     // check that a timeout set on one statement doesn't affect another
     Statement stmt1 = con.createStatement();
     stmt1.setQueryTimeout(1);
@@ -812,7 +813,7 @@ public class StatementTest {
   }
 
   @Test
-  public void testResultSetTwice() throws SQLException {
+  void resultSetTwice() throws SQLException {
     Statement stmt = con.createStatement();
 
     ResultSet rs = stmt.executeQuery("select {fn abs(-2.3)} as abs ");
@@ -823,8 +824,8 @@ public class StatementTest {
   }
 
   @Test
-  public void testMultipleCancels() throws Exception {
-    org.postgresql.util.SharedTimer sharedTimer = org.postgresql.Driver.getSharedTimer();
+  void multipleCancels() throws Exception {
+    SharedTimer sharedTimer = Driver.getSharedTimer();
 
     Connection connA = null;
     Connection connB = null;
@@ -862,8 +863,9 @@ public class StatementTest {
     assertEquals(0, sharedTimer.getRefCount());
   }
 
-  @Test(timeout = 30000)
-  public void testCancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
+  @Test
+  @Timeout(30)
+  void cancelQueryWithBrokenNetwork() throws SQLException, IOException, InterruptedException {
     // check that stmt.cancel() doesn't hang forever if the network is broken
 
     ExecutorService executor = Executors.newCachedThreadPool();
@@ -889,8 +891,9 @@ public class StatementTest {
     executor.shutdownNow();
   }
 
-  @Test(timeout = 10000)
-  public void testCloseInProgressStatement() throws Exception {
+  @Test
+  @Timeout(10)
+  void closeInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     final Connection outerLockCon = TestUtil.openDB();
     outerLockCon.setAutoCommit(false);
@@ -929,10 +932,10 @@ public class StatementTest {
         try {
           st.execute("select notify_then_sleep()");
         } catch (SQLException e) {
-          Assert.assertEquals(
-              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+          assertEquals(
               PSQLState.QUERY_CANCELED.getState(),
-              e.getSQLState()
+              e.getSQLState(),
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage()
           );
           cancels++;
           break;
@@ -940,15 +943,16 @@ public class StatementTest {
           TestUtil.closeQuietly(st);
         }
       }
-      Assert.assertNotEquals("At least one QUERY_CANCELED state is expected", 0, cancels);
+      assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
     } finally {
       executor.shutdown();
       TestUtil.closeQuietly(outerLockCon);
     }
   }
 
-  @Test(timeout = 10000)
-  public void testConcurrentIsValid() throws Throwable {
+  @Test
+  @Timeout(10)
+  void concurrentIsValid() throws Throwable {
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
       List<Future<?>> results = new ArrayList<>();
@@ -957,7 +961,7 @@ public class StatementTest {
         Future<?> future = executor.submit(() -> {
           try {
             for (int j = 0; j < 50; j++) {
-              con.isValid(1);
+              con.isValid(2);
               try (PreparedStatement ps =
                        con.prepareStatement("select * from generate_series(1,?) as x(id)")) {
                 int limit = rnd.nextInt(10);
@@ -968,9 +972,9 @@ public class StatementTest {
                       + Thread.currentThread().getName();
                   while (r.next()) {
                     cnt++;
-                    assertEquals(callName + ", row " + cnt, cnt, r.getInt(1));
+                    assertEquals(cnt, r.getInt(1), callName + ", row " + cnt);
                   }
-                  assertEquals(callName + " number of rows", limit, cnt);
+                  assertEquals(limit, cnt, callName + " number of rows");
                 }
               }
             }
@@ -992,8 +996,9 @@ public class StatementTest {
     }
   }
 
-  @Test(timeout = 20000)
-  public void testFastCloses() throws SQLException {
+  @Test
+  @Timeout(20)
+  void fastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
     con.createStatement()
@@ -1005,7 +1010,7 @@ public class StatementTest {
             + "END "
             + "$BODY$ "
             + "LANGUAGE plpgsql;");
-    Map<String, Integer> cnt = new HashMap<String, Integer>();
+    Map<String, Integer> cnt = new HashMap<>();
     final Random rnd = new Random();
     for (int i = 0; i < 1000; i++) {
       final Statement st = con.createStatement();
@@ -1016,7 +1021,7 @@ public class StatementTest {
           if (s > 8) {
             try {
               Thread.sleep(s - 9);
-            } catch (InterruptedException ex ) {
+            } catch (InterruptedException ex) {
               // don't execute the close here as this thread was cancelled below in shutdownNow
               return null;
             }
@@ -1034,10 +1039,10 @@ public class StatementTest {
         sqlState = e.getSQLState();
         if (!PSQLState.OBJECT_NOT_IN_STATE.getState().equals(sqlState)
             && !PSQLState.QUERY_CANCELED.getState().equals(sqlState)) {
-          Assert.assertEquals(
-              "Query is expected to be cancelled via st.close(), got " + e.getMessage(),
+          assertEquals(
               PSQLState.QUERY_CANCELED.getState(),
-              e.getSQLState()
+              e.getSQLState(),
+              "Query is expected to be cancelled via st.close(), got " + e.getMessage()
           );
         }
       } finally {
@@ -1057,11 +1062,11 @@ public class StatementTest {
    * in {@link java.util.ConcurrentModificationException}.
    */
   @Test
-  public void testSideStatementFinalizers() throws SQLException {
+  void sideStatementFinalizers() throws SQLException {
     long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
 
     final AtomicInteger leaks = new AtomicInteger();
-    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<Throwable>();
+    final AtomicReference<Throwable> cleanupFailure = new AtomicReference<>();
     // Create several cleaners, so they can clean leaks concurrently
     List<LazyCleaner> cleaners = new ArrayList<>();
     for (int i = 0; i < 16; i++) {
@@ -1095,7 +1100,7 @@ public class StatementTest {
    * @throws SQLException if something goes wrong
    */
   @Test
-  public void testJavaScriptFunction() throws SQLException {
+  void javaScriptFunction() throws SQLException {
     String str = "  var _modules = {};\n"
         + "  var _current_stack = [];\n"
         + "\n"
@@ -1111,38 +1116,38 @@ public class StatementTest {
       ps = con.prepareStatement("select $JAVASCRIPT$" + str + "$JAVASCRIPT$");
       ResultSet rs = ps.executeQuery();
       rs.next();
-      assertEquals("JavaScript code has been protected with $JAVASCRIPT$", str, rs.getString(1));
+      assertEquals(str, rs.getString(1), "JavaScript code has been protected with $JAVASCRIPT$");
     } finally {
       TestUtil.closeQuietly(ps);
     }
   }
 
   @Test
-  public void testUnterminatedDollarQuotes() throws SQLException {
+  void unterminatedDollarQuotes() throws SQLException {
     ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $$\n"
         + "BEGIN");
   }
 
   @Test
-  public void testUnterminatedNamedDollarQuotes() throws SQLException {
+  void unterminatedNamedDollarQuotes() throws SQLException {
     ensureSyntaxException("dollar quotes", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS $ABC$\n"
         + "BEGIN");
   }
 
   @Test
-  public void testUnterminatedComment() throws SQLException {
+  void unterminatedComment() throws SQLException {
     ensureSyntaxException("block comment", "CREATE OR REPLACE FUNCTION update_on_change() RETURNS TRIGGER AS /* $$\n"
         + "BEGIN $$");
   }
 
   @Test
-  public void testUnterminatedLiteral() throws SQLException {
+  void unterminatedLiteral() throws SQLException {
     ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION update_on_change() 'RETURNS TRIGGER AS $$\n"
         + "BEGIN $$");
   }
 
   @Test
-  public void testUnterminatedIdentifier() throws SQLException {
+  void unterminatedIdentifier() throws SQLException {
     ensureSyntaxException("string literal", "CREATE OR REPLACE FUNCTION \"update_on_change() RETURNS TRIGGER AS $$\n"
         + "BEGIN $$");
   }
@@ -1154,8 +1159,7 @@ public class StatementTest {
       ps.executeUpdate();
       fail("Query with unterminated " + errorType + " should fail");
     } catch (SQLException e) {
-      assertEquals("Query should fail with unterminated " + errorType,
-          PSQLState.SYNTAX_ERROR.getState(), e.getSQLState());
+      assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), "Query should fail with unterminated " + errorType);
     } finally {
       TestUtil.closeQuietly(ps);
     }

@@ -41,7 +41,7 @@ class CompositeParameterList implements V3ParameterList {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    for (int i = offsets.length - 1; i >= 0; --i) {
+    for (int i = offsets.length - 1; i >= 0; i--) {
       if (offsets[i] < index) {
         return i;
       }
@@ -50,6 +50,7 @@ class CompositeParameterList implements V3ParameterList {
     throw new IllegalArgumentException("I am confused; can't find a subparam for index " + index);
   }
 
+  @Override
   public void registerOutParameter(@Positive int index, int sqlType) {
 
   }
@@ -58,18 +59,22 @@ class CompositeParameterList implements V3ParameterList {
     return 0;
   }
 
+  @Override
   public @NonNegative int getParameterCount() {
     return total;
   }
 
+  @Override
   public @NonNegative int getInParameterCount() {
     return total;
   }
 
+  @Override
   public @NonNegative int getOutParameterCount() {
     return 0;
   }
 
+  @Override
   public int[] getTypeOIDs() {
     int[] oids = new int[total];
     for (int i = 0; i < offsets.length; i++) {
@@ -79,56 +84,67 @@ class CompositeParameterList implements V3ParameterList {
     return oids;
   }
 
+  @Override
   public void setIntParameter(@Positive int index, int value) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setIntParameter(index - offsets[sub], value);
   }
 
+  @Override
   public void setLiteralParameter(@Positive int index, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setStringParameter(index - offsets[sub], value, oid);
   }
 
+  @Override
   public void setStringParameter(@Positive int index, String value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setStringParameter(index - offsets[sub], value, oid);
   }
 
+  @Override
   public void setBinaryParameter(@Positive int index, byte[] value, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBinaryParameter(index - offsets[sub], value, oid);
   }
 
+  @Override
   public void setBytea(@Positive int index, byte[] data, int offset, @NonNegative int length) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], data, offset, length);
   }
 
+  @Override
   public void setBytea(@Positive int index, InputStream stream, @NonNegative int length) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], stream, length);
   }
 
+  @Override
   public void setBytea(@Positive int index, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], stream);
   }
 
+  @Override
   public void setBytea(@Positive int index, ByteStreamWriter writer) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setBytea(index - offsets[sub], writer);
   }
 
+  @Override
   public void setText(@Positive int index, InputStream stream) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setText(index - offsets[sub], stream);
   }
 
+  @Override
   public void setNull(@Positive int index, int oid) throws SQLException {
     int sub = findSubParam(index);
     subparams[sub].setNull(index - offsets[sub], oid);
   }
 
+  @Override
   public String toString(@Positive int index, boolean standardConformingStrings) {
     try {
       int sub = findSubParam(index);
@@ -138,43 +154,51 @@ class CompositeParameterList implements V3ParameterList {
     }
   }
 
+  @Override
   public ParameterList copy() {
     SimpleParameterList[] copySub = new SimpleParameterList[subparams.length];
-    for (int sub = 0; sub < subparams.length; ++sub) {
+    for (int sub = 0; sub < subparams.length; sub++) {
       copySub[sub] = (SimpleParameterList) subparams[sub].copy();
     }
 
     return new CompositeParameterList(copySub, offsets);
   }
 
+  @Override
   public void clear() {
     for (SimpleParameterList subparam : subparams) {
       subparam.clear();
     }
   }
 
+  @Override
   public SimpleParameterList @Nullable [] getSubparams() {
     return subparams;
   }
 
+  @Override
   public void checkAllParametersSet() throws SQLException {
     for (SimpleParameterList subparam : subparams) {
       subparam.checkAllParametersSet();
     }
   }
 
+  @Override
   public byte @Nullable [][] getEncoding() {
     return null; // unsupported
   }
 
+  @Override
   public byte @Nullable [] getFlags() {
     return null; // unsupported
   }
 
+  @Override
   public int @Nullable [] getParamTypes() {
     return null; // unsupported
   }
 
+  @Override
   public @Nullable Object @Nullable [] getValues() {
     return null; // unsupported
   }
@@ -194,10 +218,12 @@ class CompositeParameterList implements V3ParameterList {
     throw new RuntimeException("This should not be called");
   }
 
+  @Override
   public void appendAll(ParameterList list) throws SQLException {
     // no-op, unsupported
   }
 
+  @Override
   public void convertFunctionOutParameters() {
     for (SimpleParameterList subparam : subparams) {
       subparam.convertFunctionOutParameters();

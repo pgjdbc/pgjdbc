@@ -5,30 +5,17 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.ssl.PGjdbcHostnameVerifier;
 import org.postgresql.ssl.jdbc4.LibPQFactory;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
 public class LibPQFactoryHostNameTest {
-
-  private final String hostname;
-  private final String pattern;
-  private final boolean expected;
-
-  public LibPQFactoryHostNameTest(String hostname, String pattern, boolean expected) {
-    this.hostname = hostname;
-    this.pattern = pattern;
-    this.expected = expected;
-  }
-
-  @Parameterized.Parameters(name = "host={0}, pattern={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"host.com", "pattern.com", false},
@@ -52,12 +39,11 @@ public class LibPQFactoryHostNameTest {
     });
   }
 
-  @Test
-  public void checkPattern() throws Exception {
-    Assert.assertEquals(hostname + ", pattern: " + pattern,
-        expected, LibPQFactory.verifyHostName(hostname, pattern));
+  @MethodSource("data")
+  @ParameterizedTest(name = "host={0}, pattern={1}")
+  void checkPattern(String hostname, String pattern, boolean expected) throws Exception {
+    assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
 
-    Assert.assertEquals(hostname + ", pattern: " + pattern,
-        expected, PGjdbcHostnameVerifier.INSTANCE.verifyHostName(hostname, pattern));
+    assertEquals(expected, PGjdbcHostnameVerifier.INSTANCE.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
   }
 }

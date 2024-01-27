@@ -5,39 +5,42 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGNotification;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-public class NotifyTest {
+class NotifyTest {
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     TestUtil.closeDB(conn);
   }
 
-  @Test(timeout = 60000)
-  public void testNotify() throws SQLException {
+  @Test
+  @Timeout(60)
+  void testNotify() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
     stmt.executeUpdate("NOTIFY mynotification");
@@ -51,8 +54,9 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testNotifyArgument() throws Exception {
+  @Test
+  @Timeout(60)
+  void notifyArgument() throws Exception {
     if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_0)) {
       return;
     }
@@ -70,8 +74,9 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotify() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotify() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -90,8 +95,8 @@ public class NotifyTest {
       Thread.sleep(10);
     }
 
-    assertNotNull("Notification is expected to be delivered when subscription was created"
-            + " before sending notification", notifications);
+    assertNotNull(notifications, "Notification is expected to be delivered when subscription was created"
+            + " before sending notification");
     assertEquals(1, notifications.length);
     assertEquals("mynotification", notifications[0].getName());
     assertEquals("", notifications[0].getParameter());
@@ -103,8 +108,9 @@ public class NotifyTest {
    * To test timeouts we have to send the notification from another thread, because we
    * listener is blocking.
    */
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeout() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithTimeout() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -113,15 +119,15 @@ public class NotifyTest {
     PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications(500);
     long endMillis = System.currentTimeMillis();
     long runtime = endMillis - startMillis;
-    assertEquals("There have been notifications, although none have been expected.",
-        "[]", Arrays.asList(notifications).toString());
-    Assert.assertTrue("We didn't wait long enough! runtime=" + runtime, runtime > 450);
+    assertEquals("[]", Arrays.asList(notifications).toString(), "There have been notifications, although none have been expected.");
+    assertTrue(runtime > 450, "We didn't wait long enough! runtime=" + runtime);
 
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -138,8 +144,9 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithEndlessTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithEndlessTimeoutAndMessagesAvailableWhenStartingListening() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -155,14 +162,16 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeoutAndMessagesSendAfter() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(200);
@@ -181,14 +190,16 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithEndlessTimeoutAndMessagesSendAfter() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithEndlessTimeoutAndMessagesSendAfter() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
     // Now we check the case where notifications are send after we have started to listen for
     // notifications forever
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(200);
@@ -207,8 +218,9 @@ public class NotifyTest {
     stmt.close();
   }
 
-  @Test(timeout = 60000)
-  public void testAsyncNotifyWithTimeoutAndSocketThatBecomesClosed() throws Exception {
+  @Test
+  @Timeout(60)
+  void asyncNotifyWithTimeoutAndSocketThatBecomesClosed() throws Exception {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");
 
@@ -216,6 +228,7 @@ public class NotifyTest {
     // should be able, and this test ensures that no synchronized statements will stop the
     // connection from becoming closed.
     new Thread( new Runnable() {
+      @Override
       public void run() {
         try {
           Thread.sleep(500);
@@ -230,7 +243,7 @@ public class NotifyTest {
 
     try {
       conn.unwrap(PGConnection.class).getNotifications(40000);
-      Assert.fail("The getNotifications(...) call didn't return when the socket closed.");
+      fail("The getNotifications(...) call didn't return when the socket closed.");
     } catch (SQLException e) {
       // We expected that
     }
@@ -246,7 +259,7 @@ public class NotifyTest {
       stmt2.executeUpdate("NOTIFY " + channel);
       stmt2.close();
     } catch (Exception e) {
-      throw new RuntimeException("Couldn't notify '" + channel + "'.",e);
+      throw new RuntimeException("Couldn't notify '" + channel + "'.", e);
     } finally {
       try {
         conn2.close();

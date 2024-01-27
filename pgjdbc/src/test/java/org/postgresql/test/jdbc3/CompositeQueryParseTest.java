@@ -5,76 +5,76 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.jdbc.PlaceholderStyle;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.List;
 
-public class CompositeQueryParseTest {
+class CompositeQueryParseTest {
 
   @Test
-  public void testEmptyQuery() {
+  void emptyQuery() {
     assertEquals("", reparse("", true, false, true));
   }
 
   @Test
-  public void testWhitespaceQuery() {
+  void whitespaceQuery() {
     assertEquals("", reparse("     ", true, false, true));
   }
 
   @Test
-  public void testOnlyEmptyQueries() {
+  void onlyEmptyQueries() {
     assertEquals("", reparse(";;;;  ;  \n;\n", true, false, true));
   }
 
   @Test
-  public void testSimpleQuery() {
+  void simpleQuery() {
     assertEquals("select 1", reparse("select 1", true, false, true));
   }
 
   @Test
-  public void testSimpleBind() {
+  void simpleBind() {
     assertEquals("select $1", reparse("select ?", true, true, true));
   }
 
   @Test
-  public void testUnquotedQuestionmark() {
+  void unquotedQuestionmark() {
     assertEquals("select '{\"key\": \"val\"}'::jsonb ? 'key'",
         reparse("select '{\"key\": \"val\"}'::jsonb ? 'key'", true, false, true));
   }
 
   @Test
-  public void testRepeatedQuestionmark() {
+  void repeatedQuestionmark() {
     assertEquals("select '{\"key\": \"val\"}'::jsonb ? 'key'",
         reparse("select '{\"key\": \"val\"}'::jsonb ?? 'key'", true, false, true));
   }
 
   @Test
-  public void testQuotedQuestionmark() {
+  void quotedQuestionmark() {
     assertEquals("select '?'", reparse("select '?'", true, false, true));
   }
 
   @Test
-  public void testDoubleQuestionmark() {
+  void doubleQuestionmark() {
     assertEquals("select '?', $1 ?=> $2", reparse("select '?', ? ??=> ?", true, true, true));
   }
 
   @Test
-  public void testCompositeBasic() {
+  void compositeBasic() {
     assertEquals("select 1;/*cut*/\n select 2", reparse("select 1; select 2", true, false, true));
   }
 
   @Test
-  public void testCompositeWithBinds() {
+  void compositeWithBinds() {
     assertEquals("select $1;/*cut*/\n select $1", reparse("select ?; select ?", true, true, true));
   }
 
@@ -91,121 +91,121 @@ public class CompositeQueryParseTest {
   }
 
   @Test
-  public void testTrailingSemicolon() {
+  void trailingSemicolon() {
     assertEquals("select 1", reparse("select 1;", true, false, true));
   }
 
   @Test
-  public void testTrailingSemicolonAndSpace() {
+  void trailingSemicolonAndSpace() {
     assertEquals("select 1", reparse("select 1; ", true, false, true));
   }
 
   @Test
-  public void testMultipleTrailingSemicolons() {
+  void multipleTrailingSemicolons() {
     assertEquals("select 1", reparse("select 1;;;", true, false, true));
   }
 
   @Test
-  public void testHasReturning() throws SQLException {
+  void hasReturning() throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?) RetuRning a", true, true, false,
         true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertTrue("The parser should find the word returning", query.command.isReturningKeywordPresent());
+    assertTrue(query.command.isReturningKeywordPresent(), "The parser should find the word returning");
 
     queries = Parser.parseJdbcSql("insert into foo (a,b,c) values (?,?,?)", true, true, false, true, true, PlaceholderStyle.NONE);
     query = queries.get(0);
-    assertFalse("The parser should not find the word returning", query.command.isReturningKeywordPresent());
+    assertFalse(query.command.isReturningKeywordPresent(), "The parser should not find the word returning");
 
     queries = Parser.parseJdbcSql("insert into foo (a,b,c) values ('returning',?,?)", true, true, false,
         true, true, PlaceholderStyle.NONE);
     query = queries.get(0);
-    assertFalse("The parser should not find the word returning as it is in quotes ", query.command.isReturningKeywordPresent());
+    assertFalse(query.command.isReturningKeywordPresent(), "The parser should not find the word returning as it is in quotes ");
   }
 
   @Test
-  public void testSelect() throws SQLException {
+  void select() throws SQLException {
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql("select 1 as returning from (update table)", true, true, false, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("This is a select ", SqlCommandType.SELECT, query.command.getType());
-    assertTrue("Returning is OK here as it is not an insert command ", query.command.isReturningKeywordPresent());
+    assertEquals(SqlCommandType.SELECT, query.command.getType(), "This is a select ");
+    assertTrue(query.command.isReturningKeywordPresent(), "Returning is OK here as it is not an insert command ");
   }
 
   @Test
-  public void testDelete() throws SQLException {
+  void delete() throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql("DeLeTe from foo where a=1", true, true, false,
         true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("This is a delete command", SqlCommandType.DELETE, query.command.getType());
+    assertEquals(SqlCommandType.DELETE, query.command.getType(), "This is a delete command");
   }
 
   @Test
-  public void testMultiQueryWithBind() throws SQLException {
+  void multiQueryWithBind() throws SQLException {
     // braces around (42) are required to puzzle the parser
     String sql = "INSERT INTO inttable(a) VALUES (?);SELECT (42)";
-    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true,true, true, PlaceholderStyle.NONE);
+    List<NativeQuery> queries = Parser.parseJdbcSql(sql, true, true, true, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("query(0) of " + sql,
-        "INSERT: INSERT INTO inttable(a) VALUES ($1)",
-        query.command.getType() + ": " + query.nativeSql);
+    assertEquals("INSERT: INSERT INTO inttable(a) VALUES ($1)",
+        query.command.getType() + ": " + query.nativeSql,
+        "query(0) of " + sql);
     query = queries.get(1);
-    assertEquals("query(1) of " + sql,
-        "SELECT: SELECT (42)",
-        query.command.getType() + ": " + query.nativeSql);
+    assertEquals("SELECT: SELECT (42)",
+        query.command.getType() + ": " + query.nativeSql,
+        "query(1) of " + sql);
   }
 
   @Test
-  public void testMove() throws SQLException {
+  void move() throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql("MoVe NEXT FROM FOO", true, true, false, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("This is a move command", SqlCommandType.MOVE, query.command.getType());
+    assertEquals(SqlCommandType.MOVE, query.command.getType(), "This is a move command");
   }
 
   @Test
-  public void testUpdate() throws SQLException {
+  void update() throws SQLException {
     List<NativeQuery> queries;
     NativeQuery query;
     queries = Parser.parseJdbcSql("update foo set (a=?,b=?,c=?)", true, true, false, true, true, PlaceholderStyle.NONE);
     query = queries.get(0);
-    assertEquals("This is an UPDATE command", SqlCommandType.UPDATE, query.command.getType());
+    assertEquals(SqlCommandType.UPDATE, query.command.getType(), "This is an UPDATE command");
   }
 
   @Test
-  public void testInsert() throws SQLException {
+  void insert() throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql("InSeRt into foo (a,b,c) values (?,?,?) returning a", true, true, false,
         true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("This is an INSERT command", SqlCommandType.INSERT, query.command.getType());
+    assertEquals(SqlCommandType.INSERT, query.command.getType(), "This is an INSERT command");
 
     queries = Parser.parseJdbcSql("select 1 as insert", true, true, false, true, true, PlaceholderStyle.NONE);
     query = queries.get(0);
-    assertEquals("This is a SELECT command", SqlCommandType.SELECT, query.command.getType());
+    assertEquals(SqlCommandType.SELECT, query.command.getType(), "This is a SELECT command");
   }
 
   @Test
-  public void testWithSelect() throws SQLException {
+  void withSelect() throws SQLException {
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql("with update as (update foo set (a=?,b=?,c=?)) select * from update", true, true, false, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("with ... () select", SqlCommandType.SELECT, query.command.getType());
+    assertEquals(SqlCommandType.SELECT, query.command.getType(), "with ... () select");
   }
 
   @Test
-  public void testWithInsert() throws SQLException {
+  void withInsert() throws SQLException {
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql("with update as (update foo set (a=?,b=?,c=?)) insert into table(select) values(1)", true, true, false, true, true, PlaceholderStyle.NONE);
     NativeQuery query = queries.get(0);
-    assertEquals("with ... () insert", SqlCommandType.INSERT, query.command.getType());
+    assertEquals(SqlCommandType.INSERT, query.command.getType(), "with ... () insert");
   }
 
   @Test
-  public void testMultipleEmptyQueries() {
+  void multipleEmptyQueries() {
     assertEquals("select 1;/*cut*/\n" + "select 2",
         reparse("select 1; ;\t;select 2", true, false, true));
   }
 
   @Test
-  public void testCompositeWithComments() {
+  void compositeWithComments() {
     assertEquals("select 1;/*cut*/\n" + "/* noop */;/*cut*/\n" + "select 2",
         reparse("select 1;/* noop */;select 2", true, false, true));
   }

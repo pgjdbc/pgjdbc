@@ -46,6 +46,7 @@ class SimpleQuery implements Query {
     this.sanitiserDisabled = sanitiserDisabled;
   }
 
+  @Override
   public ParameterList createParameterList() {
     if (!nativeQuery.parameterCtx.hasParameters()) {
       return NO_PARAMETERS;
@@ -56,18 +57,22 @@ class SimpleQuery implements Query {
         nativeQuery.parameterCtx);
   }
 
+  @Override
   public String toString(@Nullable ParameterList parameters) {
     return nativeQuery.toString(parameters);
   }
 
+  @Override
   public String toString() {
     return toString(null);
   }
 
+  @Override
   public void close() {
     unprepare();
   }
 
+  @Override
   public SimpleQuery @Nullable [] getSubqueries() {
     return null;
   }
@@ -118,6 +123,7 @@ class SimpleQuery implements Query {
   // Implementation guts
   //
 
+  @Override
   public String getNativeSql() {
     return nativeQuery.nativeSql;
   }
@@ -172,7 +178,7 @@ class SimpleQuery implements Query {
         preparedTypes.length);
     // Check for compatible types.
     BitSet unspecified = this.unspecifiedParams;
-    for (int i = 0; i < paramTypes.length; ++i) {
+    for (int i = 0; i < paramTypes.length; i++) {
       int paramType = paramTypes[i];
       // Either paramType should match prepared type
       // Or paramType==UNSPECIFIED and the prepare type was UNSPECIFIED
@@ -282,6 +288,7 @@ class SimpleQuery implements Query {
 
   // Have we sent a Describe Statement message for this query yet?
   // Note that we might not have need to, so this may always be false.
+  @Override
   public boolean isStatementDescribed() {
     return statementDescribed;
   }
@@ -291,6 +298,7 @@ class SimpleQuery implements Query {
     this.cachedMaxResultRowSize = null;
   }
 
+  @Override
   public boolean isEmpty() {
     return getNativeSql().isEmpty();
   }
@@ -324,6 +332,7 @@ class SimpleQuery implements Query {
     cachedMaxResultRowSize = null;
   }
 
+  @Override
   public int getBatchSize() {
     return 1;
   }

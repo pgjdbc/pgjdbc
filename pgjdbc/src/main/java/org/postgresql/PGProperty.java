@@ -106,7 +106,7 @@ public enum PGProperty {
           + "In autosave=conservative mode, safepoint is set for each query, however the rollback is done only for rare cases"
           + " like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries",
       false,
-      new String[] {"always", "never", "conservative"}),
+      new String[]{"always", "never", "conservative"}),
 
   /**
    * Use binary format for sending and receiving data if possible.
@@ -152,7 +152,7 @@ public enum PGProperty {
       "false",
       "Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not",
       false,
-      new String[] {"true", "false"}),
+      new String[]{"true", "false"}),
 
   /**
    * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
@@ -221,7 +221,7 @@ public enum PGProperty {
           + "In escapeSyntaxCallMode=callIfNoReturn mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement."
           + "In escapeSyntaxCallMode=call mode, the driver always uses a CALL statement (allowing procedure invocation only).",
       false,
-      new String[] {"select", "callIfNoReturn", "call"}),
+      new String[]{"select", "callIfNoReturn", "call"}),
 
   /**
    * Group startup parameters in a transaction
@@ -242,7 +242,7 @@ public enum PGProperty {
       "allow",
       "Force Encoded GSS Mode",
       false,
-      new String[] {"disable", "allow", "prefer", "require"}
+      new String[]{"disable", "allow", "prefer", "require"}
   ),
 
   /**
@@ -258,7 +258,7 @@ public enum PGProperty {
       "auto",
       "Force SSSPI or GSSAPI",
       false,
-      new String[] {"auto", "sspi", "gssapi"}),
+      new String[]{"auto", "sspi", "gssapi"}),
 
   /**
    * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
@@ -346,7 +346,7 @@ public enum PGProperty {
       null,
       "Logger level of the driver",
       false,
-      new String[] {"OFF", "DEBUG", "TRACE"}),
+      new String[]{"OFF", "DEBUG", "TRACE"}),
 
   /**
    * Specify how long to wait for establishment of a database connection. The timeout is specified
@@ -451,7 +451,7 @@ public enum PGProperty {
       "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
           + "extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, "
           + "extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
-      new String[] {"extended", "extendedForPrepared", "extendedCacheEverything", "simple"}),
+      new String[]{"extended", "extendedForPrepared", "extendedCacheEverything", "simple"}),
 
   /**
    * Specifies the maximum number of entries in cache of prepared statements. A value of {@code 0}
@@ -489,7 +489,7 @@ public enum PGProperty {
       null,
       "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
       false,
-      new String[] {"3"}),
+      new String[]{"3"}),
 
   /**
    * Quote returning columns.
@@ -523,7 +523,7 @@ public enum PGProperty {
           + "When 'always' setting readOnly to 'true' will set the session to READ ONLY if autoCommit is 'true' "
           + "and the transaction to BEGIN READ ONLY if autocommit is 'false'.",
       false,
-      new String[] {"ignore", "transaction", "always"}),
+      new String[]{"ignore", "transaction", "always"}),
 
   /**
    * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system
@@ -674,7 +674,7 @@ public enum PGProperty {
       null,
       "Parameter governing the use of SSL",
       false,
-      new String[] {"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}),
+      new String[]{"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}),
 
   /**
    * The SSL password to use in the default CallbackHandler.
@@ -730,14 +730,14 @@ public enum PGProperty {
       null,
       "The type to bind String parameters as (usually 'varchar', 'unspecified' allows implicit casting to other types)",
       false,
-      new String[] {"unspecified", "varchar"}),
+      new String[]{"unspecified", "varchar"}),
 
   TARGET_SERVER_TYPE(
       "targetServerType",
       "any",
       "Specifies what kind of server to connect",
       false,
-      new String [] {"any", "primary", "master", "slave", "secondary",  "preferSlave", "preferSecondary", "preferPrimary"}),
+      new String []{"any", "primary", "master", "slave", "secondary", "preferSlave", "preferSecondary", "preferPrimary"}),
 
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.

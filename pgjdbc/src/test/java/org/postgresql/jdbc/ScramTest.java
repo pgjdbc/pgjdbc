@@ -38,13 +38,13 @@ class ScramTest {
   private static final String ROLE_NAME = "testscram";
 
   @BeforeAll
-  public static void setUp() throws Exception {
+  static void setUp() throws Exception {
     con = TestUtil.openPrivilegedDB();
     assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v10));
   }
 
   @AfterAll
-  public static void tearDown() throws Exception {
+  static void tearDown() throws Exception {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("DROP ROLE IF EXISTS " + ROLE_NAME);
     }
@@ -60,7 +60,7 @@ class ScramTest {
   @ParameterizedTest
   @ValueSource(strings = {"My Space", "$ec ret", " rover june spelling ",
       "!zj5hs*k5 STj@DaRUy", "q\u00A0w\u2000e\u2003r\u2009t\u3000y"})
-  void testPasswordWithSpace(String passwd) throws SQLException {
+  void passwordWithSpace(String passwd) throws SQLException {
     createRole(passwd); // Create role password with spaces.
 
     Properties props = new Properties();
@@ -84,7 +84,7 @@ class ScramTest {
   @ParameterizedTest
   @ValueSource(strings = {"My Space", "$ec ret", "rover june spelling",
       "!zj5hs*k5 STj@DaRUy", "q\u00A0w\u2000e\u2003r\u2009t\u3000y"})
-  void testPasswordWithoutSpace(String passwd) throws SQLException {
+  void passwordWithoutSpace(String passwd) throws SQLException {
     String passwdNoSpaces = passwd.codePoints()
         .filter(i -> !Character.isSpaceChar(i))
         .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
@@ -109,7 +109,7 @@ class ScramTest {
 
   @ParameterizedTest
   @MethodSource("provideArgsForTestInvalid")
-  void testInvalidPasswords(String password, String expectedMessage) throws SQLException {
+  void invalidPasswords(String password, String expectedMessage) throws SQLException {
     // We are testing invalid passwords so that correct one does not matter
     createRole("anything_goes_here");
 

@@ -57,7 +57,7 @@ public class MD5Digest {
   /*
    * Turn 16-byte stream into a human-readable 32-byte hex string
    */
-  private static void bytesToHex(byte[] bytes, byte[] hex, int offset) {
+  public static void bytesToHex(byte[] bytes, byte[] hex, int offset) {
     int pos = offset;
     for (int i = 0; i < 16; i++) {
       //bit twiddling converts to int, so just do it once here for both operations

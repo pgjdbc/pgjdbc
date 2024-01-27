@@ -5,9 +5,9 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -15,11 +15,11 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -27,22 +27,22 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class CompositeTest {
+class CompositeTest {
 
   private Connection conn;
 
-  @BeforeClass
-  public static void beforeClass() throws Exception {
+  @BeforeAll
+  static void beforeClass() throws Exception {
     Connection conn = TestUtil.openDB();
     try {
-      Assume.assumeTrue("uuid requires PostgreSQL 8.3+", TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+      Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "uuid requires PostgreSQL 8.3+");
     } finally {
       conn.close();
     }
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createSchema(conn, "\"Composites\"");
     TestUtil.createCompositeType(conn, "simplecompositetest", "i int, d decimal, u uuid");
@@ -55,8 +55,8 @@ public class CompositeTest {
         "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "\"Composites\".\"Table\"");
     TestUtil.dropTable(conn, "compositetabletest");
     TestUtil.dropType(conn, "\"Composites\".\"ComplexCompositeTest\"");
@@ -67,7 +67,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testSimpleSelect() throws SQLException {
+  void simpleSelect() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT '(1,2.2,)'::simplecompositetest");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
@@ -77,7 +77,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testComplexSelect() throws SQLException {
+  void complexSelect() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement(
         "SELECT '(\"{1,2}\",{},\"(1,2.2,)\")'::\"Composites\".\"ComplexCompositeTest\"");
     ResultSet rs = pstmt.executeQuery();
@@ -88,8 +88,8 @@ public class CompositeTest {
   }
 
   @Test
-  public void testSimpleArgumentSelect() throws SQLException {
-    Assume.assumeTrue("Skip if running in simple query mode", conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
+  void simpleArgumentSelect() throws SQLException {
+    Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("simplecompositetest");
@@ -102,8 +102,8 @@ public class CompositeTest {
   }
 
   @Test
-  public void testComplexArgumentSelect() throws SQLException {
-    Assume.assumeTrue("Skip if running in simple query mode", conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE);
+  void complexArgumentSelect() throws SQLException {
+    Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("\"Composites\".\"ComplexCompositeTest\"");
@@ -116,7 +116,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testCompositeFromTable() throws SQLException {
+  void compositeFromTable() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO compositetabletest VALUES(?, ?)");
     PGobject pgo1 = new PGobject();
     pgo1.setType("public.simplecompositetest");
@@ -151,7 +151,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testNullArrayElement() throws SQLException {
+  void nullArrayElement() throws SQLException {
     PreparedStatement pstmt =
         conn.prepareStatement("SELECT array[NULL, NULL]::compositetabletest[]");
     ResultSet rs = pstmt.executeQuery();
@@ -165,7 +165,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testTableMetadata() throws SQLException {
+  void tableMetadata() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO compositetabletest VALUES(?, ?)");
     PGobject pgo1 = new PGobject();
     pgo1.setType("public.simplecompositetest");
@@ -185,7 +185,7 @@ public class CompositeTest {
   }
 
   @Test
-  public void testComplexTableNameMetadata() throws SQLException {
+  void complexTableNameMetadata() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO \"Composites\".\"Table\" VALUES(?, ?)");
     PGobject pgo1 = new PGobject();
     pgo1.setType("public.simplecompositetest");

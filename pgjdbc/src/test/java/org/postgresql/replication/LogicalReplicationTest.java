@@ -7,26 +7,23 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
+import static org.hamcrest.junit.MatcherAssume.assumeThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.tags.Replication;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.hamcrest.CoreMatchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -44,15 +41,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@Category(Replication.class)
-@HaveMinimalServerVersion("9.4")
-public class LogicalReplicationTest {
+@Replication
+@DisabledIfServerVersionBelow("9.4")
+class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
-
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
-  @Rule
-  public ExpectedException exception = ExpectedException.none();
 
   private Connection replConnection;
   private Connection sqlConnection;
@@ -65,8 +57,8 @@ public class LogicalReplicationTest {
     return new String(source, offset, length);
   }
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     sqlConnection = TestUtil.openPrivilegedDB();
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     replConnection = TestUtil.openReplicationConnection();
@@ -76,16 +68,17 @@ public class LogicalReplicationTest {
     TestUtil.recreateLogicalReplicationSlot(sqlConnection, SLOT_NAME, "test_decoding");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     replConnection.close();
     TestUtil.dropTable(sqlConnection, "test_logic_table");
     TestUtil.dropReplicationSlot(sqlConnection, SLOT_NAME);
     sqlConnection.close();
   }
 
-  @Test(timeout = 1000)
-  public void testNotAvailableStartNotExistReplicationSlot() throws Exception {
+  @Test
+  @Timeout(1)
+  void notAvailableStartNotExistReplicationSlot() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -113,8 +106,9 @@ public class LogicalReplicationTest {
     }
   }
 
-  @Test(timeout = 1000)
-  public void testReceiveChangesOccursBeforeStartReplication() throws Exception {
+  @Test
+  @Timeout(1)
+  void receiveChangesOccursBeforeStartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -150,8 +144,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 1000)
-  public void testReceiveChangesAfterStartReplication() throws Exception {
+  @Test
+  @Timeout(1)
+  void receiveChangesAfterStartReplication() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -167,7 +162,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
 
     Statement st = sqlConnection.createStatement();
     st.execute(
@@ -200,8 +195,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 1000)
-  public void testStartFromCurrentServerLSNWithoutSpecifyLSNExplicitly() throws Exception {
+  @Test
+  @Timeout(1)
+  void startFromCurrentServerLSNWithoutSpecifyLSNExplicitly() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     PGReplicationStream stream =
@@ -231,8 +227,9 @@ public class LogicalReplicationTest {
         result, equalTo(wait));
   }
 
-  @Test(timeout = 1000)
-  public void testAfterStartStreamingDBSlotStatusActive() throws Exception {
+  @Test
+  @Timeout(1)
+  void afterStartStreamingDBSlotStatusActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     PGReplicationStream stream =
@@ -261,9 +258,10 @@ public class LogicalReplicationTest {
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
    */
-  @Test(timeout = 1000)
-  @HaveMinimalServerVersion("11.1")
-  public void testAfterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
+  @Test
+  @Timeout(1)
+  @DisabledIfServerVersionBelow("11.1")
+  void afterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     PGReplicationStream stream =
@@ -288,8 +286,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 1000)
-  public void testAfterCloseConnectionDBSLotStatusNotActive() throws Exception {
+  @Test
+  @Timeout(1)
+  void afterCloseConnectionDBSLotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -332,9 +331,10 @@ public class LogicalReplicationTest {
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
    */
-  @Test(timeout = 10000)
-  @HaveMinimalServerVersion("12.1")
-  public void testDuringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
+  @Test
+  @Timeout(10)
+  @DisabledIfServerVersionBelow("12.1")
+  void duringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -386,9 +386,10 @@ public class LogicalReplicationTest {
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
    */
-  @Test(timeout = 60000)
-  @HaveMinimalServerVersion("11.1")
-  public void testDuringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
+  @Test
+  @Timeout(60)
+  @DisabledIfServerVersionBelow("11.1")
+  void duringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber lsn = getCurrentLSN();
@@ -421,9 +422,10 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 5000)
   //todo fix, fail because backend for logical decoding not reply with CommandComplate & ReadyForQuery
-  public void testRepeatWalPositionTwice() throws Exception {
+  @Test
+  @Timeout(5)
+  void repeatWalPositionTwice() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -443,7 +445,7 @@ public class LogicalReplicationTest {
             .withSlotOption("skip-empty-xacts", true)
             .start();
 
-    List<String> result = new ArrayList<String>();
+    List<String> result = new ArrayList<>();
     result.addAll(receiveMessage(stream, 3));
 
     replConnection.close();
@@ -481,8 +483,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 3000)
-  public void testDoesNotHavePendingMessageWhenStartFromLastLSN() throws Exception {
+  @Test
+  @Timeout(3)
+  void doesNotHavePendingMessageWhenStartFromLastLSN() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     PGReplicationStream stream =
@@ -503,8 +506,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 3000)
-  public void testReadPreviousChangesWithoutBlock() throws Exception {
+  @Test
+  @Timeout(3)
+  void readPreviousChangesWithoutBlock() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -539,8 +543,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 3000)
-  public void testReadActualChangesWithoutBlock() throws Exception {
+  @Test
+  @Timeout(3)
+  void readActualChangesWithoutBlock() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     PGReplicationStream stream =
@@ -573,8 +578,9 @@ public class LogicalReplicationTest {
     );
   }
 
-  @Test(timeout = 10000 /* default client keep alive 10s*/)
-  public void testAvoidTimeoutDisconnectWithDefaultStatusInterval() throws Exception {
+  @Test
+  @Timeout(10)
+  void avoidTimeoutDisconnectWithDefaultStatusInterval() throws Exception {
     final int statusInterval = getKeepAliveTimeout();
 
     ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -620,7 +626,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  public void testRestartReplicationFromRestartSlotLSNWhenFeedbackAbsent() throws Exception {
+  void restartReplicationFromRestartSlotLSNWhenFeedbackAbsent() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -644,7 +650,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
 
     //emulate replication break
@@ -685,7 +691,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  public void testReplicationRestartFromLastFeedbackPosition() throws Exception {
+  void replicationRestartFromLastFeedbackPosition() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -709,7 +715,7 @@ public class LogicalReplicationTest {
     st.execute("insert into test_logic_table(name) values('second tx change')");
     st.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -752,7 +758,7 @@ public class LogicalReplicationTest {
   }
 
   @Test
-  public void testReplicationRestartFromLastFeedbackPositionParallelTransaction() throws Exception {
+  void replicationRestartFromLastFeedbackPositionParallelTransaction() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -789,7 +795,7 @@ public class LogicalReplicationTest {
     tx1Connection.close();
     tx2Connection.close();
 
-    List<String> consumedData = new ArrayList<String>();
+    List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
     stream.setFlushedLSN(stream.getLastReceiveLSN());
     stream.setAppliedLSN(stream.getLastReceiveLSN());
@@ -902,7 +908,7 @@ public class LogicalReplicationTest {
   }
 
   private List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
-    List<String> result = new ArrayList<String>(count);
+    List<String> result = new ArrayList<>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
     }
@@ -912,7 +918,7 @@ public class LogicalReplicationTest {
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
-    List<String> result = new ArrayList<String>(3);
+    List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
       ByteBuffer message;
       do {

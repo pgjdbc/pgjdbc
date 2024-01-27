@@ -5,37 +5,25 @@
 
 package org.postgresql.core;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class UTF8EncodingTest {
 
   private static final int STEP = 8 * 1024;
 
-  @Parameterized.Parameter(0)
-  public Encoding encoding;
-
-  @Parameterized.Parameter(1)
-  public String string;
-
-  @Parameterized.Parameter(2)
-  public String shortString;
-
-  @Parameterized.Parameters(name = "string={2}, encoding={0}")
   public static Iterable<Object[]> data() {
     final StringBuilder reallyLongString = new StringBuilder(1024 * 1024);
-    for (int i = 0; i < 185000; ++i) {
+    for (int i = 0; i < 185000; i++) {
       reallyLongString.append(i);
     }
 
-    final List<String> strings = new ArrayList<String>(150);
+    final List<String> strings = new ArrayList<>(150);
     strings.add("short simple");
     strings.add("longer but still not really all that long");
     strings.add(reallyLongString.toString());
@@ -49,7 +37,7 @@ public class UTF8EncodingTest {
     for (int i = 1; i < 0xd800; i += STEP) {
       int count = (i + STEP) > 0xd800 ? 0xd800 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -59,7 +47,7 @@ public class UTF8EncodingTest {
     for (int i = 0xe000; i < 0x10000; i += STEP) {
       int count = (i + STEP) > 0x10000 ? 0x10000 - i : STEP;
       char[] testChars = new char[count];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j] = (char) (i + j);
       }
 
@@ -69,7 +57,7 @@ public class UTF8EncodingTest {
     for (int i = 0x10000; i < 0x110000; i += STEP) {
       int count = (i + STEP) > 0x110000 ? 0x110000 - i : STEP;
       char[] testChars = new char[count * 2];
-      for (int j = 0; j < count; ++j) {
+      for (int j = 0; j < count; j++) {
         testChars[j * 2] = (char) (0xd800 + ((i + j - 0x10000) >> 10));
         testChars[j * 2 + 1] = (char) (0xdc00 + ((i + j - 0x10000) & 0x3ff));
       }
@@ -77,19 +65,20 @@ public class UTF8EncodingTest {
       strings.add(new String(testChars));
     }
 
-    final List<Object[]> data = new ArrayList<Object[]>(strings.size() * 2);
+    final List<Object[]> data = new ArrayList<>(strings.size() * 2);
     for (String string : strings) {
       String shortString = string;
       if (shortString != null && shortString.length() > 1000) {
         shortString = shortString.substring(0, 100) + "...(" + string.length() + " chars)";
       }
-      data.add(new Object[] { Encoding.getDatabaseEncoding("UNICODE"), string, shortString });
+      data.add(new Object[]{Encoding.getDatabaseEncoding("UNICODE"), string, shortString});
     }
     return data;
   }
 
-  @Test
-  public void test() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "string={2}, encoding={0}")
+  void test(Encoding encoding, String string, String shortString) throws Exception {
     final byte[] encoded = encoding.encode(string);
     assertEquals(string, encoding.decode(encoded));
   }

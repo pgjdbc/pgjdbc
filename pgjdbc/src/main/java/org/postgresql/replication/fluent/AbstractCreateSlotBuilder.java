@@ -17,7 +17,7 @@ public abstract class AbstractCreateSlotBuilder<T extends ChainedCommonCreateSlo
     implements ChainedCommonCreateSlotBuilder<T> {
 
   protected @Nullable String slotName;
-  protected boolean temporaryOption = false;
+  protected boolean temporaryOption;
   protected BaseConnection connection;
 
   protected AbstractCreateSlotBuilder(BaseConnection connection) {

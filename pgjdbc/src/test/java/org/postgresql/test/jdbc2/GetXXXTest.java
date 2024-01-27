@@ -5,15 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PGInterval;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,13 +26,13 @@ import java.util.Calendar;
 import java.util.HashMap;
 
 /*
- * Test for getObject
- */
-public class GetXXXTest {
-  private Connection con = null;
+* Test for getObject
+*/
+class GetXXXTest {
+  private Connection con;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "test_interval",
         "initial timestamp with time zone, final timestamp with time zone");
@@ -45,14 +46,14 @@ public class GetXXXTest {
     pstmt.close();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(con, "test_interval");
     con.close();
   }
 
   @Test
-  public void testGetObject() throws SQLException {
+  void getObject() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
     while (rs.next()) {
@@ -65,16 +66,16 @@ public class GetXXXTest {
   }
 
   @Test
-  public void testGetUDT() throws SQLException {
+  void getUDT() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select (final-initial) as diff from test_interval");
 
     while (rs.next()) {
       // make this return a PGobject
-      Object obj = rs.getObject(1, new HashMap<String, Class<?>>());
+      Object obj = rs.getObject(1, new HashMap<>());
 
       // it should not be an instance of PGInterval
-      assertTrue(obj instanceof org.postgresql.util.PGInterval);
+      assertTrue(obj instanceof PGInterval);
 
     }
 

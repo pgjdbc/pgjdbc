@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,17 +22,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class CloseOnCompletionTest {
+class CloseOnCompletionTest {
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createTable(conn, "table1", "id integer");
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     TestUtil.dropTable(conn, "table1");
     TestUtil.closeDB(conn);
   }
@@ -41,7 +41,7 @@ public class CloseOnCompletionTest {
    * Test that the statement is not automatically closed if we do not ask for it.
    */
   @Test
-  public void testWithoutCloseOnCompletion() throws SQLException {
+  void withoutCloseOnCompletion() throws SQLException {
     Statement stmt = conn.createStatement();
 
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
@@ -53,7 +53,7 @@ public class CloseOnCompletionTest {
    * Test the behavior of closeOnCompletion with a single result set.
    */
   @Test
-  public void testSingleResultSet() throws SQLException {
+  void singleResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
@@ -66,7 +66,7 @@ public class CloseOnCompletionTest {
    * Test the behavior of closeOnCompletion with a multiple result sets.
    */
   @Test
-  public void testMultipleResultSet() throws SQLException {
+  void multipleResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
@@ -85,7 +85,7 @@ public class CloseOnCompletionTest {
    * (spec).
    */
   @Test
-  public void testNoResultSet() throws SQLException {
+  void noResultSet() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
@@ -94,7 +94,7 @@ public class CloseOnCompletionTest {
   }
 
   @Test
-  public void testExecuteTwice() throws SQLException {
+  void executeTwice() throws SQLException {
     PreparedStatement s = conn.prepareStatement("SELECT 1");
 
     s.executeQuery();
@@ -103,7 +103,7 @@ public class CloseOnCompletionTest {
   }
 
   @Test
-  public void testCloseOnCompletionExecuteTwice() throws SQLException {
+  void closeOnCompletionExecuteTwice() throws SQLException {
     PreparedStatement s = conn.prepareStatement("SELECT 1");
 
     /*
@@ -116,8 +116,7 @@ public class CloseOnCompletionTest {
     try {
       s.executeQuery();
     } catch (SQLException ex) {
-      assertEquals("Expecting <<This statement has been closed>>",
-          PSQLState.OBJECT_NOT_IN_STATE.getState(), ex.getSQLState());
+      assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), ex.getSQLState(), "Expecting <<This statement has been closed>>");
     }
 
   }

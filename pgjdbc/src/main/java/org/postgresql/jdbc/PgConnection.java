@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyManager;
@@ -27,14 +28,24 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGcircle;
+import org.postgresql.geometric.PGline;
+import org.postgresql.geometric.PGlseg;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -159,7 +170,7 @@ public class PgConnection implements BaseConnection {
 
   private final TypeInfo typeCache;
 
-  private boolean disableColumnSanitiser = false;
+  private boolean disableColumnSanitiser;
 
   // Default statement prepare threshold.
   protected int prepareThreshold;
@@ -172,7 +183,7 @@ public class PgConnection implements BaseConnection {
   protected int defaultFetchSize;
 
   // Default forcebinary option.
-  protected boolean forcebinary = false;
+  protected boolean forcebinary;
 
   /**
    * Oids for which binary transfer should be disabled.
@@ -180,11 +191,11 @@ public class PgConnection implements BaseConnection {
   private final Set<? extends Integer> binaryDisabledOids;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
-  private int savepointId = 0;
+  private int savepointId;
   // Connection's autocommit state.
   private boolean autoCommit = true;
   // Connection's readonly state.
-  private boolean readOnly = false;
+  private boolean readOnly;
   // Filter out database objects for which the current user has no privileges granted from the DatabaseMetaData
   private final boolean  hideUnprivilegedObjects ;
   // Whether to include error details in logging and exceptions
@@ -195,7 +206,6 @@ public class PgConnection implements BaseConnection {
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
 
-  private @Nullable PreparedStatement checkConnectionQuery;
   /**
    * Replication protocol in current version postgresql(10devel) supports a limited number of
    * commands.
@@ -247,7 +257,7 @@ public class PgConnection implements BaseConnection {
                       Properties info,
                       String url) throws SQLException {
     // Print out the driver version number
-    LOGGER.log(Level.FINE, org.postgresql.util.DriverInfo.DRIVER_FULL_NAME);
+    LOGGER.log(Level.FINE, DriverInfo.DRIVER_FULL_NAME);
 
     this.creatingURL = url;
 
@@ -313,9 +323,9 @@ public class PgConnection implements BaseConnection {
 
     String stringType = PGProperty.STRING_TYPE.getOrDefault(info);
     if (stringType != null) {
-      if (stringType.equalsIgnoreCase("unspecified")) {
+      if ("unspecified".equalsIgnoreCase(stringType)) {
         bindStringAsVarchar = false;
-      } else if (stringType.equalsIgnoreCase("varchar")) {
+      } else if ("varchar".equalsIgnoreCase(stringType)) {
         bindStringAsVarchar = true;
       } else {
         throw new PSQLException(
@@ -491,6 +501,7 @@ public class PgConnection implements BaseConnection {
   private final TimestampUtils timestampUtils;
 
   @Deprecated
+  @Override
   public TimestampUtils getTimestampUtils() {
     return timestampUtils;
   }
@@ -537,10 +548,12 @@ public class PgConnection implements BaseConnection {
     return typemap;
   }
 
+  @Override
   public QueryExecutor getQueryExecutor() {
     return queryExecutor;
   }
 
+  @Override
   public ReplicationProtocol getReplicationProtocol() {
     return queryExecutor.getReplicationProtocol();
   }
@@ -673,6 +686,7 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getUser();
   }
 
+  @Override
   @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
@@ -686,6 +700,7 @@ public class PgConnection implements BaseConnection {
   @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   private @Nullable Fastpath fastpath;
 
+  @Override
   public LargeObjectManager getLargeObjectAPI() throws SQLException {
     checkClosed();
     if (largeobject == null) {
@@ -769,6 +784,7 @@ public class PgConnection implements BaseConnection {
     return new TypeInfoCache(conn, unknownLength);
   }
 
+  @Override
   public TypeInfo getTypeInfo() {
     return typeCache;
   }
@@ -804,15 +820,15 @@ public class PgConnection implements BaseConnection {
   private void initObjectTypes(Properties info) throws SQLException {
     // Add in the types that come packaged with the driver.
     // These can be overridden later if desired.
-    addDataType("box", org.postgresql.geometric.PGbox.class);
-    addDataType("circle", org.postgresql.geometric.PGcircle.class);
-    addDataType("line", org.postgresql.geometric.PGline.class);
-    addDataType("lseg", org.postgresql.geometric.PGlseg.class);
-    addDataType("path", org.postgresql.geometric.PGpath.class);
-    addDataType("point", org.postgresql.geometric.PGpoint.class);
-    addDataType("polygon", org.postgresql.geometric.PGpolygon.class);
-    addDataType("money", org.postgresql.util.PGmoney.class);
-    addDataType("interval", org.postgresql.util.PGInterval.class);
+    addDataType("box", PGbox.class);
+    addDataType("circle", PGcircle.class);
+    addDataType("line", PGline.class);
+    addDataType("lseg", PGlseg.class);
+    addDataType("path", PGpath.class);
+    addDataType("point", PGpoint.class);
+    addDataType("polygon", PGpolygon.class);
+    addDataType("money", PGmoney.class);
+    addDataType("interval", PGInterval.class);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
@@ -1015,10 +1031,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public TransactionState getTransactionState() {
     return queryExecutor.getTransactionState();
   }
 
+  @Override
   public int getTransactionIsolation() throws SQLException {
     checkClosed();
 
@@ -1035,22 +1053,23 @@ public class PgConnection implements BaseConnection {
     }
 
     level = level.toUpperCase(Locale.US);
-    if (level.equals("READ COMMITTED")) {
+    if ("READ COMMITTED".equals(level)) {
       return Connection.TRANSACTION_READ_COMMITTED;
     }
-    if (level.equals("READ UNCOMMITTED")) {
+    if ("READ UNCOMMITTED".equals(level)) {
       return Connection.TRANSACTION_READ_UNCOMMITTED;
     }
-    if (level.equals("REPEATABLE READ")) {
+    if ("REPEATABLE READ".equals(level)) {
       return Connection.TRANSACTION_REPEATABLE_READ;
     }
-    if (level.equals("SERIALIZABLE")) {
+    if ("SERIALIZABLE".equals(level)) {
       return Connection.TRANSACTION_SERIALIZABLE;
     }
 
     return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
   }
 
+  @Override
   public void setTransactionIsolation(int level) throws SQLException {
     checkClosed();
 
@@ -1087,11 +1106,13 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setCatalog(String catalog) throws SQLException {
     checkClosed();
     // no-op
   }
 
+  @Override
   public String getCatalog() throws SQLException {
     checkClosed();
     return queryExecutor.getDatabase();
@@ -1177,7 +1198,7 @@ public class PgConnection implements BaseConnection {
   }
 
   // This is a cache of the DatabaseMetaData instance for this connection
-  protected java.sql.@Nullable DatabaseMetaData metadata;
+  protected @Nullable DatabaseMetaData metadata;
 
   @Override
   public boolean isClosed() throws SQLException {
@@ -1208,6 +1229,7 @@ public class PgConnection implements BaseConnection {
    * Handler for transaction queries.
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
+    @Override
     public void handleCompletion() throws SQLException {
       SQLWarning warning = getWarning();
       if (warning != null) {
@@ -1217,10 +1239,12 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getPrepareThreshold() {
     return prepareThreshold;
   }
 
+  @Override
   public void setDefaultFetchSize(int fetchSize) throws SQLException {
     if (fetchSize < 0) {
       throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
@@ -1231,10 +1255,12 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setDefaultFetchSize = {0}", fetchSize);
   }
 
+  @Override
   public int getDefaultFetchSize() {
     return defaultFetchSize;
   }
 
+  @Override
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
     LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
@@ -1253,6 +1279,7 @@ public class PgConnection implements BaseConnection {
     typemap = map;
   }
 
+  @Override
   public Logger getLogger() {
     return LOGGER;
   }
@@ -1261,12 +1288,14 @@ public class PgConnection implements BaseConnection {
     return queryExecutor.getProtocolVersion();
   }
 
+  @Override
   public boolean getStringVarcharFlag() {
     return bindStringAsVarchar;
   }
 
   private @Nullable CopyManager copyManager;
 
+  @Override
   public CopyManager getCopyAPI() throws SQLException {
     checkClosed();
     if (copyManager == null) {
@@ -1275,14 +1304,17 @@ public class PgConnection implements BaseConnection {
     return copyManager;
   }
 
+  @Override
   public boolean binaryTransferSend(int oid) {
     return queryExecutor.useBinaryForSend(oid);
   }
 
+  @Override
   public int getBackendPID() {
     return queryExecutor.getBackendPID();
   }
 
+  @Override
   public boolean isColumnSanitiserDisabled() {
     return this.disableColumnSanitiser;
   }
@@ -1425,19 +1457,19 @@ public class PgConnection implements BaseConnection {
   @Override
   public Clob createClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createClob()");
+    throw Driver.notImplemented(this.getClass(), "createClob()");
   }
 
   @Override
   public Blob createBlob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createBlob()");
+    throw Driver.notImplemented(this.getClass(), "createBlob()");
   }
 
   @Override
   public NClob createNClob() throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createNClob()");
+    throw Driver.notImplemented(this.getClass(), "createNClob()");
   }
 
   @Override
@@ -1449,10 +1481,10 @@ public class PgConnection implements BaseConnection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+    throw Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
@@ -1507,19 +1539,13 @@ public class PgConnection implements BaseConnection {
           setNetworkTimeout(null, newNetworkTimeout);
         }
         if (replicationConnection) {
-          Statement statement = createStatement();
-          statement.execute("IDENTIFY_SYSTEM");
-          statement.close();
-        } else {
-          PreparedStatement checkConnectionQuery;
-          try (ResourceLock ignore = lock.obtain()) {
-            checkConnectionQuery = this.checkConnectionQuery;
-            if (checkConnectionQuery == null) {
-              checkConnectionQuery = prepareStatement("");
-              this.checkConnectionQuery = checkConnectionQuery;
-            }
+          try (Statement statement = createStatement()) {
+            statement.execute("IDENTIFY_SYSTEM");
           }
-          checkConnectionQuery.executeUpdate();
+        } else {
+          try (Statement checkConnectionQuery = createStatement()) {
+            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+          }
         }
         return true;
       } finally {
@@ -1622,9 +1648,10 @@ public class PgConnection implements BaseConnection {
 
   public <T> T createQueryObject(Class<T> ifc) throws SQLException {
     checkClosed();
-    throw org.postgresql.Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
+    throw Driver.notImplemented(this.getClass(), "createQueryObject(Class<T>)");
   }
 
+  @Override
   public boolean getLogServerErrorDetail() {
     return logServerErrorDetail;
   }
@@ -1644,6 +1671,7 @@ public class PgConnection implements BaseConnection {
     throw new SQLException("Cannot unwrap to " + iface.getName());
   }
 
+  @Override
   public @Nullable String getSchema() throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
@@ -1656,6 +1684,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public void setSchema(@Nullable String schema) throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
@@ -1673,11 +1702,13 @@ public class PgConnection implements BaseConnection {
   }
 
   public class AbortCommand implements Runnable {
+    @Override
     public void run() {
       abort();
     }
   }
 
+  @Override
   public void abort(Executor executor) throws SQLException {
     if (executor == null) {
       throw new SQLException("executor is null");
@@ -1692,6 +1723,7 @@ public class PgConnection implements BaseConnection {
     executor.execute(command);
   }
 
+  @Override
   public void setNetworkTimeout(@Nullable Executor executor /*not used*/, int milliseconds)
       throws SQLException {
     checkClosed();
@@ -1724,6 +1756,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  @Override
   public int getNetworkTimeout() throws SQLException {
     checkClosed();
 
@@ -1880,7 +1913,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public final Map<String,String> getParameterStatuses() {
+  public final Map<String, String> getParameterStatuses() {
     return queryExecutor.getParameterStatuses();
   }
 
@@ -1915,9 +1948,9 @@ public class PgConnection implements BaseConnection {
     if (xmlFactoryFactory != null) {
       return xmlFactoryFactory;
     }
-    if (xmlFactoryFactoryClass == null || xmlFactoryFactoryClass.equals("")) {
+    if (xmlFactoryFactoryClass == null || "".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = DefaultPGXmlFactoryFactory.INSTANCE;
-    } else if (xmlFactoryFactoryClass.equals("LEGACY_INSECURE")) {
+    } else if ("LEGACY_INSECURE".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = LegacyInsecurePGXmlFactoryFactory.INSTANCE;
     } else {
       Class<?> clazz;

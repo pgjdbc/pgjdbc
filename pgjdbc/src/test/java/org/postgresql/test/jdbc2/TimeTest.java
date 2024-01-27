@@ -5,15 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,32 +23,33 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Calendar;
 import java.util.TimeZone;
 
 /*
- * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
- * problems from re-occurring ;-)
- *
- */
-public class TimeTest {
+* Some simple tests based on problems reported by users. Hopefully these will help prevent previous
+* problems from re-occurring ;-)
+*
+*/
+class TimeTest {
   private Connection con;
-  private boolean testSetTime = false;
+  private boolean testSetTime;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTempTable(con, "testtime", "tm time, tz time with time zone");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(con, "testtime");
     TestUtil.closeDB(con);
   }
 
   private long extractMillis(long time) {
-    return (time >= 0) ? (time % 1000) : (time % 1000 + 1000);
+    return time >= 0 ? (time % 1000) : (time % 1000 + 1000);
   }
 
   /*
@@ -55,7 +57,7 @@ public class TimeTest {
    * Test use of calendar
    */
   @Test
-  public void testGetTimeZone() throws Exception {
+  void getTimeZone() throws Exception {
     final Time midnight = new Time(0, 0, 0);
     Statement stmt = con.createStatement();
     Calendar cal = Calendar.getInstance();
@@ -124,7 +126,7 @@ public class TimeTest {
    * Tests the time methods in ResultSet
    */
   @Test
-  public void testGetTime() throws SQLException {
+  void getTime() throws SQLException {
     Statement stmt = con.createStatement();
 
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'01:02:03'")));
@@ -147,7 +149,7 @@ public class TimeTest {
    * Tests the time methods in PreparedStatement
    */
   @Test
-  public void testSetTime() throws SQLException {
+  void setTime() throws SQLException {
     PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testtime", "?"));
     Statement stmt = con.createStatement();
 
@@ -157,28 +159,28 @@ public class TimeTest {
     ps.setTime(1, makeTime(23, 59, 59));
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("12:00:00"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:00:00"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("05:15:21"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("05:15:21"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("16:21:51"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("16:21:51"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, Time.valueOf("12:15:12"), java.sql.Types.TIME);
+    ps.setObject(1, Time.valueOf("12:15:12"), Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "22:12:1", java.sql.Types.TIME);
+    ps.setObject(1, "22:12:1", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "8:46:44", java.sql.Types.TIME);
+    ps.setObject(1, "8:46:44", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "5:1:2-03", java.sql.Types.TIME);
+    ps.setObject(1, "5:1:2-03", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
-    ps.setObject(1, "23:59:59+11", java.sql.Types.TIME);
+    ps.setObject(1, "23:59:59+11", Types.TIME);
     assertEquals(1, ps.executeUpdate());
 
     // Need to let the test know this one has extra test cases.
@@ -264,7 +266,7 @@ public class TimeTest {
       assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
     }
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
   }

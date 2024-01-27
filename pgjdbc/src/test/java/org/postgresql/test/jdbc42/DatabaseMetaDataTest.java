@@ -5,9 +5,10 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
@@ -16,9 +17,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -26,12 +27,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
-public class DatabaseMetaDataTest {
+class DatabaseMetaDataTest {
 
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     TestUtil.createSchema(conn, "test_schema");
     TestUtil.createEnumType(conn, "test_schema.test_enum", "'val'");
@@ -42,8 +43,8 @@ public class DatabaseMetaDataTest {
     TestUtil.createTable(conn, "decimaltest", "a decimal, b decimal(10, 5)");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(conn, "decimaltest");
     TestUtil.dropTable(conn, "on_path_table");
     TestUtil.dropType(conn, "test_enum");
@@ -53,7 +54,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testGetColumnsForNullScale() throws Exception {
+  void getColumnsForNullScale() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "decimaltest", "%");
@@ -67,54 +68,54 @@ public class DatabaseMetaDataTest {
     assertEquals(5, rs.getInt("DECIMAL_DIGITS"));
     assertFalse(rs.wasNull());
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
-  public void testGetCorrectSQLTypeForOffPathTypes() throws Exception {
+  void getCorrectSQLTypeForOffPathTypes() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "off_path_table", "%");
     assertTrue(rs.next());
     assertEquals("var", rs.getString("COLUMN_NAME"));
-    assertEquals("Detects correct off-path type name", "\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"));
-    assertEquals("Detects correct SQL type for off-path types", Types.ARRAY, rs.getInt("DATA_TYPE"));
+    assertEquals("\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"), "Detects correct off-path type name");
+    assertEquals(Types.ARRAY, rs.getInt("DATA_TYPE"), "Detects correct SQL type for off-path types");
 
     assertFalse(rs.next());
   }
 
   @Test
-  public void testGetCorrectSQLTypeForShadowedTypes() throws Exception {
+  void getCorrectSQLTypeForShadowedTypes() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "on_path_table", "%");
 
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
-    assertEquals("Correctly maps types from other schemas","\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"));
+    assertEquals("\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"), "Correctly maps types from other schemas");
     assertEquals(Types.ARRAY, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("b", rs.getString("COLUMN_NAME"));
     // = TYPE _test_enum AS ENUM ('evil')
-    assertEquals( "_test_enum", rs.getString("TYPE_NAME"));
+    assertEquals("_test_enum", rs.getString("TYPE_NAME"));
     assertEquals(Types.VARCHAR, rs.getInt("DATA_TYPE"));
 
     assertTrue(rs.next());
     assertEquals("c", rs.getString("COLUMN_NAME"));
     // = array of TYPE test_enum AS ENUM ('value')
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v16)) {
-      assertEquals("Correctly detects shadowed array type name", "_test_enum_1", rs.getString("TYPE_NAME"));
+      assertEquals("_test_enum_1", rs.getString("TYPE_NAME"), "Correctly detects shadowed array type name");
     } else {
-      assertEquals("Correctly detects shadowed array type name", "___test_enum", rs.getString("TYPE_NAME"));
+      assertEquals("___test_enum", rs.getString("TYPE_NAME"), "Correctly detects shadowed array type name");
     }
-    assertEquals("Correctly detects type of shadowed name", Types.ARRAY, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.ARRAY, rs.getInt("DATA_TYPE"), "Correctly detects type of shadowed name");
 
     assertFalse(rs.next());
   }
 
   @Test
-  public void testLargeOidIsHandledCorrectly() throws SQLException {
+  void largeOidIsHandledCorrectly() throws SQLException {
     TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
 
     try {
@@ -125,7 +126,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  public void testOidConversion() throws SQLException {
+  void oidConversion() throws SQLException {
     TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
     int oid = 0;
     long loid = 0;
@@ -148,15 +149,19 @@ public class DatabaseMetaDataTest {
     assertEquals(loid, ti.intOidToLong(oid));
   }
 
-  @Test(expected = PSQLException.class)
-  public void testOidConversionThrowsForNegativeLongValues() throws SQLException {
-    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
-    ti.longOidToInt(-1);
+  @Test
+  void oidConversionThrowsForNegativeLongValues() throws SQLException {
+    assertThrows(PSQLException.class, () -> {
+      TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+      ti.longOidToInt(-1);
+    });
   }
 
-  @Test(expected = PSQLException.class)
-  public void testOidConversionThrowsForTooLargeLongValues() throws SQLException {
-    TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
-    ti.longOidToInt(1L << 32);
+  @Test
+  void oidConversionThrowsForTooLargeLongValues() throws SQLException {
+    assertThrows(PSQLException.class, () -> {
+      TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
+      ti.longOidToInt(1L << 32);
+    });
   }
 }

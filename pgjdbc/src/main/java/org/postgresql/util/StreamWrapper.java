@@ -10,6 +10,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.IOException;
@@ -52,7 +53,7 @@ public final class StreamWrapper implements Closeable {
       if (memoryLength == -1) {
         final int diskLength;
         final Path tempFile = Files.createTempFile(TEMP_FILE_PREFIX, ".tmp");
-        try (OutputStream diskOutputStream = Files.newOutputStream(tempFile);) {
+        try (OutputStream diskOutputStream = Files.newOutputStream(tempFile)) {
           diskOutputStream.write(rawData);
           diskLength = copyStream(stream, diskOutputStream, Integer.MAX_VALUE - rawData.length);
           if (diskLength == -1) {
@@ -95,7 +96,7 @@ public final class StreamWrapper implements Closeable {
       return finalizeAction.getStream();
     }
 
-    return new java.io.ByteArrayInputStream(castNonNull(rawData), offset, length);
+    return new ByteArrayInputStream(castNonNull(rawData), offset, length);
   }
 
   @Override
@@ -117,6 +118,7 @@ public final class StreamWrapper implements Closeable {
     return rawData;
   }
 
+  @Override
   public String toString() {
     return "<stream of " + length + " bytes>";
   }

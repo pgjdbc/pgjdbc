@@ -5,39 +5,24 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.test.util.StrangeProxyServer;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
-@RunWith(Parameterized.class)
-@HaveMinimalServerVersion("9.4")
+@DisabledIfServerVersionBelow("9.4")
 public class ConnectionValidTimeoutTest {
 
-  @Rule
-  public Timeout timeout = new Timeout(30, TimeUnit.SECONDS);
-
-  @Parameterized.Parameter(0)
-  public int networkTimeoutMillis;
-  @Parameterized.Parameter(1)
-  public int validationTimeoutSeconds;
-  @Parameterized.Parameter(2)
-  public int expectedMaxValidationTimeMillis;
-
-  @Parameterized.Parameters(name = "networkTimeoutMillis={0}, validationTimeoutSeconds={1}, expectedMaxValidationTimeMillis={2}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
       {500, 1, 600},
@@ -47,16 +32,18 @@ public class ConnectionValidTimeoutTest {
     });
   }
 
-  @Test
-  public void testIsValidRespectsSmallerTimeout() throws Exception {
+  @MethodSource("data")
+  @ParameterizedTest(name = "networkTimeoutMillis={0}, validationTimeoutSeconds={1}, expectedMaxValidationTimeMillis={2}")
+  @Timeout(30)
+  void isValidRespectsSmallerTimeout(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) throws Exception {
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       final Properties props = new Properties();
       props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
       try (Connection conn = TestUtil.openDB(props)) {
-        assertTrue("Connection through proxy should be valid", conn.isValid(validationTimeoutSeconds));
+        assertTrue(conn.isValid(validationTimeoutSeconds), "Connection through proxy should be valid");
 
         conn.setNetworkTimeout(null, networkTimeoutMillis);
-        assertTrue("Connection through proxy should still be valid", conn.isValid(validationTimeoutSeconds));
+        assertTrue(conn.isValid(validationTimeoutSeconds), "Connection through proxy should still be valid");
 
         proxyServer.stopForwardingOlderClients();
 
@@ -64,17 +51,17 @@ public class ConnectionValidTimeoutTest {
         boolean result = conn.isValid(validationTimeoutSeconds);
         long elapsed = System.currentTimeMillis() - start;
 
-        assertFalse("Broken connection should not be valid", result);
+        assertFalse(result, "Broken connection should not be valid");
 
-        assertTrue(String.format(
+        assertTrue(elapsed <= expectedMaxValidationTimeMillis,
+            String.format(
             "Connection validation should not take longer than %d ms"
                 + " when network timeout is %d ms and validation timeout is %d s"
                 + " (actual result: %d ms)",
             expectedMaxValidationTimeMillis,
             networkTimeoutMillis,
             validationTimeoutSeconds,
-            elapsed),
-            elapsed <= expectedMaxValidationTimeMillis
+            elapsed)
         );
       }
     }

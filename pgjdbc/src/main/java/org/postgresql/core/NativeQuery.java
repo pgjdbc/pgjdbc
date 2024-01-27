@@ -60,7 +60,7 @@ public class NativeQuery {
 
     int queryLength = nativeSql.length();
     String[] nativeParams = new String[parameterCtx.nativeParameterCount()];
-    for (int i = 1; i <= parameterCtx.nativeParameterCount(); ++i) {
+    for (int i = 1; i <= parameterCtx.nativeParameterCount(); i++) {
       final String param;
       if (parameters != null) {
         param = parameters.toString(i, true);
@@ -73,7 +73,7 @@ public class NativeQuery {
 
     StringBuilder sbuf = new StringBuilder(queryLength);
     sbuf.append(nativeSql, 0, parameterCtx.getPlaceholderPosition(0));
-    for (int i = 1; i <= this.parameterCtx.placeholderCount(); ++i) {
+    for (int i = 1; i <= this.parameterCtx.placeholderCount(); i++) {
       sbuf.append(nativeParams[parameterCtx.getNativeParameterIndexForPlaceholderIndex(i - 1)]);
       int nextBind = i < this.parameterCtx.placeholderCount()
           ? parameterCtx.getPlaceholderPosition(i)

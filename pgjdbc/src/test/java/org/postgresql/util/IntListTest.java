@@ -15,16 +15,16 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests {@link IntList}.
  */
-public class IntListTest {
+class IntListTest {
 
   @Test
-  public void testSize() {
+  void size() {
     final IntList list = new IntList();
     assertEquals(0, list.size());
     list.add(3);
     assertEquals(1, list.size());
 
-    for (int i = 0; i < 48; ++i) {
+    for (int i = 0; i < 48; i++) {
       list.add(i);
     }
     assertEquals(49, list.size());
@@ -34,38 +34,38 @@ public class IntListTest {
   }
 
   @Test
-  public void testGet_empty() {
+  void get_empty() {
     final IntList list = new IntList();
     assertThrows(ArrayIndexOutOfBoundsException.class, () -> list.get(0));
   }
 
   @Test
-  public void testGet_negative() {
+  void get_negative() {
     final IntList list = new IntList();
     list.add(3);
     assertThrows(ArrayIndexOutOfBoundsException.class, () -> list.get(-1));
   }
 
   @Test
-  public void testGet_tooLarge() {
+  void get_tooLarge() {
     final IntList list = new IntList();
     list.add(3);
     assertThrows(ArrayIndexOutOfBoundsException.class, () -> list.get(1));
   }
 
   @Test
-  public void testGet() {
+  void get() {
     final IntList list = new IntList();
     list.add(3);
     assertEquals(3, list.get(0));
 
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       list.add(i);
     }
 
     assertEquals(3, list.get(0));
 
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       assertEquals(i, list.get(i + 1));
     }
 
@@ -75,7 +75,7 @@ public class IntListTest {
   }
 
   @Test
-  public void testToArray() {
+  void toArray() {
     int[] emptyArray = new IntList().toArray();
     IntList list = new IntList();
     assertSame(emptyArray, list.toArray(), "emptyList.toArray()");
@@ -87,7 +87,7 @@ public class IntListTest {
     assertSame(emptyArray, list.toArray(), "emptyList.toArray() after clearing the list");
 
     final int[] expected = new int[1048];
-    for (int i = 0; i < 1048; ++i) {
+    for (int i = 0; i < 1048; i++) {
       list.add(i);
       expected[i] = i;
     }

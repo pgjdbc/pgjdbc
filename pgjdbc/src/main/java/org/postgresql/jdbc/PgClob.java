@@ -5,60 +5,71 @@
 
 package org.postgresql.jdbc;
 
+import org.postgresql.Driver;
+import org.postgresql.core.BaseConnection;
 import org.postgresql.largeobject.LargeObject;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.charset.Charset;
 import java.sql.Clob;
 import java.sql.SQLException;
 
-public class PgClob extends AbstractBlobClob implements java.sql.Clob {
+public class PgClob extends AbstractBlobClob implements Clob {
 
-  public PgClob(org.postgresql.core.BaseConnection conn, long oid) throws java.sql.SQLException {
+  public PgClob(BaseConnection conn, long oid) throws SQLException {
     super(conn, oid);
   }
 
+  @Override
   public Reader getCharacterStream(long pos, long length) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getCharacterStream(long, long)");
+      throw Driver.notImplemented(this.getClass(), "getCharacterStream(long, long)");
     }
   }
 
+  @Override
   public int setString(long pos, String str) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,str)");
+      throw Driver.notImplemented(this.getClass(), "setString(long,str)");
     }
   }
 
+  @Override
   public int setString(long pos, String str, int offset, int len) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
+      throw Driver.notImplemented(this.getClass(), "setString(long,String,int,int)");
     }
   }
 
-  public java.io.OutputStream setAsciiStream(long pos) throws SQLException {
+  @Override
+  public OutputStream setAsciiStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
+      throw Driver.notImplemented(this.getClass(), "setAsciiStream(long)");
     }
   }
 
-  public java.io.Writer setCharacterStream(long pos) throws SQLException {
+  @Override
+  public Writer setCharacterStream(long pos) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "setCharacterStream(long)");
+      throw Driver.notImplemented(this.getClass(), "setCharacterStream(long)");
     }
   }
 
+  @Override
   public InputStream getAsciiStream() throws SQLException {
     return getBinaryStream();
   }
 
+  @Override
   public Reader getCharacterStream() throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       Charset connectionCharset = Charset.forName(conn.getEncoding().name());
@@ -66,6 +77,7 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
     }
   }
 
+  @Override
   public String getSubString(long i, int j) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       assertPosition(i, j);
@@ -78,20 +90,22 @@ public class PgClob extends AbstractBlobClob implements java.sql.Clob {
   /**
    * For now, this is not implemented.
    */
+  @Override
   public long position(String pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "position(String,long)");
+      throw Driver.notImplemented(this.getClass(), "position(String,long)");
     }
   }
 
   /**
    * This should be simply passing the byte value of the pattern Blob.
    */
+  @Override
   public long position(Clob pattern, long start) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       checkFreed();
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "position(Clob,start)");
+      throw Driver.notImplemented(this.getClass(), "position(Clob,start)");
     }
   }
 }

@@ -44,7 +44,7 @@ public class Fastpath {
 
   // This maps the functions names to their id's (possible unique just
   // to a connection).
-  private final Map<String, Integer> func = new HashMap<String, Integer>();
+  private final Map<String, Integer> func = new HashMap<>();
   private final QueryExecutor executor;
   private final BaseConnection connection;
 
@@ -102,7 +102,7 @@ public class Fastpath {
   public byte @Nullable [] fastpath(int fnId, FastpathArg[] args) throws SQLException {
     // Turn fastpath array into a parameter list.
     ParameterList params = executor.createFastpathParameters(args.length);
-    for (int i = 0; i < args.length; ++i) {
+    for (int i = 0; i < args.length; i++) {
       args[i].populateParameter(params, i + 1);
     }
 

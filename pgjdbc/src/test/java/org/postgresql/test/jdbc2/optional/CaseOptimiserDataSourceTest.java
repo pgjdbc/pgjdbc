@@ -5,17 +5,17 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,13 +29,13 @@ public class CaseOptimiserDataSourceTest {
   private BaseDataSource bds;
   protected Connection conn;
 
-  @Before
-  public void setUp() throws SQLException {
+  @BeforeEach
+  void setUp() throws SQLException {
     Connection conn = getDataSourceConnection();
     assertTrue(conn instanceof BaseConnection);
     BaseConnection bc = (BaseConnection) conn;
-    assertTrue("Expected state [TRUE] of base connection configuration failed test.",
-        bc.isColumnSanitiserDisabled());
+    assertTrue(bc.isColumnSanitiserDisabled(),
+        "Expected state [TRUE] of base connection configuration failed test.");
     Statement insert = conn.createStatement();
     TestUtil.createTable(conn, "allmixedup",
         "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
@@ -44,8 +44,8 @@ public class CaseOptimiserDataSourceTest {
     conn.close();
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     Connection conn = getDataSourceConnection();
     Statement drop = conn.createStatement();
     drop.execute("drop table allmixedup");
@@ -60,7 +60,7 @@ public class CaseOptimiserDataSourceTest {
    * found.
    */
   @Test
-  public void testDataSourceDisabledSanitiserPropertySucceeds() throws SQLException {
+  void dataSourceDisabledSanitiserPropertySucceeds() throws SQLException {
     String label = "FOO";
     Connection conn = getDataSourceConnection();
     PreparedStatement query =

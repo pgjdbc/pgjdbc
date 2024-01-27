@@ -46,29 +46,29 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private int cancelKey;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
-  private int serverVersionNum = 0;
+  private int serverVersionNum;
   private TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
   private final boolean quoteReturningIdentifiers;
-  private final PreferQueryMode preferQueryMode;
+  private PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
   protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
-  private boolean standardConformingStrings = false;
+  private boolean standardConformingStrings;
 
   private @Nullable SQLWarning warnings;
-  private final ArrayList<PGNotification> notifications = new ArrayList<PGNotification>();
+  private final ArrayList<PGNotification> notifications = new ArrayList<>();
 
   private final LruCache<Object, CachedQuery> statementCache;
   private final CachedQueryCreateAction cachedQueryCreateAction;
 
   // For getParameterStatuses(), GUC_REPORT tracking
   private final TreeMap<String,String> parameterStatuses
-      = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+      = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
@@ -90,7 +90,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     // assignment, argument
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
-    statementCache = new LruCache<Object, CachedQuery>(
+    statementCache = new LruCache<>(
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_QUERIES.getInt(info)),
         Math.max(0, PGProperty.PREPARED_STATEMENT_CACHE_SIZE_MIB.getInt(info) * 1024L * 1024L),
         false,
@@ -396,10 +396,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  public void setPreferQueryMode(PreferQueryMode mode) {
+    preferQueryMode = mode;
+  }
+
+  @Override
   public AutoSave getAutoSave() {
     return autoSave;
   }
 
+  @Override
   public void setAutoSave(AutoSave autoSave) {
     this.autoSave = autoSave;
   }
@@ -447,16 +453,17 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return flushCacheOnDeallocate;
   }
 
+  @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
   }
 
   protected boolean hasNotifications() {
-    return notifications.size() > 0;
+    return !notifications.isEmpty();
   }
 
   @Override
-  public final Map<String,String> getParameterStatuses() {
+  public final Map<String, String> getParameterStatuses() {
     return Collections.unmodifiableMap(parameterStatuses);
   }
 
@@ -486,7 +493,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
    * @see org.postgresql.PGConnection#getParameterStatus
    */
   protected void onParameterStatus(String parameterName, String parameterStatus) {
-    if (parameterName == null || parameterName.equals("")) {
+    if (parameterName == null || "".equals(parameterName)) {
       throw new IllegalStateException("attempt to set GUC_REPORT parameter with null or empty-string name");
     }
 

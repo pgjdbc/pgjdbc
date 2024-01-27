@@ -12,13 +12,20 @@ import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+import org.postgresql.util.PasswordUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Array;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -246,6 +253,48 @@ public interface PGConnection {
   PGReplicationConnection getReplicationAPI();
 
   /**
+   * Change a user's password to the specified new password.
+   *
+   * <p>
+   * If the specific encryption type is not specified, this method defaults to querying the database server for the server's default password_encryption.
+   * This method does not send the new password in plain text to the server.
+   * Instead, it encrypts the password locally and sends the encoded hash so that the plain text password is never sent on the wire.
+   * </p>
+   *
+   * <p>
+   * Acceptable values for encryptionType are null, "md5", or "scram-sha-256".
+   * Users should avoid "md5" unless they are explicitly targeting an older server that does not support the more secure SCRAM.
+   * </p>
+   *
+   * @param user The username of the database user
+   * @param newPassword The new password for the database user. The implementation will zero
+   *                    out the array after use
+   * @param encryptionType The type of password encryption to use or null if the database server default should be used.
+   * @throws SQLException If the password could not be altered
+   */
+  default void alterUserPassword(String user, char[] newPassword, @Nullable String encryptionType) throws SQLException {
+    try (Statement stmt = ((Connection) this).createStatement()) {
+      if (encryptionType == null) {
+        try (ResultSet rs = stmt.executeQuery("SHOW password_encryption")) {
+          if (!rs.next()) {
+            throw new PSQLException(GT.tr("Expected a row when reading password_encrypton but none was found"),
+                PSQLState.NO_DATA);
+          }
+          encryptionType = rs.getString(1);
+          if (encryptionType == null) {
+            throw new PSQLException(GT.tr("SHOW password_encryption returned null value"),
+                PSQLState.NO_DATA);
+          }
+        }
+      }
+      String sql = PasswordUtil.genAlterUserPasswordSQL(user, newPassword, encryptionType);
+      stmt.execute(sql);
+    } finally {
+      Arrays.fill(newPassword, (char) 0);
+    }
+  }
+
+  /**
    * <p>Returns the current values of all parameters reported by the server.</p>
    *
    * <p>PostgreSQL reports values for a subset of parameters (GUCs) to the client
@@ -305,7 +354,7 @@ public interface PGConnection {
    * @return unmodifiable map of case-insensitive parameter names to parameter values
    * @since 42.2.6
    */
-  Map<String,String> getParameterStatuses();
+  Map<String, String> getParameterStatuses();
 
   /**
    * Shorthand for getParameterStatuses().get(...) .

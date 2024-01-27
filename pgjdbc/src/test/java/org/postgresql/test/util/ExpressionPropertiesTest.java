@@ -5,41 +5,40 @@
 
 package org.postgresql.test.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.util.ExpressionProperties;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Properties;
 
-public class ExpressionPropertiesTest {
+class ExpressionPropertiesTest {
   @Test
-  public void simpleReplace() {
+  void simpleReplace() {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "pgjdbc_${server}.txt");
-    Assert.assertEquals("${server} should be replaced", "pgjdbc_app1.txt", p.getProperty("file"));
+    assertEquals("pgjdbc_app1.txt", p.getProperty("file"), "${server} should be replaced");
   }
 
   @Test
-  public void replacementMissing() {
+  void replacementMissing() {
     ExpressionProperties p = new ExpressionProperties();
     p.put("file", "pgjdbc_${server}.txt");
-    Assert.assertEquals("${server} should be kept as is as there is no replacement",
-        "pgjdbc_${server}.txt", p.getProperty("file"));
+    assertEquals("pgjdbc_${server}.txt", p.getProperty("file"), "${server} should be kept as is as there is no replacement");
   }
 
   @Test
-  public void multipleReplacements() {
+  void multipleReplacements() {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "${server}${server}${server}${server}${server}");
-    Assert.assertEquals("All the ${server} entries should be replaced",
-        "app1app1app1app1app1", p.getProperty("file"));
+    assertEquals("app1app1app1app1app1", p.getProperty("file"), "All the ${server} entries should be replaced");
   }
 
   @Test
-  public void multipleParentProperties() {
+  void multipleParentProperties() {
     Properties p1 = new Properties();
     p1.setProperty("server", "app1_${app.type}");
     Properties p2 = new Properties();
@@ -48,16 +47,14 @@ public class ExpressionPropertiesTest {
     ExpressionProperties p = new ExpressionProperties(p1, p2);
     p.put("file", "pgjdbc_${server}.txt");
 
-    Assert.assertEquals("All the ${...} entries should be replaced",
-        "pgjdbc_app1_production.txt", p.getProperty("file"));
+    assertEquals("pgjdbc_app1_production.txt", p.getProperty("file"), "All the ${...} entries should be replaced");
   }
 
   @Test
-  public void rawValue() {
+  void rawValue() {
     ExpressionProperties p = new ExpressionProperties();
     p.put("server", "app1");
     p.put("file", "${server}${server}${server}${server}${server}");
-    Assert.assertEquals("No replacements in raw value expected",
-        "${server}${server}${server}${server}${server}", p.getRawPropertyValue("file"));
+    assertEquals("${server}${server}${server}${server}${server}", p.getRawPropertyValue("file"), "No replacements in raw value expected");
   }
 }

@@ -25,7 +25,7 @@ import java.net.SocketTimeoutException;
 public class StrangeProxyServer implements Closeable {
   private final ServerSocket serverSock;
   private volatile boolean keepRunning = true;
-  private volatile long minAcceptedAt = 0;
+  private volatile long minAcceptedAt;
 
   public StrangeProxyServer(String destHost, int destPort) throws IOException {
     this.serverSock = new ServerSocket(0);

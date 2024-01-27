@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
@@ -21,6 +22,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -39,7 +41,7 @@ import java.util.Map;
  *
  * @see ResultSet#getArray
  */
-public class PgArray implements java.sql.Array {
+public class PgArray implements Array {
 
   static {
     ArrayAssistantRegistry.register(Oid.UUID, new UUIDArrayAssistant());
@@ -108,11 +110,13 @@ public class PgArray implements java.sql.Array {
     return castNonNull(connection);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray() throws SQLException {
     return getArrayImpl(1, 0, null);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(long index, int count) throws SQLException {
     return getArrayImpl(index, count, null);
@@ -123,11 +127,13 @@ public class PgArray implements java.sql.Array {
     return getArrayImpl(1, 0, map);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(Map<String, Class<?>> map) throws SQLException {
     return getArrayImpl(map);
   }
 
+  @Override
   @SuppressWarnings("return")
   public Object getArray(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
@@ -139,7 +145,7 @@ public class PgArray implements java.sql.Array {
 
     // for now maps aren't supported.
     if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+      throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
     }
 
     // array index is out of range
@@ -184,7 +190,7 @@ public class PgArray implements java.sql.Array {
     int elementOid = ByteConverter.int4(fieldBytes, 8);
     int pos = 12;
     int[] dims = new int[dimensions];
-    for (int d = 0; d < dimensions; ++d) {
+    for (int d = 0; d < dimensions; d++) {
       dims[d] = ByteConverter.int4(fieldBytes, pos);
       pos += 4;
       /* int lbound = ByteConverter.int4(fieldBytes, pos); */
@@ -193,7 +199,7 @@ public class PgArray implements java.sql.Array {
     if (count > 0 && dimensions > 0) {
       dims[0] = Math.min(count, dims[0]);
     }
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
     Field[] fields = new Field[2];
 
     storeValues(fieldBytes, rows, fields, elementOid, dims, pos, 0, index);
@@ -212,7 +218,7 @@ public class PgArray implements java.sql.Array {
       fields[0].setFormat(Field.BINARY_FORMAT);
       fields[1] = new Field("VALUE", elementOid);
       fields[1].setFormat(Field.BINARY_FORMAT);
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len != -1) {
@@ -224,14 +230,14 @@ public class PgArray implements java.sql.Array {
       fields[0].setFormat(Field.BINARY_FORMAT);
       fields[1] = new Field("VALUE", elementOid);
       fields[1].setFormat(Field.BINARY_FORMAT);
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len != -1) {
           pos += len;
         }
       }
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
         ByteConverter.int4(rowData[0], 0, i + index);
@@ -252,10 +258,10 @@ public class PgArray implements java.sql.Array {
       fields[1].setFormat(Field.BINARY_FORMAT);
       int nextDimension = thisDimension + 1;
       int dimensionsLeft = dims.length - nextDimension;
-      for (int i = 1; i < index; ++i) {
+      for (int i = 1; i < index; i++) {
         pos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, nextDimension);
       }
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         byte[][] rowData = new byte[2][];
         rowData[0] = new byte[4];
         ByteConverter.int4(rowData[0], 0, i + index);
@@ -276,7 +282,7 @@ public class PgArray implements java.sql.Array {
   private int calcRemainingDataLength(byte[] fieldBytes,
       int[] dims, int pos, int elementOid, int thisDimension) {
     if (thisDimension == dims.length - 1) {
-      for (int i = 0; i < dims[thisDimension]; ++i) {
+      for (int i = 0; i < dims[thisDimension]; i++) {
         int len = ByteConverter.int4(fieldBytes, pos);
         pos += 4;
         if (len == -1) {
@@ -314,27 +320,33 @@ public class PgArray implements java.sql.Array {
     return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
+  @Override
   public int getBaseType() throws SQLException {
     return getConnection().getTypeInfo().getSQLType(getBaseTypeName());
   }
 
+  @Override
   public String getBaseTypeName() throws SQLException {
     int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
     return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
   }
 
-  public java.sql.ResultSet getResultSet() throws SQLException {
+  @Override
+  public ResultSet getResultSet() throws SQLException {
     return getResultSetImpl(1, 0, null);
   }
 
-  public java.sql.ResultSet getResultSet(long index, int count) throws SQLException {
+  @Override
+  public ResultSet getResultSet(long index, int count) throws SQLException {
     return getResultSetImpl(index, count, null);
   }
 
+  @Override
   public ResultSet getResultSet(@Nullable Map<String, Class<?>> map) throws SQLException {
     return getResultSetImpl(map);
   }
 
+  @Override
   public ResultSet getResultSet(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getResultSetImpl(index, count, map);
@@ -349,7 +361,7 @@ public class PgArray implements java.sql.Array {
 
     // for now maps aren't supported.
     if (map != null && !map.isEmpty()) {
-      throw org.postgresql.Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
+      throw Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
     }
 
     // array index is out of range
@@ -376,7 +388,7 @@ public class PgArray implements java.sql.Array {
           PSQLState.DATA_ERROR);
     }
 
-    List<Tuple> rows = new ArrayList<Tuple>();
+    List<Tuple> rows = new ArrayList<>();
 
     Field[] fields = new Field[2];
 
@@ -415,6 +427,7 @@ public class PgArray implements java.sql.Array {
     return stat.createDriverResultSet(fields, rows);
   }
 
+  @Override
   @SuppressWarnings("nullness")
   public @Nullable String toString() {
     if (fieldString == null && fieldBytes != null) {
@@ -485,6 +498,7 @@ public class PgArray implements java.sql.Array {
     return fieldBytes;
   }
 
+  @Override
   public void free() throws SQLException {
     connection = null;
     fieldString = null;

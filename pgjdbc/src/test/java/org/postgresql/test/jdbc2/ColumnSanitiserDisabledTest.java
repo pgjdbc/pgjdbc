@@ -5,15 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -22,21 +22,21 @@ import java.sql.Statement;
 import java.util.Properties;
 
 /*
- * This test suite will check the behaviour of the findColumnIndex method. This is testing the
- * behaviour when sanitiser is disabled.
- */
-public class ColumnSanitiserDisabledTest {
+* This test suite will check the behaviour of the findColumnIndex method. This is testing the
+* behaviour when sanitiser is disabled.
+*/
+class ColumnSanitiserDisabledTest {
   private Connection conn;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     Properties props = new Properties();
     props.setProperty("disableColumnSanitiser", Boolean.TRUE.toString());
     conn = TestUtil.openDB(props);
     assertTrue(conn instanceof BaseConnection);
     BaseConnection bc = (BaseConnection) conn;
-    assertTrue("Expected state [TRUE] of base connection configuration failed test.",
-        bc.isColumnSanitiserDisabled());
+    assertTrue(bc.isColumnSanitiserDisabled(),
+        "Expected state [TRUE] of base connection configuration failed test.");
     /*
      * Quoted columns will be stored with case preserved. Driver will receive column names as
      * defined in db server.
@@ -48,8 +48,8 @@ public class ColumnSanitiserDisabledTest {
     data.close();
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.dropTable(conn, "allmixedup");
     TestUtil.closeDB(conn);
     System.setProperty("disableColumnSanitiser", "false");
@@ -61,47 +61,47 @@ public class ColumnSanitiserDisabledTest {
    */
 
   @Test
-  public void testTableColumnLowerNowFindFindLowerCaseColumn() throws SQLException {
+  void tableColumnLowerNowFindFindLowerCaseColumn() throws SQLException {
     findColumn("id", true);
   }
 
   @Test
-  public void testTableColumnLowerNowFindFindUpperCaseColumn() throws SQLException {
+  void tableColumnLowerNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("ID", true);
   }
 
   @Test
-  public void testTableColumnLowerNowFindFindMixedCaseColumn() throws SQLException {
+  void tableColumnLowerNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("Id", false);
   }
 
   @Test
-  public void testTableColumnUpperNowFindFindLowerCaseColumn() throws SQLException {
+  void tableColumnUpperNowFindFindLowerCaseColumn() throws SQLException {
     findColumn("description", true);
   }
 
   @Test
-  public void testTableColumnUpperNowFindFindUpperCaseColumn() throws SQLException {
+  void tableColumnUpperNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("DESCRIPTION", true);
   }
 
   @Test
-  public void testTableColumnUpperNowFindFindMixedCaseColumn() throws SQLException {
+  void tableColumnUpperNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("Description", false);
   }
 
   @Test
-  public void testTableColumnMixedNowFindLowerCaseColumn() throws SQLException {
+  void tableColumnMixedNowFindLowerCaseColumn() throws SQLException {
     findColumn("foo", false);
   }
 
   @Test
-  public void testTableColumnMixedNowFindFindUpperCaseColumn() throws SQLException {
+  void tableColumnMixedNowFindFindUpperCaseColumn() throws SQLException {
     findColumn("FOO", false);
   }
 
   @Test
-  public void testTableColumnMixedNowFindFindMixedCaseColumn() throws SQLException {
+  void tableColumnMixedNowFindFindMixedCaseColumn() throws SQLException {
     findColumn("fOo", true);
   }
 

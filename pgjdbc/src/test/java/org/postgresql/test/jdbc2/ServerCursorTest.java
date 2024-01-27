@@ -37,7 +37,7 @@ public class ServerCursorTest extends BaseTest4 {
 
   protected void createRows(int count) throws Exception {
     PreparedStatement stmt = con.prepareStatement("insert into test_fetch(value,data) values(?,?)");
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < count; i++) {
       stmt.setInt(1, i + 1);
       stmt.setBytes(2, DATA_STRING.getBytes("UTF8"));
       stmt.executeUpdate();

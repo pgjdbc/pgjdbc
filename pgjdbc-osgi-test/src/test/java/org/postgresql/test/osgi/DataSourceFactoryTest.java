@@ -52,7 +52,7 @@ public class DataSourceFactoryTest {
   private BundleContext bundleContext;
 
   @Inject
-  org.osgi.service.jdbc.DataSourceFactory dataSourceFactory;
+  DataSourceFactory dataSourceFactory;
 
   @Configuration
   public Option[] config() {

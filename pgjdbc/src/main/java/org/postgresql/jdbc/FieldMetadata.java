@@ -75,6 +75,7 @@ public class FieldMetadata implements CanEstimateSize {
     this.autoIncrement = autoIncrement;
   }
 
+  @Override
   public long getSize() {
     return columnName.length() * 2
         + tableName.length() * 2

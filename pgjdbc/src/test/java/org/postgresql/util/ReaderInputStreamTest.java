@@ -5,9 +5,10 @@
 
 package org.postgresql.util;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.CharArrayReader;
@@ -19,7 +20,7 @@ import java.io.StringReader;
 import java.nio.charset.MalformedInputException;
 import java.util.Arrays;
 
-public class ReaderInputStreamTest {
+class ReaderInputStreamTest {
   // 132878 = U+2070E - chosen because it is the first supplementary character
   // in the International Ideographic Core (IICore)
   // see http://www.i18nguy.com/unicode/supplementary-test.html for further explanation
@@ -30,15 +31,19 @@ public class ReaderInputStreamTest {
   // Character.lowSurrogate(132878) = 0xdf0e
   private static final char TRAILING_SURROGATE = 0xdf0e;
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   @SuppressWarnings("nullability")
-  public void NullReaderTest() {
-    new ReaderInputStream(null);
+  void NullReaderTest() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new ReaderInputStream(null);
+    });
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void cbufTooSmallReaderTest() {
-    new ReaderInputStream(new StringReader("abc"), 1);
+  @Test
+  void cbufTooSmallReaderTest() {
+    assertThrows(IllegalArgumentException.class, () -> {
+      new ReaderInputStream(new StringReader("abc"), 1);
+    });
   }
 
   private static void read(InputStream is, int... expected) throws IOException {
@@ -54,13 +59,13 @@ public class ReaderInputStreamTest {
       expected = Arrays.copyOf(expected, 4);
       assertEquals(Arrays.toString(expected), Arrays.toString(actualInts));
     } else {
-      assertEquals("should be end-of-stream", -1, nActual);
+      assertEquals(-1, nActual, "should be end-of-stream");
       is.close();
     }
   }
 
   @Test
-  public void SimpleTest() throws IOException {
+  void SimpleTest() throws IOException {
     char[] chars = {'a', 'b', 'c'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader);
@@ -69,7 +74,7 @@ public class ReaderInputStreamTest {
   }
 
   @Test
-  public void inputSmallerThanCbufsizeTest() throws IOException {
+  void inputSmallerThanCbufsizeTest() throws IOException {
     char[] chars = {'a'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
@@ -78,19 +83,19 @@ public class ReaderInputStreamTest {
   }
 
   @Test
-  public void tooManyReadsTest() throws IOException {
+  void tooManyReadsTest() throws IOException {
     char[] chars = {'a'};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
     read(is, 0x61);
-    assertEquals("should be end-of-stream", -1, is.read());
-    assertEquals("should be end-of-stream", -1, is.read());
-    assertEquals("should be end-of-stream", -1, is.read());
+    assertEquals(-1, is.read(), "should be end-of-stream");
+    assertEquals(-1, is.read(), "should be end-of-stream");
+    assertEquals(-1, is.read(), "should be end-of-stream");
     is.close();
   }
 
   @Test
-  public void surrogatePairSpansCharBufBoundaryTest() throws IOException {
+  void surrogatePairSpansCharBufBoundaryTest() throws IOException {
     char[] chars = {'a', LEADING_SURROGATE, TRAILING_SURROGATE};
     Reader reader = new CharArrayReader(chars);
     InputStream is = new ReaderInputStream(reader, 2);
@@ -99,95 +104,113 @@ public class ReaderInputStreamTest {
     read(is);
   }
 
-  @Test(expected = MalformedInputException.class)
-  public void invalidInputTest() throws IOException {
-    char[] chars = {'a', LEADING_SURROGATE, LEADING_SURROGATE};
-    Reader reader = new CharArrayReader(chars);
-    InputStream is = new ReaderInputStream(reader, 2);
-    read(is);
+  @Test
+  void invalidInputTest() throws IOException {
+    assertThrows(MalformedInputException.class, () -> {
+      char[] chars = {'a', LEADING_SURROGATE, LEADING_SURROGATE};
+      Reader reader = new CharArrayReader(chars);
+      InputStream is = new ReaderInputStream(reader, 2);
+      read(is);
+    });
   }
 
-  @Test(expected = MalformedInputException.class)
-  public void unmatchedLeadingSurrogateInputTest() throws IOException {
-    char[] chars = {LEADING_SURROGATE};
-    Reader reader = new CharArrayReader(chars);
-    InputStream is = new ReaderInputStream(reader, 2);
-    read(is, 0x00);
+  @Test
+  void unmatchedLeadingSurrogateInputTest() throws IOException {
+    assertThrows(MalformedInputException.class, () -> {
+      char[] chars = {LEADING_SURROGATE};
+      Reader reader = new CharArrayReader(chars);
+      InputStream is = new ReaderInputStream(reader, 2);
+      read(is, 0x00);
+    });
   }
 
-  @Test(expected = MalformedInputException.class)
-  public void unmatchedTrailingSurrogateInputTest() throws IOException {
-    char[] chars = {TRAILING_SURROGATE};
-    Reader reader = new CharArrayReader(chars);
-    InputStream is = new ReaderInputStream(reader, 2);
-    read(is);
+  @Test
+  void unmatchedTrailingSurrogateInputTest() throws IOException {
+    assertThrows(MalformedInputException.class, () -> {
+      char[] chars = {TRAILING_SURROGATE};
+      Reader reader = new CharArrayReader(chars);
+      InputStream is = new ReaderInputStream(reader, 2);
+      read(is);
+    });
   }
 
-  @Test(expected = NullPointerException.class)
+  @Test
   @SuppressWarnings("nullness")
-  public void nullArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    is.read(null, 0, 4);
-  }
-
-  @Test(expected = IndexOutOfBoundsException.class)
-  public void invalidOffsetArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    byte[] bytes = new byte[4];
-    is.read(bytes, 5, 4);
-  }
-
-  @Test(expected = IndexOutOfBoundsException.class)
-  public void negativeOffsetArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    byte[] bytes = new byte[4];
-    is.read(bytes, -1, 4);
-  }
-
-  @Test(expected = IndexOutOfBoundsException.class)
-  public void invalidLengthArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    byte[] bytes = new byte[4];
-    is.read(bytes, 1, 4);
-  }
-
-  @Test(expected = IndexOutOfBoundsException.class)
-  public void negativeLengthArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    byte[] bytes = new byte[4];
-    is.read(bytes, 1, -2);
+  void nullArrayReadTest() throws IOException {
+    assertThrows(NullPointerException.class, () -> {
+      Reader reader = new StringReader("abc");
+      InputStream is = new ReaderInputStream(reader);
+      is.read(null, 0, 4);
+    });
   }
 
   @Test
-  public void zeroLengthArrayReadTest() throws IOException {
-    Reader reader = new StringReader("abc");
-    InputStream is = new ReaderInputStream(reader);
-    byte[] bytes = new byte[4];
-    assertEquals("requested 0 byte read", 0, is.read(bytes, 1, 0));
+  void invalidOffsetArrayReadTest() throws IOException {
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      Reader reader = new StringReader("abc");
+      InputStream is = new ReaderInputStream(reader);
+      byte[] bytes = new byte[4];
+      is.read(bytes, 5, 4);
+    });
   }
 
   @Test
-  public void singleCharArrayReadTest() throws IOException {
+  void negativeOffsetArrayReadTest() throws IOException {
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      Reader reader = new StringReader("abc");
+      InputStream is = new ReaderInputStream(reader);
+      byte[] bytes = new byte[4];
+      is.read(bytes, -1, 4);
+    });
+  }
+
+  @Test
+  void invalidLengthArrayReadTest() throws IOException {
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      Reader reader = new StringReader("abc");
+      InputStream is = new ReaderInputStream(reader);
+      byte[] bytes = new byte[4];
+      is.read(bytes, 1, 4);
+    });
+  }
+
+  @Test
+  void negativeLengthArrayReadTest() throws IOException {
+    assertThrows(IndexOutOfBoundsException.class, () -> {
+      Reader reader = new StringReader("abc");
+      InputStream is = new ReaderInputStream(reader);
+      byte[] bytes = new byte[4];
+      is.read(bytes, 1, -2);
+    });
+  }
+
+  @Test
+  void zeroLengthArrayReadTest() throws IOException {
+    Reader reader = new StringReader("abc");
+    InputStream is = new ReaderInputStream(reader);
+    byte[] bytes = new byte[4];
+    assertEquals(0, is.read(bytes, 1, 0), "requested 0 byte read");
+  }
+
+  @Test
+  void singleCharArrayReadTest() throws IOException {
     Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, TRAILING_SURROGATE);
     InputStream is = new ReaderInputStream(reader);
     read(is, 0xF0, 0xA0, 0x9C, 0x8E);
     read(is);
   }
 
-  @Test(expected = MalformedInputException.class)
-  public void malformedSingleCharArrayReadTest() throws IOException {
-    Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, LEADING_SURROGATE);
-    InputStream is = new ReaderInputStream(reader);
-    read(is, 0xF0, 0xA0, 0x9C, 0x8E);
+  @Test
+  void malformedSingleCharArrayReadTest() throws IOException {
+    assertThrows(MalformedInputException.class, () -> {
+      Reader reader = new SingleCharPerReadReader(LEADING_SURROGATE, LEADING_SURROGATE);
+      InputStream is = new ReaderInputStream(reader);
+      read(is, 0xF0, 0xA0, 0x9C, 0x8E);
+    });
   }
 
   @Test
-  public void readsEqualToBlockSizeTest() throws Exception {
+  void readsEqualToBlockSizeTest() throws Exception {
     final int blockSize = 8 * 1024;
     final int dataSize = blockSize + 57;
     final byte[] data = new byte[dataSize];
@@ -201,7 +224,7 @@ public class ReaderInputStreamTest {
     total += r.read(buffer, 0, blockSize);
     total += r.read(buffer, 0, blockSize);
 
-    assertEquals("Data not read completely: missing " + (dataSize - total) + " bytes", dataSize, total);
+    assertEquals(dataSize, total, "Data not read completely: missing " + (dataSize - total) + " bytes");
   }
 
   private static class SingleCharPerReadReader extends Reader {

@@ -5,30 +5,22 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
 public class PGPropertyMaxResultBufferParserTest {
-
-  @Parameterized.Parameter(0)
-  public String valueToParse;
-
-  @Parameterized.Parameter(1)
-  public long expectedResult;
-
-  @Parameterized.Parameters(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
   public static Collection<Object[]> data() {
     Object[][] data = new Object[][]{
       {"100", 100L},
@@ -49,21 +41,19 @@ public class PGPropertyMaxResultBufferParserTest {
     return Arrays.asList(data);
   }
 
-  @Test
-  public void testGetMaxResultBufferValue() {
-    try {
+  @MethodSource("data")
+  @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
+  void getMaxResultBufferValue(String valueToParse, long expectedResult) {
+    assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
-      Assert.assertEquals(expectedResult, result);
-    } catch (PSQLException e) {
-      //shouldn't occur
-      fail();
-    }
+      assertEquals(expectedResult, result);
+    });
   }
 
-  @Test(expected = PSQLException.class)
-  public void testGetMaxResultBufferValueException() throws PSQLException {
-    long result = PGPropertyMaxResultBufferParser.parseProperty("abc");
-    fail();
+  @Test
+  void getMaxResultBufferValueException() throws PSQLException {
+    assertThrows(PSQLException.class, () -> {
+      long ignore = PGPropertyMaxResultBufferParser.parseProperty("abc");
+    });
   }
-
 }

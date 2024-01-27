@@ -12,7 +12,6 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -32,10 +31,10 @@ import javax.security.auth.x500.X500Principal;
 public class PKCS12KeyManager implements X509KeyManager {
 
   private final CallbackHandler cbh;
-  private @Nullable PSQLException error = null;
+  private @Nullable PSQLException error;
   private final String keyfile;
   private final KeyStore keyStore;
-  boolean keystoreLoaded = false;
+  boolean keystoreLoaded;
   private final ResourceLock lock = new ResourceLock();
 
   public PKCS12KeyManager(String pkcsFile, CallbackHandler cbh) throws PSQLException {
@@ -106,7 +105,7 @@ public class PKCS12KeyManager implements X509KeyManager {
             }
           }
         }
-        return (found ? "user" : null);
+        return found ? "user" : null;
       }
     }
   }
@@ -134,7 +133,7 @@ public class PKCS12KeyManager implements X509KeyManager {
       X509Certificate[] x509Certificates = new X509Certificate[certs.length];
       int i = 0;
       for (Certificate cert : certs) {
-        x509Certificates[i++] = (X509Certificate)cert;
+        x509Certificates[i++] = (X509Certificate) cert;
       }
       return x509Certificates;
     } catch (Exception kse) {
@@ -158,8 +157,7 @@ public class PKCS12KeyManager implements X509KeyManager {
       if (pkEntry == null) {
         return null;
       }
-      PrivateKey myPrivateKey = pkEntry.getPrivateKey();
-      return myPrivateKey;
+      return pkEntry.getPrivateKey();
     } catch (Exception ioex ) {
       error = new PSQLException(GT.tr("Could not read SSL key file {0}.", keyfile),
         PSQLState.CONNECTION_FAILURE, ioex);
@@ -192,7 +190,7 @@ public class PKCS12KeyManager implements X509KeyManager {
 
       }
 
-      keyStore.load(new FileInputStream(new File(keyfile)), pwdcb.getPassword());
+      keyStore.load(new FileInputStream(keyfile), pwdcb.getPassword());
       keystoreLoaded = true;
     }
   }

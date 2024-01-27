@@ -40,7 +40,7 @@ import javax.sql.PooledConnection;
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
 public class ConnectionPoolTest extends BaseDataSourceTest {
-  private ArrayList<PooledConnection> connections = new ArrayList<PooledConnection>();
+  private final ArrayList<PooledConnection> connections = new ArrayList<>();
 
   /**
    * Creates and configures a ConnectionPool.
@@ -466,8 +466,8 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * sees.
    */
   private class CountClose implements ConnectionEventListener {
-    private int count = 0;
-    private int errorCount = 0;
+    private int count;
+    private int errorCount;
 
     @Override
     public void connectionClosed(ConnectionEvent event) {

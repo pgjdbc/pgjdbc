@@ -49,15 +49,15 @@ public class QuotationTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "{index}: quotes(style={0}, src={1}, quoted={2})")
   public static Iterable<Object[]> data() {
-    Collection<String> prefix = new ArrayList<String>();
+    Collection<String> prefix = new ArrayList<>();
     // Too many prefixes make test run long
     prefix.add("");
     prefix.add("/*\n$\n*//* ? *//*{fn *//* now} */");
     prefix.add("-- $\n");
     prefix.add("--\n/* $ */");
 
-    Collection<Object[]> ids = new ArrayList<Object[]>();
-    Collection<String> garbageValues = new ArrayList<String>();
+    Collection<Object[]> ids = new ArrayList<>();
+    Collection<String> garbageValues = new ArrayList<>();
     garbageValues.add("{fn now}");
     garbageValues.add("{extract}");
     garbageValues.add("{select}");

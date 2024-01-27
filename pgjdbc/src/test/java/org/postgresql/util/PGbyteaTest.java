@@ -5,22 +5,22 @@
 
 package org.postgresql.util;
 
-import static org.junit.Assert.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.Random;
 
-public class PGbyteaTest {
+class PGbyteaTest {
 
-  private static final byte[] HEX_DIGITS_U = new byte[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
-      'C', 'D', 'E', 'F' };
-  private static final byte[] HEX_DIGITS_L = new byte[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b',
-      'c', 'd', 'e', 'f' };
+  private static final byte[] HEX_DIGITS_U = new byte[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+      'C', 'D', 'E', 'F'};
+  private static final byte[] HEX_DIGITS_L = new byte[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b',
+      'c', 'd', 'e', 'f'};
 
   @Test
-  public void testHexDecode_lower() throws SQLException {
+  void hexDecode_lower() throws SQLException {
     final byte[] data = new byte[1023];
     new Random(7).nextBytes(data);
     final byte[] encoded = hexEncode(data, HEX_DIGITS_L);
@@ -29,7 +29,7 @@ public class PGbyteaTest {
   }
 
   @Test
-  public void testHexDecode_upper() throws SQLException {
+  void hexDecode_upper() throws SQLException {
     final byte[] data = new byte[9513];
     new Random(-8).nextBytes(data);
     final byte[] encoded = hexEncode(data, HEX_DIGITS_U);
@@ -44,7 +44,7 @@ public class PGbyteaTest {
     final byte[] encoded = new byte[2 + (data.length << 1)];
     encoded[0] = '\\';
     encoded[1] = 'x';
-    for (int i = 0; i < data.length; ++i) {
+    for (int i = 0; i < data.length; i++) {
       final int idx = (i << 1) + 2;
       final byte b = data[i];
       encoded[idx] = hexDigits[(b & 0xF0) >>> 4];

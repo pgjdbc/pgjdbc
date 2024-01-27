@@ -5,9 +5,10 @@
 
 package org.postgresql.core.v3.adaptivefetch;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
@@ -15,8 +16,8 @@ import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.jdbc.PlaceholderStyle;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.sql.SQLException;
@@ -26,23 +27,23 @@ import java.util.Properties;
 /**
  * Unit tests for AdaptiveFetchCache class.
  */
-public class AdaptiveFetchCacheTest {
+class AdaptiveFetchCacheTest {
 
   private AdaptiveFetchCache adaptiveFetchCache;
   private int size;
 
   // Strings containing variables names in AdaptiveFetchCache class
-  private static String infoMapVariableName = "adaptiveFetchInfoMap";
-  private static String minimumSizeVariableName = "minimumAdaptiveFetchSize";
-  private static String maximumSizeVariableName = "maximumAdaptiveFetchSize";
-  private static String adaptiveFetchVariableName = "adaptiveFetch";
-  private static String maximumBufferSizeVariableName = "maximumResultBufferSize";
+  private static final String infoMapVariableName = "adaptiveFetchInfoMap";
+  private static final String minimumSizeVariableName = "minimumAdaptiveFetchSize";
+  private static final String maximumSizeVariableName = "maximumAdaptiveFetchSize";
+  private static final String adaptiveFetchVariableName = "adaptiveFetch";
+  private static final String maximumBufferSizeVariableName = "maximumResultBufferSize";
 
   /**
    * Simple setup to create new AdaptiveFetchCache with buffer size 1000.
    */
-  @Before
-  public void setUp() throws SQLException {
+  @BeforeEach
+  void setUp() throws SQLException {
     Properties properties = new Properties();
     size = 1000;
     adaptiveFetchCache = new AdaptiveFetchCache(size, properties);
@@ -52,10 +53,10 @@ public class AdaptiveFetchCacheTest {
    * Tests for calling constructor with empty properties (just asserts after setUp).
    */
   @Test
-  public void testConstructorDefault() throws NoSuchFieldException, IllegalAccessException {
+  void constructorDefault() throws NoSuchFieldException, IllegalAccessException {
     assertNotNull(getInfoMapVariable());
     assertEquals(size, getMaximumBufferVariable());
-    assertEquals(false, getAdaptiveFetchVariable());
+    assertFalse(getAdaptiveFetchVariable());
     assertEquals(0, getMinimumSizeVariable());
     assertEquals(-1, getMaximumSizeVariable());
   }
@@ -64,7 +65,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling constructor with information about adaptiveFetch property.
    */
   @Test
-  public void testConstructorWithAdaptiveFetch()
+  void constructorWithAdaptiveFetch()
       throws SQLException, NoSuchFieldException, IllegalAccessException {
     Properties properties = new Properties();
     boolean expectedValue = true;
@@ -83,7 +84,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling constructor with information about adaptiveFetchMinimum property.
    */
   @Test
-  public void testConstructorWithMinimumSize()
+  void constructorWithMinimumSize()
       throws SQLException, NoSuchFieldException, IllegalAccessException {
     Properties properties = new Properties();
     int expectedValue = 100;
@@ -93,7 +94,7 @@ public class AdaptiveFetchCacheTest {
 
     assertNotNull(getInfoMapVariable());
     assertEquals(size, getMaximumBufferVariable());
-    assertEquals(false, getAdaptiveFetchVariable());
+    assertFalse(getAdaptiveFetchVariable());
     assertEquals(expectedValue, getMinimumSizeVariable());
     assertEquals(-1, getMaximumSizeVariable());
   }
@@ -102,7 +103,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling constructor with information about adaptiveFetchMaximum property.
    */
   @Test
-  public void testConstructorWithMaximumSize()
+  void constructorWithMaximumSize()
       throws SQLException, NoSuchFieldException, IllegalAccessException {
     Properties properties = new Properties();
     int expectedValue = 100;
@@ -112,7 +113,7 @@ public class AdaptiveFetchCacheTest {
 
     assertNotNull(getInfoMapVariable());
     assertEquals(size, getMaximumBufferVariable());
-    assertEquals(false, getAdaptiveFetchVariable());
+    assertFalse(getAdaptiveFetchVariable());
     assertEquals(0, getMinimumSizeVariable());
     assertEquals(expectedValue, getMaximumSizeVariable());
   }
@@ -122,7 +123,7 @@ public class AdaptiveFetchCacheTest {
    * adaptiveFetchMaximum properties.
    */
   @Test
-  public void testConstructorWithAllProperties()
+  void constructorWithAllProperties()
       throws SQLException, NoSuchFieldException, IllegalAccessException {
     Properties properties = new Properties();
     boolean expectedAdaptiveFetchValue = false;
@@ -146,7 +147,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling addNewQuery method.
    */
   @Test
-  public void testAddingSingleQuery() throws NoSuchFieldException, IllegalAccessException {
+  void addingSingleQuery() throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
@@ -162,7 +163,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling addNewQuery method, but adaptiveFetch is set to false.
    */
   @Test
-  public void testAddingSingleQueryWithoutAdaptiveFetch()
+  void addingSingleQueryWithoutAdaptiveFetch()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -180,7 +181,7 @@ public class AdaptiveFetchCacheTest {
    * once, with counter set as 2.
    */
   @Test
-  public void testAddingSameQueryTwoTimes() throws NoSuchFieldException, IllegalAccessException {
+  void addingSameQueryTwoTimes() throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
@@ -199,7 +200,7 @@ public class AdaptiveFetchCacheTest {
    * false. The query shouldn't be added.
    */
   @Test
-  public void testAddingSameQueryTwoTimesWithoutAdaptiveFetch()
+  void addingSameQueryTwoTimesWithoutAdaptiveFetch()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -218,7 +219,7 @@ public class AdaptiveFetchCacheTest {
    * added.
    */
   @Test
-  public void testAddingTwoDifferentQueries() throws NoSuchFieldException, IllegalAccessException {
+  void addingTwoDifferentQueries() throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
     boolean adaptiveFetch = true;
@@ -240,7 +241,7 @@ public class AdaptiveFetchCacheTest {
    * false. Both queries shouldn't be added.
    */
   @Test
-  public void testAddingTwoDifferentQueriesWithoutAdaptiveFetch()
+  void addingTwoDifferentQueriesWithoutAdaptiveFetch()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -259,7 +260,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling getAdaptiveFetch method with value true.
    */
   @Test
-  public void testGettingAdaptiveFetchIfTrue()
+  void gettingAdaptiveFetchIfTrue()
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedResult = true;
 
@@ -272,7 +273,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling getAdaptiveFetch method with value false.
    */
   @Test
-  public void testGettingAdaptiveFetchIfFalse()
+  void gettingAdaptiveFetchIfFalse()
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedResult = false;
 
@@ -285,7 +286,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling getFetchSizeForQuery method for not existing query. Should return value -1.
    */
   @Test
-  public void testGettingFetchSizeForNotExistingQuery() {
+  void gettingFetchSizeForNotExistingQuery() {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
 
@@ -300,7 +301,7 @@ public class AdaptiveFetchCacheTest {
    * to false. Should return value -1.
    */
   @Test
-  public void testGettingFetchSizeForNotExistingQueryIfAdaptiveFetchFalse() {
+  void gettingFetchSizeForNotExistingQueryIfAdaptiveFetchFalse() {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
 
@@ -315,7 +316,7 @@ public class AdaptiveFetchCacheTest {
    * for the query.
    */
   @Test
-  public void testGettingFetchSizeForExistingQuery()
+  void gettingFetchSizeForExistingQuery()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
@@ -339,7 +340,7 @@ public class AdaptiveFetchCacheTest {
    * false. Should return value -1.
    */
   @Test
-  public void testGettingFetchSizeForExistingQueryIfAdaptiveFetchFalse()
+  void gettingFetchSizeForExistingQueryIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -362,7 +363,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling removeQuery method for not existing query. Should nothing happen.
    */
   @Test
-  public void testRemovingNotExistingQuery()
+  void removingNotExistingQuery()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
@@ -379,7 +380,7 @@ public class AdaptiveFetchCacheTest {
    * Should nothing happen.
    */
   @Test
-  public void testRemovingNotExistingQueryIfAdaptiveFetchFalse()
+  void removingNotExistingQueryIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -396,7 +397,7 @@ public class AdaptiveFetchCacheTest {
    * map inside AdaptiveFetchCache.
    */
   @Test
-  public void testRemovingExistingQuery()
+  void removingExistingQuery()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
@@ -420,7 +421,7 @@ public class AdaptiveFetchCacheTest {
    * query shouldn't be removed.
    */
   @Test
-  public void testRemovingExistingQueryIfAdaptiveFetchFalse()
+  void removingExistingQueryIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -445,7 +446,7 @@ public class AdaptiveFetchCacheTest {
    * shouldn't be removed, but counter set to 1. After next call, query should be removed.
    */
   @Test
-  public void testRemovingExistingQueryWithLargeCounter()
+  void removingExistingQueryWithLargeCounter()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = true;
@@ -474,7 +475,7 @@ public class AdaptiveFetchCacheTest {
    * change.
    */
   @Test
-  public void testRemovingExistingQueryWithLargeCounterIfAdaptiveFetchFalse()
+  void removingExistingQueryWithLargeCounterIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query";
     boolean adaptiveFetch = false;
@@ -503,7 +504,7 @@ public class AdaptiveFetchCacheTest {
    * query used in method call should be removed, other shouldn't change.
    */
   @Test
-  public void testRemovingExistingQueryWithMoreQueriesCached()
+  void removingExistingQueryWithMoreQueriesCached()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -549,7 +550,7 @@ public class AdaptiveFetchCacheTest {
    * adaptiveFetch is set false. Queries shouldn't change
    */
   @Test
-  public void testRemovingExistingQueryWithMoreQueriesCachedIfAdaptiveFetchFalse()
+  void removingExistingQueryWithMoreQueriesCachedIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -596,7 +597,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling setAdaptiveFetch method with true value.
    */
   @Test
-  public void testSettingAdaptiveFetchAsTrue()
+  void settingAdaptiveFetchAsTrue()
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedAdaptiveFetch = true;
 
@@ -611,7 +612,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling setAdaptiveFetch method with false value.
    */
   @Test
-  public void testSettingAdaptiveFetchAsFalse()
+  void settingAdaptiveFetchAsFalse()
       throws NoSuchFieldException, IllegalAccessException {
     boolean expectedAdaptiveFetch = false;
 
@@ -626,7 +627,7 @@ public class AdaptiveFetchCacheTest {
    * Test for calling updateQueryFetchSize method. Method should update a value for a query.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSize()
+  void updatingAdaptiveFetchSize()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = true;
@@ -654,7 +655,7 @@ public class AdaptiveFetchCacheTest {
    * update any values.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeIfAdaptiveFetchFalse()
+  void updatingAdaptiveFetchSizeIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = false;
@@ -682,7 +683,7 @@ public class AdaptiveFetchCacheTest {
    * any values.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeForNotExistingQuery()
+  void updatingAdaptiveFetchSizeForNotExistingQuery()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -715,7 +716,7 @@ public class AdaptiveFetchCacheTest {
    * false. Method shouldn't update any values.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeForNotExistingQueryIfAdaptiveFetchFalse()
+  void updatingAdaptiveFetchSizeForNotExistingQueryIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -748,7 +749,7 @@ public class AdaptiveFetchCacheTest {
    * in a map. The method should only change value for query used in a call.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMoreQueriesInMap()
+  void updatingAdaptiveFetchSizeWithMoreQueriesInMap()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -787,7 +788,7 @@ public class AdaptiveFetchCacheTest {
    * in a map, but adaptiveFetch is set false. The method shouldn't change any values.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMoreQueriesInMapIfAdaptiveFetchFalse()
+  void updatingAdaptiveFetchSizeWithMoreQueriesInMapIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     String expectedQuery2 = "test-query-2";
@@ -826,7 +827,7 @@ public class AdaptiveFetchCacheTest {
    * value. The method should update a query to have value of minimum.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMinimumSize()
+  void updatingAdaptiveFetchSizeWithMinimumSize()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = true;
@@ -857,7 +858,7 @@ public class AdaptiveFetchCacheTest {
    * value, but adaptiveFetch is set false. The method shouldn't update size for a query.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMinimumSizeIfAdaptiveFetchFalse()
+  void updatingAdaptiveFetchSizeWithMinimumSizeIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = false;
@@ -888,7 +889,7 @@ public class AdaptiveFetchCacheTest {
    * value. The method should update a query to have value of maximum.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMaximumSize()
+  void updatingAdaptiveFetchSizeWithMaximumSize()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = true;
@@ -919,7 +920,7 @@ public class AdaptiveFetchCacheTest {
    * value, but adaptiveFetch is set false. The method shouldn't update size for a query.
    */
   @Test
-  public void testUpdatingAdaptiveFetchSizeWithMaximumSizeIfAdaptiveFetchFalse()
+  void updatingAdaptiveFetchSizeWithMaximumSizeIfAdaptiveFetchFalse()
       throws NoSuchFieldException, IllegalAccessException {
     String expectedQuery = "test-query-1";
     boolean adaptiveFetch = false;

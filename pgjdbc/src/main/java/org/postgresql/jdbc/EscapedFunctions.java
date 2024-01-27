@@ -121,7 +121,7 @@ public class EscapedFunctions {
 
   private static Map<String, Method> createFunctionMap() {
     Method[] arrayMeths = EscapedFunctions.class.getDeclaredMethods();
-    Map<String, Method> functionMap = new HashMap<String, Method>(arrayMeths.length * 2);
+    Map<String, Method> functionMap = new HashMap<>(arrayMeths.length * 2);
     for (Method meth : arrayMeths) {
       if (meth.getName().startsWith("sql")) {
         functionMap.put(meth.getName().toLowerCase(Locale.US), meth);

@@ -42,7 +42,7 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "numBinds={0}, preferQueryMode={1}, binaryMode={2}}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (PreferQueryMode preferQueryMode : PreferQueryMode.values()) {
       for (BinaryMode binaryMode : BinaryMode.values()) {
         for (int numBinds : new int[]{32766, 32767, 32768, 65534, 65535, 65536}) {

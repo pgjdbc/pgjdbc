@@ -37,7 +37,7 @@ class PgPassParserTest {
   void getPassword11() throws Exception {
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-nonexistent"),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",   "user.home", "/tmp/dir-nonexistent")
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
     ).execute(() -> {
       String result = PgPassParser.getPassword("localhost", "5432", "postgres", "postgres");
       assertNull(result);
@@ -54,7 +54,7 @@ class PgPassParserTest {
     assertNotNull(urlPath);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", urlPath.getPath() ),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "",  "user.home", urlPath.getPath())
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PgPassParser.getPassword("localhost", "5432", "postgres",
           "postgres");
@@ -151,7 +151,7 @@ class PgPassParserTest {
     assertNotNull(urlFileProps);
     Resources.with(
         new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(),"", "user.home", urlPath.getPath())
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PgPassParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
       assertNull(result);
@@ -171,7 +171,7 @@ class PgPassParserTest {
     URL urlFileProps = getClass().getResource("/pg_service/pgpassfileProps.conf");
     assertNotNull(urlFileProps);
     Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(),"APPDATA", urlPath.getPath()),
+        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(), "APPDATA", urlPath.getPath()),
         new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
     ).execute(() -> {
       String result = PgPassParser.getPassword("localhost77", "5432", "any", "postgres11");

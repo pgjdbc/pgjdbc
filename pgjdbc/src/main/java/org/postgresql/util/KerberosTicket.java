@@ -38,16 +38,16 @@ public class KerberosTicket {
         options.put("isInitiator", Boolean.FALSE.toString());
         options.put("renewTGT", Boolean.FALSE.toString());
         options.put("debug", Boolean.FALSE.toString());
-        return new AppConfigurationEntry[] {
+        return new AppConfigurationEntry[]{
             new AppConfigurationEntry(KRBLOGIN_MODULE,
-                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options) };
+                AppConfigurationEntry.LoginModuleControlFlag.REQUIRED, options)};
       }
       return null;
     }
 
   }
 
-  public static boolean credentialCacheExists( Properties info ) {
+  public static boolean credentialCacheExists(Properties info) {
     LoginContext lc = null;
 
     // in the event that the user has specified a jaas.conf file then we want to remember it

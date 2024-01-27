@@ -81,7 +81,7 @@ public class TestUtil {
     }
 
     String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !getBinaryTransfer().equals("")) {
+    if (getBinaryTransfer() != null && !"".equals(getBinaryTransfer())) {
       binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
     }
 
@@ -223,7 +223,7 @@ public class TestUtil {
     }
   }
 
-  private static boolean initialized = false;
+  private static boolean initialized;
 
   public static Properties loadPropertyFiles(String... names) {
     Properties p = new Properties();
@@ -249,7 +249,7 @@ public class TestUtil {
     return p;
   }
 
-  private static Properties sslTestProperties = null;
+  private static Properties sslTestProperties;
 
   private static void initSslTestProperties() {
     try (ResourceLock ignore = lock.obtain()) {
@@ -320,7 +320,7 @@ public class TestUtil {
     initDriver();
     Properties properties = new Properties();
 
-    PGProperty.GSS_ENC_MODE.set(properties,getGSSEncMode().value);
+    PGProperty.GSS_ENC_MODE.set(properties, getGSSEncMode().value);
     PGProperty.USER.set(properties, getPrivilegedUser());
     PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
     PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
@@ -791,7 +791,7 @@ public class TestUtil {
 
   public static boolean haveMinimumJVMVersion(String version) {
     String jvm = java.lang.System.getProperty("java.version");
-    return (jvm.compareTo(version) >= 0);
+    return jvm.compareTo(version) >= 0;
   }
 
   public static boolean haveIntegerDateTimes(Connection con) {
@@ -828,7 +828,7 @@ public class TestUtil {
   }
 
   public static List<String> resultSetToLines(ResultSet rs) throws SQLException {
-    List<String> res = new ArrayList<String>();
+    List<String> res = new ArrayList<>();
     ResultSetMetaData rsmd = rs.getMetaData();
     StringBuilder sb = new StringBuilder();
     while (rs.next()) {
@@ -1018,6 +1018,21 @@ public class TestUtil {
   public static String queryForString(Connection conn, String sql) throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    String value = rs.getString(1);
+    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    rs.close();
+    stmt.close();
+    return value;
+  }
+
+  /**
+   * Same as queryForString(...) above but with a single string param.
+   */
+  public static String queryForString(Connection conn, String sql, String param) throws SQLException {
+    PreparedStatement stmt = conn.prepareStatement(sql);
+    stmt.setString(1, param);
+    ResultSet rs = stmt.executeQuery();
     Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
     String value = rs.getString(1);
     Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());

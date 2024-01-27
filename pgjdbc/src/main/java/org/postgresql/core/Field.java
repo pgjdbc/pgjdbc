@@ -145,6 +145,7 @@ public class Field {
     this.metadata = metadata;
   }
 
+  @Override
   public String toString() {
     return "Field(" + (columnLabel != null ? columnLabel : "")
         + "," + Oid.toString(oid)

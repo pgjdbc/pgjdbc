@@ -18,6 +18,7 @@ import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.gss.MakeGSS;
 import org.postgresql.hostchooser.CandidateHost;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
@@ -26,7 +27,9 @@ import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jre7.sasl.ScramAuthenticator;
 import org.postgresql.plugin.AuthenticationRequestType;
+import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -42,6 +45,7 @@ import java.net.ConnectException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -229,7 +233,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
-    Map<HostSpec, HostStatus> knownStates = new HashMap<HostSpec, HostStatus>();
+    Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
       CandidateHost candidateHost = hostIter.next();
       HostSpec hostSpec = candidateHost.hostSpec;
@@ -264,7 +268,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE,gssEncMode);
+                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
               LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException | IOException ee) {
@@ -533,7 +537,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         LOGGER.log(Level.FINEST, " <=BE GSSEncryptedOk");
         try {
           AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
-            org.postgresql.gss.MakeGSS.authenticate(true, pgStream, host, user, password,
+            MakeGSS.authenticate(true, pgStream, host, user, password,
                 PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                 PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), false, // TODO: fix this
                 PGProperty.JAAS_LOGIN.getBoolean(info),
@@ -543,11 +547,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
-          if ( gssEncMode == GSSEncMode.PREFER) {
+          if (gssEncMode == GSSEncMode.PREFER) {
             // we have to reconnect to continue
             return new PGStream(pgStream, connectTimeout);
           }
         }
+        // fallthrough
 
       default:
         throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
@@ -617,7 +622,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         LOGGER.log(Level.FINEST, " <=BE SSLOk");
 
         // Server supports ssl
-        org.postgresql.ssl.MakeSSL.convert(pgStream, info);
+        MakeSSL.convert(pgStream, info);
         return pgStream;
 
       default:
@@ -630,7 +635,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
-      for (int i = 0; i < params.size(); ++i) {
+      for (int i = 0; i < params.size(); i++) {
         if (i != 0) {
           details.append(", ");
         }
@@ -642,7 +647,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // Precalculate message length and encode params.
     int length = 4 + 4;
     byte[][] encodedParams = new byte[params.size() * 2][];
-    for (int i = 0; i < params.size(); ++i) {
+    for (int i = 0; i < params.size(); i++) {
       encodedParams[i * 2] = params.get(i).getEncodedKey();
       encodedParams[i * 2 + 1] = params.get(i).getEncodedValue();
       length += encodedParams[i * 2].length + 1 + encodedParams[i * 2 + 1].length + 1;
@@ -671,7 +676,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     ISSPIClient sspiClient = null;
 
     /* SCRAM authentication state, if used */
-    org.postgresql.jre7.sasl.ScramAuthenticator scramAuthenticator = null;
+    ScramAuthenticator scramAuthenticator = null;
 
     try {
       authloop: while (true) {
@@ -723,7 +728,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                   pgStream.sendInteger4(4 + digest.length + 1);
                   pgStream.send(digest);
                 } finally {
-                  java.util.Arrays.fill(digest, (byte) 0);
+                  Arrays.fill(digest, (byte) 0);
                 }
                 pgStream.sendChar(0);
                 pgStream.flush();
@@ -812,7 +817,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 } else {
                   /* Use JGSS's GSSAPI for this request */
                   AuthenticationPluginManager.withPassword(AuthenticationRequestType.GSS, info, password -> {
-                    org.postgresql.gss.MakeGSS.authenticate(false, pgStream, host, user, password,
+                    MakeGSS.authenticate(false, pgStream, host, user, password,
                         PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                         PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), usespnego,
                         PGProperty.JAAS_LOGIN.getBoolean(info),
@@ -845,7 +850,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new org.postgresql.jre7.sasl.ScramAuthenticator(user, String.valueOf(password), pgStream);
+                  return new ScramAuthenticator(user, String.valueOf(password), pgStream);
                 });
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
@@ -970,6 +975,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     Tuple results = SetupQueryRunner.run(queryExecutor, "show transaction_read_only", true);
     Tuple nonNullResults = castNonNull(results);
     String queriedTransactionReadonly = queryExecutor.getEncoding().decode(castNonNull(nonNullResults.get(0)));
-    return queriedTransactionReadonly.equalsIgnoreCase("off");
+    return "off".equalsIgnoreCase(queriedTransactionReadonly);
   }
 }

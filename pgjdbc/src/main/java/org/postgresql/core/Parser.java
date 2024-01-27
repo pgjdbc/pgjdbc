@@ -90,7 +90,7 @@ public class Parser {
     parenthesis, ? and ;
     for single/double/dollar quotes, and comments we just want to move the index
      */
-    for (int i = 0; i < aChars.length; ++i) {
+    for (int i = 0; i < aChars.length; i++) {
       char aChar = aChars[i];
       char nextAChar = (i + 1 < aChars.length) ? aChars[i + 1] : '\0';
       boolean isKeyWordChar = false;
@@ -184,7 +184,7 @@ public class Parser {
 
               if (splitStatements) {
                 if (nativeQueries == null) {
-                  nativeQueries = new ArrayList<NativeQuery>();
+                  nativeQueries = new ArrayList<>();
                 }
 
                 if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
@@ -312,7 +312,7 @@ public class Parser {
             isBeginPresent = true;
           } else {
             // found begin, now look for atomic
-            if (isBeginPresent == true) {
+            if (isBeginPresent) {
               if (wordLength == 6 && parseAtomicKeyword(aChars, keywordStart)) {
                 isBeginAtomicPresent = true;
               }
@@ -381,7 +381,7 @@ public class Parser {
     }
 
     if (nativeSql.length() == 0) {
-      return nativeQueries != null ? nativeQueries : Collections.<NativeQuery>emptyList();
+      return nativeQueries != null ? nativeQueries : Collections.emptyList();
     }
 
     if (addReturning(nativeSql, currentCommandType, returningColumnNames, isReturningPresent, quoteReturningIdentifiers)) {
@@ -474,7 +474,7 @@ public class Parser {
       if (quoteReturningIdentifiers) {
         Utils.escapeIdentifier(nativeSql, columnName);
       } else {
-        nativeSql.append( columnName );
+        nativeSql.append(columnName);
       }
     }
     return true;
@@ -505,11 +505,8 @@ public class Parser {
     if (standardConformingStrings) {
       // do NOT treat backslashes as escape characters
       while (++offset < query.length) {
-        switch (query[offset]) {
-          case '\'':
-            return offset;
-          default:
-            break;
+        if (query[offset] == '\'') {
+          return offset;
         }
       }
     } else {
@@ -563,7 +560,7 @@ public class Parser {
       if (query[offset + 1] == '$') {
         endIdx = offset + 1;
       } else if (isDollarQuoteStartChar(query[offset + 1])) {
-        for (int d = offset + 2; d < query.length; ++d) {
+        for (int d = offset + 2; d < query.length; d++) {
           if (query[d] == '$') {
             endIdx = d;
             break;
@@ -577,7 +574,7 @@ public class Parser {
         int tagIdx = offset;
         int tagLen = endIdx - offset + 1;
         offset = endIdx; // loop continues at endIdx + 1
-        for (++offset; offset < query.length; ++offset) {
+        for (++offset; offset < query.length; offset++) {
           if (query[offset] == '$'
               && subArraysEqual(query, tagIdx, offset, tagLen)) {
             offset += tagLen - 1;
@@ -671,7 +668,7 @@ public class Parser {
     if (offset + 1 < query.length && query[offset + 1] == '*') {
       // /* /* */ */ nest, according to SQL spec
       int level = 1;
-      for (offset += 2; offset < query.length; ++offset) {
+      for (offset += 2; offset < query.length; offset++) {
         switch (query[offset - 1]) {
           case '*':
             if (query[offset] == '/') {
@@ -1127,7 +1124,7 @@ public class Parser {
       return false;
     }
 
-    for (int i = 0; i < len; ++i) {
+    for (int i = 0; i < len; i++) {
       if (arr[offA + i] != arr[offB + i]) {
         return false;
       }
@@ -1221,8 +1218,8 @@ public class Parser {
           break;
 
         case 5:  // Should be at 'call ' either at start of string or after ?=
-          if ((ch == 'c' || ch == 'C') && i + 4 <= len && jdbcSql.substring(i, i + 4)
-              .equalsIgnoreCase("call")) {
+          if ((ch == 'c' || ch == 'C') && i + 4 <= len && "call"
+              .equalsIgnoreCase(jdbcSql.substring(i, i + 4))) {
             isFunction = true;
             i += 4;
             ++state;
@@ -1298,7 +1295,7 @@ public class Parser {
         if (i < len - 5) { // 5 == length of "call" + 1 whitespace
           //Check for CALL followed by whitespace
           char ch = jdbcSql.charAt(i);
-          if ((ch == 'c' || ch == 'C') && jdbcSql.substring(i, i + 4).equalsIgnoreCase("call")
+          if ((ch == 'c' || ch == 'C') && "call".equalsIgnoreCase(jdbcSql.substring(i, i + 4))
                && Character.isWhitespace(jdbcSql.charAt(i + 4))) {
             isFunction = true;
           }
@@ -1582,7 +1579,7 @@ public class Parser {
       boolean stdStrings)
       throws SQLException {
     // Maximum arity of functions in EscapedFunctions is 3
-    List<CharSequence> parsedArgs = new ArrayList<CharSequence>(3);
+    List<CharSequence> parsedArgs = new ArrayList<>(3);
     while (true) {
       StringBuilder arg = new StringBuilder();
       int lastPos = i;

@@ -18,7 +18,6 @@ import org.postgresql.test.util.StrangeOutputStream;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +40,7 @@ class LargeObjectManagerTest {
    * See https://github.com/pgjdbc/pgjdbc/issues/2237
    */
   @Test
-  public void testOpenWithErrorAndSubsequentParameterStatusMessageShouldLeaveConnectionInUsableStateAndUpdateParameterStatus() throws Exception {
+  void openWithErrorAndSubsequentParameterStatusMessageShouldLeaveConnectionInUsableStateAndUpdateParameterStatus() throws Exception {
     try (PgConnection con = (PgConnection) TestUtil.openDB()) {
       Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
       con.setAutoCommit(false);
@@ -75,7 +74,7 @@ class LargeObjectManagerTest {
    *  2) input checksum should match the output checksum
    */
   @Test
-  public void objectWriteThenRead() throws Throwable {
+  void objectWriteThenRead() throws Throwable {
     try (PgConnection con = (PgConnection) TestUtil.openDB()) {
       // LO is not supported in auto-commit mode
       con.setAutoCommit(false);
@@ -97,7 +96,7 @@ class LargeObjectManagerTest {
 
   private void objectWriteThenRead(LargeObjectManager lom, long seed, MessageDigest md) throws SQLException, IOException {
     long loId = lom.createLO();
-    try (LargeObject lo = lom.open(loId);) {
+    try (LargeObject lo = lom.open(loId)) {
       Random rnd = new Random(seed);
       int expectedLength = rnd.nextInt(1000000);
       // Write data to the stream
@@ -120,7 +119,7 @@ class LargeObjectManagerTest {
         }
       }
       // Verify the size of the resulting blob
-      Assertions.assertEquals(expectedLength, lo.tell(), "Lob position after writing the data");
+      assertEquals(expectedLength, lo.tell(), "Lob position after writing the data");
 
       // Rewing the position to the beginning
       // Ideally, .getInputStream should start reading from the beginning, however, it is not the
@@ -134,7 +133,7 @@ class LargeObjectManagerTest {
       // Do not use try-with-resources to avoid closing the large object
       InputStream is = lo.getInputStream();
       {
-        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong());) {
+        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong())) {
           while (true) {
             int bufferIndex = rnd.nextInt(buffers.length);
             byte[] buf = buffers[bufferIndex];
@@ -148,7 +147,7 @@ class LargeObjectManagerTest {
         }
         byte[] actualChecksum = md.digest();
         if (!Arrays.equals(expectedChecksum, actualChecksum)) {
-          Assertions.fail("Checksum of the input and output streams mismatch."
+          fail("Checksum of the input and output streams mismatch."
               + " Input actualLength: " + expectedLength
               + ", output actualLength: " + actualLength
               + ", test seed: " + seed

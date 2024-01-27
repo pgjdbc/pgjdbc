@@ -26,14 +26,14 @@ import java.util.Properties;
 public class AdaptiveFetchCache {
 
   private final Map<String, AdaptiveFetchCacheEntry> adaptiveFetchInfoMap;
-  private boolean adaptiveFetch = false;
-  private int minimumAdaptiveFetchSize = 0;
+  private boolean adaptiveFetch;
+  private final int minimumAdaptiveFetchSize;
   private int maximumAdaptiveFetchSize = -1;
   private long maximumResultBufferSize = -1;
 
   public AdaptiveFetchCache(long maximumResultBufferSize, Properties info)
       throws SQLException {
-    this.adaptiveFetchInfoMap = new HashMap<String, AdaptiveFetchCacheEntry>();
+    this.adaptiveFetchInfoMap = new HashMap<>();
 
     this.adaptiveFetch = PGProperty.ADAPTIVE_FETCH.getBoolean(info);
     this.minimumAdaptiveFetchSize = PGProperty.ADAPTIVE_FETCH_MINIMUM.getInt(info);

@@ -35,7 +35,7 @@ import java.time.LocalDate;
 public class Jdbc3CallableStatementTest extends BaseTest4 {
   @BeforeClass
   public static void beforeClass() throws Exception {
-    try (Connection con = TestUtil.openDB();) {
+    try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
     }
   }
@@ -470,7 +470,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       cstmt.close();
       cstmt = con.prepareCall("{ call lvarchar_in_name(?) }");
       String maxFloat = "3.4E38";
-      cstmt.setObject(1, new Float(maxFloat), Types.LONGVARCHAR);
+      cstmt.setObject(1, Float.valueOf(maxFloat), Types.LONGVARCHAR);
       cstmt.executeUpdate();
       cstmt.close();
       Statement stmt = con.createStatement();
@@ -603,10 +603,10 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
       ResultSet rs = con.createStatement().executeQuery("select * from real_tab");
       assertTrue(rs.next());
       Float oVal = (float) intValues[0];
-      Float rVal = new Float(rs.getObject(1).toString());
+      Float rVal = Float.valueOf(rs.getObject(1).toString());
       assertTrue(oVal.equals(rVal));
       oVal = (float) intValues[1];
-      rVal = new Float(rs.getObject(2).toString());
+      rVal = Float.valueOf(rs.getObject(2).toString());
       assertTrue(oVal.equals(rVal));
       rs.close();
     } catch (Exception ex) {

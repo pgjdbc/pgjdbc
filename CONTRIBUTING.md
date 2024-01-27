@@ -139,82 +139,6 @@ depending on which release you have the jar will be named
 postgresql-&lt;major&gt;.&lt;minor&gt;.&lt;patch&gt;.jar. We use Semantic versioning; as such
 major, minor, patch refer to the level of change introduced.
 
-## Code style
-
-We enforce a style using [Autostyle](https://github.com/autostyle/autostyle) and
-[Checkstyle](https://github.com/checkstyle/checkstyle),
-Travis CI will fail if there are checkstyle errors.
-
-You might use the following command to fix auto-correctable issues, and report the rest:
-
-    ./gradlew style
-
-## Null safety
-
-The project uses the [Checker Framework](https://checkerframework.org/) for verification of the null safety
-(this was introduced in [PR 1814](https://github.com/pgjdbc/pgjdbc/pull/1814)).
-
-By default, parameters, return values, and fields are `@NonNull`, so you need to add `@Nullable`
-as required.
-
-To execute the Checker Framework locally please use the following command:
-
-    ./gradlew -PenableCheckerframework :postgresql:classes
-
-Notable items:
-
-* The Checker Framework verifies code method by method. That means, it can't account for method execution order.
-That is why `@Nullable` fields should be verified in each method where they are used.
-If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
-For fields that start as null and become non-null later, use `@MonotonicNonNull`.
-For fields that have already been checked against null, use `@RequiresNonNull`.
-
-* If you are absolutely sure the value is non-null, you might use `org.postgresql.util.internal.Nullness.castNonNull(T)`
-or `org.postgresql.util.internal.Nullness.castNonNull(T, String)`.
-
-* You can configure postfix completion in IntelliJ IDEA via `Preferences -> Editor -> General -> Postfix Completion`
-key: `cnn`, applicable element type: `non-primitive`, `org.postgresql.util.internal.Nullness.castNonNull($EXPR$)`.  
-
-* The Checker Framework comes with an annotated JDK, however, there might be invalid annotations.
-In that cases, stub files can be placed to `/config/checkerframework` to override the annotations.
-It is important the files have `.astub` extension otherwise they will be ignored.
-
-* In array types, a type annotation appears immediately before the type component (either the array or the array component) it refers to.
-This is explained in the [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).
-
-        String nonNullable;
-        @Nullable String nullable;
-
-        java.lang.@Nullable String fullyQualifiedNullable;
-
-        // array and elements: non-nullable
-        String[] x;
-
-        // array: nullable, elements: non-nullable
-        String @Nullable [] x;
-
-        // array: non-nullable, elements: nullable
-        @Nullable String[] x;
-
-        // array: nullable, elements: nullable
-        @Nullable String @Nullable [] x;  
-
-        // arrays: nullable, elements: nullable
-        // x: non-nullable
-        // x[0]: non-nullable
-        // x[0][0]: nullable
-        @Nullable String[][] x;
-
-        // x: nullable
-        // x[0]: non-nullable
-        // x[0][0]: non-nullable
-        String @Nullable [][] x;
-
-        // x: non-nullable
-        // x[0]: nullable
-        // x[0][0]: non-nullable
-        String[] @Nullable [] x;
-
 ## Updating translations
 
 From time to time, the translation packages will need to be updated as part of the build process.
@@ -394,12 +318,14 @@ Configure format configuration:
 
 Please submit build instructions for your preferred IDE.
 
-## <a name="tests"></a> Coding Guidelines
+## Coding Guidelines
 
-### Java
+We enforce a style using [OpenRewrite](https://docs.openrewrite.org/), [Autostyle](https://github.com/autostyle/autostyle),
+[ForbiddenApis](https://github.com/policeman-tools/forbidden-apis), and [Checkstyle](https://github.com/checkstyle/checkstyle).
+The CI will check for the code style, and it will report the deviations.
+The code style is based on [Google style](https://google.github.io/styleguide/javaguide.html) conventions for Java with 100 wide lines.
 
-Project uses [Google style](https://google.github.io/styleguide/javaguide.html) conventions for java with 100 wide lines.
-Code style is verified via Travis job. In order to do manual verification, issue
+You might use the following command to fix auto-correctable issues, and report the rest:
 
     ./gradlew style
 
@@ -407,7 +333,77 @@ Use 2 spaces for indenting, do not use tabs, trim space at end of lines.
 Always put braces, even for single-line `if`.
 Always put `default:` case for `switch` statement.
 
-Note: there are formatter configurations in `pgjdbc/src/main/checkstyle` folder.
+The style configuration is located at:
+* `pgjdbc/src/main/checkstyle`
+* `config/openrewrite`
+* `config/forbidden-apis`
+* `config/checkerframework`
+
+### Null safety
+
+The project uses the [Checker Framework](https://checkerframework.org/) for verification of the null safety
+(this was introduced in [PR 1814](https://github.com/pgjdbc/pgjdbc/pull/1814)).
+
+By default, parameters, return values, and fields are `@NonNull`, so you need to add `@Nullable`
+as required.
+
+To execute the Checker Framework locally please use the following command:
+
+    ./gradlew -PenableCheckerframework :postgresql:classes
+
+Notable items:
+
+* The Checker Framework verifies code method by method. That means, it can't account for method execution order.
+That is why `@Nullable` fields should be verified in each method where they are used.
+If you split logic into multiple methods, you might want verify null once, then pass it via non-nullable parameters.
+For fields that start as null and become non-null later, use `@MonotonicNonNull`.
+For fields that have already been checked against null, use `@RequiresNonNull`.
+
+* If you are absolutely sure the value is non-null, you might use `org.postgresql.util.internal.Nullness.castNonNull(T)`
+or `org.postgresql.util.internal.Nullness.castNonNull(T, String)`.
+
+* You can configure postfix completion in IntelliJ IDEA via `Preferences -> Editor -> General -> Postfix Completion`
+key: `cnn`, applicable element type: `non-primitive`, `org.postgresql.util.internal.Nullness.castNonNull($EXPR$)`.
+
+* The Checker Framework comes with an annotated JDK, however, there might be invalid annotations.
+In that cases, stub files can be placed to `/config/checkerframework` to override the annotations.
+It is important the files have `.astub` extension otherwise they will be ignored.
+
+* In array types, a type annotation appears immediately before the type component (either the array or the array component) it refers to.
+This is explained in the [Java Language Specification](https://docs.oracle.com/javase/specs/jls/se8/html/jls-9.html#jls-9.7.4).
+
+        String nonNullable;
+        @Nullable String nullable;
+
+        java.lang.@Nullable String fullyQualifiedNullable;
+
+        // array and elements: non-nullable
+        String[] x;
+
+        // array: nullable, elements: non-nullable
+        String @Nullable [] x;
+
+        // array: non-nullable, elements: nullable
+        @Nullable String[] x;
+
+        // array: nullable, elements: nullable
+        @Nullable String @Nullable [] x;
+
+        // arrays: nullable, elements: nullable
+        // x: non-nullable
+        // x[0]: non-nullable
+        // x[0][0]: nullable
+        @Nullable String[][] x;
+
+        // x: nullable
+        // x[0]: non-nullable
+        // x[0][0]: non-nullable
+        String @Nullable [][] x;
+
+        // x: non-nullable
+        // x[0]: nullable
+        // x[0][0]: non-nullable
+        String[] @Nullable [] x;
 
 ### Test
 

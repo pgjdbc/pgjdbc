@@ -6,6 +6,7 @@
 package org.postgresql.ds;
 
 import org.postgresql.ds.common.BaseDataSource;
+import org.postgresql.util.DriverInfo;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -26,8 +27,9 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
   /**
    * Gets a description of this DataSource.
    */
+  @Override
   public String getDescription() {
-    return "Non-Pooling DataSource from " + org.postgresql.util.DriverInfo.DRIVER_FULL_NAME;
+    return "Non-Pooling DataSource from " + DriverInfo.DRIVER_FULL_NAME;
   }
 
   private void writeObject(ObjectOutputStream out) throws IOException {
@@ -38,10 +40,12 @@ public class PGSimpleDataSource extends BaseDataSource implements DataSource, Se
     readBaseObject(in);
   }
 
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     return iface.isAssignableFrom(getClass());
   }
 
+  @Override
   public <T> T unwrap(Class<T> iface) throws SQLException {
     if (iface.isAssignableFrom(getClass())) {
       return iface.cast(this);

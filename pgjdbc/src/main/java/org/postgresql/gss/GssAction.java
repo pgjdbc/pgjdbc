@@ -53,8 +53,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
   }
 
   private static boolean hasSpnegoSupport(GSSManager manager) throws GSSException {
-    org.ietf.jgss.Oid spnego = new org.ietf.jgss.Oid("1.3.6.1.5.5.2");
-    org.ietf.jgss.Oid[] mechs = manager.getMechs();
+    Oid spnego = new Oid("1.3.6.1.5.5.2");
+    Oid[] mechs = manager.getMechs();
 
     for (Oid mech : mechs) {
       if (mech.equals(spnego)) {

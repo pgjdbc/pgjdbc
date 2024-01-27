@@ -18,6 +18,7 @@ public class PSQLWarning extends SQLWarning {
     this.serverError = err;
   }
 
+  @Override
   public @Nullable String getMessage() {
     return serverError.getMessage();
   }

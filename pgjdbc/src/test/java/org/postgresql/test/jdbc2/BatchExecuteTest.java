@@ -47,7 +47,7 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (boolean insertRewrite : new boolean[]{false, true}) {
         ids.add(new Object[]{binaryMode, insertRewrite});
@@ -1304,7 +1304,7 @@ Server SQLState: 25001)
       int rowsInserted = insertRewrite ? Statement.SUCCESS_NO_INFO : 2;
       Assert.assertEquals(
           "Inserting two multi-valued statements with two rows each. Expecting {2, 2} rows inserted (or SUCCESS_NO_INFO)",
-          Arrays.toString(new int[] { rowsInserted, rowsInserted }),
+          Arrays.toString(new int[]{rowsInserted, rowsInserted}),
           Arrays.toString(outcome));
     } catch (SQLException sqle) {
       Assert.fail("Failed to execute two statements added to a batch. Reason:" + sqle.getMessage());

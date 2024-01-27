@@ -53,7 +53,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * socket timeout has been requested
    */
-  private boolean timeoutRequested = false;
+  private boolean timeoutRequested;
 
   /**
    * Creates a new buffer around the given stream.
@@ -69,6 +69,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int read() throws IOException {
     if (ensureBytes(1)) {
       return buffer[index++] & 0xFF;
@@ -209,6 +210,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int read(byte[] to, int off, int len) throws IOException {
     if ((off | len | (off + len) | (to.length - (off + len))) < 0) {
       throw new IndexOutOfBoundsException();
@@ -253,7 +255,7 @@ public class VisibleBufferedInputStream extends InputStream {
         return read;
       }
       if (r <= 0) {
-        return (read == 0) ? r : read;
+        return read == 0 ? r : read;
       }
       read += r;
       off += r;
@@ -266,6 +268,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
+  @Override
   public long skip(long n) throws IOException {
     int avail = endIndex - index;
     if (avail >= n) {
@@ -281,6 +284,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
+  @Override
   public int available() throws IOException {
     int avail = endIndex - index;
     return avail > 0 ? avail : wrapped.available();
@@ -289,6 +293,7 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * {@inheritDoc}
    */
+  @Override
   public void close() throws IOException {
     wrapped.close();
   }

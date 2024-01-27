@@ -12,16 +12,13 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
-import org.postgresql.test.Replication;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.util.rules.ServerVersionRule;
-import org.postgresql.test.util.rules.annotation.HaveMinimalServerVersion;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.tags.Replication;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -32,20 +29,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@Category(Replication.class)
-@HaveMinimalServerVersion("9.4")
-public class LogicalReplicationStatusTest {
+@Replication
+@DisabledIfServerVersionBelow("9.4")
+class LogicalReplicationStatusTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
-
-  @Rule
-  public ServerVersionRule versionRule = new ServerVersionRule();
 
   private Connection replicationConnection;
   private Connection sqlConnection;
   private Connection secondSqlConnection;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     //statistic available only for privileged user
     sqlConnection = TestUtil.openPrivilegedDB();
     secondSqlConnection = TestUtil.openPrivilegedDB("test_2");
@@ -59,8 +53,8 @@ public class LogicalReplicationStatusTest {
     TestUtil.recreateLogicalReplicationSlot(sqlConnection, SLOT_NAME, "test_decoding");
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     replicationConnection.close();
     TestUtil.dropTable(sqlConnection, "test_logic_table");
     TestUtil.dropTable(secondSqlConnection, "test_logic_table");
@@ -69,8 +63,8 @@ public class LogicalReplicationStatusTest {
     sqlConnection.close();
   }
 
-  @Test()
-  public void testSentLocationEqualToLastReceiveLSN() throws Exception {
+  @Test
+  void sentLocationEqualToLastReceiveLSN() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -104,8 +98,8 @@ public class LogicalReplicationStatusTest {
    * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
-  @HaveMinimalServerVersion("9.4.8")
-  public void testReceivedLSNDependentOnProcessMessage() throws Exception {
+  @DisabledIfServerVersionBelow("9.4.8")
+  void receivedLSNDependentOnProcessMessage() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -133,7 +127,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testLastReceiveLSNCorrectOnView() throws Exception {
+  void lastReceiveLSNCorrectOnView() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -161,7 +155,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testWriteLocationCanBeLessThanSendLocation() throws Exception {
+  void writeLocationCanBeLessThanSendLocation() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -192,7 +186,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testFlushLocationEqualToSetLocation() throws Exception {
+  void flushLocationEqualToSetLocation() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -230,7 +224,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testFlushLocationDoNotChangeDuringReceiveMessage() throws Exception {
+  void flushLocationDoNotChangeDuringReceiveMessage() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -261,7 +255,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testApplyLocationEqualToSetLocation() throws Exception {
+  void applyLocationEqualToSetLocation() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -300,8 +294,8 @@ public class LogicalReplicationStatusTest {
    * Test fail on PG version 9.4.5 because postgresql have bug.
    */
   @Test
-  @HaveMinimalServerVersion("9.4.8")
-  public void testApplyLocationDoNotDependOnFlushLocation() throws Exception {
+  @DisabledIfServerVersionBelow("9.4.8")
+  void applyLocationDoNotDependOnFlushLocation() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -337,7 +331,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testApplyLocationDoNotChangeDuringReceiveMessage() throws Exception {
+  void applyLocationDoNotChangeDuringReceiveMessage() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -368,7 +362,7 @@ public class LogicalReplicationStatusTest {
   }
 
   @Test
-  public void testStatusCanBeSentToBackendAsynchronously() throws Exception {
+  void statusCanBeSentToBackendAsynchronously() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     final int intervalTime = 100;
@@ -410,13 +404,13 @@ public class LogicalReplicationStatusTest {
   }
 
   private void insertPreviousChanges(Connection sqlConnection) throws SQLException {
-    try (Statement st = sqlConnection.createStatement();) {
+    try (Statement st = sqlConnection.createStatement()) {
       st.execute("insert into test_logic_table(name) values('previous changes')");
     }
   }
 
-  @Test()
-  public void testKeepAliveServerLSNCanBeUsedToAdvanceFlushLSN() throws Exception {
+  @Test
+  void keepAliveServerLSNCanBeUsedToAdvanceFlushLSN() throws Exception {
     PGConnection pgConnection = (PGConnection) replicationConnection;
 
     LogSequenceNumber startLSN = getCurrentLSN();
@@ -485,7 +479,7 @@ public class LogicalReplicationStatusTest {
 
   private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
-    List<String> result = new ArrayList<String>(3);
+    List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
       ByteBuffer message;
       do {
@@ -517,7 +511,7 @@ public class LogicalReplicationStatusTest {
     while (true) {
       try (
           Statement st = sqlConnection.createStatement();
-          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid);
+          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid)
       ) {
         String result = null;
         if (rs.next()) {
@@ -542,7 +536,7 @@ public class LogicalReplicationStatusTest {
     try (Statement st = sqlConnection.createStatement();
          ResultSet rs = st.executeQuery("select "
              + (((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-             ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"));
+             ? "pg_current_wal_lsn()" : "pg_current_xlog_location()"))
     ) {
       if (rs.next()) {
         String lsn = rs.getString(1);

@@ -5,6 +5,9 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
@@ -12,10 +15,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.EOFException;
 import java.io.FileNotFoundException;
@@ -30,7 +31,6 @@ import java.util.Properties;
 
 import javax.net.ssl.SSLHandshakeException;
 
-@RunWith(Parameterized.class)
 public class SslTest {
   enum Hostname {
     GOOD("localhost"),
@@ -95,29 +95,17 @@ public class SslTest {
     }
   }
 
-  @Parameterized.Parameter(0)
   public Hostname host;
-
-  @Parameterized.Parameter(1)
   public TestDatabase db;
-
-  @Parameterized.Parameter(2)
   public SslMode sslmode;
-
-  @Parameterized.Parameter(3)
   public ClientCertificate clientCertificate;
-
-  @Parameterized.Parameter(4)
   public ClientRootCertificate clientRootCertificate;
-
-  @Parameterized.Parameter(5)
   public GSSEncMode gssEncMode;
 
-  @Parameterized.Parameters(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={5}")
   public static Iterable<Object[]> data() {
     TestUtil.assumeSslTestsEnabled();
 
-    Collection<Object[]> tests = new ArrayList<Object[]>();
+    Collection<Object[]> tests = new ArrayList<>();
 
     for (SslMode sslMode : SslMode.VALUES) {
       for (Hostname hostname : Hostname.values()) {
@@ -161,16 +149,15 @@ public class SslTest {
 
   private void assertClientCertRequired(SQLException e, String caseName) {
     if (e == null) {
-      Assert.fail(caseName + " should result in failure of client validation");
+      fail(caseName + " should result in failure of client validation");
     }
-    Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+    assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> CONNECTION_FAILURE is expected");
   }
 
   private void checkErrorCodes(@Nullable SQLException e) {
     if (e != null && e.getCause() instanceof FileNotFoundException
         && clientRootCertificate != ClientRootCertificate.EMPTY) {
-      Assert.fail("FileNotFoundException => it looks like a configuration failure");
+      fail("FileNotFoundException => it looks like a configuration failure");
     }
 
     if (e == null && sslmode == SslMode.ALLOW && !db.requiresSsl()) {
@@ -182,13 +169,12 @@ public class SslTest {
         && (sslmode == SslMode.VERIFY_CA || sslmode == SslMode.VERIFY_FULL)) {
       String caseName = "rootCertificate is missing and sslmode=" + sslmode;
       if (e == null) {
-        Assert.fail(caseName + " should result in FileNotFound exception for root certificate");
+        fail(caseName + " should result in FileNotFound exception for root certificate");
       }
-      Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-          PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState(), caseName + " ==> CONNECTION_FAILURE is expected");
       FileNotFoundException fnf = findCause(e, FileNotFoundException.class);
       if (fnf == null) {
-        Assert.fail(caseName + " ==> FileNotFoundException should be present in getCause chain");
+        fail(caseName + " ==> FileNotFoundException should be present in getCause chain");
       }
       return;
     }
@@ -196,10 +182,9 @@ public class SslTest {
     if (db.requiresSsl() && sslmode == SslMode.DISABLE) {
       String caseName = "sslmode=DISABLE and database " + db + " requires SSL";
       if (e == null) {
-        Assert.fail(caseName + " should result in connection failure");
+        fail(caseName + " should result in connection failure");
       }
-      Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-          PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+      assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
       return;
     }
 
@@ -207,10 +192,9 @@ public class SslTest {
       String caseName =
           "database " + db + " rejects SSL, and sslmode " + sslmode + " requires encryption";
       if (e == null) {
-        Assert.fail(caseName + " should result in connection failure");
+        fail(caseName + " should result in connection failure");
       }
-      Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-          PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+      assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
       return;
     }
 
@@ -249,15 +233,14 @@ public class SslTest {
           "sslmode=ALLOW and db " + db + " requires SSL, and there are expected SSL failures";
       if (errors == null) {
         if (e != null) {
-          Assert.fail(caseName + " ==> connection should be upgraded to SSL with no failures");
+          fail(caseName + " ==> connection should be upgraded to SSL with no failures");
         }
       } else {
         try {
           if (e == null) {
-            Assert.fail(caseName + " ==> connection should fail");
+            fail(caseName + " ==> connection should fail");
           }
-          Assert.assertEquals(caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected",
-              PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState());
+          assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
         } catch (AssertionError er) {
           for (AssertionError error : errors) {
             er.addSuppressed(error);
@@ -276,7 +259,7 @@ public class SslTest {
         // should be handled with assertions above
         return;
       }
-      Assert.fail("SQLException present when it was not expected");
+      fail("SQLException present when it was not expected");
     }
 
     AssertionError firstError = errors.get(0);
@@ -294,7 +277,7 @@ public class SslTest {
 
   private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
-      errors = new ArrayList<AssertionError>();
+      errors = new ArrayList<>();
     }
     errors.add(ae);
     return errors;
@@ -315,18 +298,16 @@ public class SslTest {
 
     String caseName = "Server certificate is " + clientRootCertificate + " + sslmode=" + sslmode;
     if (e == null) {
-      Assert.fail(caseName + " should result in failure of server validation");
+      fail(caseName + " should result in failure of server validation");
     }
 
-    Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+    assertEquals(PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState(), caseName + " ==> CONNECTION_FAILURE is expected");
     CertPathValidatorException validatorEx = findCause(e, CertPathValidatorException.class);
     if (validatorEx == null) {
-      Assert.fail(caseName + " ==> exception should be caused by CertPathValidatorException,"
+      fail(caseName + " ==> exception should be caused by CertPathValidatorException,"
           + " but no CertPathValidatorException is present in the getCause chain");
     }
-    Assert.assertEquals(caseName + " ==> CertPathValidatorException.getReason",
-        "NO_TRUST_ANCHOR", validatorEx.getReason().toString());
+    assertEquals("NO_TRUST_ANCHOR", validatorEx.getReason().toString(), caseName + " ==> CertPathValidatorException.getReason");
     return true;
   }
 
@@ -344,13 +325,12 @@ public class SslTest {
 
     String caseName = "VERIFY_FULL + hostname that does not match server certificate";
     if (e == null) {
-      Assert.fail(caseName + " ==> CONNECTION_FAILURE expected");
+      fail(caseName + " ==> CONNECTION_FAILURE expected");
     }
-    Assert.assertEquals(caseName + " ==> CONNECTION_FAILURE is expected",
-        PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState());
+    assertEquals(PSQLState.CONNECTION_FAILURE.getState(), e.getSQLState(), caseName + " ==> CONNECTION_FAILURE is expected");
     String message = e.getMessage();
     if (message == null || !message.contains("PgjdbcHostnameVerifier")) {
-      Assert.fail(caseName + " ==> message should contain"
+      fail(caseName + " ==> message should contain"
           + " 'PgjdbcHostnameVerifier'. Actual message is " + message);
     }
     return true;
@@ -378,7 +358,7 @@ public class SslTest {
     // is doomed to fail
     String caseName = "BAD client certificate, and database " + db + " requires one";
     if (e == null) {
-      Assert.fail(caseName + " should result in failure of client validation");
+      fail(caseName + " should result in failure of client validation");
     }
     // Note: Java's SSLSocket handshake does NOT process alert messages
     // even if they are present on the wire. This looks like a perfectly valid
@@ -392,7 +372,7 @@ public class SslTest {
         && !(clientCertificate == ClientCertificate.BAD
         && PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(e.getSQLState()))
     ) {
-      Assert.fail(caseName + " ==> CONNECTION_FAILURE(08006)"
+      fail(caseName + " ==> CONNECTION_FAILURE(08006)"
               + " or CONNECTION_UNABLE_TO_CONNECT(08001) is expected"
               + ", got " + e.getSQLState());
     }
@@ -408,7 +388,7 @@ public class SslTest {
     SocketException brokenPipe = findCause(e, SocketException.class);
     if (brokenPipe != null) {
       if (!contains(brokenPipe.getMessage(), "Broken pipe")) {
-        Assert.fail(
+        fail(
             caseName + " ==> server should have terminated the connection (broken pipe expected)"
                 + ", actual exception was " + brokenPipe.getMessage());
       }
@@ -425,7 +405,7 @@ public class SslTest {
       final String handshakeMessage = handshakeException.getMessage();
       if (!contains(handshakeMessage, "unknown_ca")
           && !contains(handshakeMessage, "decrypt_error")) {
-        Assert.fail(
+        fail(
             caseName
                 + " ==> server should have terminated the connection (expected 'unknown_ca' or 'decrypt_error')"
                 + ", actual exception was " + handshakeMessage);
@@ -433,7 +413,7 @@ public class SslTest {
       return true;
     }
 
-    Assert.fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
+    fail(caseName + " ==> exception should be caused by SocketException(broken pipe)"
         + " or EOFException,"
         + " or SSLHandshakeException. No exceptions of such kind are present in the getCause chain");
     return false;
@@ -450,8 +430,10 @@ public class SslTest {
     return null;
   }
 
-  @Test
-  public void run() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={5}")
+  void run(Hostname host, TestDatabase db, SslMode sslmode, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
+    initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
     Properties props = new Properties();
     props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, db.toString());
@@ -473,9 +455,9 @@ public class SslTest {
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
       if (sslmode == SslMode.ALLOW) {
-        Assert.assertEquals("SSL should be used if the DB requires SSL", db.requiresSsl(), sslUsed);
+        assertEquals(db.requiresSsl(), sslUsed, "SSL should be used if the DB requires SSL");
       } else {
-        Assert.assertEquals("SSL should be used unless it is disabled or the DB rejects it", sslmode != SslMode.DISABLE && !db.rejectsSsl(), sslUsed);
+        assertEquals(sslmode != SslMode.DISABLE && !db.rejectsSsl(), sslUsed, "SSL should be used unless it is disabled or the DB rejects it");
       }
     } catch (SQLException e) {
       try {
@@ -487,5 +469,14 @@ public class SslTest {
         throw ae;
       }
     }
+  }
+
+  public void initSslTest(Hostname host, TestDatabase db, SslMode sslmode, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) {
+    this.host = host;
+    this.db = db;
+    this.sslmode = sslmode;
+    this.clientCertificate = clientCertificate;
+    this.clientRootCertificate = clientRootCertificate;
+    this.gssEncMode = gssEncMode;
   }
 }

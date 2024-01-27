@@ -7,33 +7,19 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.PlaceholderStyle;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-@RunWith(Parameterized.class)
 public class ReturningParserTest {
-  private final String columnName;
-  private final String returning;
-  private final String prefix;
-  private final String suffix;
-
-  public ReturningParserTest(String columnName, String returning, String prefix, String suffix) {
-    this.columnName = columnName;
-    this.returning = returning;
-    this.prefix = prefix;
-    this.suffix = suffix;
-  }
-
-  @Parameterized.Parameters(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
 
     String[] delimiters = {"", "_", "3", "*", " "};
 
@@ -49,21 +35,22 @@ public class ReturningParserTest {
     return ids;
   }
 
-  @Test
-  public void test() throws SQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "columnName={2} {0} {3}, returning={2} {1} {3}")
+  void test(String columnName, String returning, String prefix, String suffix) throws SQLException {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
     List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true, PlaceholderStyle.NONE);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
-    boolean expectedReturning = this.returning.equalsIgnoreCase("returning")
+    boolean expectedReturning = "returning".equalsIgnoreCase(returning)
         && (prefix.isEmpty() || !Character.isJavaIdentifierStart(prefix.charAt(0)))
         && (suffix.isEmpty() || !Character.isJavaIdentifierPart(suffix.charAt(0)));
     if (expectedReturning != returningKeywordPresent) {
-      Assert.assertEquals("Wrong <returning_clause> detected in SQL " + query,
-          expectedReturning,
-          returningKeywordPresent);
+      assertEquals(expectedReturning,
+          returningKeywordPresent,
+          "Wrong <returning_clause> detected in SQL " + query);
     }
   }
 

@@ -62,7 +62,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   public void testEmptyResults() throws Exception {
     PreparedStatement pstmt = con.prepareStatement("SELECT * FROM testsps WHERE id = ?");
     setUseServerPrepare(pstmt, true);
-    for (int i = 0; i < 10; ++i) {
+    for (int i = 0; i < 10; i++) {
       pstmt.setInt(1, -1);
       ResultSet rs = pstmt.executeQuery();
       assertFalse(rs.next());

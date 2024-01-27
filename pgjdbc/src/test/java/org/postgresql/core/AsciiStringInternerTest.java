@@ -5,12 +5,12 @@
 
 package org.postgresql.core;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -25,10 +25,10 @@ import java.util.concurrent.atomic.LongAdder;
  *
  * @author Brett Okken
  */
-public class AsciiStringInternerTest {
+class AsciiStringInternerTest {
 
   @Test
-  public void testCanonicalValue() throws Exception {
+  void canonicalValue() throws Exception {
     AsciiStringInterner interner = new AsciiStringInterner();
     String s1 = "testCanonicalValue";
     byte[] bytes = s1.getBytes(StandardCharsets.US_ASCII);
@@ -52,7 +52,7 @@ public class AsciiStringInternerTest {
   }
 
   @Test
-  public void testStagedValue() throws Exception {
+  void stagedValue() throws Exception {
     AsciiStringInterner interner = new AsciiStringInterner();
     String s1 = "testStagedValue";
     interner.putString(s1);
@@ -70,7 +70,7 @@ public class AsciiStringInternerTest {
   }
 
   @Test
-  public void testNonAsciiValue() throws Exception {
+  void nonAsciiValue() throws Exception {
     final Encoding encoding = Encoding.getJVMEncoding("UTF-8");
     AsciiStringInterner interner = new AsciiStringInterner();
     String s1 = "testNonAsciiValue" + '\u03C0'; // add multi-byte to string to make invalid for intern
@@ -89,25 +89,25 @@ public class AsciiStringInternerTest {
   }
 
   @Test
-  public void testToString() throws Exception {
+  void testToString() throws Exception {
     AsciiStringInterner interner = new AsciiStringInterner();
-    assertEquals("empty", "AsciiStringInterner []", interner.toString());
+    assertEquals("AsciiStringInterner []", interner.toString(), "empty");
     interner.putString("s1");
-    assertEquals("empty", "AsciiStringInterner ['s1']", interner.toString());
+    assertEquals("AsciiStringInterner ['s1']", interner.toString(), "empty");
     interner.getString("s2".getBytes(StandardCharsets.US_ASCII), 0, 2, null);
-    assertEquals("empty", "AsciiStringInterner ['s1', 's2']", interner.toString());
+    assertEquals("AsciiStringInterner ['s1', 's2']", interner.toString(), "empty");
   }
 
   @Test
-  public void testGarbageCleaning() throws Exception {
+  void garbageCleaning() throws Exception {
     final byte[] bytes = new byte[100000];
-    for (int i = 0; i < 100000; ++i) {
+    for (int i = 0; i < 100000; i++) {
       bytes[i] = (byte) ThreadLocalRandom.current().nextInt(128);
     }
     final AsciiStringInterner interner = new AsciiStringInterner();
     final LongAdder length = new LongAdder();
     final Callable<Void> c = () -> {
-      for (int i = 0; i < 25000; ++i) {
+      for (int i = 0; i < 25000; i++) {
         String str;
         try {
           str = interner.getString(bytes, 0, ThreadLocalRandom.current().nextInt(1000, bytes.length), null);

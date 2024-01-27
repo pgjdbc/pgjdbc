@@ -5,26 +5,16 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.util.PSQLException;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
 public class CommandCompleteParserTest {
-
-  @Parameterized.Parameter(0)
-  public String input;
-  @Parameterized.Parameter(1)
-  public long oid;
-  @Parameterized.Parameter(2)
-  public long rows;
-
-  @Parameterized.Parameters(name = "input={0}, oid={1}, rows={2}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"SELECT 0", 0, 0},
@@ -47,12 +37,13 @@ public class CommandCompleteParserTest {
     });
   }
 
-  @Test
-  public void run() throws PSQLException {
+  @MethodSource("data")
+  @ParameterizedTest(name = "input={0}, oid={1}, rows={2}")
+  void run(String input, long oid, long rows) throws PSQLException {
     CommandCompleteParser expected = new CommandCompleteParser();
     CommandCompleteParser actual = new CommandCompleteParser();
     expected.set(oid, rows);
     actual.parse(input);
-    Assert.assertEquals(input, expected, actual);
+    assertEquals(expected, actual, input);
   }
 }

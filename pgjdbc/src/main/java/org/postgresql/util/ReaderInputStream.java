@@ -111,7 +111,7 @@ public class ReaderInputStream extends InputStream {
     while (res != -1) {
       res = read(oneByte);
       if (res > 0) {
-        return (oneByte[0] & 0xFF);
+        return oneByte[0] & 0xFF;
       }
     }
     return -1;

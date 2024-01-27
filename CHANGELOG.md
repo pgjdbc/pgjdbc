@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 ### Added
+* feat: Add PasswordUtil for encrypting passwords client side [PR #3082](https://github.com/pgjdbc/pgjdbc/pull/3082)
 ### Fixed
 
 ## [42.7.1] (2023-12-06 08:34:00 -0500)

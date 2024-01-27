@@ -20,7 +20,7 @@ import java.util.Map;
  */
 public class GlobalHostStatusTracker {
   private static final Map<HostSpec, HostSpecStatus> hostStatusMap =
-      new HashMap<HostSpec, HostSpecStatus>();
+      new HashMap<>();
   private static final ResourceLock lock = new ResourceLock();
 
   /**
@@ -52,7 +52,7 @@ public class GlobalHostStatusTracker {
    */
   static List<HostSpec> getCandidateHosts(HostSpec[] hostSpecs,
       HostRequirement targetServerType, long hostRecheckMillis) {
-    List<HostSpec> candidates = new ArrayList<HostSpec>(hostSpecs.length);
+    List<HostSpec> candidates = new ArrayList<>(hostSpecs.length);
     long latestAllowedUpdate = System.nanoTime() / 1000000 - hostRecheckMillis;
     try (ResourceLock ignore = lock.obtain()) {
       for (HostSpec hostSpec : hostSpecs) {

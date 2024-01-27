@@ -242,7 +242,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
   public void testVaryingTypeCounts() throws SQLException {
     PgPreparedStatement pstmt = null;
     try {
-      pstmt = (PgPreparedStatement)con.prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
+      pstmt = (PgPreparedStatement) con.prepareStatement("INSERT INTO testunspecified VALUES (?,?)");
       pstmt.setInt(1, 1);
       pstmt.setDate(2, new Date(1));
       pstmt.addBatch();

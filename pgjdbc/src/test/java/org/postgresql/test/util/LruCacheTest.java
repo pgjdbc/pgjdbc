@@ -5,14 +5,14 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.util.CanEstimateSize;
 import org.postgresql.util.LruCache;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.ArrayDeque;
@@ -22,7 +22,7 @@ import java.util.Deque;
 /**
  * Tests {@link org.postgresql.util.LruCache}.
  */
-public class LruCacheTest {
+class LruCacheTest {
 
   private static class Entry implements CanEstimateSize {
     private final int id;
@@ -43,16 +43,16 @@ public class LruCacheTest {
   }
 
   private final Integer[] expectCreate = new Integer[1];
-  private final Deque<Entry> expectEvict = new ArrayDeque<Entry>();
+  private final Deque<Entry> expectEvict = new ArrayDeque<>();
   private final Entry dummy = new Entry(-999);
   private LruCache<Integer, Entry> cache;
 
-  @Before
-  public void setUp() throws Exception {
-    cache = new LruCache<Integer, Entry>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
+  @BeforeEach
+  void setUp() throws Exception {
+    cache = new LruCache<>(4, 1000, false, new LruCache.CreateAction<Integer, Entry>() {
       @Override
       public Entry create(Integer key) throws SQLException {
-        assertEquals("Unexpected create", expectCreate[0], key);
+        assertEquals(expectCreate[0], key, "Unexpected create");
         return new Entry(key);
       }
     }, new LruCache.EvictAction<Entry>() {
@@ -62,13 +62,13 @@ public class LruCacheTest {
           fail("Unexpected entry was evicted: " + entry);
         }
         Entry expected = expectEvict.removeFirst();
-        assertEquals("Unexpected evict", expected, entry);
+        assertEquals(expected, entry, "Unexpected evict");
       }
     });
   }
 
   @Test
-  public void testEvictsByNumberOfEntries() throws SQLException {
+  void evictsByNumberOfEntries() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
@@ -83,7 +83,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testEvictsBySize() throws SQLException {
+  void evictsBySize() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
@@ -95,7 +95,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testEvictsLeastRecentlyUsed() throws SQLException {
+  void evictsLeastRecentlyUsed() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
@@ -110,7 +110,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testCyclicReplacement() throws SQLException {
+  void cyclicReplacement() throws SQLException {
     Entry a;
     Entry b;
     Entry c;
@@ -133,7 +133,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testDuplicateKey() throws SQLException {
+  void duplicateKey() throws SQLException {
     Entry a;
 
     a = use(1);
@@ -145,7 +145,7 @@ public class LruCacheTest {
   }
 
   @Test
-  public void testCaching() throws SQLException {
+  void caching() throws SQLException {
     Entry a;
     Entry b;
     Entry c;

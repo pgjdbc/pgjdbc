@@ -95,6 +95,7 @@ public class Driver implements java.sql.Driver {
       try {
         defaultProperties =
             doPrivileged(new PrivilegedExceptionAction<Properties>() {
+              @Override
               public Properties run() throws IOException {
                 return loadDefaultProperties();
               }
@@ -173,7 +174,7 @@ public class Driver implements java.sql.Driver {
     // in later files in the classpath to override settings specified in
     // earlier files. To do this we've got to read the returned
     // Enumeration into temporary storage.
-    ArrayList<URL> urls = new ArrayList<URL>();
+    ArrayList<URL> urls = new ArrayList<>();
     Enumeration<URL> urlEnum = cl.getResources("org/postgresql/driverconfig.properties");
     while (urlEnum.hasMoreElements()) {
       urls.add(urlEnum.nextElement());
@@ -345,6 +346,7 @@ public class Driver implements java.sql.Driver {
       this.props = props;
     }
 
+    @Override
     public void run() {
       Connection conn;
       Throwable error;
@@ -481,7 +483,7 @@ public class Driver implements java.sql.Driver {
 
     PGProperty[] knownProperties = PGProperty.values();
     DriverPropertyInfo[] props = new DriverPropertyInfo[knownProperties.length];
-    for (int i = 0; i < props.length; ++i) {
+    for (int i = 0; i < props.length; i++) {
       props[i] = knownProperties[i].toDriverPropertyInfo(copy);
     }
 
@@ -490,12 +492,12 @@ public class Driver implements java.sql.Driver {
 
   @Override
   public int getMajorVersion() {
-    return org.postgresql.util.DriverInfo.MAJOR_VERSION;
+    return DriverInfo.MAJOR_VERSION;
   }
 
   @Override
   public int getMinorVersion() {
-    return org.postgresql.util.DriverInfo.MINOR_VERSION;
+    return DriverInfo.MINOR_VERSION;
   }
 
   /**
@@ -554,7 +556,7 @@ public class Driver implements java.sql.Driver {
     }
     urlServer = urlServer.substring("jdbc:postgresql:".length());
 
-    if (urlServer.equals("//") || urlServer.equals("///")) {
+    if ("//".equals(urlServer) || "///".equals(urlServer)) {
       urlServer = "";
     } else if (urlServer.startsWith("//")) {
       urlServer = urlServer.substring(2);
@@ -702,7 +704,7 @@ public class Driver implements java.sql.Driver {
     String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
-    for (int i = 0; i < hostSpecs.length; ++i) {
+    for (int i = 0; i < hostSpecs.length; i++) {
       hostSpecs[i] = new HostSpec(hosts[i], Integer.parseInt(ports[i]), localSocketAddress);
     }
     return hostSpecs;
@@ -742,7 +744,7 @@ public class Driver implements java.sql.Driver {
   }
 
   @Override
-  public java.util.logging.Logger getParentLogger() {
+  public Logger getParentLogger() {
     return PARENT_LOGGER;
   }
 

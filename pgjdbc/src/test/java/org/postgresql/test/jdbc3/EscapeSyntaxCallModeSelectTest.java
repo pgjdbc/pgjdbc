@@ -74,7 +74,7 @@ public class EscapeSyntaxCallModeSelectTest extends EscapeSyntaxCallModeBaseTest
       cs.execute();
       fail("Should throw an exception");
     } catch (SQLException ex) {
-      assertEquals(PSQLState.WRONG_OBJECT_TYPE.getState(),ex.getSQLState());
+      assertEquals(PSQLState.WRONG_OBJECT_TYPE.getState(), ex.getSQLState());
     }
   }
 

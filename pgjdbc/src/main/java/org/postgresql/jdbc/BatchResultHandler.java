@@ -35,7 +35,7 @@ import java.util.List;
 public class BatchResultHandler extends ResultHandlerBase {
 
   private final PgStatement pgStatement;
-  private int resultIndex = 0;
+  private int resultIndex;
 
   private final Query[] queries;
   private final long[] longUpdateCounts;
@@ -72,7 +72,7 @@ public class BatchResultHandler extends ResultHandlerBase {
         // If SELECT, the resulting ResultSet is not valid
         // Thus it is up to handleCommandStatus to decide if resultSet is good enough
         latestGeneratedKeysRs = (PgResultSet) pgStatement.createResultSet(fromQuery, fields,
-            new ArrayList<Tuple>(), cursor);
+            new ArrayList<>(), cursor);
       } catch (SQLException e) {
         handleError(e);
       }

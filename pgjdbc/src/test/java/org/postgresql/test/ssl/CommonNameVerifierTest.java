@@ -5,29 +5,16 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.ssl.PGjdbcHostnameVerifier;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
 public class CommonNameVerifierTest {
-
-  private final String a;
-  private final String b;
-  private final int expected;
-
-  public CommonNameVerifierTest(String a, String b, int expected) {
-    this.a = a;
-    this.b = b;
-    this.expected = expected;
-  }
-
-  @Parameterized.Parameters(name = "a={0}, b={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"com", "host.com", -1},
@@ -40,12 +27,11 @@ public class CommonNameVerifierTest {
     });
   }
 
-  @Test
-  public void comparePatterns() throws Exception {
-    Assert.assertEquals(a + " vs " + b,
-        expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b));
+  @MethodSource("data")
+  @ParameterizedTest(name = "a={0}, b={1}")
+  void comparePatterns(String a, String b, int expected) throws Exception {
+    assertEquals(expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b), a + " vs " + b);
 
-    Assert.assertEquals(b + " vs " + a,
-        -expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(b, a));
+    assertEquals(-expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(b, a), b + " vs " + a);
   }
 }

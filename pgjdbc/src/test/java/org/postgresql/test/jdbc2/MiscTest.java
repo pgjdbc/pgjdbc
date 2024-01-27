@@ -5,13 +5,13 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectOutputStream;
@@ -22,11 +22,11 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 
 /*
- * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
- * problems from re-occurring ;-)
- *
- */
-public class MiscTest {
+* Some simple tests based on problems reported by users. Hopefully these will help prevent previous
+* problems from re-occurring ;-)
+*
+*/
+class MiscTest {
 
   /*
    * Some versions of the driver would return rs as a null?
@@ -36,7 +36,7 @@ public class MiscTest {
    * Added Feb 13 2001
    */
   @Test
-  public void testDatabaseSelectNullBug() throws Exception {
+  void databaseSelectNullBug() throws Exception {
     Connection con = TestUtil.openDB();
 
     Statement st = con.createStatement();
@@ -58,7 +58,7 @@ public class MiscTest {
    * cancelled future queries.
    */
   @Test
-  public void testSingleThreadCancel() throws Exception {
+  void singleThreadCancel() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
     for (int i = 0; i < 100; i++) {
@@ -70,7 +70,7 @@ public class MiscTest {
   }
 
   @Test
-  public void testError() throws Exception {
+  void error() throws Exception {
     Connection con = TestUtil.openDB();
     try {
 
@@ -93,7 +93,7 @@ public class MiscTest {
   }
 
   @Test
-  public void testWarning() throws Exception {
+  void warning() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE t(a int primary key)");
@@ -114,9 +114,9 @@ public class MiscTest {
     con.close();
   }
 
-  @Ignore
+  @Disabled
   @Test
-  public void xtestLocking() throws Exception {
+  void xtestLocking() throws Exception {
     Connection con = TestUtil.openDB();
     Connection con2 = TestUtil.openDB();
 

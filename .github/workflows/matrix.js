@@ -3,6 +3,7 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 let fs = require('fs');
 let os = require('os');
+const { RNG } = require('./rng');
 let {MatrixBuilder} = require('./matrix_builder');
 const matrix = new MatrixBuilder();
 
@@ -293,13 +294,13 @@ include.forEach(v => {
   includeTestTags.push('none()'); // untagged tests
 
   if (v.replication === 'yes') {
-      includeTestTags.push('org.postgresql.test.Replication');
+      includeTestTags.push('replication');
   }
   if (v.slow_tests === 'yes') {
       includeTestTags.push('org.postgresql.test.SlowTests');
   }
   if (v.xa === 'yes') {
-      includeTestTags.push('org.postgresql.test.XaTests');
+      includeTestTags.push('xa');
   }
 
   v.includeTestTags = includeTestTags.join(' | ');
@@ -317,7 +318,7 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
   let jit = v.java_distribution === 'semeru' ? 'open9j' : 'hotspot';
-  if (jit === 'hotspot' && Math.random() > 0.5) {
+  if (jit === 'hotspot' && RNG.random() > 0.5) {
     // The following options randomize instruction selection in JIT compiler
     // so it might reveal missing synchronization in TestNG code
     v.name += ', stress JIT';
@@ -341,6 +342,8 @@ include.forEach(v => {
       jvmArgs.push('-XX:+StressCCP');
     }
   }
+  // Force using /dev/urandom so we do not worry about draining entropy pool
+  testJvmArgs.push('-Djava.security.egd=file:/dev/./urandom')
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;

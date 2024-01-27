@@ -5,25 +5,27 @@
 
 package org.postgresql.test.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Properties;
 
-public class OptionsPropertyTest {
+class OptionsPropertyTest {
   private static final String schemaName = "options_property_test";
   private static final String optionsValue = "-c search_path=" + schemaName;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
     stmt.execute("DROP SCHEMA IF EXISTS " + schemaName + ";");
@@ -33,7 +35,7 @@ public class OptionsPropertyTest {
   }
 
   @Test
-  public void testOptionsInProperties() throws Exception {
+  void optionsInProperties() throws Exception {
     Properties props = new Properties();
     props.setProperty(PGProperty.OPTIONS.getName(), optionsValue);
 
@@ -43,16 +45,16 @@ public class OptionsPropertyTest {
 
     ResultSet rs = stmt.getResultSet();
     if (!rs.next()) {
-      Assert.fail("'options' connection initialization parameter should be passed to the database.");
+      fail("'options' connection initialization parameter should be passed to the database.");
     }
-    Assert.assertEquals("'options' connection initialization parameter should be passed to the database.", schemaName, rs.getString(1));
+    assertEquals(schemaName, rs.getString(1), "'options' connection initialization parameter should be passed to the database.");
 
     stmt.close();
     TestUtil.closeDB(con);
   }
 
-  @After
-  public void tearDown() throws Exception {
+  @AfterEach
+  void tearDown() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
     stmt.execute("DROP SCHEMA " + schemaName + ";");

@@ -14,7 +14,7 @@ import java.util.Arrays;
 public final class IntList {
   private static final int[] EMPTY_INT_ARRAY = new int[0];
   private int[] ints = EMPTY_INT_ARRAY;
-  private int size = 0;
+  private int size;
 
   public void add(int i) {
     int size = this.size;
@@ -69,7 +69,7 @@ public final class IntList {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder("[");
-    for (int i = 0; i < size; ++i) {
+    for (int i = 0; i < size; i++) {
       if (i > 0) {
         sb.append(", ");
       }

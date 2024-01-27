@@ -29,6 +29,7 @@ class StatementCancelTimerTask extends TimerTask {
     return result;
   }
 
+  @Override
   public void run() {
     PgStatement statement = this.statement;
     if (statement != null) {

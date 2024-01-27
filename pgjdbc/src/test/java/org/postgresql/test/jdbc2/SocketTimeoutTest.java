@@ -5,23 +5,23 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
-public class SocketTimeoutTest {
+class SocketTimeoutTest {
 
   @Test
-  public void testSocketTimeoutEnforcement() throws Exception {
+  void socketTimeoutEnforcement() throws Exception {
     Properties properties = new Properties();
     PGProperty.SOCKET_TIMEOUT.set(properties, 1);
 

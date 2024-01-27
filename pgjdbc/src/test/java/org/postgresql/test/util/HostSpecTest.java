@@ -5,65 +5,65 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.util.HostSpec;
 
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author Joe Kutner on 10/19/17.
  *         Twitter: @codefinger
  */
-public class HostSpecTest {
+class HostSpecTest {
 
-  @After
-  public void cleanup() {
+  @AfterEach
+  void cleanup() {
     System.clearProperty("socksProxyHost");
     System.clearProperty("socksProxyPort");
     System.clearProperty("socksNonProxyHosts");
   }
 
   @Test
-  public void testShouldResolve() throws Exception {
+  void shouldResolve() throws Exception {
     HostSpec hostSpec = new HostSpec("localhost", 5432);
     assertTrue(hostSpec.shouldResolve());
   }
 
   @Test
-  public void testShouldResolveWithEmptySocksProxyHost() throws Exception {
+  void shouldResolveWithEmptySocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "");
     HostSpec hostSpec = new HostSpec("localhost", 5432);
     assertTrue(hostSpec.shouldResolve());
   }
 
   @Test
-  public void testShouldResolveWithWhiteSpaceSocksProxyHost() throws Exception {
+  void shouldResolveWithWhiteSpaceSocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", " ");
     HostSpec hostSpec = new HostSpec("localhost", 5432);
     assertTrue(hostSpec.shouldResolve());
   }
 
   @Test
-  public void testShouldResolveWithSocksProxyHost() throws Exception {
+  void shouldResolveWithSocksProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     HostSpec hostSpec = new HostSpec("example.com", 5432);
     assertFalse(hostSpec.shouldResolve());
   }
 
   @Test
-  public void testShouldResolveWithSocksProxyHostWithLocalhost() throws Exception {
+  void shouldResolveWithSocksProxyHostWithLocalhost() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     HostSpec hostSpec = new HostSpec("localhost", 5432);
     assertTrue(hostSpec.shouldResolve());
   }
 
   @Test
-  public void testShouldResolveWithSocksNonProxyHost() throws Exception {
+  void shouldResolveWithSocksNonProxyHost() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     System.setProperty("socksNonProxyHosts", "example.com");
     HostSpec hostSpec = new HostSpec("example.com", 5432);
@@ -71,7 +71,7 @@ public class HostSpecTest {
   }
 
   @Test
-  public void testShouldResolveWithSocksNonProxyHosts() throws Exception {
+  void shouldResolveWithSocksNonProxyHosts() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     System.setProperty("socksNonProxyHosts", "example.com|localhost");
     HostSpec hostSpec = new HostSpec("example.com", 5432);
@@ -79,7 +79,7 @@ public class HostSpecTest {
   }
 
   @Test
-  public void testShouldResolveWithSocksNonProxyHostsNotMatching() throws Exception {
+  void shouldResolveWithSocksNonProxyHostsNotMatching() throws Exception {
     System.setProperty("socksProxyHost", "fake-socks-proxy");
     System.setProperty("socksNonProxyHosts", "example.com|localhost");
     HostSpec hostSpec = new HostSpec("example.org", 5432);
@@ -87,13 +87,13 @@ public class HostSpecTest {
   }
 
   @Test
-  public void testShouldReturnEmptyLocalAddressBind() throws Exception {
+  void shouldReturnEmptyLocalAddressBind() throws Exception {
     HostSpec hostSpec = new HostSpec("example.org", 5432);
     assertNull(hostSpec.getLocalSocketAddress());
   }
 
   @Test
-  public void testShouldReturnLocalAddressBind() throws Exception {
+  void shouldReturnLocalAddressBind() throws Exception {
     HostSpec hostSpec = new HostSpec("example.org", 5432, "foo");
     assertEquals("foo", hostSpec.getLocalSocketAddress());
   }

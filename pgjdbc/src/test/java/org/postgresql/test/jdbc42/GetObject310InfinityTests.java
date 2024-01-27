@@ -51,14 +51,14 @@ public class GetObject310InfinityTests extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
   public static Iterable<Object[]> data() throws IllegalAccessException {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (String expression : Arrays.asList("-infinity", "infinity")) {
         for (String pgType : Arrays.asList("date", "timestamp",
             "timestamp with time zone")) {
           for (Class<?> klass : Arrays.asList(LocalDate.class, LocalDateTime.class,
               OffsetDateTime.class)) {
-            if (klass.equals(LocalDate.class) && !pgType.equals("date")) {
+            if (klass.equals(LocalDate.class) && !"date".equals(pgType)) {
               continue;
             }
             if (klass.equals(LocalDateTime.class) && !pgType.startsWith("timestamp")) {
@@ -67,7 +67,7 @@ public class GetObject310InfinityTests extends BaseTest4 {
             if (klass.equals(OffsetDateTime.class) && !pgType.startsWith("timestamp")) {
               continue;
             }
-            if (klass.equals(LocalDateTime.class) && pgType.equals("timestamp with time zone")) {
+            if (klass.equals(LocalDateTime.class) && "timestamp with time zone".equals(pgType)) {
               // org.postgresql.util.PSQLException: Cannot convert the column of type TIMESTAMPTZ to requested type timestamp.
               continue;
             }

@@ -7,18 +7,18 @@ package org.postgresql.test.sspi;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.junit.MatcherAssume.assumeThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.hamcrest.MatcherAssert;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.Statement;
@@ -26,18 +26,18 @@ import java.util.Locale;
 import java.util.Properties;
 
 /*
- * These tests require a working SSPI authentication setup
- * in the database server that allows the executing user
- * to authenticate as the "sspiusername" in the build
- * configuration.
- */
-public class SSPITest {
+* These tests require a working SSPI authentication setup
+* in the database server that allows the executing user
+* to authenticate as the "sspiusername" in the build
+* configuration.
+*/
+class SSPITest {
 
   /*
    * SSPI only exists on Windows.
    */
-  @BeforeClass
-  public static void checkPlatform() {
+  @BeforeAll
+  static void checkPlatform() {
     assumeThat("SSPI not supported on this platform",
                System.getProperty("os.name").toLowerCase(Locale.ROOT),
                containsString("windows"));
@@ -47,8 +47,8 @@ public class SSPITest {
    * Tests that SSPI login succeeds and a query can be run.
    */
   @Test
-  @Ignore
-  public void testAuthorized() throws Exception {
+  @Disabled
+  void authorized() throws Exception {
     Properties props = new Properties();
     PGProperty.USER.set(props, TestUtil.getSSPIUser());
 
@@ -65,7 +65,7 @@ public class SSPITest {
    * user name.
    */
   @Test
-  public void testUnauthorized() throws Exception {
+  void unauthorized() throws Exception {
     Properties props = new Properties();
     PGProperty.USER.set(props, "invalid" + TestUtil.getSSPIUser());
 
@@ -74,7 +74,7 @@ public class SSPITest {
       TestUtil.closeDB(con);
       fail("Expected a PSQLException");
     } catch (PSQLException e) {
-      MatcherAssert.assertThat(e.getSQLState(), is(PSQLState.INVALID_PASSWORD.getState()));
+      assertThat(e.getSQLState(), is(PSQLState.INVALID_PASSWORD.getState()));
     }
   }
 

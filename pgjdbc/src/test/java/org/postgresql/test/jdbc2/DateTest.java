@@ -115,7 +115,6 @@ public class DateTest extends BaseTest4 {
       dateTest();
 
       assertEquals(21, stmt.executeUpdate("DELETE FROM test"));
-      stmt.close();
     }
   }
 
@@ -197,7 +196,6 @@ public class DateTest extends BaseTest4 {
       dateTest();
 
       assertEquals(21, stmt.executeUpdate("DELETE FROM test"));
-      stmt.close();
     }
   }
 

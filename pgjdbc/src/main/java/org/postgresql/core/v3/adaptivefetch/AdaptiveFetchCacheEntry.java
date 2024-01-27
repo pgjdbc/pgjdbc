@@ -8,7 +8,7 @@ package org.postgresql.core.v3.adaptivefetch;
 public class AdaptiveFetchCacheEntry {
 
   private int size = -1; // Holds information about adaptive fetch size for query
-  private int counter = 0; // Number of queries in execution using that query info
+  private int counter; // Number of queries in execution using that query info
   private int maximumRowSizeBytes = -1; // Maximum row size in bytes saved for query so far
 
   public int getSize() {

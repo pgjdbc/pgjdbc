@@ -45,7 +45,7 @@ public class GeometricTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -151,7 +151,7 @@ public class GeometricTest extends BaseTest4 {
       }
 
       // Generate a dataset for testing.
-      List<PGline> linesToTest = new ArrayList<PGline>();
+      List<PGline> linesToTest = new ArrayList<>();
       for (double i = 1; i <= 3; i += 0.25) {
         // Test the 3-arg constructor (coefficients+constant)
         linesToTest.add(new PGline(i, (0 - i), (1 / i)));

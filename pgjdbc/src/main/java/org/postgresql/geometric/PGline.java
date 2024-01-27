@@ -163,6 +163,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two lines are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (this == obj) {
       return true;
@@ -186,6 +187,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
         && Double.compare(pGline.c, c) == 0;
   }
 
+  @Override
   public int hashCode() {
     if (isNull) {
       return 0;
@@ -204,6 +206,7 @@ public class PGline extends PGobject implements Serializable, Cloneable {
   /**
    * @return the PGline in the syntax expected by org.postgresql
    */
+  @Override
   public @Nullable String getValue() {
     return isNull ? null : "{" + a + "," + b + "," + c + "}";
   }

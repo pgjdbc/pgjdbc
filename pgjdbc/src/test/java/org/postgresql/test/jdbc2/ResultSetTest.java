@@ -53,7 +53,7 @@ public class ResultSetTest extends BaseTest4 {
 
   @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
-    Collection<Object[]> ids = new ArrayList<Object[]>();
+    Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       ids.add(new Object[]{binaryMode});
     }
@@ -488,7 +488,7 @@ public class ResultSetTest extends BaseTest4 {
         rs.getByte(1);
         fail("Exception expected.");
       } catch (SQLException e) {
-        assertEquals(e.getSQLState(),"22003");
+        assertEquals(e.getSQLState(), "22003");
       }
     }
     rs.close();

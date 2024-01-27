@@ -82,6 +82,7 @@ public class PGobject implements Serializable, Cloneable {
    * @param obj Object to compare with
    * @return true if the two boxes are identical
    */
+  @Override
   public boolean equals(@Nullable Object obj) {
     if (obj instanceof PGobject) {
       final Object otherValue = ((PGobject) obj).getValue();
@@ -106,6 +107,7 @@ public class PGobject implements Serializable, Cloneable {
    *
    * @return the value of this object, in the syntax expected by org.postgresql
    */
+  @Override
   @SuppressWarnings("nullness")
   public String toString() {
     return getValue();

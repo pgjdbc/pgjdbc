@@ -5,28 +5,29 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 /*
- * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
- *
- */
-public class SearchPathLookupTest {
+* TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
+*
+*/
+class SearchPathLookupTest {
   private BaseConnection con;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     con = (BaseConnection) TestUtil.openDB();
   }
 
@@ -37,7 +38,7 @@ public class SearchPathLookupTest {
    * first schema in the search_path).
    */
   @Test
-  public void testSearchPathNormalLookup() throws Exception {
+  void searchPathNormalLookup() throws Exception {
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");
@@ -54,7 +55,7 @@ public class SearchPathLookupTest {
       ResultSet rs = stmt.executeQuery("SELECT 'third_schema.x'::regtype::oid");
       assertTrue(rs.next());
       assertEquals(oid, rs.getInt(1));
-      assertTrue(!rs.next());
+      assertFalse(rs.next());
       TestUtil.dropSchema(con, "first_schema");
       TestUtil.dropSchema(con, "second_schema");
       TestUtil.dropSchema(con, "third_schema");
@@ -73,7 +74,7 @@ public class SearchPathLookupTest {
    * that is used for keeping utility objects.
    */
   @Test
-  public void testSearchPathHiddenLookup() throws Exception {
+  void searchPathHiddenLookup() throws Exception {
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");
@@ -90,7 +91,7 @@ public class SearchPathLookupTest {
       ResultSet rs = stmt.executeQuery("SELECT 'second_schema.y'::regtype::oid");
       assertTrue(rs.next());
       assertEquals(oid, rs.getInt(1));
-      assertTrue(!rs.next());
+      assertFalse(rs.next());
       TestUtil.dropSchema(con, "first_schema");
       TestUtil.dropSchema(con, "second_schema");
       TestUtil.dropSchema(con, "third_schema");
@@ -104,7 +105,7 @@ public class SearchPathLookupTest {
   }
 
   @Test
-  public void testSearchPathBackwardsCompatibleLookup() throws Exception {
+  void searchPathBackwardsCompatibleLookup() throws Exception {
     Statement stmt = con.createStatement();
     try {
       TestUtil.createSchema(con, "first_schema");
@@ -117,7 +118,7 @@ public class SearchPathLookupTest {
           .executeQuery("SELECT oid FROM pg_type WHERE typname = 'x' ORDER BY oid DESC LIMIT 1");
       assertTrue(rs.next());
       assertEquals(oid, rs.getInt(1));
-      assertTrue(!rs.next());
+      assertFalse(rs.next());
       TestUtil.dropSchema(con, "first_schema");
       TestUtil.dropSchema(con, "second_schema");
     } finally {

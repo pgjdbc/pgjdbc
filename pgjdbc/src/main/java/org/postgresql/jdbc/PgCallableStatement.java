@@ -20,15 +20,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.CallableStatement;
 import java.sql.Clob;
+import java.sql.Date;
 import java.sql.NClob;
 import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.RowId;
 import java.sql.SQLException;
+import java.sql.SQLType;
 import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -47,7 +50,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
-  private int lastIndex = 0;
+  private int lastIndex;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
@@ -61,6 +64,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
   }
 
+  @Override
   public int executeUpdate() throws SQLException {
     if (isFunction) {
       executeWithFlags(0);
@@ -69,11 +73,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return super.executeUpdate();
   }
 
+  @Override
   public @Nullable Object getObject(@Positive int i, @Nullable Map<String, Class<?>> map)
       throws SQLException {
     return getObjectImpl(i, map);
   }
 
+  @Override
   public @Nullable Object getObject(String s, @Nullable Map<String, Class<?>> map) throws SQLException {
     return getObjectImpl(s, map);
   }
@@ -228,6 +234,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     returnTypeSet = true;
   }
 
+  @Override
   public boolean wasNull() throws SQLException {
     if (lastIndex == 0 || callResult == null) {
       throw new PSQLException(GT.tr("wasNull cannot be call before fetching a result."),
@@ -238,11 +245,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return callResult[lastIndex - 1] == null;
   }
 
+  @Override
   public @Nullable String getString(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.VARCHAR, "String");
     return (String) result;
   }
 
+  @Override
   public boolean getBoolean(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.BIT, "Boolean");
     if (result == null) {
@@ -251,6 +260,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return BooleanTypeUtil.castToBoolean(result);
   }
 
+  @Override
   public byte getByte(@Positive int parameterIndex) throws SQLException {
     // fake tiny int with smallint
     Object result = checkIndex(parameterIndex, Types.SMALLINT, "Byte");
@@ -263,6 +273,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   }
 
+  @Override
   public short getShort(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.SMALLINT, "Short");
     if (result == null) {
@@ -271,6 +282,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return ((Integer) result).shortValue();
   }
 
+  @Override
   public int getInt(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.INTEGER, "Int");
     if (result == null) {
@@ -280,6 +292,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Integer) result;
   }
 
+  @Override
   public long getLong(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.BIGINT, "Long");
     if (result == null) {
@@ -289,6 +302,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Long) result;
   }
 
+  @Override
   public float getFloat(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.REAL, "Float");
     if (result == null) {
@@ -298,6 +312,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Float) result;
   }
 
+  @Override
   public double getDouble(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.DOUBLE, "Double");
     if (result == null) {
@@ -307,32 +322,38 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return (Double) result;
   }
 
+  @Override
   @SuppressWarnings("deprecation")
   public @Nullable BigDecimal getBigDecimal(@Positive int parameterIndex, int scale) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
     return (@Nullable BigDecimal) result;
   }
 
+  @Override
   public byte @Nullable [] getBytes(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.VARBINARY, Types.BINARY, "Bytes");
-    return ((byte @Nullable []) result);
+    return (byte @Nullable []) result;
   }
 
-  public java.sql.@Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
+  @Override
+  public @Nullable Date getDate(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.DATE, "Date");
-    return (java.sql.@Nullable Date) result;
+    return (@Nullable Date) result;
   }
 
-  public java.sql.@Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
+  @Override
+  public @Nullable Time getTime(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.TIME, "Time");
-    return (java.sql.@Nullable Time) result;
+    return (@Nullable Time) result;
   }
 
-  public java.sql.@Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
+  @Override
+  public @Nullable Timestamp getTimestamp(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.TIMESTAMP, "Timestamp");
-    return (java.sql.@Nullable Timestamp) result;
+    return (@Nullable Timestamp) result;
   }
 
+  @Override
   public @Nullable Object getObject(@Positive int parameterIndex) throws SQLException {
     return getCallResult(parameterIndex);
   }
@@ -415,20 +436,24 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return new CallableBatchResultHandler(this, queries, parameterLists);
   }
 
-  public java.sql.@Nullable Array getArray(int i) throws SQLException {
+  @Override
+  public @Nullable Array getArray(int i) throws SQLException {
     Object result = checkIndex(i, Types.ARRAY, "Array");
     return (Array) result;
   }
 
-  public java.math.@Nullable BigDecimal getBigDecimal(@Positive int parameterIndex) throws SQLException {
+  @Override
+  public @Nullable BigDecimal getBigDecimal(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.NUMERIC, "BigDecimal");
-    return ((BigDecimal) result);
+    return (BigDecimal) result;
   }
 
+  @Override
   public @Nullable Blob getBlob(int i) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getBlob(int)");
   }
 
+  @Override
   public @Nullable Clob getClob(int i) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getClob(int)");
   }
@@ -440,11 +465,13 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
   }
 
+  @Override
   public @Nullable Ref getRef(int i) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRef(int)");
   }
 
-  public java.sql.@Nullable Date getDate(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  @Override
+  public @Nullable Date getDate(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.DATE, "Date");
 
     if (result == null) {
@@ -455,7 +482,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return getTimestampUtils().toDate(cal, value);
   }
 
-  public @Nullable Time getTime(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  @Override
+  public @Nullable Time getTime(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.TIME, "Time");
 
     if (result == null) {
@@ -466,7 +494,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return getTimestampUtils().toTime(cal, value);
   }
 
-  public @Nullable Timestamp getTimestamp(int i, java.util.@Nullable Calendar cal) throws SQLException {
+  @Override
+  public @Nullable Timestamp getTimestamp(int i, @Nullable Calendar cal) throws SQLException {
     Object result = checkIndex(i, Types.TIMESTAMP, "Timestamp");
 
     if (result == null) {
@@ -477,185 +506,227 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     return getTimestampUtils().toTimestamp(cal, value);
   }
 
+  @Override
   public void registerOutParameter(@Positive int parameterIndex, int sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
   }
 
-  public void setObject(String parameterName, @Nullable Object x, java.sql.SQLType targetSqlType,
+  @Override
+  public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType,
       int scaleOrLength) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
-  public void setObject(String parameterName, @Nullable Object x, java.sql.SQLType targetSqlType)
+  @Override
+  public void setObject(String parameterName, @Nullable Object x, SQLType targetSqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType)
+  @Override
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType, int scale)
+  @Override
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(@Positive int parameterIndex, java.sql.SQLType sqlType, String typeName)
+  @Override
+  public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType)
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType, int scale)
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
-  public void registerOutParameter(String parameterName, java.sql.SQLType sqlType, String typeName)
+  @Override
+  public void registerOutParameter(String parameterName, SQLType sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter");
   }
 
+  @Override
   public @Nullable RowId getRowId(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRowId(int)");
   }
 
+  @Override
   public @Nullable RowId getRowId(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRowId(String)");
   }
 
+  @Override
   public void setRowId(String parameterName, @Nullable RowId x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setRowId(String, RowId)");
   }
 
+  @Override
   public void setNString(String parameterName, @Nullable String value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNString(String, String)");
   }
 
+  @Override
   public void setNCharacterStream(String parameterName, @Nullable Reader value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader, long)");
   }
 
+  @Override
   public void setNCharacterStream(String parameterName, @Nullable Reader value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNCharacterStream(String, Reader)");
   }
 
+  @Override
   public void setCharacterStream(String parameterName, @Nullable Reader value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader, long)");
   }
 
+  @Override
   public void setCharacterStream(String parameterName, @Nullable Reader value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(String, Reader)");
   }
 
+  @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream, long)");
   }
 
+  @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBinaryStream(String, InputStream)");
   }
 
+  @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream value, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream, long)");
   }
 
+  @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(String, InputStream)");
   }
 
+  @Override
   public void setNClob(String parameterName, @Nullable NClob value) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(String, NClob)");
   }
 
+  @Override
   public void setClob(String parameterName, @Nullable Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setClob(String, Reader, long)");
   }
 
+  @Override
   public void setClob(String parameterName, @Nullable Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setClob(String, Reader)");
   }
 
+  @Override
   public void setBlob(String parameterName, @Nullable InputStream inputStream, long length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBlob(String, InputStream, long)");
   }
 
+  @Override
   public void setBlob(String parameterName, @Nullable InputStream inputStream) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBlob(String, InputStream)");
   }
 
+  @Override
   public void setBlob(String parameterName, @Nullable Blob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBlob(String, Blob)");
   }
 
+  @Override
   public void setClob(String parameterName, @Nullable Clob x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setClob(String, Clob)");
   }
 
+  @Override
   public void setNClob(String parameterName, @Nullable Reader reader, long length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(String, Reader, long)");
   }
 
+  @Override
   public void setNClob(String parameterName, @Nullable Reader reader) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNClob(String, Reader)");
   }
 
+  @Override
   public @Nullable NClob getNClob(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNClob(int)");
   }
 
+  @Override
   public @Nullable NClob getNClob(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNClob(String)");
   }
 
+  @Override
   public void setSQLXML(String parameterName, @Nullable SQLXML xmlObject) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setSQLXML(String, SQLXML)");
   }
 
+  @Override
   public @Nullable SQLXML getSQLXML(@Positive int parameterIndex) throws SQLException {
     Object result = checkIndex(parameterIndex, Types.SQLXML, "SQLXML");
     return (SQLXML) result;
   }
 
+  @Override
   public @Nullable SQLXML getSQLXML(String parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getSQLXML(String)");
   }
 
+  @Override
   public String getNString(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNString(int)");
   }
 
+  @Override
   public @Nullable String getNString(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNString(String)");
   }
 
+  @Override
   public @Nullable Reader getNCharacterStream(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNCharacterStream(int)");
   }
 
+  @Override
   public @Nullable Reader getNCharacterStream(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getNCharacterStream(String)");
   }
 
+  @Override
   public @Nullable Reader getCharacterStream(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getCharacterStream(int)");
   }
 
+  @Override
   public @Nullable Reader getCharacterStream(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getCharacterStream(String)");
   }
 
+  @Override
   public <T> @Nullable T getObject(@Positive int parameterIndex, Class<T> type)
       throws SQLException {
     if (type == ResultSet.class) {
@@ -665,182 +736,226 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
             PSQLState.INVALID_PARAMETER_VALUE);
   }
 
+  @Override
   public <T> @Nullable T getObject(String parameterName, Class<T> type) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getObject(String, Class<T>)");
   }
 
+  @Override
   public void registerOutParameter(String parameterName, int sqlType) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int)");
   }
 
+  @Override
   public void registerOutParameter(String parameterName, int sqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,int)");
   }
 
+  @Override
   public void registerOutParameter(String parameterName, int sqlType, String typeName)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "registerOutParameter(String,int,String)");
   }
 
-  public java.net.@Nullable URL getURL(@Positive int parameterIndex) throws SQLException {
+  @Override
+  public @Nullable URL getURL(@Positive int parameterIndex) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
   }
 
-  public void setURL(String parameterName, java.net.@Nullable URL val) throws SQLException {
+  @Override
+  public void setURL(String parameterName, @Nullable URL val) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setURL(String,URL)");
   }
 
+  @Override
   public void setNull(String parameterName, int sqlType) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNull(String,int)");
   }
 
+  @Override
   public void setBoolean(String parameterName, boolean x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBoolean(String,boolean)");
   }
 
+  @Override
   public void setByte(String parameterName, byte x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setByte(String,byte)");
   }
 
+  @Override
   public void setShort(String parameterName, short x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setShort(String,short)");
   }
 
+  @Override
   public void setInt(String parameterName, int x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setInt(String,int)");
   }
 
+  @Override
   public void setLong(String parameterName, long x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setLong(String,long)");
   }
 
+  @Override
   public void setFloat(String parameterName, float x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setFloat(String,float)");
   }
 
+  @Override
   public void setDouble(String parameterName, double x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDouble(String,double)");
   }
 
+  @Override
   public void setBigDecimal(String parameterName, @Nullable BigDecimal x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBigDecimal(String,BigDecimal)");
   }
 
+  @Override
   public void setString(String parameterName, @Nullable String x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setString(String,String)");
   }
 
+  @Override
   public void setBytes(String parameterName, byte @Nullable [] x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBytes(String,byte)");
   }
 
-  public void setDate(String parameterName, java.sql.@Nullable Date x) throws SQLException {
+  @Override
+  public void setDate(String parameterName, @Nullable Date x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date)");
   }
 
+  @Override
   public void setTime(String parameterName, @Nullable Time x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTime(String,Time)");
   }
 
+  @Override
   public void setTimestamp(String parameterName, @Nullable Timestamp x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp)");
   }
 
+  @Override
   public void setAsciiStream(String parameterName, @Nullable InputStream x, int length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setAsciiStream(String,InputStream,int)");
   }
 
+  @Override
   public void setBinaryStream(String parameterName, @Nullable InputStream x, int length) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setBinaryStream(String,InputStream,int)");
   }
 
+  @Override
   public void setObject(String parameterName, @Nullable Object x, int targetSqlType, int scale)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int,int)");
   }
 
+  @Override
   public void setObject(String parameterName, @Nullable Object x, int targetSqlType) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object,int)");
   }
 
+  @Override
   public void setObject(String parameterName, @Nullable Object x) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setObject(String,Object)");
   }
 
+  @Override
   public void setCharacterStream(String parameterName, @Nullable Reader reader, int length)
       throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setCharacterStream(String,Reader,int)");
   }
 
-  public void setDate(String parameterName, java.sql.@Nullable Date x, @Nullable Calendar cal) throws SQLException {
+  @Override
+  public void setDate(String parameterName, @Nullable Date x, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setDate(String,Date,Calendar)");
   }
 
+  @Override
   public void setTime(String parameterName, @Nullable Time x, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTime(String,Time,Calendar)");
   }
 
+  @Override
   public void setTimestamp(String parameterName, @Nullable Timestamp x, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setTimestamp(String,Timestamp,Calendar)");
   }
 
+  @Override
   public void setNull(String parameterName, int sqlType, String typeName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "setNull(String,int,String)");
   }
 
+  @Override
   public @Nullable String getString(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getString(String)");
   }
 
+  @Override
   public boolean getBoolean(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getBoolean(String)");
   }
 
+  @Override
   public byte getByte(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getByte(String)");
   }
 
+  @Override
   public short getShort(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getShort(String)");
   }
 
+  @Override
   public int getInt(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getInt(String)");
   }
 
+  @Override
   public long getLong(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getLong(String)");
   }
 
+  @Override
   public float getFloat(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getFloat(String)");
   }
 
+  @Override
   public double getDouble(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDouble(String)");
   }
 
+  @Override
   public byte @Nullable [] getBytes(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getBytes(String)");
   }
 
-  public java.sql.@Nullable Date getDate(String parameterName) throws SQLException {
+  @Override
+  public @Nullable Date getDate(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDate(String)");
   }
 
+  @Override
   public Time getTime(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTime(String)");
   }
 
+  @Override
   public @Nullable Timestamp getTimestamp(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTimestamp(String)");
   }
 
+  @Override
   public @Nullable Object getObject(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getObject(String)");
   }
 
+  @Override
   public @Nullable BigDecimal getBigDecimal(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getBigDecimal(String)");
   }
@@ -849,38 +964,47 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     throw Driver.notImplemented(this.getClass(), "getObject(String,Map)");
   }
 
+  @Override
   public @Nullable Ref getRef(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getRef(String)");
   }
 
+  @Override
   public @Nullable Blob getBlob(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getBlob(String)");
   }
 
+  @Override
   public @Nullable Clob getClob(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getClob(String)");
   }
 
+  @Override
   public @Nullable Array getArray(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getArray(String)");
   }
 
-  public java.sql.@Nullable Date getDate(String parameterName, @Nullable Calendar cal) throws SQLException {
+  @Override
+  public @Nullable Date getDate(String parameterName, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getDate(String,Calendar)");
   }
 
+  @Override
   public @Nullable Time getTime(String parameterName, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTime(String,Calendar)");
   }
 
+  @Override
   public @Nullable Timestamp getTimestamp(String parameterName, @Nullable Calendar cal) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getTimestamp(String,Calendar)");
   }
 
-  public java.net.@Nullable URL getURL(String parameterName) throws SQLException {
+  @Override
+  public @Nullable URL getURL(String parameterName) throws SQLException {
     throw Driver.notImplemented(this.getClass(), "getURL(String)");
   }
 
+  @Override
   public void registerOutParameter(@Positive int parameterIndex, int sqlType, int scale) throws SQLException {
     // ignore scale for now
     registerOutParameter(parameterIndex, sqlType);

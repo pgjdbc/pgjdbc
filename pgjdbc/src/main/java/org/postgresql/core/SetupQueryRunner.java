@@ -29,11 +29,13 @@ public class SetupQueryRunner {
       return tuples;
     }
 
+    @Override
     public void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
         @Nullable ResultCursor cursor) {
       this.tuples = tuples;
     }
 
+    @Override
     public void handleWarning(SQLWarning warning) {
       // We ignore warnings. We assume we know what we're
       // doing in the setup queries.

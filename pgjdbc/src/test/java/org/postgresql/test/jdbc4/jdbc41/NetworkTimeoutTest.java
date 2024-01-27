@@ -5,34 +5,31 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
 
-public class NetworkTimeoutTest {
+class NetworkTimeoutTest {
   @Test
-  public void testSetNetworkTimeout() throws Exception {
+  void setNetworkTimeout() throws Exception {
     Connection conn = TestUtil.openDB();
-    try {
+    assertDoesNotThrow(() -> {
       conn.setNetworkTimeout(null, 0);
-    } catch (SQLException e) {
-      fail("Connection.setNetworkTimeout() throw exception");
-    } finally {
-      TestUtil.closeDB(conn);
-    }
+    }, "Connection.setNetworkTimeout() throw exception");
   }
 
   @Test
-  public void testSetNetworkTimeoutInvalid() throws Exception {
+  void setNetworkTimeoutInvalid() throws Exception {
     Connection conn = TestUtil.openDB();
     try {
       conn.setNetworkTimeout(null, -1);
@@ -45,20 +42,16 @@ public class NetworkTimeoutTest {
   }
 
   @Test
-  public void testSetNetworkTimeoutValid() throws Exception {
+  void setNetworkTimeoutValid() throws Exception {
     Connection conn = TestUtil.openDB();
-    try {
+    assertDoesNotThrow(() -> {
       conn.setNetworkTimeout(null, (int) TimeUnit.SECONDS.toMillis(5));
       assertEquals(TimeUnit.SECONDS.toMillis(5), conn.getNetworkTimeout());
-    } catch (SQLException e) {
-      fail("Connection.setNetworkTimeout() throw exception");
-    } finally {
-      TestUtil.closeDB(conn);
-    }
+    }, "Connection.setNetworkTimeout() throw exception");
   }
 
   @Test
-  public void testSetNetworkTimeoutEnforcement() throws Exception {
+  void setNetworkTimeoutEnforcement() throws Exception {
     Connection conn = TestUtil.openDB();
     Statement stmt = null;
     try {

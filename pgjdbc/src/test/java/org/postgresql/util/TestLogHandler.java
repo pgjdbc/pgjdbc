@@ -14,7 +14,7 @@ import java.util.logging.LogRecord;
 import java.util.regex.Pattern;
 
 public class TestLogHandler extends Handler {
-  public Queue<LogRecord> records = new ConcurrentLinkedQueue<LogRecord>();
+  public Queue<LogRecord> records = new ConcurrentLinkedQueue<>();
 
   @Override
   public void publish(LogRecord record) {
@@ -30,7 +30,7 @@ public class TestLogHandler extends Handler {
   }
 
   public List<LogRecord> getRecordsMatching(Pattern messagePattern) {
-    List<LogRecord> matches = new ArrayList<LogRecord>();
+    List<LogRecord> matches = new ArrayList<>();
     for (LogRecord r: this.records) {
       String message = r.getMessage();
       if (message != null && messagePattern.matcher(message).find()) {

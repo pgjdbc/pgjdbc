@@ -9,16 +9,16 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -28,8 +28,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-
-;
 
 /**
  * Tests that database objects for which the current user has no privileges are filtered out from
@@ -45,8 +43,8 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   private static DatabaseMetaData hidingDatabaseMetaData;
   private static DatabaseMetaData nonHidingDatabaseMetaData;
 
-  @BeforeClass
-  public static void setUp() throws Exception {
+  @BeforeAll
+  static void setUp() throws Exception {
     Properties props = new Properties();
     privilegedCon = TestUtil.openPrivilegedDB();
     pgConnection = privilegedCon.unwrap(PgConnection.class);
@@ -212,7 +210,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
       stmt.executeUpdate("REVOKE ALL ON TABLE " + schema + "." + table + " FROM public RESTRICT");
       stmt.executeUpdate(
           "REVOKE ALL ON TABLE  " + schema + "." + table + " FROM " + TestUtil.getUser()
-          +   " RESTRICT");
+          + " RESTRICT");
     }
     stmt.close();
   }
@@ -224,8 +222,8 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     }
   }
 
-  @AfterClass
-  public static void tearDown() throws SQLException {
+  @AfterAll
+  static void tearDown() throws SQLException {
     TestUtil.closeDB(hidingCon);
     TestUtil.closeDB(nonHidingCon);
     TestUtil.dropSchema(privilegedCon, "high_privileges_schema");
@@ -240,13 +238,13 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     st.executeQuery("SHOW is_superuser;");
     ResultSet rs = st.getResultSet();
     rs.next(); // One row is guaranteed
-    boolean connIsSuper = rs.getString(1).equalsIgnoreCase("on");
+    boolean connIsSuper = "on".equalsIgnoreCase(rs.getString(1));
     st.close();
     return connIsSuper;
   }
 
   @Test
-  public void testGetSchemas() throws SQLException {
+  void getSchemas() throws SQLException {
     List<String> schemasWithHiding = getSchemaNames(hidingDatabaseMetaData);
     assertThat(schemasWithHiding,
         hasItems("pg_catalog", "information_schema",
@@ -261,7 +259,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   List<String> getSchemaNames(DatabaseMetaData databaseMetaData) throws SQLException {
-    List<String> schemaNames = new ArrayList<String>();
+    List<String> schemaNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getSchemas();
     while (rs.next()) {
       schemaNames.add(rs.getString("TABLE_SCHEM"));
@@ -270,7 +268,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetTables() throws SQLException {
+  void getTables() throws SQLException {
     List<String> tablesWithHiding = getTableNames(hidingDatabaseMetaData, "high_privileges_schema");
 
     assertThat(tablesWithHiding,
@@ -339,7 +337,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getTableNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> tableNames = new ArrayList<String>();
+    List<String> tableNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"TABLE"});
     while (rs.next()) {
       tableNames.add(rs.getString("TABLE_NAME"));
@@ -348,7 +346,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetViews() throws SQLException {
+  void getViews() throws SQLException {
     List<String> viewsWithHiding = getViewNames(hidingDatabaseMetaData, "high_privileges_schema");
 
     assertThat(viewsWithHiding,
@@ -399,7 +397,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getViewNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> viewNames = new ArrayList<String>();
+    List<String> viewNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"VIEW"});
     while (rs.next()) {
       viewNames.add(rs.getString("TABLE_NAME"));
@@ -408,7 +406,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetFunctions() throws SQLException {
+  void getFunctions() throws SQLException {
     List<String> functionsWithHiding =
         getFunctionNames(hidingDatabaseMetaData, "high_privileges_schema");
     assertThat(functionsWithHiding,
@@ -449,7 +447,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getFunctionNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> functionNames = new ArrayList<String>();
+    List<String> functionNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getFunctions(null, schemaPattern, null);
     while (rs.next()) {
       functionNames.add(rs.getString("FUNCTION_NAME"));
@@ -458,7 +456,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   }
 
   @Test
-  public void testGetProcedures() throws SQLException {
+  void getProcedures() throws SQLException {
     String executeGranted = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "execute_granted_insert_procedure" : "execute_granted_add_function";
     String noGrants = TestUtil.haveMinimumServerVersion(hidingCon, ServerVersion.v11) ? "no_grants_insert_procedure" : "no_grants_add_function";
 
@@ -503,7 +501,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
 
   List<String> getProcedureNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
-    List<String> procedureNames = new ArrayList<String>();
+    List<String> procedureNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getProcedures(null, schemaPattern, null);
     while (rs.next()) {
       procedureNames.add(rs.getString("PROCEDURE_NAME"));
@@ -511,11 +509,11 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
     return procedureNames;
   }
 
-  @Test
   /*
    *  According to the JDBC JavaDoc, the applicable UDTs are: JAVA_OBJECT, STRUCT, or DISTINCT.
    */
-  public void testGetUDTs() throws SQLException {
+  @Test
+  void getUDTs() throws SQLException {
     if (pgConnection.haveMinimumServerVersion(ServerVersion.v9_2)) {
       List<String> typesWithHiding = getTypeNames(hidingDatabaseMetaData, "high_privileges_schema");
       assertThat(typesWithHiding,
@@ -562,7 +560,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
       java.sql.Types.STRUCT   to the Postgres type:  TYPTYPE_DOMAIN     'd'   # domain over another type
    */
   List<String> getTypeNames(DatabaseMetaData databaseMetaData, String schemaPattern) throws SQLException {
-    List<String> typeNames = new ArrayList<String>();
+    List<String> typeNames = new ArrayList<>();
     ResultSet rs = databaseMetaData.getUDTs(null, schemaPattern, null, null);
     while (rs.next()) {
       typeNames.add(rs.getString("TYPE_NAME"));

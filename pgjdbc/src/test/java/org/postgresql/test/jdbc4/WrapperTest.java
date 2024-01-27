@@ -5,37 +5,37 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGStatement;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public class WrapperTest {
+class WrapperTest {
 
   private Connection conn;
   private Statement statement;
 
-  @Before
-  public void setUp() throws Exception {
+  @BeforeEach
+  void setUp() throws Exception {
     conn = TestUtil.openDB();
     statement = conn.prepareStatement("SELECT 1");
   }
 
-  @After
-  public void tearDown() throws SQLException {
+  @AfterEach
+  void tearDown() throws SQLException {
     statement.close();
     TestUtil.closeDB(conn);
   }
@@ -47,22 +47,22 @@ public class WrapperTest {
   }
 
   @Test
-  public void testConnectionIsWrapperForPrivate() throws SQLException {
+  void connectionIsWrapperForPrivate() throws SQLException {
     assertFalse(conn.isWrapperFor(PrivateInterface.class));
   }
 
   @Test
-  public void testConnectionIsWrapperForConnection() throws SQLException {
+  void connectionIsWrapperForConnection() throws SQLException {
     assertTrue(conn.isWrapperFor(Connection.class));
   }
 
   @Test
-  public void testConnectionIsWrapperForPGConnection() throws SQLException {
+  void connectionIsWrapperForPGConnection() throws SQLException {
     assertTrue(conn.isWrapperFor(PGConnection.class));
   }
 
   @Test
-  public void testConnectionUnwrapPrivate() throws SQLException {
+  void connectionUnwrapPrivate() throws SQLException {
     try {
       conn.unwrap(PrivateInterface.class);
       fail("unwrap of non-wrapped interface should fail");
@@ -71,52 +71,52 @@ public class WrapperTest {
   }
 
   @Test
-  public void testConnectionUnwrapConnection() throws SQLException {
+  void connectionUnwrapConnection() throws SQLException {
     Object v = conn.unwrap(Connection.class);
     assertNotNull(v);
-    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
-        + ", actual instance is " + v, v instanceof Connection);
+    assertTrue(v instanceof Connection, "connection.unwrap(PGConnection.class) should return PGConnection instance"
+        + ", actual instance is " + v);
   }
 
   @Test
-  public void testConnectionUnwrapPGConnection() throws SQLException {
+  void connectionUnwrapPGConnection() throws SQLException {
     Object v = conn.unwrap(PGConnection.class);
     assertNotNull(v);
-    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
-        + ", actual instance is " + v, v instanceof PGConnection);
+    assertTrue(v instanceof PGConnection, "connection.unwrap(PGConnection.class) should return PGConnection instance"
+        + ", actual instance is " + v);
   }
 
   @Test
-  public void testConnectionUnwrapPGDataSource() throws SQLException {
+  void connectionUnwrapPGDataSource() throws SQLException {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setDatabaseName(TestUtil.getDatabase());
     dataSource.setServerName(TestUtil.getServer());
     dataSource.setPortNumber(TestUtil.getPort());
     Connection connection = dataSource.getConnection(TestUtil.getUser(), TestUtil.getPassword());
-    assertNotNull("Unable to obtain a connection from PGSimpleDataSource", connection);
+    assertNotNull(connection, "Unable to obtain a connection from PGSimpleDataSource");
     Object v = connection.unwrap(PGConnection.class);
-    assertTrue("connection.unwrap(PGConnection.class) should return PGConnection instance"
-            + ", actual instance is " + v,
-        v instanceof PGConnection);
+    assertTrue(v instanceof PGConnection,
+        "connection.unwrap(PGConnection.class) should return PGConnection instance"
+            + ", actual instance is " + v);
   }
 
   @Test
-  public void testStatementIsWrapperForPrivate() throws SQLException {
-    assertFalse("Should not be a wrapper for PrivateInterface", statement.isWrapperFor(PrivateInterface.class));
+  void statementIsWrapperForPrivate() throws SQLException {
+    assertFalse(statement.isWrapperFor(PrivateInterface.class), "Should not be a wrapper for PrivateInterface");
   }
 
   @Test
-  public void testStatementIsWrapperForStatement() throws SQLException {
-    assertTrue("Should be a wrapper for Statement", statement.isWrapperFor(Statement.class));
+  void statementIsWrapperForStatement() throws SQLException {
+    assertTrue(statement.isWrapperFor(Statement.class), "Should be a wrapper for Statement");
   }
 
   @Test
-  public void testStatementIsWrapperForPGStatement() throws SQLException {
-    assertTrue("Should be a wrapper for PGStatement", statement.isWrapperFor(PGStatement.class));
+  void statementIsWrapperForPGStatement() throws SQLException {
+    assertTrue(statement.isWrapperFor(PGStatement.class), "Should be a wrapper for PGStatement");
   }
 
   @Test
-  public void testStatementUnwrapPrivate() throws SQLException {
+  void statementUnwrapPrivate() throws SQLException {
     try {
       statement.unwrap(PrivateInterface.class);
       fail("unwrap of non-wrapped interface should fail");
@@ -125,17 +125,17 @@ public class WrapperTest {
   }
 
   @Test
-  public void testStatementUnwrapStatement() throws SQLException {
+  void statementUnwrapStatement() throws SQLException {
     Object v = statement.unwrap(Statement.class);
     assertNotNull(v);
-    assertTrue("Should be instance of Statement, actual instance of " + v, v instanceof Statement);
+    assertTrue(v instanceof Statement, "Should be instance of Statement, actual instance of " + v);
   }
 
   @Test
-  public void testStatementUnwrapPGStatement() throws SQLException {
+  void statementUnwrapPGStatement() throws SQLException {
     Object v = statement.unwrap(PGStatement.class);
     assertNotNull(v);
-    assertTrue("Should be instance of PGStatement, actual instance of " + v,v instanceof PGStatement);
+    assertTrue(v instanceof PGStatement, "Should be instance of PGStatement, actual instance of " + v);
   }
 
 }

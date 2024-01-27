@@ -16,14 +16,14 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class GSSInputStream extends InputStream {
-  private GSSContext gssContext;
-  private MessageProp messageProp;
-  private InputStream wrapped;
+  private final GSSContext gssContext;
+  private final MessageProp messageProp;
+  private final InputStream wrapped;
   byte @Nullable [] unencrypted;
   int unencryptedPos;
   int unencryptedLength;
 
-  public GSSInputStream( InputStream wrapped, GSSContext gssContext, MessageProp messageProp) {
+  public GSSInputStream(InputStream wrapped, GSSContext gssContext, MessageProp messageProp) {
     this.wrapped = wrapped;
     this.gssContext = gssContext;
     this.messageProp = messageProp;
@@ -48,8 +48,8 @@ public class GSSInputStream extends InputStream {
     } else {
       if (wrapped.read(int4Buf, 0, 4) == 4 ) {
 
-        encryptedLength = ((int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
-            | int4Buf[3] & 0xFF);
+        encryptedLength = (int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
+            | int4Buf[3] & 0xFF;
 
         byte[] encryptedBuffer = new byte[encryptedLength];
         wrapped.read(encryptedBuffer, 0, encryptedLength);
