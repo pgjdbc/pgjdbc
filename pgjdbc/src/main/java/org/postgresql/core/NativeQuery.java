@@ -18,6 +18,11 @@ public class NativeQuery {
   public final String nativeSql;
   public final ParameterContext parameterCtx;
   public final SqlCommand command;
+  /**
+   * multiStatement indicates if the parser has assured this is a *single* statement.
+   * True means that we have NOT examined the statement.
+   * False means this is a single statement possible extracted from multiple statements.
+   */
   public final boolean multiStatement;
 
   static {
