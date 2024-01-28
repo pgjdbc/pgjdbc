@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
@@ -286,12 +287,10 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetAllTypeInfoStatement() throws SQLException {
-    PreparedStatement getAllTypeInfoStatement = this.getAllTypeInfoStatement;
-    if (getAllTypeInfoStatement == null) {
-      getAllTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(false));
-      this.getAllTypeInfoStatement = getAllTypeInfoStatement;
+    if (this.getAllTypeInfoStatement == null) {
+      this.getAllTypeInfoStatement = preparedTypeInfoCacheStatement(getSQLTypeQuery(false));
     }
-    return getAllTypeInfoStatement;
+    return this.getAllTypeInfoStatement;
   }
 
   public void cacheSQLTypes() throws SQLException {
@@ -319,10 +318,8 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetTypeInfoStatement() throws SQLException {
-    PreparedStatement getTypeInfoStatement = this.getTypeInfoStatement;
-    if (getTypeInfoStatement == null) {
-      getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
-      this.getTypeInfoStatement = getTypeInfoStatement;
+    if (this.getTypeInfoStatement == null) {
+      this.getTypeInfoStatement = preparedTypeInfoCacheStatement(getSQLTypeQuery(true));
     }
     return getTypeInfoStatement;
   }
@@ -406,8 +403,7 @@ public class TypeInfoCache implements TypeInfo {
     int dotIndex = pgTypeName.indexOf('.');
 
     if (dotIndex == -1 && !hasQuote && !isArray) {
-      PreparedStatement getOidStatementSimple = this.getOidStatementSimple;
-      if (getOidStatementSimple == null) {
+      if (this.getOidStatementSimple == null) {
         String sql;
         // see comments in @getSQLType()
         // -- go with older way of unnesting array to be compatible with 8.0
@@ -423,19 +419,18 @@ public class TypeInfoCache implements TypeInfo {
               + "    ON sp.nspoid = typnamespace "
               + " WHERE typname = ? "
               + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-        this.getOidStatementSimple = getOidStatementSimple = conn.prepareStatement(sql);
+        this.getOidStatementSimple = preparedTypeInfoCacheStatement(sql);
       }
       // coerce to lower case to handle upper case type names
       String lcName = pgTypeName.toLowerCase(Locale.ROOT);
       // default arrays are represented with _ as prefix ... this dont even work for public schema
       // fully
-      getOidStatementSimple.setString(1, lcName);
-      return getOidStatementSimple;
+      this.getOidStatementSimple.setString(1, lcName);
+      return this.getOidStatementSimple;
     }
     PreparedStatement oidStatementComplex;
     if (isArray) {
-      PreparedStatement getOidStatementComplexArray = this.getOidStatementComplexArray;
-      if (getOidStatementComplexArray == null) {
+      if (this.getOidStatementComplexArray == null) {
         String sql;
         if (conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
           sql = "SELECT t.typarray, arr.typname "
@@ -453,20 +448,19 @@ public class TypeInfoCache implements TypeInfo {
               + " AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
               + " ORDER BY t.typelem DESC LIMIT 1";
         }
-        this.getOidStatementComplexArray = getOidStatementComplexArray = conn.prepareStatement(sql);
+        this.getOidStatementComplexArray = preparedTypeInfoCacheStatement(sql);
       }
-      oidStatementComplex = getOidStatementComplexArray;
+      oidStatementComplex = this.getOidStatementComplexArray;
     } else {
-      PreparedStatement getOidStatementComplexNonArray = this.getOidStatementComplexNonArray;
-      if (getOidStatementComplexNonArray == null) {
+      if (this.getOidStatementComplexNonArray == null) {
         String sql = "SELECT t.oid, t.typname "
             + "  FROM pg_catalog.pg_type t"
             + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
             + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
             + " ORDER BY t.oid DESC LIMIT 1";
-        this.getOidStatementComplexNonArray = getOidStatementComplexNonArray = conn.prepareStatement(sql);
+        this.getOidStatementComplexNonArray = preparedTypeInfoCacheStatement(sql);
       }
-      oidStatementComplex = getOidStatementComplexNonArray;
+      oidStatementComplex = this.getOidStatementComplexNonArray;
     }
     //type name requested may be schema specific, of the form "{schema}"."typeName",
     //or may check across all schemas where a schema is not specified.
@@ -594,16 +588,15 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetNameStatement() throws SQLException {
-    PreparedStatement getNameStatement = this.getNameStatement;
-    if (getNameStatement == null) {
+    if (this.getNameStatement == null) {
       String sql;
       sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
             + "FROM pg_catalog.pg_type t "
             + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
 
-      this.getNameStatement = getNameStatement = conn.prepareStatement(sql);
+      this.getNameStatement = preparedTypeInfoCacheStatement(sql);
     }
-    return getNameStatement;
+    return this.getNameStatement;
   }
 
   @Override
@@ -670,14 +663,13 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetArrayDelimiterStatement() throws SQLException {
-    PreparedStatement getArrayDelimiterStatement = this.getArrayDelimiterStatement;
-    if (getArrayDelimiterStatement == null) {
+    if (this.getArrayDelimiterStatement == null) {
       String sql;
       sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
             + "WHERE t.oid = ? and t.typelem = e.oid";
-      this.getArrayDelimiterStatement = getArrayDelimiterStatement = conn.prepareStatement(sql);
+      this.getArrayDelimiterStatement = preparedTypeInfoCacheStatement(sql);
     }
-    return getArrayDelimiterStatement;
+    return this.getArrayDelimiterStatement;
   }
 
   @Override
@@ -730,15 +722,14 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PreparedStatement prepareGetArrayElementOidStatement() throws SQLException {
-    PreparedStatement getArrayElementOidStatement = this.getArrayElementOidStatement;
-    if (getArrayElementOidStatement == null) {
+    if (this.getArrayElementOidStatement == null) {
       String sql;
       sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
             + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
             + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
-      this.getArrayElementOidStatement = getArrayElementOidStatement = conn.prepareStatement(sql);
+      this.getArrayElementOidStatement = preparedTypeInfoCacheStatement(sql);
     }
-    return getArrayElementOidStatement;
+    return this.getArrayElementOidStatement;
   }
 
   @Override
@@ -1093,5 +1084,9 @@ public class TypeInfoCache implements TypeInfo {
   @Override
   public long intOidToLong(int oid) {
     return ((long) oid) & 0xFFFFFFFFL;
+  }
+
+  private PgPreparedStatement preparedTypeInfoCacheStatement(String sql) throws SQLException {
+    return this.conn.unwrap(PGConnection.class).prepareStatement(sql, PlaceholderStyle.JDBC).unwrap(PgPreparedStatement.class);
   }
 }

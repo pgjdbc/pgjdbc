@@ -158,9 +158,9 @@ public class ParameterContext {
     }
 
     if (bindStyle == BindStyle.NAMED) {
-      return BindStyle.NAMED.prefix + getPlaceholderName(index);
+      return BindStyle.NAMED.prefix + getPlaceholderName(index - 1);
     } else if (bindStyle == BindStyle.NATIVE) {
-      return getPlaceholderName(index);
+      return getPlaceholderName(index - 1);
     }
     throw new IllegalStateException(
         "bindStyle " + bindStyle + " is not not a valid option for getPlaceholderForToString");

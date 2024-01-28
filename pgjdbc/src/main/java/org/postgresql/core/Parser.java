@@ -79,7 +79,6 @@ public class Parser {
     int valuesParenthesisOpenPosition = -1;
     int valuesParenthesisClosePosition = -1;
     boolean valuesParenthesisCloseFound = false;
-    boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
     boolean isBeginPresent = false;
@@ -123,7 +122,10 @@ public class Parser {
 
         case '$': { // possibly dollar quote start or a native placeholder
           int end = Parser.parseDollarQuotes(aChars, i);
-          if (end == i && (processParameters && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NATIVE)) && currentCommandType.supportsParameters()) {
+          if (end == i && (
+              processParameters
+              && currentCommandType.supportsParameters()
+              && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NATIVE))) {
             // look for a native placeholder instead.
 
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
@@ -164,8 +166,9 @@ public class Parser {
             nativeSql.append('?');
             i++; // make sure the coming ? is not treated as a bind
           } else {
-            if (processParameters && placeholderSetting.isAcceptedBySetting(
-                ParameterContext.BindStyle.JDBC)) {
+            if (processParameters
+                && currentCommandType.supportsParameters()
+                && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.JDBC)) {
               int bindIndex = paramCtx.addJDBCParameter(nativeSql.length());
               NativeQuery.appendBindName(nativeSql, bindIndex);
             } else {
@@ -226,10 +229,10 @@ public class Parser {
           }
           break;
 
-        case ':': // possibly named placerholder start'
-          if (processParameters && placeholderSetting.isAcceptedBySetting(
-              ParameterContext.BindStyle.NAMED) && currentCommandType.supportsParameters()) {
-
+        case ':': // possibly named placeholder start
+          if (processParameters
+              && currentCommandType.supportsParameters()
+              && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NAMED)) {
             nativeSql.append(aChars, fragmentStart, i - fragmentStart);
             int end = Parser.parseNamedPlaceholder(aChars, i);
             if (end != i) {
@@ -293,15 +296,14 @@ public class Parser {
             currentCommandType = SqlCommandType.SELECT;
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
+          } else if (wordLength == 4 && parseCallKeyword(aChars, keywordStart)) {
+            currentCommandType = SqlCommandType.CALL;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-            if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
+            currentCommandType = SqlCommandType.INSERT;
+            if (isBatchedReWriteConfigured && keyWordCount == 0) {
               // Only allow rewrite for insert command starting with the insert keyword.
               // Else, too many risks of wrong interpretation.
-              isCurrentReWriteCompatible = keyWordCount == 0;
-              isInsertPresent = true;
-              currentCommandType = SqlCommandType.INSERT;
-            } else {
-              isCurrentReWriteCompatible = false;
+              isCurrentReWriteCompatible = true;
             }
           }
 
@@ -957,6 +959,24 @@ public class Parser {
         && (query[offset + 1] | 32) == 'i'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'h';
+  }
+
+  /**
+   * Parse string to check presence of CALL keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseCallKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 4)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'c'
+        && (query[offset + 1] | 32) == 'a'
+        && (query[offset + 2] | 32) == 'l'
+        && (query[offset + 3] | 32) == 'l';
   }
 
   /**

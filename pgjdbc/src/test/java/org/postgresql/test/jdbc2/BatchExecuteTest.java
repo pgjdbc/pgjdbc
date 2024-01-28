@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -40,17 +41,23 @@ public class BatchExecuteTest extends BaseTest4 {
 
   private boolean insertRewrite;
 
-  public BatchExecuteTest(BinaryMode binaryMode, boolean insertRewrite) {
+  public BatchExecuteTest(BinaryMode binaryMode, boolean insertRewrite, PlaceholderStyle placeholderStyle) {
     this.insertRewrite = insertRewrite;
     setBinaryMode(binaryMode);
+    setPlaceholderStyle(placeholderStyle);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}")
+  @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}, placeholderStyle = {2}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
       for (boolean insertRewrite : new boolean[]{false, true}) {
-        ids.add(new Object[]{binaryMode, insertRewrite});
+        for (PlaceholderStyle placeholderStyle : PlaceholderStyle.values()) {
+          if (placeholderStyle == PlaceholderStyle.NONE) {
+            continue;
+          }
+          ids.add(new Object[]{binaryMode, insertRewrite, placeholderStyle});
+        }
       }
     }
     return ids;
@@ -297,8 +304,23 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Test
   public void testStringAddBatchOnPreparedStatement() throws Exception {
-    PreparedStatement pstmt =
-        con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+    PreparedStatement pstmt = null;
+
+    switch (placeholderStyle) {
+      case ANY:
+      case JDBC:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+        break;
+      case NAMED:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + :addToCol1 WHERE PK = :pkValue");
+        break;
+      case NATIVE:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + $1 WHERE PK = $2");
+        break;
+      default:
+        failOnStatementSelection();
+    }
+
     pstmt.setInt(1, 1);
     pstmt.setInt(2, 1);
     pstmt.addBatch();
@@ -315,8 +337,22 @@ public class BatchExecuteTest extends BaseTest4 {
 
   @Test
   public void testPreparedStatement() throws Exception {
-    PreparedStatement pstmt =
-        con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+    PreparedStatement pstmt = null;
+
+    switch (placeholderStyle) {
+      case ANY:
+      case JDBC:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + ? WHERE PK = ?");
+        break;
+      case NAMED:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + :Col1Value WHERE PK = :pkValue");
+        break;
+      case NATIVE:
+        pstmt = con.prepareStatement("UPDATE testbatch SET col1 = col1 + $1 WHERE PK = $2");
+        break;
+      default:
+        failOnStatementSelection();
+    }
 
     // Note that the first parameter changes for every statement in the
     // batch, whereas the second parameter remains constant.
@@ -529,8 +565,22 @@ public class BatchExecuteTest extends BaseTest4 {
 
       // If the parameter is given as ?::varchar then this issue
       // does not arise.
-      PreparedStatement st =
-          con.prepareStatement("INSERT INTO mixednulltest (value) VALUES (?)", new String[]{"key"});
+      PreparedStatement st = null;
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          st = con.prepareStatement("INSERT INTO mixednulltest (value) VALUES (?)", new String[]{"key"});
+          break;
+        case NAMED:
+          st = con.prepareStatement("INSERT INTO mixednulltest (value) VALUES (:mixednulltest)", new String[]{"key"});
+          break;
+        case NATIVE:
+          st = con.prepareStatement("INSERT INTO mixednulltest (value) VALUES ($1)", new String[]{"key"});
+          break;
+
+        default:
+          failOnStatementSelection();
+      }
 
       for (String val : testData) {
         /*
@@ -611,7 +661,21 @@ public class BatchExecuteTest extends BaseTest4 {
     try {
       con.setAutoCommit(true);
       // This test requires autoCommit false to reproduce
-      ps = con.prepareStatement("insert into prep(a, d) values(?, ?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          ps = con.prepareStatement("insert into prep(a, d) values(?, ?)");
+          break;
+        case NAMED:
+          ps = con.prepareStatement("insert into prep(a, d) values(:a, :d)");
+          break;
+        case NATIVE:
+          ps = con.prepareStatement("insert into prep(a, d) values($1, $2)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       for (int i = 0; i < numPreliminaryInserts; i++) {
         ps.setNull(1, Types.SMALLINT);
         ps.setObject(2, new Date(42));
@@ -746,8 +810,22 @@ org.postgresql.util.PSQLException: ERROR: incorrect binary data format in bind p
     try {
       Statement s = con.createStatement();
       s.execute("BEGIN");
-      PreparedStatement ps;
-      ps = con.prepareStatement("insert into prep(a,b)  values(?::int4,?)");
+      PreparedStatement ps = null;
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          ps = con.prepareStatement("insert into prep(a,b)  values(?::int4,?)");
+          break;
+        case NAMED:
+          ps = con.prepareStatement("insert into prep(a,b)  values(:top::int4,:hat)");
+          break;
+        case NATIVE:
+          ps = con.prepareStatement("insert into prep(a,b)  values($1::int4,$2)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       ps.setInt(1, 2);
       ps.setInt(2, 2);
       ps.addBatch();
@@ -1178,7 +1256,23 @@ Server SQLState: 25001)
     con.setAutoCommit(true);
 
     // update as batch
-    PreparedStatement batchSt = con.prepareStatement("INSERT INTO batchUpdCnt(id) VALUES (?)");
+    PreparedStatement batchSt = null;
+
+    switch (placeholderStyle) {
+      case ANY:
+      case JDBC:
+        batchSt = con.prepareStatement("INSERT INTO batchUpdCnt(id) VALUES (?)");
+        break;
+      case NAMED:
+        batchSt = con.prepareStatement("INSERT INTO batchUpdCnt(id) VALUES (:myname)");
+        break;
+      case NATIVE:
+        batchSt = con.prepareStatement("INSERT INTO batchUpdCnt(id) VALUES ($1)");
+        break;
+      default:
+        failOnStatementSelection();
+    }
+
     batchSt.setString(1, "key-1");
     batchSt.addBatch();
 
@@ -1231,7 +1325,20 @@ Server SQLState: 25001)
      * Do nothing here.
      */
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ( :zz,   :top)");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 1);
       pstmt.addBatch(); //statement one
@@ -1262,7 +1369,20 @@ Server SQLState: 25001)
   public void testBatchWithMultiInsert() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?),(?,?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?),(?,?)");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (:Alpha,:Beta),(:Gamma,:Pizza)");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2),($3,$4)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 1);
       pstmt.setInt(3, 2);
@@ -1289,7 +1409,21 @@ Server SQLState: 25001)
   public void testBatchWithTwoMultiInsertStatements() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?),(?,?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?),(?,?)");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (:testbatch1,:testbatch2), (:testbatch3, :testbatch4)");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2),($3,$4)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 1);
       pstmt.setInt(3, 2);
@@ -1342,7 +1476,20 @@ Server SQLState: 25001)
   public void testServerPrepareMultipleRows() throws SQLException {
     PreparedStatement ps = null;
     try {
-      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+          break;
+        case NAMED:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES (:param)");
+          break;
+        case NATIVE:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES ($1)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
       // 2 is not enough for insertRewrite=true case since it would get executed as a single multi-insert statement
       for (int i = 0; i < 3; i++) {
         ps.setInt(1, i);
@@ -1362,7 +1509,21 @@ Server SQLState: 25001)
   public void testNoServerPrepareOneRow() throws SQLException {
     PreparedStatement ps = null;
     try {
-      ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)");
+          break;
+        case NAMED:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES (:prepaval)");
+          break;
+        case NATIVE:
+          ps = con.prepareStatement("INSERT INTO prep(a) VALUES ($1)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       ps.setInt(1, 1);
       ps.addBatch();
       int[] actual = ps.executeBatch();

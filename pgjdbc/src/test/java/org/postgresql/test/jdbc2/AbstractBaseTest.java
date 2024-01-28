@@ -25,6 +25,8 @@ import java.util.function.Supplier;
 
 public class AbstractBaseTest {
 
+  protected Properties props = new Properties();
+
   public enum BinaryMode {
     REGULAR, FORCE
   }
@@ -135,7 +137,6 @@ public class AbstractBaseTest {
   }
 
   public void setUp() throws Exception {
-    Properties props = new Properties();
     updateProperties(props);
     con = TestUtil.openDB(props);
     PGConnection pg = con.unwrap(PGConnection.class);

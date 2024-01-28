@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
@@ -27,18 +28,23 @@ import java.util.Properties;
 public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   private final AutoCommit autoCommit;
 
-  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit,
-      BinaryMode binaryMode) {
+  public BatchedInsertReWriteEnabledTest(AutoCommit autoCommit, BinaryMode binaryMode, PlaceholderStyle placeholderStyle) {
     this.autoCommit = autoCommit;
     setBinaryMode(binaryMode);
+    setPlaceholderStyle(placeholderStyle);
   }
 
-  @Parameterized.Parameters(name = "{index}: autoCommit={0}, binary={1}")
+  @Parameterized.Parameters(name = "{index}: autoCommit={0}, binary={1}, placeholderStyle={2}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (AutoCommit autoCommit : AutoCommit.values()) {
       for (BinaryMode binaryMode : BinaryMode.values()) {
-        ids.add(new Object[]{autoCommit, binaryMode});
+        for (PlaceholderStyle placeholderStyle :  PlaceholderStyle.values()) {
+          if (placeholderStyle == PlaceholderStyle.NONE) {
+            continue;
+          }
+          ids.add(new Object[]{autoCommit, binaryMode, placeholderStyle});
+        }
       }
     }
     return ids;
@@ -74,7 +80,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (:xx,:yy)");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setInt(2, 2);
       pstmt.addBatch();
@@ -135,10 +155,31 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   @Test
   public void testBatchWithReWrittenBatchStatementWithFixedParameter()
       throws SQLException {
-    String[] odd = new String[]{
-        "INSERT INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
-        // "INSERT /*xxx*/INTO testbatch VALUES (?, '1, (, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
-    };
+    String[] odd = null;
+    switch (placeholderStyle) {
+      case ANY:
+      case JDBC:
+        odd = new String[]{
+            "INSERT INTO testbatch VALUES (?, '1, (:noVar, $1234, a''n?d )' /*xxxx)*/, ?) -- xxx",
+            //"INSERT /*xxx*/INTO testbatch VALUES (?, '1, (:noVar, $1234, :a''n?d )' /*xxxx)*/, ?) -- xxx",
+        };
+        break;
+      case NAMED:
+        odd = new String[]{
+            "INSERT INTO testbatch VALUES (:val_1, ':not_var1, (, $1234, a''n?d )' /*xxxx)*/, :val_2) -- xxx",
+            //"INSERT /*xxx*/INTO testbatch VALUES (:val_1, ':not_var1, (, $1234, a''n?d )' /*xxxx)*/, :val_2) -- xxx",
+        };
+        break;
+      case NATIVE:
+        odd = new String[]{
+            "INSERT INTO testbatch VALUES ($1, '$1, (, $1234, a''n?d )' /*xxxx)*/, $2) -- xxx",
+            //"INSERT /*xxx*/INTO testbatch VALUES ($1, '$1, (, $1234, a''n?d )' /*xxxx)*/, $2) -- xxx",
+        };
+        break;
+      default:
+        failOnStatementSelection();
+    }
+
     for (String s : odd) {
       PreparedStatement pstmt = null;
       try {
@@ -196,7 +237,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       clean.execute();
       clean.close();
 
-      pstmt = con.prepareStatement("INSERT INTO testbatch " + values + "(?,?,?)" + suffix);
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch " + values + "(?,?,?)" + suffix);
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch " + values + "(:a,:b,:c)" + suffix);
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch " + values + "($1,$2,$3)" + suffix);
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);
@@ -255,7 +310,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ((?),((?)),?);");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ((?),((?)),?);");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ((:In),((:Nested)),:Parens);");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (($1),(($2)),$3);");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);
@@ -282,7 +351,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
       throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch (pk) VALUES (?), (?)");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk) VALUES (?), (?)");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk) VALUES (:testMultiValues1bindA), (:testMultiValues1bindB)");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk) VALUES ($1), ($2)");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 100);
       pstmt.setInt(2, 200);
       pstmt.addBatch();
@@ -304,7 +387,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   public void testConsistentOutcome() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?,?);");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (?,?,?);");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES (:testConsistentOutcome3,:testConsistentOutcome2,:testConsistentOutcome1);");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch VALUES ($1,$2,$3);");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);
@@ -338,8 +435,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   public void testINSERTwithNamedColumnsNotBroken() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con
-          .prepareStatement("INSERT INTO testbatch (pk, col1, col2) VALUES (?,?,?);");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk, col1, col2) VALUES (?,?,?);");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk, col1, col2) VALUES (:O,:p,:D);");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("INSERT INTO testbatch (pk, col1, col2) VALUES ($1,$2,$3);");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);
@@ -354,7 +464,21 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   public void testMixedCaseInSeRtStatement() throws SQLException {
     PreparedStatement pstmt = null;
     try {
-      pstmt = con.prepareStatement("InSeRt INTO testbatch VALUES (?,?,?);");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          pstmt = con.prepareStatement("InSeRt INTO testbatch VALUES (?,?,?);");
+          break;
+        case NAMED:
+          pstmt = con.prepareStatement("InSeRt INTO testbatch VALUES (:S,:e,:R);");
+          break;
+        case NATIVE:
+          pstmt = con.prepareStatement("InSeRt INTO testbatch VALUES ($1,$2,$3);");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+
       pstmt.setInt(1, 1);
       pstmt.setString(2, "a");
       pstmt.setInt(3, 2);
@@ -405,9 +529,34 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
     PreparedStatement pstmt = null;
     try {
       StringBuilder sb = new StringBuilder();
-      sb.append("INSERT INTO testbatch(pk) VALUES (coalesce(?");
-      for (int i = 0; i < nBinds - 1 /* note one ? above */; i++) {
-        sb.append(",?");
+      sb.append("INSERT INTO testbatch(pk) VALUES (coalesce(");
+      switch (placeholderStyle) {
+        case ANY:
+        case JDBC:
+          sb.append("?");
+          break;
+        case NAMED:
+          sb.append(":param_0");
+          break;
+        case NATIVE:
+          sb.append("$1");
+          break;
+        default:
+          failOnStatementSelection();
+      }
+      for (int i = 0; i < nBinds - 1 /* note one placeholder above */; i++) {
+        switch (placeholderStyle) {
+          case ANY:
+          case JDBC:
+            sb.append(",?");
+            break;
+          case NAMED:
+            sb.append(",:param_").append(i + 1);
+            break;
+          case NATIVE:
+            sb.append(",$").append(i + 2);
+            break;
+        }
       }
       sb.append("))");
       pstmt = con.prepareStatement(sb.toString());

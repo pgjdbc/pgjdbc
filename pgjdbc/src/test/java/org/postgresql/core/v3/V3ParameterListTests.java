@@ -42,7 +42,7 @@ class V3ParameterListTests {
     static ParameterContext buildNamed(List<Integer> placeholderPositions,
         List<String> placeholderNames) throws SQLException {
       if (placeholderPositions.size() != placeholderNames.size()) {
-        throw new IllegalArgumentException("Length of placerholderPositions and placerholderNames"
+        throw new IllegalArgumentException("Length of placeholderPositions and placerholderNames"
             + " differ");
       }
       final ParameterContext ctx = new ParameterContext(PlaceholderStyle.ANY);

@@ -63,7 +63,7 @@ public class NativeParametersTest extends BaseTest5 {
       "SELECT $2+$0,$1,[$2]",
       "SELECT $2+$-1,$1,[$2]"
   })
-  @DisplayName("Specifying non-contiguous placerholders must cause an SQLException")
+  @DisplayName("Specifying non-contiguous placeholders must cause an SQLException")
   public void testNativeParametersContiguous(String sqlText, String missingMsg, String foundMsg)
       throws Exception {
     con.unwrap(PGConnection.class).setPlaceholderStyle(PlaceholderStyle.NATIVE);

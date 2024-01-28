@@ -25,7 +25,8 @@ public enum SqlCommandType {
   SELECT(true),
   WITH(true),
   CREATE(false),
-  ALTER(false);
+  ALTER(false),
+  CALL(true);
 
   private final boolean supportsParameters;
 

@@ -12,10 +12,12 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Version;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 
@@ -45,6 +47,7 @@ public class BaseTest4 {
 
   protected Connection con;
   protected BinaryMode binaryMode;
+  protected PlaceholderStyle placeholderStyle = PlaceholderStyle.ANY;
   private ReWriteBatchedInserts reWriteBatchedInserts;
   protected PreferQueryMode preferQueryMode;
   private StringType stringType;
@@ -70,6 +73,10 @@ public class BaseTest4 {
     this.binaryMode = binaryMode;
   }
 
+  public final void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+    this.placeholderStyle = placeholderStyle;
+  }
+
   public StringType getStringType() {
     return stringType;
   }
@@ -89,6 +96,7 @@ public class BaseTest4 {
     updateProperties(props);
     con = TestUtil.openDB(props);
     PGConnection pg = con.unwrap(PGConnection.class);
+    pg.setPlaceholderStyle(placeholderStyle);
     preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
   }
 
@@ -148,5 +156,9 @@ public class BaseTest4 {
   protected void assertBinaryForSend(int oid, boolean expected, Supplier<String> message) throws SQLException {
     assertEquals(message.get() + ", useBinaryForSend(oid=" + oid + ")", expected,
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid));
+  }
+
+  protected void failOnStatementSelection() {
+    Assert.fail("No statement defined for placeholderStyle = " + placeholderStyle);
   }
 }

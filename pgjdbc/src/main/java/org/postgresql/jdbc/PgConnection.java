@@ -885,7 +885,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public String nativeSQL(String sql) throws SQLException {
     checkClosed();
-    CachedQuery cachedQuery = queryExecutor.createQuery(sql, true, PlaceholderStyle.JDBC);
+    CachedQuery cachedQuery = queryExecutor.createQuery(sql, true, getPlaceholderStyle());
 
     return cachedQuery.query.getNativeSql();
   }

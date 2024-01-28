@@ -212,7 +212,7 @@ class SimpleParameterList implements V3ParameterList {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
-      return this.parameterCtx.getPlaceholderForToString(index);
+      return this.parameterCtx.getPlaceholderForToString(index + 1);
     } else if (paramValue == NULL_OBJECT) {
       return "NULL";
     } else if ((flags[index] & BINARY) == BINARY) {
