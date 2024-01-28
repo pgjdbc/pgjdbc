@@ -103,8 +103,9 @@ public class BatchResultHandler extends ResultHandlerBase {
     int updateCountsIndex = 0;
     for (; updateCountsIndex < longUpdateCounts.length; updateCountsIndex++) {
       final int offset;
-      if (queries[updateCountsIndex] != null && queries[updateCountsIndex].getSubqueries() != null) {
-        offset = queries[updateCountsIndex].getSubqueries().length;
+      final Query query = this.queries[updateCountsIndex];
+      if (query != null && query.getSubqueries() != null) {
+        offset = castNonNull(query.getSubqueries()).length;
       } else {
         offset = 1;
       }

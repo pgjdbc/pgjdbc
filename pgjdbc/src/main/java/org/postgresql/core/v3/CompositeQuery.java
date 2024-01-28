@@ -14,7 +14,6 @@ import org.postgresql.jdbc.PlaceholderStyle;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * V3 Query implementation for queries that involve multiple statements. We split it up into one
@@ -52,7 +51,9 @@ class CompositeQuery implements Query {
       throw new IllegalArgumentException("Expected CompositeParameterList!");
     }
     final SimpleParameterList[] subparams = ((CompositeParameterList) parameters).getSubparams();
-    assert subqueries.length == Objects.requireNonNull(subparams).length;
+    if (subparams == null) {
+      throw new IllegalStateException("Supplied CompositeParameterList does not have a ParameterList!");
+    }
     StringBuilder sbuf = new StringBuilder(subqueries[0].toString(subparams[0]));
     for (int i = 1; i < subqueries.length; i++) {
       sbuf.append(';').append(subqueries[i].toString(subparams[i]));

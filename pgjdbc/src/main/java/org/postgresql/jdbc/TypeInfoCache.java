@@ -19,6 +19,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.PreparedStatement;
@@ -426,7 +427,7 @@ public class TypeInfoCache implements TypeInfo {
       // default arrays are represented with _ as prefix ... this dont even work for public schema
       // fully
       this.getOidStatementSimple.setString(1, lcName);
-      return this.getOidStatementSimple;
+      return castNonNull(this.getOidStatementSimple);
     }
     PreparedStatement oidStatementComplex;
     if (isArray) {
@@ -1086,7 +1087,7 @@ public class TypeInfoCache implements TypeInfo {
     return ((long) oid) & 0xFFFFFFFFL;
   }
 
-  private PgPreparedStatement preparedTypeInfoCacheStatement(String sql) throws SQLException {
+  private @NonNull PgPreparedStatement preparedTypeInfoCacheStatement(String sql) throws SQLException {
     return this.conn.unwrap(PGConnection.class).prepareStatement(sql, PlaceholderStyle.JDBC).unwrap(PgPreparedStatement.class);
   }
 }

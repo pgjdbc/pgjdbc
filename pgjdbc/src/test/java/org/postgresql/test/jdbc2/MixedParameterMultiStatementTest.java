@@ -25,7 +25,7 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
   public void setUp() throws Exception {
     super.setUp();
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
-    TestUtil.createTable(con, "testbatch", "pk INTEGER GENERATED ALWAYS AS IDENTITY, col1 VARCHAR, col2 INTEGER");
+    TestUtil.createTable(con, "testbatch", "pk SERIAL, col1 VARCHAR, col2 INTEGER");
   }
 
   public void tearDown() throws SQLException {
