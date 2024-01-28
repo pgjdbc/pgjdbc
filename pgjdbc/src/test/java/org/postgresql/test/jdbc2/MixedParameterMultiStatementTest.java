@@ -120,6 +120,6 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     ps.addBatch();
 
     Assertions.assertEquals("[6, 6]", Arrays.toString(ps.executeBatch()));
-    Assertions.assertEquals("[11,22, 33,44, 55,66, 1,2, 3,4, 5,6]", getResult().toString());
+    Assertions.assertEquals("[11,22, 11,22, 33,44, 55,66, 55,66, 55,66, 1,2, 1,2, 3,4, 5,6, 5,6, 5,6]", getResult().toString());
   }
 }
