@@ -296,8 +296,12 @@ public class Parser {
             currentCommandType = SqlCommandType.SELECT;
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
-          } else if (wordLength == 4 && parseCallKeyword(aChars, keywordStart)) {
+          } else if (wordLength == SqlCommandType.CALL.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.CALL)) {
             currentCommandType = SqlCommandType.CALL;
+          } else if (wordLength == SqlCommandType.DROP.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.DROP)) {
+            currentCommandType = SqlCommandType.DROP;
+          } else if (wordLength == SqlCommandType.COMMENT.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.COMMENT)) {
+            currentCommandType = SqlCommandType.COMMENT;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.INSERT;
             if (isBatchedReWriteConfigured && keyWordCount == 0) {
@@ -962,21 +966,23 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of CALL keyword regardless of case.
+   * Parse string to check presence of a keyword regardless of case.
    *
    * @param query char[] of the query statement
    * @param offset position of query to start checking
    * @return boolean indicates presence of word
    */
-  public static boolean parseCallKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 4)) {
+  public static boolean parseKeyword(final char[] query, int offset, SqlCommandType keyword) {
+    if (query.length < (offset + keyword.name().length())) {
       return false;
     }
 
-    return (query[offset] | 32) == 'c'
-        && (query[offset + 1] | 32) == 'a'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'l';
+    for (int i = 0; i < keyword.name().length(); i++) {
+      if ((query[offset + i] | 32) != keyword.name().charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

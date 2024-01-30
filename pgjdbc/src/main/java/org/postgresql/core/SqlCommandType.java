@@ -16,8 +16,9 @@ public enum SqlCommandType {
   /**
    * Use BLANK for empty sql queries or when parsing the sql string is not
    * necessary.
+   * Allow parameters in order for {@link java.sql.Connection#nativeSQL} to process fragments.
    */
-  BLANK(false),
+  BLANK(true) ,
   INSERT(true),
   UPDATE(true),
   DELETE(true),
@@ -26,7 +27,9 @@ public enum SqlCommandType {
   WITH(true),
   CREATE(false),
   ALTER(false),
-  CALL(true);
+  CALL(true),
+  DROP(false),
+  COMMENT(false);
 
   private final boolean supportsParameters;
 
