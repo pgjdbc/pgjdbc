@@ -646,7 +646,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             setDate(parameterIndex, (LocalDate) in);
             break;
           } else {
-            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString().getBytes());
           }
           setDate(parameterIndex, tmpd);
         }
@@ -665,7 +665,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             setTime(parameterIndex, (OffsetTime) in);
             break;
           } else {
-            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString().getBytes());
           }
           setTime(parameterIndex, tmpt);
         }
@@ -683,7 +683,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
           } else {
-            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes());
           }
           setTimestamp(parameterIndex, tmpts);
         }
