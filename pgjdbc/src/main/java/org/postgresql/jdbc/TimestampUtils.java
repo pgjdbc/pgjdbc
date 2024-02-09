@@ -403,21 +403,21 @@ public class TimestampUtils {
    * @throws SQLException if there is a problem parsing s.
    */
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
-      byte []bytes) throws SQLException {
+      byte @PolyNull []bytes) throws SQLException {
 
     try (ResourceLock ignore = lock.obtain()) {
       if (bytes == null) {
         return null;
       }
 
-      int slen = bytes.length;
+      int blen = bytes.length;
 
       // convert postgres's infinity values to internal infinity magic value
-      if (slen == 8 && Arrays.equals(bytes, "infinity".getBytes())) {
+      if (bytes[0] == 'i' && Arrays.equals(bytes, "infinity".getBytes())) {
         return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
       }
 
-      if (slen == 9 && Arrays.equals(bytes,"-infinity".getBytes())) {
+      if (bytes[0] == '-' && Arrays.equals(bytes,"-infinity".getBytes())) {
         return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
       }
 
@@ -570,7 +570,7 @@ public class TimestampUtils {
    * @throws SQLException if there is a problem parsing s.
    */
   public @PolyNull OffsetDateTime toOffsetDateTime(
-      @PolyNull byte []bytes) throws SQLException {
+      byte @PolyNull[]bytes) throws SQLException {
 
     if (bytes == null) {
       return null;
@@ -617,7 +617,7 @@ public class TimestampUtils {
   }
 
   public @PolyNull Time toTime(
-      @Nullable Calendar cal, @PolyNull byte []bytes) throws SQLException {
+      @Nullable Calendar cal, byte @PolyNull []bytes) throws SQLException {
 
     try (ResourceLock ignore = lock.obtain()) {
       // 1) Parse backend string
@@ -664,7 +664,7 @@ public class TimestampUtils {
   }
 
   public @PolyNull Date toDate(@Nullable Calendar cal,
-      @PolyNull byte []dateBytes) throws SQLException {
+      byte @PolyNull []dateBytes) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (dateBytes == null) {
         return null;
@@ -710,7 +710,7 @@ public class TimestampUtils {
     }
   }
 
-  public @PolyNull LocalDate toLocalDate(@PolyNull byte []dateBytes) throws SQLException {
+  public @PolyNull LocalDate toLocalDate( byte @PolyNull []dateBytes) throws SQLException {
 
     try (ResourceLock ignore = lock.obtain()) {
       if (dateBytes == null) {
