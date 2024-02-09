@@ -430,9 +430,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        */
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA);
-              // PostgreSQL does not support bind, exec, simple, sync message flow,
-              // so we force autosavepoint to use simple if the main query is using simple
-              //| QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
     return false;
@@ -445,7 +442,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
             QUERY_NO_RESULTS | QUERY_NO_METADATA);
-                //| QUERY_EXECUTE_AS_SIMPLE);
 
       } catch (IOException ex) {
         throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
