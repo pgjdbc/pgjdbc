@@ -184,7 +184,7 @@ jobs:
     - name: Set up Java ${{ matrix.java_version }}, oracle
       id: setup_ea_java
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: oracle-actions/setup-java@7a0114d66dbd02646abd345c3395b34c148e6126 # v1.3.2
+      uses: oracle-actions/setup-java@8294b2d42db153962a75462461be076c5298a7c1 # v1.3.3
       env:
         JAVA_HOME_17_X64: ${{ env.JAVA_HOME_17_AARCH64 || env.JAVA_HOME_17_X64 }}
       with:
