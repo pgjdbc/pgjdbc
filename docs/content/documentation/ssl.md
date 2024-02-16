@@ -45,12 +45,12 @@ The following implementations of SSLSocketFactory are shipped with the driver.
 |sslfactory|Description|
 |---|---|
 |org.postgresql.ssl.DefaultJavaSSLFactory|Use the JDK default implementation.|
+|org.postgresql.ssl.KeychainSSLFactory|Use certificates and keys from the MacOS keychain. If the MacOS truststore is unsupported by the JDK, we fall back to the default cacerts JKS truststore.|
 |org.postgresql.ssl.LibPQFactory|Use the same certificates and keys as the libpq library. The key must be in DER encoded PKCS8 format. This is the default when sslfactory is unspecified.|
 |org.postgresql.ssl.MSCAPILocalMachineSSLFactory|Use certificates and keys from the Windows local machine certificate manager.|
 |org.postgresql.ssl.MSCAPISSLFactory|Use certificates and keys from the Windows certificate manager belonging to the current user.|
-|org.postgresql.ssl.KeychainSSLFactory|Use certificates and keys from the MacOS keychain. If the MacOS truststore is unsupported by the JDK, we fall back to the default cacerts JKS truststore.|
-|org.postgresql.ssl.SingleCertValidatingFactory|Accept the pinned server certificate specified in the sslfactoryarg parameter.|
 |org.postgresql.ssl.NonValidatingFactory|Connect to anyone without checking. No validation is performed.|
+|org.postgresql.ssl.SingleCertValidatingFactory|Accept the pinned server certificate specified in the sslfactoryarg parameter.|
 
 ## Configuring the Client
 
