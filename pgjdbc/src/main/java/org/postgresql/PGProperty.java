@@ -702,6 +702,14 @@ public enum PGProperty {
       "The location of the root certificate for authenticating the server."),
 
   /**
+   * The alias of the desired client certificate in a store containing many certificates.
+   */
+  SSL_SUBJECT(
+      "sslAlias",
+      null,
+      "The alias of the desired client certificate in a store with many certificates."),
+
+  /**
    * Specifies the name of the SSPI service class that forms the service class part of the SPN. The
    * default, {@code POSTGRES}, is almost always correct.
    */
