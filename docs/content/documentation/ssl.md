@@ -42,7 +42,8 @@ and the source to the `NonValidatingFactory` provided by the JDBC driver.
 
 The following implementations of SSLSocketFactory are shipped with the driver.
 
-|sslfactory|description|
+|sslfactory|Description|
+|---|---|
 |org.postgresql.ssl.DefaultJavaSSLFactory|Use the JDK default implementation.|
 |org.postgresql.ssl.LibPQFactory|Use the same certificates and keys as the libpq library. The key must be in DER encoded PKCS8 format. This is the default when sslfactory is unspecified.|
 |org.postgresql.ssl.MSCAPILocalMachineSSLFactory|Use certificates and keys from the Windows local machine certificate manager.|
