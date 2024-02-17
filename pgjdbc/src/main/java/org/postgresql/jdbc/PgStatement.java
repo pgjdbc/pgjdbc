@@ -436,7 +436,9 @@ public class PgStatement implements Statement, BaseStatement {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
-    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
+    if (fetchSize > 0
+        && !wantsScrollableResultSet()
+        && (!connection.getAutoCommit() || connection.getQueryExecutor().getTransactionState() == TransactionState.OPEN ) // because application use START TRANSACTION syntax
         && !wantsHoldableResultSet()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
     }
