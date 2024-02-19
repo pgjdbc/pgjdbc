@@ -17,51 +17,51 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 public class ParameterInjectionTest {
-    @Test
-    public void negateParameter() throws Exception {
-        try (Connection conn = TestUtil.openDB()) {
-            PreparedStatement stmt = conn.prepareStatement("SELECT -?");
+  @Test
+  public void negateParameter() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      PreparedStatement stmt = conn.prepareStatement("SELECT -?");
 
-            stmt.setInt(1, 1);
-            try (ResultSet rs = stmt.executeQuery()) {
-                assertTrue(rs.next());
-                assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
-                int value = rs.getInt(1);
-                assertEquals(-1, value);
-            }
+      stmt.setInt(1, 1);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
+        int value = rs.getInt(1);
+        assertEquals(-1, value);
+      }
 
-            stmt.setInt(1, -1);
-            try (ResultSet rs = stmt.executeQuery()) {
-                assertTrue(rs.next());
-                assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
-                int value = rs.getInt(1);
-                assertEquals(1, value);
-            }
-        }
+      stmt.setInt(1, -1);
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getMetaData().getColumnCount(), "number of result columns must match");
+        int value = rs.getInt(1);
+        assertEquals(1, value);
+      }
     }
+  }
 
-    @Test
-    public void negateParameterWithContinuation() throws Exception {
-        try (Connection conn = TestUtil.openDB()) {
-            PreparedStatement stmt = conn.prepareStatement("SELECT -?, ?");
+  @Test
+  public void negateParameterWithContinuation() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      PreparedStatement stmt = conn.prepareStatement("SELECT -?, ?");
 
-            stmt.setInt(1, 1);
-            stmt.setString(2, "\nWHERE false --");
-            try (ResultSet rs = stmt.executeQuery()) {
-                assertTrue(rs.next(), "ResultSet should contain a row");
-                assertEquals(2, rs.getMetaData().getColumnCount(), "rs.getMetaData().getColumnCount(");
-                int value = rs.getInt(1);
-                assertEquals(-1, value);
-            }
+      stmt.setInt(1, 1);
+      stmt.setString(2, "\nWHERE false --");
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next(), "ResultSet should contain a row");
+        assertEquals(2, rs.getMetaData().getColumnCount(), "rs.getMetaData().getColumnCount(");
+        int value = rs.getInt(1);
+        assertEquals(-1, value);
+      }
 
-            stmt.setInt(1, -1);
-            stmt.setString(2, "\nWHERE false --");
-            try (ResultSet rs = stmt.executeQuery()) {
-                assertTrue(rs.next(), "ResultSet should contain a row");
-                assertEquals(2, rs.getMetaData().getColumnCount(), "rs.getMetaData().getColumnCount(");
-                int value = rs.getInt(1);
-                assertEquals(1, value);
-            }
-        }
+      stmt.setInt(1, -1);
+      stmt.setString(2, "\nWHERE false --");
+      try (ResultSet rs = stmt.executeQuery()) {
+        assertTrue(rs.next(), "ResultSet should contain a row");
+        assertEquals(2, rs.getMetaData().getColumnCount(), "rs.getMetaData().getColumnCount(");
+        int value = rs.getInt(1);
+        assertEquals(1, value);
+      }
     }
+  }
 }
