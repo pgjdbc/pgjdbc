@@ -202,7 +202,8 @@ class SimpleParameterList implements V3ParameterList {
    * {}
    * </pre>
    **/
-  private static String quoteAndCast(String text, String type, boolean standardConformingStrings) {
+  private static String quoteAndCast(String text, @Nullable String type, boolean standardConformingStrings) {
+
     StringBuilder sb = new StringBuilder((text.length() + 10) / 10 * 11); // Add 10% for escaping.
     sb.append("('");
     try {
@@ -233,35 +234,47 @@ class SimpleParameterList implements V3ParameterList {
       return "?";
     } else if (paramValue == NULL_OBJECT) {
       return "(NULL)";
-    } else if ((flags[index] & BINARY) == BINARY) {
+    }
+    String textValue;
+    String type;
+    if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
-
       switch (paramTypes[index]) {
         case Oid.INT2:
           short s = ByteConverter.int2((byte[]) paramValue, 0);
-          return quoteAndCast(Short.toString(s), "int2", standardConformingStrings);
+          textValue = Short.toString(s);
+          type = "int2";
+          break;
 
         case Oid.INT4:
           int i = ByteConverter.int4((byte[]) paramValue, 0);
-          return quoteAndCast(Integer.toString(i), "int4", standardConformingStrings);
+          textValue = Integer.toString(i);
+          type = "int4";
+          break;
 
         case Oid.INT8:
           long l = ByteConverter.int8((byte[]) paramValue, 0);
-          return quoteAndCast(Long.toString(l), "int8", standardConformingStrings);
+          textValue = Long.toString(l);
+          type = "int8";
+          break;
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValue, 0);
           if (Float.isNaN(f)) {
             return "('NaN'::real)";
           }
-          return quoteAndCast(Float.toString(f), "float", standardConformingStrings);
+          textValue = Float.toString(f);
+          type = "real";
+          break;
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValue, 0);
           if (Double.isNaN(d)) {
             return "('NaN'::double precision)";
           }
-          return quoteAndCast(Double.toString(d), "double precision", standardConformingStrings);
+          textValue = Double.toString(d);
+          type = "double precision";
+          break;
 
         case Oid.NUMERIC:
           Number n = ByteConverter.numeric((byte[]) paramValue);
@@ -269,44 +282,54 @@ class SimpleParameterList implements V3ParameterList {
             assert ((Double) n).isNaN();
             return "('NaN'::numeric)";
           }
-          return n.toString();
+          textValue = n.toString();
+          type = "numeric";
+          break;
 
         case Oid.UUID:
-          String uuid =
+          textValue =
               new UUIDArrayAssistant().buildElement((byte[]) paramValue, 0, 16).toString();
-          return quoteAndCast(uuid, "uuid", standardConformingStrings);
-
+          type = "uuid";
+          break;
         case Oid.POINT:
           PGpoint pgPoint = new PGpoint();
           pgPoint.setByteValue((byte[]) paramValue, 0);
-          return quoteAndCast(pgPoint.toString(), "point", standardConformingStrings);
+          textValue = pgPoint.toString();
+          type = "point";
+          break;
 
         case Oid.BOX:
           PGbox pgBox = new PGbox();
           pgBox.setByteValue((byte[]) paramValue, 0);
-          return quoteAndCast(pgBox.toString(), "box", standardConformingStrings);
+          textValue = pgBox.toString();
+          type = "box";
+          break;
+
+        default:
+          return "?";
       }
-      return "?";
     } else {
-      String param = paramValue.toString();
+      textValue = paramValue.toString();
       int paramType = paramTypes[index];
       if (paramType == Oid.TIMESTAMP) {
-        return quoteAndCast(param, "timestamp", standardConformingStrings);
+        type = "timestamp";
       } else if (paramType == Oid.TIMESTAMPTZ) {
-        return quoteAndCast(param, "timestamp with time zone", standardConformingStrings);
+        type = "timestamp with time zone";
       } else if (paramType == Oid.TIME) {
-        return quoteAndCast(param, "time", standardConformingStrings);
+        type = "time";
       } else if (paramType == Oid.TIMETZ) {
-        return quoteAndCast(param, "time with time zone", standardConformingStrings);
+        type = "time with time zone";
       } else if (paramType == Oid.DATE) {
-        return quoteAndCast(param, "date", standardConformingStrings);
+        type = "date";
       } else if (paramType == Oid.INTERVAL) {
-        return quoteAndCast(param, "interval", standardConformingStrings);
+        type = "interval";
       } else if (paramType == Oid.NUMERIC) {
-        return quoteAndCast(param, "numeric", standardConformingStrings);
+        type = "numeric";
+      } else {
+        type = null;
       }
-      return quoteAndCast(param, null, standardConformingStrings);
     }
+    return quoteAndCast(textValue, type, standardConformingStrings);
   }
 
   @Override
