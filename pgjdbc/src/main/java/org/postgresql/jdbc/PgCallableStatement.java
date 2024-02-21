@@ -53,8 +53,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   private int lastIndex;
 
   PgCallableStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
-      int rsHoldability) throws SQLException {
-    super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability);
+      int rsHoldability, boolean escapeProcessing) throws SQLException {
+    super(connection, connection.borrowCallableQuery(sql), rsType, rsConcurrency, rsHoldability, escapeProcessing);
     this.isFunction = preparedQuery.isFunction;
 
     if (this.isFunction) {

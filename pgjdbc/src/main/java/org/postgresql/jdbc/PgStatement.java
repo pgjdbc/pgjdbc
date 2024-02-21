@@ -157,7 +157,7 @@ public class PgStatement implements Statement, BaseStatement {
   private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
 
   @SuppressWarnings("method.invocation")
-  PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
+  PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability, boolean escapeProcessing)
       throws SQLException {
     this.connection = c;
     forceBinaryTransfers |= c.getForceBinary();
@@ -167,6 +167,7 @@ public class PgStatement implements Statement, BaseStatement {
     setPrepareThreshold(c.getPrepareThreshold());
     setAdaptiveFetch(c.getAdaptiveFetch());
     this.rsHoldability = rsHoldability;
+    this.replaceProcessingEnabled = escapeProcessing;
   }
 
   @Override

@@ -212,14 +212,23 @@ public class PgConnection implements BaseConnection {
    */
   private final boolean replicationConnection;
 
+
+  /**
+   * flag to enable escapeProcessing on preparedStatements
+   * Currently Statement has a way to enable/disable escape processing, but
+   * no such method exists for PreparedStatements. This means that all PreparedStatements make a copy
+   * of the SQL string for escapeProcessing even if they won't do anything.
+   */
+  private boolean escapeProcessing = true;
+
   private final LruCache<FieldMetadata.Key, FieldMetadata> fieldMetadataCache;
 
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
 
-  final CachedQuery borrowQuery(String sql) throws SQLException {
-    return queryExecutor.borrowQuery(sql);
+  final CachedQuery borrowQuery(String sql, boolean isParametarized, boolean escapeProcessing) throws SQLException {
+    return queryExecutor.borrowQuery(sql, isParametarized, escapeProcessing);
   }
 
   final CachedQuery borrowCallableQuery(String sql) throws SQLException {
@@ -1401,7 +1410,7 @@ public class PgConnection implements BaseConnection {
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability, escapeProcessing);
   }
 
   @Override
@@ -1409,7 +1418,7 @@ public class PgConnection implements BaseConnection {
       int resultSetHoldability) throws SQLException {
     checkClosed();
     return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+        resultSetHoldability, escapeProcessing);
   }
 
   @Override
@@ -1417,7 +1426,7 @@ public class PgConnection implements BaseConnection {
       int resultSetHoldability) throws SQLException {
     checkClosed();
     return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+        resultSetHoldability, escapeProcessing);
   }
 
   @Override
@@ -1898,7 +1907,7 @@ public class PgConnection implements BaseConnection {
         new PgPreparedStatement(this, cachedQuery,
             ResultSet.TYPE_FORWARD_ONLY,
             ResultSet.CONCUR_READ_ONLY,
-            getHoldability());
+            getHoldability(), escapeProcessing);
     Query query = cachedQuery.query;
     SqlCommand sqlCommand = query.getSqlCommand();
     if (sqlCommand != null) {
@@ -1966,4 +1975,14 @@ public class PgConnection implements BaseConnection {
     this.xmlFactoryFactory = xmlFactoryFactory;
     return xmlFactoryFactory;
   }
+
+  public boolean isEscapeProcessing() {
+    return escapeProcessing;
+  }
+
+  public void setEscapeProcessing(boolean escapeProcessing) {
+    this.escapeProcessing = escapeProcessing;
+    queryExecutor.setEscapeProcessing(escapeProcessing);
+  }
+
 }

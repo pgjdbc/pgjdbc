@@ -86,6 +86,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private static final Field[] NO_FIELDS = new Field[0];
 
+  private boolean escapeProcessing;
+
   static {
     //canonicalize commonly seen strings to reduce memory and speed comparisons
     Encoding.canonicalize("application_name");
@@ -2660,6 +2662,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         adaptiveFetchCache.removeQuery(adaptiveFetch, query);
       }
     }
+  }
+
+  @Override
+  public void setEscapeProcessing(boolean escapeProcessing) {
+    this.escapeProcessing = escapeProcessing;
+  }
+
+  @Override
+  public boolean getEscapeProcessing() {
+    return escapeProcessing;
   }
 
   /*

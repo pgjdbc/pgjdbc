@@ -321,8 +321,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   @Override
-  public final CachedQuery borrowQuery(String sql) throws SQLException {
-    return statementCache.borrow(sql);
+  public final CachedQuery borrowQuery(String sql, boolean isParameterized, boolean escapeProcessing) throws SQLException {
+    return statementCache.borrow(new BaseQueryKey(sql, isParameterized, escapeProcessing));
   }
 
   @Override
