@@ -7,8 +7,22 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 ### Added
-* feat: Add PasswordUtil for encrypting passwords client side [PR #3082](https://github.com/pgjdbc/pgjdbc/pull/3082)
 ### Fixed
+
+## [42.7.2] (2024-02-21 08:23:00 -0500)
+
+### Security
+* security: SQL Injection via line comment generation, it is possible in `SimpleQuery` mode to generate a line comment by having a placeholder for a numeric with a `-` 
+such as `-?`. There must be second placeholder for a string immediately after. Setting the parameter to a -ve value creates a line comment. 
+This has been fixed in this version fixes [CVE-2024-1597](https://www.cve.org/CVERecord?id=CVE-2024-1597). Reported by [Paul Gerste](https://github.com/paul-gerste-sonarsource). See the [security advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56) for more details. This has been fixed in versions 42.7.2, 42.6.1 42.5.5, 42.4.4, 42.3.9, 42.2.28.jre7. See the security advisory for work arounds.
+
+### Changed
+* fix: Use simple query for isValid. Using Extended query sends two messages checkConnectionQuery was never ever set or used, removed [PR #3101](https://github.com/pgjdbc/pgjdbc/pull/3101)
+* perf: Avoid autoboxing bind indexes by @bokken in [PR #1244](https://github.com/pgjdbc/pgjdbc/pull/1244)
+* refactor: Document that encodePassword will zero out the password array, and remove driver's default encodePassword by @vlsi in [PR #3084](https://github.com/pgjdbc/pgjdbc/pull/3084)
+
+### Added
+* feat: Add PasswordUtil for encrypting passwords client side [PR #3082](https://github.com/pgjdbc/pgjdbc/pull/3082)
 
 ## [42.7.1] (2023-12-06 08:34:00 -0500)
 
@@ -16,7 +30,6 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 *  perf: improve performance of PreparedStatement.setBlob, BlobInputStream, and BlobOutputStream with dynamic buffer sizing [PR #3044](https://github.com/pgjdbc/pgjdbc/pull/3044)
 
 ### Fixed
-
 *  fix: Apply connectTimeout before SSLSocket.startHandshake to avoid infinite wait in case the connection is broken [PR #3040](https://github.com/pgjdbc/pgjdbc/pull/3040)
 *  fix: support waffle-jna 2.x and 3.x by using reflective approach for ManagedSecBufferDesc [PR #2720](https://github.com/pgjdbc/pgjdbc/pull/2720) Fixes [Issue #2690](https://github.com/pgjdbc/pgjdbc/issues/2720).
 *  fix: NoSuchMethodError on ByteBuffer#position When Running on Java 8  when accessing arrays, fixes [Issue #3014](https://github.com/pgjdbc/pgjdbc/issues/3014)

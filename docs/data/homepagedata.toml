@@ -14,36 +14,31 @@ path = "/icons/driver-icon.svg"
 
 # Releases Info
 [[info]]
-date = "06 December 2023"
-url = "/changelogs/2023-12-06-42.7.1-release/"
-version = "42.7.1"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.7.2-release/"
+version = "42.7.2"
 
 [[info]]
-date = "20 November 2023"
-url = "/changelogs/2023-11-20-42.7.0-release/"
-version = "42.7.0"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.6.1-release/"
+version = "42.6.1"
 
 [[info]]
-date = "17 March 2023"
-url = "/changelogs/2023-03-17-42.6.0-release/"
-version = "42.6.0"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.5.5-release/"
+version = "42.5.5"
 
 [[info]]
-date = "16 February 2023"
-url = "/changelogs/2023-02-16-42.5.4-release/"
-version = "42.5.4"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.4.4-release/"
+version = "42.4.4"
 
 [[info]]
-date = "23 October 2022"
-url = "/changelogs/2022-11-23-42.5.1-release/"
-version = "42.4.3"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.3.9-release/"
+version = "42.3.9"
 
 [[info]]
-date = "23 October 2022"
-url = "/changelogs/2022-11-23-42.5.1-release/"
-version = "42.3.8"
-
-[[info]]
-date = "23 October 2022"
-url = "/changelogs/2022-11-23-42.5.1-release/"
-version = "42.2.27"
+date = "21 February 2024"
+url = "/changelogs/2024-02-21-42.2.28-release/"
+version = "42.2.28"
