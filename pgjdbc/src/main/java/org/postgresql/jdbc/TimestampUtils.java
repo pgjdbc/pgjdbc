@@ -415,7 +415,7 @@ public class TimestampUtils {
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated in use {@link #toTimestamp(Calendar, byte[])} 
+   * @deprecated use {@link #toTimestamp(Calendar, byte[])}
    */
   @Deprecated
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
