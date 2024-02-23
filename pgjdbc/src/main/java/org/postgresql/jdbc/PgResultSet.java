@@ -711,7 +711,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (isBinary(i)) {
         return getTimestampUtils().toOffsetTimeBin(value);
       } else {
-        return getTimestampUtils().toOffsetTime(castNonNull(getString(i)));
+        return getTimestampUtils().toOffsetTime(castNonNull(getRawValue(i)));
       }
     }
 
@@ -765,7 +765,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         return getTimestampUtils().toLocalDate(value);
       }
       if (oid == Oid.TIMESTAMP) {
-        return getTimestampUtils().toLocalDateTime(castNonNull(getString(i))).toLocalDate();
+        return getTimestampUtils().toLocalDateTime(castNonNull(getRawValue(i))).toLocalDate();
       }
     }
 
