@@ -740,10 +740,7 @@ public class TimestampUtils {
   public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      // 1) Parse backend string
-      Timestamp timestamp = toTimestamp(cal, s);
-
-      if (timestamp == null) {
+      if (s == null) {
         return null;
       }
       return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
