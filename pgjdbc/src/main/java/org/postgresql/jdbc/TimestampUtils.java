@@ -226,7 +226,7 @@ public class TimestampUtils {
       byte sep;
 
       // Possibly read date.
-      if (s[end] == '-') {
+      if (end < slen && s[end] == '-') {
         //
         // Date
         //
@@ -240,11 +240,14 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.month = number(s, start, end);
 
-        sep = s[end];
-        if (sep != '-') {
-          throw new NumberFormatException("Expected date to be dash-separated, got '" + sep + "'");
-        }
+        if (end < slen) {
+          sep = s[end];
 
+          if (sep != '-') {
+            throw new NumberFormatException(
+                "Expected date to be dash-separated, got '" + sep + "'");
+          }
+        }
         start = end + 1; // Skip '-'
 
         // day of month
@@ -267,11 +270,13 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.hour = number(s, start, end);
 
-        sep = s[end];
-        if (sep != ':') {
-          throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+        if (end < slen) {
+          sep = s[end];
+          if (sep != ':') {
+            throw new NumberFormatException(
+                "Expected time to be colon-separated, got '" + sep + "'");
+          }
         }
-
         start = end + 1; // Skip ':'
 
         // minutes
@@ -279,9 +284,12 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.minute = number(s, start, end);
 
-        sep = s[end];
-        if (sep != ':') {
-          throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+        if (end < slen) {
+          sep = s[end];
+          if (sep != ':') {
+            throw new NumberFormatException(
+                "Expected time to be colon-separated, got '" + sep + "'");
+          }
         }
 
         start = end + 1; // Skip ':'
@@ -407,7 +415,9 @@ public class TimestampUtils {
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated use {@link #toTimestamp(Calendar, byte[])}
    */
+  @Deprecated
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -419,12 +429,12 @@ public class TimestampUtils {
   }
 
   /**
-   * Parse a string and return a timestamp representing its value.
+   * Parse an array of bytes and return a timestamp representing its value.
    *
-   * @param cal calendar to be used to parse the input string
-   * @param bytes The ISO formated date string to parse.
+   * @param cal calendar to be used to parse the input bytes
+   * @param bytes The ISO formatted date to parse.
    * @return null if bytes is null or a timestamp of the parsed bytes.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLException if there is a problem parsing bytes.
    */
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       byte @PolyNull []bytes) throws SQLException {
@@ -519,10 +529,12 @@ public class TimestampUtils {
   /**
    * Parse a string and return a OffsetTime representing its value.
    *
-   * @param s The ISO formated time string to parse.
+   * @param s The ISO formatted time string to parse.
    * @return null if s is null or a OffsetTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated  in use {@link #toOffsetTime(byte[])} instead
    */
+  @Deprecated
   public @PolyNull OffsetTime toOffsetTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -531,11 +543,11 @@ public class TimestampUtils {
   }
 
   /**
-   * Parse a string and return a OffsetTime representing its value.
+   * Parse an array of bytes and return a OffsetTime representing its value.
    *
    * @param bytes The ISO time formatted array of bytes time to parse.
    * @return null if bytes are null or a OffsetTime of the parsed string .
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLException if there is a problem parsing bytes.
    */
   public @PolyNull OffsetTime toOffsetTime(byte @PolyNull []bytes) throws SQLException {
     if (bytes == null) {
@@ -556,9 +568,11 @@ public class TimestampUtils {
 
   /**
    * @param s The ISO formatted date string to parse.
-  * @return null if s is null or a LocalDateTime of the parsed string s.
-  * @throws SQLException if there is a problem parsing s.
+   * @return null if s is null or a LocalDateTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing s.
+   * @deprecated use {@link #toLocalDateTime(byte[])}
   */
+  @Deprecated
   public @PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -567,11 +581,11 @@ public class TimestampUtils {
   }
 
   /**
-   * Parse a string and return a LocalDateTime representing its value.
+   * Parse an array of bytes and return a LocalDateTime representing its value.
    *
-   * @param bytes The ISO formatted date string to parse.
+   * @param bytes The ISO formatted date array of bytes to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @throws SQLException if there is a problem parsing bytes.
    */
   public @PolyNull LocalDateTime toLocalDateTime(byte @PolyNull []bytes) throws SQLException {
     if (bytes == null) {
@@ -619,7 +633,9 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated  use {@link #toOffsetDateTimeBin(byte[])}
    */
+  @Deprecated
   public @PolyNull OffsetDateTime toOffsetDateTime(
       @PolyNull String s) throws SQLException {
     if (s == null) {
@@ -632,8 +648,8 @@ public class TimestampUtils {
    * Parse an array of bytes and return a OffsetDateTime representing its value.
    *
    * @param bytes The ISO formatted date string to parse.
-   * @return null if s is null or a OffsetDateTime of the parsed string s.
-   * @throws SQLException if there is a problem parsing s.
+   * @return null if bytes is null or an OffsetDateTime of the parsed array of bytes.
+   * @throws SQLException if there is a problem parsing bytes.
    */
   public @PolyNull OffsetDateTime toOffsetDateTime(
       byte @PolyNull[]bytes) throws SQLException {
@@ -682,6 +698,7 @@ public class TimestampUtils {
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
+  @Deprecated
   public @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -740,6 +757,7 @@ public class TimestampUtils {
     }
   }
 
+  @Deprecated
   public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
