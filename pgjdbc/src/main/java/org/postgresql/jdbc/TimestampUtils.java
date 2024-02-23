@@ -543,11 +543,10 @@ public class TimestampUtils {
     }
     // Not sure how to do this. There is no 24:00:00 in java, the largest time is 23:59:59.999999999-18:00
     for ( int i = 0; i < 8; i++ ) {
-      if (bytes[i] == MAX_OFFSET[i] && i == 7) {
-        return OffsetTime.MAX;
-      }
-      else {
+      if (bytes[i] != MAX_OFFSET[i]) {
         break;
+      } else if (i == 7) {
+        return OffsetTime.MAX;
       }
     }
 
