@@ -332,6 +332,8 @@ class SimpleParameterList implements V3ParameterList {
         type = "interval";
       } else if (paramType == Oid.NUMERIC) {
         type = "numeric";
+      } else if (paramType == Oid.BOOL) {
+        type = "boolean";
       } else {
         type = null;
       }
