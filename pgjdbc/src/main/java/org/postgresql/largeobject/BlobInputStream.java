@@ -76,7 +76,7 @@ public class BlobInputStream extends InputStream {
    */
 
   public BlobInputStream(LargeObject lo, int bsize) {
-    this(lo, bsize, Long.MAX_VALUE);
+    this(lo, bsize, -1);
   }
 
   /**
@@ -90,8 +90,24 @@ public class BlobInputStream extends InputStream {
     // The very first read multiplies the last buffer size by two, so we divide by two to get
     // the first read to be exactly the initial buffer size
     this.lastBufferSize = INITIAL_BUFFER_SIZE / 2;
+
+    try {
+      // initialise current position for mark/reset
+      this.absolutePosition = lo.tell64();
+    } catch (SQLException e1) {
+      try {
+        // the tell64 function does not exist before PostgreSQL 9.3
+        this.absolutePosition = lo.tell();
+      } catch (SQLException e2) {
+        RuntimeException e3 = new RuntimeException("Failed to create BlobInputStream", e1);
+        e3.addSuppressed(e2);
+        throw e3;
+      }
+    }
+
     // Treat -1 as no limit for backward compatibility
-    this.limit = limit == -1 ? Long.MAX_VALUE : limit;
+    this.limit = limit == -1 ? Long.MAX_VALUE : limit + this.absolutePosition;
+    this.markPosition = this.absolutePosition;
   }
 
   /**
