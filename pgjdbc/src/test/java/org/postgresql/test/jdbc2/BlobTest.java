@@ -290,17 +290,47 @@ class BlobTest {
         LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
 
         long oid = rs.getLong(1);
-        LargeObject blob = lom.open(oid);
-        InputStream bis = blob.getInputStream();
+        try (LargeObject blob = lom.open(oid)) {
+          InputStream bis = blob.getInputStream();
 
-        assertEquals('<', bis.read());
-        bis.mark(4);
-        assertEquals('?', bis.read());
-        assertEquals('x', bis.read());
-        assertEquals('m', bis.read());
-        assertEquals('l', bis.read());
-        bis.reset();
-        assertEquals('?', bis.read());
+          assertEquals('<', bis.read());
+          bis.mark(4);
+          assertEquals('?', bis.read());
+          assertEquals('x', bis.read());
+          assertEquals('m', bis.read());
+          assertEquals('l', bis.read());
+          bis.reset();
+          assertEquals('?', bis.read());
+        }
+      }
+    }
+  }
+
+  @Test
+  void markResetWithInitialOffset() throws Exception {
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
+
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'")) {
+        assertTrue(rs.next());
+
+        LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+
+        long oid = rs.getLong(1);
+        try (LargeObject blob = lom.open(oid)) {
+          blob.seek(4);
+          InputStream bis = blob.getInputStream();
+
+          assertEquals('l', bis.read());
+          bis.reset();
+          assertEquals('l', bis.read());
+          assertEquals(' ', bis.read());
+          bis.mark(4);
+          assertEquals('v', bis.read());
+          assertEquals('e', bis.read());
+          bis.reset();
+          assertEquals('v', bis.read());
+        }
       }
     }
   }
