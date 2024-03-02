@@ -178,7 +178,7 @@ class V3ParameterListTests {
 
     s1SPL.appendAll(s2SPL);
     assertEquals(
-        "<[1 ,2 ,3 ,4 ,5 ,6 ,7 ,8]>", s1SPL.toString(), "Expected string representation of values does not match outcome.");
+        "<[('1'::int4) ,('2'::int4) ,('3'::int4) ,('4'::int4) ,('5'::int4) ,('6'::int4) ,('7'::int4) ,('8'::int4)]>", s1SPL.toString(), "Expected string representation of values does not match outcome.");
   }
 
   @Test

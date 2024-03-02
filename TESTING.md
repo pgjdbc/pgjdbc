@@ -10,7 +10,7 @@ guidelines and an example for developers to add new test cases.
 
 ## 2 - Installation
 
-Java 11+ is required to build pgjdbc. We recommend installing [Java 17](https://javaalmanac.io/jdk/17/).
+Java 17+ is required to build pgjdbc. We recommend installing [Java 17](https://javaalmanac.io/jdk/17/).
 
 You need to install and build the PostgreSQL JDBC driver source
 tree. You can download it from https://github.com/pgjdbc/pgjdbc.  See

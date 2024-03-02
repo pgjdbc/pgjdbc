@@ -254,6 +254,22 @@ matrix.generateRow({os: 'ubuntu-latest'});
 if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
   matrix.generateRow({os: 'self-hosted'});
 }
+// Ensure we test all query_mode values
+for (let query_mode of matrix.axisByName.query_mode.values) {
+  matrix.generateRow({query_mode: query_mode});
+}
+for (let gss of matrix.axisByName.gss.values) {
+  matrix.generateRow({gss: gss});
+}
+for (let xa of matrix.axisByName.xa.values) {
+  matrix.generateRow({xa: xa});
+}
+for (let ssl of matrix.axisByName.ssl.values) {
+  matrix.generateRow({ssl: ssl});
+}
+for (let replication of matrix.axisByName.replication.values) {
+  matrix.generateRow({replication: replication});
+}
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
 if (include.length === 0) {
   throw new Error('Matrix list is empty');

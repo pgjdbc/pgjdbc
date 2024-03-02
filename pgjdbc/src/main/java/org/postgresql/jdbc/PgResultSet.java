@@ -546,7 +546,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    return getTimestampUtils().toDate(cal, castNonNull(value));
+    return getTimestampUtils().toDate(cal, castNonNull(getString(i)));
   }
 
   @Override
@@ -589,7 +589,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    return getTimestampUtils().toTime(cal, value);
+    String string = getString(i);
+    return getTimestampUtils().toTime(cal, string);
   }
 
   @Pure
@@ -630,7 +631,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
         return tsUnixEpochDate;
       } else if (oid == Oid.DATE) {
-        return new Timestamp(castNonNull(getDate(i, cal)).getTime());
+        new Timestamp(castNonNull(getDate(i, cal)).getTime());
       } else {
         throw new PSQLException(
             GT.tr("Cannot convert the column of type {0} to requested type {1}.",
@@ -642,15 +643,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // If this is actually a timestamptz, the server-provided timezone will override
     // the one we pass in, which is the desired behaviour. Otherwise, we'll
     // interpret the timezone-less value in the provided timezone.
+    String string = castNonNull(getString(i));
     if (oid == Oid.TIME || oid == Oid.TIMETZ) {
       // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, value);
-      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, value).getTime());
+      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, string);
+      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, string).getTime());
       tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
       return tsUnixEpochDate;
     }
 
-    return getTimestampUtils().toTimestamp(cal, value);
+    return getTimestampUtils().toTimestamp(cal, string);
 
   }
 
@@ -679,7 +681,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
 
-        OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(value);
+        OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
         if ( offsetDateTime != OffsetDateTime.MAX && offsetDateTime != OffsetDateTime.MIN ) {
           return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
         } else {
@@ -688,7 +690,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       }
       if ( oid == Oid.TIMETZ ) {
-        return getTimestampUtils().toOffsetDateTime(value);
+        return getTimestampUtils().toOffsetDateTime(castNonNull(getString(i)));
       }
     }
 
@@ -761,10 +763,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     } else {
       // string
-      if (oid == Oid.DATE ) {
-        return getTimestampUtils().toLocalDate(value);
-      }
-      if (oid == Oid.TIMESTAMP) {
+      if (oid == Oid.DATE || oid == Oid.TIMESTAMP) {
         return getTimestampUtils().toLocalDateTime(castNonNull(getString(i))).toLocalDate();
       }
     }

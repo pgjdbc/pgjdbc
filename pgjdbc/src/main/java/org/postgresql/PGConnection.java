@@ -278,7 +278,7 @@ public interface PGConnection {
       if (encryptionType == null) {
         try (ResultSet rs = stmt.executeQuery("SHOW password_encryption")) {
           if (!rs.next()) {
-            throw new PSQLException(GT.tr("Expected a row when reading password_encrypton but none was found"),
+            throw new PSQLException(GT.tr("Expected a row when reading password_encryption but none was found"),
                 PSQLState.NO_DATA);
           }
           encryptionType = rs.getString(1);

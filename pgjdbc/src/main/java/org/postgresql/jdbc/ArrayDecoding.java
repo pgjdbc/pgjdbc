@@ -336,7 +336,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toDate(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toDate(null, stringVal);
     }
   };
 
@@ -345,7 +345,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTime(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTime(null, stringVal);
     }
   };
 
@@ -354,7 +354,7 @@ final class ArrayDecoding {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTimestamp(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTimestamp(null, stringVal);
     }
   };
 
