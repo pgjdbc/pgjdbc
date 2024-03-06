@@ -42,6 +42,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketOption;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -57,6 +58,8 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
+
+import jdk.net.ExtendedSocketOptions;
 
 /**
  * ConnectionFactory implementation for version 3 (7.4+) connections.
@@ -105,6 +108,26 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
+  private static class UnsupportedSocketOption implements SocketOption<Integer> {
+      private final String name;
+      UnsupportedSocketOption(String name) {
+          this.name = name;
+      }
+      @Override public String name() { return name; }
+      @Override public Class<Integer> type() { return Integer.class; }
+      @Override public String toString() { return "Java 11 socket option " + name; }
+  }
+
+  private static final SocketOption<Integer> SOCKET_OPTION_KEEPINTERVAL = getSocketOption("TCP_KEEPIDLE");
+
+  private static SocketOption<Integer> getSocketOption(String fieldName) {
+    try {
+      return (SocketOption<Integer>) ExtendedSocketOptions.class.getField(fieldName).get(null);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      return new UnsupportedSocketOption(fieldName);
+    }
+  }
+
   private ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
@@ -147,6 +170,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Enable TCP keep-alive probe if required.
       boolean requireTCPKeepAlive = PGProperty.TCP_KEEP_ALIVE.getBoolean(info);
       newStream.getSocket().setKeepAlive(requireTCPKeepAlive);
+      if (requireTCPKeepAlive) {
+        Integer tcpKeepInterval = PGProperty.TCP_KEEP_INTERVAL.getInteger(info);
+        if (tcpKeepInterval != null) {
+          newStream.getSocket().setOption(SOCKET_OPTION_KEEPINTERVAL, tcpKeepInterval);
+        }
+      }
 
       // Enable TCP no delay if required
       boolean requireTCPNoDelay = PGProperty.TCP_NO_DELAY.getBoolean(info);

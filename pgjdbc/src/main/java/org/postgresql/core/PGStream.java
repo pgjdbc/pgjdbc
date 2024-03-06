@@ -31,10 +31,13 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketOption;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
 
 import javax.net.SocketFactory;
+
+import jdk.net.ExtendedSocketOptions;
 
 /**
  * <p>Wrapper around the raw connection to the server that implements some basic primitives
@@ -54,6 +57,16 @@ public class PGStream implements Closeable, Flushable {
   private VisibleBufferedInputStream pgInput;
   private OutputStream pgOutput;
   private byte @Nullable [] streamBuffer;
+
+  private static final SocketOption<Integer> SOCKET_OPTION_KEEPINTERVAL = getSocketOption("TCP_KEEPIDLE");
+
+  private static SocketOption<Integer> getSocketOption(String fieldName) {
+    try {
+      return (SocketOption<Integer>) ExtendedSocketOptions.class.getField(fieldName).get(null);
+    } catch (NoSuchFieldException | IllegalAccessException e) {
+      return null;
+    }
+  }
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
@@ -114,6 +127,7 @@ public class PGStream implements Closeable, Flushable {
     int soTimeout = 0;
     boolean keepAlive = false;
     boolean tcpNoDelay = true;
+    Integer keepInterval = null;
 
     /*
     Get the existing values before closing the stream
@@ -124,6 +138,9 @@ public class PGStream implements Closeable, Flushable {
       soTimeout = pgStream.getSocket().getSoTimeout();
       keepAlive = pgStream.getSocket().getKeepAlive();
       tcpNoDelay = pgStream.getSocket().getTcpNoDelay();
+      if (SOCKET_OPTION_KEEPINTERVAL != null) {
+        keepInterval = pgStream.getSocket().getOption(SOCKET_OPTION_KEEPINTERVAL);
+      }
 
     } catch ( SocketException ex ) {
       // ignore it
@@ -143,6 +160,9 @@ public class PGStream implements Closeable, Flushable {
     setNetworkTimeout(soTimeout);
     socket.setKeepAlive(keepAlive);
     socket.setTcpNoDelay(tcpNoDelay);
+    if (SOCKET_OPTION_KEEPINTERVAL != null) {
+      socket.setOption(SOCKET_OPTION_KEEPINTERVAL, keepInterval);
+    }
 
     int2Buf = new byte[2];
     int4Buf = new byte[4];
