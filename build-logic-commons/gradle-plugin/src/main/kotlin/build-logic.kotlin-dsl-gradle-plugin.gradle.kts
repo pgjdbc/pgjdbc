@@ -3,16 +3,19 @@ plugins {
     id("org.gradle.kotlin.kotlin-dsl") // this is 'kotlin-dsl' without version
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 tasks.validatePlugins {
     failOnWarning.set(true)
     enableStricterValidation.set(true)
 }
 
-kotlinDslPluginOptions {
-    jvmTarget.set("1.8")
-}
+// We need to figure out a version that is supported by the current JVM, and by the Kotlin Gradle plugin
+// So we settle on 21, 17, or 11 if the current JVM supports it
+listOf(21, 17, 11)
+    .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
+    ?.let { buildScriptJvmTarget ->
+        java {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+            }
+        }
+    }
