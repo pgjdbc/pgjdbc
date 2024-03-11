@@ -1,3 +1,5 @@
+import com.github.autostyle.gradle.AutostyleTask
+import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import org.gradle.kotlin.dsl.apply
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
@@ -7,10 +9,20 @@ plugins {
 
 if (!buildParameters.skipAutostyle) {
     apply(plugin = "build-logic.autostyle")
+    if (!buildParameters.skipCheckstyle) {
+        tasks.withType<Checkstyle>().configureEach {
+            mustRunAfter(tasks.withType<AutostyleTask>())
+        }
+    }
 }
 
-if (!buildParameters.skipCheckstyle) {
-    apply(plugin = "build-logic.checkstyle")
+val skipCheckstyle = buildParameters.skipCheckstyle || run {
+    logger.info("Checkstyle requires Java 11+")
+    buildParameters.buildJdkVersion < 11
+}
+
+if (!skipCheckstyle) {
+        apply(plugin = "build-logic.checkstyle")
 }
 
 if (!buildParameters.skipForbiddenApis) {

@@ -6,11 +6,6 @@ plugins {
 
 group = "org.postgresql.build-logic"
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
-
 dependencies {
     // We use precompiled script plugins (== plugins written as src/kotlin/build-logic.*.gradle.kts files,
     // and we need to declare dependency on org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin
@@ -19,6 +14,15 @@ dependencies {
     implementation("org.gradle.kotlin.kotlin-dsl:org.gradle.kotlin.kotlin-dsl.gradle.plugin:$expectedKotlinDslPluginsVersion")
 }
 
-kotlinDslPluginOptions {
-    jvmTarget.set("1.8")
-}
+// We need to figure out a version that is supported by the current JVM, and by the Kotlin Gradle plugin
+// So we settle on 21, 17, or 11 if the current JVM supports it
+listOf(21, 17, 11)
+    .firstOrNull { JavaVersion.toVersion(it) <= JavaVersion.current() }
+    ?.let { buildScriptJvmTarget ->
+        java {
+            toolchain {
+                languageVersion.set(JavaLanguageVersion.of(buildScriptJvmTarget))
+            }
+       }
+   }
+

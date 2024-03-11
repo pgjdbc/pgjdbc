@@ -5,21 +5,19 @@
 
 pluginManagement {
     plugins {
-        id("biz.aQute.bnd.builder") version "6.3.1"
-        id("com.github.burrunan.s3-build-cache") version "1.1"
-        id("com.github.johnrengelman.shadow") version "5.1.0"
-        id("com.github.lburgazzoli.karaf") version "0.5.4"
-        id("com.github.vlsi.crlf") version "1.86"
-        id("com.github.vlsi.gettext") version "1.86"
-        id("com.github.vlsi.gradle-extensions") version "1.86"
-        id("com.github.vlsi.license-gather") version "1.86"
-        id("com.github.vlsi.ide") version "1.86"
-        id("com.github.vlsi.stage-vote-release") version "1.86"
-        id("org.nosphere.gradle.github.actions") version "1.2.0"
-        id("org.owasp.dependencycheck") version "5.3.0"
-        id("me.champeau.jmh") version "0.6.8"
-        kotlin("jvm") version "1.8.10"
-    }
+id("biz.aQute.bnd.builder") version "7.0.0"
+        id("com.github.burrunan.s3-build-cache") version "1.8"
+        id("com.github.johnrengelman.shadow") version "8.1.1"
+        id("com.github.lburgazzoli.karaf") version "0.5.6"
+        id("com.github.vlsi.crlf") version "1.90"
+        id("com.github.vlsi.gettext") version "1.90"
+        id("com.github.vlsi.gradle-extensions") version "1.90"
+        id("com.github.vlsi.license-gather") version "1.90"
+        id("com.github.vlsi.ide") version "1.90"
+        id("com.github.vlsi.stage-vote-release") version "1.90"
+        id("org.nosphere.gradle.github.actions") version "1.4.0"
+        id("me.champeau.jmh") version "0.7.2"
+        kotlin("jvm") version "1.9.22"    }
 }
 
 plugins {

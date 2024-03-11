@@ -48,7 +48,7 @@ publishing {
         pom {
             simplifyXml()
             val capitalizedName = project.name
-+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+                .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
             name.set(
                 (project.findProperty("artifact.name") as? String) ?: "pgdjbc $capitalizedName"
             )

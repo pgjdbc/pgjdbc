@@ -1,13 +1,21 @@
-import org.gradle.api.plugins.quality.Checkstyle
-import org.gradle.kotlin.dsl.withType
-import java.io.File
+import com.github.vlsi.gradle.dsl.configureEach
 
 plugins {
     id("checkstyle")
+    id("build-logic.toolchains")
+    id("build-logic.build-params")
 }
 
+configurations.checkstyle {
+    // See https://github.com/gradle/gradle/issues/27035#issuecomment-1814997295
+    // TODO: remove the workaround as https://github.com/checkstyle/checkstyle/issues/14123 is resolved
+    resolutionStrategy.capabilitiesResolution.withCapability("com.google.collections:google-collections") {
+        select("com.google.guava:guava:0")
+    }
+ }
+
 checkstyle {
-    toolVersion = "9.3"
+    toolVersion = "10.13.0"
     providers.gradleProperty("checkstyle.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
@@ -29,4 +37,12 @@ checkstyleTasks.configureEach {
 
 tasks.register("checkstyleAll") {
     dependsOn(checkstyleTasks)
+}
+
+plugins.withId("java")  {
+    tasks.configureEach<Checkstyle> {
+        buildParameters.buildJdk?.let {
+            javaLauncher.convention(project.the<JavaToolchainService>().launcherFor(it))
+        }
+    }
 }
