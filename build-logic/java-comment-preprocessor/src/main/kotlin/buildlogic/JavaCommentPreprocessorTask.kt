@@ -3,9 +3,10 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.buildtools
+package buildlogic
 
 import com.igormaznitsa.jcp.JcpPreprocessor
+import com.igormaznitsa.jcp.context.CommentRemoverType
 import com.igormaznitsa.jcp.context.PreprocessorContext
 import com.igormaznitsa.jcp.expression.Value
 import com.igormaznitsa.jcp.logger.PreprocessorLogger
@@ -74,7 +75,11 @@ open class JavaCommentPreprocessorTask @Inject constructor(
             setSources(sourceFolders.get())
             isClearTarget = clearTarget.get()
             isKeepLines = keepLines.get()
-            isKeepComments = keepComments.get()
+            keepComments = if (this@JavaCommentPreprocessorTask.keepComments.get()) {
+                CommentRemoverType.KEEP_ALL
+            } else {
+                CommentRemoverType.REMOVE_JCP_ONLY
+            }
             excludeFolders = excludedPatterns.get().toList()
             for ((k, v) in variables.get()) {
                 setGlobalVariable(k, Value.recognizeRawString(v))

@@ -5,37 +5,23 @@
 
 pluginManagement {
     plugins {
-        fun String.v() = extra["$this.version"].toString()
-        fun PluginDependenciesSpec.idv(id: String, key: String = id) = id(id) version key.v()
-
-        idv("biz.aQute.bnd.builder")
-        idv("com.github.autostyle")
-        idv("com.github.burrunan.s3-build-cache")
-        idv("com.github.johnrengelman.shadow")
-        idv("com.github.lburgazzoli.karaf")
-        idv("com.github.spotbugs")
-        idv("com.github.vlsi.crlf", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.gettext", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.gradle-extensions", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.ide", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.jandex", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.license-gather", "com.github.vlsi.vlsi-release-plugins")
-        idv("com.github.vlsi.stage-vote-release", "com.github.vlsi.vlsi-release-plugins")
-        idv("de.thetaphi.forbiddenapis")
-        idv("me.champeau.jmh")
-        idv("org.checkerframework")
-        idv("org.jetbrains.gradle.plugin.idea-ext")
-        idv("org.nosphere.gradle.github.actions")
-        idv("org.owasp.dependencycheck")
-        kotlin("jvm") version "kotlin".v()
-    }
+id("biz.aQute.bnd.builder") version "7.0.0"
+        id("com.github.burrunan.s3-build-cache") version "1.8"
+        id("com.github.johnrengelman.shadow") version "8.1.1"
+        id("com.github.lburgazzoli.karaf") version "0.5.6"
+        id("com.github.vlsi.crlf") version "1.90"
+        id("com.github.vlsi.gettext") version "1.90"
+        id("com.github.vlsi.gradle-extensions") version "1.90"
+        id("com.github.vlsi.license-gather") version "1.90"
+        id("com.github.vlsi.ide") version "1.90"
+        id("com.github.vlsi.stage-vote-release") version "1.90"
+        id("org.nosphere.gradle.github.actions") version "1.4.0"
+        id("me.champeau.jmh") version "0.7.2"
+        kotlin("jvm") version "1.9.22"    }
 }
 
 plugins {
-    // TODO: remove explicit version once upgrade to Gradle 7.4+
-    // The version is explicitly specified to support building with tr_TR locale
-    // See https://github.com/gradle/gradle/issues/17361
-    id("com.gradle.enterprise") version "3.10.1"
+    `gradle-enterprise`
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -43,8 +29,9 @@ plugins {
 // Note: it cannot be inferred from the directory name as developer might clone pgjdbc to pgjdbc_tmp (or whatever) folder
 rootProject.name = "pgjdbc"
 
+includeBuild("build-logic")
+
 include(
-    "bom",
     "benchmarks",
     "postgresql",
     "pgjdbc-osgi-test"

@@ -4,7 +4,6 @@
  */
 
 import aQute.bnd.gradle.Bundle
-import aQute.bnd.gradle.BundleTaskConvention
 import com.github.autostyle.gradle.AutostyleTask
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.gettext.GettextTask
@@ -17,6 +16,9 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
+    id("build-logic.java-published-library")
+    id("build-logic.test-junit5")
+    id("build-logic.java-comment-preprocessor")
     id("biz.aQute.bnd.builder") apply false
     id("com.github.johnrengelman.shadow")
     id("com.github.lburgazzoli.karaf")
@@ -30,6 +32,21 @@ buildscript {
         // E.g. for biz.aQute.bnd.builder which is not published to Gradle Plugin Portal
         mavenCentral()
     }
+}
+
+java {
+    val sourceSets: SourceSetContainer by project
+    registerFeature("sspi") {
+        usingSourceSet(sourceSets["main"])
+    }
+    registerFeature("osgi") {
+        usingSourceSet(sourceSets["main"])
+    }
+}
+
+val knows by tasks.existing {
+    group = null // Hide the task from `./gradlew tasks` output
+    description = "This is a dummy task, unfortunately the author refuses to remove it: https://github.com/johnrengelman/shadow/issues/122"
 }
 
 val shaded by configurations.creating
@@ -52,11 +69,24 @@ configurations {
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
 dependencies {
-    shaded(platform(project(":bom")))
-    shaded("com.ongres.scram:client")
+    constraints {
+        api("com.github.waffle:waffle-jna:1.9.1")
+        api("org.osgi:org.osgi.core:5.0.0")
+        api("org.osgi:org.osgi.service.jdbc:1.0.0")
+    }
 
-    implementation("org.checkerframework:checker-qual")
-    testImplementation("se.jiderhamn:classloader-leak-test-framework")
+    "sspiImplementation"("com.github.waffle:waffle-jna")
+    // The dependencies are provided by OSGi container,
+    // so they should not be exposed as transitive dependencies
+    "osgiCompileOnly"("org.osgi:org.osgi.core")
+    "osgiCompileOnly"("org.osgi:org.osgi.service.jdbc")
+    "testImplementation"("org.osgi:org.osgi.service.jdbc") {
+        because("DataSourceFactory is needed for PGDataSourceFactoryTest")
+    }
+    shaded("com.ongres.scram:client:2.1")
+
+    implementation("org.checkerframework:checker-qual:3.5.0")
+    testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.1")
 }
 
 val skipReplicationTests by props()
@@ -75,7 +105,7 @@ tasks.configureEach<Test> {
     }
 }
 
-val preprocessVersion by tasks.registering(org.postgresql.buildtools.JavaCommentPreprocessorTask::class) {
+val preprocessVersion by tasks.registering(buildlogic.JavaCommentPreprocessorTask::class) {
     baseDir.set(projectDir)
     sourceFolders.add("src/main/version")
 }
@@ -205,7 +235,7 @@ tasks.shadowJar {
 val osgiJar by tasks.registering(Bundle::class) {
     archiveClassifier.set("osgi")
     from(tasks.shadowJar.map { zipTree(it.archiveFile) })
-    withConvention(BundleTaskConvention::class) {
+    bundle {
         bnd(
             """
             -exportcontents: !org.postgresql.shaded.*, org.postgresql.*
@@ -303,24 +333,20 @@ val sourceDistribution by tasks.registering(Tar::class) {
         include("README.md")
     }
 
-    val props = listOf(
-        "pgjdbc.version",
-        "junit4.version",
-        "junit5.version",
-        "junit5-system-stubs-jupiter.version",
-        "classloader-leak-test-framework.version",
-        "com.ongres.scram.client.version"
-    ).associate { propertyName ->
-        val value = project.findProperty(propertyName) as String
-        inputs.property(propertyName, project.findProperty(propertyName))
-        "%{$propertyName}" to value
+    val testRuntimeClasspath = configurations.testRuntimeClasspath
+    dependsOn(testRuntimeClasspath)
+
+    val props by lazy {
+        // Associate group:module with version, so %{group:module} can be used in reduced-pom.xml
+        testRuntimeClasspath.get().incoming.resolutionResult.allComponents
+            .associateBy({ it.moduleVersion!!.module.toString() }, { it.moduleVersion!!.version })
     }
 
     from("reduced-pom.xml") {
         rename { "pom.xml" }
         filter {
-            it.replace(Regex("%\\{[^}]+\\}")) {
-                props[it.value] ?: throw GradleException("Unknown property in reduced-pom.xml: $it")
+            it.replace(Regex("%\\{([^}]+)\\}")) {
+                props[it.groups[1]!!.value] ?: throw GradleException("Unknown property in reduced-pom.xml: ${it.value}")
             }
         }
     }
@@ -383,42 +409,3 @@ val extraMavenPublications by configurations.getting
         classifier = "features"
     }
 }
-
-// <editor-fold defaultstate="collapsed" desc="Populates build/local-maven-repo with artifacts produced by the current project for testing purposes">
-val localRepoElements by configurations.creating {
-    isCanBeConsumed = true
-    isCanBeResolved = false
-    description =
-        "Shares local maven repository directory that contains the artifacts produced by the current project"
-    attributes {
-        attribute(Category.CATEGORY_ATTRIBUTE, objects.named("maven-repository"))
-        attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.EXTERNAL))
-    }
-}
-
-val localRepoDir = layout.buildDirectory.dir("local-maven-repo")
-
-publishing {
-    repositories {
-        maven {
-            name = "local"
-            url = uri(localRepoDir)
-        }
-    }
-}
-
-localRepoElements.outgoing.artifact(localRepoDir) {
-    builtBy(tasks.named("publishAllPublicationsToLocalRepository"))
-}
-
-val cleanLocalRepository by tasks.registering(Delete::class) {
-    description = "Clears local-maven-repo so timestamp-based snapshot artifacts do not consume space"
-    delete(localRepoDir)
-}
-
-tasks.withType<PublishToMavenRepository>()
-    .matching { it.name.contains("ToLocalRepository") }
-    .configureEach {
-        dependsOn(cleanLocalRepository)
-    }
-// </editor-fold>
