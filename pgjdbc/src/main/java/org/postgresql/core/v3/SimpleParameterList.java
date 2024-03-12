@@ -274,15 +274,15 @@ class SimpleParameterList implements V3ParameterList {
           type = "double precision";
           break;
 
-      case Oid.NUMERIC:
-        Number n = ByteConverter.numeric((byte[]) paramValue);
-        if (n instanceof Double) {
-          assert ((Double) n).isNaN();
-          return "('NaN'::numeric)";
-        }
-        textValue = n.toString();
-        type = "numeric";
-        break;
+        case Oid.NUMERIC:
+          Number n = ByteConverter.numeric((byte[]) paramValue);
+          if (n instanceof Double) {
+            assert ((Double) n).isNaN();
+            return "('NaN'::numeric)";
+          }
+          textValue = n.toString();
+          type = "numeric";
+          break;
 
         case Oid.UUID:
           textValue =
@@ -290,21 +290,21 @@ class SimpleParameterList implements V3ParameterList {
           type = "uuid";
           break;
 
-      case Oid.POINT:
+        case Oid.POINT:
           PGpoint pgPoint = new PGpoint();
           pgPoint.setByteValue((byte[]) paramValue, 0);
           textValue = pgPoint.toString();
           type = "point";
           break;
 
-      case Oid.BOX:
+        case Oid.BOX:
           PGbox pgBox = new PGbox();
           pgBox.setByteValue((byte[]) paramValue, 0);
           textValue = pgBox.toString();
           type = "box";
           break;
 
-      default:
+        default:
           return "?";
       }
     } else {

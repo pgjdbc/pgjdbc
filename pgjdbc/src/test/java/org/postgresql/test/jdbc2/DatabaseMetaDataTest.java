@@ -208,8 +208,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
-    }
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }    }
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3)) {
       con.createArrayOf("custom", new Object[]{});
       res = dbmd.getColumns(null, null, "customtable", null);
@@ -220,7 +223,11 @@ public class DatabaseMetaDataTest {
       assertTrue(res.next());
       assertEquals("__custom", res.getString("TYPE_NAME"));
       assertTrue(res.next());
-      assertEquals("___custom", res.getString("TYPE_NAME"));
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v16)) {
+        assertEquals("__custom_1", res.getString("TYPE_NAME"));
+      } else {
+        assertEquals("___custom", res.getString("TYPE_NAME"));
+      }
     }
   }
 
