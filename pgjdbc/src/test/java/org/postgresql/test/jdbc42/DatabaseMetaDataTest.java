@@ -104,9 +104,9 @@ public class DatabaseMetaDataTest {
     assertEquals("c", rs.getString("COLUMN_NAME"));
     // = array of TYPE test_enum AS ENUM ('value')
     if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v16)) {
-      assertEquals("_test_enum_1", rs.getString("TYPE_NAME"), "Correctly detects shadowed array type name");
+      assertEquals("Correctly detects shadowed array type name", "_test_enum_1", rs.getString("TYPE_NAME") );
     } else {
-      assertEquals("___test_enum", rs.getString("TYPE_NAME"), "Correctly detects shadowed array type name");
+      assertEquals("Correctly detects shadowed array type name", "___test_enum", rs.getString("TYPE_NAME"));
     }
     assertEquals("Correctly detects type of shadowed name", Types.ARRAY, rs.getInt("DATA_TYPE"));
 
