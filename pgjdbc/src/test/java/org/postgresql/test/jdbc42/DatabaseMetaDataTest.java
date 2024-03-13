@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
@@ -102,7 +103,11 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("c", rs.getString("COLUMN_NAME"));
     // = array of TYPE test_enum AS ENUM ('value')
-    assertEquals("Correctly detects shadowed array type name","___test_enum", rs.getString("TYPE_NAME"));
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v16)) {
+      assertEquals("Correctly detects shadowed array type name", "_test_enum_1", rs.getString("TYPE_NAME") );
+    } else {
+      assertEquals("Correctly detects shadowed array type name", "___test_enum", rs.getString("TYPE_NAME"));
+    }
     assertEquals("Correctly detects type of shadowed name", Types.ARRAY, rs.getInt("DATA_TYPE"));
 
     assertFalse(rs.next());
