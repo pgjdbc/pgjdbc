@@ -3,7 +3,7 @@
  * See the LICENSE file in the project root for more information.
  */
 
-package org.postgresql.buildtools
+package buildlogic
 
 import com.igormaznitsa.jcp.JcpPreprocessor
 import com.igormaznitsa.jcp.context.PreprocessorContext

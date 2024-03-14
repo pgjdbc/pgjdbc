@@ -355,6 +355,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return keywords;
   }
 
+  @SuppressWarnings("deprecation")
   public String getNumericFunctions() throws SQLException {
     return EscapedFunctions.ABS + ',' + EscapedFunctions.ACOS + ',' + EscapedFunctions.ASIN + ','
         + EscapedFunctions.ATAN + ',' + EscapedFunctions.ATAN2 + ',' + EscapedFunctions.CEILING
@@ -367,6 +368,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   }
 
+  @SuppressWarnings("deprecation")
   public String getStringFunctions() throws SQLException {
     String funcs = EscapedFunctions.ASCII + ',' + EscapedFunctions.CHAR + ','
         + EscapedFunctions.CONCAT + ',' + EscapedFunctions.LCASE + ',' + EscapedFunctions.LEFT + ','
@@ -386,10 +388,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return funcs;
   }
 
+  @SuppressWarnings("deprecation")
   public String getSystemFunctions() throws SQLException {
     return EscapedFunctions.DATABASE + ',' + EscapedFunctions.IFNULL + ',' + EscapedFunctions.USER;
   }
 
+  @SuppressWarnings("deprecation")
   public String getTimeDateFunctions() throws SQLException {
     String timeDateFuncs = EscapedFunctions.CURDATE + ',' + EscapedFunctions.CURTIME + ','
         + EscapedFunctions.DAYNAME + ',' + EscapedFunctions.DAYOFMONTH + ','
