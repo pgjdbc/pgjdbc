@@ -15,8 +15,10 @@
             Latest Releases
         </h2>
         <p>
-            pgJDBC has released v42.7.2, v42.6.1, v42.5.5, v42.4.4, v42.3.9 and v42.2.28 on February 21, 2024.
-            This release primarily addresses a security issue <a href="https://www.cve.org/CVERecord?id=CVE-2024-1597">CVE-2024-1597</a> See the <a href="https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56">security advisory</a> for details.
+            pgJDBC has released v42.7.3, v42.6.2, v42.5.6, v42.4.5, v42.3.10 and v42.2.29 on March 13, 2024.
+            These releases fix a problem running on Java 8 java.lang.NoSuchMethodError: java.nio.ByteBuffer.position()
+            <br>All releases have been released using Java 8
+            <br>One small fix to deal with all well known types in SimpleQuery mode
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}

@@ -9,6 +9,18 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
+## [42.7.3] (2024-04-14 14:51:00 -0400)
+
+### Changed
+* chore: gradle config enforces 17+ [PR #3147](https://github.com/pgjdbc/pgjdbc/pull/3147)
+
+### Fixed
+* fix: boolean types not handled in SimpleQuery mode [PR #3146](https://github.com/pgjdbc/pgjdbc/pull/3146)
+    * make sure we handle boolean types in simple query mode
+    * support uuid as well
+    * handle all well known types in text mode and change `else if` to `switch`
+* fix: released new versions of 42.2.29, 42.3.10, 42.4.5, 42.5.6, 42.6.2 to deal with `NoSuchMethodError on ByteBuffer#position` when running on Java 8 
+
 ## [42.7.2] (2024-02-21 08:23:00 -0500)
 
 ### Security
