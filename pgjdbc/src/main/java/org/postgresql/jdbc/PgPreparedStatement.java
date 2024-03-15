@@ -504,24 +504,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public void setBinaryStream(@Positive int parameterIndex, @Nullable InputStream x,
       @NonNegative int length) throws SQLException {
-    checkClosed();
-
-    if (x == null) {
-      setNull(parameterIndex, Types.VARBINARY);
-      return;
-    }
-
-    if (length < 0) {
-      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
-          PSQLState.INVALID_PARAMETER_VALUE);
-    }
-
     // Version 7.2 supports BinaryStream for the PG bytea type
     // As the spec/javadoc for this method indicate this is to be used for
     // large binary values (i.e. LONGVARBINARY) PG doesn't have a separate
     // long binary datatype, but with toast the bytea datatype is capable of
     // handling very large values.
-    preparedParameters.setBytea(parameterIndex, x, length);
+    setBinaryStream(parameterIndex, x, (long) length);
   }
 
   @Override
@@ -1600,16 +1588,23 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public void setBinaryStream(@Positive int parameterIndex, @Nullable InputStream value,
       @NonNegative @IntRange(from = 0, to = Integer.MAX_VALUE) long length)
       throws SQLException {
+    checkClosed();
+
+    if (value == null) {
+      setNull(parameterIndex, Oid.BYTEA);
+      return;
+    }
+
     //noinspection ConstantConditions
     if (length > Integer.MAX_VALUE) {
       throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
           PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+    } else if (length < 0) {
+      throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
-    if (value == null) {
-      preparedParameters.setNull(parameterIndex, Oid.BYTEA);
-    } else {
-      preparedParameters.setBytea(parameterIndex, value, (int) length);
-    }
+
+    preparedParameters.setBytea(parameterIndex, value, (int) length);
   }
 
   @Override
