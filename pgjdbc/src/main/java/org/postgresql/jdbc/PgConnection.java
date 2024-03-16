@@ -1397,27 +1397,48 @@ public class PgConnection implements BaseConnection {
     return Integer.parseInt(dirtyString.substring(start, end));
   }
 
+  // Validation check for integer values that need to be positive
+  // mainly added to check resultSetType, resultSetConcurrency and resultSetHoldability
+  private static boolean isPositive(int value) {
+    if (value < 0) {
+      return false;
+    }
+    return true;
+  }
+
   @Override
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    if (isPositive(resultSetType) && isPositive(resultSetConcurrency) && isPositive(resultSetHoldability)) {
+      return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    } else {
+      throw new IllegalArgumentException("Value must be positive");
+    }
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    if (isPositive(resultSetType) && isPositive(resultSetConcurrency) && isPositive(resultSetHoldability)) {
+      return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
+          resultSetHoldability);
+    } else {
+      throw new IllegalArgumentException("Value must be positive");
+    }
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    if (isPositive(resultSetType) && isPositive(resultSetConcurrency) && isPositive(resultSetHoldability)) {
+      return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency,
+          resultSetHoldability);
+    } else {
+      throw new IllegalArgumentException("Value must be positive");
+    }
   }
 
   @Override
