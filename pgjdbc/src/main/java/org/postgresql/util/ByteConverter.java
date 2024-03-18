@@ -66,6 +66,7 @@ public class ByteConverter {
   private static final BigInteger[] BI_TEN_POWERS = new BigInteger[32];
   private static final BigInteger BI_TEN_THOUSAND = BigInteger.valueOf(10000);
   private static final BigInteger BI_MAX_LONG = BigInteger.valueOf(Long.MAX_VALUE);
+  private static final char[] HEX_DIGITS = "0123456789abcdef".toCharArray();
 
   static {
     for (int i = 0; i < INT_TEN_POWERS.length; i++) {
@@ -100,6 +101,22 @@ public class ByteConverter {
     } else {
       throw new IllegalArgumentException("Argument bytes is empty");
     }
+  }
+
+  /**
+   * Convert a variable length array of bytes to String
+   * @param bytes array of bytes that can be decoded as String
+   * @return String
+   */
+  public static String bytesToString(byte []bytes) {
+    StringBuilder sb = new StringBuilder();
+    sb.append("\\x");
+    for (int i = 0; i < bytes.length; i++) {
+      sb.append(HEX_DIGITS[(bytes[i] & 0xf0) >>> 4]);
+      sb.append(HEX_DIGITS[bytes[i] & 0x0f]);
+    }
+
+    return sb.toString();
   }
 
   /**

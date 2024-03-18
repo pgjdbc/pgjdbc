@@ -312,6 +312,12 @@ class SimpleParameterList implements V3ParameterList {
           type = "box";
           break;
 
+        case Oid.BYTEA:
+          StreamWrapper wrapper = (StreamWrapper) paramValue;
+          textValue = ByteConverter.bytesToString(wrapper.getBytes());
+          type = "bytea";
+          break;
+
         default:
           return "?";
       }
