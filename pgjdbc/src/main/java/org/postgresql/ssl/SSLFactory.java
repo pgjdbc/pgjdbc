@@ -68,7 +68,7 @@ public class SSLFactory extends WrappedFactory {
       throw new PSQLException(GT.tr("SSL keystore {0} could not be loaded.",
                 keyStoreType), PSQLState.CONNECTION_FAILURE, ex);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
 
@@ -78,7 +78,7 @@ public class SSLFactory extends WrappedFactory {
               .getInstance(algorithm);
 
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
 
@@ -87,7 +87,7 @@ public class SSLFactory extends WrappedFactory {
       keyManagerFactory.init(keyStore, keyPassphrase);
 
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     } catch (KeyStoreException ex) {
       throw new PSQLException(GT.tr("Could not initialize SSL keystore."),
@@ -129,7 +129,7 @@ public class SSLFactory extends WrappedFactory {
       throw new PSQLException(GT.tr("SSL truststore {0} could not be loaded.",
                 trustStoreType), PSQLState.CONNECTION_FAILURE, ex);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
 
@@ -139,7 +139,7 @@ public class SSLFactory extends WrappedFactory {
               .getInstance(algorithm);
 
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
 
@@ -157,7 +157,7 @@ public class SSLFactory extends WrappedFactory {
       ctx = SSLContext.getInstance(protocol);
 
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a java cryptographic algorithm: {0}.",
+      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
                 ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
     }
 
