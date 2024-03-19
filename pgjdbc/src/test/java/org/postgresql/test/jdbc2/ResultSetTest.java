@@ -944,6 +944,96 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @Test
+  public void testCreateStatementWithInvalidResultSetParams() throws SQLException {
+    try {
+      con.createStatement(-1, -1,-1);
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testCreateStatementWithInvalidResultSetConcurrency() throws SQLException {
+    try {
+      con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, -1) ;
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testCreateStatementWithInvalidResultSetHoldability() throws SQLException {
+    try {
+      con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE, -1) ;
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareStatementWithInvalidResultSetParams() throws SQLException {
+    try {
+      con.prepareStatement("SELECT id FROM testrs", -1,-1 ,-1);
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareStatementWithInvalidResultSetConcurrency() throws SQLException {
+    try {
+      con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,-1 );
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareStatementWithInvalidResultSetHoldability() throws SQLException {
+    try {
+      con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_UPDATABLE ,-1);
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareCallWithInvalidResultSetParams() throws SQLException {
+    try {
+      con.prepareCall("SELECT id FROM testrs", -1,-1 ,-1);
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareCallWithInvalidResultSetConcurrency() throws SQLException {
+    try {
+      con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,-1 );
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
+  public void testPrepareCallWithInvalidResultSetHoldability() throws SQLException {
+    try {
+      con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_UPDATABLE ,-1);
+      fail("Should have thrown an IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // Ok
+    }
+  }
+
+  @Test
   public void testZeroRowResultPositioning() throws SQLException {
     Statement stmt =
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
