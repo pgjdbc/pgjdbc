@@ -39,6 +39,7 @@ import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteStreamWriter;
@@ -134,7 +135,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * from Sync messages vs from simple execute (aka 'Q').
    */
   @SuppressWarnings("method.invocation")
-  private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
+  private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, PlaceholderStyle.NONE).query;
 
   private short deallocateEpoch;
 
@@ -267,8 +268,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public Query createSimpleQuery(String sql) throws SQLException {
     List<NativeQuery> queries = Parser.parseJdbcSql(sql,
-        getStandardConformingStrings(), false, true,
-        isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers());
+        getStandardConformingStrings(), true,
+        isReWriteBatchedInsertsEnabled(), getQuoteReturningIdentifiers(),
+        PlaceholderStyle.NONE);
     return wrap(queries);
   }
 
@@ -301,7 +303,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
       subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
-      offset += nativeQuery.bindPositions.length;
+      offset += nativeQuery.parameterCtx.nativeParameterCount();
     }
 
     return new CompositeQuery(subqueries, offsets);
@@ -3071,28 +3073,29 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final SimpleQuery beginTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN", null, false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery beginReadOnlyTransactionQuery =
       new SimpleQuery(
-          new NativeQuery("BEGIN READ ONLY", null, false, SqlCommand.BLANK),
+          new NativeQuery("BEGIN READ ONLY", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery emptyQuery =
       new SimpleQuery(
-          new NativeQuery("", null, false,
+          new NativeQuery("", false,
               SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)
           ), null, false);
 
   private final SimpleQuery autoSaveQuery =
       new SimpleQuery(
-          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("SAVEPOINT PGJDBC_AUTOSAVE", false, SqlCommand.BLANK),
           null, false);
 
   private final SimpleQuery releaseAutoSave =
       new SimpleQuery(
-          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("RELEASE SAVEPOINT PGJDBC_AUTOSAVE", false,
+              SqlCommand.BLANK),
           null, false);
 
   /*
@@ -3100,6 +3103,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private final SimpleQuery restoreToAutoSave =
       new SimpleQuery(
-          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
+          new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", false,
+              SqlCommand.BLANK),
           null, false);
 }

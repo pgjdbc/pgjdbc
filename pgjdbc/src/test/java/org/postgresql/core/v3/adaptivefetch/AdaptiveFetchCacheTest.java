@@ -14,6 +14,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1070,6 +1071,11 @@ class AdaptiveFetchCacheTest {
 
     @Override
     public Query[] getSubqueries() {
+      throw new WrongMethodCallException("Method shouldn't be called.");
+    }
+
+    @Override
+    public PlaceholderStyle getPlaceholderStyle() {
       throw new WrongMethodCallException("Method shouldn't be called.");
     }
   }

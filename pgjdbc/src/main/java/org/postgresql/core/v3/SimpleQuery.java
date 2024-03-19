@@ -9,10 +9,12 @@ package org.postgresql.core.v3;
 import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ParameterContext;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.jdbc.PgResultSet;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -46,11 +48,13 @@ class SimpleQuery implements Query {
 
   @Override
   public ParameterList createParameterList() {
-    if (nativeQuery.bindPositions.length == 0) {
+    if (!nativeQuery.parameterCtx.hasParameters()) {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(getBindCount(), transferModeRegistry);
+    return new SimpleParameterList(nativeQuery.parameterCtx.nativeParameterCount() * getBatchSize(),
+        transferModeRegistry,
+        nativeQuery.parameterCtx);
   }
 
   @Override
@@ -71,6 +75,11 @@ class SimpleQuery implements Query {
   @Override
   public SimpleQuery @Nullable [] getSubqueries() {
     return null;
+  }
+
+  @Override
+  public PlaceholderStyle getPlaceholderStyle() {
+    return nativeQuery.parameterCtx.getAllowedPlaceholderStyles();
   }
 
   /**
@@ -333,7 +342,7 @@ class SimpleQuery implements Query {
   }
 
   public final int getBindCount() {
-    return nativeQuery.bindPositions.length * getBatchSize();
+    return nativeQuery.parameterCtx.nativeParameterCount() * getBatchSize();
   }
 
   private @Nullable Map<String, Integer> resultSetColumnNameIndexMap;
@@ -379,5 +388,6 @@ class SimpleQuery implements Query {
 
   private @Nullable Integer cachedMaxResultRowSize;
 
-  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null,
+      ParameterContext.EMPTY_CONTEXT);
 }

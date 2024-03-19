@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, PostgreSQL Global Development Group
+ * Copyright (c) 2023, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -12,14 +12,10 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Version;
-import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Before;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -27,7 +23,9 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.function.Supplier;
 
-public class BaseTest4 {
+public class AbstractBaseTest {
+
+  protected Properties props = new Properties();
 
   public enum BinaryMode {
     REGULAR, FORCE
@@ -42,12 +40,11 @@ public class BaseTest4 {
   }
 
   public enum StringType {
-    UNSPECIFIED, VARCHAR
+    UNSPECIFIED, VARCHAR;
   }
 
   protected Connection con;
   protected BinaryMode binaryMode;
-  protected PlaceholderStyle placeholderStyle = PlaceholderStyle.ANY;
   private ReWriteBatchedInserts reWriteBatchedInserts;
   protected PreferQueryMode preferQueryMode;
   private StringType stringType;
@@ -73,10 +70,6 @@ public class BaseTest4 {
     this.binaryMode = binaryMode;
   }
 
-  public final void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
-    this.placeholderStyle = placeholderStyle;
-  }
-
   public StringType getStringType() {
     return stringType;
   }
@@ -88,21 +81,6 @@ public class BaseTest4 {
   public void setReWriteBatchedInserts(
       ReWriteBatchedInserts reWriteBatchedInserts) {
     this.reWriteBatchedInserts = reWriteBatchedInserts;
-  }
-
-  @Before
-  public void setUp() throws Exception {
-    Properties props = new Properties();
-    updateProperties(props);
-    con = TestUtil.openDB(props);
-    PGConnection pg = con.unwrap(PGConnection.class);
-    pg.setPlaceholderStyle(placeholderStyle);
-    preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
-  }
-
-  @After
-  public void tearDown() throws SQLException {
-    TestUtil.closeDB(con);
   }
 
   public void assumeByteaSupported() {
@@ -158,7 +136,14 @@ public class BaseTest4 {
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid));
   }
 
-  protected void failOnStatementSelection() {
-    Assert.fail("No statement defined for placeholderStyle = " + placeholderStyle);
+  public void setUp() throws Exception {
+    updateProperties(props);
+    con = TestUtil.openDB(props);
+    PGConnection pg = con.unwrap(PGConnection.class);
+    preferQueryMode = pg == null ? PreferQueryMode.EXTENDED : pg.getPreferQueryMode();
+  }
+
+  public void tearDown() throws SQLException {
+    TestUtil.closeDB(con);
   }
 }
