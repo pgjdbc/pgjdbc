@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -21,6 +22,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -32,6 +35,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.concurrent.ThreadLocalRandom;
+
+import javax.sql.rowset.serial.SerialBlob;
+import javax.sql.rowset.serial.SerialClob;
 
 /**
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
@@ -167,6 +174,82 @@ class BlobTest {
       pstmt.setString(1, "setClob");
       pstmt.setClob(2, clob);
       assertEquals(1, pstmt.executeUpdate());
+    }
+  }
+
+  @ValueSource(ints = {0, 1, 13, 123423})
+  @ParameterizedTest
+  void setBlobMinusOneLengthAndGivenByteContents(int length) throws Exception {
+    byte[] contents = new byte[length];
+    ThreadLocalRandom.current().nextBytes(contents);
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO testblob(id, lo) VALUES (?, ?)")) {
+      pstmt.setString(1, "setBlobNegativeLength");
+      pstmt.setBlob(2, new SerialBlob(contents) {
+        @Override
+        public long length() {
+          return -1;
+        }
+      });
+      pstmt.executeUpdate();
+    }
+    // Read the value back and compare with original
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs =
+               stmt.executeQuery("SELECT lo FROM testblob where id = 'setBlobNegativeLength'")) {
+        assertTrue(rs.next(), "rs.next()");
+        Blob blob = rs.getBlob(1);
+        assertArrayEquals(
+            contents,
+            blob.getBytes(1, contents.length),
+            "blob.getBytes(1, contents.length)"
+        );
+        assertArrayEquals(
+            contents,
+            blob.getBytes(1, contents.length * 2),
+            "blob.getBytes(1, contents.length * 2)"
+        );
+        assertEquals(contents.length, blob.length(), "blob.length()");
+      }
+    }
+  }
+
+  @ValueSource(ints = {0, 1, 13, 123423})
+  @ParameterizedTest
+  void setClobMinusOneLengthAndGivenByteContents(int length) throws Exception {
+    char[] contents = new char[length];
+    for (int i = 0; i < contents.length; i++) {
+      contents[i] = (char) ('a' + ThreadLocalRandom.current().nextInt(26));
+    }
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO testblob(id, lo) VALUES (?, ?)")) {
+      pstmt.setString(1, "setClobNegativeLength");
+      pstmt.setClob(2, new SerialClob(contents) {
+        @Override
+        public long length() {
+          return -1;
+        }
+      });
+      pstmt.executeUpdate();
+    }
+    // Read the value back and compare with original
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs =
+               stmt.executeQuery("SELECT lo FROM testblob where id = 'setClobNegativeLength'")) {
+        assertTrue(rs.next(), "rs.next()");
+        Clob clob = rs.getClob(1);
+        assertEquals(
+            new String(contents),
+            clob.getSubString(1, contents.length),
+            "clob.getSubString(1, contents.length)"
+        );
+        assertEquals(
+            new String(contents),
+            clob.getSubString(1, contents.length * 2),
+            "clob.getSubString(1, contents.length * 2)"
+        );
+        assertEquals(contents.length, clob.length(), "clob.length()");
+      }
     }
   }
 
