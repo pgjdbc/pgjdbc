@@ -479,7 +479,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
 
     String value = result.toString();
-    return getTimestampUtils().toDate(cal, value);
+    return getTimestampUtils().toDate(cal, value.getBytes());
   }
 
   @Override
@@ -491,7 +491,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
 
     String value = result.toString();
-    return getTimestampUtils().toTime(cal, value);
+    return getTimestampUtils().toTime(cal, value.getBytes());
   }
 
   @Override
@@ -503,7 +503,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
 
     String value = result.toString();
-    return getTimestampUtils().toTimestamp(cal, value);
+    return getTimestampUtils().toTimestamp(cal, value.getBytes());
   }
 
   @Override

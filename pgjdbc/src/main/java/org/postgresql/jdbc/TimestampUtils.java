@@ -20,6 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -35,6 +36,7 @@ import java.time.ZoneOffset;
 import java.time.chrono.IsoEra;
 import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoField;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -70,6 +72,11 @@ public class TimestampUtils {
   private static final @Nullable Field DEFAULT_TIME_ZONE_FIELD;
 
   private static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone(ZoneOffset.UTC);
+
+  private static final byte []INFINITY = "infinity".getBytes();
+  private static final byte []NEGATIVE_INFINITY = "-infinity".getBytes();
+
+  private static final byte [] MAX_OFFSET = "24:00:00".getBytes();
 
   private @Nullable TimeZone prevDefaultZoneFieldValue;
   private @Nullable TimeZone defaultTimeZoneCache;
@@ -191,8 +198,7 @@ public class TimestampUtils {
   /**
    * Load date/time information into the provided calendar returning the fractional seconds.
    */
-  private ParsedTimestamp parseBackendTimestamp(String str) throws SQLException {
-    char[] s = str.toCharArray();
+  private ParsedTimestamp parseBackendTimestamp(byte[] s) throws SQLException {
     int slen = s.length;
 
     // This is pretty gross..
@@ -217,10 +223,10 @@ public class TimestampUtils {
       int start = skipWhitespace(s, 0); // Skip leading whitespace
       int end = firstNonDigit(s, start);
       int num;
-      char sep;
+      byte sep;
 
       // Possibly read date.
-      if (charAt(s, end) == '-') {
+      if (end < slen && s[end] == '-') {
         //
         // Date
         //
@@ -234,11 +240,14 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.month = number(s, start, end);
 
-        sep = charAt(s, end);
-        if (sep != '-') {
-          throw new NumberFormatException("Expected date to be dash-separated, got '" + sep + "'");
-        }
+        if (end < slen) {
+          sep = s[end];
 
+          if (sep != '-') {
+            throw new NumberFormatException(
+                "Expected date to be dash-separated, got '" + sep + "'");
+          }
+        }
         start = end + 1; // Skip '-'
 
         // day of month
@@ -249,7 +258,7 @@ public class TimestampUtils {
       }
 
       // Possibly read time.
-      if (Character.isDigit(charAt(s, start))) {
+      if (start < slen && Character.isDigit(s[start])) {
         //
         // Time.
         //
@@ -261,11 +270,13 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.hour = number(s, start, end);
 
-        sep = charAt(s, end);
-        if (sep != ':') {
-          throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+        if (end < slen) {
+          sep = s[end];
+          if (sep != ':') {
+            throw new NumberFormatException(
+                "Expected time to be colon-separated, got '" + sep + "'");
+          }
         }
-
         start = end + 1; // Skip ':'
 
         // minutes
@@ -273,9 +284,12 @@ public class TimestampUtils {
         end = firstNonDigit(s, start);
         result.minute = number(s, start, end);
 
-        sep = charAt(s, end);
-        if (sep != ':') {
-          throw new NumberFormatException("Expected time to be colon-separated, got '" + sep + "'");
+        if (end < slen) {
+          sep = s[end];
+          if (sep != ':') {
+            throw new NumberFormatException(
+                "Expected time to be colon-separated, got '" + sep + "'");
+          }
         }
 
         start = end + 1; // Skip ':'
@@ -287,7 +301,7 @@ public class TimestampUtils {
         start = end;
 
         // Fractional seconds.
-        if (charAt(s, start) == '.') {
+        if (((start < slen) ? s[start] : 0) == '.') {
           end = firstNonDigit(s, start + 1); // Skip '.'
           num = number(s, start + 1, end);
 
@@ -303,7 +317,7 @@ public class TimestampUtils {
       }
 
       // Possibly read timezone.
-      sep = charAt(s, start);
+      sep = (start < slen) ? s[start] : 0;
       if (sep == '-' || sep == '+') {
         result.hasOffset = true;
 
@@ -316,7 +330,7 @@ public class TimestampUtils {
         tzhr = number(s, start + 1, end);
         start = end;
 
-        sep = charAt(s, start);
+        sep = (start < slen) ? s[start] : 0;
         if (sep == ':') {
           end = firstNonDigit(s, start + 1); // Skip ':'
           tzmin = number(s, start + 1, end);
@@ -326,7 +340,7 @@ public class TimestampUtils {
         }
 
         tzsec = 0;
-        sep = charAt(s, start);
+        sep = (start < slen) ? s[start] : 0;
         if (sep == ':') {
           end = firstNonDigit(s, start + 1); // Skip ':'
           tzsec = number(s, start + 1, end);
@@ -339,13 +353,14 @@ public class TimestampUtils {
       }
 
       if (result.hasDate && start < slen) {
-        String eraString = new String(s, start, slen - start);
-        if (eraString.startsWith("AD")) {
-          result.era = GregorianCalendar.AD;
-          start += 2;
-        } else if (eraString.startsWith("BC")) {
-          result.era = GregorianCalendar.BC;
-          start += 2;
+        if (slen - start >= 2) {
+          if (s[start] == 'A' && s[start + 1] == 'D') {
+            result.era = GregorianCalendar.AD;
+            start += 2;
+          } else if (s[start] == 'B' && s[start + 1] == 'C') {
+            result.era = GregorianCalendar.BC;
+            start += 2;
+          }
         }
       }
 
@@ -360,11 +375,37 @@ public class TimestampUtils {
 
     } catch (NumberFormatException nfe) {
       throw new PSQLException(
-          GT.tr("Bad value for type timestamp/date/time: {0}", str),
+          GT.tr("Bad value for type timestamp/date/time: {0}", new String(s)),
           PSQLState.BAD_DATETIME_FORMAT, nfe);
     }
 
     return result;
+  }
+
+  ParsedTimestamp parseDate(byte[]dateBytes) {
+    ParsedTimestamp parsedTimestamp = new ParsedTimestamp();
+    int length = dateBytes.length;
+
+    if (dateBytes[length - 2] == 'B' && dateBytes[length - 1] == 'C') {
+      length = length - 3;
+      parsedTimestamp.era = GregorianCalendar.BC;
+    }
+    int var1 = 0;
+    for (parsedTimestamp.year = 0; dateBytes[var1] != 45; parsedTimestamp.year = parsedTimestamp.year * 10 + (dateBytes[var1++] - 48)) {
+    }
+
+    ++var1;
+
+    for (parsedTimestamp.month = 0; dateBytes[var1] != 45; parsedTimestamp.month = parsedTimestamp.month * 10 + (dateBytes[var1++] - 48)) {
+    }
+
+    ++var1;
+
+    for (parsedTimestamp.day = 0; var1 < length; parsedTimestamp.day = parsedTimestamp.day * 10 + (dateBytes[var1++] - 48)) {
+
+    }
+
+    return parsedTimestamp;
   }
 
   /**
@@ -374,26 +415,47 @@ public class TimestampUtils {
    * @param s The ISO formated date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated use {@link #toTimestamp(Calendar, byte[])}
    */
+  @Deprecated
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (s == null) {
         return null;
       }
+      return toTimestamp(cal, s.getBytes(StandardCharsets.UTF_8));
+    }
+  }
 
-      int slen = s.length();
+  /**
+   * Parse an array of bytes and return a timestamp representing its value.
+   *
+   * @param cal calendar to be used to parse the input bytes
+   * @param bytes The ISO formatted date to parse.
+   * @return null if bytes is null or a timestamp of the parsed bytes.
+   * @throws SQLException if there is a problem parsing bytes.
+   */
+  public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
+      byte @PolyNull []bytes) throws SQLException {
+
+    try (ResourceLock ignore = lock.obtain()) {
+      if (bytes == null) {
+        return null;
+      }
+
+      int blen = bytes.length;
 
       // convert postgres's infinity values to internal infinity magic value
-      if (slen == 8 && "infinity".equals(s)) {
+      if (bytes[0] == 'i' && Arrays.equals(bytes,INFINITY)) {
         return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
       }
 
-      if (slen == 9 && "-infinity".equals(s)) {
+      if (bytes[0] == '-' && Arrays.equals(bytes,NEGATIVE_INFINITY)) {
         return new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
       }
 
-      ParsedTimestamp ts = parseBackendTimestamp(s);
+      ParsedTimestamp ts = parseBackendTimestamp(bytes);
       Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
       useCal.set(Calendar.ERA, ts.era);
       useCal.set(Calendar.YEAR, ts.year);
@@ -467,47 +529,78 @@ public class TimestampUtils {
   /**
    * Parse a string and return a OffsetTime representing its value.
    *
-   * @param s The ISO formated time string to parse.
+   * @param s The ISO formatted time string to parse.
    * @return null if s is null or a OffsetTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated  in use {@link #toOffsetTime(byte[])} instead
    */
+  @Deprecated
   public @PolyNull OffsetTime toOffsetTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
     }
+    return toOffsetTime(s.getBytes(StandardCharsets.UTF_8));
+  }
 
-    if (s.startsWith("24:00:00")) {
-      return OffsetTime.MAX;
+  /**
+   * Parse an array of bytes and return a OffsetTime representing its value.
+   *
+   * @param bytes The ISO time formatted array of bytes time to parse.
+   * @return null if bytes are null or a OffsetTime of the parsed string .
+   * @throws SQLException if there is a problem parsing bytes.
+   */
+  public @PolyNull OffsetTime toOffsetTime(byte @PolyNull []bytes) throws SQLException {
+    if (bytes == null) {
+      return null;
+    }
+    // Not sure how to do this. There is no 24:00:00 in java, the largest time is 23:59:59.999999999-18:00
+    for ( int i = 0; i < 8; i++ ) {
+      if (bytes[i] != MAX_OFFSET[i]) {
+        break;
+      } else if (i == 7) {
+        return OffsetTime.MAX;
+      }
     }
 
-    final ParsedTimestamp ts = parseBackendTimestamp(s);
+    final ParsedTimestamp ts = parseBackendTimestamp(bytes);
     return OffsetTime.of(ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
   }
 
   /**
-   * Parse a string and return a LocalDateTime representing its value.
-   *
-   * @param s The ISO formated date string to parse.
+   * @param s The ISO formatted date string to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   */
+   * @deprecated use {@link #toLocalDateTime(byte[])}
+  */
+  @Deprecated
   public @PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
     }
+    return toLocalDateTime(s.getBytes(StandardCharsets.UTF_8));
+  }
 
-    int slen = s.length();
+  /**
+   * Parse an array of bytes and return a LocalDateTime representing its value.
+   *
+   * @param bytes The ISO formatted date array of bytes to parse.
+   * @return null if s is null or a LocalDateTime of the parsed string s.
+   * @throws SQLException if there is a problem parsing bytes.
+   */
+  public @PolyNull LocalDateTime toLocalDateTime(byte @PolyNull []bytes) throws SQLException {
+    if (bytes == null) {
+      return null;
+    }
 
-    // convert postgres's infinity values to internal infinity magic value
-    if (slen == 8 && "infinity".equals(s)) {
+    if (bytes[0] == 'i' && Arrays.equals(INFINITY, bytes)) {
       return LocalDateTime.MAX;
     }
 
-    if (slen == 9 && "-infinity".equals(s)) {
+    if (bytes[0] == '-' && Arrays.equals(NEGATIVE_INFINITY, bytes)) {
       return LocalDateTime.MIN;
     }
 
-    ParsedTimestamp ts = parseBackendTimestamp(s);
+    ParsedTimestamp ts = parseBackendTimestamp(bytes);
 
     // intentionally ignore time zone
     // 2004-10-19 10:23:54+03:00 is 2004-10-19 10:23:54 locally
@@ -540,25 +633,41 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
+   * @deprecated  use {@link #toOffsetDateTimeBin(byte[])}
    */
+  @Deprecated
   public @PolyNull OffsetDateTime toOffsetDateTime(
       @PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
     }
+    return toOffsetDateTime(s.getBytes(StandardCharsets.UTF_8));
+  }
 
-    int slen = s.length();
+  /**
+   * Parse an array of bytes and return a OffsetDateTime representing its value.
+   *
+   * @param bytes The ISO formatted date string to parse.
+   * @return null if bytes is null or an OffsetDateTime of the parsed array of bytes.
+   * @throws SQLException if there is a problem parsing bytes.
+   */
+  public @PolyNull OffsetDateTime toOffsetDateTime(
+      byte @PolyNull[]bytes) throws SQLException {
+
+    if (bytes == null) {
+      return null;
+    }
 
     // convert postgres's infinity values to internal infinity magic value
-    if (slen == 8 && "infinity".equals(s)) {
+    if (bytes[0] == 'i' && Arrays.equals(INFINITY, bytes)) {
       return OffsetDateTime.MAX;
     }
 
-    if (slen == 9 && "-infinity".equals(s)) {
+    if (bytes[0] == '-' && Arrays.equals(NEGATIVE_INFINITY, bytes)) {
       return OffsetDateTime.MIN;
     }
 
-    final ParsedTimestamp ts = parseBackendTimestamp(s);
+    final ParsedTimestamp ts = parseBackendTimestamp(bytes);
     OffsetDateTime result =
         OffsetDateTime.of(ts.year, ts.month, ts.day, ts.hour, ts.minute, ts.second, ts.nanos, ts.offset);
     if (ts.era == GregorianCalendar.BC) {
@@ -589,6 +698,7 @@ public class TimestampUtils {
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
+  @Deprecated
   public @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -596,7 +706,19 @@ public class TimestampUtils {
       if (s == null) {
         return null;
       }
-      ParsedTimestamp ts = parseBackendTimestamp(s);
+      return toTime(cal, s.getBytes(StandardCharsets.UTF_8));
+    }
+  }
+
+  public @PolyNull Time toTime(
+      @Nullable Calendar cal, byte @PolyNull []bytes) throws SQLException {
+
+    try (ResourceLock ignore = lock.obtain()) {
+      // 1) Parse backend string
+      if (bytes == null) {
+        return null;
+      }
+      ParsedTimestamp ts = parseBackendTimestamp(bytes);
       Calendar useCal = ts.hasOffset ? getCalendar(ts.offset) : setupCalendar(cal);
       if (!ts.hasOffset) {
         // When no time zone provided (e.g. time or timestamp)
@@ -635,19 +757,83 @@ public class TimestampUtils {
     }
   }
 
+  @Deprecated
   public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
-      // 1) Parse backend string
-      Timestamp timestamp = toTimestamp(cal, s);
-
-      if (timestamp == null) {
+      if (s == null) {
         return null;
       }
+      return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
+    }
+  }
 
-      // Note: infinite dates are handled in convertToDate
-      // 2) Truncate date part so in given time zone the date would be formatted as 00:00
-      return convertToDate(timestamp.getTime(), cal == null ? null : cal.getTimeZone());
+  public @PolyNull Date toDate(@Nullable Calendar cal,
+      byte @PolyNull []dateBytes) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (dateBytes == null) {
+        return null;
+      }
+      if (dateBytes[0] == 'i' && Arrays.equals(INFINITY, dateBytes)) {
+        return new Date(PGStatement.DATE_POSITIVE_INFINITY);
+      }
+      if (dateBytes[0] == '-' && Arrays.equals(NEGATIVE_INFINITY, dateBytes)) {
+        return new Date(PGStatement.DATE_NEGATIVE_INFINITY);
+      }
+      if ( cal == null ) {
+        cal = Calendar.getInstance();
+      }
+
+      ParsedTimestamp pt;
+      if ( dateBytes.length > 13 ) {
+        // this is a timestamp
+        pt = parseBackendTimestamp(dateBytes);
+
+        Calendar useCal = pt.hasOffset ? getCalendar(pt.offset) : setupCalendar(cal);
+        useCal.set(Calendar.ERA, pt.era);
+        useCal.set(Calendar.YEAR, pt.year);
+        useCal.set(Calendar.MONTH, pt.month - 1);
+        useCal.set(Calendar.DAY_OF_MONTH, pt.day);
+        useCal.set(Calendar.HOUR_OF_DAY, pt.hour);
+        useCal.set(Calendar.MINUTE, pt.minute);
+        useCal.set(Calendar.SECOND, pt.second);
+        useCal.set(Calendar.MILLISECOND, 0);
+
+        return convertToDate(useCal.getTimeInMillis(), cal == null ? null : cal.getTimeZone());
+      } else {
+        pt = parseDate(dateBytes);
+        // dates without time don't require timezone adjustment
+        cal.clear();
+
+        cal.set(Calendar.YEAR, pt.year);
+        cal.set(Calendar.DAY_OF_MONTH, pt.day);
+        cal.set(Calendar.MONTH, pt.month - 1);
+        cal.set(Calendar.ERA, pt.era);
+
+        return new Date(cal.getTimeInMillis());
+      }
+    }
+  }
+
+  public @PolyNull LocalDate toLocalDate( byte @PolyNull []dateBytes) throws SQLException {
+
+    try (ResourceLock ignore = lock.obtain()) {
+      if (dateBytes == null) {
+        return null;
+      }
+      if (dateBytes[0] == 'i' && Arrays.equals(INFINITY, dateBytes)) {
+        return LocalDateTime.MAX.toLocalDate();
+      }
+      if (dateBytes[0] == '-' && Arrays.equals(NEGATIVE_INFINITY, dateBytes)) {
+        return LocalDateTime.MIN.toLocalDate();
+      }
+      ParsedTimestamp pt = parseDate(dateBytes);
+      LocalDateTime ldt = LocalDateTime.of(pt.year, pt.month, pt.day, pt.hour, pt.minute, pt.second, pt.nanos);
+      if (pt.era == GregorianCalendar.BC) {
+        return ldt.toLocalDate().with(ChronoField.ERA, IsoEra.BCE.getValue());
+      } else {
+        return ldt.toLocalDate();
+      }
     }
   }
 
@@ -1095,42 +1281,35 @@ public class TimestampUtils {
     }
   }
 
-  private static int skipWhitespace(char[] s, int start) {
-    int slen = s.length;
+  private static int skipWhitespace(byte[] bytes, int start) {
+    int slen = bytes.length;
     for (int i = start; i < slen; i++) {
-      if (!Character.isSpace(s[i])) {
+      if (!Character.isWhitespace(bytes[i])) {
         return i;
       }
     }
     return slen;
   }
 
-  private static int firstNonDigit(char[] s, int start) {
-    int slen = s.length;
+  private static int firstNonDigit(byte[] bytes, int start) {
+    int slen = bytes.length;
     for (int i = start; i < slen; i++) {
-      if (!Character.isDigit(s[i])) {
+      if (!Character.isDigit(bytes[i])) {
         return i;
       }
     }
     return slen;
   }
 
-  private static int number(char[] s, int start, int end) {
+  private static int number(byte[] bytes, int start, int end) {
     if (start >= end) {
       throw new NumberFormatException();
     }
     int n = 0;
     for (int i = start; i < end; i++) {
-      n = 10 * n + (s[i] - '0');
+      n = 10 * n + (bytes[i] - '0');
     }
     return n;
-  }
-
-  private static char charAt(char[] s, int pos) {
-    if (pos >= 0 && pos < s.length) {
-      return s[pos];
-    }
-    return '\0';
   }
 
   /**
