@@ -43,32 +43,4 @@ class ArraysTest {
     });
   }
 
-  @Test
-  public void testArray() throws SQLException {
-    String url="";
-    String user="";
-    String password="";
-    Properties props = new Properties();
-    props.setProperty("user", user);
-    props.setProperty("password", password);
-    Connection connection = DriverManager.getConnection(url,props);
-    // new array
-//     String[] arrayElements = {"Dawn Zhong1", "Dawn Zhong2"};
-//     Byte[] arrayElements = {'1','2'};
-//
-//     // insert data into the database
-//     PgPreparedStatement statement = (PgPreparedStatement) connection.prepareStatement("INSERT INTO person (test) VALUES (?)");
-//     statement.setArray(1, connection.createArrayOf("varchar", arrayElements));
-//     statement.executeUpdate();
-
-    // test equals
-    Statement statement =  connection.createStatement();
-    // SELECT columns FROM table. query data from database, then get the array data.
-    String sql = "";
-    PgResultSet pgResultSet = (PgResultSet) statement.executeQuery(sql);
-    PgArray pgArray1 = (PgArray) pgResultSet.getArray(1);
-    pgResultSet.next();
-    PgArray pgArray2 = (PgArray) pgResultSet.getArray(1);
-    System.out.println(pgArray1.equals(pgArray2));
-  }
 }
