@@ -505,4 +505,21 @@ public class PgArray implements Array {
     fieldBytes = null;
     arrayList = null;
   }
+
+  @Override
+  public final boolean equals(Object obj){
+    if (obj == this){
+      return true;
+    }
+    if (obj instanceof PgArray){
+      PgArray pgArray = (PgArray) obj;
+      if (pgArray.fieldString.equals(this.fieldString)){
+        return true;
+      }
+      if (pgArray.fieldBytes == this.fieldBytes){
+        return true;
+      }
+    }
+    return false;
+  }
 }
