@@ -26,6 +26,7 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -519,7 +520,7 @@ public class PgArray implements Array {
     if (obj instanceof PgArray){
       PgArray pgArray = (PgArray) obj;
       if (pgArray.fieldBytes != null && this.fieldBytes != null){
-        return pgArray.fieldBytes.equals(this.fieldBytes);
+        return Arrays.equals(pgArray.fieldBytes, this.fieldBytes);
       }
       if (pgArray.fieldString != null && this.fieldString != null){
         return pgArray.fieldString.equals(this.fieldString);
