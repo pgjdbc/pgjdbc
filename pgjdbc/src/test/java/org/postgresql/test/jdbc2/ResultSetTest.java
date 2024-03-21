@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
@@ -16,6 +17,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -945,92 +947,47 @@ public class ResultSetTest extends BaseTest4 {
 
   @Test
   public void testCreateStatementWithInvalidResultSetParams() throws SQLException {
-    try {
-      con.createStatement(-1, -1,-1);
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.createStatement(-1, -1,-1));
   }
 
   @Test
   public void testCreateStatementWithInvalidResultSetConcurrency() throws SQLException {
-    try {
-      con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, -1) ;
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, -1) );
   }
 
   @Test
   public void testCreateStatementWithInvalidResultSetHoldability() throws SQLException {
-    try {
-      con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE, -1) ;
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.createStatement( ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE, -1) );
   }
 
   @Test
   public void testPrepareStatementWithInvalidResultSetParams() throws SQLException {
-    try {
-      con.prepareStatement("SELECT id FROM testrs", -1,-1 ,-1);
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareStatement("SELECT id FROM testrs", -1, -1,-1));
   }
 
   @Test
   public void testPrepareStatementWithInvalidResultSetConcurrency() throws SQLException {
-    try {
-      con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,-1 );
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE, -1) );
   }
 
   @Test
   public void testPrepareStatementWithInvalidResultSetHoldability() throws SQLException {
-    try {
-      con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_UPDATABLE ,-1);
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareStatement("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE, -1) );
   }
 
   @Test
   public void testPrepareCallWithInvalidResultSetParams() throws SQLException {
-    try {
-      con.prepareCall("SELECT id FROM testrs", -1,-1 ,-1);
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareCall("SELECT id FROM testrs", -1, -1,-1));
   }
 
   @Test
   public void testPrepareCallWithInvalidResultSetConcurrency() throws SQLException {
-    try {
-      con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,-1 );
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE, -1) );
   }
 
   @Test
   public void testPrepareCallWithInvalidResultSetHoldability() throws SQLException {
-    try {
-      con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE,ResultSet.CONCUR_UPDATABLE ,-1);
-      fail("Should have thrown an IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      // Ok
-    }
+    assertThrows(PSQLException.class, () -> con.prepareCall("SELECT id FROM testrs", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE, -1) );
   }
 
   @Test
