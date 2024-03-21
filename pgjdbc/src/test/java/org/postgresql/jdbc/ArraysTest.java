@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import org.postgresql.core.Oid;
 import org.postgresql.util.PSQLException;
 
@@ -12,9 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.Properties;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class ArraysTest {
 
@@ -42,5 +41,4 @@ class ArraysTest {
       support.toBinaryRepresentation(null, new BigDecimal[]{BigDecimal.valueOf(3)}, Oid.FLOAT8_ARRAY);
     });
   }
-
 }

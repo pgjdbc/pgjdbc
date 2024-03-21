@@ -81,8 +81,8 @@ public class PgArray implements Array {
   /**
    * Create a new Array.
    *
-   * @param connection a database connection
-   * @param oid the oid of the array datatype
+   * @param connection  a database connection
+   * @param oid         the oid of the array datatype
    * @param fieldString the array data in string form
    * @throws SQLException if something wrong happens
    */
@@ -96,7 +96,7 @@ public class PgArray implements Array {
    * Create a new Array.
    *
    * @param connection a database connection
-   * @param oid the oid of the array datatype
+   * @param oid        the oid of the array datatype
    * @param fieldBytes the array data in byte form
    * @throws SQLException if something wrong happens
    */
@@ -304,7 +304,8 @@ public class PgArray implements Array {
   private PgArrayList buildArrayList(String fieldString) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (arrayList == null) {
-        arrayList = ArrayDecoding.buildArrayList(fieldString, getConnection().getTypeInfo().getArrayDelimiter(oid));
+        arrayList = ArrayDecoding.buildArrayList(fieldString,
+            getConnection().getTypeInfo().getArrayDelimiter(oid));
       }
       return arrayList;
     }
@@ -315,9 +316,11 @@ public class PgArray implements Array {
    *
    * @param input list to be converted into array
    */
-  private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
+  private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count)
+      throws SQLException {
     final BaseConnection connection = getConnection();
-    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+    return ArrayDecoding.readStringArray(index, count,
+        connection.getTypeInfo().getPGArrayElement(oid), input, connection);
   }
 
   @Override
@@ -384,7 +387,7 @@ public class PgArray implements Array {
     if ((--index) + count > arrayList.size()) {
       throw new PSQLException(
           GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-                  index + count, (long) arrayList.size()),
+              index + count, (long) arrayList.size()),
           PSQLState.DATA_ERROR);
     }
 
@@ -417,7 +420,8 @@ public class PgArray implements Array {
         Object v = arrayList.get(offset);
 
         t[0] = getConnection().encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
+        t[1] = v == null ? null
+            : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
         rows.add(new Tuple(t));
       }
     }
@@ -436,7 +440,8 @@ public class PgArray implements Array {
 
         final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
         assert arraySupport != null;
-        fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        fieldString =
+            arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
@@ -513,11 +518,11 @@ public class PgArray implements Array {
     }
     if (obj instanceof PgArray){
       PgArray pgArray = (PgArray) obj;
-      if (pgArray.fieldString.equals(this.fieldString)){
-        return true;
+      if (pgArray.fieldBytes != null && this.fieldBytes != null){
+        return pgArray.fieldBytes.equals(this.fieldBytes);
       }
-      if (pgArray.fieldBytes == this.fieldBytes){
-        return true;
+      if (pgArray.fieldString != null && this.fieldString != null){
+        return pgArray.fieldString.equals(this.fieldString);
       }
     }
     return false;
