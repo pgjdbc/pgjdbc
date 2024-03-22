@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>Array is used collect one column of query result data.</p>
@@ -506,6 +507,7 @@ public class PgArray implements Array {
     fieldBytes = null;
     arrayList = null;
   }
+
   @Override
   public final boolean equals(Object obj){
     if (obj == this){
@@ -513,13 +515,18 @@ public class PgArray implements Array {
     }
     if (obj instanceof PgArray){
       PgArray pgArray = (PgArray) obj;
-      if (pgArray.fieldBytes != null && this.fieldBytes != null){
-        return Arrays.equals(pgArray.fieldBytes, this.fieldBytes);
+      if (this.fieldString != null && pgArray.fieldString != null){
+        return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && this.fieldString.equals(pgArray.fieldString);
       }
-      if (pgArray.fieldString != null && this.fieldString != null){
-        return pgArray.fieldString.equals(this.fieldString);
+      if (this.fieldBytes != null && pgArray.fieldBytes != null){
+        return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && Arrays.equals(this.fieldBytes,pgArray.fieldBytes);
       }
     }
     return false;
+  }
+
+  @Override
+  public int hashCode(){
+    return Integer.hashCode(oid)^Arrays.hashCode(fieldBytes)^Objects.hashCode(fieldString);
   }
 }
