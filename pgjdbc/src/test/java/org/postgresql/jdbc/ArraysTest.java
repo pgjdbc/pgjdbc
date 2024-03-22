@@ -53,10 +53,10 @@ class ArraysTest {
 
   @Test
   public void testArrayEquals() throws SQLException {
-//    because of install the postgresql at the VM, need to specify the url user and password for testing.
-    String url="jdbc:postgresql://192.168.100.80/test";
-    String user="postgres";
-    String password="123456";
+    //because of install the postgresql at the VM, need to specify the url user and password for testing.
+    String url = "jdbc:postgresql://192.168.100.80/test";
+    String user = "postgres";
+    String password = "123456";
     Properties props = new Properties();
     props.setProperty("user", user);
     props.setProperty("password", password);
@@ -67,7 +67,6 @@ class ArraysTest {
     Array pgArray1 = new PgArray((BaseConnection) connection, Oid.BYTEA_ARRAY, new byte[]{'1','2','3'});
     Array pgArray2 = new PgArray((BaseConnection) connection, Oid.BYTEA_ARRAY, new byte[]{'1','2','3'});
     Assertions.assertEquals(pgArray1,pgArray2);
-
 
     Array pgArray3 = new PgArray((BaseConnection) connection, Oid.BYTEA_ARRAY, new byte[]{1,2,3});
     Array pgArray4 = new PgArray((BaseConnection) connection, Oid.BYTEA_ARRAY, new byte[]{1,2,3});
@@ -89,12 +88,8 @@ class ArraysTest {
     Array pgArray12 = new PgArray((BaseConnection) connection, Oid.VARCHAR, "{\t \n 'testing1', \t \n 'testing2'}");
     Assertions.assertEquals(pgArray11,pgArray12);
 
-
     Array pgArray13 = new PgArray((BaseConnection) connection, Oid.VARCHAR_ARRAY, "{\t \n 'testing1', \t \n 'testing2'}");
     Array pgArray14 = new PgArray((BaseConnection) connection, Oid.VARCHAR, "{\t \n 'testing1', \t \n 'testing2'}");
     Assertions.assertNotEquals(pgArray13,pgArray14);
-
-
-
   }
 }

@@ -20,6 +20,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Array;
@@ -509,16 +510,16 @@ public class PgArray implements Array {
   }
 
   @Override
-  public final boolean equals(Object obj){
-    if (obj == this){
+  public final boolean equals(@Initialized @Nullable Object obj) {
+    if (obj == this) {
       return true;
     }
-    if (obj instanceof PgArray){
+    if (obj instanceof PgArray) {
       PgArray pgArray = (PgArray) obj;
-      if (this.fieldString != null && pgArray.fieldString != null){
+      if (this.fieldString != null && pgArray.fieldString != null) {
         return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && this.fieldString.equals(pgArray.fieldString);
       }
-      if (this.fieldBytes != null && pgArray.fieldBytes != null){
+      if (this.fieldBytes != null && pgArray.fieldBytes != null) {
         return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && Arrays.equals(this.fieldBytes,pgArray.fieldBytes);
       }
     }
@@ -526,7 +527,7 @@ public class PgArray implements Array {
   }
 
   @Override
-  public int hashCode(){
-    return Integer.hashCode(oid)^Arrays.hashCode(fieldBytes)^Objects.hashCode(fieldString);
+  public int hashCode() {
+    return Integer.hashCode(oid) ^ Arrays.hashCode(fieldBytes) ^ Objects.hashCode(fieldString);
   }
 }
