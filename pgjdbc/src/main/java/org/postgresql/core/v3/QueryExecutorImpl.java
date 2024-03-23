@@ -312,6 +312,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private int updateQueryMode(int flags) {
+    // MatrixDB: Am I forced to use extended mode?
+    if ((flags & QueryExecutor.QUERY_FORCE_EXECUTE_AS_EXTENDED) != 0)
+      return flags & ~QUERY_EXECUTE_AS_SIMPLE;
+
     switch (getPreferQueryMode()) {
       case SIMPLE:
         return flags | QUERY_EXECUTE_AS_SIMPLE;

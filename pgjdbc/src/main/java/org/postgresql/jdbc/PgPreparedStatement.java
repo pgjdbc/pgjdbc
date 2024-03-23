@@ -1173,6 +1173,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
       int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+      // MatrixDB: Force getting metadata in extended mode even in simple mode.
+      // getMetaData() can be called before binding of parameters, so the "?" in
+      // the query cannot be expanded, the SQL would be sent to database with "?"
+      // unexpanded, this will cause syntax error of course.
+      flags |= QueryExecutor.QUERY_FORCE_EXECUTE_AS_EXTENDED;
+
       StatementResultHandler handler = new StatementResultHandler();
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
           flags);
@@ -1751,6 +1758,13 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public ParameterMetaData getParameterMetaData() throws SQLException {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+
+    // MatrixDB: Force getting metadata in extended mode even in simple mode.
+    // getMetaData() can be called before binding of parameters, so the "?" in
+    // the query cannot be expanded, the SQL would be sent to database with "?"
+    // unexpanded, this will cause syntax error of course.
+    flags |= QueryExecutor.QUERY_FORCE_EXECUTE_AS_EXTENDED;
+
     StatementResultHandler handler = new StatementResultHandler();
     connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
         flags);
