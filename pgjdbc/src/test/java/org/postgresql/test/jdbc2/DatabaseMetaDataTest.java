@@ -286,7 +286,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
   }
 
   @MethodSource("data")
@@ -1031,7 +1031,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("c", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnOut, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
 
     rs.close();
   }
@@ -1061,7 +1061,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("updated", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
+    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt(6));
 
     assertTrue(rs.next());
     assertEquals("colour", rs.getString(4));
