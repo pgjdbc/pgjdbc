@@ -75,8 +75,14 @@ class SimpleParameterList implements V3ParameterList {
     --index;
 
     encoded[index] = null;
-    paramValues[index] = value;
     flags[index] = (byte) (direction(index) | IN | binary);
+
+    if (value instanceof byte[]) {
+      byte[] byteArray = (byte[]) value;
+      paramValues[index] = byteArray;
+    } else {
+      paramValues[index] = value; // Store original value for other data types
+    }
 
     // If we are setting something to an UNSPECIFIED NULL, don't overwrite
     // our existing type for it. We don't need the correct type info to
