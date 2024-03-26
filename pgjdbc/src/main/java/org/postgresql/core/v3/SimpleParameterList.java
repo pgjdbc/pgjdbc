@@ -26,7 +26,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -77,16 +76,13 @@ class SimpleParameterList implements V3ParameterList {
 
     encoded[index] = null;
     flags[index] = (byte) (direction(index) | IN | binary);
-    
+
     if (value instanceof byte[]) {
       byte[] byteArray = (byte[]) value;
-      String hexString = new BigInteger(1, byteArray).toString(16);
-      paramValues[index] = hexString; // Store hex string representation
+      paramValues[index] = byteArray;
     } else {
       paramValues[index] = value; // Store original value for other data types
     }
-
-
 
     // If we are setting something to an UNSPECIFIED NULL, don't overwrite
     // our existing type for it. We don't need the correct type info to
