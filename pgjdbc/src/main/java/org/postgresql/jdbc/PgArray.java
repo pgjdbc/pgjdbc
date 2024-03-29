@@ -528,11 +528,7 @@ public class PgArray implements Array {
     } else if (!fieldString.equals(other.fieldString)) {
       return false;
     }
-    if (fieldBytes == null) {
-      if (other.fieldBytes != null) {
-        return false;
-      }
-    } else if (!java.util.Arrays.equals(fieldBytes, other.fieldBytes)) {
+    if (!java.util.Arrays.equals(fieldBytes, other.fieldBytes)) {
       return false;
     }
     return true;
