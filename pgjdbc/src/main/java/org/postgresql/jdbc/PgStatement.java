@@ -161,11 +161,26 @@ public class PgStatement implements Statement, BaseStatement {
       throws SQLException {
     this.connection = c;
     forceBinaryTransfers |= c.getForceBinary();
+    // validation check for allowed values of resultset type
+    if (rsType != ResultSet.TYPE_FORWARD_ONLY && rsType != ResultSet.TYPE_SCROLL_INSENSITIVE && rsType != ResultSet.TYPE_SCROLL_SENSITIVE) {
+      throw new PSQLException(GT.tr("Unknown value for ResultSet type"),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
     resultsettype = rsType;
+    // validation check for allowed values of resultset concurrency
+    if (rsConcurrency != ResultSet.CONCUR_READ_ONLY && rsConcurrency != ResultSet.CONCUR_UPDATABLE) {
+      throw new PSQLException(GT.tr("Unknown value for ResultSet concurrency"),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
     concurrency = rsConcurrency;
     setFetchSize(c.getDefaultFetchSize());
     setPrepareThreshold(c.getPrepareThreshold());
     setAdaptiveFetch(c.getAdaptiveFetch());
+    // validation check for allowed values of resultset holdability
+    if (rsHoldability != ResultSet.HOLD_CURSORS_OVER_COMMIT && rsHoldability != ResultSet.CLOSE_CURSORS_AT_COMMIT) {
+      throw new PSQLException(GT.tr("Unknown value for ResultSet holdability"),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
     this.rsHoldability = rsHoldability;
   }
 
