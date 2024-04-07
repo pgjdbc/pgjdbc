@@ -84,7 +84,7 @@ dependencies {
     "testImplementation"("org.osgi:org.osgi.service.jdbc") {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
-    shaded("com.ongres.scram:client:2.1")
+    shaded("com.ongres.scram:scram-client:3.1")
 
     implementation("org.checkerframework:checker-qual:3.42.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
@@ -191,10 +191,10 @@ tasks.compileJava {
 val getShadedDependencyLicenses by tasks.registering(GatherLicenseTask::class) {
     configuration(shaded)
     extraLicenseDir.set(file("$rootDir/licenses"))
-    overrideLicense("com.ongres.scram:common") {
+    overrideLicense("com.ongres.scram:scram-common") {
         licenseFiles = "scram"
     }
-    overrideLicense("com.ongres.scram:client") {
+    overrideLicense("com.ongres.scram:scram-client") {
         licenseFiles = "scram"
     }
     overrideLicense("com.ongres.stringprep:saslprep") {
@@ -227,6 +227,10 @@ tasks.configureEach<Jar> {
 tasks.shadowJar {
     configurations = listOf(shaded)
     exclude("META-INF/maven/**")
+    // ignore module-info.class not used in shaded dependency
+    exclude("META-INF/versions/9/module-info.class")
+    // ignore service file not used in shaded dependency
+    exclude("META-INF/services/com.ongres.stringprep.Profile")
     exclude("META-INF/LICENSE*")
     exclude("META-INF/NOTICE*")
     into("META-INF") {
@@ -254,7 +258,7 @@ val osgiJar by tasks.registering(Bundle::class) {
             Bundle-Activator: org.postgresql.osgi.PGBundleActivator
             Bundle-SymbolicName: org.postgresql.jdbc
             Bundle-Name: PostgreSQL JDBC Driver
-            Bundle-Copyright: Copyright (c) 2003-2020, PostgreSQL Global Development Group
+            Bundle-Copyright: Copyright (c) 2003-2024, PostgreSQL Global Development Group
             Require-Capability: osgi.ee;filter:="(&(|(osgi.ee=J2SE)(osgi.ee=JavaSE))(version>=1.8))"
             Provide-Capability: osgi.service;effective:=active;objectClass=org.osgi.service.jdbc.DataSourceFactory;osgi.jdbc.driver.class=org.postgresql.Driver;osgi.jdbc.driver.name=PostgreSQL JDBC Driver
             """

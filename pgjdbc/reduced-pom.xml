@@ -43,8 +43,8 @@
     <dependencies>
         <dependency>
             <groupId>com.ongres.scram</groupId>
-            <artifactId>client</artifactId>
-            <version>%{com.ongres.scram:client}</version>
+            <artifactId>scram-client</artifactId>
+            <version>%{com.ongres.scram:scram-client}</version>
         </dependency>
         <dependency>
             <groupId>se.jiderhamn</groupId>
