@@ -70,9 +70,9 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     ps.setInt(6, 666);
 
     Assertions.assertEquals(""
-            + "INSERT INTO testbatch( col1, col2 ) VALUES ('111', 222), ('111', 222);"
-            + "INSERT INTO testbatch( col1, col2 ) VALUES ('333', 444);"
-            + "INSERT INTO testbatch( col1, col2 ) VALUES ('555', 666), ('555', 666), ('555', 666)",
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('111'), ('222'::int4)), (('111'), ('222'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('333'), ('444'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('555'), ('666'::int4)), (('555'), ('666'::int4)), (('555'), ('666'::int4))",
         ps.toString());
 
     Assertions.assertEquals(2, ps.executeUpdate());
