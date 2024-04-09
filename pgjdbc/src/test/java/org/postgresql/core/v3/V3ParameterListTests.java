@@ -140,9 +140,9 @@ class V3ParameterListTests {
     parameters.setStringParameter(parameters.getIndex("ASTR"), "p1", Oid.VARCHAR);
     assertEquals(
         query
-            .replace(":ASTR", "'p1'")
-            .replace(":bStr", "'p2'")
-            .replace(":c", "'p3'"),
+            .replace(":ASTR", "('p1')")
+            .replace(":bStr", "('p2')")
+            .replace(":c", "('p3')"),
         nativeQuery.toString(parameters)
     );
   }

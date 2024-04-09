@@ -7,18 +7,17 @@ package org.postgresql.core;
 
 /**
  * Type information inspection support.
- * @author Jeremy Whiting jwhiting@redhat.com
  *
+ * @author Jeremy Whiting jwhiting@redhat.com
  */
 
 public enum SqlCommandType {
 
   /**
-   * Use BLANK for empty sql queries or when parsing the sql string is not
-   * necessary.
-   * Allow parameters in order for {@link java.sql.Connection#nativeSQL} to process fragments.
+   * Use BLANK for empty sql queries or when parsing the sql string is not necessary. Allow
+   * parameters in order for {@link java.sql.Connection#nativeSQL} to process fragments.
    */
-  BLANK(true) ,
+  BLANK(true),
   INSERT(true),
   UPDATE(true),
   DELETE(true),
@@ -29,7 +28,8 @@ public enum SqlCommandType {
   ALTER(false),
   CALL(true),
   DROP(false),
-  COMMENT(false);
+  COMMENT(false),
+  PREPARE(false);
 
   private final boolean supportsParameters;
 

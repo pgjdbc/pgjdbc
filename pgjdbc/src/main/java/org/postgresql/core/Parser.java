@@ -302,6 +302,8 @@ public class Parser {
             currentCommandType = SqlCommandType.DROP;
           } else if (wordLength == SqlCommandType.COMMENT.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.COMMENT)) {
             currentCommandType = SqlCommandType.COMMENT;
+          } else if (wordLength == SqlCommandType.PREPARE.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.PREPARE)) {
+            currentCommandType = SqlCommandType.PREPARE;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.INSERT;
             if (isBatchedReWriteConfigured && keyWordCount == 0) {

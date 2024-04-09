@@ -275,7 +275,7 @@ public class NativeParametersTest extends BaseTest5 {
       ps.setString("$2", "2");
 
       // Test toString after bind
-      Assertions.assertEquals("select '2'||'2'||'1' AS teststr", ps.toString(),
+      Assertions.assertEquals("select ('2')||('2')||('1') AS teststr", ps.toString(),
           "The bound values must now be present");
       ps.execute();
       try (ResultSet resultSet = ps.getResultSet()) {
@@ -299,15 +299,15 @@ public class NativeParametersTest extends BaseTest5 {
 
       pstmt.setInt("$1", 1);
       pstmt.setInt("$2", 2);
-      Assertions.assertEquals("INSERT INTO testbatch VALUES (1,2,1)", pstmt.toString());
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (('1'::int4),('2'::int4),('1'::int4))", pstmt.toString());
       pstmt.addBatch();
       pstmt.setInt("$1", 3);
       pstmt.setInt("$2", 4);
-      Assertions.assertEquals("INSERT INTO testbatch VALUES (3,4,3)", pstmt.toString());
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (('3'::int4),('4'::int4),('3'::int4))", pstmt.toString());
       pstmt.addBatch();
       pstmt.setInt("$1", 5);
       pstmt.setInt("$2", 6);
-      Assertions.assertEquals("INSERT INTO testbatch VALUES (5,6,5)", pstmt.toString());
+      Assertions.assertEquals("INSERT INTO testbatch VALUES (('5'::int4),('6'::int4),('5'::int4))", pstmt.toString());
       pstmt.addBatch();
     }
   }

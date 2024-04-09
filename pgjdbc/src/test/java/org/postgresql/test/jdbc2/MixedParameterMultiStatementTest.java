@@ -11,7 +11,9 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
@@ -22,12 +24,14 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MixedParameterMultiStatementTest extends BaseTest5 {
+  @BeforeEach
   public void setUp() throws Exception {
     super.setUp();
     PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
     TestUtil.createTable(con, "testbatch", "pk SERIAL, col1 VARCHAR, col2 INTEGER");
   }
 
+  @AfterEach
   public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "testbatch");
     super.tearDown();
@@ -66,9 +70,10 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     ps.setInt(6, 666);
 
     Assertions.assertEquals(""
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('111', 222), ('111', 222);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('333', 444);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('555', 666), ('555', 666), ('555', 666)", ps.toString());
+            + "INSERT INTO testbatch( col1, col2 ) VALUES ('111', 222), ('111', 222);"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES ('333', 444);"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES ('555', 666), ('555', 666), ('555', 666)",
+        ps.toString());
 
     Assertions.assertEquals(2, ps.executeUpdate());
     Assertions.assertFalse(ps.getMoreResults());
@@ -76,7 +81,8 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     Assertions.assertFalse(ps.getMoreResults());
     Assertions.assertEquals(3, ps.getUpdateCount());
 
-    Assertions.assertEquals("[111,222, 111,222, 333,444, 555,666, 555,666, 555,666]", getResult().toString());
+    Assertions.assertEquals("[111,222, 111,222, 333,444, 555,666, 555,666, 555,666]",
+        getResult().toString());
   }
 
   @Test
@@ -99,9 +105,12 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     ps.setInt(6, 66);
 
     Assertions.assertEquals(""
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('11', 22), ('11', 22);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('33', 44);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('55', 66), ('55', 66), ('55', 66)", ps.toString());
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('11'), ('22'::int4)), (('11'), "
+            + "('22'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('33'), ('44'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('55'), ('66'::int4)), (('55'), "
+            + "('66'::int4)), (('55'), ('66'::int4))",
+        ps.toString());
 
     ps.addBatch();
 
@@ -113,13 +122,18 @@ public class MixedParameterMultiStatementTest extends BaseTest5 {
     ps.setInt(6, 6);
 
     Assertions.assertEquals(""
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('1', 2), ('1', 2);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('3', 4);"
-        + "INSERT INTO testbatch( col1, col2 ) VALUES ('5', 6), ('5', 6), ('5', 6)", ps.toString());
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('1'), ('2'::int4)), (('1'), "
+            + "('2'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('3'), ('4'::int4));"
+            + "INSERT INTO testbatch( col1, col2 ) VALUES (('5'), ('6'::int4)), (('5'), "
+            + "('6'::int4)), (('5'), ('6'::int4))",
+        ps.toString());
 
     ps.addBatch();
 
     Assertions.assertEquals("[6, 6]", Arrays.toString(ps.executeBatch()));
-    Assertions.assertEquals("[11,22, 11,22, 33,44, 55,66, 55,66, 55,66, 1,2, 1,2, 3,4, 5,6, 5,6, 5,6]", getResult().toString());
+    Assertions.assertEquals(
+        "[11,22, 11,22, 33,44, 55,66, 55,66, 55,66, 1,2, 1,2, 3,4, 5,6, 5,6, 5,6]",
+        getResult().toString());
   }
 }
