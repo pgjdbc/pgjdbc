@@ -980,7 +980,7 @@ public class Parser {
     }
 
     for (int i = 0; i < keyword.name().length(); i++) {
-      if ((query[offset + i] | 32) != keyword.name().charAt(i)) {
+      if ((query[offset + i] | 32) != (keyword.name().charAt(i) | 32)) {
         return false;
       }
     }
