@@ -282,37 +282,15 @@ public class Parser {
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
-          if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.CREATE;
-          } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.ALTER;
-          } else if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.UPDATE;
-          } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.DELETE;
-          } else if (wordLength == 4 && parseMoveKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.MOVE;
-          } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.SELECT;
-          } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.WITH;
-          } else if (wordLength == SqlCommandType.CALL.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.CALL)) {
-            currentCommandType = SqlCommandType.CALL;
-          } else if (wordLength == SqlCommandType.DROP.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.DROP)) {
-            currentCommandType = SqlCommandType.DROP;
-          } else if (wordLength == SqlCommandType.COMMENT.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.COMMENT)) {
-            currentCommandType = SqlCommandType.COMMENT;
-          } else if (wordLength == SqlCommandType.PREPARE.name().length() && parseKeyword(aChars, keywordStart, SqlCommandType.PREPARE)) {
-            currentCommandType = SqlCommandType.PREPARE;
-          } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.INSERT;
+          currentCommandType = SqlCommandType.parse(aChars, keywordStart, wordLength);
+
+          if (currentCommandType == SqlCommandType.INSERT) {
             if (isBatchedReWriteConfigured && keyWordCount == 0) {
               // Only allow rewrite for insert command starting with the insert keyword.
               // Else, too many risks of wrong interpretation.
               isCurrentReWriteCompatible = true;
             }
           }
-
         } else if (currentCommandType == SqlCommandType.WITH
             && inParen == 0) {
           SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
@@ -851,45 +829,6 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of CREATE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseAlterKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 5)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'a'
-        && (query[offset + 1] | 32) == 'l'
-        && (query[offset + 2] | 32) == 't'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'r';
-  }
-
-  /**
-   * Parse string to check presence of CREATE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseCreateKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'c'
-        && (query[offset + 1] | 32) == 'r'
-        && (query[offset + 2] | 32) == 'e'
-        && (query[offset + 3] | 32) == 'a'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
-  }
-
-  /**
    * Parse string to check presence of UPDATE keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -965,26 +904,6 @@ public class Parser {
         && (query[offset + 1] | 32) == 'i'
         && (query[offset + 2] | 32) == 't'
         && (query[offset + 3] | 32) == 'h';
-  }
-
-  /**
-   * Parse string to check presence of a keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseKeyword(final char[] query, int offset, SqlCommandType keyword) {
-    if (query.length < (offset + keyword.name().length())) {
-      return false;
-    }
-
-    for (int i = 0; i < keyword.name().length(); i++) {
-      if ((query[offset + i] | 32) != (keyword.name().charAt(i) | 32)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /**
