@@ -58,7 +58,6 @@ public class Parser {
 
     if (!splitStatements
         && !isBatchedReWriteConfigured
-        && !quoteReturningIdentifiers
         && !processParameters
         && returningColumnNames.length == 0
     ) {
