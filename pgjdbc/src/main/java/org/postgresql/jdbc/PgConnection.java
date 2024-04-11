@@ -233,10 +233,10 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public CachedQuery createQuery(String sql, boolean escapeProcessing,
+  public CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
       String... columnNames)
       throws SQLException {
-    return queryExecutor.createQuery(sql, escapeProcessing, PlaceholderStyle.NONE, columnNames);
+    return queryExecutor.createQuery(sql, escapeProcessing, placeholderStyle, columnNames);
   }
 
   void releaseQuery(CachedQuery cachedQuery) {
@@ -278,8 +278,8 @@ public class PgConnection implements BaseConnection {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
 
-    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false);
-    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false);
+    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, PlaceholderStyle.ANY);
+    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, PlaceholderStyle.ANY);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -343,8 +343,8 @@ public class PgConnection implements BaseConnection {
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
     // is not a compound query with ; inside, so it could use parse/bind/exec messages
-    commitQuery = createQuery("COMMIT", false).query;
-    rollbackQuery = createQuery("ROLLBACK", false).query;
+    commitQuery = createQuery("COMMIT", false, PlaceholderStyle.ANY).query;
+    rollbackQuery = createQuery("ROLLBACK", false, PlaceholderStyle.ANY).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 

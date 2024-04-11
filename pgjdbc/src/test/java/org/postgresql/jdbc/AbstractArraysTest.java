@@ -457,7 +457,7 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
-    public CachedQuery createQuery(String sql, boolean escapeProcessing, String... columnNames)
+    public CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle, String... columnNames)
         throws SQLException {
       throw new UnsupportedOperationException();
     }

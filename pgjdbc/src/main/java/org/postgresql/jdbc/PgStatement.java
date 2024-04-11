@@ -793,7 +793,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     // Simple statements should not replace ?, ? with $1, $2
-    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled);
+    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, PlaceholderStyle.NONE);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }

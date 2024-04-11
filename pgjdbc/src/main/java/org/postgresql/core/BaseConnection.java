@@ -8,6 +8,7 @@ package org.postgresql.core;
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.FieldMetadata;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -202,7 +203,7 @@ public interface BaseConnection extends PGConnection, Connection {
    */
   LruCache<FieldMetadata.Key, FieldMetadata> getFieldMetadataCache();
 
-  CachedQuery createQuery(String sql, boolean escapeProcessing, String... columnNames)
+  CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle, String... columnNames)
       throws SQLException;
 
   /**
