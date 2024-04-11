@@ -61,7 +61,7 @@ public class ParameterContext {
    * EMPTY_CONTEXT is immutable. Calling the add-methods will result in
    * UnsupportedOperationException being thrown.
    */
-  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext(PlaceholderStyle.ANY) {
+  public static final ParameterContext EMPTY_CONTEXT = new ParameterContext(PlaceholderStyle.NONE) {
     @Override
     public int addJDBCParameter(int position) {
       throw new UnsupportedOperationException();
