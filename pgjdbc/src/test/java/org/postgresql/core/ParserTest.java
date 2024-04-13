@@ -39,15 +39,15 @@ class ParserTest {
   void deleteCommandParsing() {
     char[] command = new char[6];
     "DELETE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse upper case command.");
+    assertTrue(SqlCommandType.DELETE.parseKeyword(command, 0), "Failed to correctly parse upper case command.");
     "DelEtE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.DELETE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "deleteE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.DELETE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "delete".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse lower case command.");
+    assertTrue(SqlCommandType.DELETE.parseKeyword(command, 0), "Failed to correctly parse lower case command.");
     "Delete".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseDeleteKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.DELETE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
   }
 
   @ParameterizedTest
@@ -80,15 +80,15 @@ class ParserTest {
   void updateCommandParsing() {
     char[] command = new char[6];
     "UPDATE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse upper case command.");
+    assertTrue(SqlCommandType.UPDATE.parseKeyword(command, 0), "Failed to correctly parse upper case command.");
     "UpDateE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.UPDATE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "updatE".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.UPDATE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Update".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.UPDATE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "update".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseUpdateKeyword(command, 0), "Failed to correctly parse lower case command.");
+    assertTrue(SqlCommandType.UPDATE.parseKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   /**
@@ -98,15 +98,15 @@ class ParserTest {
   void moveCommandParsing() {
     char[] command = new char[4];
     "MOVE".getChars(0, 4, command, 0);
-    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse upper case command.");
+    assertTrue(SqlCommandType.MOVE.parseKeyword(command, 0), "Failed to correctly parse upper case command.");
     "mOVe".getChars(0, 4, command, 0);
-    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.MOVE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "movE".getChars(0, 4, command, 0);
-    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.MOVE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Move".getChars(0, 4, command, 0);
-    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.MOVE.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "move".getChars(0, 4, command, 0);
-    assertTrue(Parser.parseMoveKeyword(command, 0), "Failed to correctly parse lower case command.");
+    assertTrue(SqlCommandType.MOVE.parseKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   /**
@@ -142,15 +142,15 @@ class ParserTest {
   void selectCommandParsing() {
     char[] command = new char[6];
     "SELECT".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse upper case command.");
+    assertTrue(SqlCommandType.SELECT.parseKeyword(command, 0), "Failed to correctly parse upper case command.");
     "sELect".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.SELECT.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "selecT".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.SELECT.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "Select".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse mixed case command.");
+    assertTrue(SqlCommandType.SELECT.parseKeyword(command, 0), "Failed to correctly parse mixed case command.");
     "select".getChars(0, 6, command, 0);
-    assertTrue(Parser.parseSelectKeyword(command, 0), "Failed to correctly parse lower case command.");
+    assertTrue(SqlCommandType.SELECT.parseKeyword(command, 0), "Failed to correctly parse lower case command.");
   }
 
   @Test

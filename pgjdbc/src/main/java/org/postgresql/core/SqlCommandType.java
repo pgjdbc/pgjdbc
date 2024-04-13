@@ -5,7 +5,9 @@
 
 package org.postgresql.core;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -23,6 +25,7 @@ public enum SqlCommandType {
    */
   BLANK(true),
   ALTER(false),
+  BEGIN(false),
   CALL(true),
   CREATE(false),
   DELETE(true),
@@ -34,7 +37,8 @@ public enum SqlCommandType {
   UPDATE(true),
   WITH(false);
 
-  static final Map<Integer, Map<String, SqlCommandType>> sqlCommandTypeLookup = new HashMap<>();
+  final String lowerName;
+  static final Map<Integer, List<SqlCommandType>> sqlCommandTypeLookup = new HashMap<>();
 
   static {
     for (SqlCommandType value : SqlCommandType.values()) {
@@ -42,28 +46,21 @@ public enum SqlCommandType {
         continue;
       }
 
-      final String name = value.name();
-      String lowerName = name.toLowerCase(Locale.ENGLISH);
-      sqlCommandTypeLookup.computeIfAbsent(name.length(), f -> new HashMap<>()).put(lowerName, value);
+      sqlCommandTypeLookup.computeIfAbsent(value.lowerName.length(), f -> new ArrayList<>()).add(value);
     }
   }
 
-  public static SqlCommandType parse(final char[] query, int offset, int wordLength) {
-    final Map<String, SqlCommandType> candidateCommands = sqlCommandTypeLookup.get(wordLength);
+  public static SqlCommandType parseCommandType(final char[] query, int offset, int wordLength) {
+    final List<SqlCommandType> candidateCommands = sqlCommandTypeLookup.get(wordLength);
 
     if (candidateCommands == null) {
       return BLANK;
     }
 
-    entryLoop:
-    for (Map.Entry<String, SqlCommandType> entry : candidateCommands.entrySet()) {
-      for (int i = 0; i < wordLength; i++) {
-        if ((query[offset + i] | 32) != entry.getKey().charAt(i)) {
-          continue entryLoop;
-        }
+    for (SqlCommandType sqlCommandType : candidateCommands) {
+      if (sqlCommandType.parseKeyword(query,offset)) {
+        return sqlCommandType;
       }
-
-      return entry.getValue();
     }
 
     return BLANK;
@@ -73,9 +70,30 @@ public enum SqlCommandType {
 
   SqlCommandType(boolean supportsParameters) {
     this.supportsParameters = supportsParameters;
+    this.lowerName = this.name().toLowerCase(Locale.ENGLISH);
   }
 
   public boolean supportsParameters() {
     return supportsParameters;
+  }
+
+  /**
+   Parse string to check for the presence of this keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public boolean parseKeyword(final char[] query, int offset) {
+    if (query.length < (offset + this.lowerName.length())) {
+      return false;
+    }
+
+    for (int i = 0; i < this.lowerName.length(); i++) {
+      if ((query[offset + i] | 32) != this.lowerName.charAt(i)) {
+        return false;
+      }
+    }
+    return true;
   }
 }
