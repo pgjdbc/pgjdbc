@@ -46,7 +46,7 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
@@ -67,7 +67,7 @@ jobs:
     name: 'CheckerFramework'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: 'Set up JDK 17'
@@ -89,7 +89,7 @@ jobs:
     name: 'Source distribution (JDK 17)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: Start PostgreSQL
@@ -131,7 +131,7 @@ jobs:
       GITHUB_PR_NUMBER: ${{ github.event.number }}
       RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
     - id: set-matrix
@@ -150,7 +150,7 @@ jobs:
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
