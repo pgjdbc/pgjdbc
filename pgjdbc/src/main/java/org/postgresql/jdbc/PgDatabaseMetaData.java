@@ -1505,6 +1505,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     ht.put("SCHEMAS", "c.relkind = 'p' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
     ht.put("NOSCHEMAS", "c.relkind = 'p' AND c.relname !~ '^pg_'");
     ht = new HashMap<>();
+    tableTypeClauses.put("ANCESTOR TABLE", ht);
+    ht.put("SCHEMAS", "c.relkind in ('p', 'r') AND c.relispartition = 'f' AND n.nspname !~ '^pg_' AND n.nspname <> 'information_schema'");
+    ht.put("NOSCHEMAS", "c.relkind n ('p', 'r') AND c.relispartition = 'f' AND c.relname !~ '^pg_'");
+    ht = new HashMap<>();
     tableTypeClauses.put("VIEW", ht);
     ht.put("SCHEMAS",
         "c.relkind = 'v' AND n.nspname <> 'pg_catalog' AND n.nspname <> 'information_schema'");
