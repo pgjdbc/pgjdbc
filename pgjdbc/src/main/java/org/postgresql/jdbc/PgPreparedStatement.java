@@ -1591,7 +1591,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     if (value == null) {
-      setNull(parameterIndex, Oid.BYTEA);
+      setNull(parameterIndex, Types.VARBINARY);
       return;
     }
 
