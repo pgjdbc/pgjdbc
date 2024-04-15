@@ -16,7 +16,7 @@ url= "/download/postgresql-42.6.2.jar"
 
 [[recent]]
 j_name= "Java 7"
-version= "42.2.28"
+version= "42.2.29"
 suffix="jre7"
 description= "If you are using Java 7  then you should use the  JDBC 4.1 version."
 url= "/download/postgresql-42.2.29.jre7.jar"

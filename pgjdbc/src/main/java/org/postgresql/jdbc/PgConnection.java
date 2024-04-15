@@ -1408,16 +1408,14 @@ public class PgConnection implements BaseConnection {
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency,
-        resultSetHoldability);
+    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
   }
 
   @Override
