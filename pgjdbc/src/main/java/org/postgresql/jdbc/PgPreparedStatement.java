@@ -814,7 +814,7 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
             setDate(parameterIndex, (LocalDate) in);
             break;
           } else {
-            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
+            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString().getBytes());
           }
           setDate(parameterIndex, tmpd);
         }
@@ -833,7 +833,7 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
             setTime(parameterIndex, (OffsetTime) in);
             break;
           } else {
-            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
+            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString().getBytes());
           }
           setTime(parameterIndex, tmpt);
         }
@@ -851,7 +851,7 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
           } else {
-            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString());
+            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes());
           }
           setTimestamp(parameterIndex, tmpts);
         }
@@ -1426,7 +1426,14 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
 
     InputStream inStream = x.getBinaryStream();
     try {
-      long oid = createBlob(i, inStream, x.length());
+      long maxLength = x.length();
+      if (maxLength < 0) {
+        // Hibernate used to create blob instances that report -1 length, so we ignore the length
+        // and assume we need to read all the data from the stream.
+        // See https://github.com/pgjdbc/pgjdbc/issues/3134
+        maxLength = Long.MAX_VALUE;
+      }
+      long oid = createBlob(i, inStream, maxLength);
       setLong(i, oid);
     } finally {
       try {
@@ -1489,6 +1496,10 @@ class PgPreparedStatement extends PgStatement implements PGPreparedStatement {
 
     Reader inStream = x.getCharacterStream();
     int length = (int) x.length();
+    if (length < 0) {
+      // See #setBlob(int, Blob)
+      length = Integer.MAX_VALUE;
+    }
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
     LargeObject lob = lom.open(oid);
