@@ -215,6 +215,8 @@ public class PgConnection implements BaseConnection {
   private final boolean bindStringAsVarchar;
   // Convert boolean values to numeric types?
   private final boolean convertBooleanToNumeric;
+  // Uses timestamptz always for java sql Timestamp
+  private final boolean sqlTimestamptzAlways;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -303,6 +305,8 @@ public class PgConnection implements BaseConnection {
     }
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
+
+    this.sqlTimestamptzAlways = PGProperty.SQL_TIMESTAMPTZ_ALWAYS.getBoolean(info);
 
     // get oids that support binary transfer
     Set<Integer> binaryOids = getBinaryEnabledOids(info);
@@ -2005,5 +2009,9 @@ public class PgConnection implements BaseConnection {
     }
     this.xmlFactoryFactory = xmlFactoryFactory;
     return xmlFactoryFactory;
+  }
+
+  public boolean isSqlTimestamptzAlways() {
+    return sqlTimestamptzAlways;
   }
 }
