@@ -1494,6 +1494,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
+
+    if (connection.isSqlTimestamptzAlways()) {
+      oid = Oid.TIMESTAMPTZ;
+    }
     bindString(i, getTimestampUtils().toString(cal, t), oid);
   }
 
