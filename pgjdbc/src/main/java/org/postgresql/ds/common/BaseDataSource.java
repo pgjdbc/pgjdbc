@@ -1913,4 +1913,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public boolean isReWriteBatchedInserts() {
     return getReWriteBatchedInserts();
   }
+  
+  public boolean isSqlTimestamptzAlways() {
+      return PGProperty.SQL_TIMESTAMPTZ_ALWAYS.getBoolean(properties);
+  }
+    
+  public void setSqlTimestamptzAlways(boolean sqlTimestamptzAlways) {
+    PGProperty.SQL_TIMESTAMPTZ_ALWAYS.set(properties, sqlTimestamptzAlways);
+  }
 }
