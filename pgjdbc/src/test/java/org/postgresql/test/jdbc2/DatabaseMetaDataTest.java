@@ -945,7 +945,7 @@ public class DatabaseMetaDataTest {
     final List<String> expectedTableTypes = new ArrayList<>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
         "SYSTEM TOAST TABLE", "SYSTEM VIEW", "TABLE", "TEMPORARY INDEX", "TEMPORARY SEQUENCE", "TEMPORARY TABLE",
-        "TEMPORARY VIEW", "TYPE", "VIEW"));
+        "TEMPORARY VIEW", "TYPE", "VIEW", "ANCESTOR TABLE"));
     final List<String> foundTableTypes = new ArrayList<>();
 
     // Test that no exceptions are thrown
@@ -1566,6 +1566,33 @@ public class DatabaseMetaDataTest {
         }
       }
     }
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void ancestorTables(BinaryMode binaryMode) throws SQLException {
+    initDatabaseMetaDataTest(binaryMode);
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute("CREATE TABLE ancestor (logdate date not null, peaktemp int) PARTITION BY RANGE (logdate);");
+        stmt.execute("CREATE TABLE ancestor_p202404 PARTITION OF ancestor FOR VALUES FROM ('20240401') TO ('20240501');");
+        stmt.execute("CREATE TABLE ancestor_p202405 PARTITION OF ancestor FOR VALUES FROM ('20240501') TO ('20240601');");
+        DatabaseMetaData dbmd = con.getMetaData();
+        assertNotNull(dbmd);
+        ResultSet rs = dbmd.getTables(con.getCatalog(), con.getSchema(), "ancestor%", new String[]{"ANCESTOR TABLE"});
+        assertTrue(rs.next());
+        assertEquals("ancestor", rs.getString("TABLE_NAME"));
+        rs.close();
+      } finally {
+        if (stmt != null) {
+          stmt.execute("DROP TABLE IF EXISTS ancestor");
+          stmt.close();
+        }
+      }
+    }
+
   }
 
   @MethodSource("data")
