@@ -1,9 +1,3 @@
-
-/*
-attributes["Main-Class"] = "org.postgresql.util.PGJDBCMain"
-        attributes["Automatic-Module-Name"] = "org.postgresql.jdbc"
- */
-
 module org.postgresql.jdbc {
   requires static java.desktop;
   requires java.logging;
