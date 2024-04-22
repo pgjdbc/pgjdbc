@@ -99,7 +99,6 @@ matrix.addAxis({
     // We use docker-compose for launching PostgreSQL
     // 'windows-latest',
     // 'macos-latest',
-    ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
   ]
 });
 
@@ -222,11 +221,7 @@ matrix.imply({java_distribution: {value: 'microsoft'}}, {java_version: v => v >=
 matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === eaJava || v >= 17});
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
-matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest', 'self-hosted']})
-if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
-    // PG images below 9.3 are x86_64 only
-    matrix.exclude({os: 'self-hosted', pg_version: lessThan('9.3')});
-}
+matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest']})
 
 // The most rare features should be generated the first
 // For instance, we have a lot of PostgreSQL versions, so we generate the minimal the first
@@ -251,9 +246,6 @@ matrix.generateRow({ssl: {value: 'yes'}});
 // Ensure at least one Windows and at least one Linux job is present (macOS is almost the same as Linux)
 // matrix.generateRow({os: 'windows-latest'});
 matrix.generateRow({os: 'ubuntu-latest'});
-if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
-  matrix.generateRow({os: 'self-hosted'});
-}
 // Ensure we test all query_mode values
 for (let query_mode of matrix.axisByName.query_mode.values) {
   matrix.generateRow({query_mode: query_mode});
