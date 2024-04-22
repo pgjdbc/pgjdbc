@@ -81,7 +81,7 @@ jobs:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
-          read-only: ${{ matrix.os == 'self-hosted' }}
+          read-only: false
           job-id: checker-jdk17
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
 
@@ -216,7 +216,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         _JAVA_OPTIONS: ${{ matrix.extraJvmArgs }}
       with:
-        read-only: ${{ matrix.os == 'self-hosted' }}
+        read-only: false
         job-id: jdk${{ matrix.java_version }}
         arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
         properties: |
@@ -242,7 +242,7 @@ jobs:
       if: ${{ matrix.deploy_to_maven_local }}
       name: Deploy pgjdbc to mavenLocal
       with:
-        read-only: ${{ matrix.os == 'self-hosted' }}
+        read-only: false
         job-id: jdk${{ matrix.java_version }}
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Attach heap dump if any
