@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc42;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.util.ByteConverter;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +23,7 @@ class TimestampUtilsTest {
 
   @BeforeEach
   void setUp() {
-    timestampUtils = new TimestampUtils(true, TimeZone::getDefault);
+    timestampUtils = new TimestampUtils(false, TimeZone::getDefault);
   }
 
   @Test
@@ -89,6 +90,37 @@ class TimestampUtilsTest {
         timestampUtils.toLocalTime(inputTime),
         "timestampUtils.toLocalTime(" + inputTime + ")"
             + (message == null ? ": " + message : ""));
+  }
+
+  @Test
+  void toLocalTimeBin() throws SQLException {
+    assertToLocalTimeBin("00:00:00", 0L);
+
+    assertToLocalTimeBin("00:00:00.1", 100_000L);
+    assertToLocalTimeBin("00:00:00.12", 120_000L);
+    assertToLocalTimeBin("00:00:00.123", 123_000L);
+    assertToLocalTimeBin("00:00:00.1234", 123_400L);
+    assertToLocalTimeBin("00:00:00.12345", 123_450L);
+    assertToLocalTimeBin("00:00:00.123456", 123_456L);
+    assertToLocalTimeBin("00:00:00.999999", 999_999L);
+
+    assertToLocalTimeBin("23:59:59", 86_399_000_000L);
+    assertToLocalTimeBin("23:59:59.999999", 86_399_999_999L);
+    assertToLocalTimeBin(LocalTime.MAX.toString(), 86_400_000_000L, "LocalTime can't represent 24:00:00");
+  }
+
+  private void assertToLocalTimeBin(String expectedOutput, long inputMicros) throws SQLException {
+    assertToLocalTimeBin(expectedOutput, inputMicros, null);
+  }
+
+  private void assertToLocalTimeBin(String expectedOutput, long inputMicros, String message) throws SQLException {
+    final byte[] bytes = new byte[8];
+    ByteConverter.int8(bytes, 0, inputMicros);
+    assertEquals(
+        LocalTime.parse(expectedOutput),
+        timestampUtils.toLocalTimeBin(bytes),
+        "timestampUtils.toLocalTime(" + inputMicros + ")"
+        + (message == null ? ": " + message : ""));
   }
 
   @Test

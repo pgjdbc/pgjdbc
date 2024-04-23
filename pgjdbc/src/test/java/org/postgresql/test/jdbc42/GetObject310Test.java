@@ -210,7 +210,24 @@ public class GetObject310Test extends BaseTest4 {
         assertDataTypeMismatch(rs, "time_without_time_zone_column", LocalDate.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", LocalDateTime.class);
       }
-      stmt.executeUpdate("DELETE FROM table1");
+    }
+  }
+
+  /**
+   * Test the behavior getObject for time columns with value "24:00", which isn't supported by
+   * {@link LocalTime}, and thus gets converted to {@link LocalTime#MAX}
+   */
+  @Test
+  public void testGetLocalTimeMax() throws SQLException {
+    try (Statement stmt = con.createStatement() ) {
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '24:00'"));
+
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
+        assertTrue(rs.next());
+        LocalTime localTime = LocalTime.MAX;
+        assertEquals(localTime, rs.getObject("time_without_time_zone_column", LocalTime.class));
+        assertEquals(localTime, rs.getObject(1, LocalTime.class));
+      }
     }
   }
 
@@ -227,7 +244,6 @@ public class GetObject310Test extends BaseTest4 {
         assertNull(rs.getObject("time_without_time_zone_column", LocalTime.class));
         assertNull(rs.getObject(1, LocalTime.class));
       }
-      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 
@@ -245,7 +261,6 @@ public class GetObject310Test extends BaseTest4 {
         assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalDateTime.class);
         assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalDate.class);
       }
-      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 
