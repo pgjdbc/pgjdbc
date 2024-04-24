@@ -22,7 +22,7 @@ import javax.security.auth.x500.X500Principal;
 public class SubjectKeyManager implements X509KeyManager {
 
   private final X509KeyManager km;
-  private final X500Principal subject;
+  private final @Nullable X500Principal subject;
 
   /**
    * <p>
@@ -81,27 +81,27 @@ public class SubjectKeyManager implements X509KeyManager {
   }
 
   @Override
-  public String[] getClientAliases(String keyType, Principal[] issuers) {
+  public String @Nullable [] getClientAliases(String keyType, Principal @Nullable [] issuers) {
     return this.km.getClientAliases(keyType, issuers);
   }
 
   @Override
-  public String[] getServerAliases(String keyType, Principal[] issuers) {
+  public String @Nullable [] getServerAliases(String keyType, Principal@Nullable [] issuers) {
     return this.km.getServerAliases(keyType, issuers);
   }
 
   @Override
-  public String chooseServerAlias(String keyType, Principal[] issuers, Socket socket) {
+  public @Nullable  String chooseServerAlias(String keyType, Principal @Nullable [] issuers, @Nullable Socket socket) {
     return this.km.chooseServerAlias(keyType, issuers, socket);
   }
 
   @Override
-  public X509Certificate[] getCertificateChain(String alias) {
+  public X509Certificate @Nullable[] getCertificateChain(String alias) {
     return this.km.getCertificateChain(alias);
   }
 
   @Override
-  public PrivateKey getPrivateKey(String alias) {
+  public @Nullable PrivateKey getPrivateKey(String alias) {
     return this.km.getPrivateKey(alias);
   }
 

@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -39,9 +41,9 @@ public class SSLFactory extends WrappedFactory {
     SSLContext ctx;
     final KeyStore keyStore;
     KeyStore trustStore;
-    final char[] keyPassphrase = null;
+    final char[] keyPassphrase = new char[0];
     final String sslsubject = PGProperty.SSL_SUBJECT.getOrDefault(info);
-    final X500Principal subject;
+    final @Nullable X500Principal subject;
     final KeyManagerFactory keyManagerFactory;
     final TrustManagerFactory trustManagerFactory;
 
