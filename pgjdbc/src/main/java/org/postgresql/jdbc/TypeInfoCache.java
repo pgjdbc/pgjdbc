@@ -130,8 +130,8 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  private Map<Integer, PgType> typesByOid;
-  private Map<String, PgType> typesByPgName;
+  private final Map<Integer, PgType> typesByOid;
+  private final Map<String, PgType> typesByPgName;
 
   // pgname (String) -> java.sql.Types (Integer)
   // private Map<String, Integer> pgNameToSQLType;
@@ -147,7 +147,7 @@ public class TypeInfoCache implements TypeInfo {
   // private Map<String, Integer> pgNameToOid;
 
   // pgname (String) -> extension pgobject (Class)
-  private Map<String, Class<? extends PGobject>> pgNameToPgObject;
+  private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
 
   // array type oid -> base type array element delimiter
 //   private Map<Integer, Character> arrayOidToDelimiter;
@@ -280,7 +280,7 @@ public class TypeInfoCache implements TypeInfo {
     typesByOid = new HashMap<>(mapSize);
     typesByPgName = new HashMap<>(mapSize);
 
-    pgNameToPgObject = new HashMap<String, Class<? extends PGobject>>(mapSize);
+    pgNameToPgObject = new HashMap<>(mapSize);
 
     try (ResourceLock ignore = lock.obtain()) {
       for (PgType type : BASE_TYPES) {
