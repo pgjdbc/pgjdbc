@@ -98,7 +98,7 @@ jobs:
         run: docker-compose up -d && docker-compose logs
       - name: Start PostgreSQL Windows
         if: ${{ matrix.os == 'windows-latest' }}
-        shell: wslbash
+        shell: wsl-bash {0}
         working-directory: docker/postgres-server
         run: docker-compose up -d && docker-compose logs
 
