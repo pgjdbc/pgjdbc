@@ -200,14 +200,10 @@ jobs:
         # Architecture is explicit to workaround https://github.com/actions/setup-java/issues/559
         architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
     - name: Prepare local properties
+      shell: powershell
       run: |
-        # See https://github.com/actions/runner/issues/409
-        cat <<EOF >ssltest.local.properties
-        enable_ssl_tests=${{ matrix.ssl == 'yes' && 'true' || 'false' }}
-        EOF
-        cat <<EOF >build.local.properties
-        preferQueryMode=${{ matrix.query_mode }}
-        EOF
+        echo "enable_ssl_tests=${{ matrix.ssl == 'yes' && 'true' || 'false' }}" | Out-File .\ssltest.local.properties
+        echo "preferQueryMode=${{ matrix.query_mode }}" | Out-File .\build.local.properties
 
     - uses: burrunan/gradle-cache-action@v1
       name: Test
