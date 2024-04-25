@@ -608,19 +608,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param enabled if PG types with TIMEZONE should map into SQL types with TIMEZONE
-   * @see PGProperty#SQL_TYPES_WITH_TIMEZONE
+   * @param enabled if PostgreSQL types with TIMEZONE should map into SQL types with TIMEZONE
+   * @see PGProperty#USE_WITH_TIMEZONE
    */
-  public void setSqlTypesWithTimezone(boolean enabled) {
-    PGProperty.SQL_TYPES_WITH_TIMEZONE.set(properties, enabled);
+  public void setUseWithTimezone(boolean enabled) {
+    PGProperty.USE_WITH_TIMEZONE.set(properties, enabled);
   }
 
   /**
-   * @return true if SQL types with TIMEZONE is enabled
-   * @see PGProperty#SQL_TYPES_WITH_TIMEZONE
+   * @return true if PostgreSQL types with TIMEZONE map to java time types with TIMEZON
+   * @see PGProperty#USE_WITH_TIMEZONE
    */
-  public boolean getSqlTypesWithTimezone() {
-    return PGProperty.SQL_TYPES_WITH_TIMEZONE.getBoolean(properties);
+  public boolean getUseWithTimezone() {
+    return PGProperty.USE_WITH_TIMEZONE.getBoolean(properties);
   }
 
   /**

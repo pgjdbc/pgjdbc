@@ -56,7 +56,7 @@ public class DatabaseMetaDataTest {
   public void initDatabaseMetaDataTest(BinaryMode binaryMode, boolean sqlTypesWithTimezone) throws SQLException {
     final Properties props = new Properties();
     if (sqlTypesWithTimezone) {
-      PGProperty.SQL_TYPES_WITH_TIMEZONE.set(props, true);
+      PGProperty.USE_WITH_TIMEZONE.set(props, true);
     }
     if (binaryMode == BinaryMode.FORCE) {
       PGProperty.PREPARE_THRESHOLD.set(props, -1);

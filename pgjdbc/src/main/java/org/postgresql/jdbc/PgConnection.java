@@ -346,7 +346,7 @@ public class PgConnection implements BaseConnection {
     rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
-    boolean sqlTypesWithTimezone = PGProperty.SQL_TYPES_WITH_TIMEZONE.getBoolean(info);
+    boolean sqlTypesWithTimezone = PGProperty.USE_WITH_TIMEZONE.getBoolean(info);
 
     // Initialize object handling
     @SuppressWarnings("argument")
