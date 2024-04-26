@@ -601,8 +601,8 @@ public enum PGProperty {
       "The timeout value in seconds max(2147484) used for socket read operations."),
 
   /**
-   * Enable mapping of `WITH TIMEZONE` to {@link java.sql.Types.TIME_WITH_TIMEZONE}
-   * and {@link java.sql.Types.TIMESTAMP_WITH_TIMEZONE} .
+   * Enable mapping of `WITH TIMEZONE` to {@see java.sql.Types.TIME_WITH_TIMEZONE}
+   * and {@see java.sql.Types.TIMESTAMP_WITH_TIMEZONE} .
    * The default is {@code false}
    */
   USE_WITH_TIMEZONE(
