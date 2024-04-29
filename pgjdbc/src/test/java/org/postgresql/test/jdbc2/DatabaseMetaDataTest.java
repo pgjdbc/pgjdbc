@@ -957,7 +957,7 @@ public class DatabaseMetaDataTest {
     rs.close();
     Collections.sort(expectedTableTypes);
     Collections.sort(foundTableTypes);
-    assertEquals(foundTableTypes, expectedTableTypes, "The table types received from DatabaseMetaData should match the 18 expected types");
+    assertEquals(foundTableTypes, expectedTableTypes, "The table types received from DatabaseMetaData should match the 19 expected types");
   }
 
   @MethodSource("data")
