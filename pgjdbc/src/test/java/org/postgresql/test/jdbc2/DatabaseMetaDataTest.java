@@ -9,11 +9,7 @@ import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
@@ -1576,18 +1572,26 @@ public class DatabaseMetaDataTest {
       Statement stmt = null;
       try {
         stmt = con.createStatement();
-        stmt.execute("CREATE TABLE ancestor (logdate date not null, peaktemp int) PARTITION BY RANGE (logdate);");
-        stmt.execute("CREATE TABLE ancestor_p202404 PARTITION OF ancestor FOR VALUES FROM ('20240401') TO ('20240501');");
-        stmt.execute("CREATE TABLE ancestor_p202405 PARTITION OF ancestor FOR VALUES FROM ('20240501') TO ('20240601');");
+        stmt.execute("CREATE TABLE ancestor_unpart (id int not null, name varchar(20));");
+        stmt.execute("CREATE TABLE ancestor_part (logdate date not null, peaktemp int) PARTITION BY RANGE (logdate);");
+        stmt.execute("CREATE TABLE ancestor_part_p202404 PARTITION OF ancestor_part FOR VALUES FROM ('20240401') TO ('20240501');");
+        stmt.execute("CREATE TABLE ancestor_part_p202405 PARTITION OF ancestor_part FOR VALUES FROM ('20240501') TO ('20240601');");
         DatabaseMetaData dbmd = con.getMetaData();
         assertNotNull(dbmd);
         ResultSet rs = dbmd.getTables(con.getCatalog(), con.getSchema(), "ancestor%", new String[]{"ANCESTOR TABLE"});
-        assertTrue(rs.next());
-        assertEquals("ancestor", rs.getString("TABLE_NAME"));
+        int rownum = 0;
+        String tableName;
+        while (rs.next()) {
+          rownum++;
+          tableName = rs.getString("TABLE_NAME");
+          assertTrue("ancestor_unpart".equals(tableName) || "ancestor_part".equals(tableName));
+        }
+        assertEquals(2, rownum);
         rs.close();
       } finally {
         if (stmt != null) {
-          stmt.execute("DROP TABLE IF EXISTS ancestor");
+          stmt.execute("DROP TABLE IF EXISTS ancestor_unpart;");
+          stmt.execute("DROP TABLE IF EXISTS ancestor_part;");
           stmt.close();
         }
       }
