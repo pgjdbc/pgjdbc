@@ -34,6 +34,7 @@ public class CommandCompleteParserTest {
             (Long.MAX_VALUE / 100), (Long.MAX_VALUE / 100)},
         {"CREATE TABLE", 0, 0},
         {"CREATE OR DROP OR DELETE TABLE 42", 0, 42},
+        {"CALL", 0, -1},
     });
   }
 
