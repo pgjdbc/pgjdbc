@@ -433,6 +433,9 @@ If we quote them, then we end up sending ""colname"" to the backend instead of "
 Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password 
 value in the connection properties will be used.
 
+* **`useWithTimezone (`*boolean*`)`** *Default `false`*\
+Map time with timezone and timestamp with timezone to `TIME_WITH_TIMEZONE` and `TIMESTAMP_WITH_TIMEZONE`
+
 ### Unix sockets
 
 By adding junixsocket you can obtain a socket factory that works with the driver.

@@ -346,10 +346,11 @@ public class PgConnection implements BaseConnection {
     rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
+    boolean sqlTypesWithTimezone = PGProperty.USE_WITH_TIMEZONE.getBoolean(info);
 
     // Initialize object handling
     @SuppressWarnings("argument")
-    TypeInfo typeCache = createTypeInfo(this, unknownLength);
+    TypeInfo typeCache = createTypeInfo(this, unknownLength,sqlTypesWithTimezone);
     this.typeCache = typeCache;
     initObjectTypes(info);
 
@@ -777,8 +778,8 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength) {
-    return new TypeInfoCache(conn, unknownLength);
+  protected TypeInfo createTypeInfo(BaseConnection conn, int unknownLength,boolean sqlTypesWithTimezone) {
+    return new TypeInfoCache(conn, unknownLength,sqlTypesWithTimezone);
   }
 
   @Override
