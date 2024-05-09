@@ -108,7 +108,7 @@ You could specify Java version for testing purposes with `-PjdkTestVersion=8` bu
 ./gradlew -PjdkTestVersion=8 test
 ```
 
-You could lauch `./gradlew parameters` to get the list of available parameters.
+You could launch `./gradlew parameters` to get the list of available parameters.
 
 If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the

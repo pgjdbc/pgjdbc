@@ -42,7 +42,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
   /**
    * Initialize a interval with a given interval string representation.
    *
-   * @param value String representated interval (e.g. '3 years 2 mons')
+   * @param value String represented interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    * @see PGobject#setValue(String)
    */
@@ -132,7 +132,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    * Sets a interval string represented value to this instance. This method only recognize the
    * format, that Postgres returns - not all input formats are supported (e.g. '1 yr 2 m 3 s').
    *
-   * @param value String representated interval (e.g. '3 years 2 mons')
+   * @param value String represented interval (e.g. '3 years 2 mons')
    * @throws SQLException Is thrown if the string representation has an unknown format
    */
   @Override

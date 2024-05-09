@@ -38,7 +38,7 @@ public class CommandCompleteParserNegativeTest {
       if (!(cause instanceof NumberFormatException)) {
         throw e;
       }
-      // NumerFormatException is expected
+      // NumberFormatException is expected
     }
   }
 }
