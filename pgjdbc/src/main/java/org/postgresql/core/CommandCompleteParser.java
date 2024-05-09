@@ -45,7 +45,8 @@ public final class CommandCompleteParser {
   public void parse(String status) throws PSQLException {
     // Assumption: command neither starts nor ends with a digit
     if (!Parser.isDigitAt(status, status.length() - 1)) {
-      set(0, 0);
+      // For CALL statements, JDBC requires an update count of -1
+      set(0, "CALL".equals(status) ? -1 : 0);
       return;
     }
 
