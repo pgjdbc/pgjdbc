@@ -413,7 +413,7 @@ public class TimestampUtils {
    * Parse a string and return a timestamp representing its value.
    *
    * @param cal calendar to be used to parse the input string
-   * @param s The ISO formated date string to parse.
+   * @param s The ISO formatted date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    * @deprecated use {@link #toTimestamp(Calendar, byte[])}
@@ -476,7 +476,7 @@ public class TimestampUtils {
   /**
    * Parse a string and return a LocalTime representing its value.
    *
-   * @param s The ISO formated time string to parse.
+   * @param s The ISO formatted time string to parse.
    * @return null if s is null or a LocalTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
    */

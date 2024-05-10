@@ -1,4 +1,4 @@
-// Grab any element that has the 'js-toggle' class and add an event listner for the toggleClass function
+// Grab any element that has the 'js-toggle' class and add an event listener for the toggleClass function
 let toggleBtns = document.getElementsByClassName( 'js-toggle' )
 for ( let i = 0; i < toggleBtns.length; i++ ) {
     toggleBtns[i].addEventListener( 'click', toggleClass, false )

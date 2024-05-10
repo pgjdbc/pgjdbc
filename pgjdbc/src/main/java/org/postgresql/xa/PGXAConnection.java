@@ -200,7 +200,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           XAException.XAER_PROTO);
     }
 
-    // We can't check precondition 4 easily, so we don't. Duplicate xid will be catched in prepare
+    // We can't check precondition 4 easily, so we don't. Duplicate xid will be caught in prepare
     // phase.
 
     // Check implementation deficiency preconditions
