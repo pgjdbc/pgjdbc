@@ -97,11 +97,6 @@ public class BaseTest4 {
     TestUtil.closeDB(con);
   }
 
-  public void assumeByteaSupported() {
-    Assume.assumeTrue("bytea is not supported in simple protocol execution mode",
-        preferQueryMode != PreferQueryMode.SIMPLE);
-  }
-
   public static void assumeCallableStatementsSupported(Connection con) throws SQLException {
     PreferQueryMode preferQueryMode = con.unwrap(PGConnection.class).getPreferQueryMode();
     Assume.assumeTrue("callable statements are not fully supported in simple protocol execution mode",

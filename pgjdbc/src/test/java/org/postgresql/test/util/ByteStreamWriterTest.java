@@ -29,7 +29,6 @@ public class ByteStreamWriterTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeByteaSupported();
     TestUtil.createTempTable(con, "images", "img bytea");
   }
 

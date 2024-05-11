@@ -48,7 +48,6 @@ public class ServerCursorTest extends BaseTest4 {
   // Test regular cursor fetching
   @Test
   public void testBasicFetch() throws Exception {
-    assumeByteaSupported();
     createRows(1);
 
     PreparedStatement stmt =
@@ -69,7 +68,6 @@ public class ServerCursorTest extends BaseTest4 {
   // Test binary cursor fetching
   @Test
   public void testBinaryFetch() throws Exception {
-    assumeByteaSupported();
     createRows(1);
 
     PreparedStatement stmt =

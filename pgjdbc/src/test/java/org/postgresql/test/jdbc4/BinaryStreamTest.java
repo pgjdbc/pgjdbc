@@ -25,7 +25,6 @@ public class BinaryStreamTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    assumeByteaSupported();
     TestUtil.createTable(con, "images", "img bytea");
 
     Random random = new Random(31459);

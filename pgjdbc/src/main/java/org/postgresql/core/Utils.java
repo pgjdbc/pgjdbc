@@ -7,6 +7,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -27,10 +28,7 @@ public class Utils {
    */
   public static String toHexString(byte[] data) {
     StringBuilder sb = new StringBuilder(data.length * 2);
-    for (byte element : data) {
-      sb.append(Integer.toHexString((element >> 4) & 15));
-      sb.append(Integer.toHexString(element & 15));
-    }
+    PGbytea.appendHexString(sb, data, 0, data.length);
     return sb.toString();
   }
 

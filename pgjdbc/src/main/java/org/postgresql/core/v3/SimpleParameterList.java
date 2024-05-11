@@ -16,6 +16,7 @@ import org.postgresql.jdbc.UUIDArrayAssistant;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.StreamWrapper;
@@ -232,6 +233,10 @@ class SimpleParameterList implements V3ParameterList {
     return sb.toString();
   }
 
+  private static <E extends Throwable> RuntimeException sneakyThrow(Throwable e) throws E {
+    throw (E) e;
+  }
+
   @Override
   public String toString(@Positive int index, boolean standardConformingStrings) {
     --index;
@@ -243,6 +248,23 @@ class SimpleParameterList implements V3ParameterList {
     }
     String textValue;
     String type;
+    if (paramTypes[index] == Oid.BYTEA) {
+      try {
+        return PGbytea.toPGLiteral(paramValue);
+      } catch (Throwable e) {
+        Throwable cause = e;
+        if (!(cause instanceof IOException)) {
+          // This is for compatibilty with the similar handling in QueryExecutorImpl
+          cause = new IOException("Error writing bytes to stream", e);
+        }
+        throw sneakyThrow(
+            new PSQLException(
+                GT.tr("Unable to convert bytea parameter at position {0} to literal",
+                    index),
+                PSQLState.INVALID_PARAMETER_VALUE,
+                cause));
+      }
+    }
     if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
       switch (paramTypes[index]) {

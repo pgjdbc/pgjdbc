@@ -10,6 +10,7 @@ import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGbytea;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -925,12 +926,6 @@ final class ArrayEncoding {
       Oid.BYTEA_ARRAY) {
 
     /**
-     * The possible characters to use for representing hex binary data.
-     */
-    private final char[] hexDigits = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd',
-        'e', 'f'};
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -1025,14 +1020,7 @@ final class ArrayEncoding {
 
         if (array[i] != null) {
           sb.append("\"\\\\x");
-          for (int j = 0; j < array[i].length; j++) {
-            byte b = array[i][j];
-
-            // get the value for the left 4 bits (drop sign)
-            sb.append(hexDigits[(b & 0xF0) >>> 4]);
-            // get the value for the right 4 bits
-            sb.append(hexDigits[b & 0x0F]);
-          }
+          PGbytea.appendHexString(sb, array[i], 0, array[i].length);
           sb.append('"');
         } else {
           sb.append("NULL");

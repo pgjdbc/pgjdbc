@@ -28,4 +28,9 @@ public class BrokenInputStream extends InputStream {
 
     return is.read();
   }
+
+  @Override
+  public int available() throws IOException {
+    return is.available();
+  }
 }

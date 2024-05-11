@@ -308,7 +308,6 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testUpdateStreams() throws SQLException, UnsupportedEncodingException {
-    assumeByteaSupported();
     String string = "Hello";
     byte[] bytes = new byte[]{0, '\\', (byte) 128, (byte) 255};
 

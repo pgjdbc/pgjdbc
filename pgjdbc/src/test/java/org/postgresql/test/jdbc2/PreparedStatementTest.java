@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -26,6 +27,7 @@ import org.junit.runners.Parameterized;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -109,7 +111,6 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testSetBinaryStream() throws SQLException {
-    assumeByteaSupported();
     ByteArrayInputStream bais;
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
@@ -172,7 +173,7 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
-  public void testBinaryStreamErrorsRestartable() throws SQLException {
+  public void testBinaryStreamErrorsRestartable() throws SQLException, IOException {
     byte[] buf = new byte[10];
     for (int i = 0; i < buf.length; i++) {
       buf[i] = (byte) i;
@@ -195,25 +196,24 @@ public class PreparedStatementTest extends BaseTest4 {
     runBrokenStream(is, Integer.MAX_VALUE);
   }
 
-  private void runBrokenStream(InputStream is, int length) throws SQLException {
-    PreparedStatement pstmt = null;
-    try {
-      pstmt = con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");
-      pstmt.setBinaryStream(1, is, length);
-      pstmt.setString(2, "Other");
-      pstmt.executeUpdate();
-      fail("This isn't supposed to work.");
-    } catch (SQLException sqle) {
-      // don't need to rollback because we're in autocommit mode
-      pstmt.close();
-
-      // verify the connection is still valid and the row didn't go in.
-      Statement stmt = con.createStatement();
-      ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");
+  private void runBrokenStream(InputStream is, int length) throws SQLException, IOException {
+    assertThrows(
+        "the provided stream length is " + length
+            + ", and the number of available bytes on stream length is " + is.available()
+            + ", so the bind should fail",
+        SQLException.class, () -> {
+          try (PreparedStatement pstmt =
+                   con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");) {
+            pstmt.setBinaryStream(1, is, length);
+            pstmt.setString(2, "Other");
+            pstmt.executeUpdate();
+          }
+        });
+    // verify the connection is still valid and the row didn't go in.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");) {
       assertTrue(rs.next());
       assertEquals(0, rs.getInt(1));
-      rs.close();
-      stmt.close();
     }
   }
 
