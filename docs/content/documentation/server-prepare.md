@@ -754,7 +754,7 @@ while (true) {
 As mentioned previously, replication stream should periodically send feedback to the database to prevent disconnect via
 timeout. Feedback is automatically sent when `read` or `readPending` are called if it's time to send feedback. Feedback
 can also be sent via `org.postgresql.replication.PGReplicationStream#forceUpdateStatus()` regardless of the timeout. Another
-important duty of feedback is to provide the  server with the Logial Sequence Number (LSN) that has been successfully received
+important duty of feedback is to provide the  server with the Logical Sequence Number (LSN) that has been successfully received
 and applied to consumer, it is necessary for monitoring and to truncate/archive WAL's that that are no longer needed. In the
 event that replication has been restarted, it's will start from last successfully processed LSN that was sent via feedback to database.
 

@@ -114,7 +114,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
-      // This catched quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
+      // This caught quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
       throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
           + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
     }

@@ -105,6 +105,12 @@
                     <systemPropertyVariables>
                         <build.properties.relative.path>.</build.properties.relative.path>
                     </systemPropertyVariables>
+                    <properties>
+                        <configurationParameters>
+                            junit.jupiter.extensions.autodetection.enabled=true
+                            junit.jupiter.execution.timeout.default=5 m
+                        </configurationParameters>
+                    </properties>
                 </configuration>
             </plugin>
             <plugin>

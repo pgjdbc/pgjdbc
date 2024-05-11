@@ -91,7 +91,7 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   * Reads byte from the buffer without any checks. This method never reads from the underlaying
+   * Reads byte from the buffer without any checks. This method never reads from the underlying
    * stream. Before calling this method the {@link #ensureBytes} method must have been called.
    *
    * @return The next byte from the buffer.
@@ -302,7 +302,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * Returns direct handle to the used buffer. Use the {@link #ensureBytes} to prefill required
    * bytes the buffer and {@link #getIndex} to fetch the current position of the buffer.
    *
-   * @return The underlaying buffer.
+   * @return The underlying buffer.
    */
   public byte[] getBuffer() {
     return buffer;
