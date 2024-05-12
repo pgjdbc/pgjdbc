@@ -222,6 +222,46 @@ class ParserTest {
   }
 
   @Test
+  void mergeBatchedReWrite() throws SQLException {
+    String query = "merge into test t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, src.name)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    assertEquals(32, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(38, command.getBatchRewriteValuesBraceClosePosition());
+    assertTrue(command.isBatchedReWriteCompatible());
+    assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
+  void mergeBatchedReWriteInsertBind() throws SQLException {
+    String query = "merge into test t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, ?)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    assertFalse(command.isBatchedReWriteCompatible());
+    assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
+  void mergeBatchedReWriteUpdateBind() throws SQLException {
+    String query = "merge into test t using (values (?,?)) AS src (name, id) on src.id = t.id when matched then update set t.name = ? when not matched then do nothing";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    assertFalse(command.isBatchedReWriteCompatible());
+    assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
+  void mergeBatchedReWriteUsingSelect() throws SQLException {
+    String query = "merge into test t using (select * from values (?,?)) AS src (name, id) on src.id = t.id when matched then delete when not matched then insert (id, name) values (src.id, src.name)";
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    SqlCommand command = qry.get(0).getCommand();
+    assertEquals(46, command.getBatchRewriteValuesBraceOpenPosition());
+    assertEquals(52, command.getBatchRewriteValuesBraceClosePosition());
+    assertTrue(command.isBatchedReWriteCompatible());
+    assertEquals(SqlCommandType.MERGE, command.getType());
+  }
+
+  @Test
   void insertMultiInsert() throws SQLException {
     String query =
         "insert into test(id, name) values (:id,:name),(:id,:name) ON CONFLICT (id) DO NOTHING";

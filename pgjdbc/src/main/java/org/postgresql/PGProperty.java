@@ -552,7 +552,7 @@ public enum PGProperty {
   REWRITE_BATCHED_INSERTS(
       "reWriteBatchedInserts",
       "false",
-      "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
+      "Enable optimization to rewrite and collapse compatible INSERT and MERGE statements that are batched."),
 
   /**
    * Socket write buffer size (SO_SNDBUF). A value of {@code -1}, which is the default, means system

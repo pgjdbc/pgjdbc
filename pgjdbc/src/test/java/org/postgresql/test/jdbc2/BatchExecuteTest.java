@@ -5,8 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
+import org.junit.Assume;
+
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Assert;
@@ -1382,5 +1385,47 @@ Server SQLState: 25001)
     } finally {
       TestUtil.closeQuietly(ps);
     }
+  }
+
+  @Test
+  public void testMerge() throws Exception {
+    Assume.assumeTrue("Minimum server version 15.", TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
+
+    con.setAutoCommit(true);
+    TestUtil.createTempTable(con, "batchingMerge", "id INT, col1 VARCHAR(20), ts TIMESTAMPTZ DEFAULT statement_timestamp()");
+
+    String sql = "MERGE INTO batchingMerge AS t "
+        + "USING (VALUES (?, ?)) AS src (id, col1) "
+        + "ON t.id = src.id "
+        + "WHEN MATCHED THEN DELETE "
+        + "WHEN NOT MATCHED THEN INSERT (id, col1) VALUES (src.id, src.col1)";
+
+    try (Statement stmt = con.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "0, 'hello 0'"));
+      stmt.executeUpdate(TestUtil.insertSQL("batchingMerge", "1, 'hello 1'"));
+    }
+
+    int cnt = 16;
+    int expectedCnt = cnt - 2;
+    try (PreparedStatement stmt = con.prepareStatement(sql)) {
+      int[] expected = new int[cnt];
+      for (int i = 0; i < cnt; i++) {
+        stmt.setInt(1, i);
+        stmt.setString(2, String.valueOf(i));
+        stmt.addBatch();
+        expected[i] = insertRewrite ? Statement.SUCCESS_NO_INFO : 1;
+      }
+
+      int[] results = stmt.executeBatch();
+      Assert.assertArrayEquals(expected, results);
+    }
+
+    TestUtil.assertNumberOfRows(con, "batchingMerge", expectedCnt, "Number of inserted rows.");
+    for (int i = 2; i < cnt; i++) {
+      Assert.assertEquals(String.valueOf(i), TestUtil.queryForString(con, "SELECT col1 FROM " +
+          "batchingMerge WHERE id = " + i));
+    }
+    Assert.assertEquals(insertRewrite ? "1" : String.valueOf(expectedCnt),
+        TestUtil.queryForString(con, "SELECT COUNT(DISTINCT ts) FROM batchingMerge"));
   }
 }
