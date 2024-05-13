@@ -11,12 +11,16 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -340,13 +344,6 @@ class BlobTest {
 
   @Test
   void skip() throws Exception {
-    long expectedBigSkip;
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3)) {
-      expectedBigSkip = 4398046442492L;
-    } else {
-      expectedBigSkip = 2147417083;
-    }
-
     LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
     long loid = createMediumLargeObject();
 
@@ -355,14 +352,97 @@ class BlobTest {
       assertEquals(0, bis.read());
       assertEquals(1024L, bis.skip(1024));
       assertEquals(1, bis.read());
-      assertEquals(0L, bis.skip(-1));
-      assertEquals(1, bis.read());
       assertEquals(64 * 1024L, bis.skip(64 * 1024));
       assertEquals(65, bis.read());
-      assertEquals(expectedBigSkip, bis.skip(Long.MAX_VALUE));
+    }
+  }
+
+  @Test
+  void skipBackwards() throws Exception {
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
+
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'")) {
+        assertTrue(rs.next());
+
+        LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+        long loid = rs.getLong(1);
+
+        try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+          InputStream bis = blob.getInputStream();
+          assertEquals('<', bis.read());
+          assertEquals(0, bis.skip(-1));
+          assertEquals('?', bis.read());
+        }
+      }
+    }
+  }
+
+  @Test
+  void skipToEnd() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(96 * 1024, bis.skip(96 * 1024));
       assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  void skipPastEnd() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(1024 * 1024, bis.skip(1024 * 1024));
+      assertEquals(-1, bis.read());
+      assertEquals(1024, bis.skip(1024));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  @DisabledIfServerVersionBelow("9.3")
+  void skipPastMaxAfter9_3() throws Exception {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream();
+    assertEquals(0, bis.read());
+    assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE / 2));
+    assertEquals(0, bis.read());
+    assertThrows(IOException.class, () -> {
+      while (bis.read() != -1) {
+        // consume stream
+      }
+    });
+    assertThrows(IOException.class, bis::close);
+    SQLException ex = assertThrows(SQLException.class, blob::close);
+    assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), ex.getSQLState());
+  }
+
+  @Test
+  void skipPastMaxBefore9_3() throws Exception {
+    assumeFalse(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_3));
+
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(0, bis.read());
+      assertThrows(IOException.class, () -> bis.skip(Integer.MAX_VALUE));
+      assertEquals(0, bis.read());
+      while (bis.read() != -1) {
+        // consume stream
+      }
       bis.close();
-      assertThrows(IOException.class, () -> bis.skip(1));
     }
   }
 
@@ -376,7 +456,7 @@ class BlobTest {
 
       InputStream bis = blob.getInputStream();
       assertEquals(1, bis.read());
-      assertEquals(1023L, bis.skip(1023));
+      assertEquals(1024L, bis.skip(1024));
       assertEquals(2, bis.read());
       assertEquals(64 * 1024L, bis.skip(64 * 1024));
       assertEquals(66, bis.read());
