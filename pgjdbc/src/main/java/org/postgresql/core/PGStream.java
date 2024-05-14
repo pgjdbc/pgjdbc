@@ -276,7 +276,7 @@ public class PGStream implements Closeable, Flushable {
 
     // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
     pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
-    pgOutput = new BufferedOutputStream(connection.getOutputStream(), 8192);
+    pgOutput = new BufferedOutputStream(connection.getOutputStream(), 8192) {};
 
     if (encoding != null) {
       setEncoding(encoding);
