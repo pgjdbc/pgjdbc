@@ -73,7 +73,7 @@ dependencies {
     constraints {
         api("com.github.waffle:waffle-jna:1.9.1")
         api("org.osgi:org.osgi.core:6.0.0")
-        api("org.osgi:org.osgi.service.jdbc:1.0.0")
+        api("org.osgi:org.osgi.service.jdbc:1.1.0")
     }
 
     "sspiImplementation"("com.github.waffle:waffle-jna")
