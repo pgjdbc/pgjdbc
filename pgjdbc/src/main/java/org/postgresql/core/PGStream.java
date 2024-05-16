@@ -13,12 +13,13 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.PgBufferedOutputStream;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSException;
 import org.ietf.jgss.MessageProp;
 
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.EOFException;
 import java.io.FilterOutputStream;
@@ -52,7 +53,7 @@ public class PGStream implements Closeable, Flushable {
 
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
-  private OutputStream pgOutput;
+  private PgBufferedOutputStream pgOutput;
   private byte @Nullable [] streamBuffer;
 
   public boolean isGssEncrypted() {
@@ -61,10 +62,17 @@ public class PGStream implements Closeable, Flushable {
 
   boolean gssEncrypted;
 
-  public void setSecContext(GSSContext secContext) {
+  public void setSecContext(GSSContext secContext) throws GSSException {
     MessageProp messageProp =  new MessageProp(0, true);
     pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
-    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384);
+    // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
+    // Note that the server will only accept encrypted packets from the client which are less than
+    // 16kB; gss_wrap_size_limit() should be used by the client to determine the size of
+    // the unencrypted message which will fit within this limit and larger messages should be
+    // broken up into multiple gss_wrap() calls
+    // See https://github.com/postgres/postgres/blob/acecd6746cdc2df5ba8dcc2c2307c6560c7c2492/src/backend/libpq/be-secure-gssapi.c#L348
+    // Backend includes "int4 messageSize" into 16384 limit, so we subtract 4.
+    pgOutput = new GSSOutputStream(pgOutput, secContext, messageProp, 16384 - 4);
     gssEncrypted = true;
 
   }
@@ -274,9 +282,10 @@ public class PGStream implements Closeable, Flushable {
     // really need to.
     connection.setTcpNoDelay(true);
 
-    // Buffer sizes submitted by Sverre H Huseby <sverrehu@online.no>
-    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
-    pgOutput = new BufferedOutputStream(connection.getOutputStream(), 8192);
+    int receiveBufferSize = Math.max(8192, socket.getReceiveBufferSize());
+    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), receiveBufferSize);
+    int sendBufferSize = Math.max(8192, socket.getSendBufferSize());
+    pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
 
     if (encoding != null) {
       setEncoding(encoding);
@@ -355,11 +364,7 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs
    */
   public void sendInteger4(int val) throws IOException {
-    int4Buf[0] = (byte) (val >>> 24);
-    int4Buf[1] = (byte) (val >>> 16);
-    int4Buf[2] = (byte) (val >>> 8);
-    int4Buf[3] = (byte) (val);
-    pgOutput.write(int4Buf);
+    pgOutput.writeInt4(val);
   }
 
   /**
@@ -372,9 +377,7 @@ public class PGStream implements Closeable, Flushable {
     if (val < 0 || val > 65535) {
       throw new IllegalArgumentException("Tried to send an out-of-range integer as a 2-byte unsigned int value: " + val);
     }
-    int2Buf[0] = (byte) (val >>> 8);
-    int2Buf[1] = (byte) val;
-    pgOutput.write(int2Buf);
+    pgOutput.writeInt2(val);
   }
 
   /**
