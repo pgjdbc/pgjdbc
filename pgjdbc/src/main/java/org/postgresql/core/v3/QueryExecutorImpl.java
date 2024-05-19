@@ -48,6 +48,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
 import org.postgresql.util.internal.SourceStreamIOException;
+import org.postgresql.util.internal.IntSet;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -123,12 +124,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   /**
    * Bit set that has a bit set for each oid which should be received using binary format.
    */
-  private final Set<Integer> useBinaryReceiveForOids = new HashSet<>();
+  private final IntSet useBinaryReceiveForOids = new IntSet();
 
   /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
-  private final Set<Integer> useBinarySendForOids = new HashSet<>();
+  private final IntSet useBinarySendForOids = new IntSet();
 
   /**
    * This is a fake query object so processResults can distinguish "ReadyForQuery" messages
@@ -2990,7 +2991,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Set<? extends Integer> getBinaryReceiveOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinaryReceiveForOids) {
-      return new HashSet<>(useBinaryReceiveForOids);
+      return new HashSet<>(useBinaryReceiveForOids.asSet());
     }
   }
 
@@ -3028,7 +3029,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Set<? extends Integer> getBinarySendOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinarySendForOids) {
-      return new HashSet<>(useBinarySendForOids);
+      return new HashSet<>(useBinarySendForOids.asSet());
     }
   }
 
