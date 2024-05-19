@@ -14,6 +14,7 @@ import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.internal.PgBufferedOutputStream;
+import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.ietf.jgss.GSSContext;
@@ -54,7 +55,6 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
-  private byte @Nullable [] streamBuffer;
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
@@ -413,9 +413,9 @@ public class PGStream implements Closeable, Flushable {
    */
   public void send(byte[] buf, int off, int siz) throws IOException {
     int bufamt = buf.length - off;
-    pgOutput.write(buf, off, bufamt < siz ? bufamt : siz);
-    for (int i = bufamt; i < siz; i++) {
-      pgOutput.write(0);
+    pgOutput.write(buf, off, Math.min(bufamt, siz));
+    if (siz > bufamt) {
+      pgOutput.writeZeros(siz - bufamt);
     }
   }
 
@@ -440,9 +440,7 @@ public class PGStream implements Closeable, Flushable {
     } catch (Exception re) {
       throw new IOException("Error writing bytes to stream", re);
     }
-    for (int i = fixedLengthStream.remaining(); i > 0; i--) {
-      pgOutput.write(0);
-    }
+    pgOutput.writeZeros(fixedLengthStream.remaining());
   }
 
   /**
@@ -680,38 +678,21 @@ public class PGStream implements Closeable, Flushable {
    *
    * @param inStream the stream to read data from
    * @param remaining the number of bytes to copy
-   * @throws IOException if a data I/O error occurs
+   * @throws IOException if error occurs when writing the data to the output stream
+   * @throws SourceStreamIOException if error occurs when reading the data from the input stream
    */
   public void sendStream(InputStream inStream, int remaining) throws IOException {
-    int expectedLength = remaining;
-    byte[] streamBuffer = this.streamBuffer;
-    if (streamBuffer == null) {
-      this.streamBuffer = streamBuffer = new byte[8192];
-    }
+    pgOutput.write(inStream, remaining);
+  }
 
-    while (remaining > 0) {
-      int count = remaining > streamBuffer.length ? streamBuffer.length : remaining;
-      int readCount;
-
-      try {
-        readCount = inStream.read(streamBuffer, 0, count);
-        if (readCount < 0) {
-          throw new EOFException(
-              GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.",
-                  expectedLength, expectedLength - remaining));
-        }
-      } catch (IOException ioe) {
-        while (remaining > 0) {
-          send(streamBuffer, count);
-          remaining -= count;
-          count = remaining > streamBuffer.length ? streamBuffer.length : remaining;
-        }
-        throw new PGBindException(ioe);
-      }
-
-      send(streamBuffer, readCount);
-      remaining -= readCount;
-    }
+  /**
+   * Writes the given amount of zero bytes to the output stream
+   * @param length the number of zeros to write
+   * @throws IOException in case writing to the output stream fails
+   * @throws SourceStreamIOException in case reading from the source stream fails
+   */
+  public void sendZeros(int length) throws IOException {
+    pgOutput.writeZeros(length);
   }
 
   /**
