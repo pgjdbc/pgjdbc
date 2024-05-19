@@ -47,6 +47,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -1771,8 +1772,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(params.getV3Length(i)); // Parameter size
         try {
           params.writeV3Value(i, pgStream); // Parameter value
-        } catch (PGBindException be) {
-          bindException = be;
+        } catch (SourceStreamIOException sse) {
+          // Remember the error for rethrow later
+          if (bindException == null) {
+            bindException = new PGBindException(sse.getCause());
+          } else {
+            bindException.addSuppressed(sse.getCause());
+          }
+          // Write out the missing bytes so the stream does not corrupt
+          pgStream.sendZeros(sse.getBytesRemaining());
         }
       }
     }
