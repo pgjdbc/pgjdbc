@@ -323,10 +323,15 @@ This parameter is ignored on non-Windows platforms.
 * **`useSpnego (`*boolean*`)`** *Default `false`*\
 Use SPNEGO in SSPI authentication requests
 
-* **`sendBufferSize (`*int*`)`** *Default* `-1`*\
+* **`sendBufferSize (`*int*`)`** *Default `-1`*\
 Sets SO_SNDBUF on the connection stream
 
-* **`receiveBufferSize (`*int*`)`** *Default* `-1`*\
+* **`maxSendBufferSize (`*int*`)`** *Default `8192`*\
+Configures the maximum amount of bytes buffered before sending to the backend. pgjdbc uses
+`least(maxSendBufferSize, greatest(8192, SO_SNDBUF))` to determine the buffer size.
+  Since: 42.7.4
+
+* **`receiveBufferSize (`*int*`)`** *Default `-1`*\
 Sets SO_RCVBUF on the connection stream
 
 * **`readOnly (`*boolean*`)`** *Default `false`*\

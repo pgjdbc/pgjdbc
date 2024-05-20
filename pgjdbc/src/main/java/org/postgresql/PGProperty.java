@@ -384,6 +384,14 @@ public enum PGProperty {
       "Specifies size of buffer during fetching result set. Can be specified as specified size or percent of heap memory."),
 
   /**
+   * Maximum amount of bytes buffered before sending to the backend, default is 8192.
+   */
+  MAX_SEND_BUFFER_SIZE(
+      "maxSendBufferSize",
+      "8192",
+      "Maximum amount of bytes buffered before sending to the backend"),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */

@@ -133,7 +133,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       throw new PSQLException(GT.tr("Database cannot be null"), PSQLState.INVALID_NAME);
     }
 
-    PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout);
+    int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
+    PGStream newStream = new PGStream(socketFactory, hostSpec, connectTimeout, maxSendBufferSize);
     try {
       // Set the socket timeout if the "socketTimeout" property has been set.
       int socketTimeout = PGProperty.SOCKET_TIMEOUT.getInt(info);
@@ -520,7 +521,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         // We have to reconnect to continue.
         pgStream.close();
-        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout);
+        int maxSendBufferSize = PGProperty.MAX_SEND_BUFFER_SIZE.getInt(info);
+        return new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), connectTimeout,
+            maxSendBufferSize);
 
       case 'N':
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Refused");
