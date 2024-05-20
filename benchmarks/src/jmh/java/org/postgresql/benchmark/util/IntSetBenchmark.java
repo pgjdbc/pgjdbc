@@ -8,6 +8,7 @@ package org.postgresql.benchmark.util;
 import org.postgresql.core.Oid;
 import org.postgresql.util.internal.IntSet;
 
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -39,19 +40,22 @@ import java.util.concurrent.TimeUnit;
  * Here's a result for Apple M1 Max, Java 17.0.10, ARM64.
  * 23 is present in the set, 73 and 123456 are both absent.
  * <pre>
- * Benchmark                          (oid)  Mode  Cnt  Score   Error  Units
- * IntSetBenchmark.bitset_contains       23  avgt   15  0,990 ± 0,011  ns/op
- * IntSetBenchmark.bitset_contains       73  avgt   15  1,023 ± 0,049  ns/op
- * IntSetBenchmark.bitset_contains   123456  avgt   15  0,687 ± 0,008  ns/op
- * IntSetBenchmark.hashset_contains      23  avgt   15  2,040 ± 0,029  ns/op
- * IntSetBenchmark.hashset_contains      73  avgt   15  1,993 ± 0,017  ns/op
- * IntSetBenchmark.hashset_contains  123456  avgt   15  1,959 ± 0,025  ns/op
- * IntSetBenchmark.intset_contains       23  avgt   15  1,138 ± 0,030  ns/op
- * IntSetBenchmark.intset_contains       73  avgt   15  1,165 ± 0,013  ns/op
- * IntSetBenchmark.intset_contains   123456  avgt   15  0,653 ± 0,012  ns/op
- * IntSetBenchmark.roaring_contains      23  avgt   15  5,008 ± 0,045  ns/op
- * IntSetBenchmark.roaring_contains      73  avgt   15  5,557 ± 0,056  ns/op
- * IntSetBenchmark.roaring_contains  123456  avgt   15  1,165 ± 0,010  ns/op
+ * Benchmark                             (oid)  Mode  Cnt  Score   Error  Units
+ * IntSetBenchmark.bitSet_contains          23  avgt   15  0,984 ± 0,009  ns/op
+ * IntSetBenchmark.bitSet_contains          73  avgt   15  0,979 ± 0,005  ns/op
+ * IntSetBenchmark.bitSet_contains      123456  avgt   15  0,688 ± 0,015  ns/op
+ * IntSetBenchmark.hashSet_contains         23  avgt   15  2,026 ± 0,013  ns/op
+ * IntSetBenchmark.hashSet_contains         73  avgt   15  1,985 ± 0,004  ns/op
+ * IntSetBenchmark.hashSet_contains     123456  avgt   15  1,968 ± 0,032  ns/op
+ * IntSetBenchmark.intOpenSet_contains      23  avgt   15  1,015 ± 0,011  ns/op
+ * IntSetBenchmark.intOpenSet_contains      73  avgt   15  5,720 ± 0,596  ns/op
+ * IntSetBenchmark.intOpenSet_contains  123456  avgt   15  8,430 ± 0,007  ns/op
+ * IntSetBenchmark.intSet_contains          23  avgt   15  1,101 ± 0,009  ns/op
+ * IntSetBenchmark.intSet_contains          73  avgt   15  1,117 ± 0,005  ns/op
+ * IntSetBenchmark.intSet_contains      123456  avgt   15  0,693 ± 0,010  ns/op
+ * IntSetBenchmark.roaring_contains         23  avgt   15  5,012 ± 0,044  ns/op
+ * IntSetBenchmark.roaring_contains         73  avgt   15  5,561 ± 0,077  ns/op
+ * IntSetBenchmark.roaring_contains     123456  avgt   15  1,163 ± 0,012  ns/op
  * </pre>
  */
 @Fork(value = 3, jvmArgsPrepend = "-Xmx128m")
@@ -95,6 +99,7 @@ public class IntSetBenchmark {
   BitSet bitSet = new BitSet();
   Set<Integer> hashSet = new HashSet<>();
   RoaringBitmap roaringBitmap = new RoaringBitmap();
+  IntOpenHashSet intOpenHashSet = new IntOpenHashSet();
 
   @Param({"23", "73", "123456"})
   int oid;
@@ -106,27 +111,33 @@ public class IntSetBenchmark {
     for (Integer oid : SUPPORTED_BINARY_OIDS) {
       bitSet.set(oid);
       roaringBitmap.add(oid);
+      intOpenHashSet.add((int) oid);
     }
   }
 
   @Benchmark
-  public boolean intset_contains() {
+  public boolean intSet_contains() {
     return intSet.contains(oid);
   }
 
   @Benchmark
-  public boolean bitset_contains() {
+  public boolean bitSet_contains() {
     return bitSet.get(oid);
   }
 
   @Benchmark
-  public boolean hashset_contains() {
+  public boolean hashSet_contains() {
     return hashSet.contains(oid);
   }
 
   @Benchmark
   public boolean roaring_contains() {
     return roaringBitmap.contains(oid);
+  }
+
+  @Benchmark
+  public boolean intOpenSet_contains() {
+    return intOpenHashSet.contains(oid);
   }
 
   public static void main(String[] args) throws RunnerException {
