@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -27,7 +28,7 @@ public class MakeSSL extends ObjectFactory {
 
   private static final Logger LOGGER = Logger.getLogger(MakeSSL.class.getName());
 
-  public static void convert(PGStream stream, Properties info)
+  public static void convert(PGStream stream, Properties info, boolean directConnect)
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
@@ -38,6 +39,11 @@ public class MakeSSL extends ObjectFactory {
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
       int connectTimeoutSeconds = PGProperty.CONNECT_TIMEOUT.getInt(info);
       newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
+      if ( directConnect ) {
+        SSLParameters sslParameters = newConnection.getSSLParameters();
+        sslParameters.setApplicationProtocols(new String[]{"postgresql"});
+        newConnection.setSSLParameters(sslParameters);
+      }
       // We must invoke manually, otherwise the exceptions are hidden
       newConnection.setUseClientMode(true);
       newConnection.startHandshake();
