@@ -13,6 +13,7 @@ dependencies {
     jmhImplementation(project(":postgresql"))
     jmhImplementation(testFixtures(project(":postgresql")))
     jmhImplementation("org.roaringbitmap:RoaringBitmap:1.0.6")
+    jmhImplementation("it.unimi.dsi:fastutil:8.5.13")
     jmhRuntimeOnly("com.ongres.scram:client:2.1")
     jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.37")

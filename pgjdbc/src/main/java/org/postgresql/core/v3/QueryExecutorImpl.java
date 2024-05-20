@@ -67,7 +67,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -2991,7 +2990,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Set<? extends Integer> getBinaryReceiveOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinaryReceiveForOids) {
-      return new HashSet<>(useBinaryReceiveForOids.asSet());
+      return useBinaryReceiveForOids.toMutableSet();
     }
   }
 
@@ -3029,7 +3028,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public Set<? extends Integer> getBinarySendOids() {
     // copy the values to prevent ConcurrentModificationException when reader accesses the elements
     synchronized (useBinarySendForOids) {
-      return new HashSet<>(useBinarySendForOids.asSet());
+      return useBinarySendForOids.toMutableSet();
     }
   }
 

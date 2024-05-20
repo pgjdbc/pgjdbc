@@ -49,11 +49,22 @@ public class IntSetTest {
   @ParameterizedTest
   @ValueSource(ints = {Oid.UNSPECIFIED, Oid.INT4, Oid.BYTEA, Oid.VARCHAR, Integer.MIN_VALUE,
       Integer.MAX_VALUE})
-  void does_not_contain_other_values(int oid) {
+  void compact_does_not_contain_other_values(int oid) {
     intSet.add(Oid.INT8);
     intSet.add(Oid.BIT);
     assertFalse(intSet.contains(oid),
         () -> "intset contains only INT8 and BIT, so it should not contain oid " + oid);
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {Oid.UNSPECIFIED, Oid.INT4, Oid.BYTEA, Oid.VARCHAR, Integer.MIN_VALUE,
+      Integer.MAX_VALUE})
+  void non_compact_does_not_contain_other_values(int oid) {
+    intSet.add(Oid.INT8);
+    intSet.add(Oid.BIT);
+    intSet.add(23465234);
+    assertFalse(intSet.contains(oid),
+        () -> "intset contains only INT8, BIT, and 23465234, so it should not contain oid " + oid);
   }
 
   @Test
@@ -68,9 +79,22 @@ public class IntSetTest {
 
   @Test
   void addAll_does_not_contains_other_values() {
-    List<Integer> values = Arrays.asList(Oid.UNSPECIFIED, Oid.INT4, Oid.BYTEA, Oid.VARCHAR);
+    List<Integer> values = Arrays.asList(Oid.UNSPECIFIED, Oid.INT4, Oid.BYTEA, Oid.VARCHAR,
+        Integer.MIN_VALUE, Integer.MAX_VALUE);
     intSet.addAll(values);
     assertFalse(intSet.contains(Oid.BIT),
         () -> "intset should not contain BIT after addAll(" + values + ")");
+
+    assertFalse(intSet.contains(2736453),
+        () -> "intset should not contain 2736453 after addAll(" + values + ")");
+
+    assertFalse(intSet.contains(-2736453),
+        () -> "intset should not contain -2736453 after addAll(" + values + ")");
+  }
+
+  @Test
+  void toMutableSet_contains_all_values() {
+    List<Integer> values = Arrays.asList(Oid.UNSPECIFIED, Oid.INT4, Oid.BYTEA, Oid.VARCHAR, 24337);
+    intSet.addAll(values);
   }
 }

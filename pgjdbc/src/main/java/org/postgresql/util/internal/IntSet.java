@@ -7,6 +7,8 @@ package org.postgresql.util.internal;
 
 import org.postgresql.core.Oid;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashSet;
@@ -25,11 +27,10 @@ public class IntSet {
   private static final int MAX_OID_TO_STORE_IN_BITSET = 8192 * 8;
 
   /**
-   * Contains all the values.
-   * Note: we could skip storing small values in ths set, however,
-   * it would slow down {@link #asSet()}.
+   * Contains values outside [0..MAX_OID_TO_STORE_IN_BITSET] range.
+   * This field is null if bitSet contains all the values.
    */
-  private final Set<Integer> set = new HashSet<>();
+  private @Nullable Set<Integer> set;
 
   /**
    * Contains values in range of [0..MAX_OID_TO_STORE_IN_BITSET].
@@ -37,17 +38,11 @@ public class IntSet {
   private final BitSet bitSet = new BitSet();
 
   /**
-   * Is true in case {@link #bitSet} misses some of the values stored in {@link #set}.
-   */
-  private boolean lossy;
-
-  /**
    * Clears the contents of the set.
    */
   public void clear() {
-    set.clear();
+    set = null;
     bitSet.clear();
-    lossy = false;
   }
 
   /**
@@ -55,13 +50,8 @@ public class IntSet {
    * @param values set of values to add
    */
   public void addAll(Collection<? extends Integer> values) {
-    set.addAll(values);
     for (Integer value : values) {
-      if (value <= MAX_OID_TO_STORE_IN_BITSET) {
-        bitSet.set(value);
-      } else {
-        lossy = true;
-      }
+      add(value);
     }
   }
 
@@ -73,9 +63,16 @@ public class IntSet {
    */
   public boolean add(int value) {
     if (value >= 0 && value <= MAX_OID_TO_STORE_IN_BITSET) {
-      bitSet.set(value);
-    } else {
-      lossy = true;
+      boolean contains = bitSet.get(value);
+      if (!contains) {
+        bitSet.set(value);
+        return true;
+      }
+      return false;
+    }
+    Set<Integer> set = this.set;
+    if (set == null) {
+      this.set = set = new HashSet<>();
     }
     return set.add(value);
   }
@@ -86,8 +83,16 @@ public class IntSet {
    * @return true if the element was
    */
   public boolean remove(int value) {
-    bitSet.clear(value);
-    return set.remove(value);
+    if (value >= 0 && value <= MAX_OID_TO_STORE_IN_BITSET) {
+      boolean contains = bitSet.get(value);
+      if (contains) {
+        bitSet.clear(value);
+        return true;
+      }
+      return false;
+    }
+    Set<Integer> set = this.set;
+    return set != null && set.remove(value);
   }
 
   /**
@@ -98,18 +103,23 @@ public class IntSet {
   public boolean contains(int value) {
     if (value >= 0 && value <= MAX_OID_TO_STORE_IN_BITSET) {
       return bitSet.get(value);
-    } else if (!lossy) {
-      // We know bitSet contains all the values, so values exceeding its limits are absent
-      return false;
     }
-    return set.contains(value);
+    Set<Integer> set = this.set;
+    return set != null && set.contains(value);
   }
 
   /**
-   * Returns {@link Set} view of the current set.
-   * @return Set view
+   * Returns a mutable snapshot of the values stored in the current set.
+   * @return a mutable snapshot of the values stored in the current set
    */
-  public Set<? extends Integer> asSet() {
-    return set;
+  public Set<Integer> toMutableSet() {
+    Set<Integer> set = this.set;
+    Set<Integer> result = new HashSet<>(
+        (int) ((bitSet.cardinality() + (set != null ? set.size() : 0)) / 0.75f));
+    if (set != null) {
+      result.addAll(set);
+    }
+    bitSet.stream().forEach(result::add);
+    return result;
   }
 }
