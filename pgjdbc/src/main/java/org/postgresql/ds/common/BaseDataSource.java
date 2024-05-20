@@ -464,6 +464,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return send max buffer size
+   * @see PGProperty#MAX_SEND_BUFFER_SIZE
+   */
+  public int getMaxSendBufferSize() {
+    return PGProperty.MAX_SEND_BUFFER_SIZE.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param nbytes send max buffer size
+   * @see PGProperty#MAX_SEND_BUFFER_SIZE
+   */
+  public void setMaxSendBufferSize(int nbytes) {
+    PGProperty.MAX_SEND_BUFFER_SIZE.set(properties, nbytes);
+  }
+
+  /**
    * @param count prepare threshold
    * @see PGProperty#PREPARE_THRESHOLD
    */

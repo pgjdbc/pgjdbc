@@ -48,6 +48,7 @@ import javax.net.SocketFactory;
 public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
+  private final int maxSendBufferSize;
 
   private final byte[] int4Buf;
   private final byte[] int2Buf;
@@ -97,11 +98,29 @@ public class PGStream implements Closeable, Flushable {
    * @param hostSpec the host and port to connect to
    * @param timeout timeout in milliseconds, or 0 if no timeout set
    * @throws IOException if an IOException occurs below it.
+   * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int, int)}
    */
+  @Deprecated
   @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout) throws IOException {
+    this(socketFactory, hostSpec, timeout, 8192);
+  }
+
+  /**
+   * Constructor: Connect to the PostgreSQL back end and return a stream connection.
+   *
+   * @param socketFactory socket factory to use when creating sockets
+   * @param hostSpec the host and port to connect to
+   * @param timeout timeout in milliseconds, or 0 if no timeout set
+   * @param maxSendBufferSize maximum amount of bytes buffered before sending to the backend
+   * @throws IOException if an IOException occurs below it.
+   */
+  @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
+  public PGStream(SocketFactory socketFactory, HostSpec hostSpec, int timeout,
+      int maxSendBufferSize) throws IOException {
     this.socketFactory = socketFactory;
     this.hostSpec = hostSpec;
+    this.maxSendBufferSize = maxSendBufferSize;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
@@ -141,6 +160,7 @@ public class PGStream implements Closeable, Flushable {
 
     this.socketFactory = pgStream.socketFactory;
     this.hostSpec = pgStream.hostSpec;
+    this.maxSendBufferSize = pgStream.maxSendBufferSize;
 
     Socket socket = createSocket(timeout);
     changeSocket(socket);
@@ -163,7 +183,7 @@ public class PGStream implements Closeable, Flushable {
    * @param socketFactory socket factory
    * @param hostSpec the host and port to connect to
    * @throws IOException if an IOException occurs below it.
-   * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int)}
+   * @deprecated use {@link #PGStream(SocketFactory, org.postgresql.util.HostSpec, int, int)}
    */
   @Deprecated
   public PGStream(SocketFactory socketFactory, HostSpec hostSpec) throws IOException {
@@ -282,9 +302,8 @@ public class PGStream implements Closeable, Flushable {
     // really need to.
     connection.setTcpNoDelay(true);
 
-    int receiveBufferSize = Math.max(8192, socket.getReceiveBufferSize());
-    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), receiveBufferSize);
-    int sendBufferSize = Math.max(8192, socket.getSendBufferSize());
+    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
+    int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
     pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
 
     if (encoding != null) {
