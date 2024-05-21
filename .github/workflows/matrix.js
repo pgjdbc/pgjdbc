@@ -68,6 +68,11 @@ matrix.addAxis({
     '12',
     '13',
     '14',
+    '15',
+    '16',
+    // 'latest' will automatically pick the latest from DockerHub so we
+    'latest',
+    'HEAD',
   ]
 });
 
@@ -233,7 +238,8 @@ matrix.generateRow({scram: {value: 'yes'}});
 matrix.generateRow({java_version: eaJava});
 // Ensure we have a job with the minimal and maximal PostgreSQL versions
 matrix.generateRow({pg_version: matrix.axisByName.pg_version.values[0]});
-matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]});
+matrix.generateRow({pg_version: 'latest'});
+matrix.generateRow({pg_version: 'HEAD'});
 //Ensure at least one job with "simple" query_mode exists
 matrix.generateRow({query_mode: {value: 'simple'}});
 // Ensure there will be at least one job with minimal supported Java
