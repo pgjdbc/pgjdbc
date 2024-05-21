@@ -180,7 +180,9 @@ public class PgBufferedOutputStreamTest {
     List<Arguments> res = new ArrayList<>();
     for (int offset : new int[]{
         0, 1, 2, 3,
-        ZEROS_BUFFER_SIZE - 2, ZEROS_BUFFER_SIZE - 1, ZEROS_BUFFER_SIZE - 1}) {
+        ZEROS_BUFFER_SIZE - 3, ZEROS_BUFFER_SIZE - 2, ZEROS_BUFFER_SIZE - 1,
+        ZEROS_BUFFER_SIZE,
+        ZEROS_BUFFER_SIZE + 1, ZEROS_BUFFER_SIZE + 2, ZEROS_BUFFER_SIZE + 3}) {
       for (int numZeros : new int[]{
           1, 2, 3,
           ZEROS_BUFFER_SIZE - 2, ZEROS_BUFFER_SIZE - 1, ZEROS_BUFFER_SIZE - 1,
@@ -204,7 +206,11 @@ public class PgBufferedOutputStreamTest {
       int bufferSize = ZEROS_BUFFER_SIZE;
       PgBufferedOutputStream out = new PgBufferedOutputStream(dst, bufferSize);
 
-      dst.forbidWrites("Writing less data than the buffer size should not cause flushes");
+      if (offset < bufferSize) {
+        dst.forbidWrites("Writing less data than the buffer size should not cause flushes");
+      } else {
+        dst.allowWrites(bufferSize);
+      }
       out.writeZeros(offset);
       if (numZeros + offset >= bufferSize) {
         dst.allowWrites(bufferSize);
