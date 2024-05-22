@@ -1463,7 +1463,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
     for (PGProperty property : PGProperty.values()) {
       if (!this.properties.containsKey(property.getName())) {
-        setProperty(property, property.getOrDefault(p));
+        setProperty(property, property.getOrNull(p));
       }
     }
   }
@@ -1529,9 +1529,11 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       return;
     }
     switch (property) {
+      case HOST:
       case PG_HOST:
         setServerNames(value.split(","));
         break;
+      case PORT:
       case PG_PORT:
         String[] ps = value.split(",");
         int[] ports = new int[ps.length];
@@ -1544,6 +1546,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
         setPortNumbers(ports);
         break;
+      case DBNAME:
       case PG_DBNAME:
         setDatabaseName(value);
         break;

@@ -13,8 +13,10 @@ import java.util.Locale;
  */
 public class OSUtil {
 
+  private static final String PG_SERVICE_CONF = "pg_service.conf";
+  private static final String PGPASS = "pgpass";
+
   /**
-   *
    * @return true if OS is windows
    */
   public static boolean isWindows() {
@@ -31,6 +33,44 @@ public class OSUtil {
     } else {
       return System.getProperty("user.home");
     }
+  }
+
+  /**
+   * @param directory directory
+   * @return file
+   */
+  public static String getDefaultPgServiceFilename(String directory) {
+    return directory + File.separator + PG_SERVICE_CONF;
+  }
+
+  /**
+   * default location: `$HOME/.pg_service.conf` or `%APPDATA%\postgresql\.pg_service.conf`
+   *
+   * @return file
+   */
+  public static String getDefaultPgServiceFilename() {
+    return getUserConfigRootDirectory() + File.separator + "." + PG_SERVICE_CONF;
+  }
+
+  /**
+   * @param directory directory
+   * @return file
+   */
+  public static String getDefaultPgPassFilename(String directory) {
+    if (isWindows()) {
+      return directory + File.separator + PGPASS + ".conf";
+    } else {
+      return directory + File.separator + "." + PGPASS;
+    }
+  }
+
+  /**
+   * default location: `$HOME/.pgpass` or `%APPDATA%\postgresql\pgpass.conf`
+   *
+   * @return file
+   */
+  public static String getDefaultPgPassFilename() {
+    return getDefaultPgPassFilename(getUserConfigRootDirectory());
   }
 
 }
