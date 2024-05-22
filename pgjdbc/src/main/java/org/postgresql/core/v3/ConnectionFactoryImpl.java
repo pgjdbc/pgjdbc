@@ -179,8 +179,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SslMode sslMode, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos)
       throws SQLException, IOException {
     int connectTimeout = remainingConnectTimeout(connectTimeoutMs, startNanos);
-    String user = PGProperty.USER.getOrDefault(info);
-    String database = PGProperty.PG_DBNAME.getOrDefault(info);
+    String user = PGProperty.USER.getOrNull(info);
+    String database = PGProperty.DBNAME.getOrDefault(info);
     SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
 
     if (user == null) {
@@ -544,7 +544,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /*
     let's see if the server will allow a GSS encrypted connection
      */
-    String user = PGProperty.USER.getOrDefault(info);
+    String user = PGProperty.USER.getOrNull(info);
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
     }
