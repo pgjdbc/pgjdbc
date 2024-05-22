@@ -183,6 +183,7 @@ public class TestUtil {
    * Returns password for default callbackhandler
    */
   public static String getSslPassword() {
+    // todo PGProperty.SSL_PASSWORD.getName() shouldn't be used here. It is accidental that those strings match
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
