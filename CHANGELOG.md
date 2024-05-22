@@ -161,6 +161,11 @@ The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) 
 * chore: Excluded Oracle Java 17 from CI tests [PR #3499](https://github.com/pgjdbc/pgjdbc/pull/3499)
 * fix: Removed workaround which was needed for an old checkstyle [commit #4500ea04](https://github.com/pgjdbc/pgjdbc/commit/4500ea04)
 
+### Changed
+- Parsing and resolving JDBC URL is more compliant with libpq. "user" and "password" are supported: "jdbc:postgresql://[[user][:password]@][host1]...". Connection properties come from different sources. Override order is more clear: 1) URL arguments (values after "?" mark) 2) URL values (values before "?" mark) 3) Properties given to DriverManager.getConnection() 4) values provided by "service" (from resource .pg_service.conf) 5) values in Java System Properties 6) values in Operating System environment 7) values from driverconfig file(s) (org/postgresql/driverconfig.properties) 8) global defaults (four: host, port, user, dbname)
+
+### Added
+### Fixed
 
 ## [42.7.5] (2025-01-14 08:00:00 -0400)
 

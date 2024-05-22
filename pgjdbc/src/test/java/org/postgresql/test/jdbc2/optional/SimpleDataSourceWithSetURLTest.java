@@ -42,9 +42,9 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
     String url = bds.getURL();
     Properties properties = parseURL(url, null);
 
-    assertEquals(TestUtil.getServer(), properties.getProperty(PGProperty.PG_HOST.getName()));
-    assertEquals(Integer.toString(TestUtil.getPort()), properties.getProperty(PGProperty.PG_PORT.getName()));
-    assertEquals(TestUtil.getDatabase(), properties.getProperty(PGProperty.PG_DBNAME.getName()));
+    assertEquals(TestUtil.getServer(), properties.getProperty(PGProperty.HOST.getName()));
+    assertEquals(Integer.toString(TestUtil.getPort()), properties.getProperty(PGProperty.PORT.getName()));
+    assertEquals(TestUtil.getDatabase(), properties.getProperty(PGProperty.DBNAME.getName()));
     assertEquals(Integer.toString(TestUtil.getPrepareThreshold()), properties.getProperty(PGProperty.PREPARE_THRESHOLD.getName()));
   }
 
