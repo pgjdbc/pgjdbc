@@ -8,10 +8,7 @@ package org.postgresql.jdbcurlresolver;
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.util.OSUtil;
-import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.internal.FileUtils;
-
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -24,7 +21,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -33,11 +29,10 @@ import java.util.stream.Collectors;
  * helps to read Connection Service File.
  * https://www.postgresql.org/docs/current/libpq-pgservice.html
  */
-public class PgServiceConfParser {
+class PgServiceConfParser {
 
   private static final Logger LOGGER = Logger.getLogger(PgServiceConfParser.class.getName());
   private final String serviceName;
-  private boolean ignoreIfOpenFails = true;
 
   private PgServiceConfParser(String serviceName) {
     this.serviceName = serviceName;
@@ -49,23 +44,21 @@ public class PgServiceConfParser {
    * @param serviceName service name to search for
    * @return key value pairs
    */
-  public static @Nullable Properties getServiceProperties(String serviceName) {
+  static Properties getServiceProperties(String serviceName) throws JdbcUrlResolverFatalException {
     PgServiceConfParser pgServiceConfParser = new PgServiceConfParser(serviceName);
     return pgServiceConfParser.findServiceDescription();
   }
 
-  private @Nullable Properties findServiceDescription() {
+  private Properties findServiceDescription() throws JdbcUrlResolverFatalException {
     String resourceName = findPgServiceConfResourceName();
-    if (resourceName == null) {
-      return null;
-    }
     //
-    Properties result = null;
+    Properties result;
     try (InputStream inputStream = openInputStream(resourceName)) {
       result = parseInputStream(inputStream);
     } catch (IOException e) {
-      Level level = ignoreIfOpenFails ? Level.FINE : Level.WARNING;
-      LOGGER.log(level, "Failed to handle resource [{0}] with error [{1}]", new Object[]{resourceName, e.getMessage()});
+      String message = String.format( "Failed to handle resource [%s] with error [%s]", resourceName, e.getMessage());
+      LOGGER.log(Level.SEVERE, message);
+      throw new JdbcUrlResolverFatalException(message);
     }
     //
     return result;
@@ -79,22 +72,17 @@ public class PgServiceConfParser {
       return url.openStream();
     } catch ( MalformedURLException ex ) {
       // try file
-      File file = new File(resourceName);
-      return FileUtils.newBufferedInputStream(file);
+      return FileUtils.newBufferedInputStream(resourceName);
     }
   }
 
   // choose resource where to search for service description
-  private @Nullable String findPgServiceConfResourceName() {
-    // default file name
-    String pgServiceConfFileDefaultName = PGEnvironment.PGSERVICEFILE.getDefaultValue();
-
+  private String findPgServiceConfResourceName() throws JdbcUrlResolverFatalException {
     // if there is value, use it - 1st priority
     {
       String propertyName = PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName();
-      String resourceName = System.getProperty(propertyName);
+      String resourceName = PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.readStringValue();
       if (resourceName != null && !resourceName.trim().isEmpty()) {
-        this.ignoreIfOpenFails = false;
         LOGGER.log(Level.FINE, "Value [{0}] selected from property [{1}]",
             new Object[]{resourceName, propertyName});
         return resourceName;
@@ -104,41 +92,42 @@ public class PgServiceConfParser {
     // if there is value, use it - 2nd priority
     {
       String envVariableName = PGEnvironment.PGSERVICEFILE.getName();
-      String resourceName = System.getenv().get(envVariableName);
+      String resourceName = PGEnvironment.PGSERVICEFILE.readStringValue();
       if (resourceName != null && !resourceName.trim().isEmpty()) {
-        this.ignoreIfOpenFails = false;
         LOGGER.log(Level.FINE, "Value [{0}] selected from environment variable [{1}]",
             new Object[]{resourceName, envVariableName});
         return resourceName;
       }
     }
 
-    /*
-     if file in user home is readable, use it, otherwise continue - 3rd priority
-     in the case that the file is in the user home directory it is prepended with '.'
-     */
+    // if there is readable file in default location, use it - 3rd priority
     {
-      String resourceName = "." + pgServiceConfFileDefaultName;
-      File resourceFile = new File(OSUtil.getUserConfigRootDirectory(), resourceName);
+      // default file name
+      String defaultPgServiceFilename = OSUtil.getDefaultPgServiceFilename();
+      File resourceFile = new File(defaultPgServiceFilename);
       if (resourceFile.canRead()) {
         LOGGER.log(Level.FINE, "Value [{0}] selected because file exist in user home directory", new Object[]{resourceFile.getAbsolutePath()});
         return resourceFile.getAbsolutePath();
+      } else {
+        LOGGER.log(Level.FINE, "Default .pg_service.conf file [{0}] not found", new Object[]{resourceFile.getAbsolutePath()});
       }
     }
 
     // if there is value, use it - 4th priority
     {
       String envVariableName = PGEnvironment.PGSYSCONFDIR.getName();
-      String pgSysconfDir = System.getenv().get(envVariableName);
+      String pgSysconfDir = PGEnvironment.PGSYSCONFDIR.readStringValue();
       if (pgSysconfDir != null && !pgSysconfDir.trim().isEmpty()) {
-        String resourceName = pgSysconfDir + File.separator + pgServiceConfFileDefaultName;
+        String resourceName = OSUtil.getDefaultPgServiceFilename(pgSysconfDir);
         LOGGER.log(Level.FINE, "Value [{0}] selected using environment variable [{1}]", new Object[]{resourceName, envVariableName});
         return resourceName;
       }
     }
-    // otherwise null
-    LOGGER.log(Level.FINE, "Value for resource [{0}] not found", pgServiceConfFileDefaultName);
-    return null;
+
+    // otherwise fail
+    String message = "Resource file [.pg_service.conf] not found";
+    LOGGER.log(Level.SEVERE, message);
+    throw new JdbcUrlResolverFatalException(message);
   }
 
   /*
@@ -150,7 +139,7 @@ public class PgServiceConfParser {
   # keys are case sensitive
   #   Line: "host=my-host"
   #   not equal to : "HOST=my-host"
-  # keys are limited with values described in enum PGEnvironment field name
+  # keys are limited with values described in enum PGProperty field name
   #   key is invalid: "my-host=my-host"
   # unexpected keys produce error
   #   Example: "my-host=my-host"
@@ -164,9 +153,9 @@ public class PgServiceConfParser {
   # in case of duplicate section - first entry counts
   #   Line: "[service-one]"
   #   Line: "host=host-one"
-  #   Line: "[service-two]"
+  #   Line: "[service-one]"
   #   Line: "host=host-two"
-  #   --> section-one is selected
+  #   --> host-one is selected
   # in case of duplicate key - first entry counts
   #   Line: "[service-one]"
   #   Line: "host=host-one"
@@ -183,14 +172,7 @@ public class PgServiceConfParser {
   #   --> these are unique service names
   */
   @SuppressWarnings("RedundantControlFlow")
-  private @Nullable Properties parseInputStream(InputStream inputStream) throws IOException {
-    // build set of allowed keys
-    Set<String> allowedServiceKeys = Arrays.stream(PGProperty.values())
-        .map(PGProperty::getName)
-        .map(PGPropertyUtil::translatePGPropertyToPGService)
-        .collect(Collectors.toSet());
-
-    //
+  private Properties parseInputStream(InputStream inputStream) throws IOException, JdbcUrlResolverFatalException {
     Properties result = new Properties();
     boolean isFound = false;
     try (
@@ -232,31 +214,47 @@ public class PgServiceConfParser {
           String key = line.substring(0, indexOfEqualSign);
           String value = line.substring(indexOfEqualSign + 1);
           // check key against set of allowed keys
-          if (!allowedServiceKeys.contains(key)) {
+          PGProperty pgProperty = PGProperty.forName(key);
+          if (pgProperty == null) {
             // log list of allowed keys
-            String allowedValuesCommaSeparated =
-                allowedServiceKeys.stream().sorted().collect(Collectors.joining(","));
-            LOGGER.log(Level.SEVERE, "Got invalid key: line number [{0}], value [{1}], allowed "
-                    + "values [{2}]",
-                new Object[]{lineNumber, originalLine, allowedValuesCommaSeparated});
-            // stop processing because of invalid key
-            return null;
+            String allowedValuesCommaSeparated = Arrays.stream(PGProperty.values()).map(PGProperty::getName)
+                .sorted().collect(Collectors.joining(","));
+            String message = String.format("Got invalid key: line number [%s], value [%s], allowed values [%s]",
+                lineNumber, originalLine, allowedValuesCommaSeparated);
+            LOGGER.log(Level.INFO, message);
+            // fail here because of invalid key
+            message = String.format("Got invalid key: line number [%s], value [%s]", lineNumber, originalLine);
+            LOGGER.log(Level.SEVERE, message);
+            throw new JdbcUrlResolverFatalException(message);
+          } else if (pgProperty == PGProperty.SERVICE) {
+            String message = String.format("key 'service' is not allowed: line number [%s], value [%s]", lineNumber, originalLine);
+            // fail here because recursive "service" value processing is not supported
+            LOGGER.log(Level.SEVERE, message);
+            throw new JdbcUrlResolverFatalException(message);
           }
           // ignore line if value is missing
           if (!value.isEmpty()) {
             // ignore line having duplicate key, otherwise store key-value pair
-            result.putIfAbsent(PGPropertyUtil.translatePGServiceToPGProperty(key), value);
+            if (!pgProperty.isPresent(result)) {
+              pgProperty.set(result, value);
+            }
           }
         } else {
+          String message = String.format("Not valid line: line number [%s], value [%s]", lineNumber, originalLine);
           // if not equal sign then stop processing because of invalid syntax
-          LOGGER.log(Level.WARNING, "Not valid line: line number [{0}], value [{1}]",
-              new Object[]{lineNumber, originalLine});
-          return null;
+          LOGGER.log(Level.SEVERE, message);
+          throw new JdbcUrlResolverFatalException(message);
         }
       }
     }
-    // null means failure - service is not found
-    return isFound ? result : null;
+    // fail if service section not found
+    if (isFound) {
+      return result;
+    } else {
+      String message = String.format("Definition of service [%s] not found", serviceName);
+      LOGGER.log(Level.SEVERE, message);
+      throw new JdbcUrlResolverFatalException(message);
+    }
   }
 
 }
