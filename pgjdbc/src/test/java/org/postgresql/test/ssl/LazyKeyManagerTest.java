@@ -37,7 +37,6 @@ class LazyKeyManagerTest {
     assertNotNull(chain);
   }
 
-
   @Test
   void chooseClientAlias() throws Exception {
     LazyKeyManager lazyKeyManager = new LazyKeyManager(
