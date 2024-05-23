@@ -5,20 +5,16 @@ SERVER_CRT_DIR=server/
 
 all : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.crt $(SERVER_CRT_DIR)server.crt goodroot.crt goodclient badclient
 
-goodclient: goodclient.crt goodclient.pk8 goodclient.p12
+goodclient: goodclient.crt goodclient.p12
 
-badclient: badclient.crt badclient.pk8 badclient.p12
+badclient: badclient.crt badclient.p12
 
 .PHONY: clean
 clean:
 	@echo Removing certificate files
-	@rm -f *.crt *.key *.csr *.srl *.p12 *.pk8
+	@rm -f *.crt *.key *.csr *.srl *.p12
 	@rm -rf $(SERVER_CRT_DIR)*.crt $(SERVER_CRT_DIR)*.key $(SERVER_CRT_DIR)*.csr $(SERVER_CRT_DIR)*.srl $(SERVER_CRT_DIR)*.p12 $(SERVER_CRT_DIR)*.pk8
 	@echo
-
-%.pk8 : %.key
-	@echo Exporting key $@
-	openssl pkcs8 -topk8 -in $< -out $@ -outform DER -v1 PBE-MD5-DES -passout pass:$(PK8_PASSWORD)
 
 %.p12 : %.crt
 	@echo Exporting certificate $@
