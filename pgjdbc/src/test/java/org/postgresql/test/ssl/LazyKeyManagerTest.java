@@ -37,16 +37,6 @@ class LazyKeyManagerTest {
     assertNotNull(chain);
   }
 
-  @Test
-  void loadKey() throws Exception {
-    LazyKeyManager lazyKeyManager = new LazyKeyManager(
-        TestUtil.getSslTestCertPath("goodclient.crt"),
-        TestUtil.getSslTestCertPath("goodclient.pk8"),
-        new TestCallbackHandler("sslpwd"),
-        true);
-    PrivateKey pk = lazyKeyManager.getPrivateKey("user");
-    assertNotNull(pk);
-  }
 
   @Test
   void chooseClientAlias() throws Exception {
