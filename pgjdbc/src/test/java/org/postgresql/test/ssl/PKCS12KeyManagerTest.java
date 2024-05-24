@@ -8,7 +8,6 @@ package org.postgresql.test.ssl;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.postgresql.ssl.LazyKeyManager;
 import org.postgresql.ssl.PKCS12KeyManager;
 import org.postgresql.test.TestUtil;
 
@@ -24,43 +23,37 @@ import javax.security.auth.callback.PasswordCallback;
 import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.security.auth.x500.X500Principal;
 
-class LazyKeyManagerTest {
-
-  @Test
-  void loadP12Key() throws Exception {
-    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(
-        TestUtil.getSslTestCertPath("goodclient.p12"),
-        new TestCallbackHandler("sslpwd"));
-    PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
-    assertNotNull(pk);
-    X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
-    assertNotNull(chain);
-  }
+class PKCS12KeyManagerTest {
 
   @Test
   void chooseClientAlias() throws Exception {
-    LazyKeyManager lazyKeyManager = new LazyKeyManager(
-        TestUtil.getSslTestCertPath("goodclient.crt"),
-        TestUtil.getSslTestCertPath("goodclient.pk8"),
-        new TestCallbackHandler("sslpwd"),
-        true);
+    PKCS12KeyManager pkcs12KeyManager = new PKCS12KeyManager(
+        TestUtil.getSslTestCertPath("goodclient.p12"),
+        new TestCallbackHandler("sslpwd"));
     X500Principal testPrincipal = new X500Principal("CN=root certificate, O=PgJdbc test, ST=CA, C=US");
     X500Principal[] issuers = new X500Principal[]{testPrincipal};
 
-    String validKeyType = lazyKeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
+    String validKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"RSA"}, issuers, null);
     assertNotNull(validKeyType);
 
-    String ignoresCase = lazyKeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
+    String ignoresCase = pkcs12KeyManager.chooseClientAlias(new String[]{"rsa"}, issuers, null);
     assertNotNull(ignoresCase);
 
-    String invalidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
+    String invalidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC"}, issuers, null);
     assertNull(invalidKeyType);
 
-    String containsValidKeyType = lazyKeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
+    String containsValidKeyType = pkcs12KeyManager.chooseClientAlias(new String[]{"EC", "RSA"}, issuers, null);
     assertNotNull(containsValidKeyType);
 
-    String ignoresBlank = lazyKeyManager.chooseClientAlias(new String[]{}, issuers, null);
+    String ignoresBlank = pkcs12KeyManager.chooseClientAlias(new String[]{}, issuers, null);
     assertNotNull(ignoresBlank);
+
+    PrivateKey pk = pkcs12KeyManager.getPrivateKey("user");
+    assertNotNull(pk);
+
+    X509Certificate[] chain = pkcs12KeyManager.getCertificateChain("user");
+    assertNotNull(chain);
+
   }
 
   public static class TestCallbackHandler implements CallbackHandler {

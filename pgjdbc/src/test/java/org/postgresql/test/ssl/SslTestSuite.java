@@ -11,7 +11,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     CommonNameVerifierTest.class,
-    LazyKeyManagerTest.class,
+    PKCS12KeyManagerTest.class,
     LibPQFactoryHostNameTest.class,
     SslTest.class,
 })
