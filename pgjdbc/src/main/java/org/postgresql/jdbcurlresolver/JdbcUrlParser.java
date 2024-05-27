@@ -278,13 +278,40 @@ class JdbcUrlParser {
   }
 
   static void saveProperty(Properties result, String key, @Nullable String value) throws JdbcUrlResolverFatalException {
+    saveProperty(result, key, value, false);
+  }
+
+  static void saveProperty(Properties result, String key, @Nullable String value, boolean failForDeprecated) throws JdbcUrlResolverFatalException {
     // is it valid key?
     PGProperty pgProperty = PGProperty.forName(key);
     if (pgProperty == null) {
-      throw new JdbcUrlResolverFatalException(String.format("Unsupported property name: [%s]", key));
-    } else if (value != null) {
-      result.setProperty(key, value);
+      failUnsupportedProperty(key);
+    } else {
+      PGProperty property = deprecatedToCurrent(pgProperty);
+      if (failForDeprecated && pgProperty != property) {
+        failUnsupportedProperty(key);
+      } else if (value != null) {
+        // deprecated property should not overrule current property
+        if (pgProperty == property || property.getOrNull(result) == null) {
+          property.set(result, value);
+        }
+      }
     }
   }
 
+  private static PGProperty deprecatedToCurrent(PGProperty pgProperty) {
+    if (pgProperty == PGProperty.PG_DBNAME) {
+      return PGProperty.DBNAME;
+    } else if (pgProperty == PGProperty.PG_HOST) {
+      return PGProperty.HOST;
+    } else if (pgProperty == PGProperty.PG_PORT) {
+      return PGProperty.PORT;
+    } else {
+      return pgProperty;
+    }
+  }
+
+  private static void failUnsupportedProperty(String key) throws JdbcUrlResolverFatalException {
+    throw new JdbcUrlResolverFatalException(String.format("Unsupported property name: [%s]", key));
+  }
 }

@@ -316,11 +316,11 @@ public class JdbcUrlResolver {
     }
   }
 
-  private static void copyProperties(Properties source, Properties target) {
+  private static void copyProperties(Properties source, Properties target) throws JdbcUrlResolverFatalException {
     for (String key : source.stringPropertyNames()) {
       String value = source.getProperty(key);
       if (value != null) {
-        target.setProperty(key, value);
+        JdbcUrlParser.saveProperty(target, key, value, true);
       }
     }
   }
