@@ -3875,6 +3875,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
+    } else if (type == byte[].class) {
+      if (sqlType == Types.BINARY) {
+        return type.cast(getBytes(columnIndex));
+      } else {
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
     } else if (type == java.util.Date.class) {
       if (sqlType == Types.TIMESTAMP) {
         Timestamp timestamp = getTimestamp(columnIndex);

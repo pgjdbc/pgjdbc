@@ -84,7 +84,7 @@ class GetObjectTest {
             + "date_column date,"
             + "time_without_time_zone_column time without time zone,"
             + "time_with_time_zone_column time with time zone,"
-            + "blob_column bytea,"
+            + "bytea_column bytea,"
             + "lob_column oid,"
             + "array_column text[],"
             + "point_column point,"
@@ -686,6 +686,39 @@ class GetObjectTest {
         assertEquals(data.length, blob.length());
         assertArrayEquals(data, blob.getBytes(1, data.length));
         blob.free();
+      } finally {
+        rs.close();
+      }
+    } finally {
+      conn.setAutoCommit(true);
+    }
+  }
+
+  /**
+   * Test the behavior getObject for bytea columns.
+   */
+  @Test
+  void getBytea() throws SQLException {
+    Statement stmt = conn.createStatement();
+    conn.setAutoCommit(false);
+    try {
+      byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
+      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"));
+      try {
+        insertPS.setBytes(1, data);
+        insertPS.executeUpdate();
+      } finally {
+        insertPS.close();
+      }
+
+      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"));
+      try {
+        assertTrue(rs.next());
+        byte[] bytea = rs.getObject("bytea_column", byte[].class);
+        assertArrayEquals(data, bytea, "bytea by label");
+
+        bytea = rs.getObject(1, byte[].class);
+        assertArrayEquals(data, bytea, "bytea by index");
       } finally {
         rs.close();
       }
