@@ -15,7 +15,7 @@ configurations.checkstyle {
 }
 
 checkstyle {
-    toolVersion = "10.15.0"
+    toolVersion = "10.17.0"
     providers.gradleProperty("checkstyle.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
