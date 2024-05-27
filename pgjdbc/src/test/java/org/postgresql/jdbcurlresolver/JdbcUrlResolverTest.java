@@ -520,6 +520,94 @@ public class JdbcUrlResolverTest {
     });
   }
 
+  @Test
+  public void testCaseSet7() throws Exception {
+    // 1. URL arguments (values after ? mark) - no way to specify PGDBNAME, PGHOST, PGPORT
+    // no test cases
+
+    // 2. URL values (values before ? mark) - does not support arguments PGDBNAME, PGHOST, PGPORT
+    Properties defaults = new Properties();
+    PGProperty.USER.set(defaults, "osUser");
+    final Properties props = new Properties(defaults);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?PGHOST=myHost", "myHost", "5432", "osUser", "osUser", null);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?host=myHost", "myHost", "5432", "osUser", "osUser", null);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?PGDBNAME=myDbname", "localhost", "5432", "myDbname", "osUser", null);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?dbname=myDbname", "localhost", "5432", "myDbname", "osUser", null);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?PGPORT=4444", "localhost", "4444", "osUser", "osUser", null);
+    verifyUrlGeneral(props, "jdbc:postgresql:///?port=4444", "localhost", "4444", "osUser", "osUser", null);
+    failUrlGeneral(props, "jdbc:postgresql:///?invalid-key-1=value", "Unsupported property name: [invalid-key-1]");
+
+    // 3. Properties given to DriverManager.getConnection() - supports arguments PGDBNAME, PGHOST, PGPORT
+    // PG_DBNAME
+    props.clear();
+    PGProperty.PG_DBNAME.set(props, "myDbDeprecated");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "5432", "myDbDeprecated", "osUser", null);
+    PGProperty.DBNAME.set(props, "myDb");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "5432", "myDb", "osUser", null);
+    // PG_HOST
+    props.clear();
+    PGProperty.PG_HOST.set(props, "myHostDeprecated");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "myHostDeprecated", "5432", "osUser", "osUser", null);
+    PGProperty.HOST.set(props, "myHost");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "myHost", "5432", "osUser", "osUser", null);
+    // PG_PORT
+    props.clear();
+    PGProperty.PG_PORT.set(props, "54321");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "54321", "osUser", "osUser", null);
+    PGProperty.PORT.set(props, "54322");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "54322", "osUser", "osUser", null);
+    props.setProperty("invalid-key-2", "value");
+    failUrlGeneral(props, "jdbc:postgresql://", "Unsupported property name: [invalid-key-2]");
+
+    // 4. values provided by service (from resource .pg_service.conf) - does not support arguments PGDBNAME, PGHOST, PGPORT
+    props.clear();
+    URL urlFileProps = getClass().getResource("/pg_service/pgservicefileProps.conf");
+    assertNotNull(urlFileProps);
+    Resources.with(
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile())
+    ).execute(() -> {
+      failUrlGeneral(props, "jdbc:postgresql:///?service=myServiceDeprecated1", "Unsupported property name: [PGDBNAME]");
+      failUrlGeneral(props, "jdbc:postgresql:///?service=myServiceDeprecated2", "Unsupported property name: [PGHOST]");
+      failUrlGeneral(props, "jdbc:postgresql:///?service=myServiceDeprecated3", "Unsupported property name: [PGPORT]");
+      failUrlGeneral(props, "jdbc:postgresql:///?service=driverTestService6", "Got invalid key: line number [53], value [invalid-key=value]");
+    });
+
+    // 5. values in Java System Properties - no way to specify PGDBNAME, PGHOST, PGPORT
+    // no test cases
+
+    // 6. values in Operating System environment - no way to specify PGDBNAME, PGHOST, PGPORT
+    // no test cases
+
+    // 7. values from driverconfig file(s) (org/postgresql/driverconfig.properties) - supports arguments PGDBNAME, PGHOST, PGPORT
+    // PGDBNAME
+    props.clear();
+    defaults.clear();
+    PGProperty.USER.set(defaults, "osUser");
+    PGProperty.PG_DBNAME.set(defaults, "myDbDeprecated");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "5432", "myDbDeprecated", "osUser", null);
+    PGProperty.DBNAME.set(defaults, "myDb");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "5432", "myDb", "osUser", null);
+    // PGHOST
+    defaults.clear();
+    PGProperty.USER.set(defaults, "osUser");
+    PGProperty.PG_HOST.set(defaults, "myHostDeprecated");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "myHostDeprecated", "5432", "osUser", "osUser", null);
+    PGProperty.HOST.set(defaults, "myHost");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "myHost", "5432", "osUser", "osUser", null);
+    // PGPORT
+    defaults.clear();
+    PGProperty.USER.set(defaults, "osUser");
+    PGProperty.PG_PORT.set(defaults, "34567");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "34567", "osUser", "osUser", null);
+    PGProperty.PORT.set(defaults, "34568");
+    verifyUrlGeneral(props, "jdbc:postgresql://", "localhost", "34568", "osUser", "osUser", null);
+    defaults.setProperty("invalid-key-3", "value");
+    failUrlGeneral(props, "jdbc:postgresql://", "Unsupported property name: [invalid-key-3]");
+
+    // 8. global defaults (dbname, host, pgpass, port, user) - no way to specify PGDBNAME, PGHOST, PGPORT
+    // no test cases
+  }
+
   private void verifyUrl(String url, String host, String port, String db, String user, @Nullable String pass, String... args) {
     Properties defaults = new Properties();
     PGProperty.USER.set(defaults, "osUser");
