@@ -699,25 +699,20 @@ class GetObjectTest {
    */
   @Test
   void getBytea() throws SQLException {
-    conn.setAutoCommit(false);
-    try {
-      byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
-      try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"))) {
-        insertPS.setBytes(1, data);
-        insertPS.executeUpdate();
-      }
+    byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
+    try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"))) {
+      insertPS.setBytes(1, data);
+      insertPS.executeUpdate();
+    }
 
-      Statement stmt = conn.createStatement();
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"))) {
-        assertTrue(rs.next());
-        byte[] bytea = rs.getObject("bytea_column", byte[].class);
-        assertArrayEquals(data, bytea, "bytea by label");
+    Statement stmt = conn.createStatement();
+    try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"))) {
+      assertTrue(rs.next());
+      byte[] bytea = rs.getObject("bytea_column", byte[].class);
+      assertArrayEquals(data, bytea, "bytea by label");
 
-        bytea = rs.getObject(1, byte[].class);
-        assertArrayEquals(data, bytea, "bytea by index");
-      }
-    } finally {
-      conn.setAutoCommit(true);
+      bytea = rs.getObject(1, byte[].class);
+      assertArrayEquals(data, bytea, "bytea by index");
     }
   }
 
