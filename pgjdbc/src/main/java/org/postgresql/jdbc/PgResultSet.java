@@ -3876,7 +3876,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
     } else if (type == byte[].class) {
-      if (sqlType == Types.BINARY) {
+      if (sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
         return type.cast(getBytes(columnIndex));
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
