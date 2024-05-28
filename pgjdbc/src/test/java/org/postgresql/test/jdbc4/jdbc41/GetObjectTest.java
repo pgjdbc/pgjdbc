@@ -699,28 +699,22 @@ class GetObjectTest {
    */
   @Test
   void getBytea() throws SQLException {
-    Statement stmt = conn.createStatement();
     conn.setAutoCommit(false);
     try {
       byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
-      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"));
-      try {
+      try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"))) {
         insertPS.setBytes(1, data);
         insertPS.executeUpdate();
-      } finally {
-        insertPS.close();
       }
 
-      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"));
-      try {
+      Statement stmt = conn.createStatement();
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"))) {
         assertTrue(rs.next());
         byte[] bytea = rs.getObject("bytea_column", byte[].class);
         assertArrayEquals(data, bytea, "bytea by label");
 
         bytea = rs.getObject(1, byte[].class);
         assertArrayEquals(data, bytea, "bytea by index");
-      } finally {
-        rs.close();
       }
     } finally {
       conn.setAutoCommit(true);
