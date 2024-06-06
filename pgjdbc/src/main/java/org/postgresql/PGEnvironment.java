@@ -127,7 +127,7 @@ public enum PGEnvironment {
    */
   PGSERVICEFILE(
       "PGSERVICEFILE",
-      null,
+      "pg_service.conf",
       "Specifies the service resource to resolve connection properties."),
 
   /**
@@ -193,7 +193,10 @@ public enum PGEnvironment {
    * Returns the default value for this parameter.
    *
    * @return the default value for this parameter or null
+   * @deprecated instead of PGSERVICEFILE.getDefaultValue() use OSUtil.getDefaultPgServiceFilename(),
+   *             getDefaultValue() returns null for all other enum values.
    */
+  @Deprecated
   public @Nullable String getDefaultValue() {
     return defaultValue;
   }
