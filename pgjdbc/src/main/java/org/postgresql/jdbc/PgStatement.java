@@ -17,6 +17,7 @@ import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
+import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.core.Tuple;
@@ -42,8 +43,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class PgStatement implements Statement, BaseStatement {
+  private static final Logger LOGGER = Logger.getLogger(PgStatement.class.getName());
   private static final String[] NO_RETURNING_COLUMNS = new String[0];
 
   /**
@@ -241,6 +245,7 @@ public class PgStatement implements Statement, BaseStatement {
 
     StatementResultHandler(){
       wantsResults = false;
+
     }
 
     StatementResultHandler(boolean wantsResults) {
@@ -255,11 +260,13 @@ public class PgStatement implements Statement, BaseStatement {
           return null;
         }
       }
+      LOGGER.finest(() ->String.format("Get Results is null %b wants results %b", results==null, wantsResults));
       return results;
     }
 
     private void append(ResultWrapper newResult) {
       if (results == null) {
+        LOGGER.finest(()-> String.format("Append result newResult is null %b", newResult == null ));
         lastResult = results = newResult;
       } else {
         castNonNull(lastResult).append(newResult);
@@ -280,10 +287,14 @@ public class PgStatement implements Statement, BaseStatement {
     @Override
     public void handleResultRow(Tuple t) {
       pgResultSet.rows.add(t);
+      if (!hasResultSet.get()) {
+        lastResult = results = new ResultWrapper(pgResultSet);
+      }
       /*
       wait until we have at least one row
        */
       hasResultSet.set(true);
+      LOGGER.finest(()-> String.format("Handle Result Row hasResultSet is %b", hasResultSet.get() ));
     }
 
     @Override
@@ -308,6 +319,7 @@ public class PgStatement implements Statement, BaseStatement {
     @Override
     public void handleCommandStatus(String status, long updateCount, long insertOID) {
       append(new ResultWrapper(updateCount, insertOID));
+      LOGGER.finest(()-> String.format("handle command status result is null %b", result == null ));
     }
 
     @Override
@@ -412,7 +424,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
     execute(simpleQuery, null, flags);
     try (ResourceLock ignore = lock.obtain()) {
+      final boolean wantsResult = (flags & QueryExecutor.QUERY_NO_RESULTS) != QueryExecutor.QUERY_NO_RESULTS;
       checkClosed();
+      LOGGER.finest(()-> String.format("Execute Flags: wants: %b result is null %b, getResultSet is null: %b", wantsResult, result == null, (result != null && result.getResultSet() != null)));
       return result != null && result.getResultSet() != null;
     }
   }
@@ -580,8 +594,10 @@ public class PgStatement implements Statement, BaseStatement {
       checkClosed();
 
       ResultWrapper currentResult = handler.getResults();
-      result = firstUnclosedResult = currentResult;
-
+      if ((flags & QueryExecutor.QUERY_NO_RESULTS) != QueryExecutor.QUERY_NO_RESULTS) {
+        LOGGER.finest(()->String.format("After get results %b ", currentResult.getResultSet()!=null));
+        result = firstUnclosedResult = currentResult;
+      }
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
         generatedKeys = currentResult;
         result = castNonNull(currentResult, "handler.getResults()").getNext();

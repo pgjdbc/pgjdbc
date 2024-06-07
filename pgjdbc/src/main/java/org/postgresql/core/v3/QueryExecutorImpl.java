@@ -2992,6 +2992,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               break;
 
             case 'Z': // Ready For Query (eventual response to Sync)
+              LOGGER.finest("Receive RFQ");
               receiveRFQ();
               if (!pendingExecuteQueue.isEmpty()
                   && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
