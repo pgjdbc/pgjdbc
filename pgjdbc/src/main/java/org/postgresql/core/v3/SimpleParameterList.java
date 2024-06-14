@@ -233,6 +233,54 @@ class SimpleParameterList implements V3ParameterList {
     return sb.toString();
   }
 
+  /**
+   * <p>Escapes a given text value as a literal and wraps the whole thing in parentheses.</p>
+   *
+   * <p>For example, "123" and "int4" becomes "(123)"</p>
+   *
+   * <p>The additional parentheses is added to ensure that the surrounding text of where the
+   * parameter value is entered does modify the interpretation of the value.</p>
+   *
+   * <p>For example if our input SQL is: <code>SELECT 1, -?</code></p>
+   *
+   * <p>Using a parameter value of '-10' and type of int we'd get:</p>
+   *
+   * <pre>
+   * test=# SELECT 1, -(-10),
+   *               'other value';
+   *
+   * ---|----|-------------
+   *  1 | 10 | other value
+   * </pre>
+   *
+   * <p>But without the parentheses the result changes:</p>
+   *
+   * <pre>
+   * test=# SELECT 1, --10,
+   *               'other value';
+   *
+   * ---|-------------
+   *  1 | other value
+   * </pre>
+   **/
+  private static String wrapInParentheses(String text, boolean standardConformingStrings) {
+    StringBuilder sb = new StringBuilder(text.length() + 2);
+    sb.append("(");
+    try {
+      Utils.escapeLiteral(sb, text, standardConformingStrings);
+    } catch (SQLException e) {
+      // This should only happen if we have an embedded null
+      // and there's not much we can do if we do hit one.
+      //
+      // To force a server side failure, we deliberately include
+      // a zero byte character in the literal to force the server
+      // to reject the command.
+      sb.append('\u0000');
+    }
+    sb.append(")");
+    return sb.toString();
+  }
+
   private static <E extends Throwable> RuntimeException sneakyThrow(Throwable e) throws E {
     throw (E) e;
   }
@@ -271,20 +319,17 @@ class SimpleParameterList implements V3ParameterList {
         case Oid.INT2:
           short s = ByteConverter.int2((byte[]) paramValue, 0);
           textValue = Short.toString(s);
-          type = "int2";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.INT4:
           int i = ByteConverter.int4((byte[]) paramValue, 0);
           textValue = Integer.toString(i);
-          type = "int4";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.INT8:
           long l = ByteConverter.int8((byte[]) paramValue, 0);
           textValue = Long.toString(l);
-          type = "int8";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.FLOAT4:
           float f = ByteConverter.float4((byte[]) paramValue, 0);
@@ -292,8 +337,7 @@ class SimpleParameterList implements V3ParameterList {
             return "('NaN'::real)";
           }
           textValue = Float.toString(f);
-          type = "real";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.FLOAT8:
           double d = ByteConverter.float8((byte[]) paramValue, 0);
@@ -301,8 +345,7 @@ class SimpleParameterList implements V3ParameterList {
             return "('NaN'::double precision)";
           }
           textValue = Double.toString(d);
-          type = "double precision";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.NUMERIC:
           Number n = ByteConverter.numeric((byte[]) paramValue);
@@ -311,8 +354,7 @@ class SimpleParameterList implements V3ParameterList {
             return "('NaN'::numeric)";
           }
           textValue = n.toString();
-          type = "numeric";
-          break;
+          return wrapInParentheses(textValue, standardConformingStrings);
 
         case Oid.UUID:
           textValue =
