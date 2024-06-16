@@ -666,6 +666,18 @@ public enum PGProperty {
       new String[]{"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}),
 
   /**
+   * Controls how SSL encryption is negotiated with the server. The allowed values are {@code postgres},
+   * {@code direct}.
+   * Default mode is "postgres"
+   */
+  SSL_NEGOTIATION(
+      "sslnegotiation",
+      "postgres",
+      "Controls how SSL encryption is negotiated with the server",
+      false,
+      new String[]{"postgres", "driect"}),
+
+  /**
    * The SSL password to use in the default CallbackHandler.
    */
   SSL_PASSWORD(

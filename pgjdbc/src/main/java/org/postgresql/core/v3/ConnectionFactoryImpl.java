@@ -27,6 +27,7 @@ import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.jre7.sasl.ScramAuthenticator;
 import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.ssl.MakeSSL;
@@ -126,6 +127,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
+    SslNegotiation sslNegotiation = SslNegotiation.of(info);
+
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }
@@ -192,7 +195,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // negotiation
       if (!newStream.isGssEncrypted()) {
         // Construct and send an ssl startup packet if requested.
-        newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+
+        if (sslNegotiation == SslNegotiation.DIRECT) {
+          // Try Direct SSL
+          MakeSSL.convert(newStream, info);
+        } else {
+          // Try Negotiated SSL
+          newStream = enableSSL(newStream, sslMode, info, connectTimeout);
+        }
       }
 
       // Make sure to set network timeout again, in case the stream changed due to GSS or SSL

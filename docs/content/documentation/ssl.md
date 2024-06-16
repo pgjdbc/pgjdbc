@@ -128,3 +128,13 @@ In some situations it may not be possible to configure your Java environment to 
 certificate authority, but that is not always an option. The JDBC driver provides an option to establish a SSL connection without doing any validation, but please understand the risk involved before enabling this option.
 
 A non-validating connection is established via a custom `SSLSocketFactory` class that is provided with the driver. Setting the connection URL parameter `sslfactory=org.postgresql.ssl.NonValidatingFactory` will turn off all SSL validation.
+
+### Using Direct SSL
+
+Client can directly start SSL handshake without any negotiation. You have to set the option `sslegotiation` in order to use this feature. This option controls how SSL encryption is negotiated with the server, if SSL is used. 
+In the default postgres mode, the client first asks the server if SSL is supported. In direct mode, the client starts the standard SSL handshake directly after establishing the TCP/IP connection. 
+Traditional PostgreSQL protocol negotiation is the most flexible with different server configurations. If the server is known to support direct SSL connections then the latter requires one fewer round trip reducing connection latency and 
+also allows the use of protocol agnostic SSL network tools. The direct SSL option was introduced in PostgreSQL version 17.
+
+* `postgres` perform PostgreSQL protocol negotiation. This is the default if the option is not provided.
+* `direct` start SSL handshake directly after establishing the TCP/IP connection. This is only allowed with `sslmode=require` or higher, because the weaker settings could lead to unintended fallback to plaintext authentication when the server does not support direct SSL handshake.
