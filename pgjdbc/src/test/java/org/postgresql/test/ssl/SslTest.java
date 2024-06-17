@@ -381,17 +381,22 @@ public class SslTest {
     // SSLHandshakeException: Received fatal alert: unknown_ca
     // EOFException
     // SocketException: broken pipe (write failed)
-
+    // Invalid argument which is a result of calling TcpNoDelay on a broken pipe
     // decrypt_error does not look to be a valid case, however, we allow it for now
     // SSLHandshakeException: Received fatal alert: decrypt_error
 
     SocketException brokenPipe = findCause(e, SocketException.class);
     if (brokenPipe != null) {
-      if (!contains(brokenPipe.getMessage(), "Broken pipe")) {
-        fail(
-            caseName + " ==> server should have terminated the connection (broken pipe expected)"
-                + ", actual exception was " + brokenPipe.getMessage());
+      if (contains(brokenPipe.getMessage(), "Broken pipe")) {
+        return true;
       }
+      if (contains(brokenPipe.getMessage(), "Invalid argument")) {
+        return true;
+      }
+      fail(
+          caseName + " ==> Invalid Exception"
+                + ", actual exception was " + brokenPipe.getMessage());
+
       return true;
     }
 
@@ -444,14 +449,16 @@ public class SslTest {
       PGProperty.SSL_KEY.set(props, "");
     } else {
       PGProperty.SSL_CERT.set(props, TestUtil.getSslTestCertPath(clientCertificate.fileName + ".crt"));
-      PGProperty.SSL_KEY.set(props, TestUtil.getSslTestCertPath(clientCertificate.fileName + ".pk8"));
+      PGProperty.SSL_KEY.set(props, TestUtil.getSslTestCertPath(clientCertificate.fileName + ".p12"));
     }
     if (clientRootCertificate == ClientRootCertificate.EMPTY) {
       PGProperty.SSL_ROOT_CERT.set(props, "");
     } else {
       PGProperty.SSL_ROOT_CERT.set(props, TestUtil.getSslTestCertPath(clientRootCertificate.fileName + ".crt"));
     }
-
+    if (clientCertificate == ClientCertificate.BAD && sslmode == SslMode.PREFER) {
+      System.err.println("bad");
+    }
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
       if (sslmode == SslMode.ALLOW) {

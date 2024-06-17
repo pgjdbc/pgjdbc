@@ -73,8 +73,11 @@ The default SSL Socket factory is the LibPQFactory. In the case where the certif
 try `sslcert=` and LibPQFactory will not send the client certificate. If the server is not configured to authenticate 
 using the certificate it should connect.
 
-The location of the client certificate, the PKCS-8 client key and root certificate can be overridden with the `sslcert` , 
-`sslkey` , and `sslrootcert` settings respectively. These default to /defaultdir/postgresql.crt, `/defaultdir/postgresql.pk8`,
+Recent versions at the time of writing May 23/24 of openssl no longer support PKCS-8 keys. 
+As a result we advise you to use PKCS-12 keys.
+
+The location of the client certificate, the PKCS-12 client key and root certificate can be overridden with the `sslcert` , 
+`sslkey` , and `sslrootcert` settings respectively. These default to /defaultdir/postgresql.crt, `/defaultdir/postgresql.p12`,
 and `/defaultdir/root.crt` respectively where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` 
 on windows.
 
