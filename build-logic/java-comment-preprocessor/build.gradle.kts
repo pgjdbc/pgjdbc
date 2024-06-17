@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation("com.igormaznitsa:jcp:7.1.1")
+    implementation("com.igormaznitsa:jcp:7.1.2")
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:1.90")
 }
