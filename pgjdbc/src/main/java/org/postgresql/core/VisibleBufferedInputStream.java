@@ -350,4 +350,18 @@ public class VisibleBufferedInputStream extends InputStream {
   public InputStream getWrapped() {
     return wrapped;
   }
+
+  public int receiveInteger2() throws IOException {
+    if (ensureBytes(2)) {
+      return (buffer[index++] & 0xFF) << 8 | buffer[index++] & 0xFF;
+    }
+    throw new EOFException("End of stream reached while trying to read integer2");
+  }
+
+  public int receiveInteger4() throws IOException {
+    if (ensureBytes(4)) {
+      return (buffer[index++] & 0xFF) << 24 | (buffer[index++] & 0xFF) << 16 | (buffer[index++] & 0xFF) << 8 | buffer[index++] & 0xFF;
+    }
+    throw new EOFException("End of stream reached while trying to read integer4");
+  }
 }
