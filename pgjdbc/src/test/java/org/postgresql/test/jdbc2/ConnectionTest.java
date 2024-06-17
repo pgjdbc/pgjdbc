@@ -46,10 +46,12 @@ import java.util.logging.Logger;
 class ConnectionTest {
   private Connection con;
   private static final Logger LOGGER = Logger.getLogger(ConnectionTest.class.getName());
+
   @BeforeAll
   static void startLogger() throws Exception {
     LogManager.getLogManager().readConfiguration(new FileInputStream("logging.properties"));
   }
+
   // Set up the fixture for this testcase: the tables for this test.
   @BeforeEach
   void setUp() throws Exception {

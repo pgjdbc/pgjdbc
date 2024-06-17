@@ -62,7 +62,6 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -2704,7 +2703,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private class ReadResponse extends Thread {
 
-    public ReadResponse() {
+    ReadResponse() {
       super("PostgreSQL JDBC ReadResponse Thread");
     }
 
@@ -2719,8 +2718,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       try {
         while (true) {
-            c = pgStream.receiveChar();
-            switch (c) {
+          c = pgStream.receiveChar();
+          switch (c) {
             case 'A': // Asynchronous Notify
               receiveAsyncNotify();
               break;
@@ -2877,7 +2876,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                 break;
               }
 
-              if (currentHandler.handleEndOfResults()){
+              if (currentHandler.handleEndOfResults()) {
                 if (queryStatus.bothRowsAndStatus) {
                   interpretCommandStatus(status, currentHandler);
                 }
@@ -3080,7 +3079,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             default:
               throw new IOException("Unexpected packet type: " + c);
-            }        }
+          }
+        }
       } catch (IOException ioe) {
         // we're closing so this is expected
         if (LOGGER.isLoggable(Level.FINEST)) {
@@ -3089,6 +3089,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
   }
+
   private class QueryStatus {
     private final String query;
     private final boolean asSimple;
@@ -3121,15 +3122,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     public boolean isBothRowsAndStatus() {
       return bothRowsAndStatus;
     }
+
     public boolean isAdaptiveFetch() {
       return adaptiveFetch;
     }
+
     public int getState() {
       return state;
     }
+
     public void setState(int state) {
       this.state = state;
     }
+
     public void setEndQuery() {
       this.state = -1;
     }
