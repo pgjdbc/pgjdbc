@@ -29,6 +29,7 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -250,13 +251,17 @@ public class PgStatement implements Statement, BaseStatement {
       this.wantsResults = wantsResults;
     }
 
-    @Nullable ResultWrapper getResults() {
+    @Nullable ResultWrapper getResults() throws SQLException {
       while (hasResultSet.get() == false) {
         try {
           Thread.sleep(2);
         } catch (InterruptedException e) {
           return null;
         }
+      }
+      SQLException sqlException  = getException();
+      if (sqlException != null) {
+        throw sqlException;
       }
       LOGGER.finest(() -> String.format("Get Results is null %b wants results %b", results == null, wantsResults));
       return results;
@@ -297,10 +302,14 @@ public class PgStatement implements Statement, BaseStatement {
 
     @Override
     public boolean handleEndOfResults() {
+      // TODO: currently a hack, not sure handleEndOfResults is being used correctly
+      hasResultSet.set(true);
+
       if (pgResultSet == null) {
         return false;
       }
       pgResultSet.setEndOfResults();
+
       return true;
     }
 
@@ -324,7 +333,6 @@ public class PgStatement implements Statement, BaseStatement {
         results = new ResultWrapper(updateCount, insertOID);
         hasResultSet.set(true);
       }
-      //LOGGER.finest(()-> String.format("handle command status result is null %b", result == null ));
     }
 
     @Override
@@ -332,6 +340,11 @@ public class PgStatement implements Statement, BaseStatement {
       PgStatement.this.addWarning(warning);
     }
 
+    @Override
+    public void handleError(SQLException e) {
+      this.handleError(e);
+      hasResultSet.set(true);
+    }
   }
 
   @Override
@@ -599,7 +612,12 @@ public class PgStatement implements Statement, BaseStatement {
       checkClosed();
 
       ResultWrapper currentResult = handler.getResults();
-      LOGGER.finest(() -> String.format("After get results %b ", currentResult.getResultSet() != null));
+      if (currentResult == null) {
+        LOGGER.finest("After get results currentResult is null ");
+      } else {
+        LOGGER.finest(
+            () -> String.format("After get %b if there are results ", currentResult.getResultSet() != null));
+      }
       result = firstUnclosedResult = currentResult;
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
         generatedKeys = currentResult;

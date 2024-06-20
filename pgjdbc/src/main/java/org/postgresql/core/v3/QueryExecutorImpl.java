@@ -2715,6 +2715,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       // from there.
       boolean doneAfterRowDescNoData = false;
       int c;
+      boolean expectingMoreData=true;
 
       try {
         while (true) {
@@ -2954,6 +2955,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               if (currentPortal != null) {
                 currentPortal.close();
               }
+              expectingMoreData = true;
               break;
             }
 
@@ -3036,6 +3038,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               }
               pendingBindQueue.clear(); // No more BindComplete messages expected.
               pendingExecuteQueue.clear(); // No more query executions expected.
+              currentHandler.handleEndOfResults();
+              expectingMoreData = false;
               break;
 
             case 'G': // CopyInResponse
@@ -3082,10 +3086,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
         }
       } catch (IOException ioe) {
-        // we're closing so this is expected
-        if (LOGGER.isLoggable(Level.FINEST)) {
-          LOGGER.log(Level.FINEST, "ReadResponse thread has been interrupted", ioe);
-        }
+          currentHandler.handleError(
+              new PSQLException(GT.tr("Could not receive all data from the backend"),
+                  PSQLState.COMMUNICATION_ERROR, ioe));
+          LOGGER.log(Level.FINEST, ()-> String.format("ReadResponse thread has been interrupted, %s", ioe.getMessage()));
       }
     }
   }

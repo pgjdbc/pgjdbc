@@ -12,10 +12,12 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
@@ -26,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.LogManager;
 
 @DisabledIfServerVersionBelow("9.4")
 class ConnectionValidTest {
@@ -34,6 +37,11 @@ class ConnectionValidTest {
   private Connection connection;
 
   private ConnectionBreaker connectionBreaker;
+
+  @BeforeAll
+  static void startLogger() throws Exception {
+    LogManager.getLogManager().readConfiguration(new FileInputStream("logging.properties"));
+  }
 
   @BeforeEach
   void setUp() throws Exception {
@@ -125,6 +133,7 @@ class ConnectionValidTest {
           int read = conn.getInputStream().read();
           pgServerOutputStream.write(read);
         }
+        pgSocket.close();
         return null;
       });
     }
