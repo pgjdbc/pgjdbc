@@ -229,7 +229,10 @@ public class SSPIClient implements ISSPIClient {
           SEC_BUFFER_DESC_FACTORY.newInstance(Sspi.SECBUFFER_TOKEN, receivedToken);
     } catch (ReflectiveOperationException ex) {
       // A fallback just in case
-      continueToken = new SecBufferDesc(Sspi.SECBUFFER_TOKEN, receivedToken);
+      Sspi.SecBuffer[] secBuffers = new Sspi.SecBuffer[]{new Sspi.SecBuffer(Sspi.SECBUFFER_TOKEN, receivedToken)};
+      continueToken = new SecBufferDesc();
+      continueToken.pBuffers = secBuffers[0].getPointer();
+      continueToken.cBuffers = secBuffers.length;
     }
 
     sspiContext.initialize(sspiContext.getHandle(), continueToken, castNonNull(targetName));

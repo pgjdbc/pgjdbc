@@ -38,6 +38,7 @@ includeBuild("build-logic")
 
 // Renovate treats names as dependency coordinates when vararg include(...) is used, so we have separate include calls here
 include("benchmarks")
+include("pgjdbc-module-test")
 include("pgjdbc-osgi-test")
 include("postgresql")
 

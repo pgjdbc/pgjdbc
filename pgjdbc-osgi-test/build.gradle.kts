@@ -74,12 +74,14 @@ tasks.test {
     dependsOn(pgjdbcRepository)
     systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml"))
     // Regular systemProperty can't be used here as we need lazy evaluation of pgjdbcRepository
-    jvmArgumentProviders.add(CommandLineArgumentProvider {
-        listOf(
-            "-Dpgjdbc.org.ops4j.pax.url.mvn.repositories=" +
+    jvmArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf(
+                "-Dpgjdbc.org.ops4j.pax.url.mvn.repositories=" +
                     "file:${pgjdbcRepository.singleFile.absolutePath}@snapshots@id=pgjdbc-current" +
                     ",${project.findProperty("osgi.test.mavencentral.url")}@id=central",
-            "-Dpgjdbc.org.ops4j.pax.url.mvn.localRepository=file:${paxLocalCacheRepository.get().asFile.absolutePath}@id=pax-repo"
-        )
-    })
+                "-Dpgjdbc.org.ops4j.pax.url.mvn.localRepository=file:${paxLocalCacheRepository.get().asFile.absolutePath}@id=pax-repo"
+            )
+        }
+    )
 }
