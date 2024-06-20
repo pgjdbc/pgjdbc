@@ -68,7 +68,7 @@ public class Parser {
     int valuesParenthesisOpenPosition = -1;
     int valuesParenthesisClosePosition = -1;
     boolean valuesParenthesisCloseFound = false;
-    boolean isInsertPresent = false;
+    boolean isInsertMergePresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
     boolean isBeginPresent = false;
@@ -117,7 +117,7 @@ public class Parser {
 
         case ')':
           inParen--;
-          if (inParen == 0 && isValuesFound && !valuesParenthesisCloseFound) {
+          if (inParen == (currentCommandType == SqlCommandType.MERGE ? 1 : 0) && isValuesFound && !valuesParenthesisCloseFound) {
             // If original statement is multi-values like VALUES (...), (...), ... then
             // search for the latest closing paren
             valuesParenthesisClosePosition = nativeSql.length() + i - fragmentStart;
@@ -235,12 +235,22 @@ public class Parser {
           } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
             currentCommandType = SqlCommandType.WITH;
           } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-            if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
+            if (!isInsertMergePresent && (nativeQueries == null || nativeQueries.isEmpty())) {
               // Only allow rewrite for insert command starting with the insert keyword.
               // Else, too many risks of wrong interpretation.
               isCurrentReWriteCompatible = keyWordCount == 0;
-              isInsertPresent = true;
+              isInsertMergePresent = true;
               currentCommandType = SqlCommandType.INSERT;
+            } else {
+              isCurrentReWriteCompatible = false;
+            }
+          } else if (wordLength == 5 && parseMergeKeyword(aChars, keywordStart)) {
+            if (!isInsertMergePresent && (nativeQueries == null || nativeQueries.isEmpty())) {
+              // Only allow rewrite for merge command starting with the merge keyword.
+              // Else, too many risks of wrong interpretation.
+              isCurrentReWriteCompatible = keyWordCount == 0;
+              isInsertMergePresent = true;
+              currentCommandType = SqlCommandType.MERGE;
             } else {
               isCurrentReWriteCompatible = false;
             }
@@ -271,9 +281,12 @@ public class Parser {
         }
         if (inParen != 0 || aChar == ')') {
           // RETURNING and VALUES cannot be present in parentheses
+          if (currentCommandType == SqlCommandType.MERGE && wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
+            isValuesFound = true;
+          }
         } else if (wordLength == 9 && parseReturningKeyword(aChars, keywordStart)) {
           isReturningPresent = true;
-        } else if (wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
+        } else if (currentCommandType == SqlCommandType.INSERT && wordLength == 6 && parseValuesKeyword(aChars, keywordStart)) {
           isValuesFound = true;
         }
         keywordStart = -1;
@@ -281,8 +294,12 @@ public class Parser {
       }
       if (aChar == '(') {
         inParen++;
-        if (inParen == 1 && isValuesFound && valuesParenthesisOpenPosition == -1) {
-          valuesParenthesisOpenPosition = nativeSql.length() + i - fragmentStart;
+        if (isValuesFound && valuesParenthesisOpenPosition == -1) {
+          if (currentCommandType == SqlCommandType.INSERT && inParen == 1) {
+            valuesParenthesisOpenPosition = nativeSql.length() + i - fragmentStart;
+          } else if (currentCommandType == SqlCommandType.MERGE && inParen == 2) {
+            valuesParenthesisOpenPosition = nativeSql.length() + i - fragmentStart;
+          }
         }
       }
     }
@@ -661,6 +678,25 @@ public class Parser {
         && (query[offset + 3] | 32) == 'm'
         && (query[offset + 4] | 32) == 'i'
         && (query[offset + 5] | 32) == 'c';
+  }
+
+  /**
+   * Parse string to check presence of MERGE keyword regardless of case.
+   *
+   * @param query char[] of the query statement
+   * @param offset position of query to start checking
+   * @return boolean indicates presence of word
+   */
+  public static boolean parseMergeKeyword(final char[] query, int offset) {
+    if (query.length < (offset + 6)) {
+      return false;
+    }
+
+    return (query[offset] | 32) == 'm'
+        && (query[offset + 1] | 32) == 'e'
+        && (query[offset + 2] | 32) == 'r'
+        && (query[offset + 3] | 32) == 'g'
+        && (query[offset + 4] | 32) == 'e';
   }
 
   /**

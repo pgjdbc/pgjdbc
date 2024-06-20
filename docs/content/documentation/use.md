@@ -380,7 +380,21 @@ connection parameter.
 This value is an optional argument to the constructor of the socket factory class provided above.
 
 * **`reWriteBatchedInserts (`*boolean*`)`** *Default `false`*\
-This will change batch inserts from insert into foo (col1, col2, col3) values (1, 2, 3) into insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6) this provides 2-3x performance improvement
+  This will change batch inserts from `insert into foo (col1, col2, col3) values (1, 2, 3)` into
+`insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6)` this provides 2-3x performance improvement
+
+  Note the batched statement does not return affected row count.
+
+  Rewrites single-valued `INSERT` and `MERGE` statements into multi-valued batched
+  statements, where possible. For example, instead of executing multiple consecutive
+  `INSERT INTO foo (col1, col2) VALUES (?, ?)` statements the driver will
+  execute a single `INSERT INTO foo (col1, col2) VALUES (?, ?), (?, ?), (?, ?), ...` statement.
+
+  It plays nice with Spring's `JdbcTemplate#batchUpdate(String, List<Object[]>)`.
+
+  Not all forms of `INSERT` and `MERGE` are supported:
+  * bind parameters must be used in `VALUES` only.
+  * the statement can't use `RETURNING` keyword.
 
 * **`replication (`*String*`)`** *Default `false`*\
 Connection parameter passed in the startup message. This parameter accepts two values; `true` and `database` . 

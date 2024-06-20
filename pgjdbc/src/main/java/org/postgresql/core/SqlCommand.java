@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import static org.postgresql.core.SqlCommandType.INSERT;
+import static org.postgresql.core.SqlCommandType.MERGE;
 import static org.postgresql.core.SqlCommandType.SELECT;
 import static org.postgresql.core.SqlCommandType.WITH;
 
@@ -66,7 +67,7 @@ public class SqlCommand {
       int priorQueryCount) {
     commandType = type;
     parsedSQLhasRETURNINGKeyword = isPresent;
-    boolean batchedReWriteCompatible = (type == INSERT) && isBatchedReWriteConfigured
+    boolean batchedReWriteCompatible = (type == INSERT || type == MERGE) && isBatchedReWriteConfigured
         && valuesBraceOpenPosition >= 0 && valuesBraceClosePosition > valuesBraceOpenPosition
         && !isPresent && priorQueryCount == 0;
     this.valuesBraceOpenPosition = batchedReWriteCompatible ? valuesBraceOpenPosition : -1;
