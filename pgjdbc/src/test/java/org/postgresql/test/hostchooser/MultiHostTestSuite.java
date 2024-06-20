@@ -13,6 +13,7 @@ import org.junit.runners.Suite;
  */
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    MultiHostsConnectionSingleHostNameTest.class,
     MultiHostsConnectionTest.class,
 })
 public class MultiHostTestSuite {
