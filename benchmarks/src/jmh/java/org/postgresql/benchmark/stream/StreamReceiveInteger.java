@@ -5,6 +5,7 @@
 
 package org.postgresql.benchmark.stream;
 
+import org.postgresql.PGConnection;
 import org.postgresql.benchmark.util.IntParser;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
@@ -121,7 +122,7 @@ public class StreamReceiveInteger {
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(IntParser.class.getSimpleName())
+        .include(StreamReceiveInteger.class.getSimpleName())
         .detectJvmArgs()
         .build();
 
