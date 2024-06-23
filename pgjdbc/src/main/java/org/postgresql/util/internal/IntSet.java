@@ -16,6 +16,7 @@ import java.util.Set;
 
 /**
  * Read-optimized {@code Set} for storing {@link Oid} values.
+ * Note: the set does not support nullable values.
  */
 public final class IntSet {
   /**
