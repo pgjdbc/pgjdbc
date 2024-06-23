@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * Read-optimized {@code Set} for storing {@link Oid} values.
  */
-public class IntSet {
+public final class IntSet {
   /**
    * Maximal Oid that will bs stored in {@link BitSet}.
    * If Oid exceeds this value, then it will be stored in {@code Set<Int>} only.
