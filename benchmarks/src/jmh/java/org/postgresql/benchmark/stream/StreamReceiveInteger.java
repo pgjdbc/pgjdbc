@@ -5,8 +5,6 @@
 
 package org.postgresql.benchmark.stream;
 
-import org.postgresql.PGConnection;
-import org.postgresql.benchmark.util.IntParser;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.VisibleBufferedInputStream;
