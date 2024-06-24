@@ -530,16 +530,18 @@ class GetObjectTest {
    */
   @Test
   void getDouble() throws SQLException {
-    Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "double_column", "1.0"));
-
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column"));
-    try {
-      assertTrue(rs.next());
-      assertEquals(Double.valueOf(1.0d), rs.getObject("double_column", Double.class));
-      assertEquals(Double.valueOf(1.0d), rs.getObject(1, Double.class));
-    } finally {
-      rs.close();
+    try (Statement stmt = conn.createStatement()) {
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "double_column", "1.0"));
+      stmt.executeUpdate("insert into table1 (double_column) values ('-infinity'), ('+infinity')");
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column"))) {
+        assertTrue(rs.next());
+        assertEquals(Double.valueOf(1.0d), rs.getObject("double_column", Double.class));
+        assertEquals(Double.valueOf(1.0d), rs.getObject(1, Double.class));
+        assertTrue(rs.next());
+        assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(1, Double.class));
+        assertTrue(rs.next());
+        assertEquals(Double.POSITIVE_INFINITY, rs.getObject(1, Double.class));
+      }
     }
   }
 
