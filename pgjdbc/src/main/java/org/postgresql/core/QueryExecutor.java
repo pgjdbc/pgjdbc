@@ -12,6 +12,7 @@ import org.postgresql.core.v3.TypeTransferModeRegistry;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.HostSpec;
 
@@ -34,7 +35,7 @@ import java.util.TimeZone;
  *
  * <ul>
  * <li>factory methods for Query objects ({@link #createSimpleQuery(String)} and
- * {@link #createQuery(String, boolean, boolean, String...)})
+ * {@link #createQuery(String, boolean, PlaceholderStyle, String...)})
  * <li>execution methods for created Query objects (
  * {@link #execute(Query, ParameterList, ResultHandler, int, int, int)} for single queries and
  * {@link #execute(Query[], ParameterList[], BatchResultHandler, int, int, int)} for batches of queries)
@@ -235,22 +236,22 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isReWriteBatchedInsertsEnabled();
 
-  CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+  CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
       String @Nullable ... columnNames)
       throws SQLException;
 
-  Object createQueryKey(String sql, boolean escapeProcessing, boolean isParameterized,
+  Object createQueryKey(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
       String @Nullable ... columnNames);
 
   CachedQuery createQueryByKey(Object key) throws SQLException;
 
   CachedQuery borrowQueryByKey(Object key) throws SQLException;
 
-  CachedQuery borrowQuery(String sql) throws SQLException;
+  CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException;
 
   CachedQuery borrowCallableQuery(String sql) throws SQLException;
 
-  CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames) throws SQLException;
+  CachedQuery borrowReturningQuery(String sql, PlaceholderStyle placeholderStyle, String @Nullable [] columnNames) throws SQLException;
 
   void releaseQuery(CachedQuery cachedQuery);
 

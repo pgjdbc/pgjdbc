@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyle;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -15,15 +17,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 class CallableQueryKey extends BaseQueryKey {
 
   CallableQueryKey(String sql) {
-    super(sql, true, true);
+    super(sql, true, PlaceholderStyle.JDBC);
   }
 
   @Override
   public String toString() {
     return "CallableQueryKey{"
         + "sql='" + sql + '\''
-        + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", placeholderStyle=" + placeholderStyle
         + '}';
   }
 

@@ -5,6 +5,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.CanEstimateSize;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -17,21 +18,21 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 class BaseQueryKey implements CanEstimateSize {
   public final String sql;
-  public final boolean isParameterized;
   public final boolean escapeProcessing;
+  public final PlaceholderStyle placeholderStyle;
 
-  BaseQueryKey(String sql, boolean isParameterized, boolean escapeProcessing) {
+  BaseQueryKey(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle) {
     this.sql = sql;
-    this.isParameterized = isParameterized;
     this.escapeProcessing = escapeProcessing;
+    this.placeholderStyle = placeholderStyle;
   }
 
   @Override
   public String toString() {
     return "BaseQueryKey{"
         + "sql='" + sql + '\''
-        + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", placeholderStyle=" + placeholderStyle
         + '}';
   }
 
@@ -54,10 +55,10 @@ class BaseQueryKey implements CanEstimateSize {
 
     BaseQueryKey that = (BaseQueryKey) o;
 
-    if (isParameterized != that.isParameterized) {
+    if (escapeProcessing != that.escapeProcessing) {
       return false;
     }
-    if (escapeProcessing != that.escapeProcessing) {
+    if (placeholderStyle != that.placeholderStyle) {
       return false;
     }
     return sql != null ? sql.equals(that.sql) : that.sql == null;
@@ -67,8 +68,8 @@ class BaseQueryKey implements CanEstimateSize {
   @Override
   public int hashCode() {
     int result = sql != null ? sql.hashCode() : 0;
-    result = 31 * result + (isParameterized ? 1 : 0);
     result = 31 * result + (escapeProcessing ? 1 : 0);
+    result = 31 * result + placeholderStyle.hashCode();
     return result;
   }
 }

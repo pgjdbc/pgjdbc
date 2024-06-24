@@ -97,15 +97,30 @@ public class BatchResultHandler extends ResultHandlerBase {
       }
       this.latestGeneratedRows = null;
     }
+    latestGeneratedKeysRs = null;
 
-    if (resultIndex >= queries.length) {
+    int resultNumber = resultIndex++;
+    int updateCountsIndex = 0;
+    for (; updateCountsIndex < longUpdateCounts.length; updateCountsIndex++) {
+      final int offset;
+      final Query query = this.queries[updateCountsIndex];
+      if (query != null && query.getSubqueries() != null) {
+        offset = castNonNull(query.getSubqueries()).length;
+      } else {
+        offset = 1;
+      }
+      if (resultNumber - offset < 0) {
+        break;
+      }
+      resultNumber -= offset;
+    }
+
+    if (updateCountsIndex >= longUpdateCounts.length) {
       handleError(new PSQLException(GT.tr("Too many update results were returned."),
           PSQLState.TOO_MANY_RESULTS));
       return;
     }
-    latestGeneratedKeysRs = null;
-
-    longUpdateCounts[resultIndex++] = updateCount;
+    longUpdateCounts[updateCountsIndex] += updateCount;
   }
 
   private boolean isAutoCommit() {
