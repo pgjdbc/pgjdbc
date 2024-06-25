@@ -123,15 +123,14 @@ public class SslTest {
     Collection<Object[]> tests = new ArrayList<>();
 
     for (SSLNegotiation sslNegotiation :  SSLNegotiation.VALUES) {
-      try (Connection con = TestUtil.openDB()) {
-        if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17)
-            && sslNegotiation == SSLNegotiation.DIRECT) {
-          continue; // ignore direct connection unless we have version 17
+      if (sslNegotiation == SSLNegotiation.DIRECT) {
+        try (Connection con = TestUtil.openDB()) {
+          if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17))
+            continue; // ignore direct connection unless we have version 17
+        } catch (SQLException e) {
+          fail("Failed to connect to the database: " + e.getMessage());
         }
-      } catch (SQLException e) {
-        fail("Failed to connect to the database: " + e.getMessage());
       }
-
       // iterate over all possible combinations of parameters
       for (SslMode sslMode : SslMode.VALUES) {
         for (Hostname hostname : Hostname.values()) {

@@ -771,7 +771,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @return SSL Negotiation scheme
    * @see PGProperty#SSL_NEGOTIATION
    */
-  public @Nullable SSLNegotiation getSslNegotiation() {
+  public SSLNegotiation getSslNegotiation() {
     return SSLNegotiation.of(castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(properties)));
   }
 

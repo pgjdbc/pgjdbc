@@ -116,7 +116,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
-      // This caught quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
+      // This caught quite a lot of exceptions, but until Java 7 there is no ReflectiveOperationException
       throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
           + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
     }
@@ -199,7 +199,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // negotiation
       if (!newStream.isGssEncrypted()) {
         // Construct and send an SSL startup packet if requested.
-        newStream = enableSSL(newStream, sslMode, info, connectTimeout, Nullness.castNonNull(sslNegotiation));
+        newStream = enableSSL(newStream, sslMode, info, connectTimeout);
       }
 
       // Make sure to set network timeout again, in case the stream changed due to GSS or SSL
@@ -570,7 +570,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
-      int connectTimeout, SSLNegotiation sslNegotiation)
+      int connectTimeout)
       throws IOException, PSQLException {
     if (sslMode == SslMode.DISABLE) {
       return pgStream;
@@ -579,6 +579,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Allow ==> start with plaintext, use encryption if required by server
       return pgStream;
     }
+    SSLNegotiation sslNegotiation = SSLNegotiation.of(PGProperty.SSL_NEGOTIATION.getOrDefault(info));
 
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
@@ -596,52 +597,51 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (sslNegotiation == SSLNegotiation.DIRECT) {
       MakeSSL.convert(pgStream, info, true);
       return pgStream;
-    } else {
-      // Send SSL request packet
-      pgStream.sendInteger4(8);
-      pgStream.sendInteger2(1234);
-      pgStream.sendInteger2(5679);
-      pgStream.flush();
+    }
+    // Send SSL request packet
+    pgStream.sendInteger4(8);
+    pgStream.sendInteger2(1234);
+    pgStream.sendInteger2(5679);
+    pgStream.flush();
 
-      // Now get the response from the backend, one of N, E, S.
-      int beresp = pgStream.receiveChar();
-      pgStream.setNetworkTimeout(currentTimeout);
+    // Now get the response from the backend, one of N, E, S.
+    int beresp = pgStream.receiveChar();
+    pgStream.setNetworkTimeout(currentTimeout);
 
-      switch (beresp) {
-        case 'E':
-          LOGGER.log(Level.FINEST, " <=BE SSLError");
+    switch (beresp) {
+      case 'E':
+        LOGGER.log(Level.FINEST, " <=BE SSLError");
 
-          // Server doesn't even know about the SSL handshake protocol
-          if (sslMode.requireEncryption()) {
-            throw new PSQLException(GT.tr("The server does not support SSL."),
-                PSQLState.CONNECTION_REJECTED);
-          }
+        // Server doesn't even know about the SSL handshake protocol
+        if (sslMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support SSL."),
+              PSQLState.CONNECTION_REJECTED);
+        }
 
-          // We have to reconnect to continue.
-          return new PGStream(pgStream, connectTimeout);
+        // We have to reconnect to continue.
+        return new PGStream(pgStream, connectTimeout);
 
-        case 'N':
-          LOGGER.log(Level.FINEST, " <=BE SSLRefused");
+      case 'N':
+        LOGGER.log(Level.FINEST, " <=BE SSLRefused");
 
-          // Server does not support ssl
-          if (sslMode.requireEncryption()) {
-            throw new PSQLException(GT.tr("The server does not support SSL."),
-                PSQLState.CONNECTION_REJECTED);
-          }
+        // Server does not support ssl
+        if (sslMode.requireEncryption()) {
+          throw new PSQLException(GT.tr("The server does not support SSL."),
+              PSQLState.CONNECTION_REJECTED);
+        }
 
-          return pgStream;
+        return pgStream;
 
-        case 'S':
-          LOGGER.log(Level.FINEST, " <=BE SSLOk");
+      case 'S':
+        LOGGER.log(Level.FINEST, " <=BE SSLOk");
 
-          // Server supports ssl
-          MakeSSL.convert(pgStream, info, false);
-          return pgStream;
+        // Server supports ssl
+        MakeSSL.convert(pgStream, info, false);
+        return pgStream;
 
-        default:
-          throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
-              PSQLState.PROTOCOL_VIOLATION);
-      }
+      default:
+        throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
+            PSQLState.PROTOCOL_VIOLATION);
     }
   }
 
