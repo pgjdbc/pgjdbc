@@ -1,17 +1,17 @@
 package org.postgresql.jdbc;
 
-public enum SSLNegotiation {
+public enum SslNegotiation {
   POSTGRES("postgres"),
   DIRECT("direct");
 
   private final String value;
 
-  SSLNegotiation(String value) {
+  SslNegotiation(String value) {
     this.value = value;
   }
 
-  public static SSLNegotiation of(String mode) {
-    for (SSLNegotiation sslNegotiation : values()) {
+  public static SslNegotiation of(String mode) {
+    for (SslNegotiation sslNegotiation : values()) {
       if (sslNegotiation.value.equals(mode)) {
         return sslNegotiation;
       }

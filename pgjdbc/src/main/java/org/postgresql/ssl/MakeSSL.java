@@ -9,6 +9,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
@@ -28,7 +29,7 @@ public class MakeSSL extends ObjectFactory {
 
   private static final Logger LOGGER = Logger.getLogger(MakeSSL.class.getName());
 
-  public static void convert(PGStream stream, Properties info, boolean directConnect)
+  public static void convert(PGStream stream, Properties info)
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
@@ -39,7 +40,7 @@ public class MakeSSL extends ObjectFactory {
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
       int connectTimeoutSeconds = PGProperty.CONNECT_TIMEOUT.getInt(info);
       newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
-      if ( directConnect ) {
+      if (SslNegotiation.of(PGProperty.SSL_NEGOTIATION.getOrDefault(info)) == SslNegotiation.DIRECT ) {
         SSLParameters sslParameters = newConnection.getSSLParameters();
         sslParameters.setApplicationProtocols(new String[]{"postgresql"});
         newConnection.setSSLParameters(sslParameters);
