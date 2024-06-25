@@ -42,27 +42,14 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class StreamReceiveInteger {
 
-  private Connection connection;
-
-  private PGStream pgStream;
-
+  private VisibleBufferedInputStream bufferedInputStream;
   @Param({"4096", "8192", "65536", "131072", "1048576"})
   private int byteArrSize;
-
   private byte[] integer2Data;
-
   private byte[] integer4Data;
 
   @Setup
   public void setUp() throws Exception {
-    connection = TestUtil.openDB();
-
-    QueryExecutor queryExecutor = ((PgConnection) connection).getQueryExecutor();
-
-    Field pgStreamField = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
-    pgStreamField.setAccessible(true);
-    pgStream = (PGStream) pgStreamField.get(queryExecutor);
-
     integer2Data = new byte[byteArrSize];
     integer4Data = new byte[byteArrSize];
 
@@ -81,41 +68,24 @@ public class StreamReceiveInteger {
     }
   }
 
-  @TearDown
-  public void tearDown() throws Exception {
-    TestUtil.closeDB(connection);
-  }
-
   @Benchmark
   public void receiveInteger4Benchmark(Blackhole bh) throws Exception {
-    replaceInputStream(integer4Data);
-    while (hasMoreData(4)) {
-      int value = pgStream.receiveInteger4();
+    bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer4Data), byteArrSize);
+
+    while(bufferedInputStream.available() >= 4){
+      int value = bufferedInputStream.receiveInteger4();
       bh.consume(value);
     }
   }
 
   @Benchmark
   public void receiveInteger2Benchmark(Blackhole bh) throws Exception {
-    replaceInputStream(integer2Data);
-    while (hasMoreData(2)) {
-      int value = pgStream.receiveInteger2();
+    bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer2Data), byteArrSize);
+
+    while(bufferedInputStream.available() >= 2){
+      int value = bufferedInputStream.receiveInteger2();
       bh.consume(value);
     }
-  }
-
-  private void replaceInputStream(byte[] data) throws Exception {
-    VisibleBufferedInputStream newInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(data), 8192);
-    Field pgInputStreamField = pgStream.getClass().getDeclaredField("pgInput");
-    pgInputStreamField.setAccessible(true);
-    pgInputStreamField.set(pgStream, newInputStream);
-  }
-
-  private boolean hasMoreData(int bytesNeeded) throws Exception {
-    Field pgInputStreamField = pgStream.getClass().getDeclaredField("pgInput");
-    pgInputStreamField.setAccessible(true);
-    VisibleBufferedInputStream pgInputStream = (VisibleBufferedInputStream) pgInputStreamField.get(pgStream);
-    return pgInputStream.available() >= bytesNeeded;
   }
 
   public static void main(String[] args) throws RunnerException {
