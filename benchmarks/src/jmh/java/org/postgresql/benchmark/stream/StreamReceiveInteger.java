@@ -5,11 +5,7 @@
 
 package org.postgresql.benchmark.stream;
 
-import org.postgresql.core.PGStream;
-import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.VisibleBufferedInputStream;
-import org.postgresql.jdbc.PgConnection;
-import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -21,7 +17,6 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import org.openjdk.jmh.runner.Runner;
@@ -30,8 +25,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.ByteArrayInputStream;
-import java.lang.reflect.Field;
-import java.sql.Connection;
 import java.util.concurrent.TimeUnit;
 
 @Fork(value = 5, jvmArgsPrepend = "-Xmx128m")
@@ -72,7 +65,7 @@ public class StreamReceiveInteger {
   public void receiveInteger4Benchmark(Blackhole bh) throws Exception {
     bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer4Data), byteArrSize);
 
-    while(bufferedInputStream.available() >= 4){
+    while (bufferedInputStream.available() >= 4) {
       int value = bufferedInputStream.receiveInteger4();
       bh.consume(value);
     }
@@ -82,7 +75,7 @@ public class StreamReceiveInteger {
   public void receiveInteger2Benchmark(Blackhole bh) throws Exception {
     bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer2Data), byteArrSize);
 
-    while(bufferedInputStream.available() >= 2){
+    while (bufferedInputStream.available() >= 2) {
       int value = bufferedInputStream.receiveInteger2();
       bh.consume(value);
     }
