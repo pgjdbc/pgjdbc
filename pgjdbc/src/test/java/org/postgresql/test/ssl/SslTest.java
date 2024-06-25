@@ -12,6 +12,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -96,34 +97,20 @@ public class SslTest {
     }
   }
 
-  enum SSLNegotiation {
-    POSTGRES("postgres"),
-    DIRECT("direct"),
-    ;
-
-    public static final SSLNegotiation[] VALUES = values();
-    public final String value;
-
-    SSLNegotiation(String value) {
-      this.value = value;
-    }
-  }
-
   public Hostname host;
   public TestDatabase db;
   public SslMode sslmode;
   public ClientCertificate clientCertificate;
   public ClientRootCertificate clientRootCertificate;
   public GSSEncMode gssEncMode;
-  public SSLNegotiation sslNegotiation;
 
   public static Iterable<Object[]> data() {
     TestUtil.assumeSslTestsEnabled();
 
     Collection<Object[]> tests = new ArrayList<>();
 
-    for (SSLNegotiation sslNegotiation :  SSLNegotiation.VALUES) {
-      if (sslNegotiation == SSLNegotiation.DIRECT) {
+    for (SslNegotiation sslNegotiation :  SslNegotiation.values()) {
+      if (sslNegotiation == SslNegotiation.DIRECT) {
         try (Connection con = TestUtil.openDB()) {
           if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17))
             continue; // ignore direct connection unless we have version 17
