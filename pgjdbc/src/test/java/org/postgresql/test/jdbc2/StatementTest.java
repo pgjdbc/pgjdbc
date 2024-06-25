@@ -107,6 +107,15 @@ class StatementTest {
   }
 
   @Test
+  void testNoWarningOnSQLState00() throws SQLException {
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("drop table if exists nonexistent");
+      SQLWarning warning = stmt.getWarnings();
+      assertNull(warning);
+    }
+  }
+
+  @Test
   void resultSetClosed() throws SQLException {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select 1");

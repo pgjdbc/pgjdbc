@@ -255,7 +255,10 @@ public class PgStatement implements Statement, BaseStatement {
 
     @Override
     public void handleWarning(SQLWarning warning) {
-      PgStatement.this.addWarning(warning);
+      // if it starts with 00 it means successful completion and not a warning
+      if (!warning.getSQLState().startsWith("00")) {
+        PgStatement.this.addWarning(warning);
+      }
     }
 
   }
