@@ -120,6 +120,10 @@ public class SslTest {
       }
       // iterate over all possible combinations of parameters
       for (SslMode sslMode : SslMode.VALUES) {
+        if ( sslMode == SslMode.DISABLE && sslNegotiation == SslNegotiation.DIRECT) {
+          // no need to test as this is the same as DISABLE and POSTGRESQL
+          continue;
+        }
         for (Hostname hostname : Hostname.values()) {
           for (TestDatabase database : TestDatabase.VALUES) {
             for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
