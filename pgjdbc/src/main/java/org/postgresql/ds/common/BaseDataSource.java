@@ -11,6 +11,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.jdbc.SSLNegotiation;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -759,19 +760,19 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
-   * @param sslNegotiation one of postgres or direct
+   * @param sslNegotiation one of SSLNegotiation.POSTGRES or SSLNegotiation.DIRECT
    * @see PGProperty#SSL_NEGOTIATION
    */
-  public void setSslNegotiation(@Nullable String sslNegotiation) {
-    PGProperty.SSL_NEGOTIATION.set(properties, sslNegotiation);
+  public void setSslNegotiation(@Nullable SSLNegotiation sslNegotiation) {
+    PGProperty.SSL_NEGOTIATION.set(properties, sslNegotiation.value());
   }
 
   /**
    * @return SSL Negotiation scheme
    * @see PGProperty#SSL_NEGOTIATION
    */
-  public @Nullable String getSslNegotiation() {
-    return PGProperty.SSL_NEGOTIATION.getOrDefault(properties);
+  public @Nullable SSLNegotiation getSslNegotiation() {
+    return SSLNegotiation.of(castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(properties)));
   }
 
   /**

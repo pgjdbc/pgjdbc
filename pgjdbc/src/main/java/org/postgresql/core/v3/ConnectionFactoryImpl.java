@@ -26,6 +26,7 @@ import org.postgresql.hostchooser.HostChooserFactory;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
+import org.postgresql.jdbc.SSLNegotiation;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jre7.sasl.ScramAuthenticator;
 import org.postgresql.plugin.AuthenticationRequestType;
@@ -127,7 +128,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
-    String sslNegotiation = PGProperty.SSL_NEGOTIATION.getOrDefault(info);
+    SSLNegotiation sslNegotiation = SSLNegotiation.of(PGProperty.SSL_NEGOTIATION.getOrDefault(info));
 
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
@@ -190,7 +191,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             newStream.getSocket().getSendBufferSize());
       }
 
-      if (sslNegotiation != null && !sslNegotiation.startsWith("direct")) {
+      if (sslNegotiation != SSLNegotiation.DIRECT) {
         newStream =
             enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), info, connectTimeout);
       }
@@ -569,7 +570,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
-      int connectTimeout, String sslNegotiation)
+      int connectTimeout, SSLNegotiation sslNegotiation)
       throws IOException, PSQLException {
     if (sslMode == SslMode.DISABLE) {
       return pgStream;
@@ -592,8 +593,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     pgStream.setNetworkTimeout(sslTimeout);
-    if (!sslNegotiation.startsWith("direct")) {
-
+    if (sslNegotiation == SSLNegotiation.DIRECT) {
+      MakeSSL.convert(pgStream, info, true);
+      return pgStream;
+    } else {
       // Send SSL request packet
       pgStream.sendInteger4(8);
       pgStream.sendInteger2(1234);
@@ -639,9 +642,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
               PSQLState.PROTOCOL_VIOLATION);
       }
-    } else {
-      MakeSSL.convert(pgStream,info, true);
-      return pgStream;
     }
   }
 
