@@ -32,6 +32,7 @@ create_replica () {
     local replication_pass="test"
 
     psql_super "${POSTGRES_DB}" "
+        checkpoint;
         SELECT pg_drop_replication_slot(slot_name) FROM pg_replication_slots WHERE slot_name = '${replication_slot_name}';
         DROP USER IF EXISTS ${replication_user};
         CREATE USER ${replication_user} WITH REPLICATION PASSWORD '${replication_pass}';
