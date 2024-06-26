@@ -124,8 +124,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SslMode sslMode, GSSEncMode gssEncMode)
       throws SQLException, IOException {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
-    String user = PGProperty.USER.getOrDefault(info);
-    String database = PGProperty.PG_DBNAME.getOrDefault(info);
+    String user = PGProperty.USER.getOrNull(info);
+    String database = PGProperty.DBNAME.getOrDefault(info);
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }
@@ -481,7 +481,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     /*
     let's see if the server will allow a GSS encrypted connection
      */
-    String user = PGProperty.USER.getOrDefault(info);
+    String user = PGProperty.USER.getOrNull(info);
     if (user == null) {
       throw new PSQLException("GSSAPI encryption required but was impossible user is null", PSQLState.CONNECTION_REJECTED);
     }
