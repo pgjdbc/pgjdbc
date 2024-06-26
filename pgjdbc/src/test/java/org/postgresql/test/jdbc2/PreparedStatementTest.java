@@ -18,6 +18,7 @@ import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
+import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
 import org.junit.Assume;
@@ -642,24 +643,97 @@ public class PreparedStatementTest extends BaseTest4 {
     assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(2)));
     assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(1)));
     assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(1)));
+    try {
+      rs.getBigDecimal(1);
+      fail("NaN::numeric rs.getBigDecimal");
+    } catch (SQLException e) {
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+      assertEquals("Bad value for type BigDecimal : NaN", e.getMessage());
+    }
+
     rs.close();
     stmt.close();
   }
 
   @Test
-  public void testNaNSetDoubleFloat() throws SQLException {
-    PreparedStatement ps = con.prepareStatement("select ?, ?");
+  public void testInfinityLiteralsSimpleStatement() throws SQLException {
+    assumeMinimumServerVersion("v14 introduced 'Infinity'::numeric", ServerVersion.v14);
+
+    String query = "SELECT 'Infinity'::numeric, 'Infinity'::real, 'Infinity'::double precision, "
+        + "'-Infinity'::numeric, '-Infinity'::real, '-Infinity'::double precision";
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery(query)) {
+      checkInfinityLiterals(rs);
+    }
+  }
+
+  @Test
+  public void testInfinityLiteralsPreparedStatement() throws SQLException {
+    assumeMinimumServerVersion("v14 introduced 'Infinity'::numeric", ServerVersion.v14);
+
+    String query = "SELECT 'Infinity'::numeric, 'Infinity'::real, 'Infinity'::double precision, "
+        + "'-Infinity'::numeric, '-Infinity'::real, '-Infinity'::double precision";
+    try (PreparedStatement stmt = con.prepareStatement(query);
+         ResultSet rs = stmt.executeQuery()) {
+      checkInfinityLiterals(rs);
+    }
+  }
+
+  private void checkInfinityLiterals(ResultSet rs) throws SQLException {
+    rs.next();
+    assertEquals("inf numeric rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(1));
+    assertEquals("inf numeric rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(1), 0.0);
+    assertEquals("inf real rs.getObject", Float.POSITIVE_INFINITY, rs.getObject(2));
+    assertEquals("inf real rs.getFloat", Float.POSITIVE_INFINITY, rs.getFloat(2), 0.0);
+    assertEquals("inf double precision rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(3));
+    assertEquals("inf double precision rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(3), 0.0);
+
+    assertEquals("-inf numeric rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(4));
+    assertEquals("-inf numeric rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(4), 0.0);
+    assertEquals("-inf real rs.getObject", Float.NEGATIVE_INFINITY, rs.getObject(5));
+    assertEquals("-inf real rs.getFloat", Float.NEGATIVE_INFINITY, rs.getFloat(5), 0.0);
+    assertEquals("-inf double precision rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(6));
+    assertEquals("-inf double precision rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(6), 0.0);
+
+    try {
+      rs.getBigDecimal(1);
+      fail("inf numeric rs.getBigDecimal");
+    } catch (SQLException e) {
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+      assertEquals("Bad value for type BigDecimal : Infinity", e.getMessage());
+    }
+
+    try {
+      rs.getBigDecimal(4);
+      fail("-inf numeric rs.getBigDecimal");
+    } catch (SQLException e) {
+      assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
+      assertEquals("Bad value for type BigDecimal : -Infinity", e.getMessage());
+    }
+  }
+
+  @Test
+  public void testSpecialSetDoubleFloat() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?, ?, ?, ?, ?");
     ps.setFloat(1, Float.NaN);
     ps.setDouble(2, Double.NaN);
+    ps.setFloat(3, Float.POSITIVE_INFINITY);
+    ps.setDouble(4, Double.POSITIVE_INFINITY);
+    ps.setFloat(5, Float.NEGATIVE_INFINITY);
+    ps.setDouble(6, Double.NEGATIVE_INFINITY);
 
     checkNaNParams(ps);
   }
 
   @Test
-  public void testNaNSetObject() throws SQLException {
-    PreparedStatement ps = con.prepareStatement("select ?, ?");
+  public void testSpecialSetObject() throws SQLException {
+    PreparedStatement ps = con.prepareStatement("select ?, ?, ?, ?, ?, ?");
     ps.setObject(1, Float.NaN);
     ps.setObject(2, Double.NaN);
+    ps.setObject(3, Float.POSITIVE_INFINITY);
+    ps.setObject(4, Double.POSITIVE_INFINITY);
+    ps.setObject(5, Float.NEGATIVE_INFINITY);
+    ps.setObject(6, Double.NEGATIVE_INFINITY);
 
     checkNaNParams(ps);
   }
@@ -670,8 +744,16 @@ public class PreparedStatementTest extends BaseTest4 {
 
     assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(1)));
     assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(1)));
+    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(2)));
     assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
-    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
+    assertEquals("Float.POSITIVE_INFINITY rs.getObject", Float.POSITIVE_INFINITY, rs.getObject(3));
+    assertEquals("Float.POSITIVE_INFINITY rs.getFloat", Float.POSITIVE_INFINITY, rs.getFloat(3), 0);
+    assertEquals("Double.POSITIVE_INFINITY rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(4));
+    assertEquals("Double.POSITIVE_INFINITY rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(4), 0);
+    assertEquals("Float.NEGATIVE_INFINITY rs.getObject", Float.NEGATIVE_INFINITY, rs.getObject(5));
+    assertEquals("Float.NEGATIVE_INFINITY rs.getFloat", Float.NEGATIVE_INFINITY, rs.getFloat(5), 0);
+    assertEquals("Double.NEGATIVE_INFINITY rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(6));
+    assertEquals("Double.NEGATIVE_INFINITY rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(6), 0);
 
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);

@@ -93,4 +93,14 @@ public class BigDecimalByteConverterTest {
       assertEquals(number.toPlainString(), actual.toPlainString());
     }
   }
+
+  @Test
+  void testSpecialNumericValues() {
+    Number nan = ByteConverter.numeric(new byte[]{0, 0, 0, 0, (byte) 0xC0, 0, 0, 0});
+    assertEquals(Double.NaN, nan);
+    Number pinf = ByteConverter.numeric(new byte[]{0, 0, 0, 0, (byte) 0xD0, 0, 0, 0});
+    assertEquals(Double.POSITIVE_INFINITY, pinf);
+    Number ninf = ByteConverter.numeric(new byte[]{0, 0, 0, 0, (byte) 0xF0, 0, 0, 0});
+    assertEquals(Double.NEGATIVE_INFINITY, ninf);
+  }
 }

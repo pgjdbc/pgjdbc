@@ -2759,7 +2759,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   @Pure
   private @Nullable Number getNumeric(
-      int columnIndex, int scale, boolean allowNaN) throws SQLException {
+      int columnIndex, int scale, boolean allowSpecial) throws SQLException {
     byte[] value = getRawValue(columnIndex);
     if (value == null) {
       return null;
@@ -2780,8 +2780,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         return toBigDecimal(trimMoney(String.valueOf(obj)), scale);
       } else {
         Number num = ByteConverter.numeric(value);
-        if (allowNaN && Double.isNaN(num.doubleValue())) {
-          return Double.NaN;
+        if (!allowSpecial && num instanceof Double) {
+          String val = Double.toString(num.doubleValue());
+          throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "BigDecimal", val),
+              PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
         }
 
         return num;
@@ -2799,8 +2801,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     String stringValue = getFixedString(columnIndex);
-    if (allowNaN && "NaN".equalsIgnoreCase(stringValue)) {
-      return Double.NaN;
+    if (allowSpecial) {
+      if ("NaN".equalsIgnoreCase(stringValue)) {
+        return Double.NaN;
+      } else if ("Infinity".equalsIgnoreCase(stringValue)) {
+        return Double.POSITIVE_INFINITY;
+      } else if ("-Infinity".equalsIgnoreCase(stringValue)) {
+        return Double.NEGATIVE_INFINITY;
+      }
     }
     return toBigDecimal(stringValue, scale);
   }
