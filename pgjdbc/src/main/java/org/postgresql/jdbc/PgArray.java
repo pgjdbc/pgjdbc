@@ -20,14 +20,17 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * <p>Array is used collect one column of query result data.</p>
@@ -504,5 +507,27 @@ public class PgArray implements Array {
     fieldString = null;
     fieldBytes = null;
     arrayList = null;
+  }
+
+  @Override
+  public final boolean equals(@Initialized @Nullable Object obj) {
+    if (obj == this) {
+      return true;
+    }
+    if (obj instanceof PgArray) {
+      PgArray pgArray = (PgArray) obj;
+      if (this.fieldString != null && pgArray.fieldString != null) {
+        return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && this.fieldString.equals(pgArray.fieldString);
+      }
+      if (this.fieldBytes != null && pgArray.fieldBytes != null) {
+        return this.hashCode() == pgArray.hashCode() && this.oid == pgArray.oid && Arrays.equals(this.fieldBytes,pgArray.fieldBytes);
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return Integer.hashCode(oid) ^ Arrays.hashCode(fieldBytes) ^ Objects.hashCode(fieldString);
   }
 }

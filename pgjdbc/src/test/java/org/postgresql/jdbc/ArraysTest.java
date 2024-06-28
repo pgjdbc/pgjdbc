@@ -42,4 +42,5 @@ class ArraysTest {
       support.toBinaryRepresentation(null, new BigDecimal[]{BigDecimal.valueOf(3)}, Oid.FLOAT8_ARRAY);
     });
   }
+
 }
