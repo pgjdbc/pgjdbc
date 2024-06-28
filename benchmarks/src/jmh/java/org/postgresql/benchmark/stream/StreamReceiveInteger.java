@@ -13,7 +13,6 @@ import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
@@ -35,35 +34,25 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 public class StreamReceiveInteger {
 
-  private VisibleBufferedInputStream bufferedInputStream;
-  @Param({"4096", "8192", "65536", "131072", "1048576"})
-  private int byteArrSize;
-  private byte[] integer2Data;
-  private byte[] integer4Data;
+  private byte[] integerData;
 
   @Setup
   public void setUp() throws Exception {
-    integer2Data = new byte[byteArrSize];
-    integer4Data = new byte[byteArrSize];
+    // we only use a fixed buffer size of 8192 (8 KB)
+    integerData = new byte[8192];
 
-    for (int i = 0; i < integer2Data.length; i += 2) {
+    for (int i = 0; i < integerData.length; i += 2) {
       int value = i / 2;
-      integer2Data[i] = (byte) (value >> 8);
-      integer2Data[i + 1] = (byte) (value & 0xFF);
+      integerData[i] = (byte) (value >> 8);
+      integerData[i + 1] = (byte) (value & 0xFF);
     }
 
-    for (int i = 0; i < integer4Data.length; i += 4) {
-      int value = i / 4;
-      integer4Data[i] = (byte) (value >> 24);
-      integer4Data[i + 1] = (byte) ((value >> 16));
-      integer4Data[i + 2] = (byte) ((value >> 8));
-      integer4Data[i + 3] = (byte) (value & 0xFF);
-    }
   }
 
   @Benchmark
   public void receiveInteger4Benchmark(Blackhole bh) throws Exception {
-    bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer4Data), byteArrSize);
+    VisibleBufferedInputStream bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integerData),
+        integerData.length);
 
     while (bufferedInputStream.available() >= 4) {
       int value = bufferedInputStream.receiveInteger4();
@@ -73,7 +62,8 @@ public class StreamReceiveInteger {
 
   @Benchmark
   public void receiveInteger2Benchmark(Blackhole bh) throws Exception {
-    bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integer2Data), byteArrSize);
+    VisibleBufferedInputStream bufferedInputStream = new VisibleBufferedInputStream(new ByteArrayInputStream(integerData),
+        integerData.length);
 
     while (bufferedInputStream.available() >= 2) {
       int value = bufferedInputStream.receiveInteger2();
