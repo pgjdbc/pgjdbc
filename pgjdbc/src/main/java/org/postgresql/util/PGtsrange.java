@@ -8,10 +8,13 @@ import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.Locale;
 
+import static org.postgresql.util.PGtstzrange.LOCAL_DATE_TIME_SPACE;
+
 public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, Cloneable {
+
+  public static final String PG_TYPE = "tsrange";
 
   /**
    * Initialize a range with a given bounds.
@@ -26,7 +29,7 @@ public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, C
   public PGtsrange(@Nullable LocalDateTime lowerBound, boolean lowerInclusive,
       @Nullable LocalDateTime upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
-    setType("tsrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -37,14 +40,14 @@ public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, C
    */
   public PGtsrange(@Nullable LocalDateTime lowerBound, @Nullable LocalDateTime upperBound) {
     super(lowerBound, upperBound);
-    setType("tsrange");
+    setType(PG_TYPE);
   }
 
   /**
    * Required constructor, initializes an empty range.
    */
   public PGtsrange() {
-    setType("tsrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -56,25 +59,30 @@ public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, C
    */
   public PGtsrange(String value) throws SQLException {
     super(value);
-    setType("tsrange");
+    setType(PG_TYPE);
   }
 
   @Override
   protected @NonNull String serializeBound(LocalDateTime value) {
-    return FORMATTER.format(value);
+    return LOCAL_DATE_TIME_FORMATTER.format(value);
   }
 
   @Override
   protected LocalDateTime parseToken(String token) {
-    return LocalDateTime.parse(token, FORMATTER);
+    return LocalDateTime.parse(token, LOCAL_DATE_TIME_FORMATTER);
   }
 
-  private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder()
-          .appendLiteral('"')
-          .appendPattern("yyyy-MM-dd HH:mm:ss")
-          .optionalStart()
-          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
-          .optionalEnd()
-          .appendLiteral('"')
-          .toFormatter(Locale.ENGLISH);
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
+
+  private static final DateTimeFormatter LOCAL_DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
+      .appendLiteral('"')
+      .append(LOCAL_DATE_TIME_SPACE)
+      .appendLiteral('"')
+      .toFormatter(Locale.ROOT);
+
 }

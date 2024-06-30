@@ -6,12 +6,18 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.Locale;
 
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE;
+import static java.time.format.DateTimeFormatter.ISO_LOCAL_TIME;
+
 public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable, Cloneable {
+
+  private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
+  public static final String PG_TYPE = "tstzrange";
 
   /**
    * Initialize a range with a given bounds.
@@ -26,7 +32,7 @@ public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable
   public PGtstzrange(@Nullable OffsetDateTime lowerBound, boolean lowerInclusive,
       @Nullable OffsetDateTime upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
-    setType("tstzrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -37,14 +43,14 @@ public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable
    */
   public PGtstzrange(@Nullable OffsetDateTime lowerBound, @Nullable OffsetDateTime upperBound) {
     super(lowerBound, upperBound);
-    setType("tstzrange");
+    setType(PG_TYPE);
   }
 
   /**
    * Required constructor, initializes an empty range.
    */
   public PGtstzrange() {
-    setType("tstzrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -57,17 +63,17 @@ public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable
    */
   public PGtstzrange(String value) throws SQLException {
     super(value);
-    setType("tstzrange");
+    setType(PG_TYPE);
   }
 
   @Override
   protected @NonNull String serializeBound(OffsetDateTime value) {
-    return FORMATTER.format(value);
+    return OFFSET_DATE_TIME_FORMATTER.format(value);
   }
 
   @Override
   protected OffsetDateTime parseToken(String token) {
-    return OffsetDateTime.parse(token, FORMATTER);
+    return OffsetDateTime.parse(token, OFFSET_DATE_TIME_FORMATTER).atZoneSameInstant(SYSTEM_ZONE).toOffsetDateTime();
   }
 
   @Override
@@ -83,14 +89,26 @@ public class PGtstzrange extends PGrange<OffsetDateTime> implements Serializable
     return o1.isEqual(o2);
   }
 
-  private static final DateTimeFormatter FORMATTER = new DateTimeFormatterBuilder()
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
+  }
+
+  public static final DateTimeFormatter LOCAL_DATE_TIME_SPACE = new DateTimeFormatterBuilder()
+      .parseCaseInsensitive()
+      .append(ISO_LOCAL_DATE)
+      .appendLiteral(' ')
+      .append(ISO_LOCAL_TIME)
+      .toFormatter(Locale.ROOT);
+
+  public static final DateTimeFormatter OFFSET_DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
       .appendLiteral('"')
-      .appendPattern("yyyy-MM-dd HH:mm:ss")
-      .optionalStart()
-      .optionalStart()
-      .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
-      .optionalEnd()
-      .appendPattern("x")
+      .append(LOCAL_DATE_TIME_SPACE)
+      .parseLenient()
+      .appendOffsetId()
+      .parseStrict()
       .appendLiteral('"')
-      .toFormatter(Locale.ENGLISH);
+      .toFormatter(Locale.ROOT);
 }

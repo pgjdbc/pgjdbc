@@ -411,21 +411,21 @@ public class PgConnection implements BaseConnection {
         Oid.BYTEA,
         Oid.INT2,
         Oid.INT4,
-        Oid.INT4_RANGE,
+        Oid.INT4RANGE,
         Oid.INT8,
-        Oid.INT8_RANGE,
+        Oid.INT8RANGE,
         Oid.FLOAT4,
         Oid.FLOAT8,
         Oid.NUMERIC,
-        Oid.NUM_RANGE,
+        Oid.NUMRANGE,
         Oid.TIME,
         Oid.DATE,
-        Oid.DATE_RANGE,
+        Oid.DATERANGE,
         Oid.TIMETZ,
         Oid.TIMESTAMP,
-        Oid.TIMESTAMP_RANGE,
+        Oid.TSRANGE,
         Oid.TIMESTAMPTZ,
-        Oid.TIMESTAMPTZ_RANGE,
+        Oid.TSTZRANGE,
         Oid.BYTEA_ARRAY,
         Oid.INT2_ARRAY,
         Oid.INT4_ARRAY,
@@ -474,7 +474,7 @@ public class PgConnection implements BaseConnection {
       throws PSQLException {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
-    if (oids == null) {
+    if (oids == null || oids.trim().isEmpty()) {
       return Collections.emptySet();
     }
     return getOidSet(oids);

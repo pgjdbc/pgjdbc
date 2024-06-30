@@ -17,6 +17,8 @@ import java.sql.SQLException;
  */
 public final class PGnumrange extends PGrange<BigDecimal> implements Serializable, Cloneable {
 
+  public static final String PG_TYPE = "numrange";
+
   /**
    * Initialize a range with a given bounds.
    *
@@ -30,7 +32,7 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
   public PGnumrange(@Nullable BigDecimal lowerBound, boolean lowerInclusive,
       @Nullable BigDecimal upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
-    setType("numrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -41,14 +43,14 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
    */
   public PGnumrange(@Nullable BigDecimal lowerBound, @Nullable BigDecimal upperBound) {
     super(lowerBound, upperBound);
-    setType("numrange");
+    setType(PG_TYPE);
   }
 
   /**
    * Required constructor, initializes an empty range.
    */
   public PGnumrange() {
-    setType("numrange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -60,7 +62,7 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
    */
   public PGnumrange(String value) throws SQLException {
     super(value);
-    setType("numrange");
+    setType(PG_TYPE);
   }
 
   @Override
@@ -84,6 +86,13 @@ public final class PGnumrange extends PGrange<BigDecimal> implements Serializabl
   @Override
   protected BigDecimal parseToken(String token) {
     return new BigDecimal(token);
+  }
+
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
   }
 
 }

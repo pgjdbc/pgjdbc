@@ -11,10 +11,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.Serializable;
 import java.sql.SQLException;
 
+import static org.postgresql.util.PGrange.TypeTag.EMPTY;
+
 /**
  * This implements a class that handles the PostgreSQL int8range type
  */
 public final class PGint8range extends PGrange<Long> implements PGBinaryObject, Serializable, Cloneable {
+
+  public static final String PG_TYPE = "int8range";
 
   /**
    * Initialize a range with a given bounds.
@@ -29,7 +33,7 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
   public PGint8range(@Nullable Long lowerBound, boolean lowerInclusive,
       @Nullable Long upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
-    setType("int8range");
+    setType(PG_TYPE);
   }
 
   /**
@@ -40,14 +44,14 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
    */
   public PGint8range(@Nullable Long lowerBound, @Nullable Long upperBound) {
     super(lowerBound, upperBound);
-    setType("int8range");
+    setType(PG_TYPE);
   }
 
   /**
    * Required constructor, initializes an empty range.
    */
   public PGint8range() {
-    setType("int8range");
+    setType(PG_TYPE);
   }
 
   /**
@@ -59,7 +63,7 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
    */
   public PGint8range(String value) throws SQLException {
     super(value);
-    setType("int8range");
+    setType(PG_TYPE);
   }
 
   @Override
@@ -105,6 +109,7 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
       }
       case EMPTY:
       case BOTH_OPEN: {
+        this.empty = tag == EMPTY;
         this.lowerInclusive = false;
         this.upperInclusive = false;
         this.lowerBound = null;
@@ -168,6 +173,13 @@ public final class PGint8range extends PGrange<Long> implements PGBinaryObject, 
       ByteConverter.int8(bytes, idx, this.upperBound + (this.isUpperInclusive() ? 1 : 0));
       idx += 8;
     }
+  }
+
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
   }
 
 }

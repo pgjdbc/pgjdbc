@@ -104,18 +104,18 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("JSON_ARRAY", "_JSON");
     oidTypeNames.put("REF_CURSOR", "REFCURSOR");
     oidTypeNames.put("REF_CURSOR_ARRAY", "_REFCURSOR");
-    oidTypeNames.put("INT4_RANGE", "INT4RANGE");
-    oidTypeNames.put("INT8_RANGE", "INT8RANGE");
-    oidTypeNames.put("NUM_RANGE", "NUMRANGE");
-    oidTypeNames.put("DATE_RANGE", "DATERANGE");
-    oidTypeNames.put("TIMESTAMP_RANGE", "TSRANGE");
-    oidTypeNames.put("TIMESTAMPTZ_RANGE", "TSTZRANGE");
-    oidTypeNames.put("INT4_RANGE_ARRAY", "_INT4RANGE");
-    oidTypeNames.put("INT8_RANGE_ARRAY", "_INT8RANGE");
-    oidTypeNames.put("NUM_RANGE_ARRAY", "_NUMRANGE");
-    oidTypeNames.put("DATE_RANGE_ARRAY", "_DATERANGE");
-    oidTypeNames.put("TIMESTAMP_RANGE_ARRAY", "_TSRANGE");
-    oidTypeNames.put("TIMESTAMPTZ_RANGE_ARRAY", "_TSTZRANGE");
+    oidTypeNames.put("INT4RANGE", "INT4RANGE");
+    oidTypeNames.put("INT8RANGE", "INT8RANGE");
+    oidTypeNames.put("NUMRANGE", "NUMRANGE");
+    oidTypeNames.put("DATERANGE", "DATERANGE");
+    oidTypeNames.put("TSRANGE", "TSRANGE");
+    oidTypeNames.put("TSTZRANGE", "TSTZRANGE");
+    oidTypeNames.put("INT4RANGE_ARRAY", "_INT4RANGE");
+    oidTypeNames.put("INT8RANGE_ARRAY", "_INT8RANGE");
+    oidTypeNames.put("NUMRANGE_ARRAY", "_NUMRANGE");
+    oidTypeNames.put("DATERANGE_ARRAY", "_DATERANGE");
+    oidTypeNames.put("TSRANGE_ARRAY", "_TSRANGE");
+    oidTypeNames.put("TSTZRANGE_ARRAY", "_TSTZRANGE");
   }
 
   @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")

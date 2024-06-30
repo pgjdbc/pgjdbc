@@ -24,14 +24,18 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 
 import static org.junit.Assert.*;
+import static org.postgresql.util.PGtstzrange.OFFSET_DATE_TIME_FORMATTER;
 
 @RunWith(Parameterized.class)
 public class RangeTypeTest extends BaseTest4 {
+
+  private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
 
   public RangeTypeTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -739,11 +743,11 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")"), "[\"1970-01-01 00:00:00\"," +
           "\"1970-01-03 00:00:00\")");
       assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]"), "(\"1970-01-01 00:00:00\"," +
-          "\"1970-01-03 00:00:00\")");
+          "\"1970-01-02 00:00:00\"]");
       assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(),
           LocalDate.ofEpochDay(2).atStartOfDay()), "[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")");
       assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(), false,
-          LocalDate.ofEpochDay(2).atStartOfDay(), true), "[\"1970-01-02 00:00:00\",\"1970-01-04 00:00:00\")");
+          LocalDate.ofEpochDay(2).atStartOfDay(), true), "(\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\"]");
     }
   }
 
@@ -781,8 +785,6 @@ public class RangeTypeTest extends BaseTest4 {
   public void selectTsTzRange() throws SQLException {
     try (Statement stmt = con.createStatement()) {
 
-      ZoneOffset offset = ZoneOffset.UTC;
-
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'(,)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column",
           "'[\"1970-01-01 00:00:00+00\",\"9999-12-31 00:00:00+00\")'"));
@@ -807,8 +809,8 @@ public class RangeTypeTest extends BaseTest4 {
         // [1970-01-01,9999-12-31)
         assertTrue(range.isLowerInclusive());
         assertFalse(range.isLowerInfinite());
-        assertEquals(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset), range.getLowerBound());
-        assertEquals(LocalDate.of(9999, 12, 31).atStartOfDay().atOffset(offset), range.getUpperBound());
+        assertEquals(offsetDateTime("1970-01-01"), range.getLowerBound());
+        assertEquals(offsetDateTime("9999-12-31"), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -817,7 +819,7 @@ public class RangeTypeTest extends BaseTest4 {
         // (,2020-12-21)
         assertFalse(range.isLowerInclusive());
         assertTrue(range.isLowerInfinite());
-        assertEquals(LocalDate.of(2020, 12, 21).atStartOfDay().atOffset(offset), range.getUpperBound());
+        assertEquals(offsetDateTime("2020-12-21"), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -826,8 +828,8 @@ public class RangeTypeTest extends BaseTest4 {
         // [1337-04-20,2069-04-20)
         assertTrue(range.isLowerInclusive());
         assertFalse(range.isLowerInfinite());
-        assertEquals(LocalDate.of(1337, 4, 20).atStartOfDay().atOffset(offset), range.getLowerBound());
-        assertEquals(LocalDate.of(2069, 4, 20).atStartOfDay().atOffset(offset), range.getUpperBound());
+        assertEquals(offsetDateTime("1337-04-20"), range.getLowerBound());
+        assertEquals(offsetDateTime("2069-04-20"), range.getUpperBound());
         assertFalse(range.isUpperInclusive());
         assertFalse(range.isUpperInfinite());
 
@@ -836,7 +838,7 @@ public class RangeTypeTest extends BaseTest4 {
         // [2001-09-12,)
         assertTrue(range.isLowerInclusive());
         assertFalse(range.isLowerInfinite());
-        assertEquals(LocalDate.of(2001, 9, 12).atStartOfDay().atOffset(offset), range.getLowerBound());
+        assertEquals(offsetDateTime("2001-09-12"), range.getLowerBound());
         assertFalse(range.isUpperInclusive());
         assertTrue(range.isUpperInfinite());
 
@@ -854,22 +856,22 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-01 00:00:00+00\")"), "empty");
       assertTsTzRangeInsert(insert, new PGtstzrange("(,)"), "(,)");
 
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",)"), "[\"1970-01-01 00:00:00+00\",)");
-      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",]"), "(\"1970-01-01 00:00:00+00\",)");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",)"), "[" + tstz("1970-01-01") + ",)");
+      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",]"), "(" + tstz("1970-01-01") + ",)");
 
-      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\")"), "(,\"1970-01-01 00:00:00+00\")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\"]"), "[,\"1970-01-01 00:00:00+00\")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\")"), "(," + tstz("1970-01-01") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\"]"), "(," + tstz("1970-01-01") + "]");
 
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\")"), "[\"1970-01-01 00:00:00+00\"," +
-          "\"1970-01-02 00:00:00+00\")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")"), "[\"1970-01-01 00:00:00+00\"," +
-          "\"1970-01-03 00:00:00+00\")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "(\"1970-01-01 00:00:00+00\"," +
-          "\"1970-01-03 00:00:00+00\")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," +
+          tstz("1970-01-02") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," +
+          tstz("1970-01-03") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "(" + tstz("1970-01-01") + "," +
+          tstz("1970-01-02") + "]");
       assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset),
-          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset)), "[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")");
+          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset)), "[" + tstz("1970-01-01") + "," + tstz("1970-01-03") + ")");
       assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset), false,
-          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset), true), "[\"1970-01-02 00:00:00+00\",\"1970-01-04 00:00:00+00\")");
+          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset), true), "(" + tstz("1970-01-01") + "," + tstz("1970-01-03") + "]");
     }
   }
 
@@ -896,5 +898,17 @@ public class RangeTypeTest extends BaseTest4 {
     }
   }
 
+  private static OffsetDateTime offsetDateTime(String tstzOrDate) {
+    return OffsetDateTime.parse(tstzOrDate + (tstzOrDate.length() == 10 ? "T00:00:00Z" : ""))
+        .atZoneSameInstant(SYSTEM_ZONE).toOffsetDateTime();
+  }
+
+  /**
+   * @return date formatted as Postgres tstzrange: "1970-01-01 01:00:00+01:00" (for JVM timezone Europe/Paris)
+   */
+  private static String tstz(String date) {
+    return OffsetDateTime.parse(date + (date.length() == 10 ? "T00:00:00Z" : ""))
+        .atZoneSameInstant(SYSTEM_ZONE).toOffsetDateTime().format(OFFSET_DATE_TIME_FORMATTER);
+  }
 
 }

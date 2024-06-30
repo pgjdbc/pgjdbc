@@ -9,6 +9,8 @@ import java.time.LocalDate;
 
 public class PGdaterange extends PGrange<LocalDate> implements Serializable, Cloneable {
 
+  public static final String PG_TYPE = "daterange";
+
   /**
    * Initialize a range with a given bounds.
    *
@@ -19,10 +21,10 @@ public class PGdaterange extends PGrange<LocalDate> implements Serializable, Clo
    * @param upperInclusive {@code true} to make the upper bound is inclusive,
    *                       {@code false} to make the upper bound is exclusive
    */
-  public PGdaterange(@Nullable LocalDate lowerBound, @Nullable boolean lowerInclusive,
-      LocalDate upperBound, boolean upperInclusive) {
+  public PGdaterange(@Nullable LocalDate lowerBound, boolean lowerInclusive,
+      @Nullable LocalDate upperBound, boolean upperInclusive) {
     super(lowerBound, lowerInclusive, upperBound, upperInclusive);
-    setType("daterange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -33,14 +35,14 @@ public class PGdaterange extends PGrange<LocalDate> implements Serializable, Clo
    */
   public PGdaterange(@Nullable LocalDate lowerBound, @Nullable LocalDate upperBound) {
     super(lowerBound, upperBound);
-    setType("daterange");
+    setType(PG_TYPE);
   }
 
   /**
    * Required constructor, initializes an empty range.
    */
   public PGdaterange() {
-    setType("daterange");
+    setType(PG_TYPE);
   }
 
   /**
@@ -52,7 +54,7 @@ public class PGdaterange extends PGrange<LocalDate> implements Serializable, Clo
    */
   public PGdaterange(String value) throws SQLException {
     super(value);
-    setType("daterange");
+    setType(PG_TYPE);
   }
 
   @Override
@@ -63,6 +65,13 @@ public class PGdaterange extends PGrange<LocalDate> implements Serializable, Clo
   @Override
   protected LocalDate parseToken(String token) {
     return LocalDate.parse(token);
+  }
+
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
   }
 
 }

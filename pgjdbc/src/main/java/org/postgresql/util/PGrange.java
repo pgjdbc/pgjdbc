@@ -22,6 +22,8 @@ import java.util.Objects;
 public abstract class PGrange<T extends Serializable> extends PGobject implements Serializable,
     Cloneable {
 
+  private static final String CONVERSION_TO_TYPE_FAILED = "Conversion to type {0} failed: {1}.";
+
   protected boolean lowerInclusive;
   protected boolean upperInclusive;
   protected @Nullable T lowerBound;
@@ -178,7 +180,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     }
     if (value.length() < 2) {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          GT.tr(CONVERSION_TO_TYPE_FAILED, type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
@@ -188,7 +190,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       this.lowerInclusive = false;
     } else {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          GT.tr(CONVERSION_TO_TYPE_FAILED, type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
@@ -198,14 +200,14 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       this.upperInclusive = false;
     } else {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          GT.tr(CONVERSION_TO_TYPE_FAILED, type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
     PGtokenizer t = new PGtokenizer(value.substring(1, value.length() - 1), ',');
     if (t.getSize() == 0 || t.getSize() > 2) {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          GT.tr(CONVERSION_TO_TYPE_FAILED, type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
 
@@ -228,7 +230,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       }
     } catch (RuntimeException e) {
       throw new PSQLException(
-          GT.tr("Conversion to type {0} failed: {1}.", type, value),
+          GT.tr(CONVERSION_TO_TYPE_FAILED, type, value),
           PSQLState.DATA_TYPE_MISMATCH);
     }
   }
@@ -275,6 +277,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
     if (obj.getClass() != this.getClass()) {
       return false;
     }
+    @SuppressWarnings("unchecked")
     PGrange<T> other = (PGrange<T>) obj;
     return (this.isEmpty() && other.isEmpty()) || this.lowerInclusive == other.lowerInclusive
         && this.upperInclusive == other.upperInclusive
@@ -299,7 +302,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   /**
    * Type tag for the range over the binary protocol.
    */
-  enum TypeTag {
+  protected enum TypeTag {
 
     /**
      * Both the lower and the upper bound are set.
@@ -349,6 +352,13 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
       return this.value;
     }
 
+  }
+
+  @SuppressWarnings("java:S2975")
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    // squid:S2157 "Cloneables" should implement "clone
+    return super.clone();
   }
 
 }
