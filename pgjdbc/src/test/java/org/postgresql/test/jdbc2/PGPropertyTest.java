@@ -240,6 +240,7 @@ class PGPropertyTest {
     excluded.add("DATABASE_METADATA_CACHE_FIELDS_MIB"); // databaseMetadataCacheFieldsMi[B]
     excluded.add("STRING_TYPE"); // string[t]ype
     excluded.add("SSL_MODE"); // ssl[m]ode
+    excluded.add("SSL_NEGOTIATION"); // ssl[m]ode
     excluded.add("SSL_FACTORY"); // ssl[f]actory
     excluded.add("SSL_FACTORY_ARG"); // ssl[f]actory[a]rg
     excluded.add("SSL_HOSTNAME_VERIFIER"); // ssl[h]ostname[v]erifier

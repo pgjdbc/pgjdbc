@@ -20,6 +20,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
@@ -27,12 +28,24 @@ public class MakeSSL extends ObjectFactory {
 
   private static final Logger LOGGER = Logger.getLogger(MakeSSL.class.getName());
 
+  /*
+  * Application-Layer Protocol Negotiation is required for direct connections
+  * to avoid protocol confusion attacks (e.g https://alpaca-attack.com/).
+  *
+  * ALPN is specified in RFC 7301
+  *
+  * This string should be registered at:
+  * https://www.iana.org/assignments/tls-extensiontype-values/tls-extensiontype-values.xhtml#alpn-protocol-ids
+  */
+  private static final String[] PG_ALPN_PROTOCOL = { "postgresql" };
+
   public static void convert(PGStream stream, Properties info)
       throws PSQLException, IOException {
     LOGGER.log(Level.FINE, "converting regular socket connection to ssl");
 
     SSLSocketFactory factory = SocketFactoryFactory.getSslSocketFactory(info);
     SSLSocket newConnection;
+    SSLParameters sslParams;
     try {
       newConnection = (SSLSocket) factory.createSocket(stream.getSocket(),
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
@@ -40,6 +53,12 @@ public class MakeSSL extends ObjectFactory {
       newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
       // We must invoke manually, otherwise the exceptions are hidden
       newConnection.setUseClientMode(true);
+
+      // Set ALPN protocol
+      sslParams = newConnection.getSSLParameters();
+      sslParams.setApplicationProtocols(PG_ALPN_PROTOCOL);
+      newConnection.setSSLParameters(sslParams);
+
       newConnection.startHandshake();
     } catch (IOException ex) {
       throw new PSQLException(GT.tr("SSL error: {0}", ex.getMessage()),
