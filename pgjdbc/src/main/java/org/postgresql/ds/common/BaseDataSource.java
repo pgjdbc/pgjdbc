@@ -763,8 +763,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @param sslNegotiation one of SSLNegotiation.POSTGRES or SSLNegotiation.DIRECT
    * @see PGProperty#SSL_NEGOTIATION
    */
-  public void setSslNegotiation(@Nullable SslNegotiation sslNegotiation) {
-    PGProperty.SSL_NEGOTIATION.set(properties, sslNegotiation.value());
+  public void setSslNegotiation(@Nullable String sslNegotiation) {
+    PGProperty.SSL_NEGOTIATION.set(properties, sslNegotiation);
   }
 
   /**
