@@ -24,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -56,6 +57,10 @@ public class TypeInfoCache implements TypeInfo {
 
   // pgname (String) -> extension pgobject (Class)
   private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
+  // pgname (String) -> struct descriptor
+  private final Map<String, PgStructDescriptor> pgNameToPgStructDescriptor;
+  // oid (Integer) -> struct descriptor
+  private final Map<Integer, PgStructDescriptor> pgOidToPgStructDescriptor;
 
   // type array oid -> base type's oid
   private final Map<Integer, Integer> pgArrayToPgType;
@@ -72,6 +77,7 @@ public class TypeInfoCache implements TypeInfo {
   private @Nullable PreparedStatement getArrayElementOidStatement;
   private @Nullable PreparedStatement getArrayDelimiterStatement;
   private @Nullable PreparedStatement getTypeInfoStatement;
+  private @Nullable PreparedStatement getCustomTypeAttributesStatement;
   private @Nullable PreparedStatement getAllTypeInfoStatement;
   private final ResourceLock lock = new ResourceLock();
 
@@ -114,7 +120,6 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
-   *
    * <p>
    * Additional values used at runtime (including case variants) will be added to the map.
    * </p>
@@ -163,6 +168,9 @@ public class TypeInfoCache implements TypeInfo {
     pgNameToPgObject = new HashMap<>((int) Math.round(types.length * 1.5));
     pgArrayToPgType = new HashMap<>((int) Math.round(types.length * 1.5));
     arrayOidToDelimiter = new HashMap<>((int) Math.round(types.length * 2.5));
+
+    pgOidToPgStructDescriptor = new HashMap<>();
+    pgNameToPgStructDescriptor = new HashMap<>();
 
     // needs to be synchronized because the iterator is returned
     // from getPGTypeNamesWithSQLTypes()
@@ -239,7 +247,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidToSQLType.keySet().iterator();
   }
 
-  private static String getSQLTypeQuery(boolean typoidParam) {
+  private String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -267,7 +275,22 @@ public class TypeInfoCache implements TypeInfo {
     return sql.toString();
   }
 
-  private static int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
+  private String getComplexTypeAttributesQuery() {
+    return "         SELECT \n"
+        + "                t.typname AS type_name,\n"
+        + "                a.attname AS attr_name,\n"
+        + "                a.atttypid AS attr_oid,\n"
+        + "                t.oid type_oid\n"
+        + "         FROM pg_catalog.pg_attribute a\n"
+        + "                  JOIN pg_catalog.pg_type t\n"
+        + "                       ON a.attrelid = t.typrelid\n"
+        + "                  JOIN pg_catalog.pg_namespace n\n"
+        + "                       ON ( n.oid = t.typnamespace )\n"
+        + "         WHERE a.attnum > 0\n"
+        + "           AND NOT a.attisdropped AND t.OID = ?;";
+  }
+
+  private int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
     Integer type = null;
     boolean isArray = rs.getBoolean("is_array");
     String typtype = rs.getString("typtype");
@@ -326,6 +349,15 @@ public class TypeInfoCache implements TypeInfo {
       this.getTypeInfoStatement = getTypeInfoStatement;
     }
     return getTypeInfoStatement;
+  }
+
+  private PreparedStatement prepareGetComplexTypeAttributesStatement() throws SQLException {
+    PreparedStatement getComplexTypeAttributesInfoStatement = this.getCustomTypeAttributesStatement;
+    if (getComplexTypeAttributesInfoStatement == null) {
+      getComplexTypeAttributesInfoStatement = conn.prepareStatement(getComplexTypeAttributesQuery());
+      this.getCustomTypeAttributesStatement = getComplexTypeAttributesInfoStatement;
+    }
+    return getComplexTypeAttributesInfoStatement;
   }
 
   @Override
@@ -396,8 +428,43 @@ public class TypeInfoCache implements TypeInfo {
       }
       rs.close();
 
+      if (sqlType == Types.STRUCT) {
+        loadStruct(typeOid);
+      }
       oidToSQLType.put(typeOid, sqlType);
       return sqlType;
+    }
+  }
+
+  private void loadStruct(int typeOid) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      PreparedStatement getCustomTypeFieldsStatement = prepareGetComplexTypeAttributesStatement();
+      getCustomTypeFieldsStatement.setLong(1, intOidToLong(typeOid));
+      if (!((BaseStatement) getCustomTypeFieldsStatement)
+          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+
+      ResultSet rs = castNonNull(getCustomTypeFieldsStatement.getResultSet());
+
+      ArrayList<PgAttribute> pgAttributes = new ArrayList<>();
+      String typeName = null;
+      while (rs.next()) {
+        if (typeName == null) {
+          typeName = rs.getString("type_name");
+        }
+
+        String attrName = rs.getString("attr_name");
+        int attrOid = rs.getInt("attr_oid");
+        pgAttributes.add(new PgAttribute(castNonNull(attrName), castNonNull(getPGType(attrOid)), attrOid));
+      }
+      rs.close();
+
+      if (!pgAttributes.isEmpty()) {
+        PgStructDescriptor descriptor = new PgStructDescriptor(castNonNull(typeName), pgAttributes.toArray(new PgAttribute[0]));
+        pgOidToPgStructDescriptor.put(typeOid, descriptor);
+        pgNameToOid.put(typeName, typeOid);
+      }
     }
   }
 
@@ -750,6 +817,33 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
+  public @Nullable PgStructDescriptor getPgStructDescriptor(String type) throws SQLException {
+    try (ResourceLock ignore = lock.obtain()) {
+      PgStructDescriptor descriptor = pgNameToPgStructDescriptor.get(type);
+      if (descriptor != null) {
+        return descriptor;
+      }
+
+      int sqlType = getSQLType(type); // loads the type if not already loaded
+      assert sqlType == Types.STRUCT : "Could not map " + type + " to a Struct type.";
+
+      Integer oid = pgNameToOid.get(type);
+      if (oid == null || (descriptor = pgOidToPgStructDescriptor.get(oid)) == null) {
+        throw new PSQLException(
+            GT.tr("No type mapping for {0}.", type),
+            PSQLState.NO_DATA);
+      }
+
+      if (!type.equals(descriptor.sqlTypeName())) {
+        descriptor = new PgStructDescriptor(type, descriptor.pgAttributes());
+        pgNameToPgStructDescriptor.put(type, descriptor);
+      }
+
+      return descriptor;
+    }
+  }
+
+  @Override
   public String getJavaClass(int oid) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       String pgTypeName = getPGType(oid);
@@ -992,8 +1086,6 @@ public class TypeInfoCache implements TypeInfo {
             return 13 + 1 + 8 + secondSize;
           case Oid.TIMESTAMPTZ:
             return 13 + 1 + 8 + secondSize + 6;
-          default:
-            throw new IllegalStateException("oid " + oid + " should not appear here");
         }
       case Oid.INTERVAL:
         // SELECT LENGTH('-123456789 years 11 months 33 days 23 hours 10.123456 seconds'::interval);
