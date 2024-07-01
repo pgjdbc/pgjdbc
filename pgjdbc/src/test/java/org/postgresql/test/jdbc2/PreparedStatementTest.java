@@ -18,6 +18,7 @@ import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BrokenInputStream;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 
 import org.junit.Assert;
@@ -648,7 +649,7 @@ public class PreparedStatementTest extends BaseTest4 {
       fail("NaN::numeric rs.getBigDecimal");
     } catch (SQLException e) {
       assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
-      assertEquals("Bad value for type BigDecimal : NaN", e.getMessage());
+      assertEquals(GT.tr("Bad value for type {0} : {1}", "BigDecimal", "NaN"), e.getMessage());
     }
 
     rs.close();
@@ -700,7 +701,7 @@ public class PreparedStatementTest extends BaseTest4 {
       fail("inf numeric rs.getBigDecimal");
     } catch (SQLException e) {
       assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
-      assertEquals("Bad value for type BigDecimal : Infinity", e.getMessage());
+      assertEquals(GT.tr("Bad value for type {0} : {1}", "BigDecimal", "Infinity"), e.getMessage());
     }
 
     try {
@@ -708,7 +709,7 @@ public class PreparedStatementTest extends BaseTest4 {
       fail("-inf numeric rs.getBigDecimal");
     } catch (SQLException e) {
       assertEquals(PSQLState.NUMERIC_VALUE_OUT_OF_RANGE.getState(), e.getSQLState());
-      assertEquals("Bad value for type BigDecimal : -Infinity", e.getMessage());
+      assertEquals(GT.tr("Bad value for type {0} : {1}", "BigDecimal", "-Infinity"), e.getMessage());
     }
   }
 
