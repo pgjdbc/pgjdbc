@@ -26,6 +26,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Struct;
 
 class CompositeTest {
 
@@ -71,9 +72,9 @@ class CompositeTest {
     PreparedStatement pstmt = conn.prepareStatement("SELECT '(1,2.2,)'::simplecompositetest");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo = (PGobject) rs.getObject(1);
-    assertEquals("simplecompositetest", pgo.getType());
-    assertEquals("(1,2.2,)", pgo.getValue());
+    Struct s = (Struct) rs.getObject(1);
+    assertEquals("simplecompositetest", s.getSQLTypeName());
+    assertEquals("(1,2.2,)", s.toString());
   }
 
   @Test
@@ -82,46 +83,41 @@ class CompositeTest {
         "SELECT '(\"{1,2}\",{},\"(1,2.2,)\")'::\"Composites\".\"ComplexCompositeTest\"");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo = (PGobject) rs.getObject(1);
-    assertEquals("\"Composites\".\"ComplexCompositeTest\"", pgo.getType());
-    assertEquals("(\"{1,2}\",{},\"(1,2.2,)\")", pgo.getValue());
+    Struct s = (Struct) rs.getObject(1);
+    assertEquals("\"Composites\".\"ComplexCompositeTest\"", s.getSQLTypeName());
+    assertEquals("(\"{1,2}\",{},\"(1,2.2,)\")", s.toString());
   }
 
   @Test
   void simpleArgumentSelect() throws SQLException {
     Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
-    PGobject pgo = new PGobject();
-    pgo.setType("simplecompositetest");
-    pgo.setValue("(1,2.2,)");
-    pstmt.setObject(1, pgo);
+    Struct s = conn.createStruct("simplecompositetest", new Object[] {1, 2.2, null});
+    pstmt.setObject(1, s);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo2 = (PGobject) rs.getObject(1);
-    assertEquals(pgo, pgo2);
+    Struct s2 = (Struct) rs.getObject(1);
+    assertEquals(s, s2);
   }
 
   @Test
   void complexArgumentSelect() throws SQLException {
     Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
-    PGobject pgo = new PGobject();
-    pgo.setType("\"Composites\".\"ComplexCompositeTest\"");
-    pgo.setValue("(\"{1,2}\",{},\"(1,2.2,)\")");
-    pstmt.setObject(1, pgo);
+    Struct s = conn.createStruct("\"Composites\".\"ComplexCompositeTest\"",
+        new Object[] {"{1,2}", "{}", "(1,2.2,)"});
+    pstmt.setObject(1, s);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo2 = (PGobject) rs.getObject(1);
-    assertEquals(pgo, pgo2);
+    Struct s2 = (Struct) rs.getObject(1);
+    assertEquals(s.toString(), s2.toString());
   }
 
   @Test
   void compositeFromTable() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("INSERT INTO compositetabletest VALUES(?, ?)");
-    PGobject pgo1 = new PGobject();
-    pgo1.setType("public.simplecompositetest");
-    pgo1.setValue("(1,2.2,)");
-    pstmt.setObject(1, pgo1);
+    Struct s = conn.createStruct("public.simplecompositetest", new Object[] {1, 2.2, null});
+    pstmt.setObject(1, s);
     String[] ctArr = new String[1];
     ctArr[0] = "(\"{1,2}\",{},\"(1,2.2,)\")";
     Array pgarr1 = conn.createArrayOf("\"Composites\".\"ComplexCompositeTest\"", ctArr);
@@ -131,23 +127,27 @@ class CompositeTest {
     pstmt = conn.prepareStatement("SELECT * FROM compositetabletest");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo2 = (PGobject) rs.getObject(1);
+    Struct s2 = (Struct) rs.getObject(1);
     Array pgarr2 = (Array) rs.getObject(2);
-    assertEquals("simplecompositetest", pgo2.getType());
+    assertEquals("simplecompositetest", s2.getSQLTypeName());
     assertEquals("\"Composites\".\"ComplexCompositeTest\"", pgarr2.getBaseTypeName());
     Object[] pgobjarr2 = (Object[]) pgarr2.getArray();
     assertEquals(1, pgobjarr2.length);
-    PGobject arr2Elem = (PGobject) pgobjarr2[0];
-    assertEquals("\"Composites\".\"ComplexCompositeTest\"", arr2Elem.getType());
-    assertEquals("(\"{1,2}\",{},\"(1,2.2,)\")", arr2Elem.getValue());
+    Struct arr2Elem = (Struct) pgobjarr2[0];
+    assertEquals("\"Composites\".\"ComplexCompositeTest\"", arr2Elem.getSQLTypeName());
+    assertEquals("(\"{1,2}\",{},\"(1,2.2,)\")", arr2Elem.toString());
     rs.close();
     pstmt = conn.prepareStatement("SELECT c FROM compositetabletest c");
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    PGobject pgo3 = (PGobject) rs.getObject(1);
-    assertEquals("compositetabletest", pgo3.getType());
-    assertEquals("(\"(1,2.2,)\",\"{\"\"(\\\\\"\"{1,2}\\\\\"\",{},\\\\\"\"(1,2.2,)\\\\\"\")\"\"}\")",
-        pgo3.getValue());
+    Struct s3 = (Struct) rs.getObject(1);
+    assertEquals("compositetabletest", s3.getSQLTypeName());
+    Object[] attrs = s3.getAttributes();
+    Struct s4 = (Struct) attrs[0];
+    assertEquals("(1,2.2,)", s4.toString());
+    Array arr = (Array) attrs[1];
+    Struct s5 = ((Struct[]) arr.getArray())[0];
+    assertEquals("(\"{1,2}\",{},\"(1,2.2,)\")", s5.toString());
   }
 
   @Test
