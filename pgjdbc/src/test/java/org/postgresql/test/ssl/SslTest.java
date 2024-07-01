@@ -112,8 +112,9 @@ public class SslTest {
     for (SslNegotiation sslNegotiation :  SslNegotiation.values()) {
       if (sslNegotiation == SslNegotiation.DIRECT) {
         try (Connection con = TestUtil.openDB()) {
-          if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17))
+          if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17)) {
             continue; // ignore direct connection unless we have version 17
+          }
         } catch (SQLException e) {
           fail("Failed to connect to the database: " + e.getMessage());
         }
@@ -455,13 +456,13 @@ public class SslTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "host={0}, db={1} sslMode={2}, sslNegotiation={3}, clientCert={4}, clientRootCert={5}, gssEncMode={6}")
-  void run(Hostname host, TestDatabase db, SslMode sslmode,SSLNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
+  void run(Hostname host, TestDatabase db, SslMode sslmode,SslNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
     initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
     Properties props = new Properties();
     props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
-    PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value);
+    PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value());
     PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");
