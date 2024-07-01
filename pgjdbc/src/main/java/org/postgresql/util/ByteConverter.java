@@ -135,7 +135,7 @@ public class ByteConverter {
     //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
     //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
-    //indicates positive, negative or NaN
+    //indicates positive, negative, NaN, Infinity or -Infinity
     short sign = ByteConverter.int2(bytes, pos + 4);
     //number of digits after the decimal. This must be >= 0.
     //a value of 0 indicates a whole number (integer).
