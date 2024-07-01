@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
 import org.postgresql.PGStatement;
@@ -29,7 +28,8 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -594,65 +594,37 @@ public class TimestampTest extends BaseTest4 {
     assertEquals("Unix epoch timestamp with time zone and time with time zone should match", tstz, tz);
   }
 
-  private static Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,
-      String tz) {
-    Timestamp result = null;
-    java.text.DateFormat dateFormat;
-    try {
-      String ts;
-      ts = TestUtil.fix(y, 4) + "-"
-          + TestUtil.fix(m, 2) + "-"
-          + TestUtil.fix(d, 2) + " "
-          + TestUtil.fix(h, 2) + ":"
-          + TestUtil.fix(mn, 2) + ":"
-          + TestUtil.fix(se, 2) + " ";
-
-      if (tz == null) {
-        dateFormat = new SimpleDateFormat("y-M-d H:m:s");
-      } else {
-        ts = ts + tz;
-        dateFormat = new SimpleDateFormat("y-M-d H:m:s z");
-      }
-      java.util.Date date = dateFormat.parse(ts);
-      result = new Timestamp(date.getTime());
-      result.setNanos(f);
-    } catch (Exception ex) {
-      fail(ex.getMessage());
-    }
-    return result;
-  }
-
-  private static final Timestamp TS1WTZ =
-      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "PST");
   private static final String TS1WTZ_PGFORMAT = "1950-02-07 15:00:00.1-08";
+  private static final Timestamp TS1WTZ =
+      Timestamp.from(OffsetDateTime.parse(TS1WTZ_PGFORMAT.replace(' ', 'T')).toInstant());
 
-  private static final Timestamp TS2WTZ =
-      getTimestamp(2000, 2, 7, 15, 0, 0, 120000000, "GMT");
   private static final String TS2WTZ_PGFORMAT = "2000-02-07 15:00:00.12+00";
+  private static final Timestamp TS2WTZ =
+      Timestamp.from(OffsetDateTime.parse(TS2WTZ_PGFORMAT.replace(' ', 'T')).toInstant());
 
-  private static final Timestamp TS3WTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 123000000, "GMT");
   private static final String TS3WTZ_PGFORMAT = "2000-07-07 15:00:00.123+00";
+  private static final Timestamp TS3WTZ =
+      Timestamp.from(OffsetDateTime.parse(TS3WTZ_PGFORMAT.replace(' ', 'T')).toInstant());
 
-  private static final Timestamp TS4WTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, "GMT");
   private static final String TS4WTZ_PGFORMAT = "2000-07-07 15:00:00.123456+00";
+  private static final Timestamp TS4WTZ =
+      Timestamp.from(OffsetDateTime.parse(TS4WTZ_PGFORMAT.replace(' ', 'T')).toInstant());
 
-  private static final Timestamp TS1WOTZ =
-      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, null);
   private static final String TS1WOTZ_PGFORMAT = "1950-02-07 15:00:00.1";
+  private static final Timestamp TS1WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS1WOTZ_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS2WOTZ =
-      getTimestamp(2000, 2, 7, 15, 0, 0, 120000000, null);
   private static final String TS2WOTZ_PGFORMAT = "2000-02-07 15:00:00.12";
+  private static final Timestamp TS2WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS2WOTZ_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS3WOTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 123000000, null);
   private static final String TS3WOTZ_PGFORMAT = "2000-07-07 15:00:00.123";
+  private static final Timestamp TS3WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS3WOTZ_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS4WOTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, null);
   private static final String TS4WOTZ_PGFORMAT = "2000-07-07 15:00:00.123456";
+  private static final Timestamp TS4WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS4WOTZ_PGFORMAT.replace(' ', 'T')));
 
   private static final Timestamp TS5WOTZ =
       new Timestamp(PGStatement.DATE_NEGATIVE_INFINITY);
@@ -662,27 +634,27 @@ public class TimestampTest extends BaseTest4 {
       new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);
   private static final String TS6WOTZ_PGFORMAT = "infinity";
 
-  private static final Timestamp TS7WOTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 0, null);
   private static final String TS7WOTZ_PGFORMAT = "2000-07-07 15:00:00";
+  private static final Timestamp TS7WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS7WOTZ_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS8WOTZ =
-      getTimestamp(2000, 7, 7, 15, 0, 0, 20400000, null);
   private static final String TS8WOTZ_PGFORMAT = "2000-07-07 15:00:00.0204";
+  private static final Timestamp TS8WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS8WOTZ_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS9WOTZ =
-      getTimestamp(2000, 2, 7, 15, 0, 0, 789, null);
   private static final String TS9WOTZ_PGFORMAT = "2000-02-07 15:00:00.000000789";
-  private static final Timestamp TS9WOTZ_ROUNDED =
-      getTimestamp(2000, 2, 7, 15, 0, 0, 1000, null);
+  private static final Timestamp TS9WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS9WOTZ_PGFORMAT.replace(' ', 'T')));
   private static final String TS9WOTZ_ROUNDED_PGFORMAT = "2000-02-07 15:00:00.000001";
+  private static final Timestamp TS9WOTZ_ROUNDED =
+      Timestamp.valueOf(LocalDateTime.parse(TS9WOTZ_ROUNDED_PGFORMAT.replace(' ', 'T')));
 
-  private static final Timestamp TS10WOTZ =
-      getTimestamp(2018, 12, 31, 23, 59, 59, 999999500, null);
   private static final String TS10WOTZ_PGFORMAT = "2018-12-31 23:59:59.999999500";
-  private static final Timestamp TS10WOTZ_ROUNDED =
-      getTimestamp(2019, 1, 1, 0, 0, 0, 0, null);
+  private static final Timestamp TS10WOTZ =
+      Timestamp.valueOf(LocalDateTime.parse(TS10WOTZ_PGFORMAT.replace(' ', 'T')));
   private static final String TS10WOTZ_ROUNDED_PGFORMAT = "2019-01-01 00:00:00";
+  private static final Timestamp TS10WOTZ_ROUNDED =
+      Timestamp.valueOf(LocalDateTime.parse(TS10WOTZ_ROUNDED_PGFORMAT.replace(' ', 'T')));
 
   private static final Timestamp[] TS__WOTZ = {
     TS1WOTZ, TS2WOTZ, TS3WOTZ, TS4WOTZ, TS5WOTZ,

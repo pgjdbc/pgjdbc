@@ -256,6 +256,7 @@ public class TimestampUtils {
         result.day = number(s, start, end);
 
         start = skipWhitespace(s, end); // Skip trailing whitespace
+        start += start < slen && 'T' == s[start] ? 1 : 0; // Skip ISO Timestamp literal 'T' instead of whitespace after date
       }
 
       // Possibly read time.
