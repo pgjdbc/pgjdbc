@@ -581,7 +581,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
     SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
 
-    LOGGER.log(Level.FINEST, " FE=> SSLRequest");
+    LOGGER.log(Level.FINEST, ()-> String.format(" FE=> SSLRequest %s", sslNegotiation.value()));
 
     int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getNetworkTimeout();
