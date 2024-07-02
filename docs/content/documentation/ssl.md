@@ -69,11 +69,16 @@ If `sslmode=verify-full` , the server host name will be verified to make sure it
 The SSL connection will fail if the server certificate cannot be verified. `verify-full` is recommended in most 
 security-sensitive environments.
 
+
+There is a property `sslNegotiation`. This defaults to `postgres` but if set to `direct` it enables a second alternate way to initiate 
+SSL encryption. The server will recognize connections which immediately begin SSL negotiation 
+without any previous SSLRequest packets. See [Protocol Flow](https://www.postgresql.org/docs/17/protocol-flow.html#PROTOCOL-FLOW-SSL) for more details.
+
 The default SSL Socket factory is the LibPQFactory. In the case where the certificate validation is failing you can 
 try `sslcert=` and LibPQFactory will not send the client certificate. If the server is not configured to authenticate 
 using the certificate it should connect.
 
-Recent versions at the time of writing May 23/24 of openssl no longer support PKCS-8 keys. 
+Recent versions at the time of writing May 23/2024 of openssl no longer support PKCS-8 keys. 
 As a result we advise you to use PKCS-12 keys.
 
 The location of the client certificate, the PKCS-12 client key and root certificate can be overridden with the `sslcert` , 

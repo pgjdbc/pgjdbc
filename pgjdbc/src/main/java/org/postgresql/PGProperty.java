@@ -674,6 +674,24 @@ public enum PGProperty {
       new String[]{"disable", "allow", "prefer", "require", "verify-ca", "verify-full"}),
 
   /**
+   * Normally a GSS connection is attempted first. If this is set to {@code direct}
+   * then the GSS connection attempt will not be made
+   */
+  SSL_NEGOTIATION(
+      "sslNegotiation",
+      "postgres",
+      "This option controls whether the driver will perform its protocol\n"
+              + "negotiation to request encryption from the server or will just\n"
+              + "directly make a standard SSL connection. Traditional PostgreSQL\n"
+              + "protocol negotiation is the default and the most flexible with\n"
+              + "different server configurations. If the server is known to support\n"
+              + "direct SSL connections then the latter requires one\n"
+              + "fewer round trip reducing connection latency and also allows the use\n"
+              + "of protocol agnostic SSL network tools.",
+      false,
+      new String[]{"postgres", "direct"}),
+
+  /**
    * The SSL password to use in the default CallbackHandler.
    */
   SSL_PASSWORD(

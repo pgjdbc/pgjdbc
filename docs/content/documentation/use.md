@@ -116,6 +116,8 @@ This value is an optional argument to the constructor of the sslfactory class pr
 * **`sslmode (`*String*`)`** *Default `prefer`*\
 possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/ssl/#configuring-the-client) for details.
 
+* **`sslNegotiation (`*String*`)`** *Default `postgres` *\
+possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
 * **`sslcert (`*String*`)`** *Default `defaultdir/postgresql.crt`*\
 Provide the full path for the certificate file. Defaults to `defaultdir/postgresql.crt`, where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` on windows.\
 It can be a PEM encoded X509v3 certificate

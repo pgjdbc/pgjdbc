@@ -27,6 +27,7 @@ import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.jre7.sasl.ScramAuthenticator;
 import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.ssl.MakeSSL;
@@ -37,6 +38,7 @@ import org.postgresql.util.MD5Digest;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -114,7 +116,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {
-      // This caught quite a lot exceptions, but until Java 7 there is no ReflectiveOperationException
+      // This caught quite a lot of exceptions, but until Java 7 there is no ReflectiveOperationException
       throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
           + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
     }
@@ -126,6 +128,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
+    SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
+
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }
@@ -187,12 +191,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             newStream.getSocket().getSendBufferSize());
       }
 
-      newStream = enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), info, connectTimeout);
-
+      if (sslNegotiation != SslNegotiation.DIRECT) {
+        newStream =
+            enableGSSEncrypted(newStream, gssEncMode, hostSpec.getHost(), info, connectTimeout);
+      }
       // if we have a security context then gss negotiation succeeded. Do not attempt SSL
       // negotiation
       if (!newStream.isGssEncrypted()) {
-        // Construct and send an ssl startup packet if requested.
+        // Construct and send an SSL startup packet if requested.
         newStream = enableSSL(newStream, sslMode, info, connectTimeout);
       }
 
@@ -573,8 +579,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Allow ==> start with plaintext, use encryption if required by server
       return pgStream;
     }
+    SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
 
-    LOGGER.log(Level.FINEST, " FE=> SSLRequest");
+    LOGGER.log(Level.FINEST, () -> String.format(" FE=> SSLRequest %s", sslNegotiation.value()));
 
     int sslTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getNetworkTimeout();
@@ -587,6 +594,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     pgStream.setNetworkTimeout(sslTimeout);
+    if (sslNegotiation == SslNegotiation.DIRECT) {
+      MakeSSL.convert(pgStream, info);
+      return pgStream;
+    }
     // Send SSL request packet
     pgStream.sendInteger4(8);
     pgStream.sendInteger2(1234);

@@ -9,8 +9,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
+import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -107,39 +109,56 @@ public class SslTest {
 
     Collection<Object[]> tests = new ArrayList<>();
 
-    for (SslMode sslMode : SslMode.VALUES) {
-      for (Hostname hostname : Hostname.values()) {
-        for (TestDatabase database : TestDatabase.VALUES) {
-          for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
-            for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
-              if ((sslMode == SslMode.DISABLE
-                  || database.rejectsSsl())
-                  && (clientCertificate != ClientCertificate.GOOD
-                  || rootCertificate != ClientRootCertificate.GOOD)) {
-                // When SSL is disabled, it does not make sense to verify "bad certificates"
-                // since certificates are NOT used in plaintext connections
-                continue;
-              }
-              if (database.rejectsSsl()
-                  && (sslMode.verifyCertificate()
-                      || hostname == Hostname.BAD)
-              ) {
-                // DB would reject SSL connection, so it makes no sense to test cases like verify-full
-                continue;
-              }
-              for (GSSEncMode gssEncMode : GSSEncMode.values()) {
-                if (gssEncMode == GSSEncMode.REQUIRE) {
-                  // TODO: support gss tests in /certdir/pg_hba.conf
+    for (SslNegotiation sslNegotiation :  SslNegotiation.values()) {
+      if (sslNegotiation == SslNegotiation.DIRECT) {
+        try (Connection con = TestUtil.openDB()) {
+          if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17)) {
+            continue; // ignore direct connection unless we have version 17
+          }
+        } catch (SQLException e) {
+          fail("Failed to connect to the database: " + e.getMessage());
+        }
+      }
+      // iterate over all possible combinations of parameters
+      for (SslMode sslMode : SslMode.VALUES) {
+        if ( sslMode == SslMode.DISABLE && sslNegotiation == SslNegotiation.DIRECT) {
+          // no need to test as this is the same as DISABLE and POSTGRESQL
+          continue;
+        }
+        for (Hostname hostname : Hostname.values()) {
+          for (TestDatabase database : TestDatabase.VALUES) {
+            for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
+              for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
+                if ((sslMode == SslMode.DISABLE
+                    || database.rejectsSsl())
+                    && (clientCertificate != ClientCertificate.GOOD
+                    || rootCertificate != ClientRootCertificate.GOOD)) {
+                  // When SSL is disabled, it does not make sense to verify "bad certificates"
+                  // since certificates are NOT used in plaintext connections
                   continue;
                 }
-                tests.add(new Object[]{hostname, database, sslMode, clientCertificate, rootCertificate, gssEncMode});
+                if (database.rejectsSsl()
+                    && (sslMode.verifyCertificate()
+                    || hostname == Hostname.BAD)
+                ) {
+                  // DB would reject SSL connection, so it makes no sense to test cases like verify-full
+                  continue;
+                }
+                for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                  if (gssEncMode == GSSEncMode.REQUIRE) {
+                    // TODO: support gss tests in /certdir/pg_hba.conf
+                    continue;
+                  }
+                  tests.add(
+                      new Object[]{hostname, database, sslMode, sslNegotiation, clientCertificate, rootCertificate,
+                          gssEncMode});
+                }
               }
             }
           }
         }
       }
     }
-
     return tests;
   }
 
@@ -436,13 +455,14 @@ public class SslTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "host={0}, db={1} sslMode={2}, cCert={3}, cRootCert={4}, gssEncMode={5}")
-  void run(Hostname host, TestDatabase db, SslMode sslmode, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
+  @ParameterizedTest(name = "host={0}, db={1} sslMode={2}, sslNegotiation={3}, clientCert={4}, clientRootCert={5}, gssEncMode={6}")
+  void run(Hostname host, TestDatabase db, SslMode sslmode,SslNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
     initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
     Properties props = new Properties();
     props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
     props.put(TestUtil.DATABASE_PROP, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
+    PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value());
     PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");
