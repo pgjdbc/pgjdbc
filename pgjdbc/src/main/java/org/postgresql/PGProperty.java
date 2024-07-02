@@ -609,6 +609,15 @@ public enum PGProperty {
       "The timeout value in seconds max(2147484) used for socket read operations."),
 
   /**
+   * If true it uses timestamp with timezone type always for java SQLq Timestamp
+   * The default is {@code false} for compatibility.
+   */
+  SQL_TIMESTAMPTZ_ALWAYS(
+      "sqlTimestamptzAlways",
+      "false",
+      "If true it uses timestamp with timezone type for java Timestamp. The default is (@code false)"),
+
+  /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
    */
   SSL(
