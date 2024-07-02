@@ -14,6 +14,7 @@ import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.Nullness;
 
 import java.io.IOException;
 import java.util.Properties;
@@ -40,7 +41,7 @@ public class MakeSSL extends ObjectFactory {
           stream.getHostSpec().getHost(), stream.getHostSpec().getPort(), true);
       int connectTimeoutSeconds = PGProperty.CONNECT_TIMEOUT.getInt(info);
       newConnection.setSoTimeout(connectTimeoutSeconds * 1000);
-      if (SslNegotiation.of(PGProperty.SSL_NEGOTIATION.getOrDefault(info)) == SslNegotiation.DIRECT ) {
+      if (SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info))) == SslNegotiation.DIRECT ) {
         SSLParameters sslParameters = newConnection.getSSLParameters();
         sslParameters.setApplicationProtocols(new String[]{"postgresql"});
         newConnection.setSSLParameters(sslParameters);

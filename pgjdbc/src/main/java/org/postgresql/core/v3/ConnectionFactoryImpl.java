@@ -579,7 +579,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // Allow ==> start with plaintext, use encryption if required by server
       return pgStream;
     }
-    SslNegotiation sslNegotiation = SslNegotiation.of(PGProperty.SSL_NEGOTIATION.getOrDefault(info));
+    SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
 
     LOGGER.log(Level.FINEST, " FE=> SSLRequest");
 
