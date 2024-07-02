@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, PostgreSQL Global Development Group
+ * Copyright (c) 2024, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -87,8 +87,7 @@ public class TimestamptzTest extends BaseTest4 {
       ps.setString(1, "Some data");
       ps.setTimestamp(2, new Timestamp(cal.getTimeInMillis()));
 
-      try {
-        ResultSet rs = ps.executeQuery();
+      try (ResultSet rs = ps.executeQuery()) {
         if (rs.next()) {
           String resultFunction = rs.getString("res");
           System.out.printf("result:%s \n", resultFunction);
@@ -100,13 +99,9 @@ public class TimestamptzTest extends BaseTest4 {
         } else {
           fail("no result");
         }
-      } catch (SQLException e) {
-        fail(e.getMessage());
       }
     }
   }
-
-
 
   /**
    * Test to demonstrate another example on additional unnecessary cast.
