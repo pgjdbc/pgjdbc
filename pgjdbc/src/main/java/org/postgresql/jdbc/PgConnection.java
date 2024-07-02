@@ -287,10 +287,16 @@ public class PgConnection implements BaseConnection {
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
+    int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
+    // Initialize type cache
+    @SuppressWarnings("argument")
+    TypeInfo typeCache = createTypeInfo(this, unknownLength);
+    this.typeCache = typeCache;
+
     // get oids that support binary transfer
-    Set<Integer> binaryOids = getBinaryEnabledOids(info);
+    Set<Integer> binaryOids = getBinaryEnabledOids(info, typeCache);
     // get oids that should be disabled from transfer
-    binaryDisabledOids = getBinaryDisabledOids(info);
+    binaryDisabledOids = getBinaryDisabledOids(info, typeCache);
     // if there are any, remove them from the enabled ones
     if (!binaryDisabledOids.isEmpty()) {
       binaryOids.removeAll(binaryDisabledOids);
@@ -345,14 +351,8 @@ public class PgConnection implements BaseConnection {
     commitQuery = createQuery("COMMIT", false, true).query;
     rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
-    int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
-
     // Initialize object handling
-    @SuppressWarnings("argument")
-    TypeInfo typeCache = createTypeInfo(this, unknownLength);
-    this.typeCache = typeCache;
     initObjectTypes(info);
-
     if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
       openStackTrace = new Throwable("Connection was created at this point:");
     }
@@ -431,11 +431,12 @@ public class PgConnection implements BaseConnection {
   /**
    * Gets all oids for which binary transfer can be enabled.
    *
-   * @param info properties
+   * @param info      properties
+   * @param typeInfo  type info
    * @return oids for which binary transfer can be enabled
    * @throws PSQLException if any oid is not valid
    */
-  private static Set<Integer> getBinaryEnabledOids(Properties info) throws PSQLException {
+  private static Set<Integer> getBinaryEnabledOids(Properties info, TypeInfo typeInfo) throws PSQLException {
     // check if binary transfer should be enabled for built-in types
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // get formats that currently have binary protocol support
@@ -446,7 +447,7 @@ public class PgConnection implements BaseConnection {
     // add all oids which are enabled for binary transfer by the creator of the connection
     String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
     if (oids != null) {
-      binaryOids.addAll(getOidSet(oids));
+      binaryOids.addAll(getOidSet(oids, typeInfo));
     }
     return binaryOids;
   }
@@ -454,21 +455,22 @@ public class PgConnection implements BaseConnection {
   /**
    * Gets all oids for which binary transfer should be disabled.
    *
-   * @param info properties
+   * @param info      properties
+   * @param typeInfo  type info
    * @return oids for which binary transfer should be disabled
    * @throws PSQLException if any oid is not valid
    */
-  private static Set<? extends Integer> getBinaryDisabledOids(Properties info)
+  private static Set<? extends Integer> getBinaryDisabledOids(Properties info, TypeInfo typeInfo)
       throws PSQLException {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
     if (oids == null) {
       return Collections.emptySet();
     }
-    return getOidSet(oids);
+    return getOidSet(oids, typeInfo);
   }
 
-  private static Set<? extends Integer> getOidSet(String oidList) throws PSQLException {
+  private static Set<? extends Integer> getOidSet(String oidList, TypeInfo typeInfo) throws PSQLException {
     if (oidList.isEmpty()) {
       return Collections.emptySet();
     }
@@ -476,7 +478,26 @@ public class PgConnection implements BaseConnection {
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
       String oid = tokenizer.nextToken();
-      oids.add(Oid.valueOf(oid));
+      int oidV;
+      try {
+        oidV = Oid.valueOf(oid);
+      } catch (PSQLException e) {
+        // Same check as Oid#valueOf
+        if (oid.isEmpty() || Character.isDigit(oid.charAt(0))) {
+          throw e;
+        }
+        try {
+          // At this point the given name of the type doesn't have a mapped Oid,
+          // we make an attempt to see if it's a complex type
+          oidV = typeInfo.getPGType(oid);
+          if (oidV != Oid.UNSPECIFIED) {
+            oids.add(oidV);
+            continue;
+          }
+        } catch (SQLException ignored) { }
+        throw e;
+      }
+      oids.add(oidV);
     }
     return oids;
   }
@@ -1476,7 +1497,8 @@ public class PgConnection implements BaseConnection {
   @Override
   public Struct createStruct(String typeName, Object[] attributes) throws SQLException {
     checkClosed();
-    throw Driver.notImplemented(this.getClass(), "createStruct(String, Object[])");
+    PgStruct struct = castNonNull(getTypeInfo().getPgStruct(typeName));
+    return struct.withAttributes(attributes);
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
