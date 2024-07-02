@@ -59,6 +59,8 @@ public class ByteConverter {
   private static final short NUMERIC_POS = 0x0000;
   private static final short NUMERIC_NEG = 0x4000;
   private static final short NUMERIC_NAN = (short) 0xC000;
+  private static final short NUMERIC_PINF = (short) 0xD000;
+  private static final short NUMERIC_NINF = (short) 0xF000;
   private static final int SHORT_BYTES = 2;
   private static final int LONG_BYTES = 4;
   private static final int[] INT_TEN_POWERS = new int[6];
@@ -113,13 +115,14 @@ public class ByteConverter {
 
   /**
    * Convert a variable length array of bytes to a {@link Number}. The result will
-   * always be a {@link BigDecimal} or {@link Double#NaN}.
+   * always be a {@link BigDecimal} or a special {@link Double} value.
    *
    * @param bytes array of bytes to be decoded from binary numeric representation.
    * @param pos index of the start position of the bytes array for number
    * @param numBytes number of bytes to use, length is already encoded
    *                in the binary format but this is used for double checking
-   * @return BigDecimal representation of numeric or {@link Double#NaN}.
+   * @return BigDecimal representation of numeric or one of the special double values
+   *     {@link Double#NaN}, {@link Double#NEGATIVE_INFINITY} and {@link Double#POSITIVE_INFINITY}.
    */
   public static Number numeric(byte [] bytes, int pos, int numBytes) {
 
@@ -132,7 +135,7 @@ public class ByteConverter {
     //0 based number of 4 decimal digits (i.e. 2-byte shorts) before the decimal
     //a value <= 0 indicates an absolute value < 1.
     short weight = ByteConverter.int2(bytes, pos + 2);
-    //indicates positive, negative or NaN
+    //indicates positive, negative, NaN, Infinity or -Infinity
     short sign = ByteConverter.int2(bytes, pos + 4);
     //number of digits after the decimal. This must be >= 0.
     //a value of 0 indicates a whole number (integer).
@@ -157,14 +160,18 @@ public class ByteConverter {
       throw new IllegalArgumentException("invalid length of bytes \"numeric\" value");
     }
 
-    if (!(sign == NUMERIC_POS
-        || sign == NUMERIC_NEG
-        || sign == NUMERIC_NAN)) {
-      throw new IllegalArgumentException("invalid sign in \"numeric\" value");
-    }
-
-    if (sign == NUMERIC_NAN) {
-      return Double.NaN;
+    switch (sign) {
+      case NUMERIC_POS:
+      case NUMERIC_NEG:
+        break;
+      case NUMERIC_NAN:
+        return Double.NaN;
+      case NUMERIC_PINF:
+        return Double.POSITIVE_INFINITY;
+      case NUMERIC_NINF:
+        return Double.NEGATIVE_INFINITY;
+      default:
+        throw new IllegalArgumentException("invalid sign in \"numeric\" value");
     }
 
     if ((scale & NUMERIC_DSCALE_MASK) != scale) {
