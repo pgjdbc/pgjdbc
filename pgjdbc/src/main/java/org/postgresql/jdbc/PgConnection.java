@@ -474,9 +474,13 @@ public class PgConnection implements BaseConnection {
       throws PSQLException {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
-    if (oids == null || oids.trim().isEmpty()) {
-      return Collections.emptySet();
+    if (oids == null) {
+      oids = "";
     }
+    if (!oids.trim().isEmpty()) {
+      oids += ",";
+    }
+    oids += "numrange,daterange,tsrange,tstzrange";
     return getOidSet(oids);
   }
 
