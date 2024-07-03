@@ -5,16 +5,28 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.postgresql.util.PGtstzrange.OFFSET_DATE_TIME_FORMATTER;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-import org.postgresql.util.*;
+import org.postgresql.util.PGdaterange;
+import org.postgresql.util.PGint4range;
+import org.postgresql.util.PGint8range;
+import org.postgresql.util.PGnumrange;
+import org.postgresql.util.PGtsrange;
+import org.postgresql.util.PGtstzrange;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -28,9 +40,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
-
-import static org.junit.Assert.*;
-import static org.postgresql.util.PGtstzrange.OFFSET_DATE_TIME_FORMATTER;
 
 @RunWith(Parameterized.class)
 public class RangeTypeTest extends BaseTest4 {
@@ -55,9 +64,7 @@ public class RangeTypeTest extends BaseTest4 {
     super.setUp();
 
     assumeMinimumServerVersion("range types requires PostgreSQL 9.2+", ServerVersion.v9_2);
-    TestUtil.createTable(con, "table1", "int4range_column int4range," + "int8range_column " +
-        "int8range," + "numrange_column numrange," + "tsrange_column tsrange," +
-        "tstzrange_column tstzrange," + "daterange_column daterange");
+    TestUtil.createTable(con, "table1", "int4range_column int4range, int8range_column int8range, numrange_column numrange, tsrange_column tsrange, tstzrange_column tstzrange, daterange_column daterange");
   }
 
   @Override
@@ -201,14 +208,12 @@ public class RangeTypeTest extends BaseTest4 {
     try (Statement stmt = con.createStatement()) {
 
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'(,)'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'[-2147483648," +
-          "2147483647)'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'[-2147483648,2147483647)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'(,3)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'[4,20)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int4range_column", "'[50,)'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "int4range_column", null
-          , "int4range_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "int4range_column", null, "int4range_column"))) {
 
         assertTrue(rs.next());
         PGint4range range = rs.getObject("int4range_column", PGint4range.class);
@@ -265,7 +270,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertInt4Range() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (int4range_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (int4range_column) VALUES (?)")) {
       assertInt4RangeInsert(insert, new PGint4range("[1,1)"), "empty");
       assertInt4RangeInsert(insert, new PGint4range("(,)"), "(,)");
 
@@ -295,7 +300,6 @@ public class RangeTypeTest extends BaseTest4 {
       insert.executeUpdate();
     }
 
-
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "int4range_column"))) {
       assertTrue(rs.next());
@@ -316,8 +320,7 @@ public class RangeTypeTest extends BaseTest4 {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int8range_column", "'[4,20)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "int8range_column", "'[50,)'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "int8range_column", null
-          , "int8range_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "int8range_column", null, "int8range_column"))) {
 
         assertTrue(rs.next());
         PGint8range range = rs.getObject("int8range_column", PGint8range.class);
@@ -376,7 +379,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertInt8Range() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (int8range_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (int8range_column) VALUES (?)")) {
       assertInt8RangeInsert(insert, new PGint8range("[1,1)"), "empty");
       assertInt8RangeInsert(insert, new PGint8range("(,)"), "(,)");
 
@@ -406,7 +409,6 @@ public class RangeTypeTest extends BaseTest4 {
       insert.executeUpdate();
     }
 
-
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "int8range_column"))) {
       assertTrue(rs.next());
@@ -422,7 +424,7 @@ public class RangeTypeTest extends BaseTest4 {
 
       stmt.executeUpdate(TestUtil.insertSQL("table1", "numrange_column", "'(,)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "numrange_column",
-          "'[-9223372036854775808" + ".8,9223372036854775807.7)'"));
+          "'[-9223372036854775808.8,9223372036854775807.7)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "numrange_column", "'(,3.3)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "numrange_column", "'[4.4,20.20)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "numrange_column", "'(4.4,20.20]'"));
@@ -507,7 +509,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertNumRange() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (numrange_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (numrange_column) VALUES (?)")) {
       assertNumRangeInsert(insert, new PGnumrange("[1.1,1.1)"), "empty");
       assertNumRangeInsert(insert, new PGnumrange("(,)"), "(,)");
 
@@ -520,10 +522,8 @@ public class RangeTypeTest extends BaseTest4 {
       assertNumRangeInsert(insert, new PGnumrange("[1.1,2.2)"), "[1.1,2.2)");
       assertNumRangeInsert(insert, new PGnumrange("[1.1,3.3)"), "[1.1,3.3)");
       assertNumRangeInsert(insert, new PGnumrange("(1.1,2.2]"), "(1.1,2.2]");
-      assertNumRangeInsert(insert, new PGnumrange(new BigDecimal("1.1"), new BigDecimal("3.3")),
-          "[1.1,3.3)");
-      assertNumRangeInsert(insert, new PGnumrange(new BigDecimal("1.1"), false, new BigDecimal("3"
-          + ".3"), true), "(1.1,3.3]");
+      assertNumRangeInsert(insert, new PGnumrange(new BigDecimal("1.1"), new BigDecimal("3.3")), "[1.1,3.3)");
+      assertNumRangeInsert(insert, new PGnumrange(new BigDecimal("1.1"), false, new BigDecimal("3.3"), true), "(1.1,3.3]");
     }
   }
 
@@ -531,7 +531,6 @@ public class RangeTypeTest extends BaseTest4 {
       String expected) throws SQLException {
     insert.setObject(1, numrange);
     insert.executeUpdate();
-
 
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "numrange_column"))) {
@@ -547,15 +546,12 @@ public class RangeTypeTest extends BaseTest4 {
     try (Statement stmt = con.createStatement()) {
 
       stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'(,)'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'[1970-01-01," + "9999" +
-          "-12-31)'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'[1970-01-01,9999-12-31)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'(,2020-12-21)'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'[1337-04-20," + "2069" +
-          "-04-20)'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'[1337-04-20,2069-04-20)'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "daterange_column", "'[2001-09-12,)'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "daterange_column", null
-          , "daterange_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "daterange_column", null, "daterange_column"))) {
 
         assertTrue(rs.next());
         PGdaterange range = rs.getObject("daterange_column", PGdaterange.class);
@@ -612,7 +608,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertDateRange() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (daterange_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (daterange_column) VALUES (?)")) {
       assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-01)"), "empty");
       assertDateRangeInsert(insert, new PGdaterange("(,)"), "(,)");
 
@@ -622,16 +618,11 @@ public class RangeTypeTest extends BaseTest4 {
       assertDateRangeInsert(insert, new PGdaterange("[,1970-01-01)"), "(,1970-01-01)");
       assertDateRangeInsert(insert, new PGdaterange("[,1970-01-01]"), "(,1970-01-02)");
 
-      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-02)"), "[1970-01-01," +
-          "1970-01-02)");
-      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-03)"), "[1970-01-01," +
-          "1970-01-03)");
-      assertDateRangeInsert(insert, new PGdaterange("(1970-01-01,1970-01-02]"), "[1970-01-02," +
-          "1970-01-03)");
-      assertDateRangeInsert(insert, new PGdaterange(LocalDate.ofEpochDay(0),
-          LocalDate.ofEpochDay(2)), "[1970-01-01,1970-01-03)");
-      assertDateRangeInsert(insert, new PGdaterange(LocalDate.ofEpochDay(0), false,
-          LocalDate.ofEpochDay(2), true), "[1970-01-02,1970-01-04)");
+      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-02)"), "[1970-01-01,1970-01-02)");
+      assertDateRangeInsert(insert, new PGdaterange("[1970-01-01,1970-01-03)"), "[1970-01-01,1970-01-03)");
+      assertDateRangeInsert(insert, new PGdaterange("(1970-01-01,1970-01-02]"), "[1970-01-02,1970-01-03)");
+      assertDateRangeInsert(insert, new PGdaterange(LocalDate.ofEpochDay(0), LocalDate.ofEpochDay(2)), "[1970-01-01,1970-01-03)");
+      assertDateRangeInsert(insert, new PGdaterange(LocalDate.ofEpochDay(0), false, LocalDate.ofEpochDay(2), true), "[1970-01-02,1970-01-04)");
     }
   }
 
@@ -640,14 +631,12 @@ public class RangeTypeTest extends BaseTest4 {
     if (((PGConnection) con).getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       try (Statement stmt = con.createStatement()) {
         // simple mode supports no bind parameter
-        stmt.executeUpdate("INSERT INTO table1 (daterange_column) VALUES ('" + daterange +
-            "'::daterange)");
+        stmt.executeUpdate("INSERT INTO table1 (daterange_column) VALUES ('" + daterange + "'::daterange)");
       }
     } else {
       insert.setObject(1, daterange);
       insert.executeUpdate();
     }
-
 
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "daterange_column"))) {
@@ -663,15 +652,12 @@ public class RangeTypeTest extends BaseTest4 {
     try (Statement stmt = con.createStatement()) {
 
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'(,)'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column",
-          "'[\"1970-01-01 00:00:00\",\"9999-12-31 00:00:00\")'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'[\"1970-01-01 00:00:00\",\"9999-12-31 00:00:00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'(,\"2020-12-21 00:00:00\")'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column",
-          "'[\"1337-04-20 00:00:00\",\"2069-04-20 00:00:00\")'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'[\"1337-04-20 00:00:00\",\"2069-04-20 00:00:00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tsrange_column", "'[\"2001-09-12 00:00:00\",)'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tsrange_column", null
-          , "tsrange_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tsrange_column", null, "tsrange_column"))) {
 
         assertTrue(rs.next());
         PGtsrange range = rs.getObject("tsrange_column", PGtsrange.class);
@@ -728,7 +714,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertTsRange() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (tsrange_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (tsrange_column) VALUES (?)")) {
       assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-01 00:00:00\")"), "empty");
       assertTsRangeInsert(insert, new PGtsrange("(,)"), "(,)");
 
@@ -738,16 +724,11 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsRangeInsert(insert, new PGtsrange("[,\"1970-01-01 00:00:00\")"), "(,\"1970-01-01 00:00:00\")");
       assertTsRangeInsert(insert, new PGtsrange("[,\"1970-01-01 00:00:00\"]"), "(,\"1970-01-01 00:00:00\"]");
 
-      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\")"), "[\"1970-01-01 00:00:00\"," +
-          "\"1970-01-02 00:00:00\")");
-      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")"), "[\"1970-01-01 00:00:00\"," +
-          "\"1970-01-03 00:00:00\")");
-      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]"), "(\"1970-01-01 00:00:00\"," +
-          "\"1970-01-02 00:00:00\"]");
-      assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(),
-          LocalDate.ofEpochDay(2).atStartOfDay()), "[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")");
-      assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(), false,
-          LocalDate.ofEpochDay(2).atStartOfDay(), true), "(\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\"]");
+      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\")"), "[\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\")");
+      assertTsRangeInsert(insert, new PGtsrange("[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")"), "[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")");
+      assertTsRangeInsert(insert, new PGtsrange("(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]"), "(\"1970-01-01 00:00:00\",\"1970-01-02 00:00:00\"]");
+      assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(), LocalDate.ofEpochDay(2).atStartOfDay()), "[\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\")");
+      assertTsRangeInsert(insert, new PGtsrange(LocalDate.ofEpochDay(0).atStartOfDay(), false, LocalDate.ofEpochDay(2).atStartOfDay(), true), "(\"1970-01-01 00:00:00\",\"1970-01-03 00:00:00\"]");
     }
   }
 
@@ -756,14 +737,12 @@ public class RangeTypeTest extends BaseTest4 {
     if (((PGConnection) con).getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       try (Statement stmt = con.createStatement()) {
         // simple mode supports no bind parameter
-        stmt.executeUpdate("INSERT INTO table1 (tsrange_column) VALUES ('" + tsrange +
-            "'::tsrange)");
+        stmt.executeUpdate("INSERT INTO table1 (tsrange_column) VALUES ('" + tsrange + "'::tsrange)");
       }
     } else {
       insert.setObject(1, tsrange);
       insert.executeUpdate();
     }
-
 
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "tsrange_column"))) {
@@ -774,27 +753,17 @@ public class RangeTypeTest extends BaseTest4 {
     }
   }
 
-
-
-
-
-
-
-
   @Test
   public void selectTsTzRange() throws SQLException {
     try (Statement stmt = con.createStatement()) {
 
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'(,)'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column",
-          "'[\"1970-01-01 00:00:00+00\",\"9999-12-31 00:00:00+00\")'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'[\"1970-01-01 00:00:00+00\",\"9999-12-31 00:00:00+00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'(,\"2020-12-21 00:00:00+00\")'"));
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column",
-          "'[\"1337-04-20 00:00:00+00\",\"2069-04-20 00:00:00+00\")'"));
+      stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'[\"1337-04-20 00:00:00+00\",\"2069-04-20 00:00:00+00\")'"));
       stmt.executeUpdate(TestUtil.insertSQL("table1", "tstzrange_column", "'[\"2001-09-12 00:00:00+00\",)'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tstzrange_column", null
-          , "tstzrange_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "tstzrange_column", null, "tstzrange_column"))) {
 
         assertTrue(rs.next());
         PGtstzrange range = rs.getObject("tstzrange_column", PGtstzrange.class);
@@ -851,7 +820,7 @@ public class RangeTypeTest extends BaseTest4 {
   @Test
   public void insertTsTzRange() throws SQLException {
     try (PreparedStatement insert =
-             con.prepareStatement("INSERT INTO table1 (tstzrange_column) " + "VALUES (?)")) {
+             con.prepareStatement("INSERT INTO table1 (tstzrange_column) VALUES (?)")) {
       ZoneOffset offset = ZoneOffset.UTC;
       assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-01 00:00:00+00\")"), "empty");
       assertTsTzRangeInsert(insert, new PGtstzrange("(,)"), "(,)");
@@ -862,16 +831,11 @@ public class RangeTypeTest extends BaseTest4 {
       assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\")"), "(," + tstz("1970-01-01") + ")");
       assertTsTzRangeInsert(insert, new PGtstzrange("[,\"1970-01-01 00:00:00+00\"]"), "(," + tstz("1970-01-01") + "]");
 
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," +
-          tstz("1970-01-02") + ")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," +
-          tstz("1970-01-03") + ")");
-      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "(" + tstz("1970-01-01") + "," +
-          tstz("1970-01-02") + "]");
-      assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset),
-          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset)), "[" + tstz("1970-01-01") + "," + tstz("1970-01-03") + ")");
-      assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset), false,
-          LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset), true), "(" + tstz("1970-01-01") + "," + tstz("1970-01-03") + "]");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," + tstz("1970-01-02") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("[\"1970-01-01 00:00:00+00\",\"1970-01-03 00:00:00+00\")"), "[" + tstz("1970-01-01") + "," + tstz("1970-01-03") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange("(\"1970-01-01 00:00:00+00\",\"1970-01-02 00:00:00+00\"]"), "(" + tstz("1970-01-01") + "," + tstz("1970-01-02") + "]");
+      assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset), LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset)), "[" + tstz("1970-01-01") + "," + tstz("1970-01-03") + ")");
+      assertTsTzRangeInsert(insert, new PGtstzrange(LocalDate.ofEpochDay(0).atStartOfDay().atOffset(offset), false, LocalDate.ofEpochDay(2).atStartOfDay().atOffset(offset), true), "(" + tstz("1970-01-01") + "," + tstz("1970-01-03") + "]");
     }
   }
 
@@ -880,14 +844,12 @@ public class RangeTypeTest extends BaseTest4 {
     if (((PGConnection) con).getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       try (Statement stmt = con.createStatement()) {
         // simple mode supports no bind parameter
-        stmt.executeUpdate("INSERT INTO table1 (tstzrange_column) VALUES ('" + tstzrange +
-            "'::tstzrange)");
+        stmt.executeUpdate("INSERT INTO table1 (tstzrange_column) VALUES ('" + tstzrange + "'::tstzrange)");
       }
     } else {
       insert.setObject(1, tstzrange);
       insert.executeUpdate();
     }
-
 
     try (Statement stmt = con.createStatement(); ResultSet rs =
         stmt.executeQuery(TestUtil.selectSQL("table1", "tstzrange_column"))) {

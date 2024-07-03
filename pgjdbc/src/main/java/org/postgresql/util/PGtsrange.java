@@ -1,4 +1,11 @@
+/*
+ * Copyright (c) 2017, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.util;
+
+import static org.postgresql.util.PGtstzrange.LOCAL_DATE_TIME_SPACE;
 
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -9,8 +16,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.util.Locale;
-
-import static org.postgresql.util.PGtstzrange.LOCAL_DATE_TIME_SPACE;
 
 public class PGtsrange extends PGrange<LocalDateTime> implements Serializable, Cloneable {
 

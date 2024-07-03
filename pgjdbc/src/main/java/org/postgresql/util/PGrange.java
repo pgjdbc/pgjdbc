@@ -61,8 +61,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   /**
    * Checks if the lower bound is inclusive.
    *
-   * @return {@code true} if the lower bound is inclusive,
-   * {@code false} if the lower bound is exclusive
+   * @return {@code true} if the lower bound is inclusive, {@code false} if the lower bound is exclusive
    */
   public boolean isLowerInclusive() {
     return this.lowerInclusive;
@@ -81,8 +80,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   /**
    * Checks if the upper bound is inclusive.
    *
-   * @return {@code true} if the upper bound is inclusive,
-   * {@code false} if the upper bound is exclusive
+   * @return {@code true} if the upper bound is inclusive, {@code false} if the upper bound is exclusive
    */
   public boolean isUpperInclusive() {
     return this.upperInclusive;
@@ -141,8 +139,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   /**
    * Checks if the lower bound is infinite.
    *
-   * @return {@code true} if the lower bound is infinite,
-   * {@code false} if the lower bound is set
+   * @return {@code true} if the lower bound is infinite, {@code false} if the lower bound is set
    */
   public boolean isLowerInfinite() {
     return this.lowerBound == null;
@@ -151,8 +148,7 @@ public abstract class PGrange<T extends Serializable> extends PGobject implement
   /**
    * Checks if the upper bound is infinite.
    *
-   * @return {@code true} if the upper bound is infinite,
-   * {@code false} if the upper bound is set
+   * @return {@code true} if the upper bound is infinite, {@code false} if the upper bound is set
    */
   public boolean isUpperInfinite() {
     return this.upperBound == null;

@@ -5,13 +5,13 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.util.PGrange.TypeTag.EMPTY;
+
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-
-import static org.postgresql.util.PGrange.TypeTag.EMPTY;
 
 /**
  * This implements a class that handles the PostgreSQL int4range type
