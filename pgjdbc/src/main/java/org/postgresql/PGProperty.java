@@ -145,6 +145,18 @@ public enum PGProperty {
       "The timeout that is used for sending cancel command."),
 
   /**
+   * Channel binding is a method for the server to authenticate itself to the
+   * client. It is only supported over SSL connections with PostgreSQL 11 or later
+   * servers using the SCRAM authentication method.
+   */
+  CHANNEL_BINDING(
+      "channelBinding",
+      "prefer",
+      "This option controls the client's use of channel binding.",
+      false,
+      new String[] {"disable", "prefer", "require"}),
+
+  /**
    * Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not
    */
   CLEANUP_SAVEPOINTS(

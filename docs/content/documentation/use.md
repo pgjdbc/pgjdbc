@@ -118,6 +118,7 @@ possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca`
 
 * **`sslNegotiation (`*String*`)`** *Default `postgres` *\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
+
 * **`sslcert (`*String*`)`** *Default `defaultdir/postgresql.crt`*\
 Provide the full path for the certificate file. Defaults to `defaultdir/postgresql.crt`, where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` on windows.\
 It can be a PEM encoded X509v3 certificate
@@ -159,7 +160,6 @@ If provided will be used by ConsoleCallbackHandler
 * **`sslResponseTimeout (`*Integer*`)`** *Default `5000`*\
 Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
 
-
 * **`protocolVersion (`*int*`)`** *Default `null`*\
 The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and the driver will by default try to connect using the V3 protocol.
 
@@ -190,6 +190,11 @@ or 'statement XXX is not valid' so JDBC driver rolls back and retries
 
 * **`cleanupSavepoints (`*boolean*`)`** *Default `false`*\
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
+
+* **`channelBinding (`*String*`)`** *Default `prefer`*\
+This option controls the client's use of channel binding. A setting of `require` means that the connection must employ channel binding, `prefer` means that the client will choose channel binding if available, and `disable` prevents the use of channel binding. The default is `prefer` if PostgreSQL is compiled with SSL support; otherwise the default is `disable`.
+
+Channel binding is a method for the server to authenticate itself to the client. It is only supported over SSL connections with PostgreSQL 11 or later servers using the SCRAM authentication method.
 
 * **`binaryTransfer (`*boolean*`)`** *Default `true`*\
 Use binary format for sending and receiving data if possible. Setting this to false disables any binary transfer.

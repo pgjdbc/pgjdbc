@@ -28,7 +28,6 @@ import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
-import org.postgresql.jre7.sasl.ScramAuthenticator;
 import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
@@ -849,8 +848,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
-
                 scramAuthenticator = AuthenticationPluginManager.withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -864,26 +861,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(user, String.valueOf(password), pgStream);
+                  return new ScramAuthenticator(password, pgStream, info);
                 });
-                scramAuthenticator.processServerMechanismsAndInit();
-                scramAuthenticator.sendScramClientFirstMessage();
-                // This works as follows:
-                // 1. When tests is run from IDE, it is assumed SCRAM library is on the classpath
-                // 2. In regular build for Java < 8 this `if` is deactivated and the code always throws
-                if (false) {
-                  throw new PSQLException(GT.tr(
-                          "SCRAM authentication is not supported by this driver. You need JDK >= 8 and pgjdbc >= 42.2.0 (not \".jre\" versions)",
-                          areq), PSQLState.CONNECTION_REJECTED);
-                }
+                scramAuthenticator.handleAuthenticationSASL();
                 break;
 
               case AUTH_REQ_SASL_CONTINUE:
-                castNonNull(scramAuthenticator).processServerFirstMessage(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                castNonNull(scramAuthenticator).verifyServerSignature(msgLen - 4 - 4);
+                castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
                 break;
 
               case AUTH_REQ_OK:
