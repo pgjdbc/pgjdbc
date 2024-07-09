@@ -852,7 +852,7 @@ msgstr "无法将数据转成目标编码。"
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:1105
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:1783
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:929
-msgid "Fetch size must be a value greater to or equal to 0."
+msgid "Fetch size must be a value greater than or equal to 0."
 msgstr "数据读取笔数(fetch size)必须大于或等于 0。"
 
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:1384

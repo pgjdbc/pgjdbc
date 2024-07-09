@@ -1010,7 +1010,7 @@ public class PgStatement implements Statement, BaseStatement {
   public void setFetchSize(@NonNegative int rows) throws SQLException {
     checkClosed();
     if (rows < 0) {
-      throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+      throw new PSQLException(GT.tr("Fetch size must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
     fetchSize = rows;

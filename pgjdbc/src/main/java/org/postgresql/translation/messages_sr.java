@@ -136,7 +136,7 @@ public class messages_sr extends java.util.ResourceBundle {
     t[299] = "PooledConnection je već zatvoren.";
     t[302] = "ClientInfo property not supported.";
     t[303] = "ClientInfo property nije podržan.";
-    t[306] = "Fetch size must be a value greater to or equal to 0.";
+    t[306] = "Fetch size must be a value greater than or equal to 0.";
     t[307] = "Doneta veličina mora biti vrednost veća ili jednaka 0.";
     t[312] = "A connection could not be made using the requested protocol {0}.";
     t[313] = "Konekciju nije moguće kreirati uz pomoć protokola {0}.";

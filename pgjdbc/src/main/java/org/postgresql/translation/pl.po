@@ -872,7 +872,7 @@ msgstr ""
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:1105
 #: src/main/java/org/postgresql/jdbc/PgResultSet.java:1783
 #: src/main/java/org/postgresql/jdbc/PgStatement.java:929
-msgid "Fetch size must be a value greater to or equal to 0."
+msgid "Fetch size must be a value greater than or equal to 0."
 msgstr "Rozmiar pobierania musi być wartością dodatnią lub 0."
 
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:1384

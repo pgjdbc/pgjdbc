@@ -136,7 +136,7 @@ public class messages_tr extends java.util.ResourceBundle {
     t[299] = "Geçerli PooledConnection zaten önceden kapatıldı.";
     t[302] = "ClientInfo property not supported.";
     t[303] = "Clientinfo property'si desteklenememktedir.";
-    t[306] = "Fetch size must be a value greater to or equal to 0.";
+    t[306] = "Fetch size must be a value greater than or equal to 0.";
     t[307] = "Fetch boyutu sıfır veya daha büyük bir değer olmalıdır.";
     t[312] = "A connection could not be made using the requested protocol {0}.";
     t[313] = "İstenilen protokol ile bağlantı kurulamadı {0}";

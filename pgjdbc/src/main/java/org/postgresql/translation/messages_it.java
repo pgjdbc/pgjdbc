@@ -108,7 +108,7 @@ public class messages_it extends java.util.ResourceBundle {
     t[281] = "Il server ha richiesto l''autenticazione con password, ma tale password non è stata fornita.";
     t[298] = "This PooledConnection has already been closed.";
     t[299] = "Questo «PooledConnection» è stato chiuso.";
-    t[306] = "Fetch size must be a value greater to or equal to 0.";
+    t[306] = "Fetch size must be a value greater than or equal to 0.";
     t[307] = "La dimensione dell''area di «fetch» deve essere maggiore o eguale a 0.";
     t[312] = "A connection could not be made using the requested protocol {0}.";
     t[313] = "Non è stato possibile attivare la connessione utilizzando il protocollo richiesto {0}.";
