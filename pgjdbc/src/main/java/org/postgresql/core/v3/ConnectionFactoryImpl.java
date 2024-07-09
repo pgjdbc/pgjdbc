@@ -6,6 +6,9 @@
 
 package org.postgresql.core.v3;
 
+import static org.postgresql.core.Protocol.AUTHENTICATION_RESPONSE;
+import static org.postgresql.core.Protocol.ERROR_RESPONSE;
+import static org.postgresql.core.Protocol.PASSWORD_REQUEST;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
@@ -515,7 +518,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int beresp = pgStream.receiveChar();
     pgStream.setNetworkTimeout(currentTimeout);
     switch (beresp) {
-      case 'E':
+      case ERROR_RESPONSE:
         LOGGER.log(Level.FINEST, " <=BE GSSEncrypted Error");
 
         // Server doesn't even know about the SSL handshake protocol
@@ -696,7 +699,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
-          case 'E':
+          case ERROR_RESPONSE:
             // An error occurred, so pass the error message to the
             // user.
             //
@@ -710,7 +713,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
-          case 'R':
+          case AUTHENTICATION_RESPONSE:
             // Authentication request.
             // Get the message length
             int msgLen = pgStream.receiveInteger4();
@@ -737,7 +740,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 try {
-                  pgStream.sendChar('p');
+                  pgStream.sendChar(PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + digest.length + 1);
                   pgStream.send(digest);
                 } finally {
@@ -754,7 +757,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
                 AuthenticationPluginManager.withEncodedPassword(AuthenticationRequestType.CLEARTEXT_PASSWORD, info, encodedPassword -> {
-                  pgStream.sendChar('p');
+                  pgStream.sendChar(PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + encodedPassword.length + 1);
                   pgStream.send(encodedPassword);
                   return void.class;

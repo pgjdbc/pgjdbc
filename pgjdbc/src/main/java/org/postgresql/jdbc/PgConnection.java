@@ -248,6 +248,12 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
   }
 
+  private long nextUniqueID = 1;
+
+  public String getNextCursorName() {
+    return "X_" + (nextUniqueID++);
+  }
+
   //
   // Ctor.
   //

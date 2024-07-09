@@ -262,6 +262,7 @@ public class PgStatement implements Statement, BaseStatement {
 
   @Override
   public ResultSet executeQuery(String sql) throws SQLException {
+
     try (ResourceLock ignore = lock.obtain()) {
       if (!executeWithFlags(sql, 0)) {
         throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
@@ -426,12 +427,35 @@ public class PgStatement implements Statement, BaseStatement {
         && !getForceBinaryTransfer();
   }
 
+  void sendDeclareCursor(CachedQuery cachedQuery,@Nullable ParameterList queryParameters ) throws SQLException {
+    String cursorName = connection.getNextCursorName();
+    CachedQuery cursorQuery = connection.borrowQuery("declare " + cursorName + " CURSOR WITH HOLD FOR " + cachedQuery.query.getNativeSql());
+
+    StatementResultHandler handler = new StatementResultHandler();
+    try (ResourceLock ignore = lock.obtain()) {
+      result = null;
+
+      try {
+        startTimer();
+        connection.getQueryExecutor().execute(cursorQuery.query, queryParameters, handler, maxrows,
+            0, QueryExecutor.QUERY_NO_RESULTS | QueryExecutor.QUERY_SUPPRESS_BEGIN, false);
+      } finally {
+        killTimerTask();
+      }
+    }
+  }
+
   protected final void execute(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       try {
-        executeInternal(cachedQuery, queryParameters, flags);
+        if (wantsHoldableResultSet() && fetchSize > 0 ) {
+          sendDeclareCursor(cachedQuery, queryParameters);
+          executeFetchCursor(cachedQuery.query, "X_1", fetchSize);
+        } else {
+          executeInternal(cachedQuery, queryParameters, flags);
+        }
       } catch (SQLException e) {
         // Don't retry composite queries as it might get partially executed
         if (cachedQuery.query.getSubqueries() != null
@@ -442,6 +466,19 @@ public class PgStatement implements Statement, BaseStatement {
         // Execute the query one more time
         executeInternal(cachedQuery, queryParameters, flags);
       }
+    }
+  }
+
+  private void executeFetchCursor(Query query, String cursorName, int fetchSize)
+      throws SQLException {
+
+    StatementResultHandler handler = new StatementResultHandler();
+    connection.getQueryExecutor().fetch(query, cursorName, handler, fetchSize, adaptiveFetch);
+    try (ResourceLock ignore = lock.obtain()) {
+      checkClosed();
+
+      ResultWrapper currentResult = handler.getResults();
+      result = firstUnclosedResult = currentResult;
     }
   }
 

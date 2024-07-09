@@ -5,6 +5,9 @@
 
 package org.postgresql.gss;
 
+import static org.postgresql.core.Protocol.AUTHENTICATION_RESPONSE;
+import static org.postgresql.core.Protocol.ERROR_RESPONSE;
+
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -136,7 +139,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           int response = pgStream.receiveChar();
           // Error
           switch (response) {
-            case 'E':
+            case ERROR_RESPONSE:
               int elen = pgStream.receiveInteger4();
               ServerErrorMessage errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -144,7 +147,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
               return new PSQLException(errorMsg, logServerErrorDetail);
-            case 'R':
+            case AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
               int type = pgStream.receiveInteger4();
