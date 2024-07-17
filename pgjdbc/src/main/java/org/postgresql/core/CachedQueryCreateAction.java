@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.LruCache;
 
@@ -31,9 +32,11 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
         + key;
     BaseQueryKey queryKey;
     String parsedSql;
+    PlaceholderStyle placeholderStyle = PlaceholderStyle.NONE;
     if (key instanceof BaseQueryKey) {
       queryKey = (BaseQueryKey) key;
       parsedSql = queryKey.sql;
+      placeholderStyle = queryKey.placeholderStyle;
     } else {
       queryKey = null;
       parsedSql = (String) key;
@@ -52,8 +55,8 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     } else {
       isFunction = false;
     }
-    boolean isParameterized = key instanceof String || castNonNull(queryKey).isParameterized;
-    boolean splitStatements = isParameterized || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
+
+    boolean splitStatements = placeholderStyle != PlaceholderStyle.NONE || queryExecutor.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) >= 0;
 
     String[] returningColumns;
     if (key instanceof QueryWithReturningColumnsKey) {
@@ -63,9 +66,9 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     }
 
     List<NativeQuery> queries = Parser.parseJdbcSql(parsedSql,
-        queryExecutor.getStandardConformingStrings(), isParameterized, splitStatements,
+        queryExecutor.getStandardConformingStrings(), splitStatements,
         queryExecutor.isReWriteBatchedInsertsEnabled(), queryExecutor.getQuoteReturningIdentifiers(),
-        returningColumns
+        placeholderStyle, returningColumns
         );
 
     Query query = queryExecutor.wrap(queries);

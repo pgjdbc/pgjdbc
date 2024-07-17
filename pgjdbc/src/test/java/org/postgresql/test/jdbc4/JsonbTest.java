@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
@@ -29,15 +30,21 @@ import java.util.Collection;
 
 @RunWith(Parameterized.class)
 public class JsonbTest extends BaseTest4 {
-  public JsonbTest(BinaryMode binaryMode) {
+  public JsonbTest(BinaryMode binaryMode, PlaceholderStyle placeholderStyle) {
     setBinaryMode(binaryMode);
+    setPlaceholderStyle(placeholderStyle);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
+  @Parameterized.Parameters(name = "binary = {0}, placeholderStyle = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
-      ids.add(new Object[]{binaryMode});
+      for (PlaceholderStyle placeholderStyle : PlaceholderStyle.values()) {
+        if (placeholderStyle == PlaceholderStyle.NONE) {
+          continue;
+        }
+        ids.add(new Object[]{binaryMode, placeholderStyle});
+      }
     }
     return ids;
   }

@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.jdbc.PlaceholderStyle;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Arrays;
@@ -20,9 +22,9 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   public final String[] columnNames;
   private int size; // query length cannot exceed MAX_INT
 
-  QueryWithReturningColumnsKey(String sql, boolean isParameterized, boolean escapeProcessing,
-      String @Nullable [] columnNames) {
-    super(sql, isParameterized, escapeProcessing);
+  QueryWithReturningColumnsKey(String sql, boolean escapeProcessing,
+      String @Nullable [] columnNames, PlaceholderStyle placeholderStyle) {
+    super(sql, escapeProcessing, placeholderStyle);
     if (columnNames == null) {
       // TODO: teach parser to fetch key columns somehow when no column names were given
       columnNames = new String[]{"*"};
@@ -51,8 +53,8 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
   public String toString() {
     return "QueryWithReturningColumnsKey{"
         + "sql='" + sql + '\''
-        + ", isParameterized=" + isParameterized
         + ", escapeProcessing=" + escapeProcessing
+        + ", placeholderStyle=" + placeholderStyle
         + ", columnNames=" + Arrays.toString(columnNames)
         + '}';
   }

@@ -7,8 +7,8 @@ package org.postgresql.core;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.jdbc.EscapedFunctions2;
+import org.postgresql.jdbc.PlaceholderStyle;
 import org.postgresql.util.GT;
-import org.postgresql.util.IntList;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Basic query parser infrastructure.
@@ -36,21 +37,30 @@ public class Parser {
    * @param query                     jdbc query to parse
    * @param standardConformingStrings whether to allow backslashes to be used as escape characters
    *                                  in single quote literals
-   * @param withParameters            whether to replace ?, ? with $1, $2, etc
    * @param splitStatements           whether to split statements by semicolon
    * @param isBatchedReWriteConfigured whether re-write optimization is enabled
    * @param quoteReturningIdentifiers whether to quote identifiers returned using returning clause
+   * @param placeholderSetting   specifies placeholder processing, PlaceholderStyle.NONE disables parameters
    * @param returningColumnNames      for simple insert, update, delete add returning with given column names
    * @return list of native queries
    * @throws SQLException if unable to add returning clause (invalid column names)
    */
   public static List<NativeQuery> parseJdbcSql(String query, boolean standardConformingStrings,
-      boolean withParameters, boolean splitStatements,
+      boolean splitStatements,
       boolean isBatchedReWriteConfigured,
       boolean quoteReturningIdentifiers,
+      PlaceholderStyle placeholderSetting,
       String... returningColumnNames) throws SQLException {
-    if (!withParameters && !splitStatements
-        && returningColumnNames != null && returningColumnNames.length == 0) {
+
+    final boolean processParameters = placeholderSetting != PlaceholderStyle.NONE;
+
+    isBatchedReWriteConfigured &= processParameters; // We need parameters to perform a rewrite.
+
+    if (!splitStatements
+        && !isBatchedReWriteConfigured
+        && !processParameters
+        && returningColumnNames.length == 0
+    ) {
       return Collections.singletonList(new NativeQuery(query,
         SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK)));
     }
@@ -61,14 +71,13 @@ public class Parser {
     char[] aChars = query.toCharArray();
 
     StringBuilder nativeSql = new StringBuilder(query.length() + 10);
-    IntList bindPositions = null; // initialized on demand
+    ParameterContext paramCtx = new ParameterContext(placeholderSetting);
     List<NativeQuery> nativeQueries = null;
     boolean isCurrentReWriteCompatible = false;
     boolean isValuesFound = false;
     int valuesParenthesisOpenPosition = -1;
     int valuesParenthesisClosePosition = -1;
     boolean valuesParenthesisCloseFound = false;
-    boolean isInsertPresent = false;
     boolean isReturningPresent = false;
     boolean isReturningPresentPrev = false;
     boolean isBeginPresent = false;
@@ -88,6 +97,7 @@ public class Parser {
      */
     for (int i = 0; i < aChars.length; i++) {
       char aChar = aChars[i];
+      char nextAChar = (i + 1 < aChars.length) ? aChars[i + 1] : '\0';
       boolean isKeyWordChar = false;
       // ';' is ignored as it splits the queries. We do have to deal with ; in BEGIN ATOMIC functions
       whitespaceOnly &= aChar == ';' || Character.isWhitespace(aChar);
@@ -109,9 +119,34 @@ public class Parser {
           i = Parser.parseBlockComment(aChars, i);
           break;
 
-        case '$': // possibly dollar quote start
-          i = Parser.parseDollarQuotes(aChars, i);
-          break;
+        case '$': { // possibly dollar quote start or a native placeholder
+          int end = Parser.parseDollarQuotes(aChars, i);
+          if (end == i && (
+              processParameters
+              && currentCommandType.supportsParameters()
+              && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NATIVE))) {
+            // look for a native placeholder instead.
+
+            nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+            end = Parser.parseNativePlaceholder(aChars, i);
+            if (end != i) {
+              fragmentStart = i;
+
+              // Keep the dollar in the captured name.
+              final String bindName = query.substring(fragmentStart, end + 1);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NATIVE, bindName);
+              NativeQuery.appendBindName(nativeSql, bindIndex);
+
+              i = end;
+              fragmentStart = i + 1;
+            } else {
+              fragmentStart = i;
+            }
+          } else {
+            i = end;
+          }
+        }
+        break;
 
         // case '(' moved below to parse "values(" properly
 
@@ -130,15 +165,13 @@ public class Parser {
             nativeSql.append('?');
             i++; // make sure the coming ? is not treated as a bind
           } else {
-            if (!withParameters) {
-              nativeSql.append('?');
+            if (processParameters
+                && currentCommandType.supportsParameters()
+                && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.JDBC)) {
+              int bindIndex = paramCtx.addJDBCParameter(nativeSql.length());
+              NativeQuery.appendBindName(nativeSql, bindIndex);
             } else {
-              if (bindPositions == null) {
-                bindPositions = new IntList();
-              }
-              bindPositions.add(nativeSql.length());
-              int bindIndex = bindPositions.size();
-              nativeSql.append(NativeQuery.bindName(bindIndex));
+              nativeSql.append('?');
             }
           }
           fragmentStart = i + 1;
@@ -164,14 +197,14 @@ public class Parser {
                 }
 
                 if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
-                    || (bindPositions != null
-                    && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+                    || (paramCtx.hasParameters() && valuesParenthesisClosePosition < paramCtx.getLastPlaceholderPosition())) {
                   valuesParenthesisOpenPosition = -1;
                   valuesParenthesisClosePosition = -1;
                 }
 
                 nativeQueries.add(new NativeQuery(nativeSql.toString(),
-                    toIntArray(bindPositions), false,
+                    paramCtx,
+                    false,
                     SqlCommand.createStatementTypeInfo(
                         currentCommandType, isBatchedReWriteConfigured, valuesParenthesisOpenPosition,
                         valuesParenthesisClosePosition,
@@ -184,9 +217,7 @@ public class Parser {
             isReturningPresent = false;
             if (splitStatements) {
               // Prepare for next query
-              if (bindPositions != null) {
-                bindPositions.clear();
-              }
+              paramCtx = new ParameterContext(placeholderSetting);
               nativeSql.setLength(0);
               isValuesFound = false;
               isCurrentReWriteCompatible = false;
@@ -196,6 +227,36 @@ public class Parser {
             }
           }
           break;
+
+        case ':': // possibly named placeholder start
+          if (processParameters
+              && currentCommandType.supportsParameters()
+              && placeholderSetting.isAcceptedBySetting(ParameterContext.BindStyle.NAMED)) {
+            nativeSql.append(aChars, fragmentStart, i - fragmentStart);
+            int end = Parser.parseNamedPlaceholder(aChars, i);
+            if (end != i) {
+              fragmentStart = i;
+
+              // Skip the colon from the captured name.
+              final String bindName = query.substring(fragmentStart + 1, end + 1);
+              final int bindIndex = paramCtx.addNamedParameter(nativeSql.length(), ParameterContext.BindStyle.NAMED, bindName);
+              NativeQuery.appendBindName(nativeSql, bindIndex);
+
+              i = end;
+              fragmentStart = i + 1;
+            } else {
+              // Skip past '::' to avoid false start on the second colon.
+              if (nextAChar == ':') {
+                nativeSql.append("::");
+                i += 1;
+                fragmentStart = i + 1;
+                continue;
+              } else {
+                fragmentStart += i - fragmentStart;
+              }
+            }
+            break;
+          } // Fall-through to default when isBatchedReWriteConfigured == true
 
         default:
           if (keywordStart >= 0) {
@@ -220,32 +281,15 @@ public class Parser {
       if (keywordStart >= 0 && (i == aChars.length - 1 || !isKeyWordChar)) {
         int wordLength = (isKeyWordChar ? i + 1 : keywordEnd) - keywordStart;
         if (currentCommandType == SqlCommandType.BLANK) {
-          if (wordLength == 6 && parseCreateKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.CREATE;
-          } else if (wordLength == 5 && parseAlterKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.ALTER;
-          } else if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.UPDATE;
-          } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.DELETE;
-          } else if (wordLength == 4 && parseMoveKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.MOVE;
-          } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.SELECT;
-          } else if (wordLength == 4 && parseWithKeyword(aChars, keywordStart)) {
-            currentCommandType = SqlCommandType.WITH;
-          } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-            if (!isInsertPresent && (nativeQueries == null || nativeQueries.isEmpty())) {
+          currentCommandType = SqlCommandType.parseCommandType(aChars, keywordStart, wordLength);
+
+          if (currentCommandType == SqlCommandType.INSERT) {
+            if (isBatchedReWriteConfigured && keyWordCount == 0) {
               // Only allow rewrite for insert command starting with the insert keyword.
               // Else, too many risks of wrong interpretation.
-              isCurrentReWriteCompatible = keyWordCount == 0;
-              isInsertPresent = true;
-              currentCommandType = SqlCommandType.INSERT;
-            } else {
-              isCurrentReWriteCompatible = false;
+              isCurrentReWriteCompatible = true;
             }
           }
-
         } else if (currentCommandType == SqlCommandType.WITH
             && inParen == 0) {
           SqlCommandType command = parseWithCommandType(aChars, i, keywordStart, wordLength);
@@ -256,7 +300,7 @@ public class Parser {
           /*
           We are looking for BEGIN ATOMIC
            */
-          if (wordLength == 5 && parseBeginKeyword(aChars, keywordStart)) {
+          if (wordLength == 5 && SqlCommandType.BEGIN.parseKeyword(aChars, keywordStart)) {
             isBeginPresent = true;
           } else {
             // found begin, now look for atomic
@@ -287,9 +331,31 @@ public class Parser {
       }
     }
 
+    if (paramCtx.hasNamedParameters() && paramCtx.getBindStyle() == ParameterContext.BindStyle.NATIVE) {
+      // We need to make sure we have a sane set of native placeholders.
+      // The order of appearance is not relevant here, the user has already specified the actual native positions.
+      // The names must conform to the pattern $1..n and appear in increasing order.
+
+      final List<String> placeholderNames =
+          paramCtx.getPlaceholderNames();
+      for (int i = 0; i < placeholderNames.size(); i++ ) {
+        final String placeholderName = placeholderNames.get(i);
+        if (ParameterContext.uninitializedName.equals(placeholderName)) {
+          throw new PSQLException(
+              GT.tr("Native parameter ${0} was not found.\nThe following parameters where captured: {1}\nNative parameters must form a contiguous set of integers, starting from 1.",
+                  (i + 1),
+                  paramCtx
+                      .getPlaceholderNames()
+                      .stream()
+                      .filter(f -> !f.equals(ParameterContext.uninitializedName))
+                      .collect(Collectors.toList())),
+              PSQLState.INVALID_PARAMETER_VALUE);
+        }
+      }
+    }
+
     if (!isValuesFound || !isCurrentReWriteCompatible || valuesParenthesisClosePosition == -1
-        || (bindPositions != null
-        && valuesParenthesisClosePosition < bindPositions.get(bindPositions.size() - 1))) {
+        || (paramCtx.hasParameters() && valuesParenthesisClosePosition < paramCtx.getLastPlaceholderPosition())) {
       valuesParenthesisOpenPosition = -1;
       valuesParenthesisClosePosition = -1;
     }
@@ -315,7 +381,8 @@ public class Parser {
     }
 
     NativeQuery lastQuery = new NativeQuery(nativeSql.toString(),
-        toIntArray(bindPositions), !splitStatements,
+        paramCtx,
+        !splitStatements,
         SqlCommand.createStatementTypeInfo(currentCommandType,
             isBatchedReWriteConfigured, valuesParenthesisOpenPosition, valuesParenthesisClosePosition,
             isReturningPresent, (nativeQueries == null ? 0 : nativeQueries.size())));
@@ -334,18 +401,15 @@ public class Parser {
       int wordLength) {
     // This parses `with x as (...) ...`
     // Corner case is `with select as (insert ..) select * from select
-    SqlCommandType command;
-    if (wordLength == 6 && parseUpdateKeyword(aChars, keywordStart)) {
-      command = SqlCommandType.UPDATE;
-    } else if (wordLength == 6 && parseDeleteKeyword(aChars, keywordStart)) {
-      command = SqlCommandType.DELETE;
-    } else if (wordLength == 6 && parseInsertKeyword(aChars, keywordStart)) {
-      command = SqlCommandType.INSERT;
-    } else if (wordLength == 6 && parseSelectKeyword(aChars, keywordStart)) {
-      command = SqlCommandType.SELECT;
-    } else {
+    SqlCommandType command = SqlCommandType.parseCommandType(aChars, keywordStart, wordLength);
+    if ( !(
+        command == SqlCommandType.UPDATE
+            || command == SqlCommandType.DELETE
+            || command == SqlCommandType.INSERT
+            || command == SqlCommandType.SELECT )) {
       return null;
     }
+
     // update/delete/insert/select keyword detected
     // Check if `AS` follows
     int nextInd = i;
@@ -403,20 +467,6 @@ public class Parser {
       }
     }
     return true;
-  }
-
-  /**
-   * Converts {@link IntList} to {@code int[]}. A {@code null} collection is converted to
-   * {@code null} array.
-   *
-   * @param list input list
-   * @return output array
-   */
-  private static int @Nullable [] toIntArray(@Nullable IntList list) {
-    if (list == null) {
-      return null;
-    }
-    return list.toArray();
   }
 
   /**
@@ -526,8 +576,58 @@ public class Parser {
   }
 
   /**
-   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment,
-   * and return the position of the first {@code \r} or {@code \n} character.
+   * Test if the colon character ({@code :}) at the given offset starts a named placeholder and
+   * return the offset of the ending parameter character.
+   *
+   * @param query  query
+   * @param offset start offset
+   * @return offset of the ending placeholder name character
+   */
+  public static int parseNamedPlaceholder(final char[] query, int offset) {
+    // We require at least 1 more character to capture a placeholder name.
+    if (offset + 1 < query.length) {
+      if (isIdentifierStartChar(query[offset + 1])) {
+        offset++;
+        while (offset + 1 < query.length) {
+          if (isIdentifierContChar(query[offset + 1])) {
+            offset++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return offset;
+  }
+
+  /**
+   * Test if the dollar character ({@code $}) at the given offset starts a native placeholder and
+   * return the offset of the ending parameter character.
+   *
+   * @param query  query
+   * @param offset start offset
+   * @return offset of the ending placeholder character
+   */
+  public static int parseNativePlaceholder(final char[] query, int offset) {
+    // We require at least 1 more character to capture a native placeholder.
+    if (offset + 1 < query.length) {
+      if (Character.isDigit(query[offset + 1]) && Character.digit(query[offset + 1], 10) > 0) {
+        offset++;
+        while (offset + 1 < query.length) {
+          if (Character.isDigit(query[offset + 1])) {
+            offset++;
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return offset;
+  }
+
+  /**
+   * Test if the {@code -} character at {@code offset} starts a {@code --} style line comment, and
+   * return the position of the first {@code \r} or {@code \n} character.
    *
    * @param query  query
    * @param offset start offset
@@ -585,66 +685,6 @@ public class Parser {
   }
 
   /**
-   * Parse string to check presence of DELETE keyword regardless of case. The initial character is
-   * assumed to have been matched.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseDeleteKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'd'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
-  }
-
-  /**
-   * Parse string to check presence of INSERT keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseInsertKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 7)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'i'
-        && (query[offset + 1] | 32) == 'n'
-        && (query[offset + 2] | 32) == 's'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'r'
-        && (query[offset + 5] | 32) == 't';
-  }
-
-  /**
-   Parse string to check presence of BEGIN keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-
-  public static boolean parseBeginKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-    return (query[offset] | 32) == 'b'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'g'
-        && (query[offset + 3] | 32) == 'i'
-        && (query[offset + 4] | 32) == 'n';
-  }
-
-  /**
    Parse string to check presence of ATOMIC keyword regardless of case.
    *
    * @param query char[] of the query statement
@@ -661,24 +701,6 @@ public class Parser {
         && (query[offset + 3] | 32) == 'm'
         && (query[offset + 4] | 32) == 'i'
         && (query[offset + 5] | 32) == 'c';
-  }
-
-  /**
-   * Parse string to check presence of MOVE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseMoveKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 4)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'm'
-        && (query[offset + 1] | 32) == 'o'
-        && (query[offset + 2] | 32) == 'v'
-        && (query[offset + 3] | 32) == 'e';
   }
 
   /**
@@ -702,85 +724,6 @@ public class Parser {
         && (query[offset + 6] | 32) == 'i'
         && (query[offset + 7] | 32) == 'n'
         && (query[offset + 8] | 32) == 'g';
-  }
-
-  /**
-   * Parse string to check presence of SELECT keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseSelectKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 's'
-        && (query[offset + 1] | 32) == 'e'
-        && (query[offset + 2] | 32) == 'l'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'c'
-        && (query[offset + 5] | 32) == 't';
-  }
-
-  /**
-   * Parse string to check presence of CREATE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseAlterKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 5)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'a'
-        && (query[offset + 1] | 32) == 'l'
-        && (query[offset + 2] | 32) == 't'
-        && (query[offset + 3] | 32) == 'e'
-        && (query[offset + 4] | 32) == 'r';
-  }
-
-  /**
-   * Parse string to check presence of CREATE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseCreateKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'c'
-        && (query[offset + 1] | 32) == 'r'
-        && (query[offset + 2] | 32) == 'e'
-        && (query[offset + 3] | 32) == 'a'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
-  }
-
-  /**
-   * Parse string to check presence of UPDATE keyword regardless of case.
-   *
-   * @param query char[] of the query statement
-   * @param offset position of query to start checking
-   * @return boolean indicates presence of word
-   */
-  public static boolean parseUpdateKeyword(final char[] query, int offset) {
-    if (query.length < (offset + 6)) {
-      return false;
-    }
-
-    return (query[offset] | 32) == 'u'
-        && (query[offset + 1] | 32) == 'p'
-        && (query[offset + 2] | 32) == 'd'
-        && (query[offset + 3] | 32) == 'a'
-        && (query[offset + 4] | 32) == 't'
-        && (query[offset + 5] | 32) == 'e';
   }
 
   /**
@@ -1344,7 +1287,7 @@ public class Parser {
             newsql.append(sql, i0, i - i0 + 1);
             break;
           } else if (c == '"') {
-            // start of a identifier?
+            // start of an identifier?
             int i0 = i;
             i = parseDoubleQuotes(sql, i);
             checkParsePosition(i, len, i0, sql,

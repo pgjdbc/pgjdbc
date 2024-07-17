@@ -217,25 +217,26 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  private PlaceholderStyle placeholderStyle;
 
-  final CachedQuery borrowQuery(String sql) throws SQLException {
-    return queryExecutor.borrowQuery(sql);
+  final CachedQuery borrowQuery(String sql, PlaceholderStyle placeholderStyle) throws SQLException {
+    return queryExecutor.borrowQuery(sql, placeholderStyle);
   }
 
   final CachedQuery borrowCallableQuery(String sql) throws SQLException {
     return queryExecutor.borrowCallableQuery(sql);
   }
 
-  private CachedQuery borrowReturningQuery(String sql, String @Nullable [] columnNames)
+  private CachedQuery borrowReturningQuery(String sql,  PlaceholderStyle placeholderStyle, String @Nullable [] columnNames)
       throws SQLException {
-    return queryExecutor.borrowReturningQuery(sql, columnNames);
+    return queryExecutor.borrowReturningQuery(sql, placeholderStyle, columnNames);
   }
 
   @Override
-  public CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
+  public CachedQuery createQuery(String sql, boolean escapeProcessing, PlaceholderStyle placeholderStyle,
       String... columnNames)
       throws SQLException {
-    return queryExecutor.createQuery(sql, escapeProcessing, isParameterized, columnNames);
+    return queryExecutor.createQuery(sql, escapeProcessing, placeholderStyle, columnNames);
   }
 
   void releaseQuery(CachedQuery cachedQuery) {
@@ -277,8 +278,8 @@ public class PgConnection implements BaseConnection {
       LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
     }
 
-    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
-    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
+    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, PlaceholderStyle.ANY);
+    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, PlaceholderStyle.ANY);
 
     // Set read-only early if requested
     if (PGProperty.READ_ONLY.getBoolean(info)) {
@@ -342,8 +343,8 @@ public class PgConnection implements BaseConnection {
     // Initialize common queries.
     // isParameterized==true so full parse is performed and the engine knows the query
     // is not a compound query with ; inside, so it could use parse/bind/exec messages
-    commitQuery = createQuery("COMMIT", false, true).query;
-    rollbackQuery = createQuery("ROLLBACK", false, true).query;
+    commitQuery = createQuery("COMMIT", false, PlaceholderStyle.ANY).query;
+    rollbackQuery = createQuery("ROLLBACK", false, PlaceholderStyle.ANY).query;
 
     int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 
@@ -383,6 +384,8 @@ public class PgConnection implements BaseConnection {
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
     cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+
+    this.placeholderStyle = PlaceholderStyle.of(PGProperty.PLACEHOLDER_STYLE.get(info));
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
@@ -531,7 +534,14 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
-    return prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+    checkClosed();
+    return prepareStatement(sql, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, PlaceholderStyle placeholderStyle) throws SQLException {
+    checkClosed();
+    return prepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, placeholderStyle);
   }
 
   @Override
@@ -875,7 +885,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public String nativeSQL(String sql) throws SQLException {
     checkClosed();
-    CachedQuery cachedQuery = queryExecutor.createQuery(sql, false, true);
+    CachedQuery cachedQuery = queryExecutor.createQuery(sql, true, getPlaceholderStyle());
 
     return cachedQuery.query.getNativeSql();
   }
@@ -1408,7 +1418,14 @@ public class PgConnection implements BaseConnection {
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    return prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
+      int resultSetHoldability, PlaceholderStyle placeholderStyle) throws SQLException {
+    checkClosed();
+    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability, placeholderStyle);
   }
 
   @Override
@@ -1855,7 +1872,15 @@ public class PgConnection implements BaseConnection {
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency)
       throws SQLException {
     checkClosed();
-    return prepareStatement(sql, resultSetType, resultSetConcurrency, getHoldability());
+    return prepareStatement(sql, resultSetType, resultSetConcurrency, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
+      PlaceholderStyle placeholderStyle)
+      throws SQLException {
+    checkClosed();
+    return prepareStatement(sql, resultSetType, resultSetConcurrency, getHoldability(), placeholderStyle);
   }
 
   @Override
@@ -1867,17 +1892,30 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys) throws SQLException {
+    checkClosed();
+    return prepareStatement(sql, autoGeneratedKeys, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, int autoGeneratedKeys, PlaceholderStyle placeholderStyle) throws SQLException {
+    checkClosed();
     if (autoGeneratedKeys != Statement.RETURN_GENERATED_KEYS) {
-      return prepareStatement(sql);
+      return prepareStatement(sql, placeholderStyle);
     }
 
-    return prepareStatement(sql, (String[]) null);
+    return prepareStatement(sql, (String[]) null, placeholderStyle);
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int @Nullable [] columnIndexes) throws SQLException {
+    checkClosed();
+    return prepareStatement(sql, columnIndexes, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, int @Nullable [] columnIndexes, PlaceholderStyle placeholderStyle) throws SQLException {
     if (columnIndexes != null && columnIndexes.length == 0) {
-      return prepareStatement(sql);
+      return prepareStatement(sql, placeholderStyle);
     }
 
     checkClosed();
@@ -1887,11 +1925,16 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public PreparedStatement prepareStatement(String sql, String @Nullable[] columnNames) throws SQLException {
+    return prepareStatement(sql, columnNames, getPlaceholderStyle());
+  }
+
+  @Override
+  public PreparedStatement prepareStatement(String sql, String @Nullable[] columnNames, PlaceholderStyle placeholderStyle) throws SQLException {
     if (columnNames != null && columnNames.length == 0) {
       return prepareStatement(sql);
     }
 
-    CachedQuery cachedQuery = borrowReturningQuery(sql, columnNames);
+    CachedQuery cachedQuery = borrowReturningQuery(sql, getPlaceholderStyle(), columnNames);
     PgPreparedStatement ps =
         new PgPreparedStatement(this, cachedQuery,
             ResultSet.TYPE_FORWARD_ONLY,
@@ -1920,6 +1963,16 @@ public class PgConnection implements BaseConnection {
   @Override
   public boolean getAdaptiveFetch() {
     return queryExecutor.getAdaptiveFetch();
+  }
+
+  @Override
+  public void setPlaceholderStyle(PlaceholderStyle placeholderStyle) {
+    this.placeholderStyle = placeholderStyle;
+  }
+
+  @Override
+  public PlaceholderStyle getPlaceholderStyle() {
+    return this.placeholderStyle;
   }
 
   @Override

@@ -9,6 +9,7 @@ package org.postgresql.core.v3;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -38,10 +39,24 @@ class CompositeQuery implements Query {
 
   @Override
   public String toString(@Nullable ParameterList parameters) {
-    StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
+    if (parameters == null) {
+      StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
+      for (int i = 1; i < subqueries.length; i++) {
+        sbuf.append(';').append(subqueries[i].toString());
+      }
+      return sbuf.toString();
+    }
+
+    if (!(parameters instanceof CompositeParameterList)) {
+      throw new IllegalArgumentException("Expected CompositeParameterList!");
+    }
+    final SimpleParameterList[] subparams = ((CompositeParameterList) parameters).getSubparams();
+    if (subparams == null) {
+      throw new IllegalStateException("Supplied CompositeParameterList does not have a ParameterList!");
+    }
+    StringBuilder sbuf = new StringBuilder(subqueries[0].toString(subparams[0]));
     for (int i = 1; i < subqueries.length; i++) {
-      sbuf.append(';');
-      sbuf.append(subqueries[i]);
+      sbuf.append(';').append(subqueries[i].toString(subparams[i]));
     }
     return sbuf.toString();
   }
@@ -76,6 +91,11 @@ class CompositeQuery implements Query {
   @Override
   public Query[] getSubqueries() {
     return subqueries;
+  }
+
+  @Override
+  public PlaceholderStyle getPlaceholderStyle() {
+    throw new RuntimeException("This should not be called");
   }
 
   @Override

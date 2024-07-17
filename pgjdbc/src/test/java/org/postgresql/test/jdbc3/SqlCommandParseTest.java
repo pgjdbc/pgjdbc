@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Parser;
 import org.postgresql.core.SqlCommandType;
+import org.postgresql.jdbc.PlaceholderStyle;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -30,7 +31,9 @@ public class SqlCommandParseTest {
         {SqlCommandType.INSERT, "with update as (update foo set (a=?,b=?,c=?)) insert /**/ into table(select) values(1)"},
         {SqlCommandType.SELECT, "with update as (update foo set (a=?,b=?,c=?)) insert --\nas () select 1"},
         {SqlCommandType.SELECT, "with update as (update foo set (a=?,b=?,c=?)) insert --\n/* dfhg \n*/\nas () select 1"},
-        {SqlCommandType.SELECT, "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning  returning a, b) select * from x"},
+        {SqlCommandType.SELECT, "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning a, b) select * from x"},
+        {SqlCommandType.DELETE, "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning a, b) delete from tab using x WHERE tab.col = x.col"},
+        {SqlCommandType.UPDATE, "WITH x as (INSERT INTO genkeys(a,b,c) VALUES (1, 'a', 2) returning a, b) update tab set somecol = 'dummy' WHERE tab.col = x.col"},
         // No idea if it works, but it should be parsed as WITH
         {SqlCommandType.WITH, "with update as (update foo set (a=?,b=?,c=?)) copy from stdin"},
     });
@@ -40,7 +43,7 @@ public class SqlCommandParseTest {
   @ParameterizedTest(name = "expected={0}, sql={1}")
   void run(SqlCommandType type, String sql) throws SQLException {
     List<NativeQuery> queries;
-    queries = Parser.parseJdbcSql(sql, true, true, false, true, true);
+    queries = Parser.parseJdbcSql(sql,true, false, true, true, PlaceholderStyle.ANY);
     NativeQuery query = queries.get(0);
     assertEquals(type, query.command.getType(), sql);
   }
