@@ -349,7 +349,9 @@ public class PgConnection implements BaseConnection {
 
     // Initialize object handling
     @SuppressWarnings("argument")
-    TypeInfo typeCache = createTypeInfo(this, unknownLength);
+    TypeInfo typeCache = PGProperty.GLOBAL_TYPE_INFO_CACHE.getBoolean(info)
+        ? new TypeInfoCache(this, unknownLength, TypeInfoCacheStorage.GLOBAL_INSTANCE)
+        : createTypeInfo(this, unknownLength);
     this.typeCache = typeCache;
     initObjectTypes(info);
 
