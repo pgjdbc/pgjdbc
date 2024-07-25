@@ -47,8 +47,8 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
-import org.postgresql.util.internal.SourceStreamIOException;
 import org.postgresql.util.internal.IntSet;
+import org.postgresql.util.internal.SourceStreamIOException;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
