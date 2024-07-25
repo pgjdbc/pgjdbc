@@ -793,6 +793,17 @@ public enum PGProperty {
       "Use SPNEGO in SSPI authentication requests"),
 
   /**
+   * Enable mapping of `WITH TIMEZONE` to {@see java.sql.Types.TIME_WITH_TIMEZONE}
+   * and {@see java.sql.Types.TIMESTAMP_WITH_TIMEZONE} .
+   * The default is {@code false}
+   */
+  USE_WITH_TIMEZONE(
+      "useWithTimezone",
+      "false",
+      "Map time with timezone and timestamp with timezone to (@code TIME_WITH_TIMEZONE) and (@code TIMESTAMP_WITH_TIMEZONE)"
+          + "The default is (@code false)"),
+
+  /**
    * Factory class to instantiate factories for XML processing.
    * The default factory disables external entity processing.
    * Legacy behavior with external entity processing can be enabled by specifying a value of LEGACY_INSECURE.
