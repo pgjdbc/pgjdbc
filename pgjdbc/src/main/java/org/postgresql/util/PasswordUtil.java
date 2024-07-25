@@ -8,9 +8,8 @@ package org.postgresql.util;
 import org.postgresql.core.Utils;
 
 import com.ongres.scram.common.ScramFunctions;
-import com.ongres.scram.common.ScramMechanisms;
-import com.ongres.scram.common.bouncycastle.base64.Base64;
-import com.ongres.scram.common.stringprep.StringPreparations;
+import com.ongres.scram.common.ScramMechanism;
+import com.ongres.scram.common.StringPreparation;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -20,6 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Objects;
 
 public class PasswordUtil {
@@ -58,18 +58,18 @@ public class PasswordUtil {
       throw new IllegalArgumentException("salt length must be greater than zero");
     }
     try {
-      String passwordText = String.valueOf(password);
-      byte[] saltedPassword = ScramFunctions.saltedPassword(ScramMechanisms.SCRAM_SHA_256,
-          StringPreparations.SASL_PREPARATION, passwordText, salt, iterations);
-      byte[] clientKey = ScramFunctions.clientKey(ScramMechanisms.SCRAM_SHA_256, saltedPassword);
-      byte[] storedKey = ScramFunctions.storedKey(ScramMechanisms.SCRAM_SHA_256, clientKey);
-      byte[] serverKey = ScramFunctions.serverKey(ScramMechanisms.SCRAM_SHA_256, saltedPassword);
+      ScramMechanism scramSha256 = ScramMechanism.SCRAM_SHA_256;
+      byte[] saltedPassword = ScramFunctions.saltedPassword(scramSha256,
+          StringPreparation.POSTGRESQL_PREPARATION, password, salt, iterations);
+      byte[] clientKey = ScramFunctions.clientKey(scramSha256, saltedPassword);
+      byte[] storedKey = ScramFunctions.storedKey(scramSha256, clientKey);
+      byte[] serverKey = ScramFunctions.serverKey(scramSha256, saltedPassword);
 
-      return "SCRAM-SHA-256"
+      return scramSha256.getName()
         + "$" + iterations
-        + ":" + Base64.toBase64String(salt)
-        + "$" + Base64.toBase64String(storedKey)
-        + ":" + Base64.toBase64String(serverKey);
+        + ":" + Base64.getEncoder().encodeToString(salt)
+        + "$" + Base64.getEncoder().encodeToString(storedKey)
+        + ":" + Base64.getEncoder().encodeToString(serverKey);
     } finally {
       Arrays.fill(password, (char) 0);
     }
@@ -87,8 +87,7 @@ public class PasswordUtil {
   public static String encodeScramSha256(char[] password) {
     Objects.requireNonNull(password, "password");
     try {
-      SecureRandom rng = getSecureRandom();
-      byte[] salt = rng.generateSeed(DEFAULT_SALT_LENGTH);
+      byte[] salt = ScramFunctions.salt(DEFAULT_SALT_LENGTH, getSecureRandom());
       return encodeScramSha256(password, DEFAULT_ITERATIONS, salt);
     } finally {
       Arrays.fill(password, (char) 0);
