@@ -118,7 +118,7 @@ public class messages_de extends java.util.ResourceBundle {
     t[299] = "Diese PooledConnection ist bereits geschlossen worden.";
     t[302] = "ClientInfo property not supported.";
     t[303] = "Die ClientInfo-Eigenschaft ist nicht unterstützt.";
-    t[306] = "Fetch size must be a value greater to or equal to 0.";
+    t[306] = "Fetch size must be a value greater than or equal to 0.";
     t[307] = "Die Fetch-Größe muss ein Wert größer oder gleich Null sein.";
     t[312] = "A connection could not be made using the requested protocol {0}.";
     t[313] = "Es konnte keine Verbindung unter Verwendung des Protokolls {0} hergestellt werden.";

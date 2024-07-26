@@ -118,7 +118,7 @@ public class messages_cs extends java.util.ResourceBundle {
     t[187] = "Ovladač nyní nepodporuje příkaz COPY.";
     t[190] = "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database.";
     t[191] = "Nalezena vada ve znakových datech. Toto může být způsobeno uloženými daty obsahujícími znaky, které jsou závadné pro znakovou sadu nastavenou při zakládání databáze. Nejznámejší příklad je ukládání 8bitových dat vSQL_ASCII databázi.";
-    t[196] = "Fetch size must be a value greater to or equal to 0.";
+    t[196] = "Fetch size must be a value greater than or equal to 0.";
     t[197] = "Nabraná velikost musí být nezáporná.";
     t[204] = "Unsupported Types value: {0}";
     t[205] = "Nepodporovaná hodnota typu: {0}";

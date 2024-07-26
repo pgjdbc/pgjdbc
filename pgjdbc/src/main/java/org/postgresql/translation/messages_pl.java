@@ -106,7 +106,7 @@ public class messages_pl extends java.util.ResourceBundle {
     t[255] = "Aktualna pozycja przed początkiem ResultSet. Nie można wywołać deleteRow().";
     t[258] = "Failed to create object for: {0}.";
     t[259] = "Nie powiodło się utworzenie obiektu dla: {0}.";
-    t[262] = "Fetch size must be a value greater to or equal to 0.";
+    t[262] = "Fetch size must be a value greater than or equal to 0.";
     t[263] = "Rozmiar pobierania musi być wartością dodatnią lub 0.";
     t[270] = "No results were returned by the query.";
     t[271] = "Zapytanie nie zwróciło żadnych wyników.";

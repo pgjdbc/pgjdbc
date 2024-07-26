@@ -96,7 +96,7 @@ public class messages_ja extends java.util.ResourceBundle {
     t[211] = "サーバはパスワード・ベースの認証を要求しましたが、パスワードが渡されませんでした。";
     t[214] = "Interrupted while attempting to connect.";
     t[215] = "接続試行中に割り込みがありました。";
-    t[216] = "Fetch size must be a value greater to or equal to 0.";
+    t[216] = "Fetch size must be a value greater than or equal to 0.";
     t[217] = "フェッチサイズは、0または、より大きな値でなくてはなりません。";
     t[228] = "Added parameters index out of range: {0}, number of columns: {1}.";
     t[229] = "パラメータ・インデックスは範囲外です: {0} , カラム数: {1}";

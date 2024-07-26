@@ -300,7 +300,7 @@ public class messages_bg extends java.util.ResourceBundle {
     t[657] = "Отчетен параметър от тип {0}, но обработено като get{1} (sqltype={2}). ";
     t[662] = "Unsupported value for stringtype parameter: {0}";
     t[663] = "Непозволена стойност за StringType параметър: {0}";
-    t[664] = "Fetch size must be a value greater to or equal to 0.";
+    t[664] = "Fetch size must be a value greater than or equal to 0.";
     t[665] = "Размера за fetch size трябва да бъде по-голям или равен на 0.";
     t[670] = "Cannot tell if path is open or closed: {0}.";
     t[671] = "Не може да определи дали адреса е отворен или затворен: {0}.";

@@ -116,7 +116,7 @@ public class messages_fr extends java.util.ResourceBundle {
     t[297] = "Le troncage des large objects n''est implémenté que dans les serveurs 8.3 et supérieurs.";
     t[298] = "This PooledConnection has already been closed.";
     t[299] = "Cette PooledConnection a déjà été fermée.";
-    t[306] = "Fetch size must be a value greater to or equal to 0.";
+    t[306] = "Fetch size must be a value greater than or equal to 0.";
     t[307] = "Fetch size doit être une valeur supérieur ou égal à 0.";
     t[312] = "A connection could not be made using the requested protocol {0}.";
     t[313] = "Aucune connexion n''a pu être établie en utilisant le protocole demandé {0}. ";

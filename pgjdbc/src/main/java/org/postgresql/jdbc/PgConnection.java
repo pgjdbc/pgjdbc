@@ -1244,7 +1244,7 @@ public class PgConnection implements BaseConnection {
   @Override
   public void setDefaultFetchSize(int fetchSize) throws SQLException {
     if (fetchSize < 0) {
-      throw new PSQLException(GT.tr("Fetch size must be a value greater to or equal to 0."),
+      throw new PSQLException(GT.tr("Fetch size must be a value greater than or equal to 0."),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
