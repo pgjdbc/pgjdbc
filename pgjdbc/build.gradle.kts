@@ -190,19 +190,6 @@ tasks.compileJava {
 // <editor-fold defaultstate="collapsed" desc="Third-party license gathering">
 val getShadedDependencyLicenses by tasks.registering(GatherLicenseTask::class) {
     configuration(shaded)
-    extraLicenseDir.set(file("$rootDir/licenses"))
-    overrideLicense("com.ongres.scram:scram-common") {
-        licenseFiles = "scram"
-    }
-    overrideLicense("com.ongres.scram:scram-client") {
-        licenseFiles = "scram"
-    }
-    overrideLicense("com.ongres.stringprep:saslprep") {
-        licenseFiles = "stringprep"
-    }
-    overrideLicense("com.ongres.stringprep:stringprep") {
-        licenseFiles = "stringprep"
-    }
 }
 
 val renderShadedLicense by tasks.registering(com.github.vlsi.gradle.release.Apache2LicenseRenderer::class) {
@@ -231,11 +218,12 @@ tasks.shadowJar {
     exclude("META-INF/versions/9/module-info.class")
     // ignore service file not used in shaded dependency
     exclude("META-INF/services/com.ongres.stringprep.Profile")
+    // We explicitly exclude all license-like files, and we re-add them in osgiJar later
+    // It looks like shadowJar can't filter out META-INF/LICENSE, and files with the same name
     exclude("META-INF/LICENSE*")
     exclude("META-INF/NOTICE*")
-    into("META-INF") {
-        dependencyLicenses(shadedLicenseFiles)
-    }
+    exclude("LICENSE")
+    exclude("NOTICE")
     listOf(
             "com.ongres"
     ).forEach {
@@ -246,6 +234,9 @@ tasks.shadowJar {
 val osgiJar by tasks.registering(Bundle::class) {
     archiveClassifier.set("osgi")
     from(tasks.shadowJar.map { zipTree(it.archiveFile) })
+    into("META-INF") {
+        dependencyLicenses(shadedLicenseFiles)
+    }
     bundle {
         bnd(
             """
