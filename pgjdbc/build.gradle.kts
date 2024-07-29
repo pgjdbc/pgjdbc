@@ -71,15 +71,15 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
 
 dependencies {
     constraints {
-        api("com.github.waffle:waffle-jna:1.9.1")
-        api("org.osgi:org.osgi.core:6.0.0")
-        api("org.osgi:org.osgi.service.jdbc:1.0.0")
+        api("com.github.waffle:waffle-jna:3.3.0")
+        api("org.osgi:osgi.core:8.0.0")
+        api("org.osgi:org.osgi.service.jdbc:1.0.1")
     }
 
     "sspiImplementation"("com.github.waffle:waffle-jna")
     // The dependencies are provided by OSGi container,
     // so they should not be exposed as transitive dependencies
-    "osgiCompileOnly"("org.osgi:org.osgi.core")
+    "osgiCompileOnly"("org.osgi:osgi.core")
     "osgiCompileOnly"("org.osgi:org.osgi.service.jdbc")
     "testImplementation"("org.osgi:org.osgi.service.jdbc") {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
@@ -103,6 +103,31 @@ if (skipReplicationTests) {
     tasks.configureEach<Test> {
         exclude("org/postgresql/replication/**")
         exclude("org/postgresql/test/jdbc2/CopyBothResponseTest*")
+    }
+}
+
+val java11 by sourceSets.creating {
+    java.srcDir("src/main/java11")
+    compileClasspath = sourceSets["main"].compileClasspath
+}
+
+tasks.named<JavaCompile>("compileJava11Java") {
+    options.release = 11
+    val compileJavaDestinationDirectory = tasks.compileJava.flatMap { it.destinationDirectory }
+    // sets execution order and cache relationship
+    inputs.dir(compileJavaDestinationDirectory)
+    options.compilerArgumentProviders.add(
+        CommandLineArgumentProvider {
+            listOf(
+                "--patch-module", "org.postgresql.jdbc=${compileJavaDestinationDirectory.get().asFile.absolutePath}",
+            )
+        }
+    )
+}
+
+tasks.jar {
+    into("META-INF/versions/11") {
+        from(sourceSets["java11"].output)
     }
 }
 
@@ -221,6 +246,7 @@ tasks.configureEach<Jar> {
     manifest {
         attributes["Main-Class"] = "org.postgresql.util.PGJDBCMain"
         attributes["Automatic-Module-Name"] = "org.postgresql.jdbc"
+        attributes["Multi-Release"] = "true"
     }
 }
 
@@ -235,9 +261,14 @@ tasks.shadowJar {
     exclude("META-INF/NOTICE*")
     into("META-INF") {
         dependencyLicenses(shadedLicenseFiles)
+        into("versions/11") {
+            from(sourceSets["java11"].output)
+        }
     }
+    // shadow excludes module-info.class files by default, see https://github.com/johnrengelman/shadow/issues/710#issuecomment-1553178619
+    excludes.remove("module-info.class")
     listOf(
-            "com.ongres"
+        "com.ongres"
     ).forEach {
         relocate(it, "${project.group}.shaded.$it")
     }
@@ -269,21 +300,24 @@ val osgiJar by tasks.registering(Bundle::class) {
 karaf {
     features.apply {
         xsdVersion = "1.5.0"
-        feature(closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.FeatureDescriptor> {
-            name = "postgresql"
-            description = "PostgreSQL JDBC driver karaf feature"
-            version = project.version.toString()
-            details = "Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database"
-            feature("transaction-api")
-            includeProject = true
-            bundle(
-                project.group.toString(),
-                closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.BundleDescriptor> {
-                    wrap = false
-                })
-            // List argument clears the "default" configurations
-            configurations(listOf(karafFeatures))
-        })
+        feature(
+            closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.FeatureDescriptor> {
+                name = "postgresql"
+                description = "PostgreSQL JDBC driver karaf feature"
+                version = project.version.toString()
+                details = "Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database"
+                feature("transaction-api")
+                includeProject = true
+                bundle(
+                    project.group.toString(),
+                    closureOf<com.github.lburgazzoli.gradle.plugin.karaf.features.model.BundleDescriptor> {
+                        wrap = false
+                    }
+                )
+                // List argument clears the "default" configurations
+                configurations(listOf(karafFeatures))
+            }
+        )
     }
 }
 
@@ -297,12 +331,13 @@ val sourceWithoutCheckerAnnotations by configurations.creating {
 
 val hiddenAnnotation = Regex(
     "@(?:Nullable|NonNull|PolyNull|MonotonicNonNull|RequiresNonNull|EnsuresNonNull|" +
-            "Regex|" +
-            "Pure|" +
-            "KeyFor|" +
-            "Positive|NonNegative|IntRange|" +
-            "GuardedBy|UnderInitialization|" +
-            "DefaultQualifier)(?:\\([^)]*\\))?")
+        "Regex|" +
+        "Pure|" +
+        "KeyFor|" +
+        "Positive|NonNegative|IntRange|" +
+        "GuardedBy|UnderInitialization|" +
+        "DefaultQualifier)(?:\\([^)]*\\))?"
+)
 val hiddenImports = Regex("import org.checkerframework")
 
 val removeTypeAnnotations by tasks.registering(Sync::class) {
@@ -363,11 +398,13 @@ val sourceDistribution by tasks.registering(Tar::class) {
     }
     dependsOn(tasks.generateKar)
     into("src/main/resources") {
-        from(tasks.jar.map {
-            zipTree(it.archiveFile).matching {
-                include("META-INF/MANIFEST.MF")
+        from(
+            tasks.jar.map {
+                zipTree(it.archiveFile).matching {
+                    include("META-INF/MANIFEST.MF")
+                }
             }
-        })
+        )
         into("META-INF") {
             dependencyLicenses(shadedLicenseFiles)
         }
@@ -425,5 +462,12 @@ val extraMavenPublications by configurations.getting
     extraMavenPublications(karaf.features.outputFile) {
         builtBy(tasks.named("generateFeatures"))
         classifier = "features"
+    }
+}
+
+sourceSets {
+    main {
+        // todo: fix how preprocessVersion srcSets
+        java.setSrcDirs(listOf("src/main/java", preprocessVersion))
     }
 }
