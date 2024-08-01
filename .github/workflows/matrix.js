@@ -55,8 +55,6 @@ matrix.addAxis({
   title: x => 'PG ' + x,
   // Strings allow versions like 18-ea
   values: [
-    '8.4',
-    '9.0',
     '9.1',
     '9.2',
     '9.3',
@@ -70,7 +68,7 @@ matrix.addAxis({
     '14',
     '15',
     '16',
-    '17beta1'
+    '17beta2'
   ]
 });
 
@@ -159,7 +157,7 @@ matrix.addAxis({
   title: x => (x.value === 'yes' ? '' : 'no_') + 'scram',
   values: [
     {value: 'yes', weight: 10},
-    {value: 'no', weight: 10},
+    {value: 'no', weight: 5},
   ]
 });
 

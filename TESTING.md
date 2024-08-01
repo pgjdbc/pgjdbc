@@ -53,7 +53,7 @@ If you have Docker, you can use `docker-compose` to launch test database (see [d
     to reproduce CI errors locally. It respects all the same environment variables
     used by the CI matrix:
 
-    PGV   = "8.4" | "9.0" | ... "13" ...   - PostgreSQL server version (defaults to latest)
+    PGV   = "9.2" | "9.6" | ... "13" ...   - PostgreSQL server version (defaults to latest)
     SSL   = "yes" | "no"                   - Whether to enable SSL
     XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
     SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
@@ -67,9 +67,9 @@ If you have Docker, you can use `docker-compose` to launch test database (see [d
 
     docker/bin/postgres-server
 
-    To start a v8.4 server without SSL:
+    To start a v9.2 server without SSL:
 
-    PGV=8.4 SSL=off docker/bin/postgres-server
+    PGV=9.2 SSL=off docker/bin/postgres-server
 
     To start a v10 server with SCRAM disabled:
 
