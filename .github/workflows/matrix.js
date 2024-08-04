@@ -99,8 +99,8 @@ matrix.addAxis({
   title: x => x.replace('-latest', ''),
   values: [
     'ubuntu-latest',
+    'windows-latest',
     // We use docker-compose for launching PostgreSQL
-    // 'windows-latest',
     // 'macos-latest',
   ]
 });
