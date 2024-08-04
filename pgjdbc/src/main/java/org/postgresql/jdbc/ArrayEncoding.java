@@ -1064,20 +1064,29 @@ final class ArrayEncoding {
         if (i > 0) {
           sb.append(delim);
         }
-        if (array[i] == null) {
+        Object element = array[i];
+        if (element instanceof java.sql.Array) {
+          try {
+            element = ((java.sql.Array) element).getArray();
+          } catch (SQLException e) {
+            // Same behavior as PgArray#toString
+            element = null;
+          }
+        }
+        if (element == null) {
           sb.append('N').append('U').append('L').append('L');
-        } else if (array[i].getClass().isArray()) {
-          if (array[i] instanceof byte[]) {
+        } else if (element.getClass().isArray()) {
+          if (element instanceof byte[]) {
             throw new UnsupportedOperationException("byte[] nested inside Object[]");
           }
           try {
-            getArrayEncoder(array[i]).appendArray(sb, delim, array[i]);
+            getArrayEncoder(element).appendArray(sb, delim, element);
           } catch (PSQLException e) {
             // this should never happen
             throw new IllegalStateException(e);
           }
         } else {
-          PgArray.escapeArrayElement(sb, array[i].toString());
+          PgArray.escapeArrayElement(sb, element.toString());
         }
       }
       sb.append('}');
