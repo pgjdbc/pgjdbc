@@ -197,14 +197,16 @@ This option controls the client's use of channel binding. A setting of `require`
 Channel binding is a method for the server to authenticate itself to the client. It is only supported over SSL connections with PostgreSQL 11 or later servers using the SCRAM authentication method.
 
 * **`binaryTransfer (`*boolean*`)`** *Default `true`*\
-Use binary format for sending and receiving data if possible. Setting this to false disables any binary transfer.
+Enable binary transfer for supported built-in types if possible.
+Setting this to false disables any binary transfer unless it's individually activated for each type with `binaryTransferEnable`.
+Whether it is possible to use binary transfer at all depends on server side prepared statements (see `prepareThreshold` ).
 
 * **`binaryTransferEnable (`*String*`)`** *Default `empty string`*\
-A comma separated list of types to enable binary transfer. Either OID numbers or names.
+Comma separated list of types to enable binary transfer. Either OID numbers or names.
 
 * **`binaryTransferDisable (`*String*`)`** *Default `empty string`*\
-A comma separated list of types to disable binary transfer. Either OID numbers or names.
-Over-rides values in the driver default set and values set with binaryTransferEnable.
+Comma separated list of types to disable binary transfer. Either OID numbers or names.
+Overrides values in the driver default set and values set with binaryTransferEnable.
 
 * **`databaseMetadataCacheFields (`*int*`)`** *Default `65536`*\
 Specifies the maximum number of fields to be cached per connection.
@@ -217,6 +219,7 @@ A value of 0 disables the cache.
 * **`prepareThreshold (`*int*`)`** *Default `5`*\
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 
+A value of -1 activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
 More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements).
 
 * **`preparedStatementCacheQueries (`*int*`)`** *Default `256`*\
