@@ -299,7 +299,7 @@ jobs:
 
     - name: Start PostgreSQL
       working-directory: docker/postgres-server
-      run: docker-compose up -d && docker-compose logs
+      run: docker compose up -d && docker compose logs
       env:
         PGV: ${{ matrix.pg_version }}
 
@@ -340,7 +340,7 @@ jobs:
             # Server is not online so dump some logs for debugging
             docker ps
             cd docker/postgres-server
-            docker-compose logs
+            docker compose logs
         fi
         psql -c 'SELECT version()'
 
@@ -378,7 +378,7 @@ jobs:
         fetch-depth: 50
     - name: Compile and start PostgreSQL
       working-directory: docker/postgres-head
-      run: docker-compose up -d && docker-compose logs
+      run: docker compose up -d && docker compose logs
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
@@ -398,7 +398,7 @@ jobs:
             # Server is not online so dump some logs for debugging
             docker ps
             cd docker/postgres-head
-            docker-compose logs
+            docker compose logs
         fi
         psql -c 'SELECT version()'
     - name: Prepare local properties
