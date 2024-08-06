@@ -167,7 +167,7 @@ jobs:
         echo 'Starting PostgreSQL via docker compose down; PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} docker compose up'
 
         docker compose down -v --rmi local || true
-        sed -i -r '/- (543[3-4]):\1/d' docker compose.yml
+        sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
         docker compose up -d
         docker compose logs
     - name: Set up Java 17 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
