@@ -210,16 +210,16 @@ Overrides values in the driver default set and values set with binaryTransferEna
 
 * **`databaseMetadataCacheFields (`*int*`)`** *Default `65536`*\
 Specifies the maximum number of fields to be cached per connection.
-A value of 0 disables the cache.
+A value of `0` disables the cache.
 
 * **`databaseMetadataCacheFieldsMiB (`*int*`)`** *Default `5`*\
 Specifies the maximum size (in megabytes) of fields to be cached per connection.
-A value of 0 disables the cache.
+A value of `0` disables the cache.
 
 * **`prepareThreshold (`*int*`)`** *Default `5`*\
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 
-A value of -1 activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
+A value of `-1` activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
 More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements).
 
 * **`preparedStatementCacheQueries (`*int*`)`** *Default `256`*\
