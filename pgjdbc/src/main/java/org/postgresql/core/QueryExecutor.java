@@ -211,6 +211,17 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
       int fetchSize, int flags, boolean adaptiveFetch) throws SQLException;
 
   /**
+   *
+   * @param query original query
+   * @param cursorName the cursor to fetch from
+   * @param handler the handler to feed results to
+   * @param fetchSize the preferred number of rows to retrieve before suspending
+   * @param adaptiveFetch state of adaptiveFetch to use during fetching
+   * @throws SQLException if query execution fails   */
+  void fetch(Query query, String cursorName, ResultHandler handler, int fetchSize, boolean adaptiveFetch) throws SQLException;
+
+
+  /**
    * Fetch additional rows from a cursor.
    *
    * @param cursor the cursor to fetch from
@@ -220,6 +231,14 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @throws SQLException if query execution fails
    */
   void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize, boolean adaptiveFetch) throws SQLException;
+
+  /**
+   * Uses extended query protocol to close the protocol
+   * @param portalName name of portal to close
+   * @throws IOException if fetch fails due to some reason
+   */
+
+  void sendClosePortal(String portalName) throws IOException;
 
   /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
