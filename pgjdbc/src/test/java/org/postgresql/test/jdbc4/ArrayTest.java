@@ -32,6 +32,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -509,13 +510,7 @@ public class ArrayTest extends BaseTest4 {
     Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
         TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
 
-    PGobject cc = new PGobject();
-    cc.setType("\"CorrectCasing\"");
-    cc.setValue("(1)");
-    Object[] in = new Object[1];
-    in[0] = cc;
-
-    Array arr = conn.createArrayOf("\"CorrectCasing\"", in);
+    Array arr = conn.createArrayOf("\"CorrectCasing\"", new Object[]{conn.createStruct("\"CorrectCasing\"", new Object[]{1})});
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::\"CorrectCasing\"[]");
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
@@ -523,9 +518,8 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    Assert.assertTrue(resArr[0] instanceof PGobject);
-    PGobject resObj = (PGobject) resArr[0];
-    Assert.assertEquals("(1)", resObj.getValue());
+    Assert.assertTrue(resArr[0] instanceof Struct);
+    Assert.assertEquals("(1)", resArr[0].toString());
   }
 
   @Test
@@ -559,13 +553,7 @@ public class ArrayTest extends BaseTest4 {
     Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
         TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
 
-    PGobject cc = new PGobject();
-    cc.setType("\"Evil.Table\"");
-    cc.setValue("(1)");
-    Object[] in = new Object[1];
-    in[0] = cc;
-
-    Array arr = conn.createArrayOf("\"Evil.Table\"", in);
+    Array arr = conn.createArrayOf("\"Evil.Table\"", new Object[] {conn.createStruct("\"Evil.Table\"", new Object[]{1})});
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::\"Evil.Table\"[]");
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
@@ -573,9 +561,8 @@ public class ArrayTest extends BaseTest4 {
     Assert.assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    Assert.assertTrue(resArr[0] instanceof PGobject);
-    PGobject resObj = (PGobject) resArr[0];
-    Assert.assertEquals("(1)", resObj.getValue());
+    Assert.assertTrue(resArr[0] instanceof Struct);
+    Assert.assertEquals("(1)", resArr[0].toString());
   }
 
   @Test
