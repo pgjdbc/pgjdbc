@@ -114,7 +114,9 @@ public enum PGProperty {
   BINARY_TRANSFER(
       "binaryTransfer",
       "true",
-      "Use binary format for sending and receiving data if possible"),
+      "Enable binary transfer for supported built-in types if possible. "
+          + "Setting this to false disables any binary transfer unless it's individually activated "
+          + "for each type with `binaryTransferEnable`."),
 
   /**
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
@@ -123,7 +125,8 @@ public enum PGProperty {
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
-      "Comma separated list of types to disable binary transfer. Either OID numbers or names. Overrides values in the driver default set and values set with binaryTransferEnable."),
+      "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
+          + "Overrides values in the driver default set and values set with binaryTransferEnable."),
 
   /**
    * Comma separated list of types to enable binary transfer. Either OID numbers or names
@@ -131,7 +134,7 @@ public enum PGProperty {
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
-      "Comma separated list of types to enable binary transfer. Either OID numbers or names"),
+      "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
 
   /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get
