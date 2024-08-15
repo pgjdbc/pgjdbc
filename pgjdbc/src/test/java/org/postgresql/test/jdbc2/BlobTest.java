@@ -416,7 +416,6 @@ class BlobTest {
     InputStream bis = blob.getInputStream();
     assertEquals(0, bis.read());
     assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE / 2));
-    assertEquals(0, bis.read());
     assertThrows(IOException.class, () -> {
       while (bis.read() != -1) {
         // consume stream
@@ -438,7 +437,7 @@ class BlobTest {
       InputStream bis = blob.getInputStream();
       assertEquals(0, bis.read());
       assertThrows(IOException.class, () -> bis.skip(Integer.MAX_VALUE));
-      assertEquals(0, bis.read());
+      assertEquals(64, bis.read());
       while (bis.read() != -1) {
         // consume stream
       }

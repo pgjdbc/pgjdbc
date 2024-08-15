@@ -320,13 +320,13 @@ public class BlobInputStream extends InputStream {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
       long loId = lo.getLongOID();
+      buffer = null;
       try {
         if (markPosition <= Integer.MAX_VALUE) {
           lo.seek((int) markPosition);
         } else {
           lo.seek64(markPosition, LargeObject.SEEK_SET);
         }
-        buffer = null;
         absolutePosition = markPosition;
       } catch (SQLException e) {
         throw new IOException(
@@ -385,6 +385,7 @@ public class BlobInputStream extends InputStream {
       if (buffer != null && buffer.length - bufferPosition > skipped) {
         bufferPosition += (int) skipped;
       } else {
+        buffer = null;
         try {
           if (targetPosition <= Integer.MAX_VALUE) {
             lo.seek((int) targetPosition, LargeObject.SEEK_SET);
@@ -397,7 +398,6 @@ public class BlobInputStream extends InputStream {
                   loId, n, currentPosition),
               e);
         }
-        buffer = null;
       }
       absolutePosition = targetPosition;
       return skipped;
