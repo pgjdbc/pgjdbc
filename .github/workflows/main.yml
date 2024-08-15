@@ -236,7 +236,7 @@ jobs:
     - name: 'Update hosts for GSS tests'
       if: ${{ matrix.gss == 'yes' }}
       run: |
-        sudo -- sh -c "echo 127.0.0.1 localhost auth-test-localhost.postgresql.example.com > /etc/hosts"
+        sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com localhost > /etc/hosts"
         cat /etc/hosts
     - uses: burrunan/gradle-cache-action@v1
       if: ${{ matrix.deploy_to_maven_local }}
