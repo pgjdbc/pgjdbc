@@ -232,7 +232,7 @@ jobs:
       if: ${{ matrix.gss == 'yes' }}
       run: |
         sudo apt -y update
-        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh y
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
         sudo apt -y install postgresql-16
         sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql
     - name: 'Update hosts for GSS tests'
