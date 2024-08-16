@@ -8,7 +8,11 @@ Binary JAR file downloads of the JDBC driver are available here and the current 
 
 ## Latest Versions
 
-This is the current version of the driver. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. It supports PostgreSQL 8.2 or newer and requires Java 6 or newer. It contains support for SSL and the javax.sql package.
+This is the current version of the driver. Unless you have unusual requirements (running old applications or JVMs), this is the driver you should be using. It supports PostgreSQL 8.4 or newer and requires Java 6 or newer. It contains support for SSL and the javax.sql package.
+
+> **Note:**
+>
+> Testing of PostgreSQL versions is currently limited to versions 9.1 and newer. PgJDBC versions since 42.8.0 are not guaranteed to work with PostgreSQL older than 9.1.
 
 {{< recent-versions >}}
 

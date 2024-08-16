@@ -8,11 +8,16 @@
 
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
+    <version>%{org.postgresql:postgresql}</version>
     <packaging>jar</packaging>
     <name>PostgreSQL JDBC Driver - JDBC 4.2</name>
-    <version>%{org.postgresql:postgresql}</version>
     <description>Java JDBC 4.2 (JRE 8+) driver for PostgreSQL database</description>
     <url>https://github.com/pgjdbc/pgjdbc</url>
+
+    <organization>
+        <name>PostgreSQL Global Development Group</name>
+        <url>https://jdbc.postgresql.org/</url>
+    </organization>
 
     <licenses>
         <license>
@@ -20,11 +25,6 @@
             <url>https://jdbc.postgresql.org/about/license.html</url>
         </license>
     </licenses>
-
-    <organization>
-        <name>PostgreSQL Global Development Group</name>
-        <url>https://jdbc.postgresql.org/</url>
-    </organization>
 
     <properties>
         <!-- Require JDK 1.8 or later -->
@@ -34,17 +34,18 @@
         <project.build.sourceEncoding>${encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${encoding}</project.reporting.outputEncoding>
         <project.resources.sourceEncoding>${encoding}</project.resources.sourceEncoding>
-        <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.12.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-        <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
+        <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
+        <maven.compiler.parameters>true</maven.compiler.parameters>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>com.ongres.scram</groupId>
-            <artifactId>client</artifactId>
-            <version>%{com.ongres.scram:client}</version>
+            <artifactId>scram-client</artifactId>
+            <version>%{com.ongres.scram:scram-client}</version>
         </dependency>
         <dependency>
             <groupId>se.jiderhamn</groupId>
@@ -218,7 +219,7 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
-                        <version>3.1.0</version>
+                        <version>3.6.0</version>
                         <configuration>
                             <minimizeJar>true</minimizeJar>
                             <artifactSet>
@@ -229,12 +230,24 @@
                             </artifactSet>
                             <filters>
                                 <filter>
-                                    <artifact>com.ongres.scram:client</artifact>
+                                    <artifact>com.ongres.scram:*</artifact>
                                     <excludes>
-                                        <exclude>LICENSE</exclude>
+                                        <exclude>META-INF/LICENSE</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
                                         <exclude>META-INF/maven/**</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
                                     </excludes>
                                 </filter>
+                                <filter>
+                                <artifact>com.ongres.stringprep:*</artifact>
+                                  <excludes>
+                                      <exclude>META-INF/LICENSE</exclude>
+                                      <exclude>META-INF/MANIFEST.MF</exclude>
+                                      <exclude>META-INF/maven/**</exclude>
+                                      <exclude>META-INF/versions/**</exclude>
+                                      <exclude>META-INF/services/**</exclude>
+                                  </excludes>
+                              </filter>
                                 <filter>
                                     <artifact>*:*</artifact>
                                     <excludes>

@@ -49,10 +49,6 @@ public class PGStream implements Closeable, Flushable {
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
-
-  private final byte[] int4Buf;
-  private final byte[] int2Buf;
-
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
@@ -125,9 +121,6 @@ public class PGStream implements Closeable, Flushable {
     Socket socket = createSocket(timeout);
     changeSocket(socket);
     setEncoding(Encoding.getJVMEncoding("UTF-8"));
-
-    int2Buf = new byte[2];
-    int4Buf = new byte[4];
   }
 
   @SuppressWarnings({"method.invocation", "initialization.fields.uninitialized"})
@@ -171,10 +164,6 @@ public class PGStream implements Closeable, Flushable {
     setNetworkTimeout(soTimeout);
     socket.setKeepAlive(keepAlive);
     socket.setTcpNoDelay(tcpNoDelay);
-
-    int2Buf = new byte[2];
-    int4Buf = new byte[4];
-
   }
 
   /**
@@ -498,26 +487,17 @@ public class PGStream implements Closeable, Flushable {
    * @throws IOException if an I/O error occurs
    */
   public int receiveInteger4() throws IOException {
-    if (pgInput.read(int4Buf) != 4) {
-      throw new EOFException();
-    }
-
-    return (int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
-        | int4Buf[3] & 0xFF;
+    return pgInput.readInt4();
   }
 
   /**
-   * Receives a two byte integer from the backend.
+   * Receives a two byte integer from the backend as an unsigned integer (0..65535).
    *
    * @return the integer received from the backend
    * @throws IOException if an I/O error occurs
    */
   public int receiveInteger2() throws IOException {
-    if (pgInput.read(int2Buf) != 2) {
-      throw new EOFException();
-    }
-
-    return (int2Buf[0] & 0xFF) << 8 | int2Buf[1] & 0xFF;
+    return pgInput.readInt2();
   }
 
   /**

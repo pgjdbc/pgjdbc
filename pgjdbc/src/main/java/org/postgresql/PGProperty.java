@@ -79,7 +79,7 @@ public enum PGProperty {
    */
   ASSUME_MIN_SERVER_VERSION(
       "assumeMinServerVersion",
-      null,
+      "9.1",
       "Assume the server is at least that version"),
 
   /**
@@ -114,7 +114,9 @@ public enum PGProperty {
   BINARY_TRANSFER(
       "binaryTransfer",
       "true",
-      "Use binary format for sending and receiving data if possible"),
+      "Enable binary transfer for supported built-in types if possible. "
+          + "Setting this to false disables any binary transfer unless it's individually activated "
+          + "for each type with `binaryTransferEnable`."),
 
   /**
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
@@ -123,7 +125,8 @@ public enum PGProperty {
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
-      "Comma separated list of types to disable binary transfer. Either OID numbers or names. Overrides values in the driver default set and values set with binaryTransferEnable."),
+      "Comma separated list of types to disable binary transfer. Either OID numbers or names. "
+          + "Overrides values in the driver default set and values set with binaryTransferEnable."),
 
   /**
    * Comma separated list of types to enable binary transfer. Either OID numbers or names
@@ -131,7 +134,7 @@ public enum PGProperty {
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
-      "Comma separated list of types to enable binary transfer. Either OID numbers or names"),
+      "Comma separated list of types to enable binary transfer. Either OID numbers or names."),
 
   /**
    * Cancel command is sent out of band over its own connection, so cancel message can itself get
@@ -143,6 +146,18 @@ public enum PGProperty {
       "cancelSignalTimeout",
       "10",
       "The timeout that is used for sending cancel command."),
+
+  /**
+   * Channel binding is a method for the server to authenticate itself to the
+   * client. It is only supported over SSL connections with PostgreSQL 11 or later
+   * servers using the SCRAM authentication method.
+   */
+  CHANNEL_BINDING(
+      "channelBinding",
+      "prefer",
+      "This option controls the client's use of channel binding.",
+      false,
+      new String[] {"disable", "prefer", "require"}),
 
   /**
    * Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not

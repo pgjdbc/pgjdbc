@@ -1358,6 +1358,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return Channel binding option
+   * @see PGProperty#CHANNEL_BINDING
+   */
+  public @Nullable String getChannelBinding() {
+    return PGProperty.CHANNEL_BINDING.getOrDefault(properties);
+  }
+
+  /**
+   * @param channelBinding Channel binding option
+   * @see PGProperty#CHANNEL_BINDING
+   */
+  public void setChannelBinding(@Nullable String channelBinding) {
+    PGProperty.CHANNEL_BINDING.set(properties, channelBinding);
+  }
+
+  /**
    * Generates a {@link DriverManager} URL from the other properties supplied.
    *
    * @return {@link DriverManager} URL from the other properties supplied

@@ -56,7 +56,7 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 
 > **Important**
 > 
-> Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. see [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
+> Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. See [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
 
 ### System Properties
 `pgjdbc.config.cleanup.thread.ttl` (milliseconds, default: 30000). The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration the cleanup thread will keep running if there is nothing to clean up.
@@ -118,6 +118,7 @@ possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca`
 
 * **`sslNegotiation (`*String*`)`** *Default `postgres` *\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
+
 * **`sslcert (`*String*`)`** *Default `defaultdir/postgresql.crt`*\
 Provide the full path for the certificate file. Defaults to `defaultdir/postgresql.crt`, where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` on windows.\
 It can be a PEM encoded X509v3 certificate
@@ -159,7 +160,6 @@ If provided will be used by ConsoleCallbackHandler
 * **`sslResponseTimeout (`*Integer*`)`** *Default `5000`*\
 Time in milliseconds to wait for a response after requesting an SSL encrypted connection from the server. If this is greater than the current connectTimeout then connectTimeout will be used.
 
-
 * **`protocolVersion (`*int*`)`** *Default `null`*\
 The driver supports the V3 frontend/backend protocols. The V3 protocol was introduced in 7.4 and the driver will by default try to connect using the V3 protocol.
 
@@ -191,27 +191,35 @@ or 'statement XXX is not valid' so JDBC driver rolls back and retries
 * **`cleanupSavepoints (`*boolean*`)`** *Default `false`*\
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
 
+* **`channelBinding (`*String*`)`** *Default `prefer`*\
+This option controls the client's use of channel binding. A setting of `require` means that the connection must employ channel binding, `prefer` means that the client will choose channel binding if available, and `disable` prevents the use of channel binding. The default is `prefer` if PostgreSQL is compiled with SSL support; otherwise the default is `disable`.
+
+Channel binding is a method for the server to authenticate itself to the client. It is only supported over SSL connections with PostgreSQL 11 or later servers using the SCRAM authentication method.
+
 * **`binaryTransfer (`*boolean*`)`** *Default `true`*\
-Use binary format for sending and receiving data if possible. Setting this to false disables any binary transfer.
+Enable binary transfer for supported built-in types if possible.
+Setting this to false disables any binary transfer unless it's individually activated for each type with `binaryTransferEnable`.
+Whether it is possible to use binary transfer at all depends on server side prepared statements (see `prepareThreshold` ).
 
 * **`binaryTransferEnable (`*String*`)`** *Default `empty string`*\
-A comma separated list of types to enable binary transfer. Either OID numbers or names.
+Comma separated list of types to enable binary transfer. Either OID numbers or names.
 
 * **`binaryTransferDisable (`*String*`)`** *Default `empty string`*\
-A comma separated list of types to disable binary transfer. Either OID numbers or names.
-Over-rides values in the driver default set and values set with binaryTransferEnable.
+Comma separated list of types to disable binary transfer. Either OID numbers or names.
+Overrides values in the driver default set and values set with binaryTransferEnable.
 
 * **`databaseMetadataCacheFields (`*int*`)`** *Default `65536`*\
 Specifies the maximum number of fields to be cached per connection.
-A value of 0 disables the cache.
+A value of `0` disables the cache.
 
 * **`databaseMetadataCacheFieldsMiB (`*int*`)`** *Default `5`*\
 Specifies the maximum size (in megabytes) of fields to be cached per connection.
-A value of 0 disables the cache.
+A value of `0` disables the cache.
 
 * **`prepareThreshold (`*int*`)`** *Default `5`*\
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 
+A value of `-1` activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
 More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements).
 
 * **`preparedStatementCacheQueries (`*int*`)`** *Default `256`*\

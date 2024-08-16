@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.ByteConverter;
+
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -75,6 +77,34 @@ public class VisibleBufferedInputStream extends InputStream {
       return buffer[index++] & 0xFF;
     }
     return -1;
+  }
+
+  /**
+   * Reads an int2 value from the underlying stream as an unsigned integer (0..65535).
+   * @return int2 in the range of 0..65535
+   * @throws IOException if an I/ O error occurs.
+   */
+  public int readInt2() throws IOException {
+    if (ensureBytes(2)) {
+      int res = ByteConverter.int2(buffer, index) & 0xffff;
+      index += 2;
+      return res;
+    }
+    throw new EOFException("End of stream reached while trying to read integer2");
+  }
+
+  /**
+   * Reads an int4 value from the underlying stream.
+   * @return int4 value from the underlying stream
+   * @throws IOException if an I/ O error occurs.
+   */
+  public int readInt4() throws IOException {
+    if (ensureBytes(4)) {
+      int res = ByteConverter.int4(buffer, index);
+      index += 4;
+      return res;
+    }
+    throw new EOFException("End of stream reached while trying to read integer4");
   }
 
   /**

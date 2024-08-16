@@ -6,7 +6,7 @@ The purpose of the *Guidelines for Contributing* is to create a collaboration ba
 **Do NOT** blindly obey these guidelines, use them (after understanding) where they make sense.
 
 Currently the PgJDBC driver supports the Oracle and OpenJDK Java implementations of
-versions **8** and **higher**; and PostgreSQL server versions from **8.4** and higher.
+versions **8** and **higher**; and PostgreSQL server versions from **9.1** and higher.
 
 Some PostgreSQL forks *might* work but are not officially supported, we support vendors of forks
 that want to improve this driver by sending us pull requests that are not disruptive to the

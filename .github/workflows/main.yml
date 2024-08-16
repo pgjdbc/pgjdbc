@@ -94,7 +94,7 @@ jobs:
           fetch-depth: 50
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
-        run: docker-compose up -d && docker-compose logs
+        run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 17'
         uses: actions/setup-java@v4
         with:
@@ -164,12 +164,12 @@ jobs:
         CREATE_REPLICAS: ${{ matrix.replication }}
       # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
       run: |
-        echo 'Starting PostgreSQL via docker-compose down; PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} docker-compose up'
+        echo 'Starting PostgreSQL via docker compose down; PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} docker compose up'
 
-        docker-compose down -v --rmi local || true
+        docker compose down -v --rmi local || true
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
-        docker-compose up -d
-        docker-compose logs
+        docker compose up -d
+        docker compose logs
     - name: Set up Java 17 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
       uses: actions/setup-java@v4
       with:
@@ -274,5 +274,5 @@ jobs:
       if: ${{ always() }}
       working-directory: docker/postgres-server
       run: |
-        docker-compose ps
-        docker-compose down -v --rmi local
+        docker compose ps
+        docker compose down -v --rmi local

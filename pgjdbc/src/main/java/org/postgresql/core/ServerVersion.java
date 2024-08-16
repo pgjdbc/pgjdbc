@@ -16,9 +16,13 @@ import java.text.ParsePosition;
 public enum ServerVersion implements Version {
 
   INVALID("0.0.0"),
+  @Deprecated
   v8_2("8.2.0"),
+  @Deprecated
   v8_3("8.3.0"),
+  @Deprecated
   v8_4("8.4.0"),
+  @Deprecated
   v9_0("9.0.0"),
   v9_1("9.1.0"),
   v9_2("9.2.0"),

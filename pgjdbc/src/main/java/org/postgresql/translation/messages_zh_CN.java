@@ -82,7 +82,7 @@ public class messages_zh_CN extends java.util.ResourceBundle {
     t[205] = "不能在 ResultSet 的第一笔数据之前呼叫 deleteRow()。";
     t[214] = "The maximum field size must be a value greater than or equal to 0.";
     t[215] = "最大栏位容量必须大于或等于 0。";
-    t[216] = "Fetch size must be a value greater to or equal to 0.";
+    t[216] = "Fetch size must be a value greater than or equal to 0.";
     t[217] = "数据读取笔数(fetch size)必须大于或等于 0。";
     t[220] = "PostgreSQL LOBs can only index to: {0}";
     t[221] = "PostgreSQL LOBs 仅能索引到：{0}";
