@@ -47,7 +47,7 @@ class TestPostgres {
         if (isMac)
             postgres = new Postgres()
         else
-            postgres = new Postgres('/usr/lib/postgresql/14/bin/', '/tmp/pggss')
+            postgres = new Postgres('/usr/lib/postgresql/16/bin/', '/tmp/pggss')
         /*
         make sure we can connect
          */

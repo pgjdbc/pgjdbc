@@ -6,7 +6,7 @@ class Postgres {
     int port
 
     public Postgres() {
-        setupPaths('/usr/local/pgsql/14/bin/','/tmp/pgdata14')
+        setupPaths('/usr/local/pgsql/16/bin/','/tmp/pgdata16')
         initDB()
     }
     public Postgres(String binDir, String dataDir) {
