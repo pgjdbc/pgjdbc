@@ -112,6 +112,22 @@ class IntervalTest {
   }
 
   @Test
+  void checkCapitalization() throws Exception {
+    PGInterval pgi = new PGInterval("1 year 3 months 4 days 5 hours 6 minutes");
+    PGInterval yCapital = new PGInterval("1 Year 3 months 4 days 5 hours 6 minutes");
+    PGInterval mCapital = new PGInterval("1 year 3 Months 4 days 5 hours 6 minutes");
+    PGInterval dCapital = new PGInterval("1 year 3 months 4 Days 5 hours 6 minutes");
+    PGInterval hCapital = new PGInterval("1 year 3 months 4 days 5 Hours 6 minutes");
+    PGInterval minCapital = new PGInterval("1 year 3 months 4 days 5 hours 6 Minutes");
+
+    assertEquals(pgi, yCapital);
+    assertEquals(pgi, mCapital);
+    assertEquals(pgi, dCapital);
+    assertEquals(pgi, hCapital);
+    assertEquals(pgi, minCapital);
+  }
+
+  @Test
   void daysHours() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT '101:12:00'::interval");
