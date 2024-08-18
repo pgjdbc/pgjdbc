@@ -165,6 +165,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       String valueToken = null;
 
       value = value.replace('+', ' ').replace('@', ' ');
+      value = value.toLowerCase(Locale.ROOT);
       final StringTokenizer st = new StringTokenizer(value);
       for (int i = 1; st.hasMoreTokens(); i++) {
         String token = st.nextToken();
