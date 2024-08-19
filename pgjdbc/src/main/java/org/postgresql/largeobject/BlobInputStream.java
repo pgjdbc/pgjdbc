@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.GT;
 
@@ -400,10 +402,10 @@ public class BlobInputStream extends InputStream {
   }
 
   private LargeObject getLo() throws IOException {
-    if (lo == null) {
+    if (this.lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
-
+    LargeObject lo = castNonNull(this.lo);
     assert lock.isLocked();
 
     if (absolutePosition < 0) {
