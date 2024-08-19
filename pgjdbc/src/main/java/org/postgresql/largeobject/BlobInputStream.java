@@ -356,6 +356,8 @@ public class BlobInputStream extends InputStream {
    *     In particular, this will throw if attempting to skip beyond the maximum length
    *     of a large object, which by default is 4,398,046,509,056 bytes.
    * @see java.io.InputStream#skip(long)
+   * @see <a href="https://www.postgresql.org/docs/14/lo-implementation.html">
+   *   Large Objects: Implementation Features</a>
    */
   @Override
   public long skip(long n) throws IOException {
