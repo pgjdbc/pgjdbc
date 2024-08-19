@@ -12,7 +12,7 @@ dependencies {
     // Make jmhCompileClasspath resolvable
     jmhImplementation(project(":postgresql"))
     jmhImplementation(testFixtures(project(":postgresql")))
-    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.0.6")
+    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.2.1")
     jmhImplementation("it.unimi.dsi:fastutil:8.5.14")
     jmhRuntimeOnly("com.ongres.scram:client:2.1")
     jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
