@@ -4,10 +4,49 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
-
 ### Changed
 ### Added
 ### Fixed
+
+## [42.7.4] (2024-08-22 08:00:00 -0400)
+
+### Added
+* chore: SCRAM dependency to 3.1 and support channel binding [PR #3188](https://github.com/pgjdbc/pgjdbc/pull/3188)
+* chore: Add PostgreSQL 15, 16, and 17beta1 to CI tests [PR #3299](https://github.com/pgjdbc/pgjdbc/pull/3299)
+* test: Update to 17beta3 [PR #3308](https://github.com/pgjdbc/pgjdbc/pull/3308)
+* chore: Implement direct SSL ALPN connections [PR #3252](https://github.com/pgjdbc/pgjdbc/pull/3252)
+* translation: Add Korean translation file [PR #3276](https://github.com/pgjdbc/pgjdbc/pull/3276)
+
+### Fixed
+* fix: PgInterval ignores case for represented interval string [PR #3344](https://github.com/pgjdbc/pgjdbc/pull/3344)
+* perf: Avoid extra copies when receiving int4 and int2 in PGStream [PR #3295](https://github.com/pgjdbc/pgjdbc/pull/3295)
+* fix: Add support for Infinity::numeric values in ResultSet.getObject [PR #3304](https://github.com/pgjdbc/pgjdbc/pull/3304)
+* fix: Ensure order of results for getDouble [PR #3301](https://github.com/pgjdbc/pgjdbc/pull/3301)
+* perf: Replace BufferedOutputStream with unsynchronized PgBufferedOutputStream, allow configuring different Java and SO_SNDBUF buffer sizes [PR #3248](https://github.com/pgjdbc/pgjdbc/pull/3248)
+* fix: Fix SSL tests [PR #3260](https://github.com/pgjdbc/pgjdbc/pull/3260)
+* fix: Support bytea in preferQueryMode=simple [PR #3243](https://github.com/pgjdbc/pgjdbc/pull/3243)
+* fix:  Fix #3234 - Return -1 as update count for stored procedure calls [PR #3235](https://github.com/pgjdbc/pgjdbc/pull/3235)
+* fix:  Fix #3224 - conversion for TIME '24:00' to LocalTime breaks in binary-mode [PR #3225](https://github.com/pgjdbc/pgjdbc/pull/3225)
+* perf:  Speed up getDate by parsing bytes instead of String [PR #3141](https://github.com/pgjdbc/pgjdbc/pull/3141)
+* fix: support PreparedStatement.setBlob(1, Blob) and PreparedStatement.setClob(1, Clob) for lobs that return -1 for length [PR #3136](https://github.com/pgjdbc/pgjdbc/pull/3136)
+* fix: Validates resultset Params in PGStatement constructor. uses assertThro… [PR #3171](https://github.com/pgjdbc/pgjdbc/pull/3171)
+* fix: Validates resultset parameters [PR #3167](https://github.com/pgjdbc/pgjdbc/pull/3167)
+* docs: Replace greater to with greater than [PR #3315](https://github.com/pgjdbc/pgjdbc/pull/3315)
+* docs: Clarify binaryTransfer and prepareThreshold [PR #3338](https://github.com/pgjdbc/pgjdbc/pull/3338)
+* docs: use.md, typo [PR #3314](https://github.com/pgjdbc/pgjdbc/pull/3314)
+* test: Use docker v2 which changes docker-compose to docker compose  [#3339](https://github.com/pgjdbc/pgjdbc/pull/3339)
+* refactor: Merge PgPreparedStatement#setBinaryStream int and long methods [PR #3165](https://github.com/pgjdbc/pgjdbc/pull/3165)
+* test: Test both binaryMode=true,false when creating connections in DatabaseMetaDataTest [PR #3231](https://github.com/pgjdbc/pgjdbc/pull/3231)
+* docs: Fixed typos in all source code and documentations [PR #3242](https://github.com/pgjdbc/pgjdbc/pull/3242)
+* chore: Remove self-hosted runner [PR #3227](https://github.com/pgjdbc/pgjdbc/pull/3227)
+* docs: Add cancelSignalTimeout in README [PR #3190](https://github.com/pgjdbc/pgjdbc/pull/3190)
+* docs: Document READ_ONLY_MODE in README [PR #3175](https://github.com/pgjdbc/pgjdbc/pull/3175)
+* test: Test for +/- infinity double values [PR #3294](https://github.com/pgjdbc/pgjdbc/pull/3294)
+* test: Switch localhost and auth-test around for test-gss [PR #3343](https://github.com/pgjdbc/pgjdbc/pull/3343)
+
+### Deprecated
+* test: Deprecate all PostgreSQL versions older than 9.1 [PR #3335](https://github.com/pgjdbc/pgjdbc/pull/3335)
+
 
 ## [42.7.3] (2024-04-14 14:51:00 -0400)
 
