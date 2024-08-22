@@ -45,7 +45,7 @@ installed.
 
 If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
 
-    cd docker && bin/postgresql-server
+    cd docker && bin/postgres-server
 
     Helper script to start a postgres container for testing the PGJDBC driver.
 
