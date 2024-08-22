@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * docs: Document READ_ONLY_MODE in README [PR #3175](https://github.com/pgjdbc/pgjdbc/pull/3175)
 * test: Test for +/- infinity double values [PR #3294](https://github.com/pgjdbc/pgjdbc/pull/3294)
 * test: Switch localhost and auth-test around for test-gss [PR #3343](https://github.com/pgjdbc/pgjdbc/pull/3343)
+* fix: remove preDescribe from internalExecuteBatch [PR 2883](https://github.com/pgjdbc/pgjdbc/pull/2883)
 
 ### Deprecated
 * test: Deprecate all PostgreSQL versions older than 9.1 [PR #3335](https://github.com/pgjdbc/pgjdbc/pull/3335)
