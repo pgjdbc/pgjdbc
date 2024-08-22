@@ -1,4 +1,11 @@
 changelog:
-  exclude:
-    authors:
-      - renovate-bot
+  categories:
+    - title: 🏕 Features
+      labels:
+        - '*'
+      exclude:
+        labels:
+          - dependencies
+    - title: 👒 Dependencies
+      labels:
+        - dependencies
