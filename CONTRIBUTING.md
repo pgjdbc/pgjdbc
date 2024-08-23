@@ -252,15 +252,15 @@ You also need to test your changes with older JDKs. PgJDBC must support JDK8
 
 You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
 
-If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
+If you have Docker, you can use `docker compose` to launch test database (see [docker](docker)):
 
     cd docker/postgres-server
 
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
-    docker-compose down && docker-compose up
+    docker compose down && docker compose up
 
     # Launch PostgreSQL 9.6, with XA, without SSL
-    docker-compose down && SSL=no XA=yes docker-compose up
+    docker compose down && SSL=no XA=yes docker compose up
 
 Alternatively, to run the test server with Docker in the foreground:
 

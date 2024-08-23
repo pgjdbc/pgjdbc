@@ -55,7 +55,7 @@ main () {
     cd "${script_dir}/../postgres-server"
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
-    exec docker-compose run \
+    exec docker compose run \
         --rm \
         --publish="${publish_port}:5432" \
         --publish="${replica_one_port}:5433" \
