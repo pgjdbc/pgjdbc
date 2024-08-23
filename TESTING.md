@@ -43,7 +43,7 @@ customized values of the properties `database`, `username` and
 The test suite requires that you have the `contrib/lo` and `contrib/test_decoding` modules
 installed.
 
-If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
+If you have Docker, you can use `docker compose` to launch test database (see [docker](docker)):
 
     cd docker && bin/postgres-server
 
