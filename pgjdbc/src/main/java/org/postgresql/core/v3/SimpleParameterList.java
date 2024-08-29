@@ -238,8 +238,12 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  @SuppressWarnings("type.arguments.not.inferred")
   public String toString(@Positive int index, boolean standardConformingStrings) {
+    return toString(index, SqlSerializationContext.of(standardConformingStrings, true));
+  }
+
+  @Override
+  public String toString(@Positive int index, SqlSerializationContext context) {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
@@ -251,7 +255,7 @@ class SimpleParameterList implements V3ParameterList {
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
       try {
-        return PGbytea.toPGLiteral(paramValue);
+        return PGbytea.toPGLiteral(paramValue, context);
       } catch (Throwable e) {
         Throwable cause = e;
         if (!(cause instanceof IOException)) {
@@ -393,7 +397,7 @@ class SimpleParameterList implements V3ParameterList {
           type = null;
       }
     }
-    return quoteAndCast(textValue, type, standardConformingStrings);
+    return quoteAndCast(textValue, type, context.getStandardConformingStrings());
   }
 
   @Override

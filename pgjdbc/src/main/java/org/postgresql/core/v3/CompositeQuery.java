@@ -38,10 +38,18 @@ class CompositeQuery implements Query {
 
   @Override
   public String toString(@Nullable ParameterList parameters) {
-    StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
+    return toString(parameters, DefaultSqlSerializationContext.STDSTR_IDEMPOTENT);
+  }
+
+  @Override
+  public String toString(@Nullable ParameterList parameters, SqlSerializationContext context) {
+    SimpleParameterList[] subparams =
+        parameters == null ? null : ((V3ParameterList) parameters).getSubparams();
+    StringBuilder sbuf = new StringBuilder(
+        subqueries[0].toString(subparams == null ? null : subparams[0], context));
     for (int i = 1; i < subqueries.length; i++) {
       sbuf.append(';');
-      sbuf.append(subqueries[i]);
+      sbuf.append(subqueries[i].toString(subparams == null ? null : subparams[i], context));
     }
     return sbuf.toString();
   }
