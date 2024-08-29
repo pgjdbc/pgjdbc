@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.v3.SqlSerializationContext;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
@@ -40,7 +42,7 @@ public class NativeQuery {
   }
 
   /**
-   * Stringize this query to a human-readable form, substituting particular parameter values for
+   * Returns string representation of the query, substituting particular parameter values for
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link Query#createParameterList}
@@ -48,6 +50,19 @@ public class NativeQuery {
    * @return a human-readable representation of this query
    */
   public String toString(@Nullable ParameterList parameters) {
+    return toString(parameters, SqlSerializationContext.of(true, true));
+  }
+
+  /**
+   * Returns string representation of the query, substituting particular parameter values for
+   * parameter placeholders.
+   *
+   * @param parameters a ParameterList returned by this Query's {@link Query#createParameterList}
+   *        method, or {@code null} to leave the parameter placeholders unsubstituted.
+   * @param context specifies configuration for converting the parameters to string
+   * @return a human-readable representation of this query
+   */
+  public String toString(@Nullable ParameterList parameters, SqlSerializationContext context) {
     if (bindPositions.length == 0) {
       return nativeSql;
     }
@@ -55,7 +70,7 @@ public class NativeQuery {
     int queryLength = nativeSql.length();
     String[] params = new String[bindPositions.length];
     for (int i = 1; i <= bindPositions.length; i++) {
-      String param = parameters == null ? "?" : parameters.toString(i, true);
+      String param = parameters == null ? "?" : parameters.toString(i, context);
       params[i - 1] = param;
       queryLength += param.length() - bindName(i).length();
     }

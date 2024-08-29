@@ -6,6 +6,8 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.v3.SqlSerializationContext;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Map;
@@ -32,14 +34,29 @@ public interface Query {
   ParameterList createParameterList();
 
   /**
-   * Stringize this query to a human-readable form, substituting particular parameter values for
+   * Returns string representation of the query, substituting particular parameter values for
+   * parameter placeholders.
+   *
+   * <p>Note: the method replaces the values on a best-effort basis as it might omit the replacements
+   * for parameters that can't be processed several times. For instance, {@link java.io.InputStream}
+   * can be processed only once.
+   *
+   * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
+   *        or {@code null} to leave the parameter placeholders unsubstituted.
+   * @return string representation of this query
+   */
+  String toString(@Nullable ParameterList parameters);
+
+  /**
+   * Returns string representation of the query, substituting particular parameter values for
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
-   *        or <code>null</code> to leave the parameter placeholders unsubstituted.
-   * @return a human-readable representation of this query
+   *        or {@code null} to leave the parameter placeholders unsubstituted.
+   * @param context specifies configuration for converting the parameters to string
+   * @return string representation of this query
    */
-  String toString(@Nullable ParameterList parameters);
+  String toString(@Nullable ParameterList parameters, SqlSerializationContext context);
 
   /**
    * Returns SQL in native for database format.

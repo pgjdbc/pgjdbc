@@ -14,6 +14,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.core.v3.SqlSerializationContext;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -1025,6 +1026,11 @@ class AdaptiveFetchCacheTest {
 
     @Override
     public ParameterList createParameterList() {
+      throw new WrongMethodCallException("Method shouldn't be called.");
+    }
+
+    @Override
+    public String toString(ParameterList parameters, SqlSerializationContext context) {
       throw new WrongMethodCallException("Method shouldn't be called.");
     }
 

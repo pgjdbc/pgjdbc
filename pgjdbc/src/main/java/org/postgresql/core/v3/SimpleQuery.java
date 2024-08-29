@@ -55,7 +55,12 @@ class SimpleQuery implements Query {
 
   @Override
   public String toString(@Nullable ParameterList parameters) {
-    return nativeQuery.toString(parameters);
+    return toString(parameters, DefaultSqlSerializationContext.STDSTR_IDEMPOTENT);
+  }
+
+  @Override
+  public String toString(@Nullable ParameterList parameters, SqlSerializationContext context) {
+    return nativeQuery.toString(parameters, context);
   }
 
   @Override
