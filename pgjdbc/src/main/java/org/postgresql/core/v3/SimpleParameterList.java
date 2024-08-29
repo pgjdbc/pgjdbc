@@ -249,21 +249,7 @@ class SimpleParameterList implements V3ParameterList {
     String textValue;
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
-      try {
-        return PGbytea.toPGLiteral(paramValue);
-      } catch (Throwable e) {
-        Throwable cause = e;
-        if (!(cause instanceof IOException)) {
-          // This is for compatibilty with the similar handling in QueryExecutorImpl
-          cause = new IOException("Error writing bytes to stream", e);
-        }
-        throw sneakyThrow(
-            new PSQLException(
-                GT.tr("Unable to convert bytea parameter at position {0} to literal",
-                    index),
-                PSQLState.INVALID_PARAMETER_VALUE,
-                cause));
-      }
+      return "?";
     }
     if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
