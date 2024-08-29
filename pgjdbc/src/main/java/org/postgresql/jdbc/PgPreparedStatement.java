@@ -75,7 +75,9 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -1100,7 +1102,25 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return super.toString();
     }
 
-    return preparedQuery.query.toString(preparedParameters);
+    List<Query> batchStatements = this.batchStatements;
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return preparedQuery.query.toString(preparedParameters);
+    }
+    List<@Nullable ParameterList> batchParameters = this.batchParameters;
+    StringJoiner sj = new StringJoiner(";\n");
+    if (batchStatements.size() == 1 && batchParameters != null) {
+      // For rewritebatchinserts=true case, we have a single batch statement and multiple parameter rows
+      Query query = batchStatements.get(0);
+      for (ParameterList batchParameter : batchParameters) {
+        sj.add(query.toString(batchParameter));
+      }
+    } else {
+      for (int i = 0; i < batchStatements.size(); i++) {
+        Query statement = batchStatements.get(i);
+        sj.add(statement.toString(batchParameters == null ? null : batchParameters.get(i)));
+      }
+    }
+    return sj.toString();
   }
 
   /**

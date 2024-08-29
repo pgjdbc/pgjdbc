@@ -144,9 +144,14 @@ class CompositeParameterList implements V3ParameterList {
 
   @Override
   public String toString(@Positive int index, boolean standardConformingStrings) {
+    return toString(index, SqlSerializationContext.of(standardConformingStrings, true));
+  }
+
+  @Override
+  public String toString(@Positive int index, SqlSerializationContext context) {
     try {
       int sub = findSubParam(index);
-      return subparams[sub].toString(index - offsets[sub], standardConformingStrings);
+      return subparams[sub].toString(index - offsets[sub], context);
     } catch (SQLException e) {
       throw new IllegalStateException(e.getMessage());
     }

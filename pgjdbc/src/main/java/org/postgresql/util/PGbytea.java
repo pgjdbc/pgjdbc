@@ -6,6 +6,7 @@
 package org.postgresql.util;
 
 import org.postgresql.core.FixedLengthOutputStream;
+import org.postgresql.core.v3.SqlSerializationContext;
 
 import org.checkerframework.checker.nullness.qual.PolyNull;
 
@@ -163,8 +164,24 @@ public class PGbytea {
    * @param value input value to format
    * @return formatted value
    * @throws IOException in case there's underflow in the input value
+   * @deprecated prefer {@link #toPGLiteral(Object, SqlSerializationContext)} to clarify the behaviour
+   *     regarding {@link InputStream} objects
    */
+  @Deprecated
   public static String toPGLiteral(Object value) throws IOException {
+    return toPGLiteral(value, SqlSerializationContext.of(true, true));
+  }
+
+  /**
+   * Formats input object as {@code bytea} literal like {@code '\xcafebabe'::bytea}.
+   * The following inputs are supported: {@code byte[]}, {@link StreamWrapper}, and
+   * {@link ByteStreamWriter}.
+   * @param value input value to format
+   * @param context specifies configuration for converting the parameters to string
+   * @return formatted value
+   * @throws IOException in case there's underflow in the input value
+   */
+  public static String toPGLiteral(Object value, SqlSerializationContext context) throws IOException {
     if (value instanceof byte[]) {
       byte[] bytes = (byte[]) value;
       StringBuilder sb = new StringBuilder(bytes.length * 2 + 11);
@@ -176,10 +193,16 @@ public class PGbytea {
 
     if (value instanceof StreamWrapper) {
       StreamWrapper sw = (StreamWrapper) value;
+      byte[] bytes = sw.getBytes();
+      if (context.getIdempotent() && bytes == null) {
+        // Note: we skip reading the stream wrapper only in case it wraps a stream
+        // If StreamWrapper wraps a byte[] instance, then it is fine to serialize it
+        return "?";
+      }
+
       int length = sw.getLength();
       StringBuilder sb = new StringBuilder(length * 2 + 11);
       sb.append("'\\x");
-      byte[] bytes = sw.getBytes();
       if (bytes != null) {
         appendHexString(sb, bytes, sw.getOffset(), length);
       } else if (length > 0) {
