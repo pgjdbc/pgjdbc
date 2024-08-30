@@ -602,7 +602,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean possibleIsolationLevelQuery(Query query) {
-    return query.getNativeSql().contains("isolation");
+    return query.getNativeSql().toLowerCase().contains("isolation");
   }
 
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
