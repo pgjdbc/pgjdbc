@@ -64,7 +64,7 @@ BuildRequires:	maven-local
 BuildRequires:	maven-bundle-plugin
 BuildRequires:	classloader-leak-test-framework
 
-BuildRequires:	mvn(com.ongres.scram:client)
+BuildRequires:	mvn(com.ongres.scram:scram-client)
 BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
 BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
