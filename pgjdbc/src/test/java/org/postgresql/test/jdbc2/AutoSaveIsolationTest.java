@@ -39,7 +39,7 @@ public class AutoSaveIsolationTest {
   public void testAlwaysAutoSaveBetweenBeginAndSetIsolationLevel() throws SQLException {
     Properties props = new Properties();
     PGProperty.AUTOSAVE.set(props,"always");
-    con = TestUtil.openDB();
+    con = TestUtil.openDB(props);
     int initialIsolationLevel = con.getTransactionIsolation();
 
     con.setAutoCommit(false);
@@ -69,7 +69,7 @@ public class AutoSaveIsolationTest {
   public void testNeverAutoSaveBetweenBeginAndSetIsolationLevel() throws SQLException {
     Properties props = new Properties();
     PGProperty.AUTOSAVE.set(props,"never");//default
-    con = TestUtil.openDB();
+    con = TestUtil.openDB(props);
     int initialIsolationLevel = con.getTransactionIsolation();
 
     con.setAutoCommit(false);
