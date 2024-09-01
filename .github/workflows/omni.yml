@@ -366,7 +366,7 @@ jobs:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
 
   test-pg-head:
-    name: Zulu 11 x PG HEAD
+    name: Zulu 17 x PG HEAD
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
