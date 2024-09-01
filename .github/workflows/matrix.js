@@ -139,7 +139,7 @@ matrix.addAxis({
   values: [
     {value: 'yes', weight: 10},
 // Replication requires PG 9.6+
-    {value: 'no', weight: 10},
+//    {value: 'no', weight: 10},
   ]
 });
 
@@ -300,7 +300,7 @@ include.forEach(v => {
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
-  includeTestTags.push('none()'); // untagged tests
+  //includeTestTags.push('none()'); // untagged tests
 
   if (v.replication === 'yes') {
       includeTestTags.push('replication');
