@@ -11,11 +11,11 @@ gen_pg_hba_conf () {
 local   all             all                                     trust
 local   replication     all                                     trust
 # HOST
-host    all                 postgres         0.0.0.0/0          trust
-host    all                 test_md5         0.0.0.0/0          md5
-host    all                 test_scram       0.0.0.0/0          scram-sha-256
-host    all                 all              0.0.0.0/0          scram-sha-256
-host    replication         postgres         0.0.0.0/0          trust
+host    all          postgres                  0.0.0.0/0        trust
+host    all          auth_plugin_test_md5      0.0.0.0/0        md5
+host    all          auth_plugin_test_scram    0.0.0.0/0        scram-sha-256
+host    all          all                       0.0.0.0/0        scram-sha-256
+host    replication  postgres                  0.0.0.0/0        trust
 EOF
 }
 
