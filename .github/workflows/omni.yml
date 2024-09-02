@@ -74,8 +74,8 @@ jobs:
           { group: 'Adopt OpenJ9', version: '21', lts: true, distribution: 'adopt-openj9'},
 
           // Amazon Corretto
-          { group: 'Corretto', version: '17', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz'},
-          { group: 'Corretto', version: '21', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz'},
+          { group: 'Corretto', version: '17', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.tar.gz'},
+          { group: 'Corretto', version: '21', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz'},
         ];
 
         const PG_VERSIONS = [
