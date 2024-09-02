@@ -104,7 +104,7 @@ class PasswordUtilTest {
     char[] passwordChars = password.toCharArray();
     String encodedPassword = PasswordUtil.encodePassword(
         username, passwordChars,
-        encryptionType == null ? "md5" : encryptionType);
+        encryptionType == null ? "scram-sha-256" : encryptionType);
     assertNotEquals(password, String.valueOf(passwordChars), "password char[] array should be wiped and not match original password after encoding");
     assertWiped(passwordChars);
     testUserPassword(encryptionType, username, password, encodedPassword);

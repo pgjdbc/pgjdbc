@@ -170,9 +170,9 @@ public class PasswordUtil {
     Objects.requireNonNull(encryptionType, "encryptionType");
     switch (encryptionType) {
       case "on":
-      case "off":
       case "md5":
         return encodeMd5(user, password);
+      case "off":
       case "scram-sha-256":
         return encodeScramSha256(password);
     }
