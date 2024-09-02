@@ -132,6 +132,7 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encodePasswordWithServersPasswordEncryption() throws SQLException {
     String encryptionType;
     try (Connection conn = TestUtil.openPrivilegedDB()) {
@@ -141,6 +142,7 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void alterUserPasswordSupportsNullEncoding() throws SQLException {
     testUserPassword(null);
   }
@@ -151,11 +153,13 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encryptionTypeValueOfOn() throws SQLException {
     testUserPassword("on");
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encryptionTypeValueOfOff() throws SQLException {
     testUserPassword("off");
   }
