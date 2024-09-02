@@ -111,8 +111,16 @@ class PasswordUtilTest {
   }
 
   private void testUserPassword(@Nullable String encryptionType) throws SQLException {
-    String username = "test_password_" + randomSuffix();
+    String username = "test_password_";
     String password = "t0pSecret" + randomSuffix();
+    if (encryptionType == null) {
+      encryptionType = "scram-sha-256";
+    }
+    if (encryptionType.equals("md5")) {
+      username += "md5" + randomSuffix();
+    } else {
+      username += "scram" + randomSuffix();
+    }
 
     testUserPassword(encryptionType, username, password);
     testUserPassword(encryptionType, username, "password with spaces");
