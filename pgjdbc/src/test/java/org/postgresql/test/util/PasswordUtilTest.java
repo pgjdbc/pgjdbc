@@ -104,15 +104,23 @@ class PasswordUtilTest {
     char[] passwordChars = password.toCharArray();
     String encodedPassword = PasswordUtil.encodePassword(
         username, passwordChars,
-        encryptionType == null ? "md5" : encryptionType);
+        encryptionType == null ? "scram-sha-256" : encryptionType);
     assertNotEquals(password, String.valueOf(passwordChars), "password char[] array should be wiped and not match original password after encoding");
     assertWiped(passwordChars);
     testUserPassword(encryptionType, username, password, encodedPassword);
   }
 
   private void testUserPassword(@Nullable String encryptionType) throws SQLException {
-    String username = "test_password_" + randomSuffix();
+    String username = "test_password_";
     String password = "t0pSecret" + randomSuffix();
+    if (encryptionType == null) {
+      encryptionType = "scram-sha-256";
+    }
+    if (encryptionType.equals("md5")) {
+      username += "md5" + randomSuffix();
+    } else {
+      username += "scram" + randomSuffix();
+    }
 
     testUserPassword(encryptionType, username, password);
     testUserPassword(encryptionType, username, "password with spaces");
@@ -124,6 +132,7 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encodePasswordWithServersPasswordEncryption() throws SQLException {
     String encryptionType;
     try (Connection conn = TestUtil.openPrivilegedDB()) {
@@ -133,6 +142,7 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void alterUserPasswordSupportsNullEncoding() throws SQLException {
     testUserPassword(null);
   }
@@ -143,11 +153,13 @@ class PasswordUtilTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encryptionTypeValueOfOn() throws SQLException {
     testUserPassword("on");
   }
 
   @Test
+  @DisabledIfServerVersionBelow("10.0")
   void encryptionTypeValueOfOff() throws SQLException {
     testUserPassword("off");
   }

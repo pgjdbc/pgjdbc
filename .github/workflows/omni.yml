@@ -59,29 +59,26 @@ jobs:
         const DEFAULT_TEST_GROUP = process.env.MATRIX_DEFAULT_TEST_GROUP || 'fast';
 
         const JDK_OPTIONS = [
-            { group: 'Zulu', version: '8', lts: true, distribution: 'zulu' },
-            { group: 'Zulu', version: '11', lts: true, distribution: 'zulu' },
-            { group: 'Zulu', version: '15', lts: false, distribution: 'zulu' },
+            { group: 'Zulu', version: '17', lts: true, distribution: 'zulu' },
+            { group: 'Zulu', version: '21', lts: true, distribution: 'zulu' },
         ];
 
         const OTHER_JDK_OPTIONS = [
           // Adopt
-          { group: 'Adopt Hotspot', version: '8', lts: true, distribution: 'adopt-hotspot' },
-          { group: 'Adopt Hotspot', version: '11', lts: true, distribution: 'adopt-hotspot' },
+          { group: 'Adopt Hotspot', version: '17', lts: true, distribution: 'adopt-hotspot' },
+          { group: 'Adopt Hotspot', version: '21', lts: true, distribution: 'adopt-hotspot' },
 
           // Adopt OpenJ9
           // TODO: Replace these hard coded versions with something that dynamically picks the most recent
-          { group: 'Adopt OpenJ9', version: '8', lts: true, distribution: 'adopt-openj9'},
-          { group: 'Adopt OpenJ9', version: '11', lts: true, distribution: 'adopt-openj9'},
+          { group: 'Adopt OpenJ9', version: '17', lts: true, distribution: 'adopt-openj9'},
+          { group: 'Adopt OpenJ9', version: '21', lts: true, distribution: 'adopt-openj9'},
 
           // Amazon Corretto
-          { group: 'Corretto', version: '8', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz'},
-          { group: 'Corretto', version: '11', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-11-x64-linux-jdk.tar.gz'},
+          { group: 'Corretto', version: '17', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.tar.gz'},
+          { group: 'Corretto', version: '21', lts: true, distribution: 'jdkfile', url: 'https://corretto.aws/downloads/latest/amazon-corretto-21-x64-linux-jdk.tar.gz'},
         ];
 
         const PG_VERSIONS = [
-            '8.4',
-            '9.0',
             '9.1',
             '9.2',
             '9.3',
@@ -369,7 +366,7 @@ jobs:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
 
   test-pg-head:
-    name: Zulu 11 x PG HEAD
+    name: Zulu 17 x PG HEAD
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:

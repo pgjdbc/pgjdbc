@@ -17,6 +17,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     libxslt-dev \
     llvm \
     locales \
+    pkg-config \
     python3-dev \
     tcl-dev \
     xsltproc \
