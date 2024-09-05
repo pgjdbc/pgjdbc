@@ -61,7 +61,7 @@ public class PGStream implements Closeable, Flushable {
 
   public void setSecContext(GSSContext secContext) throws GSSException {
     MessageProp messageProp =  new MessageProp(0, true);
-    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput, secContext, messageProp ), 8192);
     // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
     // Note that the server will only accept encrypted packets from the client which are less than
     // 16kB; gss_wrap_size_limit() should be used by the client to determine the size of
