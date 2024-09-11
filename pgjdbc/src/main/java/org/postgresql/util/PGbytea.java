@@ -184,6 +184,9 @@ public class PGbytea {
         appendHexString(sb, bytes, sw.getOffset(), length);
       } else if (length > 0) {
         InputStream str = sw.getStream();
+        if ( str.markSupported() ) {
+          str.mark(Integer.MAX_VALUE);
+        }
         byte[] streamBuffer = new byte[8192];
         int read;
         while (length > 0) {
@@ -198,6 +201,9 @@ public class PGbytea {
           throw new EOFException(
               GT.tr("Premature end of input stream, expected {0} bytes, but only read {1}.",
                   sw.getLength(), sw.getLength() - length));
+        }
+        if ( str.markSupported() ) {
+          str.reset();
         }
       }
       sb.append("'::bytea");
