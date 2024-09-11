@@ -1024,7 +1024,7 @@ class AdaptiveFetchCacheTest {
     }
 
     @Override
-    public ParameterList createParameterList() {
+    public ParameterList createParameterList(boolean extendedQuery) {
       throw new WrongMethodCallException("Method shouldn't be called.");
     }
 

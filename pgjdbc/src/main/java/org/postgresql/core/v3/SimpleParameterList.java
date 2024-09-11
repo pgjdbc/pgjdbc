@@ -44,13 +44,15 @@ class SimpleParameterList implements V3ParameterList {
 
   private static final byte TEXT = 0;
   private static final byte BINARY = 4;
+  private final boolean extendedQuery;
 
-  SimpleParameterList(int paramCount, @Nullable TypeTransferModeRegistry transferModeRegistry) {
+  SimpleParameterList(int paramCount, @Nullable TypeTransferModeRegistry transferModeRegistry, boolean extendedQuery) {
     this.paramValues = new Object[paramCount];
     this.paramTypes = new int[paramCount];
     this.encoded = new byte[paramCount][];
     this.flags = new byte[paramCount];
     this.transferModeRegistry = transferModeRegistry;
+    this.extendedQuery = extendedQuery;
   }
 
   @Override
@@ -249,7 +251,25 @@ class SimpleParameterList implements V3ParameterList {
     String textValue;
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
-      return "?";
+      if (extendedQuery) {
+        return "?";
+      } else {
+        try {
+          return PGbytea.toPGLiteral(paramValue);
+        } catch (Throwable e) {
+          Throwable cause = e;
+          if (!(cause instanceof IOException)) {
+            // This is for compatibilty with the similar handling in QueryExecutorImpl
+            cause = new IOException("Error writing bytes to stream", e);
+          }
+          throw sneakyThrow(
+              new PSQLException(
+                  GT.tr("Unable to convert bytea parameter at position {0} to literal",
+                      index),
+                  PSQLState.INVALID_PARAMETER_VALUE,
+                  cause));
+        }
+      }
     }
     if ((flags[index] & BINARY) == BINARY) {
       // handle some of the numeric types
@@ -539,7 +559,7 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public ParameterList copy() {
-    SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry);
+    SimpleParameterList newCopy = new SimpleParameterList(paramValues.length, transferModeRegistry, extendedQuery);
     System.arraycopy(paramValues, 0, newCopy.paramValues, 0, paramValues.length);
     System.arraycopy(paramTypes, 0, newCopy.paramTypes, 0, paramTypes.length);
     System.arraycopy(flags, 0, newCopy.flags, 0, flags.length);

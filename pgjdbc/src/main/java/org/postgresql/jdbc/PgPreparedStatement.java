@@ -97,7 +97,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     super(connection, rsType, rsConcurrency, rsHoldability);
 
     this.preparedQuery = query;
-    this.preparedParameters = this.preparedQuery.query.createParameterList();
+    this.preparedParameters = this.preparedQuery.query.createParameterList(connection.getPreferQueryMode()!= PreferQueryMode.SIMPLE);
     int parameterCount = preparedParameters.getParameterCount();
     int maxSupportedParameters = maximumNumberOfParameters();
     if (parameterCount > maxSupportedParameters) {
@@ -1800,7 +1800,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       // Find appropriate batch for block count.
       BatchedQuery bq = originalQuery.deriveForMultiBatch(valueBlock);
-      ParameterList newPl = bq.createParameterList();
+      ParameterList newPl = bq.createParameterList(true);
       for (int j = 0; j < valueBlock; j++) {
         ParameterList pl = batchParameters.get(offset++);
         if (pl != null) {
