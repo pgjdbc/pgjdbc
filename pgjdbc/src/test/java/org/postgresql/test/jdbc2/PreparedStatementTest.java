@@ -286,7 +286,6 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.close();
   }
 
-
   @Test
   public void testTrailingSpaces() throws SQLException {
     PreparedStatement pstmt =

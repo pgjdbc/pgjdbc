@@ -97,7 +97,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     super(connection, rsType, rsConcurrency, rsHoldability);
 
     this.preparedQuery = query;
-    this.preparedParameters = this.preparedQuery.query.createParameterList(connection.getPreferQueryMode()!= PreferQueryMode.SIMPLE);
+    this.preparedParameters = this.preparedQuery.query.createParameterList(connection.getPreferQueryMode() != PreferQueryMode.SIMPLE);
     int parameterCount = preparedParameters.getParameterCount();
     int maxSupportedParameters = maximumNumberOfParameters();
     if (parameterCount > maxSupportedParameters) {
