@@ -332,6 +332,10 @@ public enum PGProperty {
       "false",
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
+  HOST_CHOOSER_IMPL(
+      "hostChooserImpl",
+      null,
+      "Class name of the custom host chooser. an implementation of the HostChooser interface"),
   /**
    * <p>If this is set then the client side will bind to this address. This is useful if you need
    * to choose which interface to connect to.</p>

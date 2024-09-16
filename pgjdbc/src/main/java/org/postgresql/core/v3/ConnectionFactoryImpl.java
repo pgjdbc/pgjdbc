@@ -220,7 +220,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   @Override
-  public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException {
+  public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info, String url) throws SQLException {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
@@ -237,7 +237,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     HostChooser hostChooser =
-        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info, url);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
@@ -266,7 +266,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       try {
         try {
           newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode);
+          hostChooser.registerSuccess(hostSpec.getHost());
         } catch (SQLException e) {
+          hostChooser.registerFailure(hostSpec.getHost(), e);
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
             // Try non-SSL connection to cover case like "non-ssl only db"
@@ -320,7 +322,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // CheckerFramework can't infer newStream is non-nullable
         castNonNull(newStream);
         // Do final startup.
-        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info);
+        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, hostChooser);
 
         // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;

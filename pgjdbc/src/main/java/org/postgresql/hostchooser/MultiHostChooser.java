@@ -21,7 +21,7 @@ import java.util.Properties;
 /**
  * HostChooser that keeps track of known host statuses.
  */
-class MultiHostChooser implements HostChooser {
+class MultiHostChooser extends AbstractHostChooser {
   private final HostSpec[] hostSpecs;
   private final HostRequirement targetServerType;
   private int hostRecheckTime;
