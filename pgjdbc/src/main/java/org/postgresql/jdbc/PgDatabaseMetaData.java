@@ -14,7 +14,6 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
-import org.postgresql.core.Version;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
