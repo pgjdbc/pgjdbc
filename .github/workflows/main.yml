@@ -181,15 +181,16 @@ jobs:
         distribution: ${{ matrix.java_distribution }}
         # Architecture is explicit to workaround https://github.com/actions/setup-java/issues/559
         architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
-    - name: Set up Java ${{ matrix.java_version }}, oracle
+    - name: Set up stable EA JDK, oracle
       id: setup_ea_java
-      if: ${{ matrix.oracle_java_website != '' }}
-      uses: oracle-actions/setup-java@83e2004a40aaa491fbc6b4697353b9a75b095efb # v1.3.4
+      if: ${{ matrix.java_version == 'ea' }}
+      uses: oracle-actions/setup-java@v1.4.0
       env:
         JAVA_HOME_17_X64: ${{ env.JAVA_HOME_17_AARCH64 || env.JAVA_HOME_17_X64 }}
       with:
         website: ${{ matrix.oracle_java_website }}
-        release: ${{ matrix.java_version }}
+        release: ea
+        version: stable
     - name: Set up Java 17 ${{ matrix.java_distribution }} as default
       # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 17 as the default
       if: ${{ matrix.oracle_java_website != '' }}
