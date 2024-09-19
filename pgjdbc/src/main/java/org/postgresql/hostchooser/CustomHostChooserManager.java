@@ -9,17 +9,59 @@ import java.util.Properties;
 import java.util.WeakHashMap;
 
 public class CustomHostChooserManager {
-  private final Map<HostChooser, String> hostChooserMap = new WeakHashMap<>();
+  private final Map<HostChooserUrlProperty, HostChooser> hostChooserMap =
+      new WeakHashMap<>();
   private static CustomHostChooserManager instance_ = getInstance();
 
   private CustomHostChooserManager() {
 
   }
 
-  private static class UrlProperty {
-    UrlProperty(String url, Properties info) {
+  public static class HostChooserUrlProperty {
+    private final String url;
+    private final Properties info;
+    private final String implStr;
+    private HostChooser hostChooser;
 
+    public HostChooserUrlProperty(String url, Properties info, String implStr) {
+      this.url = url;
+      this.info = info;
+      this.implStr = implStr;
     }
+
+    public String getUrl() {
+      return this.url;
+    }
+
+    public String getImpl() {
+      return this.implStr;
+    }
+
+    public Properties getProps() {
+      return this.getProps();
+    }
+
+    public void setHostChooser(HostChooser hc) {
+      this.hostChooser = hc;
+    }
+
+    public HostChooser getHostChooser() {
+      return this.hostChooser;
+    }
+
+    public boolean equals(Object other) {
+      if (!(other instanceof HostChooserUrlProperty)) {
+        return false;
+      }
+      HostChooserUrlProperty otherHcProps = (HostChooserUrlProperty) other;
+      return this.url.equals(otherHcProps.url) &&
+          this.info.equals(otherHcProps.info) && this.implStr.equals(otherHcProps.implStr);
+    }
+
+    public int hashCode() {
+      return url.hashCode() ^ info.hashCode() ^ implStr.hashCode();
+    }
+
 
   }
 
@@ -34,7 +76,7 @@ public class CustomHostChooserManager {
     return instance_;
   }
 
-  public HostChooser getHostChooser(String customImplClassName) {
+  public HostChooser getHostChooser(HostChooserUrlProperty customImplClassName) {
     for (Map.Entry e : hostChooserMap.entrySet()) {
       HostChooser hc = (HostChooser) e.getKey();
       String hcClazzName = hc.getClass().getName();
@@ -45,15 +87,16 @@ public class CustomHostChooserManager {
     return null;
   }
 
-  public HostChooser getOrCreateHostChooser(String url, Properties info, String customImplClass) throws PSQLException {
-    UrlProperty key = new UrlProperty(url, info);
-    HostChooser hc = getHostChooser(customImplClass);
+  public HostChooser getOrCreateHostChooser(String url, Properties info, String customImplClass,
+      HostRequirement targetServerType) throws PSQLException {
+    HostChooserUrlProperty key = new HostChooserUrlProperty(url, info, customImplClass);
+    HostChooser hc = getHostChooser(key);
     if (hc == null) {
       synchronized (this) {
-        hc = getHostChooser(customImplClass);
+        hc = getHostChooser(key);
         if (hc == null) {
-          hc = instantiateCustomHostChooser(customImplClass, url, info);
-          hostChooserMap.put(hc, customImplClass);
+          hc = instantiateCustomHostChooser(customImplClass, url, info, targetServerType);
+          hostChooserMap.put(key, hc);
         }
       }
     }
@@ -61,14 +104,14 @@ public class CustomHostChooserManager {
   }
 
   private HostChooser instantiateCustomHostChooser(String customImplClass, String url,
-      Properties info) throws PSQLException {
+      Properties info, HostRequirement targetServerType) throws PSQLException {
     Throwable t = null;
     String exMsg = null;
     try {
       // INVALID_NAME
       Class<?> clazz = Class.forName(customImplClass);
       HostChooser hc = (HostChooser) clazz.getDeclaredConstructor().newInstance();
-      hc.init(url, info);
+      hc.init(url, info, targetServerType);
       return hc;
     } catch (ClassNotFoundException e) {
       exMsg = "Class not found " + customImplClass;

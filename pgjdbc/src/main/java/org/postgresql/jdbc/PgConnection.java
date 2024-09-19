@@ -870,7 +870,7 @@ public class PgConnection implements BaseConnection {
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
     }
-    HostChooser hc = ((QueryExecutorImpl) queryExecutor).getHostCHooser();
+    HostChooser hc = ((QueryExecutorImpl) queryExecutor).getHostChooser();
     String host = queryExecutor.getHostSpec().getHost();
     hc.registerDisconnect(host);
     openStackTrace = null;

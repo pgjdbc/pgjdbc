@@ -19,12 +19,7 @@ import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.gss.MakeGSS;
-import org.postgresql.hostchooser.CandidateHost;
-import org.postgresql.hostchooser.GlobalHostStatusTracker;
-import org.postgresql.hostchooser.HostChooser;
-import org.postgresql.hostchooser.HostChooserFactory;
-import org.postgresql.hostchooser.HostRequirement;
-import org.postgresql.hostchooser.HostStatus;
+import org.postgresql.hostchooser.*;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
@@ -236,8 +231,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
+    String customImplClass = info.getProperty(PGProperty.HOST_CHOOSER_IMPL.getName());
+    CustomHostChooserManager.HostChooserUrlProperty key =
+        new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
     HostChooser hostChooser =
-        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info, url);
+        HostChooserFactory.createHostChooser(key, hostSpecs, targetServerType);
+    key.setHostChooser(hostChooser);
+
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
@@ -322,7 +322,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // CheckerFramework can't infer newStream is non-nullable
         castNonNull(newStream);
         // Do final startup.
-        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, hostChooser);
+        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, key);
 
         // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;

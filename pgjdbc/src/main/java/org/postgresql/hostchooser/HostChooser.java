@@ -27,7 +27,7 @@ public interface HostChooser extends Iterable<CandidateHost> {
    * The url and the property can be passed as is in the init method
    * The custom implement would know how to use the properties
    */
-  void init(String url, Properties info);
+  void init(String url, Properties info, HostRequirement targetServerType);
 
   /**
    * Api to inform the HostChooser that a

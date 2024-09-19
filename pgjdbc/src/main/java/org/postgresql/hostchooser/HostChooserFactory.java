@@ -16,15 +16,17 @@ import java.util.Properties;
  */
 public class HostChooserFactory {
 
-  public static HostChooser createHostChooser(HostSpec[] hostSpecs,
-      HostRequirement targetServerType, Properties info, String url) throws PSQLException {
-    String customImplClass = info.getProperty(PGProperty.HOST_CHOOSER_IMPL.getName());
-    if (customImplClass != null) {
-      return CustomHostChooserManager.getInstance().getOrCreateHostChooser(url, info, customImplClass);
+  public static HostChooser createHostChooser(CustomHostChooserManager.HostChooserUrlProperty key
+      , HostSpec[] hostSpecs,
+      HostRequirement targetServerType) throws PSQLException {
+    if (key.getImpl() != null) {
+      return CustomHostChooserManager.getInstance().getOrCreateHostChooser(key.getUrl(),
+          key.getProps(),
+          key.getImpl(), targetServerType);
     }
     if (hostSpecs.length == 1) {
       return new SingleHostChooser(hostSpecs[0], targetServerType);
     }
-    return new MultiHostChooser(hostSpecs, targetServerType, info);
+    return new MultiHostChooser(hostSpecs, targetServerType, key.getProps());
   }
 }

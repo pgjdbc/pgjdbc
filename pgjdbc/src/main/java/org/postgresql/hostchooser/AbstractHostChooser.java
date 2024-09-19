@@ -6,7 +6,7 @@ import java.util.Properties;
 public abstract class AbstractHostChooser implements HostChooser {
 
   @Override
-  public void init(String url, Properties info) {
+  public void init(String url, Properties info, HostRequirement targetServerType) {
     // for inbuilt HostChoosers do nothing
   }
 

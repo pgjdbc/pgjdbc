@@ -37,6 +37,7 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
+import org.postgresql.hostchooser.CustomHostChooserManager;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.BatchResultHandler;
@@ -106,7 +107,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("in_hot_standby");
   }
 
-  private final HostChooser hostChooser;
+  private final CustomHostChooserManager.HostChooserUrlProperty hostChooserKey;
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -166,7 +167,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
-      int cancelSignalTimeout, Properties info, HostChooser hc) throws SQLException, IOException {
+      int cancelSignalTimeout, Properties info, CustomHostChooserManager.HostChooserUrlProperty hcKey) throws SQLException, IOException {
     super(pgStream, cancelSignalTimeout, info);
 
     long maxResultBuffer = pgStream.getMaxResultBuffer();
@@ -177,7 +178,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
-    this.hostChooser = hc;
+    this.hostChooserKey = hcKey;
   }
 
   @Override
@@ -2649,8 +2650,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.adaptiveFetchCache.setAdaptiveFetch(adaptiveFetch);
   }
 
-  public HostChooser getHostCHooser() {
-    return this.hostChooser;
+  public HostChooser getHostChooser() {
+    return this.hostChooserKey.getHostChooser();
   }
   @Override
   public boolean getAdaptiveFetch() {
