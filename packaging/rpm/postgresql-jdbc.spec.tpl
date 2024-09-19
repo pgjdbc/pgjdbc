@@ -61,7 +61,7 @@ BuildArch:	noarch
 ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
-BuildRequires:	maven-plugin-bundle
+BuildRequires:	maven-bundle-plugin
 BuildRequires:	classloader-leak-test-framework
 
 BuildRequires:	mvn(com.ongres.scram:client)
