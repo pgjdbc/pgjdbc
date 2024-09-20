@@ -1609,7 +1609,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.getHideUnprivilegedObjects()) {
       sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
     }
-    sql += " ORDER BY TABLE_SCHEM";
+    sql += " ORDER BY \"TABLE_SCHEM\"";
 
     return createMetaDataStatement().executeQuery(sql);
   }
