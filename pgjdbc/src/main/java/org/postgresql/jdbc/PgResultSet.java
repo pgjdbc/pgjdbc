@@ -2349,6 +2349,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
     rows = null;
+    thisRow = null;
+    rowBuffer = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
     if (cursor != null) {
