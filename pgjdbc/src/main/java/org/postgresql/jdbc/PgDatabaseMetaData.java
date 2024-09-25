@@ -1184,10 +1184,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String procedureNamePattern)
       throws SQLException {
     String sql;
-    sql = "SELECT NULL AS PROCEDURE_CAT, n.nspname AS PROCEDURE_SCHEM, p.proname AS PROCEDURE_NAME, "
-          + "NULL, NULL, NULL, d.description AS REMARKS, "
-          + DatabaseMetaData.procedureReturnsResult + " AS PROCEDURE_TYPE, "
-          + " p.proname || '_' || p.oid AS SPECIFIC_NAME "
+    sql = "SELECT NULL AS \"PROCEDURE_CAT\", n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
+          + "NULL, NULL, NULL, d.description AS \"REMARKS\", "
+          + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
+          + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_proc p "
           + " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) "
           + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
@@ -1206,7 +1206,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.getHideUnprivilegedObjects()) {
       sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
-    sql += " ORDER BY PROCEDURE_SCHEM, PROCEDURE_NAME, p.oid::text ";
+    sql += " ORDER BY \"PROCEDURE_SCHEM\", \"PROCEDURE_NAME\", p.oid::text ";
 
     return createMetaDataStatement().executeQuery(sql);
   }
@@ -1419,7 +1419,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String select;
     String orderby;
     String useSchemas = "SCHEMAS";
-    select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, c.relname AS TABLE_NAME, "
+    select = "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
              + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
@@ -1456,9 +1456,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " END "
              + " ELSE NULL "
              + " END "
-             + " AS TABLE_TYPE, d.description AS REMARKS, "
-             + " '' as TYPE_CAT, '' as TYPE_SCHEM, '' as TYPE_NAME, "
-             + "'' AS SELF_REFERENCING_COL_NAME, '' AS REF_GENERATION "
+             + " AS \"TABLE_TYPE\", d.description AS \"REMARKS\", "
+             + " '' as \"TYPE_CAT\", '' as \"TYPE_SCHEM\", '' as \"TYPE_NAME\", "
+             + "'' AS \"SELF_REFERENCING_COL_NAME\", '' AS \"REF_GENERATION\" "
              + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c "
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
@@ -1482,7 +1482,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + privileges;
     }
 
-    orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
+    orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
     if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
       select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
@@ -1616,7 +1616,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public ResultSet getCatalogs() throws SQLException {
-    String sql = "SELECT datname AS TABLE_CAT FROM pg_catalog.pg_database"
+    String sql = "SELECT datname AS \"TABLE_CAT\" FROM pg_catalog.pg_database"
         + " WHERE datallowconn = true"
         + " ORDER BY datname";
     return createMetaDataStatement().executeQuery(sql);
@@ -2324,12 +2324,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     sql += " AND i.indisprimary ";
     sql = "SELECT "
-            + "       result.TABLE_CAT, "
-            + "       result.TABLE_SCHEM, "
-            + "       result.TABLE_NAME, "
-            + "       result.COLUMN_NAME, "
-            + "       result.KEY_SEQ, "
-            + "       result.PK_NAME "
+            + "       result.TABLE_CAT AS \"TABLE_CAT\", "
+            + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
+            + "       result.TABLE_NAME AS \"TABLE_NAME\", "
+            + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
+            + "       result.KEY_SEQ AS \"KEY_SEQ\", "
+            + "       result.PK_NAME AS \"PK_NAME\""
             + "FROM "
             + "     (" + sql + " ) result"
             + " where "
@@ -2375,13 +2375,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql = "SELECT "
-        + "       result.TABLE_CAT, "
-        + "       result.TABLE_SCHEM, "
-        + "       result.TABLE_NAME, "
-        + "       result.COLUMN_NAME, "
-        + "       result.KEY_SEQ, "
-        + "       result.PK_NAME, "
-        + "       result.IS_NOT_NULL "
+        + "       result.TABLE_CAT AS \"TABLE_CAT\", "
+        + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
+        + "       result.TABLE_NAME AS \"TABLE_NAME\", "
+        + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
+        + "       result.KEY_SEQ AS \"KEY_SEQ\", "
+        + "       result.PK_NAME AS \"PK_NAME\", "
+        + "       result.IS_NOT_NULL AS \"IS_NOT_NULL\""
         + "FROM "
         + "     (" + sql + " ) result"
         + " where "
@@ -2415,9 +2415,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      */
 
     String sql =
-        "SELECT NULL::text AS PKTABLE_CAT, pkn.nspname AS PKTABLE_SCHEM, pkc.relname AS PKTABLE_NAME, pka.attname AS PKCOLUMN_NAME, "
-            + "NULL::text AS FKTABLE_CAT, fkn.nspname AS FKTABLE_SCHEM, fkc.relname AS FKTABLE_NAME, fka.attname AS FKCOLUMN_NAME, "
-            + "pos.n AS KEY_SEQ, "
+        "SELECT NULL::text AS \"PKTABLE_CAT\", pkn.nspname AS \"PKTABLE_SCHEM\", pkc.relname AS \"PKTABLE_NAME\", pka.attname AS \"PKCOLUMN_NAME\", "
+            + "NULL::text AS \"FKTABLE_CAT\", fkn.nspname AS \"FKTABLE_SCHEM\", fkc.relname AS \"FKTABLE_NAME\", fka.attname AS \"FKCOLUMN_NAME\", "
+            + "pos.n AS \"KEY_SEQ\", "
             + "CASE con.confupdtype "
             + " WHEN 'c' THEN " + DatabaseMetaData.importedKeyCascade
             + " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull
@@ -2425,7 +2425,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'p' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction
-            + " ELSE NULL END AS UPDATE_RULE, "
+            + " ELSE NULL END AS \"UPDATE_RULE\", "
             + "CASE con.confdeltype "
             + " WHEN 'c' THEN " + DatabaseMetaData.importedKeyCascade
             + " WHEN 'n' THEN " + DatabaseMetaData.importedKeySetNull
@@ -2433,14 +2433,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " WHEN 'r' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'p' THEN " + DatabaseMetaData.importedKeyRestrict
             + " WHEN 'a' THEN " + DatabaseMetaData.importedKeyNoAction
-            + " ELSE NULL END AS DELETE_RULE, "
-            + "con.conname AS FK_NAME, pkic.relname AS PK_NAME, "
+            + " ELSE NULL END AS \"DELETE_RULE\", "
+            + "con.conname AS \"FK_NAME\", pkic.relname AS \"PK_NAME\", "
             + "CASE "
             + " WHEN con.condeferrable AND con.condeferred THEN "
             + DatabaseMetaData.importedKeyInitiallyDeferred
             + " WHEN con.condeferrable THEN " + DatabaseMetaData.importedKeyInitiallyImmediate
             + " ELSE " + DatabaseMetaData.importedKeyNotDeferrable
-            + " END AS DEFERRABILITY "
+            + " END AS \"DEFERRABILITY\" "
             + " FROM "
             + " pg_catalog.pg_namespace pkn, pg_catalog.pg_class pkc, pg_catalog.pg_attribute pka, "
             + " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, "
@@ -2698,15 +2698,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       sql = "SELECT "
-                + "    tmp.TABLE_CAT, "
-                + "    tmp.TABLE_SCHEM, "
-                + "    tmp.TABLE_NAME, "
-                + "    tmp.NON_UNIQUE, "
-                + "    tmp.INDEX_QUALIFIER, "
-                + "    tmp.INDEX_NAME, "
-                + "    tmp.TYPE, "
-                + "    tmp.ORDINAL_POSITION, "
-                + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS COLUMN_NAME, "
+                + "    tmp.TABLE_CAT AS \"TABLE_CAT\", "
+                + "    tmp.TABLE_SCHEM AS \"TABLE_SCHEM\", "
+                + "    tmp.TABLE_NAME AS \"TABLE_NAME\", "
+                + "    tmp.NON_UNIQUE AS \"NON_UNIQUE\", "
+                + "    tmp.INDEX_QUALIFIER AS \"INDEX_QUALIFIER\", "
+                + "    tmp.INDEX_NAME AS \"INDEX_NAME\", "
+                + "    tmp.TYPE AS \"TYPE\", "
+                + "    tmp.ORDINAL_POSITION AS \"ORDINAL_POSITION\", "
+                + "    trim(both '\"' from pg_catalog.pg_get_indexdef(tmp.CI_OID, tmp.ORDINAL_POSITION, false)) AS \"COLUMN_NAME\", "
                 + (connection.haveMinimumServerVersion(ServerVersion.v9_6)
                         ? "  CASE tmp.AM_NAME "
                         + "    WHEN 'btree' THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1::smallint "
@@ -2714,17 +2714,17 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                         + "      ELSE 'A' "
                         + "    END "
                         + "    ELSE NULL "
-                        + "  END AS ASC_OR_DESC, "
+                        + "  END AS \"ASC_OR_DESC\", "
                         : "  CASE tmp.AM_CANORDER "
                         + "    WHEN true THEN CASE tmp.I_INDOPTION[tmp.ORDINAL_POSITION - 1] & 1::smallint "
                         + "      WHEN 1 THEN 'D' "
                         + "      ELSE 'A' "
                         + "    END "
                         + "    ELSE NULL "
-                        + "  END AS ASC_OR_DESC, ")
-                + "    tmp.CARDINALITY, "
-                + "    tmp.PAGES, "
-                + "    tmp.FILTER_CONDITION "
+                        + "  END AS \"ASC_OR_DESC\", ")
+                + "    tmp.CARDINALITY AS \"CARDINALITY\", "
+                + "    tmp.PAGES AS \"PAGES\", "
+                + "    tmp.FILTER_CONDITION AS \"FILTER_CONDITION\""
                 + "FROM ("
                 + sql
                 + ") AS tmp";
@@ -2733,7 +2733,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String from;
       String where;
 
-      select = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, ";
+      select = "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", ";
       from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, "
              + " pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
       where = " AND n.oid = ct.relnamespace ";
@@ -2744,21 +2744,21 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       sql = select
-            + " ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
+            + " ct.relname AS \"TABLE_NAME\", NOT i.indisunique AS \"NON_UNIQUE\", NULL AS \"INDEX_QUALIFIER\", ci.relname AS \"INDEX_NAME\", "
             + " CASE i.indisclustered "
             + " WHEN true THEN " + DatabaseMetaData.tableIndexClustered
             + " ELSE CASE am.amname "
             + " WHEN 'hash' THEN " + DatabaseMetaData.tableIndexHashed
             + " ELSE " + DatabaseMetaData.tableIndexOther
             + " END "
-            + " END AS TYPE, "
-            + " a.attnum AS ORDINAL_POSITION, "
+            + " END AS \"TYPE\", "
+            + " a.attnum AS \"ORDINAL_POSITION\", "
             + " CASE WHEN i.indexprs IS NULL THEN a.attname "
-            + " ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS COLUMN_NAME, "
-            + " NULL AS ASC_OR_DESC, "
-            + " ci.reltuples AS CARDINALITY, "
-            + " ci.relpages AS PAGES, "
-            + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION "
+            + " ELSE pg_catalog.pg_get_indexdef(ci.oid,a.attnum,false) END AS \"COLUMN_NAME\", "
+            + " NULL AS \"ASC_OR_DESC\", "
+            + " ci.reltuples AS \"CARDINALITY\", "
+            + " ci.relpages AS \"PAGES\", "
+            + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS \"FILTER_CONDITION\" "
             + from
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
             + where;
@@ -2770,7 +2770,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
     }
 
-    sql += " ORDER BY NON_UNIQUE, TYPE, INDEX_NAME, ORDINAL_POSITION ";
+    sql += " ORDER BY \"NON_UNIQUE\", \"TYPE\", \"INDEX_NAME\", \"ORDINAL_POSITION\" ";
 
     return ((PgResultSet) createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
   }
@@ -3024,10 +3024,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     // Build query and result
     String sql;
-    sql = "SELECT current_database() AS FUNCTION_CAT, n.nspname AS FUNCTION_SCHEM, p.proname AS FUNCTION_NAME, "
-        + " d.description AS REMARKS, "
-        + funcTypeSql + " AS FUNCTION_TYPE, "
-        + " p.proname || '_' || p.oid AS SPECIFIC_NAME "
+    sql = "SELECT current_database() AS \"FUNCTION_CAT\", n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
+        + " d.description AS \"REMARKS\", "
+        + funcTypeSql + " AS \"FUNCTION_TYPE\", "
+        + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
         + "FROM pg_catalog.pg_proc p "
         + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
         + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
@@ -3048,7 +3048,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.getHideUnprivilegedObjects()) {
       sql += " AND has_function_privilege(p.oid,'EXECUTE')";
     }
-    sql += " ORDER BY FUNCTION_SCHEM, FUNCTION_NAME, p.oid::text ";
+    sql += " ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ";
 
     return createMetaDataStatement().executeQuery(sql);
   }
