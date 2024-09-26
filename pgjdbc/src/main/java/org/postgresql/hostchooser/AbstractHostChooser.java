@@ -1,6 +1,5 @@
 package org.postgresql.hostchooser;
 
-import java.sql.SQLException;
 import java.util.Properties;
 
 public abstract class AbstractHostChooser implements HostChooser {
@@ -16,7 +15,7 @@ public abstract class AbstractHostChooser implements HostChooser {
   }
 
   @Override
-  public void registerFailure(String host, SQLException ex) {
+  public void registerFailure(String host, Exception ex) {
     // for inbuilt HostChoosers do nothing
   }
 

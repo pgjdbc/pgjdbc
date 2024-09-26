@@ -266,9 +266,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       try {
         try {
           newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode);
-          hostChooser.registerSuccess(hostSpec.getHost());
         } catch (SQLException e) {
-          hostChooser.registerFailure(hostSpec.getHost(), e);
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
             // Try non-SSL connection to cover case like "non-ssl only db"
@@ -332,6 +330,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);
         if (!candidateHost.targetServerType.allowConnectingTo(hostStatus)) {
+          // Log target server type did not match
+          hostChooser.registerFailure(hostSpec.getHost(), null);
           queryExecutor.close();
           continue;
         }
@@ -346,6 +346,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), cex);
         if (hostIter.hasNext()) {
           log(Level.FINE, "ConnectException occurred while connecting to {0}", cex, hostSpec);
           // still more addresses to try
@@ -358,6 +359,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), ioe);
         if (hostIter.hasNext()) {
           log(Level.FINE, "IOException occurred while connecting to {0}", ioe, hostSpec);
           // still more addresses to try
@@ -369,6 +371,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), se);
         if (hostIter.hasNext()) {
           log(Level.FINE, "SQLException occurred while connecting to {0}", se, hostSpec);
           // still more addresses to try

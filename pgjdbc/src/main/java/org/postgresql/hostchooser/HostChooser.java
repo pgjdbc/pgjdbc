@@ -5,7 +5,6 @@
 
 package org.postgresql.hostchooser;
 
-import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -45,7 +44,7 @@ public interface HostChooser extends Iterable<CandidateHost> {
    * @param host to which a connection has been closed.
    * @param ex - Exception with which the connection attempt failed
    */
-  void registerFailure(String host, SQLException ex);
+  void registerFailure(String host, Exception ex);
 
   /**
    * Api to inform the HostChooser that a
