@@ -38,7 +38,7 @@ public class CustomHostChooserManager {
     }
 
     public Properties getProps() {
-      return this.getProps();
+      return this.info;
     }
 
     public void setHostChooser(HostChooser hc) {
@@ -77,12 +77,8 @@ public class CustomHostChooserManager {
   }
 
   public HostChooser getHostChooser(HostChooserUrlProperty customImplClassName) {
-    for (Map.Entry e : hostChooserMap.entrySet()) {
-      HostChooser hc = (HostChooser) e.getKey();
-      String hcClazzName = hc.getClass().getName();
-      if (hcClazzName.equals(customImplClassName)) {
-        return hc;
-      }
+    if(hostChooserMap.containsKey(customImplClassName)){
+      return hostChooserMap.get(customImplClassName);
     }
     return null;
   }
