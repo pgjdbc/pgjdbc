@@ -1603,6 +1603,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
           + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
+    if (catalog != null) {
+      if (catalog.isEmpty()) {
+        sql += " AND false "; // an empty string for `catalog` retrieves schemas without a catalog per interface definition
+      } else {
+        sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+      }
+    }
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
     }
