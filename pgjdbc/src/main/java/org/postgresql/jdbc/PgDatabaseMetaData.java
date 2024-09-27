@@ -1599,22 +1599,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
     String sql;
-    sql = "SELECT schema_name AS \"TABLE_SCHEM\", catalog_name AS \"TABLE_CATALOG\" FROM information_schema.schemata "
-          + " WHERE schema_name <> 'pg_toast' AND (schema_name !~ '^pg_temp_' "
-          + " OR schema_name = (pg_catalog.current_schemas(true))[1]) AND (schema_name !~ '^pg_toast_temp_' "
-          + " OR schema_name = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
-    if (catalog != null) {
-      if (catalog.isEmpty()) {
-        sql += " AND false ";
-      } else {
-        sql += " AND catalog_name = " + escapeQuotes(catalog);
-      }
-    }
+    sql = "SELECT nspname AS \"TABLE_SCHEM\", NULL AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
+          + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
+          + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
+          + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
     if (schemaPattern != null && !schemaPattern.isEmpty()) {
-      sql += " AND schema_name LIKE " + escapeQuotes(schemaPattern);
+      sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_schema_privilege(schema_name, 'USAGE, CREATE')";
+      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
     }
     sql += " ORDER BY \"TABLE_SCHEM\"";
 
