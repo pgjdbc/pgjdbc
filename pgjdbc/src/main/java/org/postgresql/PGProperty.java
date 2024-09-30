@@ -336,6 +336,11 @@ public enum PGProperty {
       "hostChooserImpl",
       null,
       "Class name of the custom host chooser. an implementation of the HostChooser interface"),
+
+  HOST_CHOOSER_IMPL_PROPERTIES(
+      "hostChooserImplProperties",
+      null,
+      "Properties specific to the HostChooser plugin, provided as String"),
   /**
    * <p>If this is set then the client side will bind to this address. This is useful if you need
    * to choose which interface to connect to.</p>
