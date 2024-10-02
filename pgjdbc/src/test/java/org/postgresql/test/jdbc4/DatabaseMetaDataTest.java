@@ -11,7 +11,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.ServerVersion;
@@ -97,11 +97,11 @@ class DatabaseMetaDataTest {
   void getSchemas() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getSchemas("", "publ%");
+    ResultSet rs = dbmd.getSchemas(null, "publ%");
 
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TABLE_SCHEM"));
-    assertNull(rs.getString("TABLE_CATALOG"));
+    assertNotNull(rs.getString("TABLE_CATALOG"));
     assertFalse(rs.next());
   }
 
