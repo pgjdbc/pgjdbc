@@ -30,6 +30,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 class DatabaseMetaDataTest {
 
@@ -102,6 +103,42 @@ class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("public", rs.getString("TABLE_SCHEM"));
     assertNotNull(rs.getString("TABLE_CATALOG"));
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getSchemas_whenNullCatalogAndSchemaPattern_expectRows() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getSchemas(null, null);
+
+    assertTrue(rs.next());
+  }
+
+  @Test
+  void getSchemas_whenEmptySchemaPattern_expectNoRows() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getSchemas(null, "");
+
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getSchemas_whenEmptyCatalog_expectNoRows() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getSchemas("", null);
+
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getSchemas_whenRandomCatalog_expectNoRows() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getSchemas(UUID.randomUUID().toString(), null);
+
     assertFalse(rs.next());
   }
 
