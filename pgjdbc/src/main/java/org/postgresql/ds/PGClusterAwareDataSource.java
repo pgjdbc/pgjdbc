@@ -2,8 +2,19 @@ package org.postgresql.ds;
 
 import org.postgresql.PGProperty;
 
+/**
+ * DataSource for Custom HostChooser implementation.
+ *
+ */
 public class PGClusterAwareDataSource extends PGSimpleDataSource {
 
+  /**
+   * Sets the class name of the custom host chooser. an implementation of the HostChooser interface.
+   * If this is not specified the driver would use the defaut HostChooser,
+   * `MultiHostChooser` or `SingleHostChooser`.
+   *
+   * @param classname of the custom host chooser, an implementation of the HostChooser interface.
+   */
   public void setHostChooserImpl(String classname) {
     PGProperty.HOST_CHOOSER_IMPL.set(properties, classname);
   }
@@ -16,6 +27,12 @@ public class PGClusterAwareDataSource extends PGSimpleDataSource {
     return PGProperty.HOST_CHOOSER_IMPL.getOrDefault(properties);
   }
 
+   /**
+   * Sets the specific properties required by the custom host chooser.
+   * @see PGProperty#HOST_CHOOSER_IMPL_PROPERTIES
+   *
+   * @param props specific properties required by the custom host chooser as a string.
+   */
   public void setHostChooserImplProperties(String props) {
     PGProperty.HOST_CHOOSER_IMPL_PROPERTIES.set(properties, props);
   }
