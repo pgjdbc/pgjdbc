@@ -15,6 +15,7 @@ import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.HostSpec;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,7 +81,7 @@ class HostChooserPluginTest {
         /**
          * Returns `host1` as the preferred host for the first `host1ConnectionCount` connections,
          * and `host2` as the preferred host for the rest connections.
-         * 
+         *
          * @return connection hosts in preferred order.
          */
         @Override
@@ -157,7 +158,7 @@ class HostChooserPluginTest {
 
     /**
      * Test connectivity to the second server.
-     * 
+     *
      * @return connection to the second server.
      */
     private static Connection openSecondaryDB() throws Exception {
@@ -170,7 +171,7 @@ class HostChooserPluginTest {
 
     /**
      * Add username and password to the properties.
-     * 
+     *
      * @return Properties props.
      */
     private static Properties userAndPassword() {
@@ -183,7 +184,7 @@ class HostChooserPluginTest {
 
     /**
      * Get secondary server IP.
-     * 
+     *
      * @return secondary server IP
      */
     private static String getSecondaryServer() {
@@ -192,7 +193,7 @@ class HostChooserPluginTest {
 
     /**
      * Get secondary server PORT.
-     * 
+     *
      * @return secondary server PORT.
      */
     private static int getSecondaryPort() {
@@ -202,7 +203,7 @@ class HostChooserPluginTest {
     /**
      * assert whether the current connection's inet_server_addr() matches with
      * expectedHost.
-     * 
+     *
      * @param expectedHost to which the connection is expected.
      */
     private void assertHost(String expectedHost) throws SQLException {
@@ -211,7 +212,7 @@ class HostChooserPluginTest {
 
     /**
      * get the inet_server_addr() from the current connection `con`.
-     * 
+     *
      * @return inet_server_addr() of the current connection.
      */
     private String getHostSpec() throws SQLException {
