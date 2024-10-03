@@ -16,8 +16,8 @@ public class PGClusterAwareDataSource extends PGSimpleDataSource {
     return PGProperty.HOST_CHOOSER_IMPL.getOrDefault(properties);
   }
 
-  public void setHostChooserImplProperties(String classname) {
-    PGProperty.HOST_CHOOSER_IMPL_PROPERTIES.set(properties, classname);
+  public void setHostChooserImplProperties(String props) {
+    PGProperty.HOST_CHOOSER_IMPL_PROPERTIES.set(properties, props);
   }
 
   /**
