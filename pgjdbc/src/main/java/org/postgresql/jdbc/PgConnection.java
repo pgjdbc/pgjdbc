@@ -1556,8 +1556,12 @@ public class PgConnection implements BaseConnection {
         }
         HostChooser hc =
             (HostChooser) ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
-        String host = queryExecutor.getHostSpec().getHost();
-        return !hc.isHostDrainingConnections(host);
+        if (hc != null) {
+          String host = queryExecutor.getHostSpec().getHost();
+          return !hc.isHostDrainingConnections(host);
+        } else {
+          return true;
+        }
       } finally {
         if (changedNetworkTimeout) {
           setNetworkTimeout(null, oldNetworkTimeout);
