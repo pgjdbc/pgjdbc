@@ -5,19 +5,18 @@
 
 package org.postgresql.hostchooser;
 
-import org.postgresql.PGProperty;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 
-import java.util.Properties;
-
 /**
- * Chooses a {@link HostChooser} instance based on the number of hosts and properties.
+ * Checks if a custom {@link HostChooser} implementation is provided. If yes then creates an
+ * instance of that else chooses a {@link HostChooser} instance based on the number of hosts
+ * and properties.
  */
 public class HostChooserFactory {
 
-  public static HostChooser createHostChooser(CustomHostChooserManager.HostChooserUrlProperty key
-      , HostSpec[] hostSpecs,
+  public static HostChooser createHostChooser(CustomHostChooserManager.HostChooserUrlProperty key,
+      HostSpec[] hostSpecs,
       HostRequirement targetServerType) throws PSQLException {
     if (key.getImpl() != null) {
       return CustomHostChooserManager.getInstance().getOrCreateHostChooser(key.getUrl(),

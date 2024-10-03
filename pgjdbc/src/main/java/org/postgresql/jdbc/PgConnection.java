@@ -36,7 +36,6 @@ import org.postgresql.geometric.PGlseg;
 import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
-import org.postgresql.hostchooser.CustomHostChooserManager;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
@@ -1553,9 +1552,10 @@ public class PgConnection implements BaseConnection {
             ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
           }
         }
-        // TODO check for validity from the host chooser
-
-        return true;
+        HostChooser hc =
+            (HostChooser) ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
+        String host = queryExecutor.getHostSpec().getHost();
+        return !hc.isHostDrainingConnections(host);
       } finally {
         if (changedNetworkTimeout) {
           setNetworkTimeout(null, oldNetworkTimeout);

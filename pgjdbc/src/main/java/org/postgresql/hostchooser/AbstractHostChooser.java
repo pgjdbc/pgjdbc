@@ -1,7 +1,16 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.hostchooser;
 
 import java.util.Properties;
 
+/**
+ * This class contains empty implementations of the HostChooser interface methods.
+ *
+ */
 public abstract class AbstractHostChooser implements HostChooser {
 
   @Override
@@ -27,11 +36,6 @@ public abstract class AbstractHostChooser implements HostChooser {
   @Override
   public boolean isHostDrainingConnections(String host) {
     return false;
-  }
-
-  @Override
-  public long getConnectionTimeout(String host) {
-    return 0;
   }
 
   @Override

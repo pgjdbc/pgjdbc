@@ -19,7 +19,13 @@ import org.postgresql.core.Tuple;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.gss.MakeGSS;
-import org.postgresql.hostchooser.*;
+import org.postgresql.hostchooser.CandidateHost;
+import org.postgresql.hostchooser.CustomHostChooserManager;
+import org.postgresql.hostchooser.GlobalHostStatusTracker;
+import org.postgresql.hostchooser.HostChooser;
+import org.postgresql.hostchooser.HostChooserFactory;
+import org.postgresql.hostchooser.HostRequirement;
+import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
@@ -232,11 +238,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     String customImplClass = info.getProperty(PGProperty.HOST_CHOOSER_IMPL.getName());
-    CustomHostChooserManager.HostChooserUrlProperty key =
-        new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
+    CustomHostChooserManager.HostChooserUrlProperty key;
+    key = new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
     HostChooser hostChooser =
         HostChooserFactory.createHostChooser(key, hostSpecs, targetServerType);
-    key.setHostChooser(hostChooser);
+    if (!hostChooser.isInbuilt()) {
+      key.setHostChooser(hostChooser);
+    }
 
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     Map<HostSpec, HostStatus> knownStates = new HashMap<>();
@@ -339,6 +347,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         runInitialQueries(queryExecutor, info);
 
         // And we're done.
+        hostChooser.registerSuccess(hostSpec.getHost());
         return queryExecutor;
       } catch (ConnectException cex) {
         // Added by Peter Mount <peter@retep.org.uk>

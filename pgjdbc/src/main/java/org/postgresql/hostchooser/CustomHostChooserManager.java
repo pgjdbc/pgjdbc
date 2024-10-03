@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.hostchooser;
 
 import org.postgresql.util.PSQLException;
@@ -8,15 +13,25 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.WeakHashMap;
 
+/**
+ * This is a singleton class that manages all the custom host chooser. It uses a weakHashmap to
+ * store the instance of the custom {@link HostChooser}. It uses the {@link HostChooserUrlProperty}
+ * as the key. The weakHashMap is used so that the instance gets garbage collected when all the
+ * created with that custom host chooser is also closed and garbage collected.
+ */
 public class CustomHostChooserManager {
   private final Map<HostChooserUrlProperty, HostChooser> hostChooserMap =
       new WeakHashMap<>();
-  private static CustomHostChooserManager instance_ = getInstance();
+  private static CustomHostChooserManager instance = getInstance();
 
   private CustomHostChooserManager() {
 
   }
 
+  /**
+   * A class which holds the url, info and the custom host chooser impl class name and is used
+   * by the {@link CustomHostChooserManager} as a key for the hostChooserMap.
+   */
   public static class HostChooserUrlProperty {
     private final String url;
     private final Properties info;
@@ -54,30 +69,29 @@ public class CustomHostChooserManager {
         return false;
       }
       HostChooserUrlProperty otherHcProps = (HostChooserUrlProperty) other;
-      return this.url.equals(otherHcProps.url) &&
-          this.info.equals(otherHcProps.info) && this.implStr.equals(otherHcProps.implStr);
+      return this.url.equals(otherHcProps.url)
+          && this.info.equals(otherHcProps.info)
+          && this.implStr.equals(otherHcProps.implStr);
     }
 
     public int hashCode() {
       return url.hashCode() ^ info.hashCode() ^ implStr.hashCode();
     }
-
-
   }
 
   public static CustomHostChooserManager getInstance() {
-    if (instance_ == null) {
+    if (instance == null) {
       synchronized (CustomHostChooserManager.class) {
-        if (instance_ == null) {
-          instance_ = new CustomHostChooserManager();
+        if (instance == null) {
+          instance = new CustomHostChooserManager();
         }
       }
     }
-    return instance_;
+    return instance;
   }
 
   public HostChooser getHostChooser(HostChooserUrlProperty customImplClassName) {
-    if(hostChooserMap.containsKey(customImplClassName)){
+    if (hostChooserMap.containsKey(customImplClassName)) {
       return hostChooserMap.get(customImplClassName);
     }
     return null;

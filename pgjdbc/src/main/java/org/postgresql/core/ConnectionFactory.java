@@ -42,7 +42,8 @@ public abstract class ConnectionFactory {
    *        failover
    * @param info extra properties controlling the connection; notably, "password" if present
    *        supplies the password to authenticate with.
-   * @param url connection url
+   * @param url connection url. This is passed for the custom host manager to associate
+   *            the url with the HostChooserKey (url, info, custom hostchooser class)
    * @return the new, initialized, connection
    * @throws SQLException if the connection could not be established.
    */

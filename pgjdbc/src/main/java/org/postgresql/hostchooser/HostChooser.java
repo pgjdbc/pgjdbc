@@ -67,19 +67,6 @@ public interface HostChooser extends Iterable<CandidateHost> {
    */
   boolean isHostDrainingConnections(String host);
 
-  /**
-   * Api to ask HostChooser for the amount of time it should
-   * wait for a successful connection to this host before moving
-   * to the next preferred host
-   * It is an opportunity for the HostChooser impementation to specify
-   * timeout on granular level for each host. For example hosts which are in the
-   * same network can have a smaller connection timeouts whereas hosts which are
-   * geographically far off can have a larger timeout.
-   *
-   * @return timeout value in milliseconds
-   */
-  long getConnectionTimeout(String host);
-
   boolean isInbuilt();
   /**
    * APIs related to metrics can be exposed (not finalised)

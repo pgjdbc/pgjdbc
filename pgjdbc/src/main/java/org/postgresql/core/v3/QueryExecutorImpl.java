@@ -2653,6 +2653,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public HostChooser getHostChooser() {
     return this.hostChooserKey.getHostChooser();
   }
+
   @Override
   public boolean getAdaptiveFetch() {
     return this.adaptiveFetchCache.getAdaptiveFetch();
