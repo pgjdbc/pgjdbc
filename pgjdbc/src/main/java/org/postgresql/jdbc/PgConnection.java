@@ -870,8 +870,10 @@ public class PgConnection implements BaseConnection {
       return;
     }
     HostChooser hc = ((QueryExecutorImpl) queryExecutor).getHostChooser();
-    String host = queryExecutor.getHostSpec().getHost();
-    hc.registerDisconnect(host);
+    if (hc != null) {
+      String host = queryExecutor.getHostSpec().getHost();
+      hc.registerDisconnect(host);
+    }
     openStackTrace = null;
     try {
       cleanable.clean();
