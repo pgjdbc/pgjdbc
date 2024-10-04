@@ -338,7 +338,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   List<String> getTableNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
     List<String> tableNames = new ArrayList<>();
-    ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"TABLE"});
+    ResultSet rs = databaseMetaData.getTables(null, schemaPattern, "%", new String[]{"TABLE"});
     while (rs.next()) {
       tableNames.add(rs.getString("TABLE_NAME"));
     }
@@ -398,7 +398,7 @@ public class DatabaseMetaDataHideUnprivilegedObjectsTest {
   List<String> getViewNames(DatabaseMetaData databaseMetaData, String schemaPattern)
       throws SQLException {
     List<String> viewNames = new ArrayList<>();
-    ResultSet rs = databaseMetaData.getTables(null, schemaPattern, null, new String[]{"VIEW"});
+    ResultSet rs = databaseMetaData.getTables(null, schemaPattern, "%", new String[]{"VIEW"});
     while (rs.next()) {
       viewNames.add(rs.getString("TABLE_NAME"));
     }

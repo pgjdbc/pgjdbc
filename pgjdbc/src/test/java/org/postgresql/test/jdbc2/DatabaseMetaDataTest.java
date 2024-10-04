@@ -1495,7 +1495,7 @@ public class DatabaseMetaDataTest {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
+        ResultSet rs = dbmd.getTables(null, null, "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
         rs.close();

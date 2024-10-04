@@ -1419,7 +1419,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String select;
     String orderby;
     String useSchemas = "SCHEMAS";
-    select = "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
+    select = "SELECT current_database()::information_schema.sql_identifier AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
              + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
@@ -1463,7 +1463,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
 
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      select += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+
+    if (schemaPattern != null) {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
 
@@ -1484,9 +1488,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
-    if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
+    if (tableNamePattern == null || tableNamePattern.isEmpty()) {
+      select += " AND false ";
+    } else {
       select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
     }
+
     if (types != null) {
       select += " AND (false ";
       StringBuilder orclause = new StringBuilder();
