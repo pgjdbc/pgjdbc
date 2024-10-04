@@ -46,8 +46,14 @@ public class ObjectFactory {
           IllegalArgumentException, InstantiationException, IllegalAccessException,
           InvocationTargetException {
     @Nullable Object[] args = {info};
-    Constructor<? extends T> ctor = null;
-    Class<? extends T> cls = Class.forName(classname).asSubclass(expectedClass);
+    Constructor<?> ctor = null;
+    Class<? extends T> cls;
+    try {
+      //first use the TCCL, but fall back to the CL that loaded this class if the TCCL fails
+      cls = Class.forName(classname, false, Thread.currentThread().getContextClassLoader()).asSubclass(expectedClass);
+    } catch (ClassNotFoundException e) {
+      cls = Class.forName(classname).asSubclass(expectedClass);
+    }
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {
