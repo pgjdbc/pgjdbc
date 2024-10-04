@@ -7,6 +7,7 @@ package org.postgresql.core.v3;
 
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
+import org.postgresql.util.IntList;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -18,14 +19,13 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  *
  * @author Jeremy Whiting jwhiting@redhat.com
  * @author Christopher Deckers (chrriis@gmail.com)
- *
  */
 public class BatchedQuery extends SimpleQuery {
 
-  private @Nullable String sql;
   private final int valuesBraceOpenPosition;
   private final int valuesBraceClosePosition;
   private final int batchSize;
+  private @Nullable String sql;
   private BatchedQuery @Nullable [] blocks;
 
   public BatchedQuery(NativeQuery query, TypeTransferModeRegistry transferModeRegistry,
@@ -101,21 +101,22 @@ public class BatchedQuery extends SimpleQuery {
     }
     int valuesBlockCharCount = 0;
     // Split the values section around every dynamic parameter.
-    int[] bindPositions = getNativeQuery().bindPositions;
-    int[] chunkStart = new int[1 + bindPositions.length];
-    int[] chunkEnd = new int[1 + bindPositions.length];
+    IntList bindPositions = getNativeQuery().parameterCtx.getPlaceholderPositions();
+
+    int[] chunkStart = new int[1 + bindPositions.size()];
+    int[] chunkEnd = new int[1 + bindPositions.size()];
     chunkStart[0] = valuesBraceOpenPosition;
-    if (bindPositions.length == 0) {
+    if (bindPositions.isEmpty()) {
       valuesBlockCharCount = valuesBraceClosePosition - valuesBraceOpenPosition + 1;
       chunkEnd[0] = valuesBraceClosePosition + 1;
     } else {
-      chunkEnd[0] = bindPositions[0];
+      chunkEnd[0] = bindPositions.get(0);
       // valuesBlockCharCount += chunks[0].length;
       valuesBlockCharCount += chunkEnd[0] - chunkStart[0];
-      for (int i = 0; i < bindPositions.length; i++) {
-        int startIndex = bindPositions[i] + 2;
+      for (int i = 0; i < bindPositions.size(); i++) {
+        int startIndex = bindPositions.get(i) + 2;
         int endIndex =
-            i < bindPositions.length - 1 ? bindPositions[i + 1] : valuesBraceClosePosition + 1;
+            i < bindPositions.size() - 1 ? bindPositions.get(i + 1) : valuesBraceClosePosition + 1;
         for (; startIndex < endIndex; startIndex++) {
           if (!Character.isDigit(nativeSql.charAt(startIndex))) {
             break;
@@ -129,18 +130,18 @@ public class BatchedQuery extends SimpleQuery {
     }
     int length = nativeSql.length();
     //valuesBraceOpenPosition + valuesBlockCharCount;
-    length += NativeQuery.calculateBindLength(bindPositions.length * batchSize);
-    length -= NativeQuery.calculateBindLength(bindPositions.length);
+    length += NativeQuery.calculateBindLength(bindPositions.size() * batchSize);
+    length -= NativeQuery.calculateBindLength(bindPositions.size());
     length += (valuesBlockCharCount + 1 /*comma*/) * (batchSize - 1 /* initial sql */);
 
     StringBuilder s = new StringBuilder(length);
     // Add query until end of values parameter block.
     int pos;
-    if (bindPositions.length > 0 && params == null) {
+    if (!bindPositions.isEmpty() && params == null) {
       // Add the first values (...) clause, it would be values($1,..., $n), and it matches with
       // the values clause of a simple non-rewritten SQL
       s.append(nativeSql, 0, valuesBraceClosePosition + 1);
-      pos = bindPositions.length + 1;
+      pos = bindPositions.size() + 1;
     } else {
       pos = 1;
       batchSize++; // do not use super.toString(params) as it does not work if query ends with --

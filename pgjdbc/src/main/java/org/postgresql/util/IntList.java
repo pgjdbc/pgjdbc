@@ -38,6 +38,10 @@ public final class IntList {
     return size;
   }
 
+  public boolean isEmpty() {
+    return size() == 0;
+  }
+
   public int get(int i) {
     if (i < 0 || i >= size) {
       throw new ArrayIndexOutOfBoundsException("Index: " + i + ", Size: " + size);

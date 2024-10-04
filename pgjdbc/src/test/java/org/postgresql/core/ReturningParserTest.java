@@ -7,6 +7,8 @@ package org.postgresql.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.postgresql.jdbc.PlaceholderStyle;
+
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -39,7 +41,7 @@ public class ReturningParserTest {
     String query =
         "insert into\"prep\"(a, " + prefix + columnName + suffix + ")values(1,2)" + prefix
             + returning + suffix;
-    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, true);
+    List<NativeQuery> qry = Parser.parseJdbcSql(query, true, true, true, true, PlaceholderStyle.NONE);
     boolean returningKeywordPresent = qry.get(0).command.isReturningKeywordPresent();
 
     boolean expectedReturning = "returning".equalsIgnoreCase(returning)

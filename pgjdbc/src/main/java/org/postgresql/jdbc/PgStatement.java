@@ -320,11 +320,10 @@ public class PgStatement implements Statement, BaseStatement {
   private boolean executeCachedSql(String sql, int flags,
       String @Nullable [] columnNames) throws SQLException {
     PreferQueryMode preferQueryMode = connection.getPreferQueryMode();
-    // Simple statements should not replace ?, ? with $1, $2
-    boolean shouldUseParameterized = false;
+
     QueryExecutor queryExecutor = connection.getQueryExecutor();
-    Object key = queryExecutor
-        .createQueryKey(sql, replaceProcessingEnabled, shouldUseParameterized, columnNames);
+    // Simple statements should not replace ?, ? with $1, $2 (placeholderStyle set to NONE)
+    Object key = queryExecutor.createQueryKey(sql, replaceProcessingEnabled, PlaceholderStyle.NONE, columnNames);
     CachedQuery cachedQuery;
     boolean shouldCache = preferQueryMode == PreferQueryMode.EXTENDED_CACHE_EVERYTHING;
     if (shouldCache) {
@@ -794,8 +793,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     // Simple statements should not replace ?, ? with $1, $2
-    boolean shouldUseParameterized = false;
-    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
+    CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, PlaceholderStyle.NONE);
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
