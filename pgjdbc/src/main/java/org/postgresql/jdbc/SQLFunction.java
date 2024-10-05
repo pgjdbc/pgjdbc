@@ -1,8 +1,13 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import java.sql.SQLException;
 
 @FunctionalInterface
 public interface SQLFunction<T, R> {
-  public R apply(T value) throws SQLException;
+  R apply(T value) throws SQLException;
 }

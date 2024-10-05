@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2004, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -24,29 +29,25 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.TimeZone;
-
-import org.postgresql.jdbc.SQLFunction;
-import org.postgresql.jdbc.TimestampUtils;
 
 public class PgSQLInput implements SQLInput {
-  private final static SQLFunction<String, String> stringConv = (value) -> value;
-  private final static SQLFunction<String, Byte> byteConv = (value) -> Byte.valueOf(value);
-  private final static SQLFunction<String, Short> shortConv = (value) -> Short.valueOf(value);
-  private final static SQLFunction<String, Integer> intConv = (value) -> Integer.valueOf(value);
-  private final static SQLFunction<String, Long> longConv = (value) -> Long.valueOf(value);
-  private final static SQLFunction<String, Float> floatConv = (value) -> Float.valueOf(value);
-  private final static SQLFunction<String, Double> doubleConv = (value) -> Double.valueOf(value);
-  private final static SQLFunction<String, BigDecimal> bigDecimalConv = (value) -> new BigDecimal(value);
-  private final static SQLFunction<String, BigInteger> bigIntConv = (value) -> new BigInteger(value);
-  private final static SQLFunction<String, byte[]> bytesConv = (value) -> value.getBytes();
-  private final static SQLFunction<String, Boolean> boolConv = (value) -> {
+  private static final SQLFunction<String, String> stringConv = (value) -> value;
+  private static final SQLFunction<String, Byte> byteConv = (value) -> Byte.valueOf(value);
+  private static final SQLFunction<String, Short> shortConv = (value) -> Short.valueOf(value);
+  private static final SQLFunction<String, Integer> intConv = (value) -> Integer.valueOf(value);
+  private static final SQLFunction<String, Long> longConv = (value) -> Long.valueOf(value);
+  private static final SQLFunction<String, Float> floatConv = (value) -> Float.valueOf(value);
+  private static final SQLFunction<String, Double> doubleConv = (value) -> Double.valueOf(value);
+  private static final SQLFunction<String, BigDecimal> bigDecimalConv = (value) -> new BigDecimal(value);
+  private static final SQLFunction<String, BigInteger> bigIntConv = (value) -> new BigInteger(value);
+  private static final SQLFunction<String, byte[]> bytesConv = (value) -> value.getBytes();
+  private static final SQLFunction<String, Boolean> boolConv = (value) -> {
     if ("t".equals(value)) {
       return Boolean.TRUE;
     }
     return Boolean.FALSE;
   };
-  private final static SQLFunction<String, URL> urlConv = (value) -> {
+  private static final SQLFunction<String, URL> urlConv = (value) -> {
     try {
       return new URL(value);
     } catch (MalformedURLException ex) {
