@@ -13,8 +13,8 @@ import java.sql.SQLWarning;
 import java.util.List;
 
 /**
- * <p>Callback interface for passing query results from the protocol-specific layer to the
- * protocol-independent JDBC implementation code.</p>
+ * Callback interface for passing query results from the protocol-specific layer to the
+ * protocol-independent JDBC implementation code.
  *
  * <p>In general, a single query execution will consist of a number of calls to handleResultRows,
  * handleCommandStatus, handleWarning, and handleError, followed by a single call to

@@ -182,8 +182,8 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   /**
-   * <p>Escapes a given text value as a literal, wraps it in single quotes, casts it to the
-   * to the given data type, and finally wraps the whole thing in parentheses.</p>
+   * Escapes a given text value as a literal, wraps it in single quotes, casts it to the
+   * to the given data type, and finally wraps the whole thing in parentheses.
    *
    * <p>For example, "123" and "int4" becomes "('123'::int)"</p>
    *

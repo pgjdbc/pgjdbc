@@ -1618,8 +1618,8 @@ public class TimestampUtils {
   }
 
   /**
-   * <p>Given a UTC timestamp {@code millis} finds another point in time that is rendered in given time
-   * zone {@code tz} exactly as "millis in UTC".</p>
+   * Given a UTC timestamp {@code millis} finds another point in time that is rendered in given time
+   * zone {@code tz} exactly as "millis in UTC".
    *
    * <p>For instance, given 7 Jan 16:00 UTC and tz=GMT+02:00 it returns 7 Jan 14:00 UTC == 7 Jan 16:00
    * GMT+02:00 Note that is not trivial for timestamps near DST change. For such cases, we rely on

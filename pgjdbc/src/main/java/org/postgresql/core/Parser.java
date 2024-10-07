@@ -420,7 +420,7 @@ public class Parser {
   }
 
   /**
-   * <p>Find the end of the single-quoted string starting at the given offset.</p>
+   * Find the end of the single-quoted string starting at the given offset.
    *
    * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
    * first {@code '} character after the initial one. The caller must call the method a second time
@@ -467,7 +467,7 @@ public class Parser {
   }
 
   /**
-   * <p>Find the end of the double-quoted string starting at the given offset.</p>
+   * Find the end of the double-quoted string starting at the given offset.
    *
    * <p>Note: for {@code "double "" quote in string"}, this method currently
    * returns the offset of first {@code &quot;} character after the initial one. The caller must
@@ -1259,7 +1259,7 @@ public class Parser {
   }
 
   /**
-   * <p>Filter the SQL string of Java SQL Escape clauses.</p>
+   * Filter the SQL string of Java SQL Escape clauses.
    *
    * <p>Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
    * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}

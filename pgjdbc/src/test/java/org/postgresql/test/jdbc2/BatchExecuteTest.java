@@ -594,7 +594,7 @@ public class BatchExecuteTest extends BaseTest4 {
   }
 
   /**
-   * <p>This one is reproduced in regular (non-force binary) mode.</p>
+   * This one is reproduced in regular (non-force binary) mode.
    *
    * <p>As of 9.4.1208 the following tests fail:
    * BatchExecuteTest.testBatchWithAlternatingAndUnknownTypes3

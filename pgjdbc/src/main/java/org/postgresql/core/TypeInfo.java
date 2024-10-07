@@ -120,10 +120,10 @@ public interface TypeInfo {
   boolean requiresQuotingSqlType(int sqlType) throws SQLException;
 
   /**
-   * <p>Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
+   * Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
    * We therefore read them as positive long values and then force them into signed integers
    * (wrapping around into negative values when required) or we'd be unable to correctly
-   * handle the upper half of the oid space.</p>
+   * handle the upper half of the oid space.
    *
    * <p>This function handles the mapping of uint32-values in the long to java integers, and
    * throws for values that are out of range.</p>

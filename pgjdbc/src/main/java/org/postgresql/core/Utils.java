@@ -152,7 +152,7 @@ public class Utils {
   }
 
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number.
    *
    * <p>Returns 0 if the version could not be parsed.</p>
    *

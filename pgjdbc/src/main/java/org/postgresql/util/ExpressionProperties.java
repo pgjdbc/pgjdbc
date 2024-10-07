@@ -31,8 +31,8 @@ public class ExpressionProperties extends Properties {
   }
 
   /**
-   * <p>Returns property value with all {@code ${propKey}} like references replaced with the value of
-   * the relevant property with recursive resolution.</p>
+   * Returns property value with all {@code ${propKey}} like references replaced with the value of
+   * the relevant property with recursive resolution.
    *
    * <p>The method returns <code>null</code> if the property is not found.</p>
    *
