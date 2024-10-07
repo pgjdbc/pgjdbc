@@ -78,7 +78,7 @@ public class LargeObjectManager {
   public static final int READWRITE = READ | WRITE;
 
   /**
-   * <p>Constructs the LargeObject API.</p>
+   * Constructs the LargeObject API.
    *
    * <p><b>Important Notice</b> <br>
    * This method should only be called by {@link BaseConnection}</p>
@@ -248,7 +248,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * <p>This creates a large object, returning its OID.</p>
+   * This creates a large object, returning its OID.
    *
    * <p>It defaults to READWRITE for the new object's attributes.</p>
    *
@@ -262,7 +262,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * <p>This creates a large object, returning its OID.</p>
+   * This creates a large object, returning its OID.
    *
    * <p>It defaults to READWRITE for the new object's attributes.</p>
    *
@@ -317,7 +317,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * <p>This deletes a large object.</p>
+   * This deletes a large object.
    *
    * <p>It is identical to the delete method, and is supplied as the C API uses unlink.</p>
    *
@@ -331,7 +331,7 @@ public class LargeObjectManager {
   }
 
   /**
-   * <p>This deletes a large object.</p>
+   * This deletes a large object.
    *
    * <p>It is identical to the delete method, and is supplied as the C API uses unlink.</p>
    *

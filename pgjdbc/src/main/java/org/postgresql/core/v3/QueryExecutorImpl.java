@@ -182,7 +182,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   /**
-   * <p>Supplement to synchronization of public methods on current QueryExecutor.</p>
+   * Supplement to synchronization of public methods on current QueryExecutor.
    *
    * <p>Necessary for keeping the connection intact between calls to public methods sharing a state
    * such as COPY subprotocol. waitOnLock() must be called at beginning of each connection access
@@ -3068,8 +3068,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final boolean cleanupSavePoints;
 
   /**
-   * <p>The estimated server response size since we last consumed the input stream from the server, in
-   * bytes.</p>
+   * The estimated server response size since we last consumed the input stream from the server, in
+   * bytes.
    *
    * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
    *

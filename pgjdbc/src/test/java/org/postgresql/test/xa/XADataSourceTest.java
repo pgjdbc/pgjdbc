@@ -359,7 +359,7 @@ public class XADataSourceTest {
   }
 
   /**
-   * <p>Get the time the current transaction was started from the server.</p>
+   * Get the time the current transaction was started from the server.
    *
    * <p>This can be used to check that transaction doesn't get committed/ rolled back inadvertently, by
    * calling this once before and after the suspected piece of code, and check that they match. It's

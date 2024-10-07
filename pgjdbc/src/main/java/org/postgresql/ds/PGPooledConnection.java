@@ -385,10 +385,10 @@ public class PGPooledConnection implements PooledConnection {
   }
 
   /**
-   * <p>Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
+   * Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
    * which would have to be updated for every JDK rev, use a dynamic proxy to handle all calls
    * through the Statement interfaces. This is the part that requires JDK 1.3 or higher, though JDK
-   * 1.2 could be supported with a 3rd-party proxy package.</p>
+   * 1.2 could be supported with a 3rd-party proxy package.
    *
    * <p>The StatementHandler is required in order to return the proper Connection proxy for the
    * getConnection method.</p>

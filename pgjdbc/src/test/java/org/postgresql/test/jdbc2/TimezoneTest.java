@@ -32,8 +32,8 @@ import java.util.Properties;
 import java.util.TimeZone;
 
 /**
- * <p>Tests for time and date types with calendars involved. TimestampTest was melting my brain, so I
- * started afresh. -O</p>
+ * Tests for time and date types with calendars involved. TimestampTest was melting my brain, so I
+ * started afresh. -O
  *
  * <p>Conversions that this code tests:</p>
  *

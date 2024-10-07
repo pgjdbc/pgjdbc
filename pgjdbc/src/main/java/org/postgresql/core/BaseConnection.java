@@ -72,9 +72,9 @@ public interface BaseConnection extends PGConnection, Connection {
   ReplicationProtocol getReplicationProtocol();
 
   /**
-   * <p>Construct and return an appropriate object for the given type and value. This only considers
+   * Construct and return an appropriate object for the given type and value. This only considers
    * the types registered via {@link org.postgresql.PGConnection#addDataType(String, Class)} and
-   * {@link org.postgresql.PGConnection#addDataType(String, String)}.</p>
+   * {@link org.postgresql.PGConnection#addDataType(String, String)}.
    *
    * <p>If no class is registered as handling the given type, then a generic
    * {@link org.postgresql.util.PGobject} instance is returned.</p>
@@ -95,7 +95,7 @@ public interface BaseConnection extends PGConnection, Connection {
   TypeInfo getTypeInfo();
 
   /**
-   * <p>Check if we have at least a particular server version.</p>
+   * Check if we have at least a particular server version.
    *
    * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
    * is 90012.</p>
@@ -106,7 +106,7 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean haveMinimumServerVersion(int ver);
 
   /**
-   * <p>Check if we have at least a particular server version.</p>
+   * Check if we have at least a particular server version.
    *
    * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
    * is 90012.</p>

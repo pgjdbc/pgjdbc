@@ -16,9 +16,9 @@ import java.io.InputStream;
 import java.sql.SQLException;
 
 /**
- * <p>Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
+ * Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
  * of how to efficiently store and stream the parameters is hidden behind implementations of this
- * interface.</p>
+ * interface.
  *
  * <p>In general, instances of ParameterList are associated with a particular Query object (the one
  * that created them) and shouldn't be used against another Query.</p>

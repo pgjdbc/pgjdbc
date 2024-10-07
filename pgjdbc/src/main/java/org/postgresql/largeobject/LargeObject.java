@@ -20,8 +20,8 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 
 /**
- * <p>This class provides the basic methods required to run the interface, plus a pair of methods that
- * provide InputStream and OutputStream classes for this object.</p>
+ * This class provides the basic methods required to run the interface, plus a pair of methods that
+ * provide InputStream and OutputStream classes for this object.
  *
  * <p>Normally, client code would use the getAsciiStream, getBinaryStream, or getUnicodeStream methods
  * in ResultSet, or setAsciiStream, setBinaryStream, or setUnicodeStream methods in
@@ -75,7 +75,7 @@ public class LargeObject
   private final boolean commitOnClose; // Only initialized when open a LOB with CommitOnClose
 
   /**
-   * <p>This opens a large object.</p>
+   * This opens a large object.
    *
    * <p>If the object does not exist, then an SQLException is thrown.</p>
    *
@@ -108,7 +108,7 @@ public class LargeObject
   }
 
   /**
-   * <p>This opens a large object.</p>
+   * This opens a large object.
    *
    * <p>If the object does not exist, then an SQLException is thrown.</p>
    *
@@ -266,7 +266,7 @@ public class LargeObject
   }
 
   /**
-   * <p>Sets the current position within the object.</p>
+   * Sets the current position within the object.
    *
    * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
    * access to the large object.</p>
@@ -299,7 +299,7 @@ public class LargeObject
   }
 
   /**
-   * <p>Sets the current position within the object.</p>
+   * Sets the current position within the object.
    *
    * <p>This is similar to the fseek() call in the standard C library. It allows you to have random
    * access to the large object.</p>
@@ -332,8 +332,8 @@ public class LargeObject
   }
 
   /**
-   * <p>This method is inefficient, as the only way to find out the size of the object is to seek to
-   * the end, record the current position, then return to the original position.</p>
+   * This method is inefficient, as the only way to find out the size of the object is to seek to
+   * the end, record the current position, then return to the original position.
    *
    * <p>A better method will be found in the future.</p>
    *
@@ -393,7 +393,7 @@ public class LargeObject
   }
 
   /**
-   * <p>Returns an {@link InputStream} from this object.</p>
+   * Returns an {@link InputStream} from this object.
    *
    * <p>This {@link InputStream} can then be used in any method that requires an InputStream.</p>
    *
@@ -431,7 +431,7 @@ public class LargeObject
   }
 
   /**
-   * <p>Returns an {@link OutputStream} to this object.</p>
+   * Returns an {@link OutputStream} to this object.
    *
    * <p>This OutputStream can then be used in any method that requires an OutputStream.</p>
    *

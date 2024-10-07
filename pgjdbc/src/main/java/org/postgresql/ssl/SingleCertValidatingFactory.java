@@ -26,10 +26,10 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
 /**
- * <p>Provides a SSLSocketFactory that authenticates the remote server against an explicit pre-shared
+ * Provides a SSLSocketFactory that authenticates the remote server against an explicit pre-shared
  * SSL certificate. This is more secure than using the NonValidatingFactory as it prevents "man in
  * the middle" attacks. It is also more secure than relying on a central CA signing your server's
- * certificate as it pins the server's certificate.</p>
+ * certificate as it pins the server's certificate.
  *
  * <p>This class requires a single String parameter specified by setting the connection property
  * <code>sslfactoryarg</code>. The value of this property is the PEM-encoded remote server's SSL
