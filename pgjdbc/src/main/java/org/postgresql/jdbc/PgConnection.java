@@ -1550,14 +1550,19 @@ public class PgConnection implements BaseConnection {
             statement.execute("IDENTIFY_SYSTEM");
           }
         } else {
-          try (Statement checkConnectionQuery = createStatement()) {
-            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+          HostChooser hc =
+              (HostChooser) ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
+          String host = queryExecutor.getHostSpec().getHost();
+          HostChooser.IS_VALID_RESPONSE resp = hc.isValid(host);
+          if (resp == HostChooser.IS_VALID_RESPONSE.RECHECK_VALID) {
+            try (Statement checkConnectionQuery = createStatement()) {
+              ((PgStatement) checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+            }
+          } else if (resp == HostChooser.IS_VALID_RESPONSE.INVALID) {
+            return false;
           }
         }
-        HostChooser hc =
-            (HostChooser) ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
-        String host = queryExecutor.getHostSpec().getHost();
-        return !hc.isHostDrainingConnections(host);
+        return true;
       } finally {
         if (changedNetworkTimeout) {
           setNetworkTimeout(null, oldNetworkTimeout);

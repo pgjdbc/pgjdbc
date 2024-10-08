@@ -34,8 +34,8 @@ public abstract class AbstractHostChooser implements HostChooser {
   }
 
   @Override
-  public boolean isHostDrainingConnections(String host) {
-    return false;
+  public IS_VALID_RESPONSE isValid(String host) {
+    return IS_VALID_RESPONSE.RECHECK_VALID;
   }
 
   @Override
