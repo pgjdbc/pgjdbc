@@ -1423,7 +1423,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     String select;
     String orderby;
     String useSchemas = "SCHEMAS";
-    select = "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
+    select = "SELECT current_database()::information_schema.sql_identifier AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
              + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
@@ -1467,7 +1467,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
 
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      select += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+
+    if (schemaPattern != null) {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
 
@@ -1488,9 +1492,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
-    if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
+    if (tableNamePattern != null) {
       select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
     }
+
     if (types != null) {
       select += " AND (false ";
       StringBuilder orclause = new StringBuilder();
@@ -1603,11 +1608,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
     String sql;
-    sql = "SELECT nspname AS \"TABLE_SCHEM\", NULL AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
+    sql = "SELECT nspname AS \"TABLE_SCHEM\", current_database()::information_schema.sql_identifier AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
           + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+    if (schemaPattern != null) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
@@ -1692,8 +1700,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = "";
     }
 
-    sql += "SELECT n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-           + "OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
+    sql += "SELECT current_database()::information_schema.sql_identifier AS table_cat, "
+        + " n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
+        + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
@@ -1724,16 +1733,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
            + " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') "
            + " WHERE c.relkind in ('r','p','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
 
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+    if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
-    if (tableNamePattern != null && !tableNamePattern.isEmpty()) {
+    if (tableNamePattern != null) {
       sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
     }
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql += ") c WHERE true ";
     }
-    if (columnNamePattern != null && !columnNamePattern.isEmpty()) {
+    if (columnNamePattern != null) {
       sql += " AND attname LIKE " + escapeQuotes(columnNamePattern);
     }
     sql += " ORDER BY nspname,c.relname,attnum ";
@@ -1745,8 +1757,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = null; // Catalog name, not supported
-      tuple[1] = rs.getBytes("nspname"); // Schema
+      tuple[0] = rs.getBytes("table_cat"); // Catalog (database) name
+      tuple[1] = rs.getBytes("nspname"); // Schema name
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
 
