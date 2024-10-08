@@ -82,7 +82,7 @@ class DatabaseMetaDataTest {
   void getColumnsForAutoIncrement() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "sercoltest", "%");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals("YES", rs.getString("IS_AUTOINCREMENT"));
