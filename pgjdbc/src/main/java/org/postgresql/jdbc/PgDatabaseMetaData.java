@@ -1488,9 +1488,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
-    if (tableNamePattern == null || tableNamePattern.isEmpty()) {
-      select += " AND false ";
-    } else {
+    if (tableNamePattern != null) {
       select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
     }
 
