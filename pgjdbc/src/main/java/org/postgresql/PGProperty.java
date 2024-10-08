@@ -295,6 +295,20 @@ public enum PGProperty {
       "false",
       "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
 
+  HOST_CHOOSER_IMPL(
+      "hostChooserImpl",
+      null,
+      "Class name of the custom host chooser. An implementation of the HostChooser interface"),
+
+  /**
+   * The implementation is free to choose any format of the string. It can be a json, xml, normal text or even
+   * encoded string. The custom host chooser will know how to deal with this.
+   */
+  HOST_CHOOSER_IMPL_PROPERTIES(
+      "hostChooserImplProperties",
+      null,
+      "Properties specific to the HostChooser plugin, provided as String"),
+
   HOST_RECHECK_SECONDS(
       "hostRecheckSeconds",
       "10",
@@ -331,20 +345,6 @@ public enum PGProperty {
       "loadBalanceHosts",
       "false",
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
-
-  HOST_CHOOSER_IMPL(
-      "hostChooserImpl",
-      null,
-      "Class name of the custom host chooser. An implementation of the HostChooser interface"),
-
-  /**
-   * The implementation is free to choose any format of the string. It can be a json, xml, normal text or even
-   * encoded string. The custom host chooser will know how to deal with this.
-   */
-  HOST_CHOOSER_IMPL_PROPERTIES(
-      "hostChooserImplProperties",
-      null,
-      "Properties specific to the HostChooser plugin, provided as String"),
 
   /**
    * <p>If this is set then the client side will bind to this address. This is useful if you need
