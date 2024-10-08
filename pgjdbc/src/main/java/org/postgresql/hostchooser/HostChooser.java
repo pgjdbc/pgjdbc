@@ -23,11 +23,12 @@ public interface HostChooser extends Iterable<CandidateHost> {
   // Enum response for isValid call. The fine grained response may help avoid the sending of
   // empty prepared statement to the server if the plugin is confident about the validity
   // of the connection and the host.
-  enum IS_VALID_RESPONSE {
+  enum IsValidResponse {
     VALID,
     INVALID,
     RECHECK_VALID
   }
+
   // New methods
   /**
    * Initialize and setup the custom host chooser
@@ -73,7 +74,7 @@ public interface HostChooser extends Iterable<CandidateHost> {
    *
    * @return true or false.
    */
-  IS_VALID_RESPONSE isValid(String host);
+  IsValidResponse isValid(String host);
 
   boolean isInbuilt();
   /**

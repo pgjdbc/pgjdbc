@@ -34,8 +34,8 @@ public abstract class AbstractHostChooser implements HostChooser {
   }
 
   @Override
-  public IS_VALID_RESPONSE isValid(String host) {
-    return IS_VALID_RESPONSE.RECHECK_VALID;
+  public IsValidResponse isValid(String host) {
+    return IsValidResponse.RECHECK_VALID;
   }
 
   @Override
