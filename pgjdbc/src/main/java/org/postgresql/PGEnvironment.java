@@ -17,6 +17,38 @@ import java.util.Map;
 public enum PGEnvironment {
 
   /**
+   * The database name.
+   */
+  ORG_POSTGRESQL_PGDATABASE(
+      "org.postgresql.pgdatabase",
+      null,
+      "Specifies the database of instance."),
+
+  /**
+   * The database name.
+   */
+  PGDATABASE(
+      "PGDATABASE",
+      null,
+      "Specifies the database of instance."),
+
+  /**
+   * Name of host to connect to.
+   */
+  ORG_POSTGRESQL_PGHOST(
+      "org.postgresql.pghost",
+      null,
+      "Specifies the host of instance."),
+
+  /**
+   * Name of host to connect to.
+   */
+  PGHOST(
+      "PGHOST",
+      null,
+      "Specifies the host of instance."),
+
+  /**
    * Specified location of password file.
    */
   ORG_POSTGRESQL_PGPASSFILE(
@@ -29,8 +61,56 @@ public enum PGEnvironment {
    */
   PGPASSFILE(
       "PGPASSFILE",
-      "pgpass",
+      null,
       "Specified location of password file."),
+
+  /**
+   * The password of user.
+   */
+  ORG_POSTGRESQL_PGPASSWORD(
+      "org.postgresql.pgpassword",
+      null,
+      "Specifies the password of instance."),
+
+  /**
+   * The password of user.
+   */
+  PGPASSWORD(
+      "PGPASSWORD",
+      null,
+      "Specifies the password of instance."),
+
+  /**
+   * Port number to connect to at the server host.
+   */
+  ORG_POSTGRESQL_PGPORT(
+      "org.postgresql.pgport",
+      null,
+      "Specifies the port of instance."),
+
+  /**
+   * Port number to connect to at the server host.
+   */
+  PGPORT(
+      "PGPORT",
+      null,
+      "Specifies the port of instance."),
+
+  /**
+   * The connection service name to be found in PGSERVICEFILE.
+   */
+  ORG_POSTGRESQL_PGSERVICE(
+      "org.postgresql.pgservice",
+      null,
+      "Specifies the service name."),
+
+  /**
+   * The connection service name to be found in PGSERVICEFILE.
+   */
+  PGSERVICE(
+      "PGSERVICE",
+      null,
+      "Specifies the service name."),
 
   /**
    * The connection service resource (file, url) allows connection parameters to be associated
@@ -58,6 +138,22 @@ public enum PGEnvironment {
       "PGSYSCONFDIR",
       null,
       "Specifies the directory containing the PGSERVICEFILE file"),
+
+  /**
+   * The connection user.
+   */
+  ORG_POSTGRESQL_PGUSER(
+      "org.postgresql.pguser",
+      null,
+      "Specifies the user of instance."),
+
+  /**
+   * The connection user.
+   */
+  PGUSER(
+      "PGUSER",
+      null,
+      "Specifies the user of instance."),
   ;
 
   private final String name;
@@ -80,6 +176,10 @@ public enum PGEnvironment {
     }
   }
 
+  public static @Nullable PGEnvironment forName(String name) {
+    return PROPS_BY_NAME.get(name);
+  }
+
   /**
    * Returns the name of the parameter.
    *
@@ -93,7 +193,10 @@ public enum PGEnvironment {
    * Returns the default value for this parameter.
    *
    * @return the default value for this parameter or null
+   * @deprecated instead of PGSERVICEFILE.getDefaultValue() use OSUtil.getDefaultPgServiceFilename(),
+   *             getDefaultValue() returns null for all other enum values.
    */
+  @Deprecated
   public @Nullable String getDefaultValue() {
     return defaultValue;
   }
@@ -107,4 +210,11 @@ public enum PGEnvironment {
     return description;
   }
 
+  public @Nullable String readStringValue() {
+    if (this.getName().startsWith("org.postgresql.")) {
+      return System.getProperty(this.getName());
+    } else {
+      return System.getenv().get(this.getName());
+    }
+  }
 }
