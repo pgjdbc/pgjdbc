@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
  * heap in a direct memory pool or in some other form that is inconvenient to assemble into a single
  * heap-allocated buffer.</p>
  *
- * <p> Users should write their own implementation depending on the
+ * <p>Users should write their own implementation depending on the
  * original data source. The driver provides a built-in implementation supporting the {@link
  * java.nio.ByteBuffer} class, see {@link ByteBufferByteStreamWriter}.</p>
  *

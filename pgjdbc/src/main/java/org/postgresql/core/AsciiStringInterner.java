@@ -316,6 +316,7 @@ final class AsciiStringInterner {
 
   /**
    * Performs equality check between <i>a</i> and <i>b</i> (with corresponding offset/length values).
+   *
    * <p>
    * The {@code static boolean equals(byte[].class, int, int, byte[], int, int} method in {@link java.util.Arrays}
    * is optimized for longer {@code byte[]} instances than is expected to be seen here.
