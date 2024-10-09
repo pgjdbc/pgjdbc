@@ -7,6 +7,9 @@ package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+import org.postgresql.Driver;
+import org.postgresql.core.BaseConnection;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayInputStream;
@@ -64,11 +67,13 @@ public class PgSQLInput implements SQLInput {
   private final List<String> values;
   private int index;
   private Boolean wasNull;
+  private BaseConnection connection;
   private TimestampUtils timestampUtils;
 
-  public PgSQLInput(List<String> values, TimestampUtils timestampUtils) {
+  public PgSQLInput(List<String> values, BaseConnection connection, TimestampUtils timestampUtils) {
     this.values = values;
     this.index = -1;
+    this.connection = connection;
     this.timestampUtils = timestampUtils;
 
     timestampConv = (value) -> timestampUtils.toTimestamp(null, value.getBytes());
@@ -190,22 +195,22 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public Ref readRef() throws SQLException {
-    throw new SQLException("Not implemented.");
+    throw Driver.notImplemented(this.getClass(), "readRef()");
   }
 
   @Override
   public Blob readBlob() throws SQLException {
-    throw new SQLException("Not yet implemented.");
+    throw Driver.notImplemented(this.getClass(), "readBlob()");
   }
 
   @Override
   public Clob readClob() throws SQLException {
-    throw new SQLException("Not yet implemented.");
+    throw Driver.notImplemented(this.getClass(), "readClob()");
   }
 
   @Override
   public Array readArray() throws SQLException {
-    throw new SQLException("Not yet implemented.");
+    throw Driver.notImplemented(this.getClass(), "readArray()");
   }
 
   @Override
@@ -215,12 +220,12 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public SQLXML readSQLXML() throws SQLException {
-    throw new SQLException("Not yet implemented.");
+    return new PgSQLXML(connection, readString());
   }
 
   @Override
   public RowId readRowId() throws SQLException {
-    throw new SQLException("Not yet implemented.");
+    throw Driver.notImplemented(this.getClass(), "getRowId()");
   }
 
   @Override
@@ -230,12 +235,12 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public NClob readNClob() throws SQLException {
-    throw new SQLException("Not implemented.");
+    throw Driver.notImplemented(this.getClass(), "readNClob()");
   }
 
   @Override
   public String readNString() throws SQLException {
-    throw new SQLException("Not implemented.");
+    throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
   @SuppressWarnings("unchecked")
@@ -259,7 +264,7 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (SQLData.class.isAssignableFrom(type)) {
-      return (value) -> new SQLDataReader().read(value, type, timestampUtils);
+      return (value) -> new SQLDataReader().read(value, type, connection, timestampUtils);
     }
 
     if (type == String.class) {

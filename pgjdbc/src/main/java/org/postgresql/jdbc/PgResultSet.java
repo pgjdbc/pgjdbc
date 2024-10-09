@@ -3945,7 +3945,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
       return type.cast(object);
     } else if (SQLData.class.isAssignableFrom(type)) {
-      return new SQLDataReader().read(getObject(columnIndex), type, getTimestampUtils());
+      return new SQLDataReader().read(getObject(columnIndex), type, connection, getTimestampUtils());
     }
     throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
             PSQLState.INVALID_PARAMETER_VALUE);

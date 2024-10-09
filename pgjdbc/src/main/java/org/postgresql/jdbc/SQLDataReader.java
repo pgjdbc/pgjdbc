@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static java.lang.Character.isWhitespace;
 
+import org.postgresql.core.BaseConnection;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLData;
@@ -15,7 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SQLDataReader {
-  public @Nullable  <T> T read(@Nullable Object obj, Class<T> type, TimestampUtils timestampUtils) throws SQLException {
+  public @Nullable  <T> T read(@Nullable Object obj, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
     if (obj == null) {
       return null;
     }
@@ -26,7 +28,7 @@ public class SQLDataReader {
       throw new SQLException(String.format("An accessible no-arg constructor is required for type [%s]", type), ex);
     }
 
-    data.readSQL(new PgSQLInput(parse(obj.toString(), '(', ')'), timestampUtils), data.getSQLTypeName());
+    data.readSQL(new PgSQLInput(parse(obj.toString(), '(', ')'), connection, timestampUtils), data.getSQLTypeName());
 
     return type.cast(data);
   }
