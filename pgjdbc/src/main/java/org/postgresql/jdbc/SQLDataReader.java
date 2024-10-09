@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SQLDataReader {
-  public <T> T read(Object obj, Class<T> type, TimestampUtils timestampUtils) throws SQLException {
+  public <T> T read(@Nullable Object obj, Class<T> type, TimestampUtils timestampUtils) throws SQLException {
     if (obj == null) {
       return null;
     }
