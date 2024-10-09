@@ -703,6 +703,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
+   *
    * <p>PostgreSQL doesn't have schemas, but when it does, we'll use the term "schema".</p>
    *
    * @return {@code "schema"}
@@ -913,6 +914,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
+   *
    * <p>Can statements remain open across commits? They may, but this driver cannot guarantee that. In
    * further reflection. we are talking a Statement object here, so the answer is yes, since the
    * Statement is only a vehicle to ExecSQL()</p>
@@ -926,6 +928,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
+   *
    * <p>Can statements remain open across rollbacks? They may, but this driver cannot guarantee that.
    * In further contemplation, we are talking a Statement object here, so the answer is yes, since
    * the Statement is only a vehicle to ExecSQL() in Connection</p>
@@ -1104,6 +1107,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * {@inheritDoc}
+   *
    * <p>We only support TRANSACTION_SERIALIZABLE and TRANSACTION_READ_COMMITTED before 8.0; from 8.0
    * READ_UNCOMMITTED and REPEATABLE_READ are accepted aliases for READ_COMMITTED.</p>
    */
@@ -1131,8 +1135,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * <p>Does a data definition statement within a transaction force the transaction to commit? It seems
-   * to mean something like:</p>
+   * Does a data definition statement within a transaction force the transaction to commit? It seems
+   * to mean something like:
    *
    * <pre>
    * CREATE TABLE T (A INT);

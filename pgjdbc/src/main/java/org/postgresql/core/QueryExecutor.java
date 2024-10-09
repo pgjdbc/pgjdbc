@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * <p>Abstracts the protocol-specific details of executing a query.</p>
+ * Abstracts the protocol-specific details of executing a query.
  *
  * <p>Every connection has a single QueryExecutor implementation associated with it. This object
  * provides:</p>
@@ -345,6 +345,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   /**
    * Remove given oid from the list of oids for binary receive encoding.
+   *
    * <p>Note: the binary receive for the oid can be re-activated later.</p>
    *
    * @param oid The oid to request with binary encoding.
@@ -353,6 +354,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   /**
    * Gets the oids that should be received using binary encoding.
+   *
    * <p>Note: this returns an unmodifiable set, and its contents might not reflect the current state.</p>
    *
    * @return The oids to request with binary encoding.
@@ -377,6 +379,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   /**
    * Remove given oid from the list of oids for binary send encoding.
+   *
    * <p>Note: the binary send for the oid can be re-activated later.</p>
    *
    * @param oid The oid to send with binary encoding.
@@ -385,6 +388,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   /**
    * Gets the oids that should be sent using binary encoding.
+   *
    * <p>Note: this returns an unmodifiable set, and its contents might not reflect the current state.</p>
    *
    * @return useBinaryForOids The oids to send with binary encoding.
@@ -463,7 +467,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   boolean isClosed();
 
   /**
-   * <p>Return the server version from the server_version GUC.</p>
+   * Return the server version from the server_version GUC.
    *
    * <p>Note that there's no requirement for this to be numeric or of the form x.y.z. PostgreSQL
    * development releases usually have the format x.ydevel e.g. 9.4devel; betas usually x.ybetan
@@ -493,7 +497,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   @Nullable SQLWarning getWarnings();
 
   /**
-   * <p>Get a machine-readable server version.</p>
+   * Get a machine-readable server version.
    *
    * <p>This returns the value of the server_version_num GUC. If no such GUC exists, it falls back on
    * attempting to parse the text server version for the major version. If there's no minor version

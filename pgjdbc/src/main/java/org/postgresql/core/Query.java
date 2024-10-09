@@ -11,8 +11,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.util.Map;
 
 /**
- * <p>Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
- * to execute the query efficiently.</p>
+ * Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
+ * to execute the query efficiently.
  *
  * <p>Query objects should be explicitly closed when no longer needed; if resources are allocated on
  * the server for this query, their cleanup is triggered by closing the Query.</p>
@@ -21,7 +21,7 @@ import java.util.Map;
  */
 public interface Query {
   /**
-   * <p>Create a ParameterList suitable for storing parameters associated with this Query.</p>
+   * Create a ParameterList suitable for storing parameters associated with this Query.
    *
    * <p>If this query has no parameters, a ParameterList will be returned, but it may be a shared
    * immutable object. If this query does have parameters, the returned ParameterList is a new list,
@@ -54,8 +54,8 @@ public interface Query {
   @Nullable SqlCommand getSqlCommand();
 
   /**
-   * <p>Close this query and free any server-side resources associated with it. The resources may not
-   * be immediately deallocated, but closing a Query may make the deallocation more prompt.</p>
+   * Close this query and free any server-side resources associated with it. The resources may not
+   * be immediately deallocated, but closing a Query may make the deallocation more prompt.
    *
    * <p>A closed Query should not be executed.</p>
    */

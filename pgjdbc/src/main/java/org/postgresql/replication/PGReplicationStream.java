@@ -24,8 +24,8 @@ public interface PGReplicationStream
     extends AutoCloseable {
 
   /**
-   * <p>Read next wal record from backend. It method can be block until new message will not get
-   * from server.</p>
+   * Read next wal record from backend. It method can be block until new message will not get
+   * from server.
    *
    * <p>A single WAL record is never split across two XLogData messages. When a WAL record crosses a
    * WAL page boundary, and is therefore already split using continuation records, it can be split
@@ -39,10 +39,10 @@ public interface PGReplicationStream
   @Nullable ByteBuffer read() throws SQLException;
 
   /**
-   * <p>Read next WAL record from backend. This method does not block and in contrast to {@link
+   * Read next WAL record from backend. This method does not block and in contrast to {@link
    * PGReplicationStream#read()}. If message from backend absent return null. It allow periodically
    * check message in stream and if they absent sleep some time, but it time should be less than
-   * {@link CommonOptions#getStatusInterval()} to avoid disconnect from the server.</p>
+   * {@link CommonOptions#getStatusInterval()} to avoid disconnect from the server.
    *
    * <p>A single WAL record is never split across two XLogData messages. When a WAL record crosses a
    * WAL page boundary, and is therefore already split using continuation records, it can be split
@@ -57,7 +57,7 @@ public interface PGReplicationStream
   @Nullable ByteBuffer readPending() throws SQLException;
 
   /**
-   * <p>Parameter updates by execute {@link PGReplicationStream#read()} method.</p>
+   * Parameter updates by execute {@link PGReplicationStream#read()} method.
    *
    * <p>It is safe to call this method in a thread different than the main thread. However, usually this
    * method is called in the main thread after a successful {@link PGReplicationStream#read()} or
@@ -69,8 +69,8 @@ public interface PGReplicationStream
   LogSequenceNumber getLastReceiveLSN();
 
   /**
-   * <p>Last flushed LSN sent in update message to backend. Parameter updates only via {@link
-   * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}</p>
+   * Last flushed LSN sent in update message to backend. Parameter updates only via {@link
+   * PGReplicationStream#setFlushedLSN(LogSequenceNumber)}
    *
    * <p>It is safe to call this method in a thread different than the main thread.</p>
    *
@@ -79,8 +79,8 @@ public interface PGReplicationStream
   LogSequenceNumber getLastFlushedLSN();
 
   /**
-   * <p>Last applied lsn sent in update message to backed. Parameter updates only via {@link
-   * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}</p>
+   * Last applied lsn sent in update message to backed. Parameter updates only via {@link
+   * PGReplicationStream#setAppliedLSN(LogSequenceNumber)}
    *
    * <p>It is safe to call this method in a thread different than the main thread.</p>
    *
@@ -89,8 +89,8 @@ public interface PGReplicationStream
   LogSequenceNumber getLastAppliedLSN();
 
   /**
-   * <p>Set flushed LSN. This parameter will be sent to backend on next update status iteration. Flushed
-   * LSN position help backend define which WAL can be recycled.</p>
+   * Set flushed LSN. This parameter will be sent to backend on next update status iteration. Flushed
+   * LSN position help backend define which WAL can be recycled.
    *
    * <p>It is safe to call this method in a thread different than the main thread. The updated value
    * will be sent to the backend in the next status update run.</p>
@@ -101,8 +101,8 @@ public interface PGReplicationStream
   void setFlushedLSN(LogSequenceNumber flushed);
 
   /**
-   * <p>Inform backend which LSN has been applied on standby.
-   * Feedback will send to backend on next update status iteration.</p>
+   * Inform backend which LSN has been applied on standby.
+   * Feedback will send to backend on next update status iteration.
    *
    * <p>It is safe to call this method in a thread different than the main thread. The updated value
    * will be sent to the backend in the next status update run.</p>
@@ -128,8 +128,8 @@ public interface PGReplicationStream
   boolean isClosed();
 
   /**
-   * <p>Stop replication changes from server and free resources. After that connection can be reuse
-   * to another queries. Also after close current stream they cannot be used anymore.</p>
+   * Stop replication changes from server and free resources. After that connection can be reuse
+   * to another queries. Also after close current stream they cannot be used anymore.
    *
    * <p><b>Note:</b> This method can spend much time for logical replication stream on postgresql
    * version 9.6 and lower, because postgresql have bug - during decode big transaction to logical

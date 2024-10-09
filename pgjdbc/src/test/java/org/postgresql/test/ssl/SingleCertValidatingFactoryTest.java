@@ -126,9 +126,9 @@ public class SingleCertValidatingFactoryTest {
   }
 
   /**
-   * <p>Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
+   * Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
    * certificate. This test uses a pre generated certificate that will *not* match the test
-   * PostgreSQL server (the certificate is for properssl.example.com).</p>
+   * PostgreSQL server (the certificate is for properssl.example.com).
    *
    * <p>This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
    * remote server's certificate against the pre shared certificate.</p>
@@ -215,8 +215,8 @@ public class SingleCertValidatingFactoryTest {
   }
 
   /**
-   * <p>Connect using SSL and attempt to validate the server's certificate against the proper pre
-   * shared certificate. The certificate is specified as an environment variable.</p>
+   * Connect using SSL and attempt to validate the server's certificate against the proper pre
+   * shared certificate. The certificate is specified as an environment variable.
    *
    * <p>Note: To execute this test successfully you need to set the value of the environment variable
    * DATASOURCE_SSL_CERT prior to running the test.</p>

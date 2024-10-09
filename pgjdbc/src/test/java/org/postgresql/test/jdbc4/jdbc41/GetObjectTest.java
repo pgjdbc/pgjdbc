@@ -749,7 +749,7 @@ class GetObjectTest {
   }
 
   /**
-   * <p>Test the behavior getObject for money columns.</p>
+   * Test the behavior getObject for money columns.
    *
    * <p>The test is ignored as it is locale-dependent.</p>
    */

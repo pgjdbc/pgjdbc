@@ -26,8 +26,8 @@ public interface ChainedCommonCreateSlotBuilder<T extends ChainedCommonCreateSlo
   T withSlotName(String slotName);
 
   /**
-   * <p>Temporary slots are not saved to disk and are automatically dropped on error or when
-   * the session has finished.</p>
+   * Temporary slots are not saved to disk and are automatically dropped on error or when
+   * the session has finished.
    *
    * <p>This feature is only supported by PostgreSQL versions &gt;= 10.</p>
    *

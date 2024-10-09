@@ -122,7 +122,7 @@ public interface PGConnection {
   void addDataType(String type, String className);
 
   /**
-   * <p>This allows client code to add a handler for one of org.postgresql's more unique data types.</p>
+   * This allows client code to add a handler for one of org.postgresql's more unique data types.
    *
    * <p><b>NOTE:</b> This is not part of JDBC, but an extension.</p>
    *
@@ -220,10 +220,11 @@ public interface PGConnection {
   String escapeLiteral(String literal) throws SQLException;
 
   /**
-   * <p>Returns the query mode for this connection.</p>
+   * Returns the query mode for this connection.
    *
    * <p>When running in simple query mode, certain features are not available: callable statements,
    * partial result set fetch, bytea type, etc.</p>
+   *
    * <p>The list of supported features is subject to change.</p>
    *
    * @return the preferred query mode
@@ -294,7 +295,7 @@ public interface PGConnection {
   }
 
   /**
-   * <p>Returns the current values of all parameters reported by the server.</p>
+   * Returns the current values of all parameters reported by the server.
    *
    * <p>PostgreSQL reports values for a subset of parameters (GUCs) to the client
    * at connect-time, then sends update messages whenever the values change

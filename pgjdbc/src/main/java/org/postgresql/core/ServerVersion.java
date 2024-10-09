@@ -58,8 +58,8 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number into a
-   * {@link Version}.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number into a
+   * {@link Version}.
    *
    * <p>If the specified version cannot be parsed, the {@link Version#getVersionNum()} will return 0.</p>
    *
@@ -95,7 +95,7 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number.
    *
    * <p>Returns 0 if the version could not be parsed.</p>
    *

@@ -251,9 +251,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
@@ -324,9 +324,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
@@ -379,9 +379,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>

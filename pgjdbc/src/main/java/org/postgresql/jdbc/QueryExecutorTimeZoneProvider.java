@@ -14,6 +14,7 @@ import java.util.TimeZone;
 /**
  * This class workarounds <a href="https://github.com/wildfly/jandex/issues/93">Exception when
  * indexing guava-30.0-jre</a>.
+ *
  * <p>It looks like {@code jandex} does not support {@code new Interface<..>} with type annotations.
  * </p>
  */

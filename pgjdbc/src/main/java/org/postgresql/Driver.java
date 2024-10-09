@@ -44,8 +44,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * <p>The Java SQL framework allows for multiple database drivers. Each driver should supply a class
- * that implements the Driver interface</p>
+ * The Java SQL framework allows for multiple database drivers. Each driver should supply a class
+ * that implements the Driver interface
  *
  * <p>The DriverManager will try to load as many drivers as it can find and then for any given
  * connection request, it will ask each driver in turn to try to connect to the target URL.</p>
@@ -192,10 +192,10 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * <p>Try to make a database connection to the given URL. The driver should return "null" if it
+   * Try to make a database connection to the given URL. The driver should return "null" if it
    * realizes it is the wrong kind of driver to connect to the given URL. This will be common, as
    * when the JDBC driverManager is asked to connect to a given URL, it passes the URL to each
-   * loaded driver in turn.</p>
+   * loaded driver in turn.
    *
    * <p>The driver should raise an SQLException if it is the right driver to connect to the given URL,
    * but has trouble connecting to the database.</p>
@@ -461,8 +461,8 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * <p>The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
-   * it should prompt a human for in order to get enough information to connect to a database.</p>
+   * The getPropertyInfo method is intended to allow a generic GUI tool to discover what properties
+   * it should prompt a human for in order to get enough information to connect to a database.
    *
    * <p>Note that depending on the values the human has supplied so far, additional values may become
    * necessary, so it may be necessary to iterate through several calls to getPropertyInfo</p>
@@ -512,9 +512,9 @@ public class Driver implements java.sql.Driver {
   }
 
   /**
-   * <p>Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
+   * Report whether the driver is a genuine JDBC compliant driver. A driver may only report "true"
    * here if it passes the JDBC compliance tests, otherwise it is required to return false. JDBC
-   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.</p>
+   * compliance requires full support for the JDBC API and full support for SQL 92 Entry Level.
    *
    * <p>For PostgreSQL, this is not yet possible, as we are not SQL92 compliant (yet).</p>
    */
