@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2004, PostgreSQL Global Development Group
+ * Copyright (c) 2024, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
 package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -74,7 +76,7 @@ public class PgSQLInput implements SQLInput {
     dateConv = (value) -> timestampUtils.toDate(null, value.getBytes());
   }
 
-  private <T> T getNextValue(SQLFunction<String, T> convert) throws SQLException {
+  private @Nullable <T> T getNextValue(SQLFunction<String, T> convert) throws SQLException {
     index++;
 
     String value = values.get(index);
@@ -89,7 +91,7 @@ public class PgSQLInput implements SQLInput {
   }
 
   @Override
-  public String readString() throws SQLException {
+  public @Nullable String readString() throws SQLException {
     return getNextValue(stringConv);
   }
 
@@ -136,27 +138,27 @@ public class PgSQLInput implements SQLInput {
   }
 
   @Override
-  public BigDecimal readBigDecimal() throws SQLException {
+  public @Nullable BigDecimal readBigDecimal() throws SQLException {
     return getNextValue(bigDecimalConv);
   }
 
   @Override
-  public byte[] readBytes() throws SQLException {
+  public @Nullable byte[] readBytes() throws SQLException {
     return getNextValue(bytesConv);
   }
 
   @Override
-  public Date readDate() throws SQLException {
+  public @Nullable Date readDate() throws SQLException {
     return getNextValue(dateConv);
   }
 
   @Override
-  public Time readTime() throws SQLException {
+  public @Nullable Time readTime() throws SQLException {
     return getNextValue(timeConv);
   }
 
   @Override
-  public Timestamp readTimestamp() throws SQLException {
+  public @Nullable Timestamp readTimestamp() throws SQLException {
     return getNextValue(timestampConv);
   }
 
@@ -177,12 +179,12 @@ public class PgSQLInput implements SQLInput {
   }
 
   @Override
-  public Object readObject() throws SQLException {
+  public @Nullable Object readObject() throws SQLException {
     return getNextValue(stringConv);
   }
 
   @Override
-  public <T> T readObject(Class<T> type) throws SQLException {
+  public @Nullable <T> T readObject(Class<T> type) throws SQLException {
     return getNextValue(getConverter(type));
   }
 
@@ -207,7 +209,7 @@ public class PgSQLInput implements SQLInput {
   }
 
   @Override
-  public URL readURL() throws SQLException {
+  public @Nullable URL readURL() throws SQLException {
     return getNextValue(urlConv);
   }
 

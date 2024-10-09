@@ -1,11 +1,13 @@
 /*
- * Copyright (c) 2004, PostgreSQL Global Development Group
+ * Copyright (c) 2024, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
 package org.postgresql.jdbc;
 
 import static java.lang.Character.isWhitespace;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLData;
 import java.sql.SQLException;
