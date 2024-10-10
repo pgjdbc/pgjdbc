@@ -11,6 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
+import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -701,6 +702,23 @@ public class ArrayTest extends BaseTest4 {
         Array jsonArray = rs.getArray(1);
         assertNotNull(jsonArray);
         assertEquals("jsonb", jsonArray.getBaseTypeName());
+      }
+    }
+  }
+
+  @Test
+  public void testJavaSqlArrayInArray() throws SQLException {
+    Array a1 = con.createArrayOf("point", new Object[] {new PGpoint(1, 1), new PGpoint(2, 2)});
+    Array a2 = con.createArrayOf("point", new Object[] {new PGpoint(3, 3), new PGpoint(4, 4)});
+    Array a = con.createArrayOf("point", new Object[]{ a1, a2 });
+    Object[][] arr = (Object[][]) a.getArray();
+
+    assertEquals(2, arr.length);
+    assertEquals(2, arr[0].length);
+    for (int i = 0, c = 1; i < arr.length; i++) {
+      for (int j = 0; j < arr[0].length; j++, c++) {
+        PGpoint p = (PGpoint) arr[i][j];
+        assertEquals(p, new PGpoint(c, c));
       }
     }
   }
