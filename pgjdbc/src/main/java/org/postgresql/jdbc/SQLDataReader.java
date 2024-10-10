@@ -50,13 +50,13 @@ public class SQLDataReader {
       if (ch == begin) {
         lastDelimIdx = charIdx;
       } else if (ch == end) {
-        addTextElement(builder, lastDelimIdx == charIdx - 1, values);
+        addTextElement(builder, lastDelimIdx, charIdx, values);
         break scan;
       } else if (ch == '"') {
         builder = new StringBuilder();
         charIdx = readString(value, charIdx, builder);
       } else if (ch == ',') {
-        addTextElement(builder, lastDelimIdx == charIdx - 1, values);
+        addTextElement(builder, lastDelimIdx, charIdx, values);
         builder = null;
         lastDelimIdx = charIdx;
       } else {
@@ -108,10 +108,10 @@ public class SQLDataReader {
     return index;
   }
 
-  private void addTextElement(StringBuilder builder, boolean empty, List<String> values) {
-    if (empty) {
+  private void addTextElement(@Nullable StringBuilder builder, int lastDelimIdx, int charIdx, List<String> values) {
+    if (lastDelimIdx == charIdx - 1) {
       values.add(null);
-    } else {
+    } else if (builder != null) {
       values.add(builder.toString());
     }
   }
