@@ -2684,7 +2684,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      */
     String sql;
     if (connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+      sql = "SELECT current_database()::information_schema.sql_identifier AS TABLE_CAT, "
+            + " n.nspname AS TABLE_SCHEM, "
             + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
             + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
             + "  CASE i.indisclustered "
@@ -2708,7 +2709,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
             + "WHERE true ";
 
-      if (schema != null && !schema.isEmpty()) {
+      if (catalog != null) {
+        sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+      }
+
+      if (schema != null) {
         sql += " AND n.nspname = " + escapeQuotes(schema);
       }
 
@@ -2754,13 +2759,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String from;
       String where;
 
-      select = "SELECT NULL AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", ";
+      select = "SELECT current_database()::information_schema.sql_identifier AS \"TABLE_CAT\", "
+              + " n.nspname AS \"TABLE_SCHEM\", ";
       from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, "
              + " pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
       where = " AND n.oid = ct.relnamespace ";
       from += ", pg_catalog.pg_index i ";
 
-      if (schema != null && !schema.isEmpty()) {
+      if (catalog != null) {
+        where += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+      }
+
+      if (schema != null) {
         where += " AND n.nspname = " + escapeQuotes(schema);
       }
 
