@@ -2324,7 +2324,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     String sql;
-    sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+    sql = "SELECT current_database()::information_schema.sql_identifier AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
           + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
           + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM "
@@ -2335,11 +2335,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
           + "WHERE true ";
 
-    if (schema != null && !schema.isEmpty()) {
+    if (catalog != null) {
+      sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+
+    if (schema != null) {
       sql += " AND n.nspname = " + escapeQuotes(schema);
     }
 
-    if (table != null && !table.isEmpty()) {
+    if (table != null) {
       sql += " AND ct.relname = " + escapeQuotes(table);
     }
 

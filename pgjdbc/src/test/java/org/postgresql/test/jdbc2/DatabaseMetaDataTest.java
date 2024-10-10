@@ -1471,7 +1471,7 @@ public class DatabaseMetaDataTest {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        ResultSet rs = dbmd.getPrimaryKeys(null, null, "measurement");
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
@@ -1499,7 +1499,7 @@ public class DatabaseMetaDataTest {
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
         rs.close();
-        rs = dbmd.getPrimaryKeys("", "", "measurement");
+        rs = dbmd.getPrimaryKeys(null, null, "measurement");
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
