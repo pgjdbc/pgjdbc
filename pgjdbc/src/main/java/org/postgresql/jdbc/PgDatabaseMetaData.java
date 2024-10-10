@@ -1705,7 +1705,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = "";
     }
 
-    sql += "SELECT current_database()::information_schema.sql_identifier AS table_cat, "
+    sql += "SELECT current_database()::information_schema.sql_identifier, "
         + " n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
         + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
@@ -1762,7 +1762,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = rs.getBytes("table_cat"); // Catalog (database) name
+      tuple[0] = rs.getBytes("current_database"); // Catalog (database) name
       tuple[1] = rs.getBytes("nspname"); // Schema name
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
