@@ -40,6 +40,9 @@ public class SQLDataTest {
   private static double DOUBLY = 65.9777777777777777777777777777777777;
   private static BigDecimal BIGD = new BigDecimal("78.94444445444");
   private static String BYTES = "some bytes";
+  private static String DATE = "2024-10-10";
+  private static String TIME = "14:12:35";
+  private static String TS = DATE + " " + TIME + ".0";
 
   private static String wrapQuotes(String text) {
     return "'" + text + "'";
@@ -60,7 +63,10 @@ public class SQLDataTest {
       "floaty numeric",
       "doubly double precision",
       "bigd numeric",
-      "bytes text"
+      "bytes text",
+      "datey date",
+      "timey time",
+      "ts timestamp"
     );
     String values = String.join(",",
       "42",
@@ -72,7 +78,10 @@ public class SQLDataTest {
       String.valueOf(FLOATY),
       String.valueOf(DOUBLY),
       BIGD.toString(),
-      wrapQuotes(BYTES)
+      wrapQuotes(BYTES),
+      wrapQuotes(DATE),
+      wrapQuotes(TIME),
+      wrapQuotes(TS)
     );
     TestUtil.createTable(con, "sqldatatest", columns);
 
@@ -94,6 +103,7 @@ public class SQLDataTest {
   public void readSQLData() throws Exception {
     Connection con = TestUtil.openDB();
     Statement stmt = con.createStatement();
+
     ResultSet rs = stmt.executeQuery("select sqldatatest from sqldatatest");
     assertNotNull(stmt);
 
@@ -110,6 +120,9 @@ public class SQLDataTest {
     assertEquals(DOUBLY, thing.doubly);
     assertEquals(BIGD, thing.bigD);
     assertArrayEquals(BYTES.getBytes(), thing.bytes);
+    assertEquals(DATE, thing.date.toString());
+    assertEquals(TIME, thing.time.toString());
+    assertEquals(TS, thing.timestamp.toString());
 
     rs.next();
     thing = rs.getObject(1, Thing.class);
@@ -123,6 +136,9 @@ public class SQLDataTest {
     assertEquals(0, thing.doubly);
     assertNull(thing.bigD);
     assertNull(thing.bytes);
+    assertNull(thing.date);
+    assertNull(thing.time);
+    assertNull(thing.timestamp);
 
     TestUtil.closeQuietly(stmt);
     TestUtil.closeDB(con);
@@ -160,6 +176,9 @@ public class SQLDataTest {
       doubly = stream.readDouble();
       bigD = stream.readBigDecimal();
       bytes = stream.readBytes();
+      date = stream.readDate();
+      time = stream.readTime();
+      timestamp = stream.readTimestamp();
     }
 
     @Override
