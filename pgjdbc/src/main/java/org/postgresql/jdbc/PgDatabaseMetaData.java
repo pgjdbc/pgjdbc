@@ -1184,7 +1184,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String procedureNamePattern)
       throws SQLException {
     String sql;
-    sql = "SELECT NULL AS \"PROCEDURE_CAT\", n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
+    sql = "SELECT current_database()::information_schema.sql_identifier AS \"PROCEDURE_CAT\", "
+          + " n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
           + "NULL, NULL, NULL, d.description AS \"REMARKS\", "
           + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
           + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
@@ -1197,10 +1198,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
       sql += " AND p.prokind='p'";
     }
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+    if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
-    if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
+    if (procedureNamePattern != null) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
@@ -1242,14 +1246,18 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    sql = "SELECT current_database()::information_schema.sql_identifier, "
+          + " n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
-    if (schemaPattern != null && !schemaPattern.isEmpty()) {
+    if (catalog != null) {
+      sql += " AND current_database()::information_schema.sql_identifier = " + escapeQuotes(catalog);
+    }
+    if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
-    if (procedureNamePattern != null && !procedureNamePattern.isEmpty()) {
+    if (procedureNamePattern != null) {
       sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
     }
     sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
@@ -1259,6 +1267,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
+      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] procedureName = rs.getBytes("proname");
       byte[] specificName =
@@ -1299,7 +1308,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       if ("b".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
           || ("p".equals(returnTypeType) && argModesArray == null)) {
         byte[] @Nullable [] tuple = new byte[columns][];
-        tuple[0] = null;
+        tuple[0] = catalogName;
         tuple[1] = schema;
         tuple[2] = procedureName;
         tuple[3] = connection.encodeString("returnValue");
@@ -1325,7 +1334,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // Add a row for each argument.
       for (int i = 0; i < numArgs; i++) {
         byte[] @Nullable [] tuple = new byte[columns][];
-        tuple[0] = null;
+        tuple[0] = catalogName;
         tuple[1] = schema;
         tuple[2] = procedureName;
 
@@ -1381,7 +1390,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[] @Nullable [] tuple = new byte[columns][];
-          tuple[0] = null;
+          tuple[0] = catalogName;
           tuple[1] = schema;
           tuple[2] = procedureName;
           tuple[3] = columnrs.getBytes("attname");

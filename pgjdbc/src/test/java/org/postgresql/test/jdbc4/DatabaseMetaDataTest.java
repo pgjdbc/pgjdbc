@@ -227,20 +227,20 @@ class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    try (ResultSet rs = dbmd.getProcedures("", "hasprocedures", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "hasprocedures", null)) {
       int count = assertProcedureRS(rs);
       assertEquals(1, count, "getProcedures() should be non-empty for the hasprocedures schema");
     }
 
-    try (ResultSet rs = dbmd.getProcedures("", "noprocedures", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "noprocedures", null)) {
       assertFalse(rs.next(), "getProcedures() should be empty for the hasprocedures schema");
     }
 
-    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "hasfunctions", null)) {
       assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
     }
 
-    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "nofunctions", null)) {
       assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
     }
   }
@@ -407,7 +407,7 @@ class DatabaseMetaDataTest {
   private List<CatalogObject> assertProcedureRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
-    assertThat(rs.getString("PROCEDURE_CAT"), nullValue());
+    assertThat(rs.getString("PROCEDURE_CAT"), is(System.getProperty("database")));
     assertThat(rs.getString("PROCEDURE_SCHEM"), notNullValue());
     assertThat(rs.getString("PROCEDURE_NAME"), notNullValue());
     assertThat(rs.getShort("PROCEDURE_TYPE") >= 0, is(true));
