@@ -9,6 +9,7 @@ import static java.lang.Character.isWhitespace;
 
 import org.postgresql.core.BaseConnection;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLData;
@@ -33,12 +34,12 @@ public class SQLDataReader {
     return type.cast(data);
   }
 
-  public List<String> parseArray(String value) {
+  public List<@Nullable String> parseArray(String value) {
     return parse(value, '{', '}');
   }
 
-  private List<String> parse(String value, char begin, char end) {
-    List<String> values = new ArrayList<>();
+  private List<@Nullable String> parse(String value, char begin, char end) {
+    List<@Nullable String> values = new ArrayList<>();
 
     int len = value.length();
     StringBuilder builder = null;
@@ -108,7 +109,7 @@ public class SQLDataReader {
     return index;
   }
 
-  private void addTextElement(@Nullable StringBuilder builder, int lastDelimIdx, int charIdx, List<String> values) {
+  private void addTextElement(@Nullable StringBuilder builder, int lastDelimIdx, int charIdx, List<@Nullable String> values) {
     if (lastDelimIdx == charIdx - 1) {
       values.add(null);
     } else if (builder != null) {

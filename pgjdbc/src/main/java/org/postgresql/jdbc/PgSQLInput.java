@@ -10,7 +10,9 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+// import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -64,15 +66,14 @@ public class PgSQLInput implements SQLInput {
   private final SQLFunction<String, Time> timeConv;
   private final SQLFunction<String, Date> dateConv;
 
-  private final List<String> values;
-  private int index;
-  private Boolean wasNull;
+  private int index = -1;
+  private @Nullable Boolean wasNull = null;
+  private final List<@Nullable String> values;
   private BaseConnection connection;
   private TimestampUtils timestampUtils;
 
-  public PgSQLInput(List<String> values, BaseConnection connection, TimestampUtils timestampUtils) {
+  public PgSQLInput(List<@Nullable String> values, BaseConnection connection, TimestampUtils timestampUtils) {
     this.values = values;
-    this.index = -1;
     this.connection = connection;
     this.timestampUtils = timestampUtils;
 
@@ -95,9 +96,11 @@ public class PgSQLInput implements SQLInput {
     return result;
   }
 
+  @SuppressWarnings("override.return")
+  // @Pure
   @Override
   public @Nullable String readString() throws SQLException {
-    return getNextValue(stringConv);
+      return getNextValue(stringConv);
   }
 
   @Override
@@ -142,26 +145,31 @@ public class PgSQLInput implements SQLInput {
     return result == null ? 0 : result;
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable BigDecimal readBigDecimal() throws SQLException {
     return getNextValue(bigDecimalConv);
   }
 
+  @SuppressWarnings({"override.return", "nullness.on.primitive", "return"})
   @Override
   public @Nullable byte[] readBytes() throws SQLException {
     return getNextValue(bytesConv);
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable Date readDate() throws SQLException {
     return getNextValue(dateConv);
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable Time readTime() throws SQLException {
     return getNextValue(timeConv);
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable Timestamp readTimestamp() throws SQLException {
     return getNextValue(timestampConv);
@@ -169,7 +177,8 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public Reader readCharacterStream() throws SQLException {
-    return new StringReader(readString());
+    @Nullable String data = readString();
+    return new StringReader(data == null ? "" : data);
   }
 
   @Override
@@ -183,11 +192,13 @@ public class PgSQLInput implements SQLInput {
     return new ByteArrayInputStream(readBytes());
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable Object readObject() throws SQLException {
     return getNextValue(stringConv);
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable <T> T readObject(Class<T> type) throws SQLException {
     return getNextValue(getConverter(type));
@@ -213,6 +224,7 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readArray()");
   }
 
+  @SuppressWarnings("override.return")
   @Override
   public @Nullable URL readURL() throws SQLException {
     return getNextValue(urlConv);
