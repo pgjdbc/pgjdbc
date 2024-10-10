@@ -2334,7 +2334,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   @Override
   public void close() throws SQLException {
     try {
+      if ( this.cursor != null ) {
+        String cursorName = cursor.toString();
+        if (cursorName != null && cursorName.startsWith("X_")) {
+          connection.getQueryExecutor().sendClosePortal(cursorName);
+        }
+      }
       closeInternally();
+    } catch (IOException ex) {
+      throw new SQLException(ex);
     } finally {
       ((PgStatement) statement).checkCompletion();
     }
