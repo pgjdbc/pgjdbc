@@ -21,7 +21,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -63,34 +62,34 @@ public class SQLDataTest {
     Statement stmt = con.createStatement();
 
     String thingColumns = String.join(",",
-      "id int",
-      "idl bigint",
-      "ids smallint",
-      "name text",
-      "valid boolean",
-      "bytey numeric",
-      "floaty numeric",
-      "doubly double precision",
-      "bigd numeric",
-      "bytes text",
-      "datey date",
-      "timey time",
-      "ts timestamp"
+        "id int",
+        "idl bigint",
+        "ids smallint",
+        "name text",
+        "valid boolean",
+        "bytey numeric",
+        "floaty numeric",
+        "doubly double precision",
+        "bigd numeric",
+        "bytes text",
+        "datey date",
+        "timey time",
+        "ts timestamp"
     );
     String thingValues = String.join(",",
-      "42",
-      "43",
-      "44",
-      wrapQuotes(NAME),
-      "'t'",
-      "1",
-      String.valueOf(FLOATY),
-      String.valueOf(DOUBLY),
-      BIGD.toString(),
-      wrapQuotes(BYTES),
-      wrapQuotes(DATE),
-      wrapQuotes(TIME),
-      wrapQuotes(TS)
+        "42",
+        "43",
+        "44",
+        wrapQuotes(NAME),
+        "'t'",
+        "1",
+        String.valueOf(FLOATY),
+        String.valueOf(DOUBLY),
+        BIGD.toString(),
+        wrapQuotes(BYTES),
+        wrapQuotes(DATE),
+        wrapQuotes(TIME),
+        wrapQuotes(TS)
     );
     TestUtil.createTable(con, TABLE_THING, thingColumns);
 
@@ -162,9 +161,7 @@ public class SQLDataTest {
   @Test
   public void readThings() throws Exception {
     ResultSet rs = stmt.executeQuery(String.format("select %s from %s", TABLE_THING, TABLE_THING));
-    assertNotNull(stmt);
 
-    Thing thing;
     assertTrue(rs.next());
     checkThing(rs.getObject(1, Thing.class));
 
@@ -176,14 +173,33 @@ public class SQLDataTest {
   public void readRecursiveThing() throws Exception {
     String sql = String.format("select (%s.id, %s)::%s from %s inner join %s on (thingid = %s.id)",
                                TABLE_TEST, TABLE_THING, UDT_TEST, TABLE_TEST, TABLE_THING, TABLE_THING);
-    System.out.println(sql);
+    // System.out.println(sql);
     ResultSet rs = stmt.executeQuery(sql);
-    assertNotNull(stmt);
 
     assertTrue(rs.next());
     TestObj test = rs.getObject(1, TestObj.class);
     assertEquals(1, test.id);
     checkThing(test.thing);
+  }
+
+  @Test
+  public void readArray() throws Exception {
+    String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
+    System.out.println(sql);
+    ResultSet rs = stmt.executeQuery(sql);
+
+    assertTrue(rs.next());
+    Thing[] things = rs.getObject(1, Thing[].class);
+    assertNotNull(things);
+    assertEquals(2, things.length);
+
+    for (Thing thing : things) {
+      if (thing.id == 0) {
+        checkNullThing(thing);
+      } else {
+        checkThing(thing);
+      }
+    }
   }
 
   public static class Thing implements SQLData {
@@ -228,7 +244,6 @@ public class SQLDataTest {
       // not implemented
     }
   }
-
 
   public static class TestObj implements SQLData {
     public int id;
