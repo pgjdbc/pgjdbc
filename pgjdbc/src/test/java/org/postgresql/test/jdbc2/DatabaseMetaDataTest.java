@@ -1651,7 +1651,7 @@ public class DatabaseMetaDataTest {
     assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("returnValue", rs.getString(4));
@@ -1661,7 +1661,7 @@ public class DatabaseMetaDataTest {
     assertEquals(0, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$1", rs.getString(4));
@@ -1671,7 +1671,7 @@ public class DatabaseMetaDataTest {
     assertEquals(1, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$2", rs.getString(4));

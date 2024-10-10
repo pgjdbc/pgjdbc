@@ -146,19 +146,19 @@ class DatabaseMetaDataTest {
   void getFunctionsInSchemaForFunctions() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "")) {
+    try (ResultSet rs = dbmd.getFunctions(null, "hasfunctions", null)) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
       assertEquals(1, list.size(), "There should be one function in the hasfunctions schema");
       assertListContains("getFunctions('', 'hasfunctions', '') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
-    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "addfunction")) {
+    try (ResultSet rs = dbmd.getFunctions(null, "hasfunctions", "addfunction")) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
       assertEquals(1, list.size(), "There should be one function in the hasfunctions schema with name addfunction");
       assertListContains("getFunctions('', 'hasfunctions', 'addfunction') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
-    try (ResultSet rs = dbmd.getFunctions("", "nofunctions", "")) {
+    try (ResultSet rs = dbmd.getFunctions(null, "nofunctions", null)) {
       boolean hasFunctions = rs.next();
       assertFalse(hasFunctions, "There should be no functions in the nofunctions schema");
     }
@@ -246,44 +246,57 @@ class DatabaseMetaDataTest {
   }
 
   @Test
-  void getFunctionsWithBlankPatterns() throws SQLException {
+  void getFunctionsWithEmptyPatterns() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    try (ResultSet rs = dbmd.getFunctions("", "", "")) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getFunctions("", null, null)) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getFunctions(null, "", null)) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getFunctions(null, null, "")) {
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  void getFunctionsWithNullPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();
 
     final int totalCount;
-    try (ResultSet rs = dbmd.getFunctions("", "", "")) {
+    try (ResultSet rs = dbmd.getFunctions(null, null, null)) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
       totalCount = list.size(); // Rest of this test will validate against this value
       assertThat(totalCount > minFuncCount, is(true));
       assertListContains("getFunctions('', '', '') must contain addfunction", list, "hasfunctions", "addfunction");
     }
 
-    // Should be same as blank pattern
-    try (ResultSet rs = dbmd.getFunctions(null, null, null)) {
-      int count = assertGetFunctionRS(rs);
-      assertThat(count, is(totalCount));
-    }
-
-    // Catalog parameter has no affect on our getFunctions filtering
-    try (ResultSet rs = dbmd.getFunctions("ANYTHING_WILL_WORK", null, null)) {
-      int count = assertGetFunctionRS(rs);
-      assertThat(count, is(totalCount));
+    // Catalog parameter has effect on our getFunctions filtering
+    try (ResultSet rs = dbmd.getFunctions(UUID.randomUUID().toString(), null, null)) {
+      assertFalse(rs.next());
     }
 
     // Filter by schema
-    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", null)) {
+    try (ResultSet rs = dbmd.getFunctions(null, "pg_catalog", null)) {
       int count = assertGetFunctionRS(rs);
       assertThat(count > minFuncCount, is(true));
     }
 
     // Filter by schema and function name
-    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", "abs")) {
+    try (ResultSet rs = dbmd.getFunctions(null, "pg_catalog", "abs")) {
       int count = assertGetFunctionRS(rs);
       assertThat(count >= 1, is(true));
     }
 
     // Filter by function name only
-    try (ResultSet rs = dbmd.getFunctions("", "", "abs")) {
+    try (ResultSet rs = dbmd.getFunctions(null, null, "abs")) {
       int count = assertGetFunctionRS(rs);
       assertThat(count >= 1, is(true));
     }
@@ -444,7 +457,7 @@ class DatabaseMetaDataTest {
       Statement stmt = conn.createStatement();
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
+      ResultSet rs = dbmd.getFunctions(null, null, "getfunc_f1");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
       assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionNoTable));
@@ -454,7 +467,7 @@ class DatabaseMetaDataTest {
 
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-      rs = dbmd.getFunctions("", "", "getfunc_f3");
+      rs = dbmd.getFunctions(null, null, "getfunc_f3");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
       assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionNoTable));
@@ -466,7 +479,7 @@ class DatabaseMetaDataTest {
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
 
-      rs = dbmd.getFunctions("", "", "getfunc_f5");
+      rs = dbmd.getFunctions(null, null, "getfunc_f5");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f5"));
       assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionReturnsTable));
@@ -478,7 +491,7 @@ class DatabaseMetaDataTest {
       Statement stmt = conn.createStatement();
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
+      ResultSet rs = dbmd.getFunctions(null, null, "getfunc_f1");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f1"));
       assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionResultUnknown));
@@ -488,7 +501,7 @@ class DatabaseMetaDataTest {
 
       stmt.execute(
               "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-      rs = dbmd.getFunctions("", "", "getfunc_f3");
+      rs = dbmd.getFunctions(null, null, "getfunc_f3");
       assertThat(rs.next(), is(true));
       assertThat(rs.getString("FUNCTION_NAME"), is("getfunc_f3"));
       assertThat(rs.getShort("FUNCTION_TYPE"), is((short) DatabaseMetaData.functionResultUnknown));
