@@ -10,9 +10,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
-// import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
@@ -100,7 +98,7 @@ public class PgSQLInput implements SQLInput {
   // @Pure
   @Override
   public @Nullable String readString() throws SQLException {
-      return getNextValue(stringConv);
+    return getNextValue(stringConv);
   }
 
   @Override

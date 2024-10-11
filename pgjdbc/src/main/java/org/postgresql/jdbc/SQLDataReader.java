@@ -9,7 +9,6 @@ import static java.lang.Character.isWhitespace;
 
 import org.postgresql.core.BaseConnection;
 
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLData;
