@@ -170,15 +170,15 @@ class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     // Search for functions in schema "hasprocedures"
-    try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", null)) {
+    try (ResultSet rs = dbmd.getFunctions(null, "hasprocedures", null)) {
       assertFalse(rs.next(), "The hasprocedures schema not return procedures from getFunctions");
     }
     // Search for functions in schema "noprocedures" (which should never expect records)
-    try (ResultSet rs = dbmd.getFunctions("", "noprocedures", null)) {
+    try (ResultSet rs = dbmd.getFunctions(null, "noprocedures", null)) {
       assertFalse(rs.next(), "The noprocedures schema should not have functions");
     }
     // Search for functions by procedure name "addprocedure"
-    try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", "addprocedure")) {
+    try (ResultSet rs = dbmd.getFunctions(null, "hasprocedures", "addprocedure")) {
       assertFalse(rs.next(), "Should not return procedures from getFunctions by schema + name");
     }
   }
@@ -189,7 +189,7 @@ class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
-    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "hasfunctions", null)) {
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
         assertFalse(rs.next(), "PostgreSQL11+ should not return functions from getProcedures");
       } else {
@@ -199,12 +199,12 @@ class DatabaseMetaDataTest {
     }
 
     // Search for procedures in schema "nofunctions" (which should never expect records)
-    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
+    try (ResultSet rs = dbmd.getProcedures(null, "nofunctions", null)) {
       assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions");
     }
 
     // Search for procedures by function name "addfunction" within schema "hasfunctions" (which should expect a record for PostgreSQL < 11)
-    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", "addfunction")) {
+    try (ResultSet rs = dbmd.getProcedures(null, "hasfunctions", "addfunction")) {
       if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
         assertFalse(rs.next(), "PostgreSQL11+ should not return functions from getProcedures");
       } else {
@@ -214,7 +214,7 @@ class DatabaseMetaDataTest {
     }
 
     // Search for procedures by function name "addfunction" within schema "nofunctions"  (which should never expect records)
-    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", "addfunction")) {
+    try (ResultSet rs = dbmd.getProcedures(null, "nofunctions", "addfunction")) {
       assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions + addfunction");
     }
   }
