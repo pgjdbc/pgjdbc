@@ -293,7 +293,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
+    ResultSet rs = dbmd.getCrossReference(null, null, "vv", null, null, "ww");
     String[] expectedPkColumnNames = new String[]{"a", "b"};
     String[] expectedFkColumnNames = new String[]{"m", "n"};
     int numRows = 0;
@@ -340,13 +340,13 @@ public class DatabaseMetaDataTest {
         "id int references pkt on update set null on delete set default");
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt1");
     assertTrue(rs.next());
     assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
     rs.close();
 
-    rs = dbmd.getImportedKeys(null, "", "fkt2");
+    rs = dbmd.getImportedKeys(null, null, "fkt2");
     assertTrue(rs.next());
     assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
     assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
@@ -368,7 +368,7 @@ public class DatabaseMetaDataTest {
         "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
 
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
     int j = 0;
     for (; rs.next(); j++) {
       assertEquals("pkt", rs.getString("PKTABLE_NAME"));
@@ -393,7 +393,7 @@ public class DatabaseMetaDataTest {
         "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
 
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
     int j = 0;
     for (; rs.next(); j++) {
       assertEquals("pkt", rs.getString("PKTABLE_NAME"));
@@ -435,7 +435,7 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "person");
 
     final List<String> fkNames = new ArrayList<>();
 
@@ -493,7 +493,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "users");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "users");
     int j = 0;
     for (; rs.next(); j++) {
 
@@ -519,7 +519,7 @@ public class DatabaseMetaDataTest {
 
     assertEquals(2, j);
 
-    rs = dbmd.getExportedKeys(null, "", "people");
+    rs = dbmd.getExportedKeys(null, null, "people");
 
     // this is hacky, but it will serve the purpose
     assertTrue(rs.next());
@@ -1201,7 +1201,7 @@ public class DatabaseMetaDataTest {
       assertEquals("jdbc", schema, "schema name ");
 
       // now test to see if the fully qualified stuff works as planned
-      rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
+      rs = dbmd.getUDTs(System.getProperty("database"), "public", "catalog.jdbc.testint8", null);
       assertTrue(rs.next());
       cat = rs.getString("type_cat");
       schema = rs.getString("type_schem");
