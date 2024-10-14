@@ -57,6 +57,11 @@ public enum ServerVersion implements Version {
     return version;
   }
 
+  @Override
+  public int getMajorVersionNumber() {
+    return version / 10000;
+  }
+
   /**
    * Attempt to parse the server version string into an XXYYZZ form version number into a
    * {@link Version}.
@@ -72,6 +77,11 @@ public enum ServerVersion implements Version {
       @Override
       public int getVersionNum() {
         return versionNum;
+      }
+
+      @Override
+      public int getMajorVersionNumber() {
+        return versionNum / 10000;
       }
 
       @Override
