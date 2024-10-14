@@ -1477,7 +1477,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      */
     String privileges = " 'SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER')";
 
-    if ( connection.getServerMajorVersion() < ServerVersion.v18.getVersionNum()) {
+    if ( connection.getServerMajorVersion() < ServerVersion.v18.getMajorVersionNumber()) {
       privileges = " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
     }
 
