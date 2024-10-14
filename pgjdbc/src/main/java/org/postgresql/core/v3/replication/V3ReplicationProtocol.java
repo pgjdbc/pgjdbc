@@ -65,6 +65,7 @@ public class V3ReplicationProtocol implements ReplicationProtocol {
         castNonNull(copyDual),
         options.getStartLSNPosition(),
         options.getStatusInterval(),
+        options.getAutomaticFlush(),
         replicationType
     );
   }
