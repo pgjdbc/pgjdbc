@@ -338,7 +338,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);
         if (!candidateHost.targetServerType.allowConnectingTo(hostStatus)) {
-          // Log target server type did not match
           hostChooser.registerFailure(hostSpec.getHost(), null);
           queryExecutor.close();
           continue;

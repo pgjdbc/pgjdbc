@@ -76,9 +76,10 @@ public interface HostChooser extends Iterable<CandidateHost> {
    */
   IsValidResponse isValid(String host);
 
-  boolean isInbuilt();
   /**
-   * APIs related to metrics can be exposed (not finalised)
+   * For future use. The driver may want to do certain things based on whether the
+   * the host chooser object is an inbuilt one or an externally provided one.
+   * @return
    */
-
+  boolean isInbuilt();
 }
