@@ -45,12 +45,12 @@ class SimpleQuery implements Query {
   }
 
   @Override
-  public ParameterList createParameterList() {
+  public ParameterList createParameterList(boolean extendedQuery) {
     if (nativeQuery.bindPositions.length == 0) {
       return NO_PARAMETERS;
     }
 
-    return new SimpleParameterList(getBindCount(), transferModeRegistry);
+    return new SimpleParameterList(getBindCount(), transferModeRegistry, extendedQuery);
   }
 
   @Override
@@ -379,5 +379,5 @@ class SimpleQuery implements Query {
 
   private @Nullable Integer cachedMaxResultRowSize;
 
-  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null);
+  static final SimpleParameterList NO_PARAMETERS = new SimpleParameterList(0, null, true);
 }
