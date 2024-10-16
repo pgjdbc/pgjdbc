@@ -5,10 +5,12 @@
 
 package org.postgresql.core;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 public enum JavaVersion {
   // Note: order is important,
-  v1_8,
-  other;
+  v1_8(2),
+  other(1);
 
   private static final JavaVersion RUNTIME_VERSION = from(System.getProperty("java.version"));
 
@@ -33,5 +35,21 @@ public enum JavaVersion {
       return v1_8;
     }
     return other;
+  }
+
+  private final int sizeMultiple;
+
+  JavaVersion(int sizeMultiple) {
+    this.sizeMultiple = sizeMultiple;
+  }
+
+  /**
+   * Provides a version specific estimate of memory consumed by <i>string</i>.
+   *
+   * @param string The {@code String} instance to estimate memory consumption for.
+   * @return Approximate memory used by <i>string</i>.
+   */
+  public final int size(@Nullable String string) {
+    return string != null ? string.length() * sizeMultiple : 0;
   }
 }
