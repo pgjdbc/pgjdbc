@@ -2349,6 +2349,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
     rows = null;
+    thisRow = null;
+    rowBuffer = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
     if (cursor != null) {
@@ -2443,8 +2445,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
-   * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
-   * object as a <code>boolean</code> in the Java programming language.</p>
+   * Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
+   * object as a <code>boolean</code> in the Java programming language.
    *
    * <p>If the designated column has a Character datatype and is one of the following values: "1",
    * "true", "t", "yes", "y" or "on", a value of <code>true</code> is returned. If the designated
@@ -3155,7 +3157,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
-   * <p>This is used to fix get*() methods on Money fields. It should only be used by those methods!</p>
+   * This is used to fix get*() methods on Money fields. It should only be used by those methods!
    *
    * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
    *
@@ -3537,7 +3539,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
 
   /**
-   * <p>Converts any numeric binary field to long value.</p>
+   * Converts any numeric binary field to long value.
    *
    * <p>This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
    * following java types that use Binary encoding. (fields that use text encoding use a different

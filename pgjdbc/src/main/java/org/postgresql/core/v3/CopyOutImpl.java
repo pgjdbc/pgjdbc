@@ -12,7 +12,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.sql.SQLException;
 
 /**
- * <p>Anticipated flow of a COPY TO STDOUT operation:</p>
+ * Anticipated flow of a COPY TO STDOUT operation:
  *
  * <p>CopyManager.copyOut() -&gt;QueryExecutor.startCopy() - sends given query to server
  * -&gt;processCopyResults(): - receives CopyOutResponse from Server - creates new CopyOutImpl

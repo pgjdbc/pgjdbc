@@ -536,8 +536,8 @@ class StatementTest {
   }
 
   /**
-   * <p>Demonstrates a safe approach to concurrently reading the latest
-   * warnings while periodically clearing them.</p>
+   * Demonstrates a safe approach to concurrently reading the latest
+   * warnings while periodically clearing them.
    *
    * <p>One drawback of this approach is that it requires the reader to make it to the end of the
    * warning chain before clearing it, so long as your warning processing step is not very slow,

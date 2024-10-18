@@ -31,7 +31,7 @@ public abstract class ConnectionFactory {
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactory.class.getName());
 
   /**
-   * <p>Establishes and initializes a new connection.</p>
+   * Establishes and initializes a new connection.
    *
    * <p>If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
    * all protocols are tried in order, falling back to older protocols as necessary.</p>

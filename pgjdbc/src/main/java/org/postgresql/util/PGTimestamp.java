@@ -38,9 +38,9 @@ public class PGTimestamp extends Timestamp {
   }
 
   /**
-   * <p>Constructs a <code>PGTimestamp</code> with the given time zone. The integral seconds are stored
+   * Constructs a <code>PGTimestamp</code> with the given time zone. The integral seconds are stored
    * in the underlying date value; the fractional seconds are stored in the <code>nanos</code> field
-   * of the <code>Timestamp</code> object.</p>
+   * of the <code>Timestamp</code> object.
    *
    * <p>The calendar object is optional. If absent, the driver will treat the timestamp as
    * <code>timestamp without time zone</code>. When present, the driver will treat the timestamp as

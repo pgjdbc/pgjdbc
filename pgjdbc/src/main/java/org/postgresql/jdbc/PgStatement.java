@@ -632,7 +632,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * <p>Either initializes new warning wrapper, or adds warning onto the chain.</p>
+   * Either initializes new warning wrapper, or adds warning onto the chain.
    *
    * <p>Although warnings are expected to be added sequentially, the warnings chain may be cleared
    * concurrently at any time via {@link #clearWarnings()}, therefore it is possible that a warning
@@ -675,7 +675,8 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * <p>Clears the warning chain.</p>
+   * Clears the warning chain.
+   *
    * <p>Note that while it is safe to clear warnings while the query is executing, warnings that are
    * added between calls to {@link #getWarnings()} and #clearWarnings() may be missed.
    * Therefore you should hold a reference to the tail of the previous warning chain

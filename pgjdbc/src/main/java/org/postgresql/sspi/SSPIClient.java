@@ -31,8 +31,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
- * talking to a Windows server.</p>
+ * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
+ * talking to a Windows server.
  *
  * <p>SSPI is not supported on a non-Windows client.</p>
  *
@@ -70,7 +70,7 @@ public class SSPIClient implements ISSPIClient {
   }
 
   /**
-   * <p>Instantiate an SSPIClient for authentication of a connection.</p>
+   * Instantiate an SSPIClient for authentication of a connection.
    *
    * <p>SSPIClient is not re-usable across connections.</p>
    *

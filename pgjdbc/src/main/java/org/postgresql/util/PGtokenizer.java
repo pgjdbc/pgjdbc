@@ -41,7 +41,7 @@ public class PGtokenizer {
   protected List<String> tokens = new ArrayList<>();
 
   /**
-   * <p>Create a tokeniser.</p>
+   * Create a tokeniser.
    *
    * <p>We could have used StringTokenizer to do this, however, we needed to handle nesting of '(' ')'
    * '[' ']' '&lt;' and '&gt;' as these are used by the geometric data types.</p>
@@ -145,7 +145,7 @@ public class PGtokenizer {
   }
 
   /**
-   * <p>This returns a new tokenizer based on one of our tokens.</p>
+   * This returns a new tokenizer based on one of our tokens.
    *
    * <p>The geometric datatypes use this to process nested tokens (usually PGpoint).</p>
    *

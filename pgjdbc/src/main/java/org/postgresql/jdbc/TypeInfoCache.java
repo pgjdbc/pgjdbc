@@ -114,6 +114,7 @@ public class TypeInfoCache implements TypeInfo {
   /**
    * PG maps several alias to real type names. When we do queries against pg_catalog, we must use
    * the real type, not an alias, so use this mapping.
+   *
    * <p>
    * Additional values used at runtime (including case variants) will be added to the map.
    * </p>

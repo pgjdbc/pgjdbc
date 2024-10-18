@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.logging.Level;
 
 /**
- * <p>This class implements the Fastpath api.</p>
+ * This class implements the Fastpath api.
  *
  * <p>This is a means of executing functions embedded in the backend from within a java application.</p>
  *
@@ -131,7 +131,7 @@ public class Fastpath {
   }
 
   /**
-   * <p>Send a function call to the PostgreSQL backend by name.</p>
+   * Send a function call to the PostgreSQL backend by name.
    *
    * <p>Note: the mapping for the procedure name to function id needs to exist, usually to an earlier
    * call to addfunction().</p>
@@ -232,7 +232,7 @@ public class Fastpath {
   }
 
   /**
-   * <p>This adds a function to our lookup table.</p>
+   * This adds a function to our lookup table.
    *
    * <p>User code should use the addFunctions method, which is based upon a query, rather than hard
    * coding the oid. The oid for a function is not guaranteed to remain static, even on different
@@ -246,8 +246,8 @@ public class Fastpath {
   }
 
   /**
-   * <p>This takes a ResultSet containing two columns. Column 1 contains the function name, Column 2
-   * the oid.</p>
+   * This takes a ResultSet containing two columns. Column 1 contains the function name, Column 2
+   * the oid.
    *
    * <p>It reads the entire ResultSet, loading the values into the function table.</p>
    *
@@ -280,7 +280,7 @@ public class Fastpath {
   }
 
   /**
-   * <p>This returns the function id associated by its name.</p>
+   * This returns the function id associated by its name.
    *
    * <p>If addFunction() or addFunctions() have not been called for this name, then an SQLException is
    * thrown.</p>

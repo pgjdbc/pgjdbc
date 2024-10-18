@@ -55,7 +55,7 @@ public interface PGStatement {
   boolean isUseServerPrepare();
 
   /**
-   * <p>Sets the reuse threshold for using server-prepared statements.</p>
+   * Sets the reuse threshold for using server-prepared statements.
    *
    * <p>If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
    * PreparedStatement will use server-side prepare.</p>

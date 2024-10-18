@@ -33,6 +33,7 @@ import java.util.logging.Logger;
 
 /**
  * LazyCleaner is a utility class that allows to register objects for deferred cleanup.
+ *
  * <p>Note: this is a driver-internal class</p>
  */
 public class LazyCleaner {
@@ -60,6 +61,7 @@ public class LazyCleaner {
 
   /**
    * Returns a default cleaner instance.
+   *
    * <p>Note: this is driver-internal API.</p>
    * @return the instance of LazyCleaner
    */

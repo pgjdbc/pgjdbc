@@ -74,8 +74,8 @@ class SimpleQuery implements Query {
   }
 
   /**
-   * <p>Return maximum size in bytes that each result row from this query may return. Mainly used for
-   * batches that return results.</p>
+   * Return maximum size in bytes that each result row from this query may return. Mainly used for
+   * batches that return results.
    *
    * <p>Results are cached until/unless the query is re-described.</p>
    *
