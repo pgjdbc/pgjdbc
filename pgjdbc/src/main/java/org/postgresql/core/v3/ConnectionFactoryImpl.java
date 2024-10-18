@@ -20,6 +20,7 @@ import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.gss.MakeGSS;
 import org.postgresql.hostchooser.CandidateHost;
+import org.postgresql.hostchooser.CustomHostChooserManager;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
 import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.hostchooser.HostChooserFactory;
@@ -220,7 +221,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   @Override
-  public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException {
+  public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info, String url) throws SQLException {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
@@ -236,8 +237,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
-    HostChooser hostChooser =
-        HostChooserFactory.createHostChooser(hostSpecs, targetServerType, info);
+    String customImplClass = info.getProperty(PGProperty.HOST_CHOOSER_IMPL.getName());
+    CustomHostChooserManager.HostChooserUrlProperty key = null;
+    if (customImplClass != null) {
+      key = new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
+    }
+    HostChooser hostChooser;
+    hostChooser = HostChooserFactory.createHostChooser(key, hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
@@ -320,7 +326,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // CheckerFramework can't infer newStream is non-nullable
         castNonNull(newStream);
         // Do final startup.
-        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info);
+        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, hostChooser);
 
         // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;
@@ -330,6 +336,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         GlobalHostStatusTracker.reportHostStatus(hostSpec, hostStatus);
         knownStates.put(hostSpec, hostStatus);
         if (!candidateHost.targetServerType.allowConnectingTo(hostStatus)) {
+          hostChooser.registerFailure(hostSpec.getHost(), null);
           queryExecutor.close();
           continue;
         }
@@ -337,6 +344,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         runInitialQueries(queryExecutor, info);
 
         // And we're done.
+        hostChooser.registerSuccess(hostSpec.getHost());
         return queryExecutor;
       } catch (ConnectException cex) {
         // Added by Peter Mount <peter@retep.org.uk>
@@ -344,6 +352,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // we trap this an return a more meaningful message for the end user
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), cex);
         if (hostIter.hasNext()) {
           log(Level.FINE, "ConnectException occurred while connecting to {0}", cex, hostSpec);
           // still more addresses to try
@@ -356,6 +365,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), ioe);
         if (hostIter.hasNext()) {
           log(Level.FINE, "IOException occurred while connecting to {0}", ioe, hostSpec);
           // still more addresses to try
@@ -367,6 +377,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         closeStream(newStream);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
+        hostChooser.registerFailure(hostSpec.getHost(), se);
         if (hostIter.hasNext()) {
           log(Level.FINE, "SQLException occurred while connecting to {0}", se, hostSpec);
           // still more addresses to try

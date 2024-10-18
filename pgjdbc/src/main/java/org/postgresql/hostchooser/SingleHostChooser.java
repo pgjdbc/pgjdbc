@@ -14,7 +14,7 @@ import java.util.Iterator;
 /**
  * Host chooser that returns the single host.
  */
-class SingleHostChooser implements HostChooser {
+class SingleHostChooser extends AbstractHostChooser {
   private final Collection<CandidateHost> candidateHost;
 
   SingleHostChooser(HostSpec hostSpec, HostRequirement targetServerType) {

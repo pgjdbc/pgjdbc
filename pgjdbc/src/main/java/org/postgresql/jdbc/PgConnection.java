@@ -27,6 +27,7 @@ import org.postgresql.core.TransactionState;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
+import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
@@ -35,6 +36,7 @@ import org.postgresql.geometric.PGlseg;
 import org.postgresql.geometric.PGpath;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.geometric.PGpolygon;
+import org.postgresql.hostchooser.HostChooser;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
@@ -142,6 +144,9 @@ public class PgConnection implements BaseConnection {
 
   /* URL we were created via */
   private final String creatingURL;
+
+  /* Properties we were created via */
+  private final Properties creatingProperties;
 
   private final ReadOnlyBehavior readOnlyBehavior;
 
@@ -260,6 +265,8 @@ public class PgConnection implements BaseConnection {
 
     this.creatingURL = url;
 
+    this.creatingProperties = info;
+
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
@@ -270,7 +277,7 @@ public class PgConnection implements BaseConnection {
     }
 
     // Now make the initial connection and set up local state
-    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, info);
+    this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, info, url);
 
     // WARNING for unsupported servers (9.0 and lower are not supported)
     if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v9_1)) {
@@ -861,6 +868,11 @@ public class PgConnection implements BaseConnection {
       // This might happen in case constructor throws an exception (e.g. host being not available).
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
+    }
+    HostChooser hc = ((QueryExecutorImpl) queryExecutor).getHostChooser();
+    if (hc != null) {
+      String host = queryExecutor.getHostSpec().getHost();
+      hc.registerDisconnect(host);
     }
     openStackTrace = null;
     try {
@@ -1538,8 +1550,22 @@ public class PgConnection implements BaseConnection {
             statement.execute("IDENTIFY_SYSTEM");
           }
         } else {
-          try (Statement checkConnectionQuery = createStatement()) {
-            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+          HostChooser hc;
+          hc = ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
+          if (hc != null) {
+            String host = queryExecutor.getHostSpec().getHost();
+            HostChooser.IsValidResponse resp = hc.isValid(host);
+            if (resp == HostChooser.IsValidResponse.RECHECK_VALID) {
+              try (Statement checkConnectionQuery = createStatement()) {
+                ((PgStatement) checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+              }
+            } else if (resp == HostChooser.IsValidResponse.INVALID) {
+              return false;
+            }
+          } else {
+            try (Statement checkConnectionQuery = createStatement()) {
+              ((PgStatement) checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+            }
           }
         }
         return true;
