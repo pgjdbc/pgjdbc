@@ -5,10 +5,10 @@
 
 package org.postgresql.hostchooser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Map;

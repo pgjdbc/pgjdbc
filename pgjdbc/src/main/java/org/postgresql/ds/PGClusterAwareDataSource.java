@@ -5,9 +5,9 @@
 
 package org.postgresql.ds;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.postgresql.PGProperty;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * DataSource for Custom HostChooser implementation.

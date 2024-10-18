@@ -5,11 +5,11 @@
 
 package org.postgresql.hostchooser;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
 import org.postgresql.hostchooser.CustomHostChooserManager.HostChooserUrlProperty;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Properties;
 
