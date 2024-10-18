@@ -265,7 +265,6 @@ class SimpleParameterList implements V3ParameterList {
           return "(NULL)";
       }
     }
-
     String textValue;
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
