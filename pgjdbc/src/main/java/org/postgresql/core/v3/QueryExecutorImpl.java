@@ -107,7 +107,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("in_hot_standby");
   }
 
-  private final CustomHostChooserManager.HostChooserUrlProperty hostChooserKey;
+  private final @Nullable HostChooser hostChooser;
 
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
@@ -167,7 +167,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
-      int cancelSignalTimeout, Properties info, CustomHostChooserManager.HostChooserUrlProperty hcKey) throws SQLException, IOException {
+      int cancelSignalTimeout, Properties info, @Nullable HostChooser hc) throws SQLException, IOException {
     super(pgStream, cancelSignalTimeout, info);
 
     long maxResultBuffer = pgStream.getMaxResultBuffer();
@@ -178,7 +178,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
-    this.hostChooserKey = hcKey;
+    this.hostChooser = hc;
   }
 
   @Override
@@ -2650,8 +2650,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.adaptiveFetchCache.setAdaptiveFetch(adaptiveFetch);
   }
 
-  public HostChooser getHostChooser() {
-    return this.hostChooserKey.getHostChooser();
+  public @Nullable HostChooser getHostChooser() {
+    return this.hostChooser;
   }
 
   @Override

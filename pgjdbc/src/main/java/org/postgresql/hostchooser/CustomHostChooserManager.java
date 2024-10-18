@@ -5,6 +5,8 @@
 
 package org.postgresql.hostchooser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -36,7 +38,6 @@ public class CustomHostChooserManager {
     private final String url;
     private final Properties info;
     private final String implStr;
-    private HostChooser hostChooser;
 
     public HostChooserUrlProperty(String url, Properties info, String implStr) {
       this.url = url;
@@ -56,15 +57,7 @@ public class CustomHostChooserManager {
       return this.info;
     }
 
-    public void setHostChooser(HostChooser hc) {
-      this.hostChooser = hc;
-    }
-
-    public HostChooser getHostChooser() {
-      return this.hostChooser;
-    }
-
-    public boolean equals(Object other) {
+    public boolean equals(@Nullable Object other) {
       if (!(other instanceof HostChooserUrlProperty)) {
         return false;
       }
@@ -90,7 +83,7 @@ public class CustomHostChooserManager {
     return instance;
   }
 
-  public HostChooser getHostChooser(HostChooserUrlProperty customImplClassName) {
+  public @Nullable HostChooser getHostChooser(HostChooserUrlProperty customImplClassName) {
     if (hostChooserMap.containsKey(customImplClassName)) {
       return hostChooserMap.get(customImplClassName);
     }

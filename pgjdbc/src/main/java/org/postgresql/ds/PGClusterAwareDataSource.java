@@ -5,6 +5,8 @@
 
 package org.postgresql.ds;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import org.postgresql.PGProperty;
 
 /**
@@ -27,7 +29,7 @@ public class PGClusterAwareDataSource extends PGSimpleDataSource {
    * @return HostChooserImp
    * @see PGProperty#HOST_CHOOSER_IMPL
    */
-  public String getHostChooserImpl() {
+  public @Nullable String getHostChooserImpl() {
     return PGProperty.HOST_CHOOSER_IMPL.getOrDefault(properties);
   }
 
@@ -45,7 +47,7 @@ public class PGClusterAwareDataSource extends PGSimpleDataSource {
    * @return HostChooserImp
    * @see PGProperty#HOST_CHOOSER_IMPL_PROPERTIES
    */
-  public String getHostChooserImplProperties() {
+  public @Nullable String getHostChooserImplProperties() {
     return PGProperty.HOST_CHOOSER_IMPL_PROPERTIES.getOrDefault(properties);
   }
 }

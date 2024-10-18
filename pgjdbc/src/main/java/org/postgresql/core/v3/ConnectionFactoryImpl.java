@@ -238,14 +238,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(info);
 
     String customImplClass = info.getProperty(PGProperty.HOST_CHOOSER_IMPL.getName());
-    CustomHostChooserManager.HostChooserUrlProperty key;
-    key = new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
-    HostChooser hostChooser =
-        HostChooserFactory.createHostChooser(key, hostSpecs, targetServerType);
-    if (!hostChooser.isInbuilt()) {
-      key.setHostChooser(hostChooser);
+    CustomHostChooserManager.HostChooserUrlProperty key = null;
+    if (customImplClass != null) {
+      key = new CustomHostChooserManager.HostChooserUrlProperty(url, info, customImplClass);
     }
-
+    HostChooser hostChooser;
+    hostChooser = HostChooserFactory.createHostChooser(key, hostSpecs, targetServerType, info);
     Iterator<CandidateHost> hostIter = hostChooser.iterator();
     Map<HostSpec, HostStatus> knownStates = new HashMap<>();
     while (hostIter.hasNext()) {
@@ -328,7 +326,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // CheckerFramework can't infer newStream is non-nullable
         castNonNull(newStream);
         // Do final startup.
-        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, key);
+        QueryExecutor queryExecutor = new QueryExecutorImpl(newStream, cancelSignalTimeout, info, hostChooser);
 
         // Check Primary or Secondary
         HostStatus hostStatus = HostStatus.ConnectOK;

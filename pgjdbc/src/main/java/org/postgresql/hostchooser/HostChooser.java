@@ -5,6 +5,8 @@
 
 package org.postgresql.hostchooser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -53,7 +55,7 @@ public interface HostChooser extends Iterable<CandidateHost> {
    * @param host to which a connection has been closed.
    * @param ex - Exception with which the connection attempt failed
    */
-  void registerFailure(String host, Exception ex);
+  void registerFailure(String host, @Nullable Exception ex);
 
   /**
    * Api to inform the HostChooser that a
@@ -79,8 +81,7 @@ public interface HostChooser extends Iterable<CandidateHost> {
   /**
    * For future use. The driver may want to do certain things based on whether the
    * the host chooser object is an inbuilt one or an externally provided one.
-   *
-   * @return true or false.
+   * @return true or false
    */
   boolean isInbuilt();
 }

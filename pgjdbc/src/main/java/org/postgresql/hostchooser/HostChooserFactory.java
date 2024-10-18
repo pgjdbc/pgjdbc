@@ -5,8 +5,13 @@
 
 package org.postgresql.hostchooser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import org.postgresql.hostchooser.CustomHostChooserManager.HostChooserUrlProperty;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
+
+import java.util.Properties;
 
 /**
  * Checks if a custom {@link HostChooser} implementation is provided. If yes then creates an
@@ -15,10 +20,11 @@ import org.postgresql.util.PSQLException;
  */
 public class HostChooserFactory {
 
-  public static HostChooser createHostChooser(CustomHostChooserManager.HostChooserUrlProperty key,
+  public static HostChooser createHostChooser(@Nullable HostChooserUrlProperty key,
       HostSpec[] hostSpecs,
-      HostRequirement targetServerType) throws PSQLException {
-    if (key.getImpl() != null) {
+      HostRequirement targetServerType,
+      Properties info) throws PSQLException {
+    if (key != null) {
       return CustomHostChooserManager.getInstance().getOrCreateHostChooser(key.getUrl(),
           key.getProps(),
           key.getImpl(), targetServerType);
@@ -26,6 +32,6 @@ public class HostChooserFactory {
     if (hostSpecs.length == 1) {
       return new SingleHostChooser(hostSpecs[0], targetServerType);
     }
-    return new MultiHostChooser(hostSpecs, targetServerType, key.getProps());
+    return new MultiHostChooser(hostSpecs, targetServerType, info);
   }
 }

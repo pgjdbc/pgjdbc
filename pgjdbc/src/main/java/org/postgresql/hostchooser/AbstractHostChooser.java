@@ -5,6 +5,8 @@
 
 package org.postgresql.hostchooser;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.util.Properties;
 
 /**
@@ -24,7 +26,7 @@ public abstract class AbstractHostChooser implements HostChooser {
   }
 
   @Override
-  public void registerFailure(String host, Exception ex) {
+  public void registerFailure(String host, @Nullable Exception ex) {
     // for inbuilt HostChoosers do nothing
   }
 

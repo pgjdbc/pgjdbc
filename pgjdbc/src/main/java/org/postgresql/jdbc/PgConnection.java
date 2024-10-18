@@ -1550,7 +1550,8 @@ public class PgConnection implements BaseConnection {
             statement.execute("IDENTIFY_SYSTEM");
           }
         } else {
-          HostChooser hc = (HostChooser) ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
+          HostChooser hc;
+          hc = ((QueryExecutorImpl) this.queryExecutor).getHostChooser();
           if (hc != null) {
             String host = queryExecutor.getHostSpec().getHost();
             HostChooser.IsValidResponse resp = hc.isValid(host);
