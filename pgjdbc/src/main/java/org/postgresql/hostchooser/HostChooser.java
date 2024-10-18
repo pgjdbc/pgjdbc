@@ -72,14 +72,15 @@ public interface HostChooser extends Iterable<CandidateHost> {
    * those connections invalid so that pooling solutions like Hikari evict connections
    * to those so that newer connections are created on healthy nodes.
    *
-   * @return true or false.
+   * @return VALID, INVALID or RECHECK_VALID.
    */
   IsValidResponse isValid(String host);
 
   /**
    * For future use. The driver may want to do certain things based on whether the
    * the host chooser object is an inbuilt one or an externally provided one.
-   * @return
+   *
+   * @return true or false.
    */
   boolean isInbuilt();
 }

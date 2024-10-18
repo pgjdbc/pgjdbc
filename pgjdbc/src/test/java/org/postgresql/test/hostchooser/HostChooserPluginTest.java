@@ -31,7 +31,7 @@ import java.util.Properties;
 /**
  * This test will check the behaviour of the HostChooser interface. The test will use a custom
  * HostChooser plugin,
- * `DummyHostChooserPlugin` to test the HostChooser Interface behaviour.
+ * `PreferredHostChooser` to test the HostChooser Interface behaviour.
  */
 class HostChooserPluginTest {
 
@@ -70,9 +70,10 @@ class HostChooserPluginTest {
   }
 
   /**
-   * Custom dummy implementation of the HostChooser plugin.
+   * PreferredHostChooser implements the HostChooser interface,
+   * returns `host1` as the perpreferred host for the first few connections.
    */
-  public static class DummyHostChooserPlugin implements HostChooser {
+  public static class PreferredHostChooser implements HostChooser {
 
     String url;
     Properties props;
@@ -227,7 +228,7 @@ class HostChooserPluginTest {
   }
 
   /**
-   * Test the dummy implementation of the HostChooser plugin, creates 20 connections,
+   * Test PreferredHostChooser (implementation of the HostChooser interface), creates 20 connections,
    * and verify whether the inet_server_addr() on each connection is as per expectation.
    */
   @Test
@@ -235,7 +236,7 @@ class HostChooserPluginTest {
 
     Properties props = new Properties();
     props.setProperty(PGProperty.HOST_CHOOSER_IMPL.getName(),
-        DummyHostChooserPlugin.class.getName());
+        PreferredHostChooser.class.getName());
     props.setProperty(PGProperty.HOST_CHOOSER_IMPL_PROPERTIES.getName(), "host1ConnectionCount=5");
     PGProperty.USER.set(props, user);
     PGProperty.PASSWORD.set(props, password);
