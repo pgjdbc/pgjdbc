@@ -89,8 +89,8 @@ dependencies {
     implementation("org.checkerframework:checker-qual:3.42.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
     testFixturesImplementation("junit:junit:4.13.2")
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-api:5.10.4")
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.4") {
+    testFixturesImplementation("org.junit.jupiter:junit-jupiter-api:5.11.3")
+    testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine:5.11.3") {
         because("We use BeforeEachMethodAdapter to add parameters to beforeeach and aftereach methods")
     }
     testFixturesImplementation("org.checkerframework:checker-qual:3.42.0")
