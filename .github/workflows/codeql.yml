@@ -58,8 +58,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - uses: actions/setup-java@v1
+    - uses: actions/setup-java@v4
       with:
+        distribution: zulu
         java-version: 17
 
     # Initializes the CodeQL tools for scanning.
