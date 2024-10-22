@@ -263,7 +263,7 @@ public class DatabaseMetaDataTest {
 
     rs.close();
 
-    rs = dbmd.getColumns("", "", "meta%", "%");
+    rs = dbmd.getColumns(null, null, "meta%", "%");
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("id", rs.getString("COLUMN_NAME"));
@@ -293,7 +293,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getCrossReference(null, "", "vv", null, "", "ww");
+    ResultSet rs = dbmd.getCrossReference(null, null, "vv", null, null, "ww");
     String[] expectedPkColumnNames = new String[]{"a", "b"};
     String[] expectedFkColumnNames = new String[]{"m", "n"};
     int numRows = 0;
@@ -340,13 +340,13 @@ public class DatabaseMetaDataTest {
         "id int references pkt on update set null on delete set default");
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt1");
     assertTrue(rs.next());
     assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
     assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
     rs.close();
 
-    rs = dbmd.getImportedKeys(null, "", "fkt2");
+    rs = dbmd.getImportedKeys(null, null, "fkt2");
     assertTrue(rs.next());
     assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
     assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
@@ -368,7 +368,7 @@ public class DatabaseMetaDataTest {
         "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
 
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
     int j = 0;
     for (; rs.next(); j++) {
       assertEquals("pkt", rs.getString("PKTABLE_NAME"));
@@ -393,7 +393,7 @@ public class DatabaseMetaDataTest {
         "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
 
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
     int j = 0;
     for (; rs.next(); j++) {
       assertEquals("pkt", rs.getString("PKTABLE_NAME"));
@@ -435,7 +435,7 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "person");
 
     final List<String> fkNames = new ArrayList<>();
 
@@ -493,7 +493,7 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "users");
+    ResultSet rs = dbmd.getImportedKeys(null, null, "users");
     int j = 0;
     for (; rs.next(); j++) {
 
@@ -519,7 +519,7 @@ public class DatabaseMetaDataTest {
 
     assertEquals(2, j);
 
-    rs = dbmd.getExportedKeys(null, "", "people");
+    rs = dbmd.getExportedKeys(null, null, "people");
 
     // this is hacky, but it will serve the purpose
     assertTrue(rs.next());
@@ -834,7 +834,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void notNullDomainColumn(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    ResultSet rs = dbmd.getColumns(null, null, "domaintable", null);
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_NULLABLE"));
@@ -847,7 +847,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void domainColumnSize(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    ResultSet rs = dbmd.getColumns(null, null, "domaintable", null);
     assertTrue(rs.next());
     assertEquals("id", rs.getString("COLUMN_NAME"));
     assertEquals(10, rs.getInt("COLUMN_SIZE"));
@@ -1201,7 +1201,7 @@ public class DatabaseMetaDataTest {
       assertEquals("jdbc", schema, "schema name ");
 
       // now test to see if the fully qualified stuff works as planned
-      rs = dbmd.getUDTs("catalog", "public", "catalog.jdbc.testint8", null);
+      rs = dbmd.getUDTs(System.getProperty("database"), "public", "catalog.jdbc.testint8", null);
       assertTrue(rs.next());
       cat = rs.getString("type_cat");
       schema = rs.getString("type_schem");
@@ -1450,7 +1450,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void informationAboutArrayTypes(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns("", "", "arraytable", "");
+    ResultSet rs = dbmd.getColumns(null, null, "arraytable", null);
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(5, rs.getInt("COLUMN_SIZE"));
@@ -1471,7 +1471,7 @@ public class DatabaseMetaDataTest {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        ResultSet rs = dbmd.getPrimaryKeys(null, null, "measurement");
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
@@ -1495,11 +1495,11 @@ public class DatabaseMetaDataTest {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
+        ResultSet rs = dbmd.getTables(null, null, "measurement", new String[]{"PARTITIONED TABLE"});
         assertTrue(rs.next());
         assertEquals("measurement", rs.getString("table_name"));
         rs.close();
-        rs = dbmd.getPrimaryKeys("", "", "measurement");
+        rs = dbmd.getPrimaryKeys(null, null, "measurement");
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
@@ -1523,7 +1523,7 @@ public class DatabaseMetaDataTest {
             + "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,"
             + "payload text)");
         DatabaseMetaData dbmd = con.getMetaData();
-        ResultSet rs = dbmd.getColumns("", "", "test_new", "id");
+        ResultSet rs = dbmd.getColumns(null, null, "test_new", "id");
         assertTrue(rs.next());
         assertEquals("id", rs.getString("COLUMN_NAME"));
         assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
@@ -1542,7 +1542,7 @@ public class DatabaseMetaDataTest {
   void generatedColumns(BinaryMode binaryMode) throws SQLException {
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v12) ) {
       DatabaseMetaData dbmd = con.getMetaData();
-      ResultSet rs = dbmd.getColumns("", "", "employee", "gross_pay");
+      ResultSet rs = dbmd.getColumns(null, null, "employee", "gross_pay");
       assertTrue(rs.next());
       assertEquals("gross_pay", rs.getString("COLUMN_NAME"));
       assertTrue(rs.getBoolean("IS_GENERATEDCOLUMN"));
@@ -1651,7 +1651,7 @@ public class DatabaseMetaDataTest {
     assertEquals("SPECIFIC_NAME", rsmd.getColumnName(17));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("returnValue", rs.getString(4));
@@ -1661,7 +1661,7 @@ public class DatabaseMetaDataTest {
     assertEquals(0, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$1", rs.getString(4));
@@ -1671,7 +1671,7 @@ public class DatabaseMetaDataTest {
     assertEquals(1, rs.getInt(15));
 
     assertTrue(rs.next());
-    assertNull(rs.getString(1));
+    assertNotNull(rs.getString(1));
     assertEquals("public", rs.getString(2));
     assertEquals("f1", rs.getString(3));
     assertEquals("$2", rs.getString(4));

@@ -57,7 +57,7 @@ class DatabaseMetaDataTest {
   void getColumnsForNullScale() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "decimaltest", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "decimaltest", "%");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
@@ -75,7 +75,7 @@ class DatabaseMetaDataTest {
   void getCorrectSQLTypeForOffPathTypes() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "off_path_table", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "off_path_table", "%");
     assertTrue(rs.next());
     assertEquals("var", rs.getString("COLUMN_NAME"));
     assertEquals("\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"), "Detects correct off-path type name");
@@ -88,7 +88,7 @@ class DatabaseMetaDataTest {
   void getCorrectSQLTypeForShadowedTypes() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getColumns("%", "%", "on_path_table", "%");
+    ResultSet rs = dbmd.getColumns(null, "%", "on_path_table", "%");
 
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
