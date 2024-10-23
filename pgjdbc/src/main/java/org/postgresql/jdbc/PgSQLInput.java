@@ -9,6 +9,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.Oid;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -151,7 +152,7 @@ public class PgSQLInput implements SQLInput {
 
   @SuppressWarnings({"override.return", "nullness.on.primitive", "return"})
   @Override
-  public @Nullable byte[] readBytes() throws SQLException {
+  public byte @Nullable [] readBytes() throws SQLException {
     return getNextValue(bytesConv);
   }
 
@@ -187,7 +188,8 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public InputStream readBinaryStream() throws SQLException {
-    return new ByteArrayInputStream(readBytes());
+    byte[] bytes = readBytes();
+    return new ByteArrayInputStream(bytes == null ? new byte[0] : bytes);
   }
 
   @SuppressWarnings("override.return")
@@ -219,7 +221,7 @@ public class PgSQLInput implements SQLInput {
 
   @Override
   public Array readArray() throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "readArray()");
+    return new PgArray(connection, Oid.TEXT, readString());
   }
 
   @SuppressWarnings("override.return")
@@ -253,16 +255,15 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
-  @SuppressWarnings("unchecked")
   private <T> SQLFunction<String, T> getConverter(Class<T> type) throws SQLException {
     if (type.isArray()) {
       Class<?> itemType = type.getComponentType();
       SQLFunction<String, ?> converter = getConverter(itemType);
       return (value) -> {
-        List<String> items = new SQLDataReader().parseArray(value);
+        List<@Nullable String> items = new SQLDataReader().parseArray(value);
         Object results = java.lang.reflect.Array.newInstance(itemType, items.size());
         for (int i = 0; i < items.size(); i++) {
-          String item = items.get(i);
+          @Nullable String item = items.get(i);
           if ("NULL".equals(item)) {
             java.lang.reflect.Array.set(results, i, null);
           } else {

@@ -17,8 +17,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SQLDataReader {
-  public @Nullable  <T> T read(@Nullable Object obj, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
-    if (obj == null) {
+  public @Nullable  <T> T read(@Nullable String value, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
+    if (value == null) {
       return null;
     }
     SQLData data;
@@ -28,7 +28,7 @@ public class SQLDataReader {
       throw new SQLException(String.format("An accessible no-arg constructor is required for type [%s]", type), ex);
     }
 
-    data.readSQL(new PgSQLInput(parse(obj.toString(), '(', ')'), connection, timestampUtils), data.getSQLTypeName());
+    data.readSQL(new PgSQLInput(parse(value, '(', ')'), connection, timestampUtils), data.getSQLTypeName());
 
     return type.cast(data);
   }

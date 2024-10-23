@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,6 +31,8 @@ import java.sql.SQLOutput;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
 * TestCase to test the reading of a class inheriting SQLData
@@ -182,29 +185,39 @@ public class SQLDataTest {
   }
 
   /**
-   * NOTE: For this to work we would need to add a check in PgResultSet for
+   * NOTE: For this ...
+   *     Thing[] things = rs.getObject(1, Thing[].class);
+   * ... to work we would need to add a check in PgResultSet for
    *     if (type.isArray()) {
    * like we have in the PgSqlInput for getConvertor
    */
-  // @Test
-  // public void readArray() throws Exception {
-  //   String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
-  //   System.out.println(sql);
-  //   ResultSet rs = stmt.executeQuery(sql);
+  @Test
+  public void readArray() throws Exception {
+    String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
+    ResultSet rs = stmt.executeQuery(sql);
 
-  //   assertTrue(rs.next());
-  //   Thing[] things = rs.getObject(1, Thing[].class);
-  //   assertNotNull(things);
-  //   assertEquals(2, things.length);
+    assertTrue(rs.next());
+    Map<String, Class<?>> map = new HashMap<>();
+    map.put(TABLE_THING, Thing.class);
 
-  //   for (Thing thing : things) {
-  //     if (thing.id == 0) {
-  //       checkNullThing(thing);
-  //     } else {
-  //       checkThing(thing);
-  //     }
-  //   }
-  // }
+    Object[] objects = (Object[])rs.getArray(1).getArray(map);
+
+    Thing[] things = new Thing[objects.length];
+    for (int ii = 0; ii < objects.length; ii++) {
+      things[ii] = (Thing) objects[ii];
+    }
+
+    assertNotNull(things);
+    assertEquals(2, things.length);
+
+    for (Thing thing : things) {
+      if (thing.id == 0) {
+        checkNullThing(thing);
+      } else {
+        checkThing(thing);
+      }
+    }
+  }
 
   public static class Thing implements SQLData {
     public int id;
