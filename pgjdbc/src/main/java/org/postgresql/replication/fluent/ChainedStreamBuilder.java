@@ -61,6 +61,11 @@ public interface ChainedStreamBuilder {
    *            .replicationStream()
    *            .physical()
    *            .withStartPosition(lsn)
+   *            .withSlotName("test_decoding")
+   *            .withSlotOption("include-xids", false)
+   *            .withSlotOption("skip-empty-xacts", true)
+   *            .withStatusInterval(5, TimeUnit.SECONDS)
+   *            .withAutomaticFlush(true)
    *            .start();
    *
    *    while (true) {

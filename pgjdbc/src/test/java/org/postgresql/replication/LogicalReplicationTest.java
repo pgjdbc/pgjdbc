@@ -91,6 +91,7 @@ class LogicalReplicationTest {
               .logical()
               .withSlotName("notExistSlotName")
               .withStartPosition(lsn)
+              .withAutomaticFlush(true)
               .start();
 
       fail("For logical decoding replication slot name it required parameter "
