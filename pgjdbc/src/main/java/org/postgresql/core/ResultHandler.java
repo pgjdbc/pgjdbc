@@ -41,6 +41,16 @@ public interface ResultHandler {
   void handleResultRows(Query fromQuery, Field[] fields, List<Tuple> tuples,
       @Nullable ResultCursor cursor);
 
+  void handleResultRow(Tuple tuple);
+
+  void handleFields(Query fromQuery, Field[] fields, @Nullable ResultCursor cursor);
+
+  /*
+  Called when there are no more result rows.
+  returns true if there are fields and results
+   */
+  boolean handleEndOfResults();
+
   /**
    * Called when a query that did not return a resultset completes.
    *
