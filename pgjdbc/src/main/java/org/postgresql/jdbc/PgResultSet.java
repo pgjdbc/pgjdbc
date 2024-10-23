@@ -65,6 +65,7 @@ import java.sql.Ref;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.RowId;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLType;
 import java.sql.SQLWarning;
@@ -3943,6 +3944,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         object = connection.getObject(getPGType(columnIndex), getString(columnIndex), null);
       }
       return type.cast(object);
+    } else if (SQLData.class.isAssignableFrom(type)) {
+      Object obj = getObject(columnIndex);
+      return new SQLDataReader().read(obj == null ? null : obj.toString(), type, connection, getTimestampUtils());
     }
     throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
             PSQLState.INVALID_PARAMETER_VALUE);
