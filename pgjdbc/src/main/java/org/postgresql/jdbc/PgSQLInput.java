@@ -96,7 +96,6 @@ public class PgSQLInput implements SQLInput {
   }
 
   @SuppressWarnings("override.return")
-  // @Pure
   @Override
   public @Nullable String readString() throws SQLException {
     return getNextValue(stringConv);
