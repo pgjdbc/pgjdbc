@@ -40,7 +40,8 @@ import java.util.Map;
 public class SQLDataTest {
   private static final String TABLE_THING = "thing";
   private static final String TABLE_TEST = "test";
-  private static final String UDT_TEST = "testobj";
+  private static final String UDT_THING = "udt_thing";
+  private static final String UDT_THING_COL = "udt_thing_col";
 
   private static final String NAME = "Thing";
   private static final float FLOATY = 42.3f;
@@ -101,7 +102,8 @@ public class SQLDataTest {
     TestUtil.createTable(con, TABLE_TEST, "id int, thingid int");
     stmt.executeUpdate(String.format("INSERT INTO %s VALUES (1, 42)", TABLE_TEST));
 
-    TestUtil.createCompositeType(con, UDT_TEST, String.format("id int, thing %s", TABLE_THING));
+    TestUtil.createCompositeType(con, UDT_THING, String.format("id int, thing %s", TABLE_THING));
+    TestUtil.createCompositeType(con, UDT_THING_COL, String.format("name text, things %s[]", TABLE_THING));
 
     TestUtil.closeQuietly(stmt);
     TestUtil.closeDB(con);
@@ -112,7 +114,8 @@ public class SQLDataTest {
     Connection con = TestUtil.openDB();
     TestUtil.dropTable(con, TABLE_THING);
     TestUtil.dropTable(con, TABLE_TEST);
-    TestUtil.dropType(con, UDT_TEST);
+    TestUtil.dropType(con, UDT_THING);
+    TestUtil.dropType(con, UDT_THING_COL);
     TestUtil.closeDB(con);
   }
 
@@ -174,7 +177,7 @@ public class SQLDataTest {
   @Test
   public void readRecursiveThing() throws Exception {
     String sql = String.format("select (%s.id, %s)::%s from %s inner join %s on (thingid = %s.id)",
-                               TABLE_TEST, TABLE_THING, UDT_TEST, TABLE_TEST, TABLE_THING, TABLE_THING);
+                               TABLE_TEST, TABLE_THING, UDT_THING, TABLE_TEST, TABLE_THING, TABLE_THING);
     // System.out.println(sql);
     ResultSet rs = stmt.executeQuery(sql);
 
@@ -182,6 +185,19 @@ public class SQLDataTest {
     TestObj test = rs.getObject(1, TestObj.class);
     assertEquals(1, test.id);
     checkThing(test.thing);
+  }
+
+  private void checkThings(Thing[] things) {
+    assertNotNull(things);
+    assertEquals(2, things.length);
+
+    for (Thing thing : things) {
+      if (thing.id == 0) {
+        checkNullThing(thing);
+      } else {
+        checkThing(thing);
+      }
+    }
   }
 
   /**
@@ -207,17 +223,39 @@ public class SQLDataTest {
       things[ii] = (Thing) objects[ii];
     }
 
-    assertNotNull(things);
-    assertEquals(2, things.length);
-
-    for (Thing thing : things) {
-      if (thing.id == 0) {
-        checkNullThing(thing);
-      } else {
-        checkThing(thing);
-      }
-    }
+    checkThings(things);
   }
+
+  // /**
+  //  * Tests the (type.isArray()) section in PgSQLInput.getConverter()
+  //  */
+  // @Test
+  // public void readArraySQLInput() throws Exception {
+  //   String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
+  //   System.out.println(sql);
+  //   ResultSet rs = stmt.executeQuery(sql);
+
+  //   assertTrue(rs.next());
+
+  //   // Type type = new TypeToken<Collection<Thing>>(){}.getType();  // Using TypeToken for type information
+
+  //   ThingCollection coll = rs.getObject(1, ThingCollection.class);
+
+  //   checkThings(coll.things);
+  // }
+
+  // /**
+  //  * Tests the (type.isArray()) section in PgResultSet.getObject()
+  //  */
+  // @Test
+  // public void readArrayPgResultSet() throws Exception {
+  //   String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
+  //   ResultSet rs = stmt.executeQuery(sql);
+
+  //   assertTrue(rs.next());
+
+  //   checkThings(rs.getObject(1, Thing[].class));
+  // }
 
   public static class Thing implements SQLData {
     public int id;
@@ -268,13 +306,34 @@ public class SQLDataTest {
 
     @Override
     public String getSQLTypeName() {
-      return UDT_TEST;
+      return UDT_THING;
     }
 
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
       id = stream.readInt();
       thing = stream.readObject(Thing.class);
+    }
+
+    @Override
+    public void writeSQL(SQLOutput stream) {
+      // not implemented
+    }
+  }
+
+  public static class ThingCollection implements SQLData {
+    public String name;
+    public Thing[] things;
+
+    @Override
+    public String getSQLTypeName() {
+      return UDT_THING_COL;
+    }
+
+    @Override
+    public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      name = stream.readString();
+      things = stream.readObject(Thing[].class);
     }
 
     @Override
