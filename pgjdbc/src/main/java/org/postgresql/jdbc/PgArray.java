@@ -331,21 +331,18 @@ public class PgArray implements Array {
    */
   private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count, @Nullable Map<String, Class<?>> map) throws SQLException {
     final BaseConnection connection = getConnection();
-    Object @Nullable [] array = (Object @Nullable []) ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+    Object array = ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
 
-    if (map != null && array != null) {
-      for (int ii = 0; ii < array.length; ii++) {
-        @Nullable Object obj = array[ii];
-        if (obj instanceof PGobject) {
-          PGobject pgobj = (PGobject) obj;
-          Class<?> type = map.get(pgobj.getType());
-          if (type != null && SQLData.class.isAssignableFrom(type)) {
-            String value = pgobj.getValue();
-            Object result = new SQLDataReader().read(value, type, connection, getTimestampUtils());
-            if (result == null) {
-              array[ii] = null;
-            } else {
-              array[ii] = result;
+    if (map != null) {
+      @Nullable Object @Nullable [] arr = (@Nullable Object @Nullable []) array;
+      if (arr != null) {
+        for (int ii = 0; ii < arr.length; ii++) {
+          @Nullable Object obj = arr[ii];
+          if (obj instanceof PGobject) {
+            PGobject pgobj = (PGobject) obj;
+            Class<?> type = map.get(pgobj.getType());
+            if (type != null && SQLData.class.isAssignableFrom(type)) {
+              arr[ii] =  new SQLDataReader().read(pgobj.getValue(), type, connection, getTimestampUtils());
             }
           }
         }
