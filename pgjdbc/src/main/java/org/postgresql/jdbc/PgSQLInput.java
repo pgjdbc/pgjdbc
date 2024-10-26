@@ -259,18 +259,18 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
-  // private Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, List<@Nullable String> items) throws SQLException {
-  //   Object @Nullable [] results = (Object @Nullable []) java.lang.reflect.Array.newInstance(itemType, items.size());
-  //   for (int i = 0; i < items.size(); i++) {
-  //     @Nullable String item = items.get(i);
-  //     if ("NULL".equals(item)) {
-  //       java.lang.reflect.Array.set(results, i, null);
-  //     } else {
-  //       java.lang.reflect.Array.set(results, i, converter.apply(item));
-  //     }
-  //   }
-  //   return results;
-  // }
+  private Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, List<@Nullable String> items) throws SQLException {
+    Object @Nullable [] results = (Object @Nullable []) java.lang.reflect.Array.newInstance(itemType, items.size());
+    for (int i = 0; i < items.size(); i++) {
+      @Nullable String item = items.get(i);
+      if ("NULL".equals(item)) {
+        java.lang.reflect.Array.set(results, i, null);
+      } else {
+        java.lang.reflect.Array.set(results, i, converter.apply(item));
+      }
+    }
+    return results;
+  }
 
   // //
   // // I think you have to use java.lang.reflect or else you get a cannot cast exception.
@@ -290,15 +290,15 @@ public class PgSQLInput implements SQLInput {
   // }
 
   private <T> SQLFunction<String, T> getConverter(Class<T> type) throws SQLException {
-    // if (type.isArray()) {
-    //   Class<?> itemType = type.getComponentType();
-    //   SQLFunction<String, ?> converter = getConverter(itemType);
-    //   return (value) -> {
-    //     List<@Nullable String> items = new SQLDataReader().parseArray(value);
-    //     // return type.cast(buildArray(itemType, converter, items));
-    //     return type.cast(reflectArray(itemType, converter, items));
-    //   };
-    // }
+    if (type.isArray()) {
+      Class<?> itemType = type.getComponentType();
+      SQLFunction<String, ?> converter = getConverter(itemType);
+      return (value) -> {
+        List<@Nullable String> items = new SQLDataReader().parseArray(value);
+        // return type.cast(buildArray(itemType, converter, items));
+        return type.cast(reflectArray(itemType, converter, items));
+      };
+    }
 
     if (SQLData.class.isAssignableFrom(type)) {
       return (value) -> new SQLDataReader().read(value, type, connection, timestampUtils);

@@ -179,7 +179,6 @@ public class SQLDataTest {
   public void readRecursiveThing() throws Exception {
     String sql = String.format("select (%s.id, %s)::%s from %s inner join %s on (thingid = %s.id)",
                                TABLE_TEST, TABLE_THING, UDT_THING, TABLE_TEST, TABLE_THING, TABLE_THING);
-    // System.out.println(sql);
     ResultSet rs = stmt.executeQuery(sql);
 
     assertTrue(rs.next());
@@ -237,23 +236,20 @@ public class SQLDataTest {
   //   checkThings(array.things);
   // }
 
-  // /**
-  //  * Tests the (type.isArray()) section in PgSQLInput.getConverter()
-  //  */
-  // @Test
-  // public void readArrayTypeSQLInput() throws Exception {
-  //   String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
-  //   System.out.println(sql);
-  //   ResultSet rs = stmt.executeQuery(sql);
+  /**
+   * Tests the (type.isArray()) section in PgSQLInput.getConverter()
+   */
+  @Test
+  public void readArrayTypeSQLInput() throws Exception {
+    String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
+    ResultSet rs = stmt.executeQuery(sql);
 
-  //   assertTrue(rs.next());
+    assertTrue(rs.next());
 
-  //   // Type type = new TypeToken<Collection<Thing>>(){}.getType();  // Using TypeToken for type information
+    ThingCollection coll = rs.getObject(1, ThingCollection.class);
 
-  //   ThingCollection coll = rs.getObject(1, ThingCollection.class);
-
-  //   checkThings(coll.things);
-  // }
+    checkThings(coll.things);
+  }
 
   // /**
   //  * Tests the (type.isArray()) section in PgResultSet.getObject()
