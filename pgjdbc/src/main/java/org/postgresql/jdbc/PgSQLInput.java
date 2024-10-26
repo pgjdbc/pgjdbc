@@ -34,6 +34,7 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.function.Function;
 
 public class PgSQLInput implements SQLInput {
   private static final SQLFunction<String, String> stringConv = (value) -> value;
@@ -59,6 +60,17 @@ public class PgSQLInput implements SQLInput {
       throw new SQLException(ex);
     }
   };
+  private static final Function<TimestampUtils, SQLFunction<String, Timestamp>> timestampConvFn =
+      (timestampUtils) -> (value) -> timestampUtils.toTimestamp(null, value.getBytes());
+  private static final Function<TimestampUtils, SQLFunction<String, Time>> timeConvFn =
+      (timestampUtils) -> (value) -> timestampUtils.toTime(null, value.getBytes());
+  private static final Function<TimestampUtils, SQLFunction<String, Date>> dateConvFn =
+      (timestampUtils) -> (value) -> timestampUtils.toDate(null, value.getBytes());
+  private static final Function<BaseConnection, SQLFunction<String, Array>> arrayConvFn =
+      (connection) ->  (value) -> {
+        // return new PgArray(connection, Oid.TEXT, value);
+        throw Driver.notImplemented(PgSQLInput.class, "readArray()");
+      };
 
   private final SQLFunction<String, Timestamp> timestampConv;
   private final SQLFunction<String, Time> timeConv;
@@ -76,13 +88,10 @@ public class PgSQLInput implements SQLInput {
     this.connection = connection;
     this.timestampUtils = timestampUtils;
 
-    timestampConv = (value) -> timestampUtils.toTimestamp(null, value.getBytes());
-    timeConv = (value) -> timestampUtils.toTime(null, value.getBytes());
-    dateConv = (value) -> timestampUtils.toDate(null, value.getBytes());
-    arrayConv = (value) -> {
-      // return new PgArray(connection, Oid.TEXT, value);
-      throw Driver.notImplemented(this.getClass(), "readArray()");
-    };
+    timestampConv = timestampConvFn.apply(timestampUtils);
+    timeConv = timeConvFn.apply(timestampUtils);
+    dateConv = dateConvFn.apply(timestampUtils);
+    arrayConv = arrayConvFn.apply(connection);
   }
 
   private @Nullable <T> T getNextValue(SQLFunction<String, T> convert) throws SQLException {
@@ -204,7 +213,7 @@ public class PgSQLInput implements SQLInput {
   @SuppressWarnings("override.return")
   @Override
   public @Nullable <T> T readObject(Class<T> type) throws SQLException {
-    return getNextValue(getConverter(type));
+    return getNextValue(getConverter(type, connection, timestampUtils));
   }
 
   @Override
@@ -259,7 +268,7 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
-  private Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
+  private static Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
     List<@Nullable String> items = new SQLDataReader().parseArray(value);
     Object @Nullable [] results = (Object @Nullable []) java.lang.reflect.Array.newInstance(itemType, items.size());
     for (int i = 0; i < items.size(); i++) {
@@ -290,14 +299,16 @@ public class PgSQLInput implements SQLInput {
   //   return results.toArray();
   // }
 
-  private <T> SQLFunction<String, T> getConverter(Class<T> type) throws SQLException {
+  public static <T> T readGenericArray(String value, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
+    Class<?> itemType = type.getComponentType();
+    SQLFunction<String, ?> converter = getConverter(itemType, connection, timestampUtils);
+    // return type.cast(buildArray(itemType, converter, value));
+    return type.cast(reflectArray(itemType, converter, value));
+  }
+
+  private static <T> SQLFunction<String, T> getConverter(Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
     if (type.isArray()) {
-      Class<?> itemType = type.getComponentType();
-      SQLFunction<String, ?> converter = getConverter(itemType);
-      return (value) -> {
-        // return type.cast(buildArray(itemType, converter, value));
-        return type.cast(reflectArray(itemType, converter, value));
-      };
+      return (value) -> readGenericArray(value, type, connection, timestampUtils);
     }
 
     if (SQLData.class.isAssignableFrom(type)) {
@@ -345,15 +356,15 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (type == Timestamp.class) {
-      return (SQLFunction<String, T>) timestampConv;
+      return (SQLFunction<String, T>) timestampConvFn.apply(timestampUtils);
     }
 
     if (type == Time.class) {
-      return (SQLFunction<String, T>) timeConv;
+      return (SQLFunction<String, T>) timeConvFn.apply(timestampUtils);
     }
 
     if (type == Date.class) {
-      return (SQLFunction<String, T>) dateConv;
+      return (SQLFunction<String, T>) dateConvFn.apply(timestampUtils);
     }
 
     if (type == URL.class) {
@@ -361,7 +372,7 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (type == Array.class) {
-      return (SQLFunction<String, T>) arrayConv;
+      return (SQLFunction<String, T>) arrayConvFn.apply(connection);
     }
 
     throw new SQLException(String.format("Unsupported type conversion to [%s].", type));

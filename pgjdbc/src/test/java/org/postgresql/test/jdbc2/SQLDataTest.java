@@ -43,6 +43,8 @@ public class SQLDataTest {
   private static final String TABLE_TEST = "test";
   private static final String UDT_THING = "udt_thing";
   private static final String UDT_THING_COL = "udt_thing_col";
+  private static final String COL_ID = "id";
+  private static final String COL_TS = "ts";
 
   private static final String NAME = "Thing";
   private static final float FLOATY = 42.3f;
@@ -66,7 +68,7 @@ public class SQLDataTest {
     Statement stmt = con.createStatement();
 
     String thingColumns = String.join(",",
-        "id int",
+        COL_ID + " int",
         "idl bigint",
         "ids smallint",
         "name text",
@@ -78,7 +80,7 @@ public class SQLDataTest {
         "bytes text",
         "datey date",
         "timey time",
-        "ts timestamp"
+        COL_TS + " timestamp"
     );
     String thingValues = String.join(",",
         "42",
@@ -100,10 +102,10 @@ public class SQLDataTest {
     stmt.executeUpdate(String.format("INSERT INTO %s VALUES (%s)", TABLE_THING, thingValues));
     stmt.executeUpdate(String.format("INSERT INTO %s VALUES (DEFAULT)", TABLE_THING));
 
-    TestUtil.createTable(con, TABLE_TEST, "id int, thingid int");
+    TestUtil.createTable(con, TABLE_TEST, String.format("%s int, thingid int", COL_ID));
     stmt.executeUpdate(String.format("INSERT INTO %s VALUES (1, 42)", TABLE_TEST));
 
-    TestUtil.createCompositeType(con, UDT_THING, String.format("id int, thing %s", TABLE_THING));
+    TestUtil.createCompositeType(con, UDT_THING, String.format("%s int, thing %s", COL_ID, TABLE_THING));
     TestUtil.createCompositeType(con, UDT_THING_COL, String.format("name text, things %s[]", TABLE_THING));
 
     TestUtil.closeQuietly(stmt);
@@ -130,6 +132,12 @@ public class SQLDataTest {
   private void afterEach() throws Exception {
     TestUtil.closeQuietly(stmt);
     TestUtil.closeDB(con);
+  }
+
+  private ResultSet getResultSet(String sql) throws SQLException {
+    ResultSet rs = stmt.executeQuery(sql);
+    assertTrue(rs.next());
+    return rs;
   }
 
   private void checkThing(Thing thing) {
@@ -164,27 +172,17 @@ public class SQLDataTest {
     assertNull(thing.timestamp);
   }
 
-  @Test
-  public void readThings() throws Exception {
-    ResultSet rs = stmt.executeQuery(String.format("select %s from %s", TABLE_THING, TABLE_THING));
+  static Thing[] toThingArray(Array array) throws SQLException {
+    Map<String, Class<?>> map = new HashMap<>();
+    map.put(TABLE_THING, Thing.class);
 
-    assertTrue(rs.next());
-    checkThing(rs.getObject(1, Thing.class));
+    Object[] objects = (Object[])array.getArray(map);
 
-    assertTrue(rs.next());
-    checkNullThing(rs.getObject(1, Thing.class));
-  }
-
-  @Test
-  public void readRecursiveThing() throws Exception {
-    String sql = String.format("select (%s.id, %s)::%s from %s inner join %s on (thingid = %s.id)",
-                               TABLE_TEST, TABLE_THING, UDT_THING, TABLE_TEST, TABLE_THING, TABLE_THING);
-    ResultSet rs = stmt.executeQuery(sql);
-
-    assertTrue(rs.next());
-    TestObj test = rs.getObject(1, TestObj.class);
-    assertEquals(1, test.id);
-    checkThing(test.thing);
+    Thing[] things = new Thing[objects.length];
+    for (int ii = 0; ii < objects.length; ii++) {
+      things[ii] = (Thing) objects[ii];
+    }
+    return things;
   }
 
   private void checkThings(Thing[] things) {
@@ -200,38 +198,38 @@ public class SQLDataTest {
     }
   }
 
-  static Thing[] toThingArray(Array array) throws SQLException {
-    Map<String, Class<?>> map = new HashMap<>();
-    map.put(TABLE_THING, Thing.class);
+  @Test
+  public void readSQLData() throws Exception {
+    ResultSet rs = getResultSet(String.format("select %s from %s", TABLE_THING, TABLE_THING));
+    checkThing(rs.getObject(1, Thing.class));
 
-    Object[] objects = (Object[])array.getArray(map);
-
-    Thing[] things = new Thing[objects.length];
-    for (int ii = 0; ii < objects.length; ii++) {
-      things[ii] = (Thing) objects[ii];
-    }
-    return things;
+    assertTrue(rs.next());
+    checkNullThing(rs.getObject(1, Thing.class));
   }
 
   @Test
-  public void readArray() throws Exception {
-    String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
-    ResultSet rs = stmt.executeQuery(sql);
+  public void readRecursiveSQLData() throws Exception {
+    String sql = String.format("select (%s.id, %s)::%s from %s inner join %s on (thingid = %s.%s)",
+                               TABLE_TEST, TABLE_THING, UDT_THING, TABLE_TEST, TABLE_THING, TABLE_THING, COL_ID);
+    ResultSet rs = getResultSet(sql);
 
-    assertTrue(rs.next());
+    TestObj test = rs.getObject(1, TestObj.class);
+    assertEquals(1, test.id);
+    checkThing(test.thing);
+  }
+
+  @Test
+  public void readArrayOfSQLData() throws Exception {
+    ResultSet rs = getResultSet(String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING));
     checkThings(toThingArray(rs.getArray(1)));
   }
 
   // //
-  // // This test does not work until we can implemnt Arrays correctly.
+  // // This test does not work until we can implemnt java.sql.Arrays correctly
   // //
   // @Test
   // public void readArraySQLInput() throws Exception {
-  //   String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
-  //   ResultSet rs = stmt.executeQuery(sql);
-
-  //   assertTrue(rs.next());
-
+  //   ResultSet rs = getResultSet(String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING));
   //   ThingArray array = rs.getObject(1, ThingArray.class);
   //   checkThings(array.things);
   // }
@@ -241,28 +239,39 @@ public class SQLDataTest {
    */
   @Test
   public void readArrayTypeSQLInput() throws Exception {
-    String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
-    ResultSet rs = stmt.executeQuery(sql);
-
-    assertTrue(rs.next());
-
-    ThingCollection coll = rs.getObject(1, ThingCollection.class);
-
-    checkThings(coll.things);
+    ResultSet rs = getResultSet(String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING));
+    checkThings(rs.getObject(1, ThingCollection.class).things);
   }
 
-  // /**
-  //  * Tests the (type.isArray()) section in PgResultSet.getObject()
-  //  */
-  // @Test
-  // public void readArrayType() throws Exception {
-  //   String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
-  //   ResultSet rs = stmt.executeQuery(sql);
+  /**
+   * Tests the (type.isArray()) section in PgResultSet.getObject()
+   */
+  @Test
+  public void readArrayType() throws Exception {
+    ResultSet rs = getResultSet(String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING));
+    checkThings(rs.getObject(1, Thing[].class));
 
-  //   assertTrue(rs.next());
+    //
+    // Now test some "primitive" types (i.e. not SQLData)
+    //
+    String sql = String.format("with ot as (select * from %s order by %s) select array_agg(%s), array_agg(%s) from ot", TABLE_THING, COL_ID, COL_TS, COL_ID);
+    rs = getResultSet(sql);
 
-  //   checkThings(rs.getObject(1, Thing[].class));
-  // }
+    Timestamp[] tss = rs.getObject(1, Timestamp[].class);
+    assertNotNull(tss);
+    assertEquals(2, tss.length);
+    assertNotNull(tss[0]);
+    assertEquals(TS, tss[0].toString());
+    assertNull(tss[1]);
+
+
+    Integer[] ids = rs.getObject(2, Integer[].class);
+    assertNotNull(ids);
+    assertEquals(2, ids.length);
+    assertNotNull(ids[0]);
+    assertEquals(42, ids[0]);
+    assertNull(ids[1]);
+  }
 
   public static class Thing implements SQLData {
     public int id;
