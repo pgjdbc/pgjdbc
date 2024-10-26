@@ -259,7 +259,8 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
-  private Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, List<@Nullable String> items) throws SQLException {
+  private Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
+    List<@Nullable String> items = new SQLDataReader().parseArray(value);
     Object @Nullable [] results = (Object @Nullable []) java.lang.reflect.Array.newInstance(itemType, items.size());
     for (int i = 0; i < items.size(); i++) {
       @Nullable String item = items.get(i);
@@ -275,9 +276,9 @@ public class PgSQLInput implements SQLInput {
   // //
   // // I think you have to use java.lang.reflect or else you get a cannot cast exception.
   // //
-  // private Object buildArray(Class<?> itemType, SQLFunction<String, ?> converter, List<@Nullable String> items) throws SQLException {
+  // private Object buildArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
+  //   List<@Nullable String> items = new SQLDataReader().parseArray(value);
   //   List<@Nullable Object>  results = new ArrayList<>(items.size());
-
   //   for (int i = 0; i < items.size(); i++) {
   //     @Nullable String item = items.get(i);
   //     if ("NULL".equals(item)) {
@@ -294,9 +295,8 @@ public class PgSQLInput implements SQLInput {
       Class<?> itemType = type.getComponentType();
       SQLFunction<String, ?> converter = getConverter(itemType);
       return (value) -> {
-        List<@Nullable String> items = new SQLDataReader().parseArray(value);
-        // return type.cast(buildArray(itemType, converter, items));
-        return type.cast(reflectArray(itemType, converter, items));
+        // return type.cast(buildArray(itemType, converter, value));
+        return type.cast(reflectArray(itemType, converter, value));
       };
     }
 
