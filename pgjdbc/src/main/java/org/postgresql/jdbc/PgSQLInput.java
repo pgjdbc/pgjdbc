@@ -9,7 +9,6 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.core.Oid;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -64,6 +63,7 @@ public class PgSQLInput implements SQLInput {
   private final SQLFunction<String, Timestamp> timestampConv;
   private final SQLFunction<String, Time> timeConv;
   private final SQLFunction<String, Date> dateConv;
+  private final SQLFunction<String, Array> arrayConv;
 
   private int index = -1;
   private @Nullable Boolean wasNull = null;
@@ -79,6 +79,10 @@ public class PgSQLInput implements SQLInput {
     timestampConv = (value) -> timestampUtils.toTimestamp(null, value.getBytes());
     timeConv = (value) -> timestampUtils.toTime(null, value.getBytes());
     dateConv = (value) -> timestampUtils.toDate(null, value.getBytes());
+    arrayConv = (value) -> {
+      // return new PgArray(connection, Oid.TEXT, value);
+      throw Driver.notImplemented(this.getClass(), "readArray()");
+    };
   }
 
   private @Nullable <T> T getNextValue(SQLFunction<String, T> convert) throws SQLException {
@@ -218,9 +222,10 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readClob()");
   }
 
+  @SuppressWarnings("override.return")
   @Override
-  public Array readArray() throws SQLException {
-    return new PgArray(connection, Oid.TEXT, readString());
+  public @Nullable Array readArray() throws SQLException {
+    return getNextValue(arrayConv);
   }
 
   @SuppressWarnings("override.return")
@@ -353,6 +358,10 @@ public class PgSQLInput implements SQLInput {
 
     if (type == URL.class) {
       return (SQLFunction<String, T>) urlConv;
+    }
+
+    if (type == Array.class) {
+      return (SQLFunction<String, T>) arrayConv;
     }
 
     throw new SQLException(String.format("Unsupported type conversion to [%s].", type));

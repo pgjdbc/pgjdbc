@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.ResultSet;
@@ -200,37 +201,47 @@ public class SQLDataTest {
     }
   }
 
-  /**
-   * NOTE: For this ...
-   *     Thing[] things = rs.getObject(1, Thing[].class);
-   * ... to work we would need to add a check in PgResultSet for
-   *     if (type.isArray()) {
-   * like we have in the PgSqlInput for getConvertor
-   */
+  static Thing[] toThingArray(Array array) throws SQLException {
+    Map<String, Class<?>> map = new HashMap<>();
+    map.put(TABLE_THING, Thing.class);
+
+    Object[] objects = (Object[])array.getArray(map);
+
+    Thing[] things = new Thing[objects.length];
+    for (int ii = 0; ii < objects.length; ii++) {
+      things[ii] = (Thing) objects[ii];
+    }
+    return things;
+  }
+
   @Test
   public void readArray() throws Exception {
     String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
     ResultSet rs = stmt.executeQuery(sql);
 
     assertTrue(rs.next());
-    Map<String, Class<?>> map = new HashMap<>();
-    map.put(TABLE_THING, Thing.class);
-
-    Object[] objects = (Object[])rs.getArray(1).getArray(map);
-
-    Thing[] things = new Thing[objects.length];
-    for (int ii = 0; ii < objects.length; ii++) {
-      things[ii] = (Thing) objects[ii];
-    }
-
-    checkThings(things);
+    checkThings(toThingArray(rs.getArray(1)));
   }
+
+  // //
+  // // This test does not work until we can implemnt Arrays correctly.
+  // //
+  // @Test
+  // public void readArraySQLInput() throws Exception {
+  //   String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
+  //   ResultSet rs = stmt.executeQuery(sql);
+
+  //   assertTrue(rs.next());
+
+  //   ThingArray array = rs.getObject(1, ThingArray.class);
+  //   checkThings(array.things);
+  // }
 
   // /**
   //  * Tests the (type.isArray()) section in PgSQLInput.getConverter()
   //  */
   // @Test
-  // public void readArraySQLInput() throws Exception {
+  // public void readArrayTypeSQLInput() throws Exception {
   //   String sql = String.format("select ('mythings', array_agg(%s))::%s from %s", TABLE_THING, UDT_THING_COL, TABLE_THING);
   //   System.out.println(sql);
   //   ResultSet rs = stmt.executeQuery(sql);
@@ -248,7 +259,7 @@ public class SQLDataTest {
   //  * Tests the (type.isArray()) section in PgResultSet.getObject()
   //  */
   // @Test
-  // public void readArrayPgResultSet() throws Exception {
+  // public void readArrayType() throws Exception {
   //   String sql = String.format("select array_agg(%s) from %s", TABLE_THING, TABLE_THING);
   //   ResultSet rs = stmt.executeQuery(sql);
 
@@ -313,6 +324,28 @@ public class SQLDataTest {
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
       id = stream.readInt();
       thing = stream.readObject(Thing.class);
+    }
+
+    @Override
+    public void writeSQL(SQLOutput stream) {
+      // not implemented
+    }
+  }
+
+  public static class ThingArray implements SQLData {
+    public String name;
+    public Thing[] things;
+
+    @Override
+    public String getSQLTypeName() {
+      return UDT_THING_COL;
+    }
+
+    @Override
+    public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      name = stream.readString();
+      System.out.println(name);
+      things = SQLDataTest.toThingArray(stream.readArray());
     }
 
     @Override
