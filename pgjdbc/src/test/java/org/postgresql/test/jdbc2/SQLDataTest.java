@@ -264,7 +264,6 @@ public class SQLDataTest {
     assertEquals(TS, tss[0].toString());
     assertNull(tss[1]);
 
-
     Integer[] ids = rs.getObject(2, Integer[].class);
     assertNotNull(ids);
     assertEquals(2, ids.length);
