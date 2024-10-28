@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import java.util.Objects;
+
 import org.postgresql.util.CanEstimateSize;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -60,8 +62,8 @@ class BaseQueryKey implements CanEstimateSize {
     if (escapeProcessing != that.escapeProcessing) {
       return false;
     }
-    return sql != null ? sql.equals(that.sql) : that.sql == null;
 
+    return Objects.equals(sql, that.sql);
   }
 
   @Override

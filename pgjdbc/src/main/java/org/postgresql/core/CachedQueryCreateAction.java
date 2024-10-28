@@ -40,7 +40,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     }
     if (key instanceof String || castNonNull(queryKey).escapeProcessing) {
       parsedSql =
-          Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());
+          Parser.replaceProcessing(parsedSql, queryExecutor.getStandardConformingStrings());
     }
     boolean isFunction;
     if (key instanceof CallableQueryKey) {
