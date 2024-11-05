@@ -433,7 +433,7 @@ public class Parser {
    */
   public static int parseSingleQuotes(final char[] query, int offset,
       boolean standardConformingStrings) {
-    // check for escape string syntax (E'')
+    // check for escape string syntax E''
     if (standardConformingStrings
         && offset >= 2
         && (query[offset - 1] == 'e' || query[offset - 1] == 'E')

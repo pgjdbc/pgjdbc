@@ -22,6 +22,10 @@ import java.util.Map;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 class CompositeQuery implements Query {
+
+  private final SimpleQuery[] subqueries;
+  private final int[] offsets;
+
   CompositeQuery(SimpleQuery[] subqueries, int[] offsets) {
     this.subqueries = subqueries;
     this.offsets = offsets;
@@ -107,7 +111,4 @@ class CompositeQuery implements Query {
   public @Nullable Map<String, Integer> getResultSetColumnNameIndexMap() {
     return null; // unsupported
   }
-
-  private final SimpleQuery[] subqueries;
-  private final int[] offsets;
 }

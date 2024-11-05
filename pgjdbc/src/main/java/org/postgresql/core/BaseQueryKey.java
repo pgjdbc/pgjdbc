@@ -5,11 +5,11 @@
 
 package org.postgresql.core;
 
-import java.util.Objects;
-
 import org.postgresql.util.CanEstimateSize;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.util.Objects;
 
 /**
  * This class is used as a cache key for simple statements that have no "returning columns".

@@ -88,6 +88,7 @@ dependencies {
 
     implementation("org.checkerframework:checker-qual:3.42.0")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
+    testImplementation("org.mockito:mockito-core:5.14.2")
     testFixturesImplementation("junit:junit:4.13.2")
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.2") {
