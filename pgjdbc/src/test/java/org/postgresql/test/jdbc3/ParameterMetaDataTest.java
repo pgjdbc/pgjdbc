@@ -168,6 +168,8 @@ public class ParameterMetaDataTest extends BaseTest4 {
     ParameterMetaData thirdCall = pstmt.getParameterMetaData();
 
     // then
+    // We're not expecting any interactions with the QueryExecutor#execute when the statement
+    // is already prepared on the server side.
     Mockito
         .verify(spyOnQueryExecutor, Mockito.never())
         .execute(
@@ -179,6 +181,8 @@ public class ParameterMetaDataTest extends BaseTest4 {
             Mockito.anyInt()
         );
 
+    // However, we d expect that for each three invocations of getParameterMetaData there would be a
+    // corresponding call to QueryExecutor#requiresDescribe
     Mockito
         .verify(spyOnQueryExecutor, Mockito.times(3))
         .requiresDescribe(
