@@ -743,11 +743,10 @@ public class TestUtil {
     if (con == null) {
       throw new NullPointerException("Connection is null");
     }
-    return Try
-        .call(() -> con.unwrap(PgConnection.class))
-        .andThenTry(it -> it.escapeString(value))
-        .toOptional()
-        .orElse(value);
+    if (con instanceof PgConnection) {
+      return ((PgConnection) con).escapeString(value);
+    }
+    return value;
   }
 
   public static boolean getStandardConformingStrings(Connection con) {
@@ -780,11 +779,10 @@ public class TestUtil {
     if (con == null) {
       throw new NullPointerException("Connection is null");
     }
-    return Try
-        .call(() -> con.unwrap(PgConnection.class))
-        .andThenTry(it -> it.haveMinimumServerVersion(version))
-        .toOptional()
-        .orElse(false);
+    if (con instanceof PgConnection) {
+      return ((PgConnection) con).haveMinimumServerVersion(version);
+    }
+    return false;
   }
 
   public static void assumeHaveMinimumServerVersion(Version version)
