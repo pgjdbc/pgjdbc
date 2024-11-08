@@ -1766,9 +1766,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
           flags);
     } else {
-      if (LOGGER.isLoggable(Level.FINE)) {
-        LOGGER.log(Level.FINE, "Returned ParameterMetaData from cache");
-      }
+      LOGGER.log(Level.FINE, "Returned ParameterMetaData from cache");
     }
     int[] oids = preparedParameters.getTypeOIDs();
     return createParameterMetaData(connection, oids);
