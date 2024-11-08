@@ -201,12 +201,12 @@ public class ParameterMetaDataTest extends BaseTest4 {
 
     // this check is necessary to not spy on spy.
     // It is required since the connection is shared between the tests, and so is QueryExecutor bind to it.
-    if (!Mockito.mockingDetails(originalQueryExecutor).isSpy()) {
+    if (Mockito.mockingDetails(originalQueryExecutor).isSpy()) {
+      Mockito.clearInvocations(originalQueryExecutor);
+    } else {
       QueryExecutor spyOnQueryExecutor = Mockito.spy(originalQueryExecutor);
       queryExecutorField.set(pgConnection, spyOnQueryExecutor);
       return spyOnQueryExecutor;
-    } else {
-      Mockito.clearInvocations(originalQueryExecutor);
     }
 
     return originalQueryExecutor;
