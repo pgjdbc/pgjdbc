@@ -2307,10 +2307,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     String sql;
+
+    // Version 11 added "include columns" in index hence we need to filter only the key attributes
+    // when returning primary keys.
+    String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
+
     sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
           + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
-          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM "
+          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
+          + keyCountColumn + " as KEY_COUNT "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
@@ -2337,7 +2343,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "FROM "
             + "     (" + sql + " ) result"
             + " where "
-            + " result.A_ATTNUM = (result.KEYS).x ";
+            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ";
     sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
 
     return createMetaDataStatement().executeQuery(sql);
