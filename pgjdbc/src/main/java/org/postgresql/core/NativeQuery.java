@@ -13,19 +13,20 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * replaced with $1, $2, etc.
  */
 public class NativeQuery {
-  private static final String[] BIND_NAMES = new String[128 * 10];
   private static final int[] NO_BINDS = new int[0];
 
   public final String nativeSql;
+
+  /**
+   * Indexes in the {@link #nativeSql} that represents the binding positions. For instance, for the given SQL:
+   * <pre>
+   *   SELECT * FROM users WHERE name = $1 AND age = $2;
+   * </pre>
+   * The bindPositions would contain 2 elements that are the indexes of the '$1' and '$2' literals.
+   */
   public final int[] bindPositions;
   public final SqlCommand command;
   public final boolean multiStatement;
-
-  static {
-    for (int i = 1; i < BIND_NAMES.length; i++) {
-      BIND_NAMES[i] = "$" + i;
-    }
-  }
 
   public NativeQuery(String nativeSql, SqlCommand dml) {
     this(nativeSql, NO_BINDS, true, dml);
@@ -77,13 +78,10 @@ public class NativeQuery {
    * @return bind variable name
    */
   public static String bindName(int index) {
-    return index < BIND_NAMES.length ? BIND_NAMES[index] : "$" + index;
+    return "$" + index;
   }
 
   public static StringBuilder appendBindName(StringBuilder sb, int index) {
-    if (index < BIND_NAMES.length) {
-      return sb.append(bindName(index));
-    }
     sb.append('$');
     sb.append(index);
     return sb;
