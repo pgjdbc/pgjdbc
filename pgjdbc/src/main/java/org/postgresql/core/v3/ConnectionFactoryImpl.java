@@ -392,7 +392,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
       // User is explicitly telling us this is a 9.0+ server so set properties here:
-      paramList.add(new StartupParam("extra_float_digits", "3"));
+      if (assumeVersion.getVersionNum() < ServerVersion.v12.getVersionNum()) {
+        // extra_float_digits is meaningless in this case starting from v12
+        // see note on https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-EXTRA-FLOAT-DIGITS
+        paramList.add(new StartupParam("extra_float_digits", "3"));
+      }
       String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
       if (appName != null) {
         paramList.add(new StartupParam("application_name", appName));
@@ -921,7 +925,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, "BEGIN", false);
     }
 
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+    if (dbVersion >= ServerVersion.v9_0.getVersionNum() && dbVersion < ServerVersion.v12.getVersionNum()) {
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
