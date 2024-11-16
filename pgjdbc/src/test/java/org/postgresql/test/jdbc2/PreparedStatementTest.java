@@ -7,7 +7,6 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -250,12 +249,13 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setString(2, "test");
 
     String pstmtString = pstmt.toString();
-    assertNotNull(pstmtString);
+    final String expected = "INSERT INTO streamtable VALUES (?,('test'))";
+    assertEquals(expected, pstmtString);
 
     // 2nd invoke of #tostring reproduces #3365
     // throws exception: org.postgresql.util.PSQLException: Unable to convert bytea parameter at position 0 to literal
     pstmtString = pstmt.toString();
-    assertNotNull(pstmtString);
+    assertEquals(expected, pstmtString);
 
     pstmt.close();
   }

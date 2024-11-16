@@ -48,26 +48,7 @@ public class NativeQuery {
    * @return a human-readable representation of this query
    */
   public String toString(@Nullable ParameterList parameters) {
-    if (bindPositions.length == 0) {
-      return nativeSql;
-    }
-
-    int queryLength = nativeSql.length();
-    String[] params = new String[bindPositions.length];
-    for (int i = 1; i <= bindPositions.length; i++) {
-      String param = parameters == null ? "?" : parameters.toStringLiteral(i, true);
-      params[i - 1] = param;
-      queryLength += param.length() - bindName(i).length();
-    }
-
-    StringBuilder sbuf = new StringBuilder(queryLength);
-    sbuf.append(nativeSql, 0, bindPositions[0]);
-    for (int i = 1; i <= bindPositions.length; i++) {
-      sbuf.append(params[i - 1]);
-      int nextBind = i < bindPositions.length ? bindPositions[i] : nativeSql.length();
-      sbuf.append(nativeSql, bindPositions[i - 1] + bindName(i).length(), nextBind);
-    }
-    return sbuf.toString();
+    return toStringLiteral(parameters, true);
   }
 
   /**
@@ -114,5 +95,39 @@ public class NativeQuery {
 
   public SqlCommand getCommand() {
     return command;
+  }
+
+  public String toStringLiteral(@Nullable ParameterList parameters) {
+    return toStringLiteral(parameters, false);
+  }
+
+  protected String toStringLiteral(@Nullable ParameterList parameters, boolean skipInputStream) {
+    if (bindPositions.length == 0) {
+      return nativeSql;
+    }
+
+    int queryLength = nativeSql.length();
+    String[] params = new String[bindPositions.length];
+    for (int i = 1; i <= bindPositions.length; i++) {
+      final String param;
+      if (parameters == null) {
+        param = "?";
+      } else if (skipInputStream) {
+        param = parameters.toString(i);
+      } else {
+        param = parameters.toStringLiteral(i, true);
+      }
+      params[i - 1] = param;
+      queryLength += param.length() - bindName(i).length();
+    }
+
+    StringBuilder sbuf = new StringBuilder(queryLength);
+    sbuf.append(nativeSql, 0, bindPositions[0]);
+    for (int i = 1; i <= bindPositions.length; i++) {
+      sbuf.append(params[i - 1]);
+      int nextBind = i < bindPositions.length ? bindPositions[i] : nativeSql.length();
+      sbuf.append(nativeSql, bindPositions[i - 1] + bindName(i).length(), nextBind);
+    }
+    return sbuf.toString();
   }
 }

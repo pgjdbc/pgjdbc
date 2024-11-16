@@ -2049,7 +2049,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
-    String nativeSql = query.toString(params);
+    String nativeSql = query.toStringLiteral(params);
 
     LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
     Encoding encoding = pgStream.getEncoding();

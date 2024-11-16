@@ -174,9 +174,9 @@ public class BatchedQuery extends SimpleQuery {
   }
 
   @Override
-  public String toString(@Nullable ParameterList params) {
+  public String toStringLiteral(@Nullable ParameterList params) {
     if (getBatchSize() < 2) {
-      return super.toString(params);
+      return super.toStringLiteral(params);
     }
     return buildNativeSql(params);
   }
