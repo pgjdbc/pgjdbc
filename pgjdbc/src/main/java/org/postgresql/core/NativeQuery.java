@@ -55,7 +55,7 @@ public class NativeQuery {
     int queryLength = nativeSql.length();
     String[] params = new String[bindPositions.length];
     for (int i = 1; i <= bindPositions.length; i++) {
-      String param = parameters == null ? "?" : parameters.toString(i, true);
+      String param = parameters == null ? "?" : parameters.toStringLiteral(i, true);
       params[i - 1] = param;
       queryLength += param.length() - bindName(i).length();
     }
