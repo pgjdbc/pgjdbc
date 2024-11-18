@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
 import org.postgresql.PGConnection;
@@ -902,6 +903,54 @@ public class ArrayTest extends BaseTest4 {
             ars.getMetaData().getColumnType(1));
       }
     }
+  }
+
+  @Test
+  public void testEqualsWithSameOidSameFieldBytes() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.BYTEA_ARRAY, new byte[]{1, 2, 3});
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.BYTEA_ARRAY, new byte[]{1, 2, 3});
+
+    assertEquals(arr1, arr2);
+  }
+
+  @Test
+  public void testEqualsWithDifferentOidSameFieldBytes() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.BYTEA_ARRAY, new byte[]{1, 2, 3});
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.BOOL_ARRAY, new byte[]{1, 2, 3});
+
+    assertNotEquals(arr1, arr2);
+  }
+
+  @Test
+  public void testEqualsWithSameOidDifferentFieldBytes() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.BYTEA_ARRAY, new byte[]{1, 2, 3});
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.BYTEA_ARRAY, new byte[]{4, 5, 6});
+
+    assertNotEquals(arr1, arr2);
+  }
+
+  @Test
+  public void testEqualsWithSameOidSameFieldString() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+
+    assertEquals(arr1, arr2);
+  }
+
+  @Test
+  public void testEqualsWithDifferentOidSameFieldString() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.VARCHAR, "{\" lead\t\",  unquot\u000B \u2001 \r, \" \fnew \n \"\t, \f\" \" }");
+
+    assertNotEquals(arr1, arr2);
+  }
+
+  @Test
+  public void testEqualsWithSameOidDifferentFieldString() throws SQLException {
+    Array arr1 = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead1\t\",  unquot\u000B \u2001 \r, \" \fnew1 \n \"\t, \f\" \" }");
+    Array arr2 = new PgArray((BaseConnection) conn, Oid.VARCHAR_ARRAY, "{\" lead2\t\",  unquot\u000B \u2001 \r, \" \fnew2 \n \"\t, \f\" \" }");
+
+    assertNotEquals(arr1, arr2);
   }
 
 }
