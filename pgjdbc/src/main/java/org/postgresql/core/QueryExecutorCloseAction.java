@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.core.Protocol.TERMINATE_REQUEST;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
@@ -88,7 +90,7 @@ public class QueryExecutorCloseAction implements Closeable {
     if (timeout == 0 || timeout > 1000) {
       pgStream.setNetworkTimeout(1000);
     }
-    pgStream.sendChar('X');
+    pgStream.sendChar(TERMINATE_REQUEST);
     pgStream.sendInteger4(4);
   }
 }
