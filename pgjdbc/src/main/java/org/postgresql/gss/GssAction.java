@@ -38,17 +38,20 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
   private final String kerberosServerName;
   private final String user;
   private final boolean useSpnego;
+  private final boolean gssUseDefaultCreds;
   private final @Nullable Subject subject;
   private final boolean logServerErrorDetail;
 
   GssAction(PGStream pgStream, @Nullable Subject subject, String host, String user,
-      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
+      String kerberosServerName, boolean useSpnego, boolean gssUseDefaultCreds,
+      boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.subject = subject;
     this.host = host;
     this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
+    this.gssUseDefaultCreds = gssUseDefaultCreds;
     this.logServerErrorDetail = logServerErrorDetail;
   }
 
@@ -101,9 +104,13 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           }
         }
 
-        GSSName clientName = manager.createName(principalName, GSSName.NT_USER_NAME);
-        clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
-            GSSCredential.INITIATE_ONLY);
+        if (gssUseDefaultCreds) {
+          clientCreds = manager.createCredential(GSSCredential.INITIATE_ONLY);
+        } else {
+          GSSName clientName = manager.createName(principalName, GSSName.NT_USER_NAME);
+          clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
+              GSSCredential.INITIATE_ONLY);
+        }
       } else {
         desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
         clientCreds = gssCredential;

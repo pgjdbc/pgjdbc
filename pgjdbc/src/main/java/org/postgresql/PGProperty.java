@@ -319,6 +319,20 @@ public enum PGProperty {
       "Login with JAAS before doing GSSAPI authentication"),
 
   /**
+   * Flag to enable/disable the obtaining the default GSS credentials from a pre-existing ccache,
+   * rather than using JAAS.  This also allows GSS to work in environments where the default
+   * kerberos principal a user has is not user@DEFAULT_REALM, but some other user (this is valid,
+   * and often the case in more advanced Kerberos setups).  Finally, this also means that if
+   * the "native" GSS implementation is used (i.e. the local system GSS libraries), all means of
+   * fetching the default credential are supported.  Currently, JAAS is pure java on Linux, and
+   * does not support the use of KCM (and only supports file-based ccaches and keytabs).
+   */
+  GSS_USE_DEFAULT_CREDS(
+      "gssUseDefaultCreds",
+      "false",
+      "Use the default GSS credentials the process already has, rather than a JAAS login"),
+
+  /**
    * The Kerberos service name to use when authenticating with GSSAPI. This is equivalent to libpq's
    * PGKRBSRVNAME environment variable.
    */
