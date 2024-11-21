@@ -128,6 +128,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
     SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
+
     if (user == null) {
       throw new PSQLException(GT.tr("User cannot be null"), PSQLState.INVALID_NAME);
     }
