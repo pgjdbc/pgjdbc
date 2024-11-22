@@ -553,6 +553,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                 PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), false, // TODO: fix this
                 PGProperty.JAAS_LOGIN.getBoolean(info),
+                PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(info),
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
@@ -838,6 +839,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                         PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), usespnego,
                         PGProperty.JAAS_LOGIN.getBoolean(info),
+                        PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(info),
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
                   });
