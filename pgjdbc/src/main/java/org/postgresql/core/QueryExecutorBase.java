@@ -75,8 +75,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
-    this.user = PGProperty.USER.getOrDefault(info);
-    this.database = PGProperty.PG_DBNAME.getOrDefault(info);
+    this.user = PGProperty.USER.getOrNull(info);
+    this.database = PGProperty.DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
     this.reWriteBatchedInserts = PGProperty.REWRITE_BATCHED_INSERTS.getBoolean(info);
     this.columnSanitiserDisabled = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
