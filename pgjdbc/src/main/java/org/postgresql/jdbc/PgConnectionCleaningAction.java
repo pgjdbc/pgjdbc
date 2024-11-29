@@ -6,15 +6,11 @@
 package org.postgresql.jdbc;
 
 import org.postgresql.Driver;
-import org.postgresql.util.GT;
-import org.postgresql.util.LazyCleaner;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Timer;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -27,7 +23,7 @@ import java.util.logging.Logger;
  *   <li>Release shared timer registration</li>
  * </ul>
  */
-class PgConnectionCleaningAction implements LazyCleaner.CleaningAction<IOException> {
+class PgConnectionCleaningAction implements Runnable {
   private static final Logger LOGGER = Logger.getLogger(PgConnection.class.getName());
 
   private final ResourceLock lock;
@@ -81,12 +77,13 @@ class PgConnectionCleaningAction implements LazyCleaner.CleaningAction<IOExcepti
   }
 
   @Override
-  public void onClean(boolean leak) throws IOException {
-    if (leak && openStackTrace != null) {
-      LOGGER.log(Level.WARNING, GT.tr("Leak detected: Connection.close() was not called"), openStackTrace);
-    }
+  public void run() {
     openStackTrace = null;
     releaseTimer();
-    queryExecutorCloseAction.close();
+    try {
+      queryExecutorCloseAction.close();
+    } catch ( Exception ex ) {
+      //ignore
+    }
   }
 }
