@@ -238,7 +238,7 @@ public interface BaseConnection extends PGConnection, Connection {
    * @see QueryExecutor#QUERY_ISOLATION_LEVEL_HIGH
    * @see QueryExecutor#QUERY_ISOLATION_LEVEL_LOW
    */
-  int addIsolationLevelFlags(int flags);
+  int addIsolationLevelFlags(int flags) throws SQLException;
 
 
   /**

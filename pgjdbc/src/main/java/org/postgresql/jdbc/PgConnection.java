@@ -969,8 +969,9 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  public int addIsolationLevelFlags(int flags) {
+  public int addIsolationLevelFlags(int flags) throws SQLException {
     int resultFlags = flags;
+    int isolationLevel = getTransactionIsolation();
     if (isolationLevel == Connection.TRANSACTION_READ_COMMITTED
         || isolationLevel == Connection.TRANSACTION_SERIALIZABLE) {
       resultFlags |= QueryExecutor.QUERY_ISOLATION_LEVEL_LOW;
@@ -1086,8 +1087,42 @@ public class PgConnection implements BaseConnection {
 
   @Override
   public int getTransactionIsolation() throws SQLException {
-    checkClosed();
+    // needed if the isolation level changed manually through SQL
+    if (transactionIsolationBehavior == TransactionIsolationBehavior.session) {
+      return getSessionTransactionIsolation();
+    }
     return this.isolationLevel;
+  }
+
+  private int getSessionTransactionIsolation() throws SQLException {
+    checkClosed();
+    String level = null;
+    final ResultSet rs = execSQLQuery("SHOW TRANSACTION ISOLATION LEVEL"); // nb: no BEGIN triggered
+    if (rs.next()) {
+      level = rs.getString(1);
+    }
+    rs.close();
+
+    // TODO revisit: throw exception instead of silently eating the error in unknown cases?
+    if (level == null) {
+      return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
+    }
+
+    level = level.toUpperCase(Locale.US);
+    if ("READ COMMITTED".equals(level)) {
+      return Connection.TRANSACTION_READ_COMMITTED;
+    }
+    if ("READ UNCOMMITTED".equals(level)) {
+      return Connection.TRANSACTION_READ_UNCOMMITTED;
+    }
+    if ("REPEATABLE READ".equals(level)) {
+      return Connection.TRANSACTION_REPEATABLE_READ;
+    }
+    if ("SERIALIZABLE".equals(level)) {
+      return Connection.TRANSACTION_SERIALIZABLE;
+    }
+
+    return Connection.TRANSACTION_READ_COMMITTED; // Best guess.
   }
 
   @Override
@@ -1106,7 +1141,7 @@ public class PgConnection implements BaseConnection {
           PSQLState.NOT_IMPLEMENTED);
     }
 
-    if (this.isolationLevel != level && transactionIsolationBehavior == TransactionIsolationBehavior.session) {
+    if (transactionIsolationBehavior == TransactionIsolationBehavior.session) {
       String isolationLevelSQL = getSessionIsolationQuery(isolationLevelName);
       execSQLUpdate(isolationLevelSQL); // nb: no BEGIN triggered
     }
