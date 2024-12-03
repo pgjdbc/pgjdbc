@@ -238,6 +238,7 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
+  @SuppressWarnings("type.arguments.not.inferred")
   public String toString(@Positive int index, boolean standardConformingStrings) {
     --index;
     Object paramValue = paramValues[index];
