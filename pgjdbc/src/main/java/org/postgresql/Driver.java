@@ -275,6 +275,14 @@ public class Driver implements java.sql.Driver {
         props.setProperty(propName, propValue);
       }
     }
+
+    // Explicitly set password with IAM generated token
+    String password = generateIAMToken(
+        PGProperty.PG_HOST.getOrDefault(props),
+        PGProperty.PG_PORT.getOrDefault(props),
+        PGProperty.USER.getOrDefault(props), );
+    PGProperty.PASSWORD.set(props, password);
+
     // parse URL and add more properties
     if ((props = parseURL(url, props)) == null) {
       throw new PSQLException(
@@ -321,6 +329,31 @@ public class Driver implements java.sql.Driver {
           GT.tr(
               "Something unusual has occurred to cause the driver to fail. Please report this exception."),
           PSQLState.UNEXPECTED_ERROR, ex2);
+    }
+  }
+
+  // **IAM Token Generation Method**
+
+  /**
+   * IAM Token Generation -- generates a token using local IAM credentials
+   * We want this to use the operating system here to create this token locally
+   */
+  private String generateIAMToken(String host, int port, String username) throws SQLException {
+    try {
+      ProcessBuilder processBuilder = new ProcessBuilder(
+          "aws", "rds", "generate-db-auth-token",
+          "--hostname", host,
+          "--port", String.valueOf(port),
+          "--username", username,
+          "--region", "us-east-2"
+      );
+
+      Process process = processBuilder.start();
+      try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        return reader.readLine().trim();
+      }
+    } catch (Exception e) {
+      throw new SQLException("Failed to generate IAM token", e);
     }
   }
 
