@@ -22,7 +22,7 @@ pluginManagement {
 }
 
 plugins {
-    `gradle-enterprise`
+    id("com.gradle.develocity") version "3.18.2"
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -57,12 +57,15 @@ fun property(name: String) =
 
 val isCiServer = System.getenv().containsKey("CI")
 
-if (isCiServer) {
-    gradleEnterprise {
-        buildScan {
-            termsOfServiceUrl = "https://gradle.com/terms-of-service"
-            termsOfServiceAgree = "yes"
+develocity {
+    buildScan {
+        if (isCiServer) {
+            termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
+            termsOfUseAgree = "yes"
             tag("CI")
+        } else {
+            // Dot not publish build scans from the local builds unless user executes with --scan
+            publishing.onlyIf { false }
         }
     }
 }
