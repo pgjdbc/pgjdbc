@@ -541,6 +541,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
+  private void setPgStruct(int parameterIndex, PgStruct x) throws SQLException {
+    checkClosed();
+    int oid = connection.getTypeInfo().getPGType(x.getSQLTypeName());
+    setString(parameterIndex, x.toString(), oid);
+  }
+
   private void setMap(@Positive int parameterIndex, Map<?, ?> x) throws SQLException {
     int oid = connection.getTypeInfo().getPGType("hstore");
     if (oid == Oid.UNSPECIFIED) {
@@ -1051,6 +1057,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       setMap(parameterIndex, (Map<?, ?>) x);
     } else if (x instanceof Number) {
       setNumber(parameterIndex, (Number) x);
+    } else if (x instanceof PgStruct) {
+      setPgStruct(parameterIndex, (PgStruct) x);
     } else if (x.getClass().isArray()) {
       try {
         setObjectArray(parameterIndex, x);
