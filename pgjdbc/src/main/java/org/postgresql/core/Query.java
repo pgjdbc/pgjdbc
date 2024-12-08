@@ -29,7 +29,7 @@ public interface Query {
    *
    * @return a suitable ParameterList instance for this query
    */
-  ParameterList createParameterList();
+  ParameterList createParameterList(boolean extendedQuery);
 
   /**
    * Stringize this query to a human-readable form, substituting particular parameter values for

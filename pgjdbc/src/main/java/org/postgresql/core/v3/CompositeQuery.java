@@ -28,10 +28,10 @@ class CompositeQuery implements Query {
   }
 
   @Override
-  public ParameterList createParameterList() {
+  public ParameterList createParameterList(boolean extendedQuery) {
     SimpleParameterList[] subparams = new SimpleParameterList[subqueries.length];
     for (int i = 0; i < subqueries.length; i++) {
-      subparams[i] = (SimpleParameterList) subqueries[i].createParameterList();
+      subparams[i] = (SimpleParameterList) subqueries[i].createParameterList(extendedQuery);
     }
     return new CompositeParameterList(subparams, offsets);
   }
