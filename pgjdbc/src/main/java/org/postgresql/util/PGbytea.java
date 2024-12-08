@@ -164,7 +164,7 @@ public class PGbytea {
    * @return formatted value
    * @throws IOException in case there's underflow in the input value
    */
-  public static String toPGLiteral(Object value) throws IOException {
+  public static String toPGLiteral(Object value, boolean skipInputStream) throws IOException {
     if (value instanceof byte[]) {
       byte[] bytes = (byte[]) value;
       StringBuilder sb = new StringBuilder(bytes.length * 2 + 11);
@@ -175,6 +175,10 @@ public class PGbytea {
     }
 
     if (value instanceof StreamWrapper) {
+      if (skipInputStream) {
+        return "?";
+      }
+
       StreamWrapper sw = (StreamWrapper) value;
       int length = sw.getLength();
       StringBuilder sb = new StringBuilder(length * 2 + 11);

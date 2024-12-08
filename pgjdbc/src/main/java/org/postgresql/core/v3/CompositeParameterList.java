@@ -143,10 +143,17 @@ class CompositeParameterList implements V3ParameterList {
   }
 
   @Override
-  public String toString(@Positive int index, boolean standardConformingStrings) {
+  public String toStringLiteral(@Positive int index, boolean standardConformingStrings) {
+    return toStringLiteral(index, standardConformingStrings, false);
+  }
+
+  protected String toStringLiteral(@Positive int index, boolean standardConformingStrings, boolean skipInputStream) {
     try {
       int sub = findSubParam(index);
-      return subparams[sub].toString(index - offsets[sub], standardConformingStrings);
+      if (skipInputStream) {
+        return subparams[sub].toString(index - offsets[sub]);
+      }
+      return subparams[sub].toStringLiteral(index - offsets[sub], standardConformingStrings);
     } catch (SQLException e) {
       throw new IllegalStateException(e.getMessage());
     }
@@ -167,6 +174,11 @@ class CompositeParameterList implements V3ParameterList {
     for (SimpleParameterList subparam : subparams) {
       subparam.clear();
     }
+  }
+
+  @Override
+  public String toString(@Positive int index) {
+    return toStringLiteral(index, true, true);
   }
 
   @Override

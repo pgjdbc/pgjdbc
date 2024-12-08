@@ -238,7 +238,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
-  public String toString(@Positive int index, boolean standardConformingStrings) {
+  public String toStringLiteral(@Positive int index, boolean standardConformingStrings) {
+    return toStringLiteral(index, standardConformingStrings, false);
+  }
+
+  protected String toStringLiteral(@Positive int index, boolean standardConformingStrings, boolean skipInputStream) {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
@@ -250,7 +254,7 @@ class SimpleParameterList implements V3ParameterList {
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
       try {
-        return PGbytea.toPGLiteral(paramValue);
+        return PGbytea.toPGLiteral(paramValue, skipInputStream);
       } catch (Throwable e) {
         Throwable cause = e;
         if (!(cause instanceof IOException)) {
@@ -571,6 +575,11 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   @Override
+  public String toString(@Positive int index) {
+    return toStringLiteral(index, true, true);
+  }
+
+  @Override
   public SimpleParameterList @Nullable [] getSubparams() {
     return null;
   }
@@ -624,9 +633,9 @@ class SimpleParameterList implements V3ParameterList {
   public String toString() {
     StringBuilder ts = new StringBuilder("<[");
     if (paramValues.length > 0) {
-      ts.append(toString(1, true));
+      ts.append(this.toString(1));
       for (int c = 2; c <= paramValues.length; c++) {
-        ts.append(" ,").append(toString(c, true));
+        ts.append(" ,").append(this.toString(c));
       }
     }
     ts.append("]>");
