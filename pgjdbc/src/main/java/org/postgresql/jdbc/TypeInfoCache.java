@@ -409,21 +409,9 @@ public class TypeInfoCache implements TypeInfo {
     if (dotIndex == -1 && !hasQuote && !isArray) {
       PreparedStatement getOidStatementSimple = this.getOidStatementSimple;
       if (getOidStatementSimple == null) {
-        String sql;
-        // see comments in @getSQLType()
-        // -- go with older way of unnesting array to be compatible with 8.0
-        sql = "SELECT pg_type.oid, typname "
-              + "  FROM pg_catalog.pg_type "
-              + "  LEFT "
-              + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-              + "          from pg_namespace as ns "
-              + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-              + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-              + "         using ( nspname ) "
-              + "       ) as sp "
-              + "    ON sp.nspoid = typnamespace "
-              + " WHERE typname = ? "
-              + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
+        String sql = "SELECT pg_type.oid, typname "
+            + "  FROM pg_catalog.pg_type "
+            + " WHERE oid = ?::regtype";
         this.getOidStatementSimple = getOidStatementSimple = conn.prepareStatement(sql);
       }
       // coerce to lower case to handle upper case type names
