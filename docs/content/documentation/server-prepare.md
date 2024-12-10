@@ -424,7 +424,7 @@ following might be helpful to debug the case.
 
 1. Client logging. If you add `loggerLevel=TRACE&loggerFile=pgjdbc-trace.log`, you would get trace
 of the messages send between the driver and the backend
-1. You might check `org.postgresql.test.jdbc2.AutoRollbackTestSuite` as it verifies lots of combinations
+1. You might check `org.postgresql.test.jdbc2.AutoRollbackTest` as it verifies lots of combinations
 
 ##### Client Logging
 Logging is now configured using `java.util.logging`. Create a logging.properties file in resources similar to:
