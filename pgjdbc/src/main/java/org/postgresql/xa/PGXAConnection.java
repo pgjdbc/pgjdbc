@@ -25,7 +25,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -35,7 +36,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 /**
- * <p>The PostgreSQL implementation of {@link XAResource}.</p>
+ * The PostgreSQL implementation of {@link XAResource}.
  *
  * <p>This implementation doesn't support transaction interleaving (see JTA specification, section
  * 3.4.4) and suspend/resume.</p>
@@ -158,7 +159,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Preconditions:</p>
+   * Preconditions:
    * <ol>
    *     <li>Flags must be one of TMNOFLAGS, TMRESUME or TMJOIN</li>
    *     <li>xid != null</li>
@@ -247,7 +248,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Preconditions:</p>
+   * Preconditions:
    * <ol>
    *     <li>Flags is one of TMSUCCESS, TMFAIL, TMSUSPEND</li>
    *     <li>xid != null</li>
@@ -299,7 +300,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Prepares transaction. Preconditions:</p>
+   * Prepares transaction. Preconditions:
    * <ol>
    *     <li>xid != null</li>
    *     <li>xid is in ended state</li>
@@ -367,7 +368,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Recovers transaction. Preconditions:</p>
+   * Recovers transaction. Preconditions:
    * <ol>
    *     <li>flag must be one of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS or TMSTARTTRSCAN | TMENDRSCAN</li>
    *     <li>If flag isn't TMSTARTRSCAN or TMSTARTRSCAN | TMENDRSCAN, a recovery scan must be in progress</li>
@@ -402,9 +403,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           // except if the transaction is in abort-only state and the
           // backed refuses to process new queries. Hopefully not a problem
           // in practise.
+          // PostgreSQL requires the user to own the transaction in order to successfully execute
+          // commit prepared or rollback prepared
+          // See https://github.com/postgres/postgres/blob/15afb7d61c142a9254a6612c6774aff4f358fb69/src/backend/access/transam/twophase.c#L583C32-L599
           ResultSet rs = stmt.executeQuery(
-              "SELECT gid FROM pg_prepared_xacts where database = current_database()");
-          LinkedList<Xid> l = new LinkedList<>();
+              "SELECT gid FROM pg_prepared_xacts where database = current_database() and pg_has_role(current_user, owner, 'member')");
+          List<Xid> l = new ArrayList<>();
           while (rs.next()) {
             Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
             if (recoveredXid != null) {
@@ -424,7 +428,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Preconditions:</p>
+   * Preconditions:
    * <ol>
    *     <li>xid is known to the RM or it's in prepared state</li>
    * </ol>
@@ -504,7 +508,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Preconditions:</p>
+   * Preconditions:
    * <ol>
    *     <li>xid must in ended state.</li>
    * </ol>
@@ -555,7 +559,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
   }
 
   /**
-   * <p>Commits prepared transaction. Preconditions:</p>
+   * Commits prepared transaction. Preconditions:
    * <ol>
    *     <li>xid must be in prepared state in the server</li>
    * </ol>

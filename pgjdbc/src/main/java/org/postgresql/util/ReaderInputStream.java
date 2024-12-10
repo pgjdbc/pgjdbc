@@ -16,8 +16,8 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 
 /**
- * <p>ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
- * converts it to a UTF-8 byte stream (InputStream) as output.</p>
+ * ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
+ * converts it to a UTF-8 byte stream (InputStream) as output.
  *
  * <p>This is the inverse of java.io.InputStreamReader which converts a
  * binary stream to a character stream.</p>

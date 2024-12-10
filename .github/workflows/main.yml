@@ -54,7 +54,7 @@ jobs:
       with:
         distribution: zulu
         java-version: 17
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: burrunan/gradle-cache-action@v2
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -75,7 +75,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 17
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: burrunan/gradle-cache-action@v2
         name: Run CheckerFramework
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -100,7 +100,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 17
-      - uses: burrunan/gradle-cache-action@v1
+      - uses: burrunan/gradle-cache-action@v2
         name: Prepare source distribution
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -184,7 +184,7 @@ jobs:
     - name: Set up Java ${{ matrix.java_version }}, oracle
       id: setup_ea_java
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: oracle-actions/setup-java@83e2004a40aaa491fbc6b4697353b9a75b095efb # v1.3.4
+      uses: oracle-actions/setup-java@2e744f723b003fdd759727d0ff654c8717024845 # v1.4.0
       env:
         JAVA_HOME_17_X64: ${{ env.JAVA_HOME_17_AARCH64 || env.JAVA_HOME_17_X64 }}
       with:
@@ -209,7 +209,7 @@ jobs:
         preferQueryMode=${{ matrix.query_mode }}
         EOF
 
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: burrunan/gradle-cache-action@v2
       name: Test
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -240,7 +240,7 @@ jobs:
       run: |
         sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com localhost > /etc/hosts"
         cat /etc/hosts
-    - uses: burrunan/gradle-cache-action@v1
+    - uses: burrunan/gradle-cache-action@v2
       if: ${{ matrix.deploy_to_maven_local }}
       name: Deploy pgjdbc to mavenLocal
       with:

@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <p>Array is used collect one column of query result data.</p>
+ * Array is used collect one column of query result data.
  *
  * <p>Read a field of type Array into either a natively-typed Java array object or a ResultSet.
  * Accessor methods provide the ability to capture array slices.</p>

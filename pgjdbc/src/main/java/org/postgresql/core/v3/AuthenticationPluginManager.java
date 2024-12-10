@@ -105,7 +105,9 @@ class AuthenticationPluginManager {
    */
   public static <T> T withEncodedPassword(AuthenticationRequestType type, Properties info,
       PasswordAction<byte[], T> action) throws PSQLException, IOException {
-    byte[] encodedPassword = withPassword(type, info, password -> {
+    // Checkerframework infers `nullable byte[]` for the return type for unknown reason
+    @SuppressWarnings("RedundantTypeArguments")
+    byte [] encodedPassword = AuthenticationPluginManager.<byte[]>withPassword(type, info, password -> {
       if (password == null) {
         throw new PSQLException(
             GT.tr("The server requested password-based authentication, but no password was provided by plugin {0}",

@@ -293,6 +293,11 @@ Specifies whether to perform a JAAS login before authenticating with GSSAPI.
 If set to `true` (the default), the driver will attempt to obtain GSS credentials using the configured JAAS login module(s) (e.g. `Krb5LoginModule` ) before authenticating. 
 To skip the JAAS login, for example if the native GSS implementation is being used to obtain credentials, set this to `false` .
 
+* **`gssUseDefaultCreds (`*boolean*`)`** *Default `false`*\
+Specifies whether to use the default system GSS credentials, rather than using JAAS.
+If set to `false` (the default), the driver will attempt to use GSS credentials matching `user`@DEFAULT_REALM.  If true, the
+driver will use the default system GSS credentials.  This is useful in cases where the default credentials are named differently,
+or CCACHE sources like KCM are used, which JAAS does not support on all platforms.
 * **`gssEncMode (`*String*`)`** *Default `allow`*\
 PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
   * `disable` is obvious and disables any attempt to connect using GSS encrypted mode

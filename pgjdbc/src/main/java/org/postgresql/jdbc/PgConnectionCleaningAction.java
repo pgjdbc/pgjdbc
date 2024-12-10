@@ -20,6 +20,7 @@ import java.util.logging.Logger;
 /**
  * This class segregates the minimal resources required for proper cleanup in case
  * the connection has not been closed by the user code.
+ *
  * <p>For now, it has two actions:</p>
  * <ul>
  *   <li>Print stacktrace when the connection has been created, so users can identify the leak</li>

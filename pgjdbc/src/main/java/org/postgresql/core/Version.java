@@ -14,4 +14,5 @@ public interface Version {
    */
   int getVersionNum();
 
+  int getMajorVersionNumber();
 }

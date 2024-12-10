@@ -635,9 +635,9 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * <p>In SQL, a result table can be retrieved through a cursor that is named. The current row of a
+   * In SQL, a result table can be retrieved through a cursor that is named. The current row of a
    * result can be updated or deleted using a positioned update/delete statement that references the
-   * cursor name.</p>
+   * cursor name.
    *
    * <p>We do not support positioned update/delete, so this is a no-op.</p>
    *
@@ -661,8 +661,8 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * <p>We are required to bring back certain information by the DatabaseMetaData class. These
-   * functions do that.</p>
+   * We are required to bring back certain information by the DatabaseMetaData class. These
+   * functions do that.
    *
    * <p>Method getURL() brings back the URL (good job we saved it)</p>
    *

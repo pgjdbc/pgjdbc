@@ -95,7 +95,7 @@ public class XADataSourceTest {
   }
 
   @AfterEach
-  void tearDown() throws SQLException {
+  void tearDown() throws SQLException, XAException {
     try {
       xaconn.close();
     } catch (Exception ignored) {
@@ -109,24 +109,22 @@ public class XADataSourceTest {
 
   }
 
-  private void clearAllPrepared() throws SQLException {
-    Statement st = dbConn.createStatement();
+  private void clearAllPrepared() throws SQLException, XAException {
+    XAConnection con = xaDs.getXAConnection();
+    XAResource xaResource = con.getXAResource();
     try {
-      ResultSet rs = st.executeQuery(
-          "SELECT x.gid, x.owner = current_user "
-              + "FROM pg_prepared_xacts x "
-              + "WHERE x.database = current_database()");
-
-      Statement st2 = dbConn.createStatement();
-      while (rs.next()) {
-        // TODO: This should really use org.junit.Assume once we move to JUnit 4
-        assertTrue(rs.getBoolean(2),
-            "Only prepared xacts owned by current user may be present in db");
-        st2.executeUpdate("ROLLBACK PREPARED '" + rs.getString(1) + "'");
+      // Get the first batch of the xids
+      Xid[] xids = xaResource.recover(XAResource.TMSTARTRSCAN);
+      while (xids.length != 0) {
+        for (Xid xid : xids) {
+          xaResource.rollback(xid);
+        }
+        // Get the next batch of the xids
+        xids = xaResource.recover(XAResource.TMNOFLAGS);
       }
-      st2.close();
     } finally {
-      st.close();
+      xaResource.recover(XAResource.TMENDRSCAN);
+      con.close();
     }
   }
 
@@ -359,7 +357,7 @@ public class XADataSourceTest {
   }
 
   /**
-   * <p>Get the time the current transaction was started from the server.</p>
+   * Get the time the current transaction was started from the server.
    *
    * <p>This can be used to check that transaction doesn't get committed/ rolled back inadvertently, by
    * calling this once before and after the suspected piece of code, and check that they match. It's

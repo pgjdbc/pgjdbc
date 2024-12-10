@@ -48,7 +48,7 @@ public interface ChainedCreateReplicationSlotBuilder {
   ChainedLogicalCreateSlotBuilder logical();
 
   /**
-   * <p>Create physical replication stream for process wal logs in binary form.</p>
+   * Create physical replication stream for process wal logs in binary form.
    *
    * <p>Example usage:</p>
    * <pre>

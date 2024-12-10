@@ -240,7 +240,7 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * <p>Closes this input stream and releases any system resources associated with the stream.</p>
+   * Closes this input stream and releases any system resources associated with the stream.
    *
    * <p>The <code>close</code> method of <code>InputStream</code> does nothing.</p>
    *
@@ -265,9 +265,9 @@ public class BlobInputStream extends InputStream {
   }
 
   /**
-   * <p>Marks the current position in this input stream. A subsequent call to the <code>reset</code>
+   * Marks the current position in this input stream. A subsequent call to the <code>reset</code>
    * method repositions this stream at the last marked position so that subsequent reads re-read the
-   * same bytes.</p>
+   * same bytes.
    *
    * <p>The <code>readlimit</code> arguments tells this input stream to allow that many bytes to be
    * read before the mark position gets invalidated.</p>

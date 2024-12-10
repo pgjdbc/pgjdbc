@@ -170,8 +170,8 @@ public enum PGProperty {
       new String[]{"true", "false"}),
 
   /**
-   * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
-   * than this value, the connection is broken.</p>
+   * The timeout value used for socket connect operations. If connecting to the server takes longer
+   * than this value, the connection is broken.
    *
    * <p>The timeout is specified in seconds and a value of zero means that it is disabled.</p>
    */
@@ -276,15 +276,28 @@ public enum PGProperty {
       new String[]{"auto", "sspi", "gssapi"}),
 
   /**
-   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
    * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
-   * timeout mechanism This timeout will be set before the request and reset after </p>
+   * timeout mechanism This timeout will be set before the request and reset after
    */
   GSS_RESPONSE_TIMEOUT(
       "gssResponseTimeout",
       "5000",
       "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
 
+  /**
+   * Flag to enable/disable the obtaining the default GSS credentials from a pre-existing ccache,
+   * rather than using JAAS.  This also allows GSS to work in environments where the default
+   * kerberos principal a user has is not user@DEFAULT_REALM, but some other user (this is valid,
+   * and often the case in more advanced Kerberos setups).  Finally, this also means that if
+   * the "native" GSS implementation is used (i.e. the local system GSS libraries), all means of
+   * fetching the default credential are supported.  Currently, JAAS is pure java on Linux, and
+   * does not support the use of KCM (and only supports file-based ccaches and keytabs).
+   */
+  GSS_USE_DEFAULT_CREDS(
+      "gssUseDefaultCreds",
+      "false",
+      "Use the default GSS credentials the process already has, rather than a JAAS login"),
 
   /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
@@ -333,8 +346,8 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   /**
-   * <p>If this is set then the client side will bind to this address. This is useful if you need
-   * to choose which interface to connect to.</p>
+   * If this is set then the client side will bind to this address. This is useful if you need
+   * to choose which interface to connect to.
    */
   LOCAL_SOCKET_ADDRESS(
       "localSocketAddress",
@@ -451,9 +464,9 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
-   * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+   * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
-   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.</p>
+   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
    *
    * <p>This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)</p>
    */
@@ -547,12 +560,13 @@ public enum PGProperty {
       "Socket read buffer size"),
 
   /**
-   * <p>Connection parameter passed in the startup message. This parameter accepts two values; "true"
+   * Connection parameter passed in the startup message. This parameter accepts two values; "true"
    * and "database". Passing "true" tells the backend to go into walsender mode, wherein a small set
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
    * can be used in walsender mode. Passing "database" as the value instructs walsender to connect
    * to the database specified in the dbname parameter, which will allow the connection to be used
-   * for logical replication from that database.</p>
+   * for logical replication from that database.
+   *
    * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with
    * parameter &gt;= 9.4 (backend &gt;= 9.4)</p>
    */
@@ -724,8 +738,8 @@ public enum PGProperty {
       "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PasswordCallback for the ssl password."),
 
   /**
-   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
-   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after </p>
+   * After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after
    */
   SSL_RESPONSE_TIMEOUT(
       "sslResponseTimeout",

@@ -84,7 +84,7 @@ class GetObjectTest {
             + "date_column date,"
             + "time_without_time_zone_column time without time zone,"
             + "time_with_time_zone_column time with time zone,"
-            + "blob_column bytea,"
+            + "bytea_column bytea,"
             + "lob_column oid,"
             + "array_column text[],"
             + "point_column point,"
@@ -697,6 +697,28 @@ class GetObjectTest {
   }
 
   /**
+   * Test the behavior getObject for bytea columns.
+   */
+  @Test
+  void getBytea() throws SQLException {
+    byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
+    try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"))) {
+      insertPS.setBytes(1, data);
+      insertPS.executeUpdate();
+    }
+
+    Statement stmt = conn.createStatement();
+    try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"))) {
+      assertTrue(rs.next());
+      byte[] bytea = rs.getObject("bytea_column", byte[].class);
+      assertArrayEquals(data, bytea, "bytea by label");
+
+      bytea = rs.getObject(1, byte[].class);
+      assertArrayEquals(data, bytea, "bytea by index");
+    }
+  }
+
+  /**
    * Test the behavior getObject for array columns.
    */
   @Test
@@ -749,7 +771,7 @@ class GetObjectTest {
   }
 
   /**
-   * <p>Test the behavior getObject for money columns.</p>
+   * Test the behavior getObject for money columns.
    *
    * <p>The test is ignored as it is locale-dependent.</p>
    */

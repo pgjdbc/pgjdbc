@@ -20,6 +20,8 @@ public class GSSInputStream extends InputStream {
   private final MessageProp messageProp;
   private final InputStream wrapped;
   byte @Nullable [] unencrypted;
+  byte [] encryptedBuffer = new byte[16 * 1024];
+  byte [] int4Buf =  new byte[4];
   int unencryptedPos;
   int unencryptedLength;
 
@@ -36,7 +38,6 @@ public class GSSInputStream extends InputStream {
 
   @Override
   public int read(byte [] buffer, int pos, int len) throws IOException {
-    byte[] int4Buf = new byte[4];
     int encryptedLength;
     int copyLength = 0;
 
@@ -51,7 +52,6 @@ public class GSSInputStream extends InputStream {
         encryptedLength = (int4Buf[0] & 0xFF) << 24 | (int4Buf[1] & 0xFF) << 16 | (int4Buf[2] & 0xFF) << 8
             | int4Buf[3] & 0xFF;
 
-        byte[] encryptedBuffer = new byte[encryptedLength];
         wrapped.read(encryptedBuffer, 0, encryptedLength);
 
         try {

@@ -19,6 +19,28 @@ Connection db = Driver.getConnection(url, username, password);
 Fastpath fp = db.unwrap(org.postgresql.PGConnection.class).getFastpathAPI();
 ```
 
+## Timestamp Infinity
+
+The driver uses the following values to represent negative and positive infinity:
+
+| type | Negative infinity | Positive infinity |
+| ------- | ---------------------| --------------------- |
+| `LocalDateTime` | `LocalDateTime.MIN` | `LocalDateTime.MAX` |
+| `OffsetDateTime`| `OffsetDateTime.MIN` | `OffsetDateTime.MAX` |
+| `java.sql.Timestamp`| when object's millisecond value equals `PGStatement.DATE_NEGATIVE_INFINITY`| when object's millisecond value equals `PGStatement.DATE_POSITIVE_INFINITY` |
+
+#### ResultSet example
+
+```java
+java.sql.Timestamp ts = myResultSet.getTimestamp("mycol");
+
+if (ts.getTime() == PGStatement.DATE_NEGATIVE_INFINITY) {
+  // The value in the database is '-infinity'
+}
+if (ts.getTime() == PGStatement.DATE_POSITIVE_INFINITY) {
+  // The value in the database is 'infinity'
+}
+```
 ## Geometric Data Types
 
 PostgreSQL® has a set of data types that can store geometric features into a table. These include single points, lines, and polygons.  We support these types in Java with the org.postgresql.geometric package. Please consult the Javadoc mentioned in [Further Reading](/documentation/reading) for details of available classes and features.
@@ -349,7 +371,7 @@ You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
 
 > **Note**
 >
-> the option is more of a diagnostinc/debugging sort, so be careful how you use it .
+> the option is more of a diagnostic/debugging sort, so be careful how you use it .
 
 #### Bind placeholder datatypes
 
@@ -403,6 +425,28 @@ following might be helpful to debug the case.
 1. Client logging. If you add `loggerLevel=TRACE&loggerFile=pgjdbc-trace.log`, you would get trace
 of the messages send between the driver and the backend
 1. You might check `org.postgresql.test.jdbc2.AutoRollbackTestSuite` as it verifies lots of combinations
+
+##### Client Logging
+Logging is now configured using `java.util.logging`. Create a logging.properties file in resources similar to:
+
+```java
+handlers=java.util.logging.FileHandler
+.level= INFO
+
+java.util.logging.FileHandler.level=FINEST
+java.util.logging.FileHandler.formatter=java.util.logging.SimpleFormatter
+java.util.logging.FileHandler.pattern=/tmp/debug.log
+
+java.util.logging.ConsoleHandler.level = INFO
+java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter
+org.postgresql.level = FINEST
+```
+Which can be loaded using:
+```java
+        LogManager.getLogManager().readConfiguration(YourClass.class.getResourceAsStream("/logging.properties"));
+
+```
+
 
 ##### Example 9.3. Using server side prepared statements
 

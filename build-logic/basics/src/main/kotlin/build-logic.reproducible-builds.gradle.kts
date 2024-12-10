@@ -2,6 +2,33 @@ tasks.withType<AbstractArchiveTask>().configureEach {
     // Ensure builds are reproducible
     isPreserveFileTimestamps = false
     isReproducibleFileOrder = true
-    dirMode = "775".toInt(8)
-    fileMode = "664".toInt(8)
+    dirPermissions {
+        user {
+            read = true
+            write = true
+            execute = true
+        }
+        group {
+            read = true
+            write = true
+            execute = true
+        }
+        other {
+            read = true
+            execute = true
+        }
+    }
+    filePermissions {
+        user {
+            read = true
+            write = true
+        }
+        group {
+            read = true
+            write = true
+        }
+        other {
+            read = true
+        }
+    }
 }
