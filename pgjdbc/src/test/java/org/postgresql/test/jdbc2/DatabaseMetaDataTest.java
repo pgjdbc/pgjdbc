@@ -262,6 +262,21 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
+    ResultSet rs = dbmd.getTables("", "", "metadatates%", new String[]{"TABLE"});
+    assertFalse(rs.next());
+    rs.close();
+
+    rs = dbmd.getColumns("", "", "meta%", "%");
+    assertFalse(rs.next());
+    rs.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void testTables(BinaryMode binaryMode) throws Exception {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
     ResultSet rs = dbmd.getTables(null, null, "metadatates%", new String[]{"TABLE"});
     assertTrue(rs.next());
     String tableName = rs.getString("TABLE_NAME");
@@ -1484,7 +1499,7 @@ public class DatabaseMetaDataTest {
     String tableName = "pk_include_column";
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       DatabaseMetaData dbmd = con.getMetaData();
-      ResultSet rs = dbmd.getPrimaryKeys("", "", tableName);
+      ResultSet rs = dbmd.getPrimaryKeys(null, null, tableName);
 
       // getPrimaryKeys should return only the key columns and not the included column
       assertTrue(rs.next());
