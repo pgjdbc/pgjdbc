@@ -258,7 +258,7 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
-  void tables(BinaryMode binaryMode) throws Exception {
+  void tables_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -273,7 +273,7 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
-  void testTables(BinaryMode binaryMode) throws Exception {
+  void tables(BinaryMode binaryMode) throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
 
@@ -310,6 +310,27 @@ public class DatabaseMetaDataTest {
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
     assertEquals(Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void crossReference_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
+    Connection con1 = TestUtil.openDB();
+
+    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
+
+    TestUtil.createTable(con1, "ww",
+        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    ResultSet rs = dbmd.getCrossReference("", "", "vv", null, null, "ww");
+    assertFalse(rs.next());
+
+    TestUtil.dropTable(con1, "vv");
+    TestUtil.dropTable(con1, "ww");
+    TestUtil.closeDB(con1);
   }
 
   @MethodSource("data")
@@ -363,6 +384,31 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void foreignKeyActions_whenSchemaArgEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
+    Connection conn = TestUtil.openDB();
+    TestUtil.createTable(conn, "pkt", "id int primary key");
+    TestUtil.createTable(conn, "fkt1",
+        "id int references pkt on update restrict on delete cascade");
+    TestUtil.createTable(conn, "fkt2",
+        "id int references pkt on update set null on delete set default");
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
+    assertFalse(rs.next());
+    rs.close();
+
+    rs = dbmd.getImportedKeys(null, "", "fkt2");
+    assertFalse(rs.next());
+    rs.close();
+
+    TestUtil.dropTable(conn, "fkt2");
+    TestUtil.dropTable(conn, "fkt1");
+    TestUtil.dropTable(conn, "pkt");
+    TestUtil.closeDB(conn);
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void foreignKeyActions(BinaryMode binaryMode) throws Exception {
     Connection conn = TestUtil.openDB();
     TestUtil.createTable(conn, "pkt", "id int primary key");
@@ -392,6 +438,24 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void foreignKeysToUniqueIndexes_whenCatalogAndSchemaArgsEmpty_expect(BinaryMode binaryMode) throws Exception {
+    Connection con1 = TestUtil.openDB();
+    TestUtil.createTable(con1, "pkt",
+        "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
+    TestUtil.createTable(con1, "fkt",
+        "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    assertFalse(rs.next());
+
+    TestUtil.dropTable(con1, "fkt");
+    TestUtil.dropTable(con1, "pkt");
+    con1.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void foreignKeysToUniqueIndexes(BinaryMode binaryMode) throws Exception {
     Connection con1 = TestUtil.openDB();
     TestUtil.createTable(con1, "pkt",
@@ -409,6 +473,24 @@ public class DatabaseMetaDataTest {
       assertEquals("b", rs.getString("PKCOLUMN_NAME"));
     }
     assertEquals(1, j);
+
+    TestUtil.dropTable(con1, "fkt");
+    TestUtil.dropTable(con1, "pkt");
+    con1.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void multiColumnForeignKeys_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
+    Connection con1 = TestUtil.openDB();
+    TestUtil.createTable(con1, "pkt",
+        "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
+    TestUtil.createTable(con1, "fkt",
+        "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+    assertFalse(rs.next());
 
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
@@ -444,6 +526,34 @@ public class DatabaseMetaDataTest {
     TestUtil.dropTable(con1, "fkt");
     TestUtil.dropTable(con1, "pkt");
     con1.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void sameTableForeignKeys_whenSchemaArgEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
+    Connection con1 = TestUtil.openDB();
+
+    TestUtil.createTable(con1, "person",
+        "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
+            + "FIRST_NAME_PARENT_1 character varying(100),"
+            + "LAST_NAME_PARENT_1 character varying(100),"
+            + "FIRST_NAME_PARENT_2 character varying(100),"
+            + "LAST_NAME_PARENT_2 character varying(100),"
+            + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
+            + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
+            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+            + "ON UPDATE CASCADE ON DELETE CASCADE,"
+            + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
+            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+            + "ON UPDATE CASCADE ON DELETE CASCADE");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+    ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+    assertFalse(rs.next());
+
+    TestUtil.dropTable(con1, "person");
+    TestUtil.closeDB(con1);
   }
 
   @MethodSource("data")
@@ -507,6 +617,35 @@ public class DatabaseMetaDataTest {
     assertEquals(2, fkNames.size());
 
     TestUtil.dropTable(con1, "person");
+    TestUtil.closeDB(con1);
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void foreignKeys_whenSchemaArgNull_expectNoResults(BinaryMode binaryMode) throws Exception {
+    Connection con1 = TestUtil.openDB();
+    TestUtil.createTable(con1, "people", "id int4 primary key, name text");
+    TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
+
+    TestUtil.createTable(con1, "users",
+        "id int4 primary key, people_id int4, policy_id int4,"
+            + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
+            + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    ResultSet rs = dbmd.getImportedKeys(null, "", "users");
+    assertFalse(rs.next());
+    rs.close();
+
+    rs = dbmd.getExportedKeys(null, "", "people");
+    assertFalse(rs.next());
+    rs.close();
+
+    TestUtil.dropTable(con1, "users");
+    TestUtil.dropTable(con1, "people");
+    TestUtil.dropTable(con1, "policy");
     TestUtil.closeDB(con1);
   }
 
@@ -864,6 +1003,14 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void notNullDomainColumn_whenCatalogAndSchemaAndColumnNameArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
+    assertFalse(rs.next());
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void notNullDomainColumn(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "domaintable", null);
@@ -872,6 +1019,14 @@ public class DatabaseMetaDataTest {
     assertEquals("NO", rs.getString("IS_NULLABLE"));
     assertTrue(rs.next());
     assertTrue(rs.next());
+    assertFalse(rs.next());
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void domainColumnSize_whenCatalogAndSchemaAndColumnNameArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "domaintable", "");
     assertFalse(rs.next());
   }
 
@@ -1480,6 +1635,14 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void informationAboutArrayTypes_whenCatalogSchemaColumnNamePatternArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getColumns("", "", "arraytable", "");
+    assertFalse(rs.next());
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void informationAboutArrayTypes(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "arraytable", null);
@@ -1491,6 +1654,17 @@ public class DatabaseMetaDataTest {
     assertEquals("b", rs.getString("COLUMN_NAME"));
     assertEquals(100, rs.getInt("COLUMN_SIZE"));
     assertFalse(rs.next());
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void primaryKeysWithIncludeColumns_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    String tableName = "pk_include_column";
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getPrimaryKeys("", "", tableName);
+      assertFalse(rs.next());
+    }
   }
 
   @MethodSource("data")
@@ -1511,6 +1685,29 @@ public class DatabaseMetaDataTest {
 
       assertFalse(rs.next());
     }
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void partitionedTablesIndex_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute(
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertFalse(rs.next());
+
+      } finally {
+        if (stmt != null) {
+          stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+
   }
 
   @MethodSource("data")
@@ -1539,6 +1736,31 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void partitionedTables_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute(
+            "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getTables("", "", "measurement", new String[]{"PARTITIONED TABLE"});
+        assertFalse(rs.next());
+        rs.close();
+        rs = dbmd.getPrimaryKeys("", "", "measurement");
+        assertFalse(rs.next());
+
+      } finally {
+        if (stmt != null) {
+          stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void partitionedTables(BinaryMode binaryMode) throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
       Statement stmt = null;
@@ -1558,6 +1780,29 @@ public class DatabaseMetaDataTest {
       } finally {
         if (stmt != null) {
           stmt.execute("drop table if exists measurement");
+          stmt.close();
+        }
+      }
+    }
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void identityColumns_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
+    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10) ) {
+      Statement stmt = null;
+      try {
+        stmt = con.createStatement();
+        stmt.execute("CREATE TABLE test_new ("
+            + "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,"
+            + "payload text)");
+        DatabaseMetaData dbmd = con.getMetaData();
+        ResultSet rs = dbmd.getColumns("", "", "test_new", "id");
+        assertFalse(rs.next());
+
+      } finally {
+        if ( stmt != null ) {
+          stmt.execute("drop table test_new");
           stmt.close();
         }
       }
