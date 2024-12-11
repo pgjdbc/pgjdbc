@@ -375,7 +375,7 @@ class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     final int totalCount;
-    try (ResultSet rs = dbmd.getFunctions("", "", null)) {
+    try (ResultSet rs = dbmd.getFunctions("", "", "")) {
       assertFalse(rs.next());
     }
 
