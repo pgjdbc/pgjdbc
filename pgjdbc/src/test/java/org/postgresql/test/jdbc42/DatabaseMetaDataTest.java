@@ -54,6 +54,14 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsForNullScale_whenCatalogArgPercentSign_expectNoResults() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns("%", "%", "decimaltest", "%");
+    assertFalse(rs.next());
+  }
+
+  @Test
   void getColumnsForNullScale() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -72,6 +80,14 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getCorrectSQLTypeForOffPathTypes_whenCatalogArgPercentSign_expectNoResults() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns("%", "%", "off_path_table", "%");
+    assertFalse(rs.next());
+  }
+
+  @Test
   void getCorrectSQLTypeForOffPathTypes() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -80,6 +96,15 @@ class DatabaseMetaDataTest {
     assertEquals("var", rs.getString("COLUMN_NAME"));
     assertEquals("\"test_schema\".\"_test_enum\"", rs.getString("TYPE_NAME"), "Detects correct off-path type name");
     assertEquals(Types.ARRAY, rs.getInt("DATA_TYPE"), "Detects correct SQL type for off-path types");
+
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getCorrectSQLTypeForShadowedTypes_whenCatalogArgPercentSign_expectNoResults() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns("%", "%", "on_path_table", "%");
 
     assertFalse(rs.next());
   }
