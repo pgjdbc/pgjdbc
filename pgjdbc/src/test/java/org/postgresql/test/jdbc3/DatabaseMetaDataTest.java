@@ -42,6 +42,14 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsForDomain_whenCatalogArgPercentSign_expectNoResults() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns("%", "%", "domtab", "%");
+    assertFalse(rs.next());
+  }
+
+  @Test
   void getColumnsForDomain() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
