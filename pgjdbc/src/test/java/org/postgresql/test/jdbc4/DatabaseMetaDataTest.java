@@ -78,6 +78,14 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsForAutoIncrement_whenCatalogArgPercentSign_expectNoResults() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns("%", "%", "sercoltest", "%");
+    assertFalse(rs.next());
+  }
+
+  @Test
   void getColumnsForAutoIncrement() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -89,6 +97,15 @@ class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("b", rs.getString("COLUMN_NAME"));
     assertEquals("NO", rs.getString("IS_AUTOINCREMENT"));
+
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getSchemas_whenCatalogArgPercentSign_expectNoResults() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getSchemas("%", "publ%");
 
     assertFalse(rs.next());
   }
@@ -142,6 +159,24 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getFunctionsInSchemaForFunctions_whenCatalogArgEmpty_expectNoResults() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", null)) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getFunctions("", "hasfunctions", "addfunction")) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getFunctions("", "nofunctions", null)) {
+      boolean hasFunctions = rs.next();
+      assertFalse(hasFunctions, "There should be no functions in the nofunctions schema");
+    }
+  }
+
+  @Test
   void getFunctionsInSchemaForFunctions() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -164,6 +199,26 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getFunctionsInSchemaForProcedures_whenCatalogArgEmpty_expectNoResults() throws SQLException {
+    // Due to the introduction of actual stored procedures in PostgreSQL 11, getFunctions should not return procedures for PostgreSQL versions 11+
+    // On older installation we do not create the procedures so the below schemas should all be empty
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    // Search for functions in schema "hasprocedures"
+    try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", null)) {
+      assertFalse(rs.next(), "The hasprocedures schema not return procedures from getFunctions");
+    }
+    // Search for functions in schema "noprocedures" (which should never expect records)
+    try (ResultSet rs = dbmd.getFunctions("", "noprocedures", null)) {
+      assertFalse(rs.next(), "The noprocedures schema should not have functions");
+    }
+    // Search for functions by procedure name "addprocedure"
+    try (ResultSet rs = dbmd.getFunctions("", "hasprocedures", "addprocedure")) {
+      assertFalse(rs.next(), "Should not return procedures from getFunctions by schema + name");
+    }
+  }
+
+  @Test
   void getFunctionsInSchemaForProcedures() throws SQLException {
     // Due to the introduction of actual stored procedures in PostgreSQL 11, getFunctions should not return procedures for PostgreSQL versions 11+
     // On older installation we do not create the procedures so the below schemas should all be empty
@@ -180,6 +235,32 @@ class DatabaseMetaDataTest {
     // Search for functions by procedure name "addprocedure"
     try (ResultSet rs = dbmd.getFunctions(null, "hasprocedures", "addprocedure")) {
       assertFalse(rs.next(), "Should not return procedures from getFunctions by schema + name");
+    }
+  }
+
+  @Test
+  void getProceduresInSchemaForFunctions_whenCatalogArgEmpty_expectNoResults() throws SQLException {
+    // Due to the introduction of actual stored procedures in PostgreSQL 11, getProcedures should not return functions for PostgreSQL versions 11+
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    // Search for procedures in schema "hasfunctions" (which should expect a record only for PostgreSQL < 11)
+    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
+      assertFalse(rs.next());
+    }
+
+    // Search for procedures in schema "nofunctions" (which should never expect records)
+    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
+      assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions");
+    }
+
+    // Search for procedures by function name "addfunction" within schema "hasfunctions" (which should expect a record for PostgreSQL < 11)
+    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", "addfunction")) {
+      assertFalse(rs.next());
+    }
+
+    // Search for procedures by function name "addfunction" within schema "nofunctions"  (which should never expect records)
+    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", "addfunction")) {
+      assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions + addfunction");
     }
   }
 
@@ -216,6 +297,30 @@ class DatabaseMetaDataTest {
     // Search for procedures by function name "addfunction" within schema "nofunctions"  (which should never expect records)
     try (ResultSet rs = dbmd.getProcedures(null, "nofunctions", "addfunction")) {
       assertFalse(rs.next(), "getProcedures(...) should not return procedures for schema nofunctions + addfunction");
+    }
+  }
+
+  @Test
+  void getProceduresInSchemaForProcedures_whenCatalogArgEmpty_expectNoResults() throws SQLException {
+    // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    try (ResultSet rs = dbmd.getProcedures("", "hasprocedures", null)) {
+      assertFalse(rs.next());
+    }
+
+    try (ResultSet rs = dbmd.getProcedures("", "noprocedures", null)) {
+      assertFalse(rs.next(), "getProcedures() should be empty for the hasprocedures schema");
+    }
+
+    try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
+      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
+    }
+
+    try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
+      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
     }
   }
 
@@ -265,11 +370,51 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getFunctionsWithBlankPatterns() throws SQLException {
+    int minFuncCount = 1000;
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    final int totalCount;
+    try (ResultSet rs = dbmd.getFunctions("", "", null)) {
+      assertFalse(rs.next());
+    }
+
+    // Should not be same as blank pattern
+    try (ResultSet rs = dbmd.getFunctions(null, null, null)) {
+      List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
+      totalCount = list.size(); // Rest of this test will validate against this value
+      assertThat(totalCount > minFuncCount, is(true));
+      assertListContains("getFunctions('', '', '') must contain addfunction", list, "hasfunctions", "addfunction");
+    }
+
+    // Catalog parameter has effect on our getFunctions filtering
+    try (ResultSet rs = dbmd.getFunctions("ANYTHING_WILL_WORK", null, null)) {
+      assertFalse(rs.next());
+    }
+
+    // Filter by schema
+    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", null)) {
+      assertFalse(rs.next());
+    }
+
+    // Filter by schema and function name
+    try (ResultSet rs = dbmd.getFunctions("", "pg_catalog", "abs")) {
+      assertFalse(rs.next());
+    }
+
+    // Filter by function name only
+    try (ResultSet rs = dbmd.getFunctions("", "", "abs")) {
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
   void getFunctionsWithNullPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();
 
     final int totalCount;
+
     try (ResultSet rs = dbmd.getFunctions(null, null, null)) {
       List<CatalogObject> list = assertFunctionRSAndReturnList(rs);
       totalCount = list.size(); // Rest of this test will validate against this value
@@ -444,6 +589,55 @@ class DatabaseMetaDataTest {
   private void assertListContains(String message, List<CatalogObject> list, String schema, String name) throws SQLException {
     boolean found = list.stream().anyMatch(item -> item.schema.equals(schema) && item.name.equals(name));
     assertTrue(found, message + "; schema=" + schema + " name=" + name);
+  }
+
+  @Test
+  void getFunctionsWithSpecificTypes_whenCatalogAndSchemaArgsEmpty_expectNoResults() throws SQLException {
+    // These function creation are borrow from jdbc2/DatabaseMetaDataTest
+    // We modify to ensure new function created are returned by getFunctions()
+
+    DatabaseMetaData dbmd = conn.getMetaData();
+    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4)) {
+      Statement stmt = conn.createStatement();
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
+      assertThat(rs.next(), is(false));
+      rs.close();
+      stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
+
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+      rs = dbmd.getFunctions("", "", "getfunc_f3");
+      assertThat(rs.next(), is(false));
+      rs.close();
+      stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
+
+      // RETURNS TABLE requires PostgreSQL 8.4+
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION getfunc_f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
+
+      rs = dbmd.getFunctions("", "", "getfunc_f5");
+      assertThat(rs.next(), is(false));
+      rs.close();
+      stmt.execute("DROP FUNCTION getfunc_f5()");
+    } else {
+      // For PG 8.3 or 8.2 it will resulted in unknown function type
+      Statement stmt = conn.createStatement();
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION getfunc_f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+      ResultSet rs = dbmd.getFunctions("", "", "getfunc_f1");
+      assertThat(rs.next(), is(false));
+      rs.close();
+      stmt.execute("DROP FUNCTION getfunc_f1(int, varchar)");
+
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION getfunc_f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+      rs = dbmd.getFunctions("", "", "getfunc_f3");
+      assertThat(rs.next(), is(false));
+      rs.close();
+      stmt.execute("DROP FUNCTION getfunc_f3(int, varchar)");
+    }
   }
 
   @Test
