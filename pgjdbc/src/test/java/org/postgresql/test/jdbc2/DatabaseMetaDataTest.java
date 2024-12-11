@@ -315,398 +315,395 @@ public class DatabaseMetaDataTest {
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void crossReference_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
 
-    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
+      TestUtil.createTable(con1, "ww",
+          "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
-    TestUtil.createTable(con1, "ww",
-        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
+      ResultSet rs = dbmd.getCrossReference("", "", "vv", null, null, "ww");
+      assertFalse(rs.next());
 
-    ResultSet rs = dbmd.getCrossReference("", "", "vv", null, null, "ww");
-    assertFalse(rs.next());
-
-    TestUtil.dropTable(con1, "vv");
-    TestUtil.dropTable(con1, "ww");
-    TestUtil.closeDB(con1);
+      TestUtil.dropTable(con1, "vv");
+      TestUtil.dropTable(con1, "ww");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void crossReference(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
 
-    TestUtil.createTable(con1, "vv", "a int not null, b int not null, constraint vv_pkey primary key ( a, b )");
+      TestUtil.createTable(con1, "ww",
+          "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
 
-    TestUtil.createTable(con1, "ww",
-        "m int not null, n int not null, constraint m_pkey primary key ( m, n ), constraint ww_m_fkey foreign key ( m, n ) references vv ( a, b )");
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
+      ResultSet rs = dbmd.getCrossReference(null, null, "vv", null, null, "ww");
+      String[] expectedPkColumnNames = new String[]{"a", "b"};
+      String[] expectedFkColumnNames = new String[]{"m", "n"};
+      int numRows = 0;
 
-    ResultSet rs = dbmd.getCrossReference(null, null, "vv", null, null, "ww");
-    String[] expectedPkColumnNames = new String[]{"a", "b"};
-    String[] expectedFkColumnNames = new String[]{"m", "n"};
-    int numRows = 0;
+      for (int j = 1; rs.next(); j++) {
 
-    for (int j = 1; rs.next(); j++) {
+        String pkTableName = rs.getString("PKTABLE_NAME");
+        assertEquals("vv", pkTableName);
 
-      String pkTableName = rs.getString("PKTABLE_NAME");
-      assertEquals("vv", pkTableName);
+        String pkColumnName = rs.getString("PKCOLUMN_NAME");
+        assertEquals(expectedPkColumnNames[j - 1], pkColumnName);
 
-      String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertEquals(expectedPkColumnNames[j - 1], pkColumnName);
+        String fkTableName = rs.getString("FKTABLE_NAME");
+        assertEquals("ww", fkTableName);
 
-      String fkTableName = rs.getString("FKTABLE_NAME");
-      assertEquals("ww", fkTableName);
+        String fkColumnName = rs.getString("FKCOLUMN_NAME");
+        assertEquals(expectedFkColumnNames[j - 1], fkColumnName);
 
-      String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertEquals(expectedFkColumnNames[j - 1], fkColumnName);
+        String fkName = rs.getString("FK_NAME");
+        assertEquals("ww_m_fkey", fkName);
 
-      String fkName = rs.getString("FK_NAME");
-      assertEquals("ww_m_fkey", fkName);
+        String pkName = rs.getString("PK_NAME");
+        assertEquals("vv_pkey", pkName);
 
-      String pkName = rs.getString("PK_NAME");
-      assertEquals("vv_pkey", pkName);
+        int keySeq = rs.getInt("KEY_SEQ");
+        assertEquals(j, keySeq);
+        numRows += 1;
+      }
+      assertEquals(2, numRows);
 
-      int keySeq = rs.getInt("KEY_SEQ");
-      assertEquals(j, keySeq);
-      numRows += 1;
+      TestUtil.dropTable(con1, "vv");
+      TestUtil.dropTable(con1, "ww");
     }
-    assertEquals(2, numRows);
-
-    TestUtil.dropTable(con1, "vv");
-    TestUtil.dropTable(con1, "ww");
-    TestUtil.closeDB(con1);
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeyActions_whenSchemaArgEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
-    Connection conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "pkt", "id int primary key");
-    TestUtil.createTable(conn, "fkt1",
-        "id int references pkt on update restrict on delete cascade");
-    TestUtil.createTable(conn, "fkt2",
-        "id int references pkt on update set null on delete set default");
-    DatabaseMetaData dbmd = conn.getMetaData();
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "pkt", "id int primary key");
+      TestUtil.createTable(conn, "fkt1",
+          "id int references pkt on update restrict on delete cascade");
+      TestUtil.createTable(conn, "fkt2",
+          "id int references pkt on update set null on delete set default");
+      DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
-    assertFalse(rs.next());
-    rs.close();
+      ResultSet rs = dbmd.getImportedKeys(null, "", "fkt1");
+      assertFalse(rs.next());
+      rs.close();
 
-    rs = dbmd.getImportedKeys(null, "", "fkt2");
-    assertFalse(rs.next());
-    rs.close();
+      rs = dbmd.getImportedKeys(null, "", "fkt2");
+      assertFalse(rs.next());
+      rs.close();
 
-    TestUtil.dropTable(conn, "fkt2");
-    TestUtil.dropTable(conn, "fkt1");
-    TestUtil.dropTable(conn, "pkt");
-    TestUtil.closeDB(conn);
+      TestUtil.dropTable(conn, "fkt2");
+      TestUtil.dropTable(conn, "fkt1");
+      TestUtil.dropTable(conn, "pkt");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeyActions(BinaryMode binaryMode) throws Exception {
-    Connection conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "pkt", "id int primary key");
-    TestUtil.createTable(conn, "fkt1",
-        "id int references pkt on update restrict on delete cascade");
-    TestUtil.createTable(conn, "fkt2",
-        "id int references pkt on update set null on delete set default");
-    DatabaseMetaData dbmd = conn.getMetaData();
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "pkt", "id int primary key");
+      TestUtil.createTable(conn, "fkt1",
+          "id int references pkt on update restrict on delete cascade");
+      TestUtil.createTable(conn, "fkt2",
+          "id int references pkt on update set null on delete set default");
+      DatabaseMetaData dbmd = conn.getMetaData();
 
-    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt1");
-    assertTrue(rs.next());
-    assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
-    assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
-    rs.close();
+      ResultSet rs = dbmd.getImportedKeys(null, null, "fkt1");
+      assertTrue(rs.next());
+      assertEquals(DatabaseMetaData.importedKeyRestrict, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeyCascade, rs.getInt("DELETE_RULE"));
+      rs.close();
 
-    rs = dbmd.getImportedKeys(null, null, "fkt2");
-    assertTrue(rs.next());
-    assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
-    assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
-    rs.close();
+      rs = dbmd.getImportedKeys(null, null, "fkt2");
+      assertTrue(rs.next());
+      assertEquals(DatabaseMetaData.importedKeySetNull, rs.getInt("UPDATE_RULE"));
+      assertEquals(DatabaseMetaData.importedKeySetDefault, rs.getInt("DELETE_RULE"));
+      rs.close();
 
-    TestUtil.dropTable(conn, "fkt2");
-    TestUtil.dropTable(conn, "fkt1");
-    TestUtil.dropTable(conn, "pkt");
-    TestUtil.closeDB(conn);
+      TestUtil.dropTable(conn, "fkt2");
+      TestUtil.dropTable(conn, "fkt1");
+      TestUtil.dropTable(conn, "pkt");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeysToUniqueIndexes_whenCatalogAndSchemaArgsEmpty_expect(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "pkt",
-        "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
-    TestUtil.createTable(con1, "fkt",
-        "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "pkt",
+          "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
+      TestUtil.createTable(con1, "fkt",
+          "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
-    assertFalse(rs.next());
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+      assertFalse(rs.next());
 
-    TestUtil.dropTable(con1, "fkt");
-    TestUtil.dropTable(con1, "pkt");
-    con1.close();
+      TestUtil.dropTable(con1, "fkt");
+      TestUtil.dropTable(con1, "pkt");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeysToUniqueIndexes(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "pkt",
-        "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
-    TestUtil.createTable(con1, "fkt",
-        "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "pkt",
+          "a int not null, b int not null, CONSTRAINT pkt_pk_a PRIMARY KEY (a), CONSTRAINT pkt_un_b UNIQUE (b)");
+      TestUtil.createTable(con1, "fkt",
+          "c int, d int, CONSTRAINT fkt_fk_c FOREIGN KEY (c) REFERENCES pkt(b)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
-    int j = 0;
-    for (; rs.next(); j++) {
-      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
-      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
-      assertEquals("pkt_un_b", rs.getString("PK_NAME"));
-      assertEquals("b", rs.getString("PKCOLUMN_NAME"));
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
+      int j = 0;
+      for (; rs.next(); j++) {
+        assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+        assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+        assertEquals("pkt_un_b", rs.getString("PK_NAME"));
+        assertEquals("b", rs.getString("PKCOLUMN_NAME"));
+      }
+      assertEquals(1, j);
+
+      TestUtil.dropTable(con1, "fkt");
+      TestUtil.dropTable(con1, "pkt");
     }
-    assertEquals(1, j);
-
-    TestUtil.dropTable(con1, "fkt");
-    TestUtil.dropTable(con1, "pkt");
-    con1.close();
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void multiColumnForeignKeys_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "pkt",
-        "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
-    TestUtil.createTable(con1, "fkt",
-        "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "pkt",
+          "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
+      TestUtil.createTable(con1, "fkt",
+          "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
-    assertFalse(rs.next());
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getImportedKeys("", "", "fkt");
+      assertFalse(rs.next());
 
-    TestUtil.dropTable(con1, "fkt");
-    TestUtil.dropTable(con1, "pkt");
-    con1.close();
+      TestUtil.dropTable(con1, "fkt");
+      TestUtil.dropTable(con1, "pkt");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void multiColumnForeignKeys(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "pkt",
-        "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
-    TestUtil.createTable(con1, "fkt",
-        "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "pkt",
+          "a int not null, b int not null, CONSTRAINT pkt_pk PRIMARY KEY (a,b)");
+      TestUtil.createTable(con1, "fkt",
+          "c int, d int, CONSTRAINT fkt_fk_pkt FOREIGN KEY (c,d) REFERENCES pkt(b,a)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
-    int j = 0;
-    for (; rs.next(); j++) {
-      assertEquals("pkt", rs.getString("PKTABLE_NAME"));
-      assertEquals("fkt", rs.getString("FKTABLE_NAME"));
-      assertEquals(j + 1, rs.getInt("KEY_SEQ"));
-      if (j == 0) {
-        assertEquals("b", rs.getString("PKCOLUMN_NAME"));
-        assertEquals("c", rs.getString("FKCOLUMN_NAME"));
-      } else {
-        assertEquals("a", rs.getString("PKCOLUMN_NAME"));
-        assertEquals("d", rs.getString("FKCOLUMN_NAME"));
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getImportedKeys(null, null, "fkt");
+      int j = 0;
+      for (; rs.next(); j++) {
+        assertEquals("pkt", rs.getString("PKTABLE_NAME"));
+        assertEquals("fkt", rs.getString("FKTABLE_NAME"));
+        assertEquals(j + 1, rs.getInt("KEY_SEQ"));
+        if (j == 0) {
+          assertEquals("b", rs.getString("PKCOLUMN_NAME"));
+          assertEquals("c", rs.getString("FKCOLUMN_NAME"));
+        } else {
+          assertEquals("a", rs.getString("PKCOLUMN_NAME"));
+          assertEquals("d", rs.getString("FKCOLUMN_NAME"));
+        }
       }
-    }
-    assertEquals(2, j);
+      assertEquals(2, j);
 
-    TestUtil.dropTable(con1, "fkt");
-    TestUtil.dropTable(con1, "pkt");
-    con1.close();
+      TestUtil.dropTable(con1, "fkt");
+      TestUtil.dropTable(con1, "pkt");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void sameTableForeignKeys_whenSchemaArgEmpty_expectNoResults(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
+    try (Connection con1 = TestUtil.openDB()) {
 
-    TestUtil.createTable(con1, "person",
-        "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
-            + "FIRST_NAME_PARENT_1 character varying(100),"
-            + "LAST_NAME_PARENT_1 character varying(100),"
-            + "FIRST_NAME_PARENT_2 character varying(100),"
-            + "LAST_NAME_PARENT_2 character varying(100),"
-            + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
-            + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
-            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
-            + "ON UPDATE CASCADE ON DELETE CASCADE,"
-            + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
-            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
-            + "ON UPDATE CASCADE ON DELETE CASCADE");
+      TestUtil.createTable(con1, "person",
+          "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
+              + "FIRST_NAME_PARENT_1 character varying(100),"
+              + "LAST_NAME_PARENT_1 character varying(100),"
+              + "FIRST_NAME_PARENT_2 character varying(100),"
+              + "LAST_NAME_PARENT_2 character varying(100),"
+              + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
+              + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
+              + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+              + "ON UPDATE CASCADE ON DELETE CASCADE,"
+              + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
+              + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+              + "ON UPDATE CASCADE ON DELETE CASCADE");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getImportedKeys(null, "", "person");
-    assertFalse(rs.next());
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
+      ResultSet rs = dbmd.getImportedKeys(null, "", "person");
+      assertFalse(rs.next());
 
-    TestUtil.dropTable(con1, "person");
-    TestUtil.closeDB(con1);
+      TestUtil.dropTable(con1, "person");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void sameTableForeignKeys(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "person",
+          "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
+              + "FIRST_NAME_PARENT_1 character varying(100),"
+              + "LAST_NAME_PARENT_1 character varying(100),"
+              + "FIRST_NAME_PARENT_2 character varying(100),"
+              + "LAST_NAME_PARENT_2 character varying(100),"
+              + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
+              + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
+              + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+              + "ON UPDATE CASCADE ON DELETE CASCADE,"
+              + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
+              + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
+              + "ON UPDATE CASCADE ON DELETE CASCADE");
 
-    TestUtil.createTable(con1, "person",
-        "FIRST_NAME character varying(100) NOT NULL," + "LAST_NAME character varying(100) NOT NULL,"
-            + "FIRST_NAME_PARENT_1 character varying(100),"
-            + "LAST_NAME_PARENT_1 character varying(100),"
-            + "FIRST_NAME_PARENT_2 character varying(100),"
-            + "LAST_NAME_PARENT_2 character varying(100),"
-            + "CONSTRAINT PERSON_pkey PRIMARY KEY (FIRST_NAME , LAST_NAME ),"
-            + "CONSTRAINT PARENT_1_fkey FOREIGN KEY (FIRST_NAME_PARENT_1, LAST_NAME_PARENT_1)"
-            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
-            + "ON UPDATE CASCADE ON DELETE CASCADE,"
-            + "CONSTRAINT PARENT_2_fkey FOREIGN KEY (FIRST_NAME_PARENT_2, LAST_NAME_PARENT_2)"
-            + "REFERENCES PERSON (FIRST_NAME, LAST_NAME) MATCH SIMPLE "
-            + "ON UPDATE CASCADE ON DELETE CASCADE");
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
+      ResultSet rs = dbmd.getImportedKeys(null, null, "person");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
-    ResultSet rs = dbmd.getImportedKeys(null, null, "person");
+      final List<String> fkNames = new ArrayList<>();
 
-    final List<String> fkNames = new ArrayList<>();
+      int lastFieldCount = -1;
+      while (rs.next()) {
+        // destination table (all foreign keys point to the same)
+        String pkTableName = rs.getString("PKTABLE_NAME");
+        assertEquals("person", pkTableName);
 
-    int lastFieldCount = -1;
-    while (rs.next()) {
-      // destination table (all foreign keys point to the same)
-      String pkTableName = rs.getString("PKTABLE_NAME");
-      assertEquals("person", pkTableName);
+        // destination fields
+        String pkColumnName = rs.getString("PKCOLUMN_NAME");
+        assertTrue("first_name".equals(pkColumnName) || "last_name".equals(pkColumnName));
 
-      // destination fields
-      String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertTrue("first_name".equals(pkColumnName) || "last_name".equals(pkColumnName));
+        // source table (all foreign keys are in the same)
+        String fkTableName = rs.getString("FKTABLE_NAME");
+        assertEquals("person", fkTableName);
 
-      // source table (all foreign keys are in the same)
-      String fkTableName = rs.getString("FKTABLE_NAME");
-      assertEquals("person", fkTableName);
-
-      // foreign key name
-      String fkName = rs.getString("FK_NAME");
-      // sequence number within the foreign key
-      int seq = rs.getInt("KEY_SEQ");
-      if (seq == 1) {
-        // begin new foreign key
-        assertFalse(fkNames.contains(fkName));
-        fkNames.add(fkName);
-        // all foreign keys have 2 fields
-        assertTrue(lastFieldCount < 0 || lastFieldCount == 2);
-      } else {
-        // continue foreign key, i.e. fkName matches the last foreign key
-        assertEquals(fkNames.get(fkNames.size() - 1), fkName);
-        // see always increases by 1
-        assertEquals(seq, lastFieldCount + 1);
+        // foreign key name
+        String fkName = rs.getString("FK_NAME");
+        // sequence number within the foreign key
+        int seq = rs.getInt("KEY_SEQ");
+        if (seq == 1) {
+          // begin new foreign key
+          assertFalse(fkNames.contains(fkName));
+          fkNames.add(fkName);
+          // all foreign keys have 2 fields
+          assertTrue(lastFieldCount < 0 || lastFieldCount == 2);
+        } else {
+          // continue foreign key, i.e. fkName matches the last foreign key
+          assertEquals(fkNames.get(fkNames.size() - 1), fkName);
+          // see always increases by 1
+          assertEquals(seq, lastFieldCount + 1);
+        }
+        lastFieldCount = seq;
       }
-      lastFieldCount = seq;
-    }
-    // there's more than one foreign key from a table to another
-    assertEquals(2, fkNames.size());
+      // there's more than one foreign key from a table to another
+      assertEquals(2, fkNames.size());
 
-    TestUtil.dropTable(con1, "person");
-    TestUtil.closeDB(con1);
+      TestUtil.dropTable(con1, "person");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeys_whenSchemaArgNull_expectNoResults(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "people", "id int4 primary key, name text");
-    TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "people", "id int4 primary key, name text");
+      TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
 
-    TestUtil.createTable(con1, "users",
-        "id int4 primary key, people_id int4, policy_id int4,"
-            + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
-            + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
+      TestUtil.createTable(con1, "users",
+          "id int4 primary key, people_id int4, policy_id int4,"
+              + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
+              + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getImportedKeys(null, "", "users");
-    assertFalse(rs.next());
-    rs.close();
+      ResultSet rs = dbmd.getImportedKeys(null, "", "users");
+      assertFalse(rs.next());
+      rs.close();
 
-    rs = dbmd.getExportedKeys(null, "", "people");
-    assertFalse(rs.next());
-    rs.close();
+      rs = dbmd.getExportedKeys(null, "", "people");
+      assertFalse(rs.next());
+      rs.close();
 
-    TestUtil.dropTable(con1, "users");
-    TestUtil.dropTable(con1, "people");
-    TestUtil.dropTable(con1, "policy");
-    TestUtil.closeDB(con1);
+      TestUtil.dropTable(con1, "users");
+      TestUtil.dropTable(con1, "people");
+      TestUtil.dropTable(con1, "policy");
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void foreignKeys(BinaryMode binaryMode) throws Exception {
-    Connection con1 = TestUtil.openDB();
-    TestUtil.createTable(con1, "people", "id int4 primary key, name text");
-    TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
+    try (Connection con1 = TestUtil.openDB()) {
+      TestUtil.createTable(con1, "people", "id int4 primary key, name text");
+      TestUtil.createTable(con1, "policy", "id int4 primary key, name text");
 
-    TestUtil.createTable(con1, "users",
-        "id int4 primary key, people_id int4, policy_id int4,"
-            + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
-            + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
+      TestUtil.createTable(con1, "users",
+          "id int4 primary key, people_id int4, policy_id int4,"
+              + "CONSTRAINT people FOREIGN KEY (people_id) references people(id),"
+              + "constraint policy FOREIGN KEY (policy_id) references policy(id)");
 
-    DatabaseMetaData dbmd = con.getMetaData();
-    assertNotNull(dbmd);
+      DatabaseMetaData dbmd = con.getMetaData();
+      assertNotNull(dbmd);
 
-    ResultSet rs = dbmd.getImportedKeys(null, null, "users");
-    int j = 0;
-    for (; rs.next(); j++) {
+      ResultSet rs = dbmd.getImportedKeys(null, null, "users");
+      int j = 0;
+      for (; rs.next(); j++) {
 
-      String pkTableName = rs.getString("PKTABLE_NAME");
-      assertTrue("people".equals(pkTableName) || "policy".equals(pkTableName));
+        String pkTableName = rs.getString("PKTABLE_NAME");
+        assertTrue("people".equals(pkTableName) || "policy".equals(pkTableName));
 
-      String pkColumnName = rs.getString("PKCOLUMN_NAME");
-      assertEquals("id", pkColumnName);
+        String pkColumnName = rs.getString("PKCOLUMN_NAME");
+        assertEquals("id", pkColumnName);
 
-      String fkTableName = rs.getString("FKTABLE_NAME");
-      assertEquals("users", fkTableName);
+        String fkTableName = rs.getString("FKTABLE_NAME");
+        assertEquals("users", fkTableName);
 
-      String fkColumnName = rs.getString("FKCOLUMN_NAME");
-      assertTrue("people_id".equals(fkColumnName) || "policy_id".equals(fkColumnName));
+        String fkColumnName = rs.getString("FKCOLUMN_NAME");
+        assertTrue("people_id".equals(fkColumnName) || "policy_id".equals(fkColumnName));
 
-      String fkName = rs.getString("FK_NAME");
-      assertTrue(fkName.startsWith("people") || fkName.startsWith("policy"));
+        String fkName = rs.getString("FK_NAME");
+        assertTrue(fkName.startsWith("people") || fkName.startsWith("policy"));
 
-      String pkName = rs.getString("PK_NAME");
-      assertTrue("people_pkey".equals(pkName) || "policy_pkey".equals(pkName));
+        String pkName = rs.getString("PK_NAME");
+        assertTrue("people_pkey".equals(pkName) || "policy_pkey".equals(pkName));
 
+      }
+
+      assertEquals(2, j);
+
+      rs = dbmd.getExportedKeys(null, null, "people");
+
+      // this is hacky, but it will serve the purpose
+      assertTrue(rs.next());
+
+      assertEquals("people", rs.getString("PKTABLE_NAME"));
+      assertEquals("id", rs.getString("PKCOLUMN_NAME"));
+
+      assertEquals("users", rs.getString("FKTABLE_NAME"));
+      assertEquals("people_id", rs.getString("FKCOLUMN_NAME"));
+
+      assertTrue(rs.getString("FK_NAME").startsWith("people"));
+
+      TestUtil.dropTable(con1, "users");
+      TestUtil.dropTable(con1, "people");
+      TestUtil.dropTable(con1, "policy");
     }
-
-    assertEquals(2, j);
-
-    rs = dbmd.getExportedKeys(null, null, "people");
-
-    // this is hacky, but it will serve the purpose
-    assertTrue(rs.next());
-
-    assertEquals("people", rs.getString("PKTABLE_NAME"));
-    assertEquals("id", rs.getString("PKCOLUMN_NAME"));
-
-    assertEquals("users", rs.getString("FKTABLE_NAME"));
-    assertEquals("people_id", rs.getString("FKCOLUMN_NAME"));
-
-    assertTrue(rs.getString("FK_NAME").startsWith("people"));
-
-    TestUtil.dropTable(con1, "users");
-    TestUtil.dropTable(con1, "people");
-    TestUtil.dropTable(con1, "policy");
-    TestUtil.closeDB(con1);
   }
 
   @MethodSource("data")
@@ -1691,32 +1688,23 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void partitionedTablesIndex_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
         ResultSet rs = dbmd.getPrimaryKeys("", "", "measurement");
         assertFalse(rs.next());
 
-      } finally {
-        if (stmt != null) {
-          stmt.execute("drop table if exists measurement");
-          stmt.close();
-        }
+        stmt.execute("drop table if exists measurement");
       }
     }
-
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void partitionedTablesIndex(BinaryMode binaryMode) throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
@@ -1724,23 +1712,16 @@ public class DatabaseMetaDataTest {
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
-      } finally {
-        if (stmt != null) {
-          stmt.execute("drop table if exists measurement");
-          stmt.close();
-        }
+        stmt.execute("drop table if exists measurement");
       }
     }
-
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void partitionedTables_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
@@ -1750,11 +1731,7 @@ public class DatabaseMetaDataTest {
         rs = dbmd.getPrimaryKeys("", "", "measurement");
         assertFalse(rs.next());
 
-      } finally {
-        if (stmt != null) {
-          stmt.execute("drop table if exists measurement");
-          stmt.close();
-        }
+        stmt.execute("drop table if exists measurement");
       }
     }
   }
@@ -1763,9 +1740,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void partitionedTables(BinaryMode binaryMode) throws SQLException {
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute(
             "CREATE TABLE measurement (logdate date not null primary key,peaktemp int,unitsales int ) PARTITION BY RANGE (logdate);");
         DatabaseMetaData dbmd = con.getMetaData();
@@ -1777,11 +1752,7 @@ public class DatabaseMetaDataTest {
         assertTrue(rs.next());
         assertEquals("measurement_pkey", rs.getString(6));
 
-      } finally {
-        if (stmt != null) {
-          stmt.execute("drop table if exists measurement");
-          stmt.close();
-        }
+        stmt.execute("drop table if exists measurement");
       }
     }
   }
@@ -1790,9 +1761,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void identityColumns_whenCatalogAndSchemaArgsEmpty_expectNoResults(BinaryMode binaryMode) throws SQLException {
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10) ) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute("CREATE TABLE test_new ("
             + "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,"
             + "payload text)");
@@ -1800,11 +1769,7 @@ public class DatabaseMetaDataTest {
         ResultSet rs = dbmd.getColumns("", "", "test_new", "id");
         assertFalse(rs.next());
 
-      } finally {
-        if ( stmt != null ) {
-          stmt.execute("drop table test_new");
-          stmt.close();
-        }
+        stmt.execute("drop table test_new");
       }
     }
   }
@@ -1813,9 +1778,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void identityColumns(BinaryMode binaryMode) throws SQLException {
     if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v10) ) {
-      Statement stmt = null;
-      try {
-        stmt = con.createStatement();
+      try (Statement stmt = con.createStatement()) {
         stmt.execute("CREATE TABLE test_new ("
             + "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,"
             + "payload text)");
@@ -1825,11 +1788,7 @@ public class DatabaseMetaDataTest {
         assertEquals("id", rs.getString("COLUMN_NAME"));
         assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
 
-      } finally {
-        if ( stmt != null ) {
-          stmt.execute("drop table test_new");
-          stmt.close();
-        }
+        stmt.execute("drop table test_new");
       }
     }
   }
