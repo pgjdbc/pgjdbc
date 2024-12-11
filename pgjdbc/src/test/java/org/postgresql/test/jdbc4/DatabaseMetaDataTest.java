@@ -312,11 +312,11 @@ class DatabaseMetaDataTest {
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "noprocedures", null)) {
-      assertFalse(rs.next(), "getProcedures() should be empty for the hasprocedures schema");
+      assertFalse(rs.next(), "getProcedures() should be empty for the noprocedures schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "hasfunctions", null)) {
-      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
+      assertFalse(rs.next(), "getProcedures() should be empty for the hasfunctions schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures("", "nofunctions", null)) {
@@ -337,11 +337,11 @@ class DatabaseMetaDataTest {
     }
 
     try (ResultSet rs = dbmd.getProcedures(null, "noprocedures", null)) {
-      assertFalse(rs.next(), "getProcedures() should be empty for the hasprocedures schema");
+      assertFalse(rs.next(), "getProcedures() should be empty for the noprocedures schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures(null, "hasfunctions", null)) {
-      assertFalse(rs.next(), "getProcedures() should be empty for the nofunctions schema");
+      assertFalse(rs.next(), "getProcedures() should be empty for the hasfunctions schema");
     }
 
     try (ResultSet rs = dbmd.getProcedures(null, "nofunctions", null)) {
