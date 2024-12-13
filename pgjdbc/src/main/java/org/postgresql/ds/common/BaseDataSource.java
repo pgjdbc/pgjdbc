@@ -57,7 +57,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private int[] portNumbers = new int[]{0};
 
   // Map for all other properties
-  private Properties properties = new Properties();
+  protected Properties properties = new Properties();
 
   /*
    * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
