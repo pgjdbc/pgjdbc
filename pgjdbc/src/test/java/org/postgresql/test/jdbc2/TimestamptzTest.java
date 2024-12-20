@@ -187,33 +187,33 @@ public class TimestamptzTest extends BaseTest4 {
     // java.lang.AssertionError: Can't infer the SQL type to use for an instance of java.time.ZonedDateTime. Use setObject() with an explicit Types value to specify the type to use.
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
       ps.setObject(1, Instant.now());
-    } 
+    }
 
     //Problem
     // java.lang.AssertionError: Bad value for type timestamp/date/time: 2023-03-13T20:34:58.711330339Z
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
       ps.setObject(1, Instant.now(), Types.TIMESTAMP);
-    } 
+    }
 
     //Problem
     // java.lang.AssertionError: Cannot cast an instance of java.time.Instant to type Types.TIMESTAMP_WITH_TIMEZONE
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
       ps.setObject(1, Instant.now(), Types.TIMESTAMP_WITH_TIMEZONE);
-    } 
+    }
   }
 
   @Test
   public void testJavaTime_LocalTime() throws SQLException {
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
       ps.setObject(1, LocalTime.now());
-    } 
+    }
   }
 
   @Test
   public void testJavaTime_LocalDateTime() throws SQLException {
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
       ps.setObject(1, LocalDateTime.now());
-    } 
+    }
   }
 
 }
