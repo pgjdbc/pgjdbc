@@ -390,22 +390,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
-    if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
-      // User is explicitly telling us this is a 9.0+ server so set properties here:
-      if (assumeVersion.getVersionNum() < ServerVersion.v12.getVersionNum()) {
-        // extra_float_digits is meaningless in this case starting from v12
-        // see note on https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-EXTRA-FLOAT-DIGITS
-        paramList.add(new StartupParam("extra_float_digits", "3"));
-      }
-      String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-      if (appName != null) {
-        paramList.add(new StartupParam("application_name", appName));
-      }
-    } else {
-      // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-      paramList.add(new StartupParam("extra_float_digits", "2"));
-    }
+    // we really don't know the version of the server yet so we can't set application name or extra float digits
+    // set them in runInitialQueries
 
+    // probably no need to make sure the assumeVersion is 9.4 or greater. The user really wants replication.
     String replication = PGProperty.REPLICATION.getOrDefault(info);
     if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
       paramList.add(new StartupParam("replication", replication));
@@ -929,6 +917,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     if (dbVersion >= ServerVersion.v9_0.getVersionNum() && dbVersion < ServerVersion.v12.getVersionNum()) {
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
+    } else {
+      // server version < 9 so 8.x or less
+      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 2", false);
     }
 
     String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
