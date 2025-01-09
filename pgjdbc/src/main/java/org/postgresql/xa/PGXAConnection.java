@@ -25,7 +25,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -402,9 +403,12 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
           // except if the transaction is in abort-only state and the
           // backed refuses to process new queries. Hopefully not a problem
           // in practise.
+          // PostgreSQL requires the user to own the transaction in order to successfully execute
+          // commit prepared or rollback prepared
+          // See https://github.com/postgres/postgres/blob/15afb7d61c142a9254a6612c6774aff4f358fb69/src/backend/access/transam/twophase.c#L583C32-L599
           ResultSet rs = stmt.executeQuery(
-              "SELECT gid FROM pg_prepared_xacts where database = current_database()");
-          LinkedList<Xid> l = new LinkedList<>();
+              "SELECT gid FROM pg_prepared_xacts where database = current_database() and pg_has_role(current_user, owner, 'member')");
+          List<Xid> l = new ArrayList<>();
           while (rs.next()) {
             Xid recoveredXid = RecoveredXid.stringToXid(castNonNull(rs.getString(1)));
             if (recoveredXid != null) {

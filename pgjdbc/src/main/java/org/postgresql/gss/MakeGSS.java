@@ -118,7 +118,7 @@ public class MakeGSS {
   public static void authenticate(boolean encrypted,
       PGStream pgStream, String host, String user, char @Nullable [] password,
       @Nullable String jaasApplicationName, @Nullable String kerberosServerName,
-      boolean useSpnego, boolean jaasLogin,
+      boolean useSpnego, boolean jaasLogin, boolean gssUseDefaultCreds,
       boolean logServerErrorDetail)
           throws IOException, PSQLException {
     LOGGER.log(Level.FINEST, " <=BE AuthenticationReqGSS");
@@ -151,10 +151,10 @@ public class MakeGSS {
       PrivilegedAction<@Nullable Exception> action;
       if ( encrypted ) {
         action = new GssEncAction(pgStream, sub, host, user,
-            kerberosServerName, useSpnego, logServerErrorDetail);
+            kerberosServerName, useSpnego, gssUseDefaultCreds, logServerErrorDetail);
       } else {
         action = new GssAction(pgStream, sub, host, user,
-            kerberosServerName, useSpnego, logServerErrorDetail);
+            kerberosServerName, useSpnego, gssUseDefaultCreds, logServerErrorDetail);
       }
       //noinspection ConstantConditions
       @SuppressWarnings({"cast.unsafe", "assignment"})

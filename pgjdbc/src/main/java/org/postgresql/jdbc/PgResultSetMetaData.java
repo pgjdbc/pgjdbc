@@ -25,6 +25,8 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.HashSet;
+import java.util.Set;
 
 public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaData {
   protected final BaseConnection connection;
@@ -222,6 +224,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     // so we've got to fake that with a JOIN here.
     //
     boolean hasSourceInfo = false;
+    Set<String> oidSet = new HashSet<>();
     for (Field field : fields) {
       if (field.getMetadata() != null) {
         continue;
@@ -245,8 +248,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
       if (!hasSourceInfo) {
         hasSourceInfo = true;
       }
+      oidSet.add(String.valueOf(field.getTableOid()));
     }
     sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
+
+    if (!oidSet.isEmpty()) {
+      sql.append("where c.oid in (").append(String.join(",", oidSet)).append(")");
+    }
 
     if (!hasSourceInfo) {
       fieldInfoFetched = true;

@@ -5,8 +5,8 @@
 
 pluginManagement {
     plugins {
-        id("biz.aQute.bnd.builder") version "7.0.0"
-        id("com.github.burrunan.s3-build-cache") version "1.8.3"
+        id("biz.aQute.bnd.builder") version "7.1.0"
+        id("com.github.burrunan.s3-build-cache") version "1.8.4"
         id("com.github.johnrengelman.shadow") version "8.1.1"
         id("com.github.lburgazzoli.karaf") version "0.5.6"
         id("com.github.vlsi.crlf") version "1.90"
@@ -17,12 +17,12 @@ pluginManagement {
         id("com.github.vlsi.stage-vote-release") version "1.90"
         id("org.nosphere.gradle.github.actions") version "1.4.0"
         id("me.champeau.jmh") version "0.7.2"
-        kotlin("jvm") version "2.0.20"
+        kotlin("jvm") version "2.1.0"
     }
 }
 
 plugins {
-    `gradle-enterprise`
+    id("com.gradle.develocity") version "3.18.2"
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -57,12 +57,15 @@ fun property(name: String) =
 
 val isCiServer = System.getenv().containsKey("CI")
 
-if (isCiServer) {
-    gradleEnterprise {
-        buildScan {
-            termsOfServiceUrl = "https://gradle.com/terms-of-service"
-            termsOfServiceAgree = "yes"
+develocity {
+    buildScan {
+        if (isCiServer) {
+            termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
+            termsOfUseAgree = "yes"
             tag("CI")
+        } else {
+            // Dot not publish build scans from the local builds unless user executes with --scan
+            publishing.onlyIf { false }
         }
     }
 }

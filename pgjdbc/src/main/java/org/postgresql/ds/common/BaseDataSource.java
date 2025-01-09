@@ -1139,6 +1139,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if using default GSS credentials
+   * @see PGProperty#GSS_USE_DEFAULT_CREDS
+   */
+  public boolean getGssUseDefaultCreds() {
+    return PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(properties);
+  }
+
+  /**
+   * @param gssUseDefaultCreds true if using default GSS credentials
+   * @see PGProperty#GSS_USE_DEFAULT_CREDS
+   */
+  public void setGssUseDefaultCreds(boolean gssUseDefaultCreds) {
+    PGProperty.GSS_USE_DEFAULT_CREDS.set(properties, gssUseDefaultCreds);
+  }
+
+  /**
    * @return Kerberos server name
    * @see PGProperty#KERBEROS_SERVER_NAME
    */
