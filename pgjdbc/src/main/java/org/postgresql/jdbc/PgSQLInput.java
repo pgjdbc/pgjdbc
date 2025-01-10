@@ -351,7 +351,7 @@ public class PgSQLInput implements SQLInput {
       return (SQLFunction<String, T>) bigDecimalConv;
     }
 
-    if (type == Byte.class) {
+    if (type == Byte.class || type == byte.class) {
       return (SQLFunction<String, T>) byteConv;
     }
 
@@ -373,6 +373,10 @@ public class PgSQLInput implements SQLInput {
 
     if (type == Array.class) {
       return (SQLFunction<String, T>) arrayConvFn.apply(connection);
+    }
+
+    if (type == SQLXML.class) {
+      return (value) -> new PgSQLXML(connection, value);
     }
 
     throw new SQLException(String.format("Unsupported type conversion to [%s].", type));
