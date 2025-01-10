@@ -72,6 +72,9 @@ tasks.test {
     dependsOn(generateDependenciesProperties)
     dependsOn(cleanCachedPgjdbc)
     dependsOn(pgjdbcRepository)
+    onlyIf("Looks like pax.url does not support Java 8, see https://github.com/ops4j/org.ops4j.pax.url/issues/453") {
+        buildParameters.jdkTestVersion.get() > 8
+    }
     systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml"))
     // Regular systemProperty can't be used here as we need lazy evaluation of pgjdbcRepository
     jvmArgumentProviders.add(CommandLineArgumentProvider {
