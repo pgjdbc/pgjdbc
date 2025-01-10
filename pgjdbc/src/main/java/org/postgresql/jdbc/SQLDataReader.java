@@ -28,9 +28,13 @@ public class SQLDataReader {
       throw new SQLException(String.format("An accessible no-arg constructor is required for type [%s]", type), ex);
     }
 
-    data.readSQL(new PgSQLInput(parse(value, '(', ')'), connection, timestampUtils), data.getSQLTypeName());
+    data.readSQL(new PgSQLInput(parseObj(value), connection, timestampUtils), data.getSQLTypeName());
 
     return type.cast(data);
+  }
+
+  public List<@Nullable String> parseObj(String value) {
+    return parse(value, '(', ')');
   }
 
   public List<@Nullable String> parseArray(String value) {
@@ -44,14 +48,14 @@ public class SQLDataReader {
     StringBuilder builder = null;
 
     int lastDelimIdx = -1;
-
-    scan: for (int charIdx = 0; charIdx < len; ++charIdx) {
+    int charIdx = 0;
+    while (charIdx < len) {
       char ch = value.charAt(charIdx);
       if (ch == begin) {
         lastDelimIdx = charIdx;
       } else if (ch == end) {
         addTextElement(builder, lastDelimIdx, charIdx, values);
-        break scan;
+        break;
       } else if (ch == '"') {
         builder = new StringBuilder();
         charIdx = readString(value, charIdx, builder);
@@ -68,7 +72,7 @@ public class SQLDataReader {
           while (charIdx < len && isWhitespace(value.charAt(charIdx))) {
             ++charIdx;
           }
-          break;
+          continue;
         }
 
         if (builder == null) {
@@ -76,6 +80,7 @@ public class SQLDataReader {
         }
         builder.append(ch);
       }
+      ++charIdx;
     }
     return values;
   }
@@ -84,24 +89,24 @@ public class SQLDataReader {
     int len = value.length();
     int index;
 
-    scan: for (index = start + 1; index < len; ++index) {
+    for (index = start + 1; index < len; ++index) {
       char ch = value.charAt(index);
-      switch (ch) {
-        case '"':
-          if (index < value.length() - 1 && value.charAt(index + 1) == '"') {
-            ++index;
-            builder.append('"');
-            break;
-          } else {
-            break scan;
-          }
-        case '\\':
+      if (ch == '"') {
+        if (index < value.length() - 1 && value.charAt(index + 1) == '"') {
           ++index;
-          if (index < value.length()) {
-            ch = value.charAt(index);
-          }
-        default:
+          builder.append('"');
+        } else {
+          break;
+        }
+      } else if (ch == '\\') {
+        ++index;
+        if (index < value.length()) {
+          builder.append(value.charAt(index));
+        } else {
           builder.append(ch);
+        }
+      } else {
+        builder.append(ch);
       }
     }
 
