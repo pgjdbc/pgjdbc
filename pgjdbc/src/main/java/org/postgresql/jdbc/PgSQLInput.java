@@ -268,6 +268,15 @@ public class PgSQLInput implements SQLInput {
     throw Driver.notImplemented(this.getClass(), "readNString()");
   }
 
+  //
+  // NOTE: Without the @SuppressWarnings("nullness")
+  //   error: [argument] incompatible argument for parameter arg0 of Array.set.
+  //       java.lang.reflect.Array.set(results, i, converter.apply(item));
+  //                                   ^
+  //   found   : @Initialized @NonNull Object @Initialized @Nullable []
+  //   required: @Initialized @NonNull Object
+  //
+  @SuppressWarnings("nullness")
   private static Object reflectArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
     List<@Nullable String> items = new SQLDataReader().parseArray(value);
     Object @Nullable [] results = (Object @Nullable []) java.lang.reflect.Array.newInstance(itemType, items.size());
@@ -300,7 +309,13 @@ public class PgSQLInput implements SQLInput {
   // }
 
   public static <T> T readGenericArray(String value, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
+    if (type == null) {
+      throw new SQLException("type is null");
+    }
     Class<?> itemType = type.getComponentType();
+    if (itemType == null) {
+      throw new SQLException("Array item type is null");
+    }
     SQLFunction<String, ?> converter = getConverter(itemType, connection, timestampUtils);
     // return type.cast(buildArray(itemType, converter, value));
     return type.cast(reflectArray(itemType, converter, value));
@@ -312,7 +327,19 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (SQLData.class.isAssignableFrom(type)) {
-      return (value) -> new SQLDataReader().read(value, type, connection, timestampUtils);
+      return (value) -> {
+        //
+        // NOTE: This method can return null but I think the converters are all called after a null check
+        // and thus are not configured to return null because the null is handled prior to this call.
+        // But since this is used elsewhere where null is a valid result I'm just going to throw an error
+        // if we get a null result here to make the CheckerFramework happy.
+        //
+        T result = new SQLDataReader().read(value, type, connection, timestampUtils);
+        if (result == null) {
+          throw new SQLException("Null value found.");
+        }
+        return result;
+      };
     }
 
     if (type == String.class) {
@@ -376,7 +403,7 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (type == SQLXML.class) {
-      return (value) -> new PgSQLXML(connection, value);
+      return (SQLFunction<String, T>) (value) -> (T) new PgSQLXML(connection, value);
     }
 
     throw new SQLException(String.format("Unsupported type conversion to [%s].", type));
