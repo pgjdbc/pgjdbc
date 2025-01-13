@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, PostgreSQL Global Development Group
+ * Copyright (c) 2024, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -93,7 +93,7 @@ public class TimestamptzTest extends BaseTest4 {
         System.out.printf("result:%s \n", resultFunction);
 
         if (resultFunction.contains("wrongInfo")) {
-          fail("choose wrong overloading");
+          fail("choose wrong overloading testtimestamp.demoF(text, text) instead of the one testtimestamp.demoF(text, timestamptz)");
         }
 
       } else {
@@ -126,7 +126,12 @@ public class TimestamptzTest extends BaseTest4 {
 
       ResultSet rs = ps.executeQuery();
       if (rs.next()) {
-        System.out.printf("id:%d ts:%s \n", rs.getInt("id"), rs.getTimestamp("ts"));
+        int id = rs.getInt("id");
+        Timestamp ts = rs.getTimestamp("ts");
+        System.out.printf("id:%d ts:%s \n", id, ts);
+        
+        assertEquals(1, id);
+        
       } else {
         fail("no result");
       }
@@ -144,12 +149,22 @@ public class TimestamptzTest extends BaseTest4 {
     try (PreparedStatement ps = con.prepareStatement("select 1 where ? is null  ")) {
       ps.setTimestamp(1, null);
       ResultSet rs = ps.executeQuery();
+      if (!rs.next()) {
+        fail("no result");
+      }
     }
-
+    
+    
+    try (PreparedStatement ps = con.prepareStatement(" insert into testtimestamp.tbtesttimestamp (id, ts) values(1, '2023-03-12 10:00:00+1'::timestamptz ) ")) {
+      ps.executeUpdate();
+    }
     try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where (? is null or ts >= ?) ")) {
       ps.setTimestamp(1, null);
       ps.setTimestamp(2, null);
       ResultSet rs = ps.executeQuery();
+      if (!rs.next()) {
+        fail("no result");
+      }
     }
   }
 
