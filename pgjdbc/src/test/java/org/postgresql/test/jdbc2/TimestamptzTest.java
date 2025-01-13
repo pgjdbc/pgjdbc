@@ -142,6 +142,7 @@ public class TimestamptzTest extends BaseTest4 {
   /**
    * Add test for null and correct value of null parameter type.
    * The test should work with and without TimestamptzAlways
+   * If correct data type is not passed in case of null postgres return: org.postgresql.util.PSQLException: ERROR: could not determine data type of parameter ...
    */
   @Test
   public void testTypeOnDbSite_select_nullability() throws SQLException {
