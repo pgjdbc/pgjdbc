@@ -129,9 +129,9 @@ public class TimestamptzTest extends BaseTest4 {
         int id = rs.getInt("id");
         Timestamp ts = rs.getTimestamp("ts");
         //System.out.printf("id:%d ts:%s \n", id, ts);
-        
+
         assertEquals(1, id);
-        
+
       } else {
         fail("no result");
       }
@@ -153,8 +153,7 @@ public class TimestamptzTest extends BaseTest4 {
         fail("no result");
       }
     }
-    
-    
+
     try (PreparedStatement ps = con.prepareStatement(" insert into testtimestamp.tbtesttimestamp (id, ts) values(1, '2023-03-12 10:00:00+1'::timestamptz ) ")) {
       ps.executeUpdate();
     }
