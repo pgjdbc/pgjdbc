@@ -268,8 +268,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       case Types.TIME:
       case Types.TIME_WITH_TIMEZONE:
       case Types.TIMESTAMP_WITH_TIMEZONE:
+        oid = Oid.TIMESTAMPTZ;
+        break;
       case Types.TIMESTAMP:
-        oid = Oid.UNSPECIFIED;
+        oid = Oid.TIMESTAMP;
         break;
       case Types.BOOLEAN:
       case Types.BIT:
@@ -1478,7 +1480,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     if (t == null) {
-      setNull(i, Types.TIMESTAMP);
+      if (connection.isSqlTimestamptzAlways()) {
+        setNull(i, Types.TIMESTAMP_WITH_TIMEZONE);
+      } else {
+        setNull(i, Types.TIMESTAMP);
+      }
       return;
     }
 
