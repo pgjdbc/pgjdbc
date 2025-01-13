@@ -268,7 +268,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         oid = Oid.DATE;
         break;
       case Types.TIME:
+        oid = Oid.TIME;
+        break;
       case Types.TIME_WITH_TIMEZONE:
+        oid = Oid.TIMETZ;
+        break;
       case Types.TIMESTAMP_WITH_TIMEZONE:
         oid = Oid.TIMESTAMPTZ;
         break;
