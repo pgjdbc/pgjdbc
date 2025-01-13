@@ -133,6 +133,26 @@ public class TimestamptzTest extends BaseTest4 {
     }
   }
 
+
+  /**
+   * Add test for null and correct value of null parameter type.
+   * The test should work with and without TimestamptzAlways
+   */
+  @Test
+  public void testTypeOnDbSite_select_nullability() throws SQLException {
+
+    try (PreparedStatement ps = con.prepareStatement("select 1 where ? is null  ")) {
+      ps.setTimestamp(1, null);
+      ResultSet rs = ps.executeQuery();
+    }
+
+    try (PreparedStatement ps = con.prepareStatement(" SELECT * from testtimestamp.tbtesttimestamp where (? is null or ts >= ?) ")) {
+      ps.setTimestamp(1, null);
+      ps.setTimestamp(2, null);
+      ResultSet rs = ps.executeQuery();
+    }
+  }
+
   @Test
   public void testTypeOnDbSite() throws SQLException {
     try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
