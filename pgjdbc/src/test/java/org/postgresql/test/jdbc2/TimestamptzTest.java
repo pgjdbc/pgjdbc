@@ -90,7 +90,7 @@ public class TimestamptzTest extends BaseTest4 {
       ResultSet rs = ps.executeQuery();
       if (rs.next()) {
         String resultFunction = rs.getString("res");
-        System.out.printf("result:%s \n", resultFunction);
+        //System.out.printf("result:%s \n", resultFunction);
 
         if (resultFunction.contains("wrongInfo")) {
           fail("choose wrong overloading testtimestamp.demoF(text, text) instead of the one testtimestamp.demoF(text, timestamptz)");
@@ -128,7 +128,7 @@ public class TimestamptzTest extends BaseTest4 {
       if (rs.next()) {
         int id = rs.getInt("id");
         Timestamp ts = rs.getTimestamp("ts");
-        System.out.printf("id:%d ts:%s \n", id, ts);
+        //System.out.printf("id:%d ts:%s \n", id, ts);
         
         assertEquals(1, id);
         
@@ -176,7 +176,7 @@ public class TimestamptzTest extends BaseTest4 {
       ResultSet rs = ps.executeQuery();
       if (rs.next()) {
         String typeFromDb = rs.getString(1);
-        System.out.printf("db type: %s\n",typeFromDb);
+        //System.out.printf("db type: %s\n",typeFromDb);
         assertTrue("timestamp with time zone".equalsIgnoreCase(typeFromDb));
       } else {
         fail("no result");
