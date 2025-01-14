@@ -8,6 +8,36 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 ### Fixed
 
+## [42.7.5] (2025-01-14 08:00:00 -0400)
+
+### Added
+* ci: Test with Java 23  [PR #3381](https://github.com/pgjdbc/pgjdbc/pull/3381)
+
+### Fixed
+* regression: revert change in fc60537 [PR #3476](https://github.com/pgjdbc/pgjdbc/pull/3476)
+* fix: PgDatabaseMetaData implementation of catalog as param and return value [PR #3390](https://github.com/pgjdbc/pgjdbc/pull/3390)
+* fix: Support default GSS credentials in the Java Postgres client [PR #3451](https://github.com/pgjdbc/pgjdbc/pull/3451)
+* fix: return only the transactions accessible by the current_user in XAResource.recover [PR #3450](https://github.com/pgjdbc/pgjdbc/pull/3450)
+* feat: don't force send extra_float_digits for PostgreSQL >= 12 fix [Issue #3432](https://github.com/pgjdbc/pgjdbc/issues/3432)  [PR #3446](https://github.com/pgjdbc/pgjdbc/pull/3446)
+* fix: exclude "include columns" from the list of primary keys [PR #3434](https://github.com/pgjdbc/pgjdbc/pull/3434)
+* perf: Enhance the meta query performance by specifying the oid. [PR #3427](https://github.com/pgjdbc/pgjdbc/pull/3427)
+* feat: support getObject(int, byte[].class) for bytea [PR #3274](https://github.com/pgjdbc/pgjdbc/pull/3274)
+* docs: document infinity and some minor edits [PR #3407](https://github.com/pgjdbc/pgjdbc/pull/3407)
+* fix: Added way to check for major server version, fixed check for RULE [PR #3402](https://github.com/pgjdbc/pgjdbc/pull/3402)
+* docs: fixed remaining paragraphs [PR #3398](https://github.com/pgjdbc/pgjdbc/pull/3398)
+* docs: fixed paragraphs in javadoc comments  [PR #3397](https://github.com/pgjdbc/pgjdbc/pull/3397)
+* fix: Reuse buffers and reduce allocations in GSSInputStream addresses [Issue #3251](https://github.com/pgjdbc/pgjdbc/issues/3251) [PR #3255](https://github.com/pgjdbc/pgjdbc/pull/3255)
+* chore: Update Gradle to 8.10.2 [PR #3388](https://github.com/pgjdbc/pgjdbc/pull/3388)
+* fix: getSchemas() [PR #3386](https://github.com/pgjdbc/pgjdbc/pull/3386)
+* fix: Update rpm postgresql-jdbc.spec.tpl with scram-client [PR #3324](https://github.com/pgjdbc/pgjdbc/pull/3324)
+* fix: Clearing thisRow and rowBuffer on close() of ResultSet [Issue #3383](https://github.com/pgjdbc/pgjdbc/issues/3383) [PR #3384](https://github.com/pgjdbc/pgjdbc/pull/3384)
+* fix: Package was renamed to maven-bundle-plugin [PR #3382](https://github.com/pgjdbc/pgjdbc/pull/3382)
+* fix: As of version 18 the RULE privilege has been removed [PR #3378](https://github.com/pgjdbc/pgjdbc/pull/3378)
+* fix: use buffered inputstream to create GSSInputStream [PR #3373](https://github.com/pgjdbc/pgjdbc/pull/3373)
+* test: get rid of 8.4, 9.0 pg versions and use >= jdk version 17 [PR #3372](https://github.com/pgjdbc/pgjdbc/pull/3372)
+* Changed docker-compose version and renamed script file in instructions to match the real file name [PR #3363](https://github.com/pgjdbc/pgjdbc/pull/3363)
+* test:Do not assume "test" database in DatabaseMetaDataTransactionIsolationTest [PR #3364](https://github.com/pgjdbc/pgjdbc/pull/3364)
+* try to categorize dependencies [PR #3362](https://github.com/pgjdbc/pgjdbc/pull/3362)
 ## [42.7.4] (2024-08-22 08:00:00 -0400)
 
 ### Added
