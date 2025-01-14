@@ -250,7 +250,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       case Types.TIMESTAMP:
         return getTimestamp(columnIndex, null);
       case Types.TIMESTAMP_WITH_TIMEZONE:
-          return getTimestamp(columnIndex, null);   
+        return getTimestamp(columnIndex, null);
       case Types.BINARY:
       case Types.VARBINARY:
       case Types.LONGVARBINARY:
@@ -2130,12 +2130,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
               getTimestampUtils().toString(
                   getDefaultCalendar(), (Timestamp) valueObject)));
           break;
-          
+
         case Types.TIMESTAMP_WITH_TIMEZONE:
-            rowBuffer.set(columnIndex, connection.encodeString(
-                getTimestampUtils().toString(
-                    getDefaultCalendar(), (Timestamp) valueObject)));
-            break;  
+          rowBuffer.set(columnIndex, connection.encodeString(
+              getTimestampUtils().toString(
+                  getDefaultCalendar(), (Timestamp) valueObject)));
+          break;
 
         case Types.NULL:
           // Should never happen?
