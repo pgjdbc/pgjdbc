@@ -78,7 +78,7 @@ public class GSSOutputStreamTest {
 
     @Override
     public byte[] wrap(byte[] bytes, int i, int i1, MessageProp messageProp) throws GSSException {
-      Assert.assertTrue("ArrayIndexOutOfBoundsException", bytes.length >= i + i1);
+      Assert.assertTrue("ArrayIndexOutOfBoundsException offset " + i + " length " + i1 + " buffer capacity " + bytes.length, bytes.length >= i + i1);
       return bytes;
     }
 
@@ -89,7 +89,7 @@ public class GSSOutputStreamTest {
 
     @Override
     public byte[] unwrap(byte[] bytes, int i, int i1, MessageProp messageProp) throws GSSException {
-      Assert.assertTrue("ArrayIndexOutOfBoundsException", bytes.length >= i + i1);
+      Assert.assertTrue("ArrayIndexOutOfBoundsException offset " + i + " length " + i1 + " buffer capacity " + bytes.length, bytes.length >= i + i1);
       return bytes;
     }
 
