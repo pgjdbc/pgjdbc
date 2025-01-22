@@ -24,8 +24,18 @@ if (!project.hasProperty("skipErrorprone")) {
             options.compilerArgs.addAll(listOf("-Xmaxerrs", "10000", "-Xmaxwarns", "10000"))
             options.errorprone {
                 disableWarningsInGeneratedCode.set(true)
-                enable(
-                    "PackageLocation"
+                errorproneArgs.add("-XepExcludedPaths:.*/translation/messages_.*.java")
+                error(
+                    "PackageLocation",
+                    "UnusedVariable",
+                )
+                disable(
+                    "EqualsGetClass",
+                    "InlineMeSuggester",
+                    "MissingSummary",
+                    "OperatorPrecedence",
+                    "StringSplitter",
+                    "UnnecessaryParentheses",
                 )
             }
         }
