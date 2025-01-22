@@ -915,11 +915,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, "BEGIN", false);
     }
 
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum() && dbVersion < ServerVersion.v12.getVersionNum()) {
-      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
-    } else {
+    if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
       // server version < 9 so 8.x or less
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 2", false);
+    } else if (dbVersion < ServerVersion.v12.getVersionNum()) {
+      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
     String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
