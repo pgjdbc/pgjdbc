@@ -26,6 +26,7 @@ public final class EscapedFunctions2 {
   // constants for timestampadd and timestampdiff
   private static final String SQL_TSI_ROOT = "SQL_TSI_";
   private static final String SQL_TSI_DAY = "SQL_TSI_DAY";
+  @SuppressWarnings("unused")
   private static final String SQL_TSI_FRAC_SECOND = "SQL_TSI_FRAC_SECOND";
   private static final String SQL_TSI_HOUR = "SQL_TSI_HOUR";
   private static final String SQL_TSI_MINUTE = "SQL_TSI_MINUTE";
@@ -574,7 +575,7 @@ public final class EscapedFunctions2 {
           PSQLState.SYNTAX_ERROR);
     }
     buf.append("extract( ")
-        .append(constantToDatePart(buf, parsedArgs.get(0).toString()))
+        .append(constantToDatePart(parsedArgs.get(0).toString()))
         .append(" from (")
         .append(parsedArgs.get(2))
         .append("-")
@@ -582,7 +583,7 @@ public final class EscapedFunctions2 {
         .append("))");
   }
 
-  private static String constantToDatePart(StringBuilder buf, String type) throws SQLException {
+  private static String constantToDatePart(String type) throws SQLException {
     if (!isTsi(type)) {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);

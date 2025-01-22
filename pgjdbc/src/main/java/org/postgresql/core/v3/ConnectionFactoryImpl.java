@@ -91,11 +91,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB4 = 1;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB5 = 2;
   private static final int AUTH_REQ_PASSWORD = 3;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_CRYPT = 4;
   private static final int AUTH_REQ_MD5 = 5;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_SCM = 6;
   private static final int AUTH_REQ_GSS = 7;
   private static final int AUTH_REQ_GSS_CONTINUE = 8;

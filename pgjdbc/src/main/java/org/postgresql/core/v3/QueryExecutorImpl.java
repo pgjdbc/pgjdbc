@@ -403,7 +403,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave, flags);
+          releaseSavePoint(autosave);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -439,7 +439,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return false;
   }
 
-  private void releaseSavePoint(boolean autosave, int flags) throws SQLException {
+  private void releaseSavePoint(boolean autosave) throws SQLException {
     if ( autosave
         && getAutoSave() == AutoSave.ALWAYS
         && getTransactionState() == TransactionState.OPEN) {
@@ -590,7 +590,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave, flags);
+          releaseSavePoint(autosave);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -906,6 +906,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case 'V': // FunctionCallResponse
+          @SuppressWarnings("unused")
           int msgLen = pgStream.receiveInteger4();
           int valueLen = pgStream.receiveInteger4();
 

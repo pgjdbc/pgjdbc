@@ -38,6 +38,7 @@ public class GssEncAction implements PrivilegedAction<@Nullable Exception>, Call
   private final boolean useSpnego;
   private final boolean gssUseDefaultCreds;
   private final @Nullable Subject subject;
+  @SuppressWarnings("unused")
   private final boolean logServerErrorDetail;
 
   public GssEncAction(PGStream pgStream, @Nullable Subject subject,

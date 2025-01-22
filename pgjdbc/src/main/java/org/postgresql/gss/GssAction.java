@@ -154,7 +154,8 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
             case 'R':
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
-              int type = pgStream.receiveInteger4();
+              @SuppressWarnings("unused")
+              int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
               // should check type = 8
               inToken = pgStream.receive(len - 8);
               break;

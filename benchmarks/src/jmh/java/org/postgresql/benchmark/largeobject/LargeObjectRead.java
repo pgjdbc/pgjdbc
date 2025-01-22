@@ -65,6 +65,7 @@ public class LargeObjectRead {
 
   private byte[] input;
   private byte[] output;
+  @SuppressWarnings("unused")
   private byte[] buffer;
 
   @Setup

@@ -442,8 +442,6 @@ public class TimestampUtils {
         return null;
       }
 
-      int blen = bytes.length;
-
       // convert postgres's infinity values to internal infinity magic value
       if (bytes[0] == 'i' && Arrays.equals(bytes,INFINITY)) {
         return new Timestamp(PGStatement.DATE_POSITIVE_INFINITY);

@@ -330,7 +330,8 @@ public class Driver implements java.sql.Driver {
    *  due to a security issue
    * @param props Connection Properties
    */
-  private void setupLoggerFromProperties(final Properties props) {
+  @SuppressWarnings("MethodCanBeStatic")
+  private void setupLoggerFromProperties(@SuppressWarnings("UnusedVariable") Properties props) {
   }
 
   /**
