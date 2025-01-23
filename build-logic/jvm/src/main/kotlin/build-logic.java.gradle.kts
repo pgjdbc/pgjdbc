@@ -69,10 +69,8 @@ tasks.configureEach<JavaCompile> {
             compilerArgs.add("-Xmaxerrs")
             compilerArgs.add("1")
         }
-        if (JavaVersion.current().isJava9Compatible) {
-            // See https://bugs.openjdk.org/browse/JDK-8032211
-            // Don't issue deprecation warnings on import statements is resolved in Java 9+
-            //compilerArgs.add("-Werror")
+        if (buildParameters.failOnJavacWarning && !name.contains("Test")) {
+            compilerArgs.add("-Werror")
         }
     }
 }
