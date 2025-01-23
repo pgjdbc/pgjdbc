@@ -664,9 +664,7 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the SSL Factory.
-   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
-  @Deprecated
   SSL_FACTORY_ARG(
       "sslfactoryarg",
       null,
