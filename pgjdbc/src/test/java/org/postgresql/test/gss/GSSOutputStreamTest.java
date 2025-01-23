@@ -19,25 +19,44 @@ import org.ietf.jgss.Oid;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 public class GSSOutputStreamTest {
   private final MessageProp messageProp = new MessageProp(0, true);
   private final GSSContext gssContext = new FakeGSSContext();
-  private final PgBufferedOutputStream nullOutputStream =
-      new PgBufferedOutputStream(new NullOutputStream(), 10);
+
 
   @Test
   public void testGSSMessageBuffer() throws Exception {
-    GSSOutputStream gssOutputStream = new GSSOutputStream(nullOutputStream, gssContext,
-        messageProp, 10);
+    ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer
+        , 10), gssContext, messageProp, 10);
 
     gssOutputStream.write(new byte[0]);
     gssOutputStream.write(new byte[1]);
     gssOutputStream.write(new byte[9]);
+    gssOutputStream.flush();
+    Assert.assertArrayEquals(new byte[]{0x00, 0x00, 0x00, 10 /* 4 byte length */, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,}, outputBuffer.toByteArray());
+  }
+
+  @Test
+  public void testGSSMessageBigWrite() throws Exception {
+    ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
+    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer
+        , 10), gssContext, messageProp, 10);
     gssOutputStream.write(new byte[1]);
-    gssOutputStream.write(new byte[100]);
+    gssOutputStream.write(new byte[20]);
+    gssOutputStream.flush();
+
+    Assert.assertArrayEquals(new byte[]{0x00, 0x00, 0x00, 10 /* 4 byte length */,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 10,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x01, 0x00
+    }, outputBuffer.toByteArray());
   }
 
   public static class FakeGSSContext implements GSSContext {
