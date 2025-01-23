@@ -6,7 +6,6 @@
 package org.postgresql.test.gss;
 
 import org.postgresql.gss.GSSOutputStream;
-import org.postgresql.util.NullOutputStream;
 import org.postgresql.util.internal.PgBufferedOutputStream;
 
 import org.ietf.jgss.ChannelBinding;
