@@ -6,7 +6,6 @@
 package org.postgresql.ds.common;
 
 import org.postgresql.ds.PGConnectionPoolDataSource;
-import org.postgresql.ds.PGPoolingDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.util.internal.Nullness;
 
@@ -56,15 +55,17 @@ public class PGObjectFactory implements ObjectFactory {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private Object loadPoolingDataSource(Reference ref) {
     // If DataSource exists, return it
     String name = Nullness.castNonNull(getProperty(ref, "dataSourceName"));
-    PGPoolingDataSource pds = PGPoolingDataSource.getDataSource(name);
+    org.postgresql.ds.PGPoolingDataSource pds =
+        org.postgresql.ds.PGPoolingDataSource.getDataSource(name);
     if (pds != null) {
       return pds;
     }
     // Otherwise, create a new one
-    pds = new PGPoolingDataSource();
+    pds = new org.postgresql.ds.PGPoolingDataSource();
     pds.setDataSourceName(name);
     loadBaseDataSource(pds, ref);
     String min = getProperty(ref, "initialConnections");

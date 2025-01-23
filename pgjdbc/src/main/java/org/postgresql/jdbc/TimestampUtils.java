@@ -528,9 +528,7 @@ public class TimestampUtils {
    * @param s The ISO formatted time string to parse.
    * @return null if s is null or a OffsetTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated  in use {@link #toOffsetTime(byte[])} instead
    */
-  @Deprecated
   public @PolyNull OffsetTime toOffsetTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -566,9 +564,7 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated use {@link #toLocalDateTime(byte[])}
   */
-  @Deprecated
   public @PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -629,9 +625,7 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated  use {@link #toOffsetDateTimeBin(byte[])}
    */
-  @Deprecated
   public @PolyNull OffsetDateTime toOffsetDateTime(
       @PolyNull String s) throws SQLException {
     if (s == null) {

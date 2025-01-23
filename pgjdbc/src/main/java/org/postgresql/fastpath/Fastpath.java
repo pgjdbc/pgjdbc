@@ -29,13 +29,7 @@ import java.util.logging.Level;
  * <p>This is a means of executing functions embedded in the backend from within a java application.</p>
  *
  * <p>It is based around the file src/interfaces/libpq/fe-exec.c</p>
- *
- * @deprecated This API is somewhat obsolete, as one may achieve similar performance
- *         and greater functionality by setting up a prepared statement to define
- *         the function call. Then, executing the statement with binary transmission of parameters
- *         and results substitutes for a fast-path function call.
  */
-@Deprecated
 public class Fastpath {
   // Java passes oids around as longs, but in the backend
   // it's an unsigned int, so we use this to make the conversion
@@ -101,13 +95,16 @@ public class Fastpath {
    */
   public byte @Nullable [] fastpath(int fnId, FastpathArg[] args) throws SQLException {
     // Turn fastpath array into a parameter list.
+    @SuppressWarnings("deprecation")
     ParameterList params = executor.createFastpathParameters(args.length);
     for (int i = 0; i < args.length; i++) {
       args[i].populateParameter(params, i + 1);
     }
 
     // Run it.
-    return executor.fastpathCall(fnId, params, connection.getAutoCommit());
+    @SuppressWarnings("deprecation")
+    byte[] result = executor.fastpathCall(fnId, params, connection.getAutoCommit());
+    return result;
   }
 
   /**
