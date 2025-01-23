@@ -50,8 +50,8 @@ public class GSSOutputStream extends PgBufferedOutputStream {
   private void writeWrapped(byte[] b, int off, int len) throws IOException {
     try {
       byte[] token = gssContext.wrap(b, off, len, messageProp);
-      pgOut.writeInt4(token.length);
-      pgOut.write(token, 0, token.length);
+      pgOut.writeInt4(len);
+      pgOut.write(token, 0, len);
     } catch (GSSException ex) {
       throw new IOException(ex);
     }
@@ -73,10 +73,9 @@ public class GSSOutputStream extends PgBufferedOutputStream {
     }
     // Write out the rest, chunk the writes, so we do not exceed the maximum encrypted message size
     while (len >= buf.length) {
-      int writeSize = Math.min(buf.length - count, len);
-      writeWrapped(b, off, writeSize);
-      off += writeSize;
-      len -= writeSize;
+      writeWrapped(b, off, buf.length);
+      off += buf.length;
+      len -= buf.length;
     }
     // Put the rest into buffer
     if (len == 0) {
