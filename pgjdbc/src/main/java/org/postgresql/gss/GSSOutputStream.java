@@ -77,7 +77,6 @@ public class GSSOutputStream extends PgBufferedOutputStream {
       off += buf.length;
       len -= buf.length;
     }
-    // Put the rest into buffer
     if (len == 0) {
       return;
     }
