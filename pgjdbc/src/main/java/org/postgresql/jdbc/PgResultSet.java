@@ -680,7 +680,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
 
         OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(value);
-        if ( offsetDateTime != OffsetDateTime.MAX && offsetDateTime != OffsetDateTime.MIN ) {
+        if (!offsetDateTime.equals(OffsetDateTime.MAX) && !offsetDateTime.equals(OffsetDateTime.MIN)) {
           return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
         } else {
           return offsetDateTime;

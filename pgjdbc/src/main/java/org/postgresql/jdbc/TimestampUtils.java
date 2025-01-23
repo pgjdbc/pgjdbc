@@ -1193,7 +1193,7 @@ public class TimestampUtils {
    * @return adjusted offset date time (it represents the same instant as the input one)
    */
   public OffsetDateTime withClientOffsetSameInstant(OffsetDateTime input) {
-    if (input == OffsetDateTime.MAX || input == OffsetDateTime.MIN) {
+    if (input.equals(OffsetDateTime.MAX) || input.equals(OffsetDateTime.MIN)) {
       return input;
     }
     int offsetMillis;
