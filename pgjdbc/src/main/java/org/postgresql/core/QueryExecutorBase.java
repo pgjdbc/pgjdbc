@@ -396,6 +396,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  @Override
   public void setPreferQueryMode(PreferQueryMode mode) {
     preferQueryMode = mode;
   }
