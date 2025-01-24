@@ -416,17 +416,14 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated use {@link #toTimestamp(Calendar, byte[])}
    */
-  @Deprecated
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (s == null) {
-        return null;
-      }
-      return toTimestamp(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toTimestamp(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -699,16 +696,13 @@ public class TimestampUtils {
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
-  @Deprecated
   public @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      // 1) Parse backend string
-      if (s == null) {
-        return null;
-      }
-      return toTime(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toTime(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   public @PolyNull Time toTime(
@@ -758,15 +752,13 @@ public class TimestampUtils {
     }
   }
 
-  @Deprecated
   public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (s == null) {
-        return null;
-      }
-      return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   public @PolyNull Date toDate(@Nullable Calendar cal,
