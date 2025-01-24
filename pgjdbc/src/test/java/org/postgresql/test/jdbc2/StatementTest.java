@@ -24,7 +24,6 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -83,15 +82,6 @@ class StatementTest {
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_loop()");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
-  }
-
-  private void assumeLongTest() {
-    // Run the test:
-    //   Travis: in PG_VERSION=HEAD
-    //   Other: always
-    if ("true".equals(System.getenv("TRAVIS"))) {
-      Assumptions.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
-    }
   }
 
   @Test
@@ -739,7 +729,6 @@ class StatementTest {
    */
   @Test
   void shortQueryTimeout() throws SQLException {
-    assumeLongTest();
 
     long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     Statement stmt = con.createStatement();

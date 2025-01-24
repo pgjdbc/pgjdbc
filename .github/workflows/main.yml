@@ -8,8 +8,6 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
-      - '.travis.yml'
-      - '.travis/**'
   pull_request:
     branches:
       - '**'
@@ -17,8 +15,6 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
-      - '.travis.yml'
-      - '.travis/**'
   workflow_dispatch:
     inputs:
       matrix_rng_seed:
