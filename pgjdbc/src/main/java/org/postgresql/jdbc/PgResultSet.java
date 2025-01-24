@@ -546,7 +546,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    return getTimestampUtils().toDate(cal, castNonNull(value));
+    return getTimestampUtils().toDate(cal, value);
   }
 
   @Override
