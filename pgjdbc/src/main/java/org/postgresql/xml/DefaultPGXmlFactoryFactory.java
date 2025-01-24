@@ -94,8 +94,8 @@ public class DefaultPGXmlFactoryFactory implements PGXmlFactoryFactory {
       } else {
         throw new Error("Invalid factory class: " + factory.getClass());
       }
-      return;
     } catch (Exception ignore) {
+      // ignore
     }
   }
 
@@ -109,6 +109,7 @@ public class DefaultPGXmlFactoryFactory implements PGXmlFactoryFactory {
         throw new Error("Invalid factory class: " + factory.getClass());
       }
     } catch (Exception ignore) {
+      // ignore
     }
   }
 
@@ -134,6 +135,7 @@ public class DefaultPGXmlFactoryFactory implements PGXmlFactoryFactory {
         throw new Error("Invalid factory class: " + factory.getClass());
       }
     } catch (Exception ignore) {
+      // ignore
     }
   }
 }

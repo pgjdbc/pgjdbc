@@ -2513,6 +2513,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (byte) NumberParser.getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
 
@@ -2570,6 +2571,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (short) NumberParser.getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toShort(getFixedString(columnIndex));
@@ -2598,6 +2600,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (int) NumberParser.getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toInt(getFixedString(columnIndex));
@@ -2626,6 +2629,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return NumberParser.getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toLong(getFixedString(columnIndex));
@@ -2799,6 +2803,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         res = scaleBigDecimal(res, scale);
         return res;
       } catch (NumberFormatException ignore) {
+        // Fast conversion to BigDecimal failed, try slower approach below
       }
     }
 

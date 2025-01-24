@@ -365,7 +365,8 @@ public class Driver implements java.sql.Driver {
           if (conn != null) {
             try {
               conn.close();
-            } catch (SQLException e) {
+            } catch (SQLException ignored) {
+              // TODO: should we rethrow it?
             }
           }
         } else {

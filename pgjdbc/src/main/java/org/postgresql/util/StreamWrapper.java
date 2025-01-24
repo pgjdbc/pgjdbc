@@ -64,6 +64,7 @@ public final class StreamWrapper implements Closeable {
           try {
             tempFile.toFile().delete();
           } catch (Throwable ignore) {
+            // If the temporary file can't be deleted, we can't do much about it
           }
           throw e;
         }

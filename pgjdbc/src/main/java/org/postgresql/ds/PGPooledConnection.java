@@ -95,6 +95,7 @@ public class PGPooledConnection implements PooledConnection {
           try {
             con.rollback();
           } catch (SQLException ignored) {
+            // TODO: should we rethrow it?
           }
         }
       }
@@ -145,6 +146,7 @@ public class PGPooledConnection implements PooledConnection {
             try {
               con.rollback();
             } catch (SQLException ignored) {
+              // TODO: should we rethrow it?
             }
           }
           con.clearWarnings();

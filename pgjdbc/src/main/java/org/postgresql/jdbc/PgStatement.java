@@ -1001,7 +1001,8 @@ public class PgStatement implements Statement, BaseStatement {
         return;
       }
       cancel();
-    } catch (SQLException e) {
+    } catch (SQLException ignored) {
+      // We can't do much if the cancel fails
     }
   }
 

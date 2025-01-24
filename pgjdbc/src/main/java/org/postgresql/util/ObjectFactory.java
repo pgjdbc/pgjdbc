@@ -51,12 +51,14 @@ public class ObjectFactory {
     try {
       ctor = cls.getConstructor(Properties.class);
     } catch (NoSuchMethodException ignored) {
+      // Try String-based constructor later
     }
     if (tryString && ctor == null) {
       try {
         ctor = cls.getConstructor(String.class);
         args = new String[]{stringarg};
       } catch (NoSuchMethodException ignored) {
+        // Try no-argument constructor below
       }
     }
     if (ctor == null) {

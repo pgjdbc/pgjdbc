@@ -121,6 +121,7 @@ public class PgConnection implements BaseConnection {
           MethodHandles.lookup().findVirtual(securityManagerClass, "checkPermission",
               MethodType.methodType(void.class, Permission.class));
     } catch (NoSuchMethodException | IllegalAccessException | ClassNotFoundException ignore) {
+      // Ignore if the security manager is not available
     }
     SYSTEM_GET_SECURITY_MANAGER = systemGetSecurityManagerHandle;
     SECURITY_MANAGER_CHECK_PERMISSION = securityManagerCheckPermission;

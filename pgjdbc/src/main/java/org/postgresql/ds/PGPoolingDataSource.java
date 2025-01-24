@@ -357,6 +357,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
         try {
           pci.close();
         } catch (SQLException ignored) {
+          // We can't do much if the connection close fails, try closing the rest
         }
       }
       while (!used.isEmpty()) {
@@ -365,6 +366,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
         try {
           pci.close();
         } catch (SQLException ignored) {
+          // We can't do much if the connection close fails, try closing the rest
         }
       }
     }
@@ -405,6 +407,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
             // Wake up every second at a minimum
             lockCondition.await(1000L, TimeUnit.MILLISECONDS);
           } catch (InterruptedException ignored) {
+            // Retry later
           }
         }
       }
