@@ -836,6 +836,7 @@ public enum PGProperty {
   private final @Nullable String defaultValue;
   private final boolean required;
   private final String description;
+  @SuppressWarnings("ImmutableEnumChecker")
   private final String @Nullable [] choices;
 
   PGProperty(String name, @Nullable String defaultValue, String description) {

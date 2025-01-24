@@ -44,6 +44,7 @@ public class PGBundleActivator implements BundleActivator {
   }
 
   private void registerDataSourceFactory(BundleContext context) {
+    @SuppressWarnings("JdkObsolete")
     Dictionary<String, Object> properties = new Hashtable<>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME,

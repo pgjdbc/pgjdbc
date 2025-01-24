@@ -177,7 +177,9 @@ public class Field {
     return pgType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isTypeInitialized() {
+    //noinspection StringEquality
     return pgType != NOT_YET_LOADED;
   }
 

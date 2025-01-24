@@ -83,7 +83,8 @@ public class PgClob extends AbstractBlobClob implements Clob {
       assertPosition(i, j);
       LargeObject lo = getLo(false);
       lo.seek((int) i - 1);
-      return new String(lo.read(j));
+      Charset connectionCharset = Charset.forName(conn.getEncoding().name());
+      return new String(lo.read(j), connectionCharset);
     }
   }
 

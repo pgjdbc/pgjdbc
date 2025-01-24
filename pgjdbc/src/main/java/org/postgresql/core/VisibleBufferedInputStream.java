@@ -302,7 +302,9 @@ public class VisibleBufferedInputStream extends InputStream {
   public long skip(long n) throws IOException {
     int avail = endIndex - index;
     if (avail >= n) {
-      index += n;
+      // Cast to int is safe here since the number of available bytes within the buffer
+      // always fits within int
+      index += (int) n;
       return n;
     }
     n -= avail;

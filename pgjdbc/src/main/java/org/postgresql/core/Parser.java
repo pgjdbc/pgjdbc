@@ -1316,6 +1316,7 @@ public class Parser {
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
+  @SuppressWarnings("LabelledBreakTarget")
   private static int parseSql(char[] sql, int i, StringBuilder newsql, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
     SqlParseState state = SqlParseState.IN_SQLCODE;
@@ -1512,6 +1513,7 @@ public class Parser {
   private static final char[] SINGLE_QUOTE = {'\''};
 
   // Static variables for parsing SQL when replaceProcessing is true.
+  @SuppressWarnings("ImmutableEnumChecker")
   private enum SqlParseState {
     IN_SQLCODE,
     ESC_DATE("d", SINGLE_QUOTE, "DATE "),

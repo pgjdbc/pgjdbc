@@ -335,6 +335,7 @@ final class ArrayDecoding {
       Date.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toDate(null, stringVal);
     }
@@ -344,6 +345,7 @@ final class ArrayDecoding {
       Time.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTime(null, stringVal);
     }
@@ -353,6 +355,7 @@ final class ArrayDecoding {
       Timestamp.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTimestamp(null, stringVal);
     }

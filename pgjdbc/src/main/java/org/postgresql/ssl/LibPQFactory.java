@@ -234,6 +234,7 @@ public class LibPQFactory extends WrappedFactory {
      *         PasswordCallback is supplied
      */
     @Override
+    @SuppressWarnings("SystemConsoleNull")
     public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
       Console cons = System.console();
       char[] password = this.password;

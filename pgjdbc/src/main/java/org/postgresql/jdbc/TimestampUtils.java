@@ -74,10 +74,10 @@ public class TimestampUtils {
 
   private static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone(ZoneOffset.UTC);
 
-  private static final byte []INFINITY = "infinity".getBytes();
-  private static final byte []NEGATIVE_INFINITY = "-infinity".getBytes();
+  private static final byte []INFINITY = "infinity".getBytes(StandardCharsets.UTF_8);
+  private static final byte []NEGATIVE_INFINITY = "-infinity".getBytes(StandardCharsets.UTF_8);
 
-  private static final byte [] MAX_OFFSET = "24:00:00".getBytes();
+  private static final byte [] MAX_OFFSET = "24:00:00".getBytes(StandardCharsets.UTF_8);
 
   private @Nullable TimeZone prevDefaultZoneFieldValue;
   private @Nullable TimeZone defaultTimeZoneCache;
@@ -367,7 +367,7 @@ public class TimestampUtils {
 
       if (start < slen) {
         throw new NumberFormatException(
-            "Trailing junk on timestamp: '" + new String(s, start, slen - start) + "'");
+            "Trailing junk on timestamp: '" + new String(s, start, slen - start, StandardCharsets.UTF_8) + "'");
       }
 
       if (!result.hasTime && !result.hasDate) {
@@ -376,7 +376,7 @@ public class TimestampUtils {
 
     } catch (NumberFormatException nfe) {
       throw new PSQLException(
-          GT.tr("Bad value for type timestamp/date/time: {0}", new String(s)),
+          GT.tr("Bad value for type timestamp/date/time: {0}", new String(s, StandardCharsets.UTF_8)),
           PSQLState.BAD_DATETIME_FORMAT, nfe);
     }
 
@@ -1080,6 +1080,7 @@ public class TimestampUtils {
         return "24:00:00";
       }
 
+      @SuppressWarnings("JavaLocalTimeGetNano")
       int nano = localTime.getNano();
       if (nanosExceed499(nano)) {
         // Technically speaking this is not a proper rounding, however
@@ -1135,7 +1136,7 @@ public class TimestampUtils {
    * @return adjusted offset time (it represents the same instant as the input one)
    */
   public OffsetTime withClientOffsetSameInstant(OffsetTime input) {
-    if (input == OffsetTime.MAX || input == OffsetTime.MIN) {
+    if (input.equals(OffsetTime.MAX) || input.equals(OffsetTime.MIN)) {
       return input;
     }
     TimeZone timeZone = timeZoneProvider.get();
@@ -1225,7 +1226,9 @@ public class TimestampUtils {
 
       sbuf.setLength(0);
 
-      if (nanosExceed499(localDateTime.getNano())) {
+      @SuppressWarnings("JavaLocalDateTimeGetNano")
+      int nano = localDateTime.getNano();
+      if (nanosExceed499(nano)) {
         localDateTime = localDateTime.plus(ONE_MICROSECOND);
       }
 

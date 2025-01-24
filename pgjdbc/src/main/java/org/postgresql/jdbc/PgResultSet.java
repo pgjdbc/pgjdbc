@@ -2158,7 +2158,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
-      Tuple rowBuffer, HashMap<String, Object> updateValues) throws SQLException {
+      Tuple rowBuffer, Map<String, Object> updateValues) throws SQLException {
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
       Object valueObject = entry.getValue();
@@ -2640,6 +2640,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * The exact stack trace does not matter because the exception is always caught and is not visible
    * to users.
    */
+  @SuppressWarnings("StaticAssignmentOfThrowable")
   private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
 
     // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
@@ -3538,8 +3539,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
-  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown((float) Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp((float) Long.MIN_VALUE);
   private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double) Long.MAX_VALUE);
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
 
@@ -3903,7 +3904,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (timestamp == null) {
           return null;
         }
-        return type.cast(new java.util.Date(timestamp.getTime()));
+        @SuppressWarnings("JavaUtilDate")
+        java.util.Date res = new java.util.Date(timestamp.getTime());
+        return type.cast(res);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);

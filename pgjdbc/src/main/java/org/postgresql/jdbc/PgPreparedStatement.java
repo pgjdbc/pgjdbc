@@ -629,7 +629,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Date tmpd;
           if (in instanceof java.util.Date) {
-            tmpd = new Date(((java.util.Date) in).getTime());
+            // TODO: should we convert it to LocalDate instead?
+            @SuppressWarnings("JavaUtilDate")
+            Date res = new Date(((java.util.Date) in).getTime());
+            tmpd = res;
           } else if (in instanceof LocalDate) {
             setDate(parameterIndex, (LocalDate) in);
             break;
@@ -645,7 +648,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Time tmpt;
           if (in instanceof java.util.Date) {
-            tmpt = new Time(((java.util.Date) in).getTime());
+            // TODO: should we convert it to OffsetTime instead?
+            @SuppressWarnings("JavaUtilDate")
+            Time res = new Time(((java.util.Date) in).getTime());
+            tmpt = res;
           } else if (in instanceof LocalTime) {
             setTime(parameterIndex, (LocalTime) in);
             break;
@@ -666,12 +672,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Timestamp tmpts;
           if (in instanceof java.util.Date) {
-            tmpts = new Timestamp(((java.util.Date) in).getTime());
+            // TODO: should we convert it to LocalDateTime instead?
+            @SuppressWarnings("JavaUtilDate")
+            Timestamp res = new Timestamp(((java.util.Date) in).getTime());
+            tmpts = res;
           } else if (in instanceof LocalDateTime) {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
           } else {
-            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes());
+            Charset connectionCharset = Charset.forName(connection.getEncoding().name());
+            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes(connectionCharset));
           }
           setTimestamp(parameterIndex, tmpts);
         }
@@ -798,7 +808,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).intValue();
       }
       if (in instanceof java.util.Date) {
-        return (int) ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return (int) time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1 : 0;
@@ -824,7 +836,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).shortValue();
       }
       if (in instanceof java.util.Date) {
-        return (short) ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return (short) time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? (short) 1 : (short) 0;
@@ -850,7 +864,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).longValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1L : 0L;
@@ -876,7 +892,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).floatValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1f : 0f;
@@ -902,7 +920,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).doubleValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1d : 0d;
@@ -934,7 +954,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       } else if (in instanceof Double || in instanceof Float) {
         rc = BigDecimal.valueOf(((Number) in).doubleValue());
       } else if (in instanceof java.util.Date) {
-        rc = BigDecimal.valueOf(((java.util.Date) in).getTime());
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        rc = BigDecimal.valueOf(time);
       } else if (in instanceof Boolean) {
         rc = (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
       } else if (in instanceof Clob) {
@@ -1244,8 +1266,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    InputStream inStream = x.getBinaryStream();
-    try {
+    try (InputStream inStream = x.getBinaryStream(); ) {
       long maxLength = x.length();
       if (maxLength < 0) {
         // Hibernate used to create blob instances that report -1 length, so we ignore the length
@@ -1255,11 +1276,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
       long oid = createBlob(i, inStream, maxLength);
       setLong(i, oid);
-    } finally {
-      try {
-        inStream.close();
-      } catch (Exception e) {
-      }
+    } catch (IOException e) {
+      throw new PSQLException(GT.tr("Unexpected error when closing Blob binary stream"),
+          PSQLState.UNEXPECTED_ERROR, e);
     }
   }
 

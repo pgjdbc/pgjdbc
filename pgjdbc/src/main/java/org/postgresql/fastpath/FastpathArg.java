@@ -10,6 +10,7 @@ import org.postgresql.util.ByteStreamWriter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 // Not a very clean mapping to the new QueryExecutor/ParameterList
@@ -105,7 +106,9 @@ public class FastpathArg {
    * @param s String to store
    */
   public FastpathArg(String s) {
-    this(s.getBytes());
+    // Default charset is for backward compatibility
+    // It looks like we should use database connection encoding
+    this(s.getBytes(Charset.defaultCharset()));
   }
 
   public static FastpathArg of(ByteStreamWriter writer) {

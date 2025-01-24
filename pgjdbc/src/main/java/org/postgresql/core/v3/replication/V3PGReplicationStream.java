@@ -210,8 +210,10 @@ public class V3PGReplicationStream implements PGReplicationStream {
         TimeUnit.MICROSECONDS);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
+      @SuppressWarnings("JavaUtilDate")
+      Date clock = new Date(now);
       LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
-          new Object[]{received.asString(), flushed.asString(), applied.asString(), new Date(now)});
+          new Object[]{received.asString(), flushed.asString(), applied.asString(), clock});
     }
 
     byteBuffer.put((byte) 'r');
@@ -222,7 +224,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if (replyRequired) {
       byteBuffer.put((byte) 1);
     } else {
-      byteBuffer.put(received == LogSequenceNumber.INVALID_LSN ? (byte) 1 : (byte) 0);
+      byteBuffer.put(received.equals(LogSequenceNumber.INVALID_LSN) ? (byte) 1 : (byte) 0);
     }
 
     lastStatusUpdate = now;
@@ -247,6 +249,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     boolean replyRequired = buffer.get() != 0;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
+      @SuppressWarnings("JavaUtilDate")
       Date clockTime = new Date(
           TimeUnit.MILLISECONDS.convert(lastServerClock, TimeUnit.MICROSECONDS)
           + POSTGRES_EPOCH_2000_01_01);

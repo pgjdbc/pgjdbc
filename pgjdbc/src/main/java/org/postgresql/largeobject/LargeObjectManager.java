@@ -145,7 +145,7 @@ public class LargeObjectManager {
    */
   @Deprecated
   public LargeObject open(int oid) throws SQLException {
-    return open((long) oid, false);
+    return open((long) oid);
   }
 
   /**

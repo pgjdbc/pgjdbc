@@ -992,6 +992,8 @@ public class TypeInfoCache implements TypeInfo {
             return 13 + 1 + 8 + secondSize;
           case Oid.TIMESTAMPTZ:
             return 13 + 1 + 8 + secondSize + 6;
+          default:
+            throw new IllegalStateException("oid " + oid + " should not appear here");
         }
       case Oid.INTERVAL:
         // SELECT LENGTH('-123456789 years 11 months 33 days 23 hours 10.123456 seconds'::interval);

@@ -423,6 +423,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @param date Date instance to add to
    */
+  @SuppressWarnings("JavaUtilDate")
   public void add(Date date) {
     if (isNull) {
       return;

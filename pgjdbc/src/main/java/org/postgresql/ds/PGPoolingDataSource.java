@@ -18,7 +18,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Stack;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
@@ -80,8 +81,8 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
   private int maxConnections;
   // State variables
   private boolean initialized;
-  private final Stack<PooledConnection> available = new Stack<>();
-  private final Stack<PooledConnection> used = new Stack<>();
+  private final Deque<PooledConnection> available = new ArrayDeque<>();
+  private final Deque<PooledConnection> used = new ArrayDeque<>();
   private boolean isClosed;
   private final ResourceLock lock = new ResourceLock();
   private final Condition lockCondition = lock.newCondition();

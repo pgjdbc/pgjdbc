@@ -19,6 +19,7 @@ public class ExpressionProperties extends Properties {
 
   private static final @Regex(1) Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
 
+  @SuppressWarnings("HidingField")
   private final Properties[] defaults;
 
   /**
