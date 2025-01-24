@@ -124,7 +124,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
-  /*
+  /**
    * A Prepared SQL query is executed and its ResultSet is returned
    *
    * @return a ResultSet that contains the data produced by the * query - never null

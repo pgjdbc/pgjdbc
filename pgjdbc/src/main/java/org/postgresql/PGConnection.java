@@ -95,6 +95,7 @@ public interface PGConnection {
 
   /**
    * This returns the Fastpath API for the current connection.
+   *
    * <p>
    * Note: This API is somewhat obsolete, as one may achieve similar performance
    * and greater functionality by setting up a prepared statement to define

@@ -549,7 +549,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  /*
+  /**
    * {@inheritDoc}
    *
    * @return true if connected to PostgreSQL 6.4+
@@ -559,7 +559,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  /*
+  /**
    * {@inheritDoc}
    *
    * @return true if connected to PostgreSQL 7.1+
@@ -658,7 +658,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
-  /*
+  /**
    * Is the SQL Integrity Enhancement Facility supported? Our best guess is that this means support
    * for constraints
    *

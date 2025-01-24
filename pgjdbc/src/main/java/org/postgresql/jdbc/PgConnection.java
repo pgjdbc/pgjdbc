@@ -708,14 +708,14 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the LargeObject API if already open
   private @Nullable LargeObjectManager largeobject;
 
-  /*
+  /**
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
    *
    * <p>It uses an internal HashMap to get the handling class. If the type is not supported, then an
    * instance of org.postgresql.util.PGobject is returned.
    *
-   * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
+   * <p>You can use the getValue() or setValue() methods to handle the returned object. Custom objects
    * can have their own methods.
    *
    * @return PGobject for this type, and set to value

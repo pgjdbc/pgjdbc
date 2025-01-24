@@ -470,7 +470,7 @@ public class Parser {
    * Find the end of the double-quoted string starting at the given offset.
    *
    * <p>Note: for {@code "double "" quote in string"}, this method currently
-   * returns the offset of first {@code &quot;} character after the initial one. The caller must
+   * returns the offset of first {@code "} character after the initial one. The caller must
    * call the method a second time for the second part of the quoted string.</p>
    *
    * @param query  query
@@ -914,6 +914,8 @@ public class Parser {
   }
 
   /**
+   * Returns if the given character is a valid character for an operator in the backend's
+   * parser.
    * @param c character
    * @return true if the given character is a valid character for an operator in the backend's
    *     parser
@@ -957,6 +959,7 @@ public class Parser {
   }
 
   /**
+   * Returns true if the character terminates an identifier.
    * @param c character
    * @return true if the character terminates an identifier
    */

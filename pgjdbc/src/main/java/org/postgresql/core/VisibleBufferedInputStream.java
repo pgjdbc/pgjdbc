@@ -374,8 +374,8 @@ public class VisibleBufferedInputStream extends InputStream {
   }
 
   /**
-   *
-   * @return the wrapped stream
+   * Returns the underlying stream.
+   * @return the underlying stream
    */
   public InputStream getWrapped() {
     return wrapped;

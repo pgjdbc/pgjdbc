@@ -980,7 +980,7 @@ public class TimestampUtils {
 
   /**
    * Appends time part to the {@code StringBuilder} in PostgreSQL-compatible format.
-   * The function truncates {@param nanos} to microseconds. The value is expected to be rounded
+   * The function truncates {@code nanos} to microseconds. The value is expected to be rounded
    * beforehand.
    * @param sb destination
    * @param hours hours
