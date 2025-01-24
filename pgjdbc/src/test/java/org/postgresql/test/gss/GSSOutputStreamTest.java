@@ -21,6 +21,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 
 public class GSSOutputStreamTest {
   private final MessageProp messageProp = new MessageProp(0, true);
@@ -97,7 +98,7 @@ public class GSSOutputStreamTest {
     @Override
     public byte[] wrap(byte[] bytes, int i, int i1, MessageProp messageProp) throws GSSException {
       Assert.assertTrue("ArrayIndexOutOfBoundsException offset " + i + " length " + i1 + " buffer capacity " + bytes.length, bytes.length >= i + i1);
-      return bytes;
+      return Arrays.copyOfRange(bytes, i, i + i1);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class GSSOutputStreamTest {
     @Override
     public byte[] unwrap(byte[] bytes, int i, int i1, MessageProp messageProp) throws GSSException {
       Assert.assertTrue("ArrayIndexOutOfBoundsException offset " + i + " length " + i1 + " buffer capacity " + bytes.length, bytes.length >= i + i1);
-      return bytes;
+      return Arrays.copyOfRange(bytes, i, i + i1);
     }
 
     @Override
@@ -118,7 +119,7 @@ public class GSSOutputStreamTest {
 
     @Override
     public byte[] getMIC(byte[] bytes, int i, int i1, MessageProp messageProp) throws GSSException {
-      return bytes;
+      throw new GSSException(GSSException.UNAVAILABLE);
     }
 
     @Override
