@@ -297,7 +297,7 @@ class AdaptiveFetchSizeTest {
    *
    * @param connection Connection to be checked.
    */
-  private void checkIfFetchTestCanBePerformed(Connection connection) throws SQLException {
+  private static void checkIfFetchTestCanBePerformed(Connection connection) throws SQLException {
     PGConnection pgConnection = connection.unwrap(PGConnection.class);
     PreferQueryMode preferQueryMode =
         pgConnection == null ? PreferQueryMode.EXTENDED : pgConnection.getPreferQueryMode();

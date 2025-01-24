@@ -199,7 +199,7 @@ public class TimestampUtils {
   /**
    * Load date/time information into the provided calendar returning the fractional seconds.
    */
-  private ParsedTimestamp parseBackendTimestamp(byte[] s) throws SQLException {
+  private static ParsedTimestamp parseBackendTimestamp(byte[] s) throws SQLException {
     int slen = s.length;
 
     // This is pretty gross..
@@ -1020,13 +1020,13 @@ public class TimestampUtils {
     }
   }
 
-  private void appendTimeZone(StringBuilder sb, Calendar cal) {
+  private static void appendTimeZone(StringBuilder sb, Calendar cal) {
     int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000;
 
     appendTimeZone(sb, offset);
   }
 
-  private void appendTimeZone(StringBuilder sb, int offset) {
+  private static void appendTimeZone(StringBuilder sb, int offset) {
     int absoff = Math.abs(offset);
     int hours = absoff / 60 / 60;
     int mins = (absoff - hours * 60 * 60) / 60;
@@ -1254,7 +1254,7 @@ public class TimestampUtils {
     appendTime(sb, hours, minutes, seconds, nanos);
   }
 
-  private void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
+  private static void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
     int offsetSeconds = offset.getTotalSeconds();
 
     appendTimeZone(sb, offsetSeconds);

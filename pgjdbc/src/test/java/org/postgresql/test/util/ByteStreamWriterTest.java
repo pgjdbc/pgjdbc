@@ -32,7 +32,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
     TestUtil.createTempTable(con, "images", "img bytea");
   }
 
-  private ByteBuffer testData(int size) {
+  private static ByteBuffer testData(int size) {
     ByteBuffer data = ByteBuffer.allocate(size);
     Random random = new Random(31459);
     while (data.remaining() > 8) {

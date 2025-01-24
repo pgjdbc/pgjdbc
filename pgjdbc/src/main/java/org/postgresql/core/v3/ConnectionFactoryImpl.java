@@ -110,7 +110,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
-  private ISSPIClient createSSPI(PGStream pgStream,
+  private static ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
@@ -384,7 +384,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+  private static List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
     List<StartupParam> paramList = new ArrayList<>();
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
@@ -459,8 +459,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
-                                    int connectTimeout)
+  private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
+      int connectTimeout)
       throws IOException, PSQLException {
 
     if ( gssEncMode == GSSEncMode.DISABLE ) {
@@ -565,7 +565,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
+  private static PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
     if (sslMode == SslMode.DISABLE) {
@@ -641,7 +641,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
+  private static void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -678,7 +678,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
   }
 
-  private void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -905,7 +905,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private void runInitialQueries(QueryExecutor queryExecutor, Properties info)
+  private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
     String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
     if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
@@ -970,7 +970,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * @see <a href="https://www.postgresql.org/message-id/flat/CAF3%2BxM%2B8-ztOkaV9gHiJ3wfgENTq97QcjXQt%2BrbFQ6F7oNzt9A%40mail.gmail.com">in_hot_standby patch thread v14</a>
    *
    */
-  private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
+  private static boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
     if ("on".equalsIgnoreCase(inHotStandby)) {
       return false;

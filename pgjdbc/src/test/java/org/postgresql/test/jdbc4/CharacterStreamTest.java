@@ -75,7 +75,7 @@ public class CharacterStreamTest extends BaseTest4 {
     Assert.assertEquals("Sent and received data are not the same", data, actualData);
   }
 
-  private String getTestData(int size) {
+  private static String getTestData(int size) {
     StringBuilder buf = new StringBuilder(size);
     String s = "This is a test string.\n";
     int slen = s.length();

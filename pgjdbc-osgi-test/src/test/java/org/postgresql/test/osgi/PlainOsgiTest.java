@@ -45,7 +45,7 @@ public class PlainOsgiTest {
     assertPositive("driver.getMinorVersion()", driver.getMinorVersion());
   }
 
-  private void assertPositive(String message, int value) {
+  private static void assertPositive(String message, int value) {
     if (value > 0) {
       return;
     }

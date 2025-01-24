@@ -29,7 +29,7 @@ public class DefaultPGXmlFactoryFactory implements PGXmlFactoryFactory {
   private DefaultPGXmlFactoryFactory() {
   }
 
-  private DocumentBuilderFactory getDocumentBuilderFactory() {
+  private static DocumentBuilderFactory getDocumentBuilderFactory() {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     setFactoryProperties(factory);
     factory.setXIncludeAware(false);

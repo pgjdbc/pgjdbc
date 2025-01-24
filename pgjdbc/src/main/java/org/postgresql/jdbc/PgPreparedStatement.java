@@ -751,7 +751,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private Class<?> getArrayType(Class<?> type) {
+  private static Class<?> getArrayType(Class<?> type) {
     Class<?> subType = type.getComponentType();
     while (subType != null) {
       type = subType;
@@ -1263,7 +1263,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private String readerToString(Reader value, int maxLength) throws SQLException {
+  private static String readerToString(Reader value, int maxLength) throws SQLException {
     try {
       int bufferSize = Math.min(maxLength, 1024);
       StringBuilder v = new StringBuilder(bufferSize);

@@ -202,7 +202,7 @@ class IntervalTest {
     assertEquals(0, pgi.getSeconds(), 0);
   }
 
-  private Calendar getStartCalendar() {
+  private static Calendar getStartCalendar() {
     Calendar cal = new GregorianCalendar();
     cal.set(Calendar.YEAR, 2005);
     cal.set(Calendar.MONTH, 4);
@@ -391,7 +391,7 @@ class IntervalTest {
     assertEquals(1, pgi.getMicroSeconds());
   }
 
-  private java.sql.Date makeDate(int y, int m, int d) {
+  private static java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }
 }

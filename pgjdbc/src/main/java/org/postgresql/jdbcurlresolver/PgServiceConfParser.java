@@ -72,7 +72,7 @@ public class PgServiceConfParser {
   }
 
   // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  private static InputStream openInputStream(String resourceName) throws IOException {
 
     try {
       URL url = new URL(resourceName);

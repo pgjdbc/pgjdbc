@@ -43,7 +43,7 @@ class NumberParserTest {
     assertGetLongFail(Long.toString(Long.MIN_VALUE).substring(1));
   }
 
-  private void assertGetLongResult(String s, long expected) {
+  private static void assertGetLongResult(String s, long expected) {
     try {
       assertEquals(
           expected,
@@ -55,7 +55,7 @@ class NumberParserTest {
     }
   }
 
-  private void assertGetLongFail(String s) {
+  private static void assertGetLongFail(String s) {
     try {
       long ret = NumberParser.getFastLong(s.getBytes(), Long.MIN_VALUE, Long.MAX_VALUE);
       fail("Expected NumberFormatException on parsing \"" + s + "\", but result: " + ret);

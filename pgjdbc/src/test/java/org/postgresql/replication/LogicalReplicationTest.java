@@ -891,7 +891,7 @@ class LogicalReplicationTest {
     return result;
   }
 
-  private String group(List<String> messages) {
+  private static String group(List<String> messages) {
     StringBuilder builder = new StringBuilder();
     boolean isFirst = true;
     for (String str : messages) {
@@ -907,7 +907,7 @@ class LogicalReplicationTest {
     return builder.toString();
   }
 
-  private List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
+  private static List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
     List<String> result = new ArrayList<>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
@@ -916,7 +916,7 @@ class LogicalReplicationTest {
     return result;
   }
 
-  private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
+  private static List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
     List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {

@@ -88,7 +88,7 @@ public class PgPassParser {
   }
 
   // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  private static InputStream openInputStream(String resourceName) throws IOException {
 
     try {
       URL url = new URL(resourceName);
@@ -101,7 +101,7 @@ public class PgPassParser {
   }
 
   // choose resource where to search for service description
-  private @Nullable String findPgPasswordResourceName() {
+  private static @Nullable String findPgPasswordResourceName() {
     // default file name
     String pgPassFileDefaultName = PGEnvironment.PGPASSFILE.getDefaultValue();
 
@@ -197,7 +197,7 @@ public class PgPassParser {
   }
 
   //
-  private String extractPassword(String line) {
+  private static String extractPassword(String line) {
     StringBuilder sb = new StringBuilder();
     // take all characters up to separator (which is colon)
     // remove escaping colon and backslash ("\\ -> \" ; "\: -> :")
@@ -219,7 +219,7 @@ public class PgPassParser {
   }
 
   //
-  private @Nullable String checkForPattern(String line, String value) {
+  private static @Nullable String checkForPattern(String line, String value) {
     String result = null;
     if (line.startsWith("*:")) {
       // any value match

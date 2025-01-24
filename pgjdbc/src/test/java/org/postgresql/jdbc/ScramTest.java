@@ -125,7 +125,7 @@ class ScramTest {
     }
   }
 
-  private void createRole(String passwd) throws SQLException {
+  private static void createRole(String passwd) throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("SET password_encryption='scram-sha-256'");
       stmt.execute("DROP ROLE IF EXISTS " + ROLE_NAME);

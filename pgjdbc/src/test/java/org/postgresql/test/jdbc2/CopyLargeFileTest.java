@@ -63,7 +63,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
+  private static void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
     stmt.setString(1, textId);
     stmt.setString(2, name);
     stmt.executeUpdate();
@@ -115,7 +115,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void cleanupTable(Connection conn) throws Exception {
+  private static void cleanupTable(Connection conn) throws Exception {
     CallableStatement stmt = null;
     try {
       stmt = conn.prepareCall("TRUNCATE pgjdbc_issue366_test_data;");

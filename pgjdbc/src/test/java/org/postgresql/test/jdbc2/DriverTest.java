@@ -134,7 +134,7 @@ class DriverTest {
         "db");
   }
 
-  private void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
+  private static void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
       throws Exception {
     assertTrue(drv.acceptsURL(url), url);
     Method parseMethod =
@@ -518,7 +518,7 @@ class DriverTest {
     }
   }
 
-  private void setProperty(String key, String value) {
+  private static void setProperty(String key, String value) {
     if (value == null) {
       System.clearProperty(key);
     } else {

@@ -48,7 +48,7 @@ class TimeTest {
     TestUtil.closeDB(con);
   }
 
-  private long extractMillis(long time) {
+  private static long extractMillis(long time) {
     return time >= 0 ? (time % 1000) : (time % 1000 + 1000);
   }
 
@@ -271,7 +271,7 @@ class TimeTest {
     rs.close();
   }
 
-  private Time makeTime(int h, int m, int s) {
+  private static Time makeTime(int h, int m, int s) {
     return Time.valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
   }
 }

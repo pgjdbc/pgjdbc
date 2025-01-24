@@ -105,7 +105,7 @@ public class DataSourceFactoryTest {
     testConnection(con);
   }
 
-  private void testConnection(Connection con) throws SQLException {
+  private static void testConnection(Connection con) throws SQLException {
     Statement st = con.createStatement();
     ResultSet rs = st.executeQuery("select 2+2*2");
     rs.next();
@@ -113,7 +113,7 @@ public class DataSourceFactoryTest {
     con.close();
   }
 
-  private String getUrl() {
+  private static String getUrl() {
     Properties p = loadPropertyFiles("build.properties");
 
     return "jdbc:postgresql://"
@@ -123,7 +123,7 @@ public class DataSourceFactoryTest {
         ;
   }
 
-  private Properties getProperties() {
+  private static Properties getProperties() {
     Properties p = loadPropertyFiles("build.properties");
     if ("0".equals(p.getProperty("protocolVersion"))) {
       p.remove("protocolVersion");

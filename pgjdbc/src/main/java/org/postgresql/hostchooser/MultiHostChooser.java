@@ -93,7 +93,7 @@ class MultiHostChooser implements HostChooser {
     return withReqStatus(hostRequirement, candidates);
   }
 
-  private List<CandidateHost> withReqStatus(final HostRequirement requirement, final List<HostSpec> hosts) {
+  private static List<CandidateHost> withReqStatus(final HostRequirement requirement, final List<HostSpec> hosts) {
     return new AbstractList<CandidateHost>() {
       @Override
       public CandidateHost get(int index) {
@@ -107,7 +107,7 @@ class MultiHostChooser implements HostChooser {
     };
   }
 
-  private <T> List<T> append(final List<T> a, final List<T> b) {
+  private static <T> List<T> append(final List<T> a, final List<T> b) {
     return new AbstractList<T>() {
       @Override
       public T get(int index) {
@@ -121,7 +121,7 @@ class MultiHostChooser implements HostChooser {
     };
   }
 
-  private <T> List<T> rtrim(final int size, final List<T> a) {
+  private static <T> List<T> rtrim(final int size, final List<T> a) {
     return new AbstractList<T>() {
       @Override
       public T get(int index) {

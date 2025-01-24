@@ -2662,7 +2662,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
    */
-  private BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
+  private static BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
     if (bytes.length == 0) {
       throw FAST_NUMBER_FAILED;
     }
@@ -3175,7 +3175,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return trimMoney(stringValue);
   }
 
-  private @PolyNull String trimMoney(@PolyNull String s) {
+  private static @PolyNull String trimMoney(@PolyNull String s) {
     if (s == null) {
       return null;
     }
@@ -3414,7 +3414,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
-  public @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
+  public static @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -3422,7 +3422,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return scaleBigDecimal(val, scale);
   }
 
-  private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
+  private static BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
     if (scale == -1) {
       return val;
     }
@@ -3517,7 +3517,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return The value as double.
    * @throws PSQLException If the field type is not supported numeric type.
    */
-  private double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
+  private static double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3563,7 +3563,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    *         range.
    */
   @Pure
-  private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
+  private static long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
     // currently implemented binary encoded fields

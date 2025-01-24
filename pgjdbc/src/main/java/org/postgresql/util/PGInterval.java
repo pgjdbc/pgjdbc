@@ -52,7 +52,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     setValue(value);
   }
 
-  private int lookAhead(String value, int position, String find) {
+  private static int lookAhead(String value, int position, String find) {
     char [] tokens = find.toCharArray();
     int found = -1;
 

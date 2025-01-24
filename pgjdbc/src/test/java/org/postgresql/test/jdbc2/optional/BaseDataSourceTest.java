@@ -216,7 +216,7 @@ public abstract class BaseDataSourceTest {
   /**
    * Uses the mini-JNDI implementation for testing purposes.
    */
-  protected InitialContext getInitialContext() {
+  protected static InitialContext getInitialContext() {
     Hashtable<String, Object> env = new Hashtable<>();
     env.put(Context.INITIAL_CONTEXT_FACTORY, MiniJndiContextFactory.class.getName());
     try {

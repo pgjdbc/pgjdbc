@@ -130,7 +130,7 @@ public class BinaryTest extends BaseTest4 {
     ps.close();
   }
 
-  private int getFormat(ResultSet results) throws SQLException {
+  private static int getFormat(ResultSet results) throws SQLException {
     return ((PGResultSetMetaData) results.getMetaData()).getFormat(1);
   }
 }

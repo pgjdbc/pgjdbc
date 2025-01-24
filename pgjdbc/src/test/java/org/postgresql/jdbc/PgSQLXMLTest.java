@@ -91,7 +91,7 @@ public class PgSQLXMLTest extends BaseTest4 {
     return sw.toString();
   }
 
-  private <T extends Source> void testGetSourceXxe(Class<T> clazz) {
+  private static <T extends Source> void testGetSourceXxe(Class<T> clazz) {
     SQLException ex = assertThrows(SQLException.class, () -> {
       PgSQLXML xml = new PgSQLXML(null, XXE_EXAMPLE);
       xml.getSource(clazz);

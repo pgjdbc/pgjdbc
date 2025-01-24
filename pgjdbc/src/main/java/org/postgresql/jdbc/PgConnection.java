@@ -482,7 +482,7 @@ public class PgConnection implements BaseConnection {
     return oids;
   }
 
-  private String oidsToString(Set<Integer> oids) {
+  private static String oidsToString(Set<Integer> oids) {
     StringBuilder sb = new StringBuilder();
     for (Integer oid : oids) {
       sb.append(Oid.toString(oid));
@@ -1738,7 +1738,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  private void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
+  private static void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
     if (SYSTEM_GET_SECURITY_MANAGER != null && SECURITY_MANAGER_CHECK_PERMISSION != null) {
       try {
         Object securityManager = SYSTEM_GET_SECURITY_MANAGER.invoke();

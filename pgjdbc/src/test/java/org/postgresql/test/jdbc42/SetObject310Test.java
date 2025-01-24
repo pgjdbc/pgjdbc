@@ -269,7 +269,7 @@ public class SetObject310Test extends BaseTest4 {
     }
   }
 
-  private List<String> getDatesToTest() {
+  private static List<String> getDatesToTest() {
     return Arrays.asList("2015-09-03T12:00:00", "2015-06-30T23:59:58",
             "1997-06-30T23:59:59", "1997-07-01T00:00:00", "2012-06-30T23:59:59", "2012-07-01T00:00:00",
             "2015-06-30T23:59:59", "2015-07-01T00:00:00", "2005-12-31T23:59:59", "2006-01-01T00:00:00",
@@ -293,7 +293,7 @@ public class SetObject310Test extends BaseTest4 {
             "2000-10-29T04:00:01", "2000-10-29T04:00:00.000001");
   }
 
-  private List<String> getZoneIdsToTest() {
+  private static List<String> getZoneIdsToTest() {
     List<String> zoneIdsToTest = new ArrayList<>();
     zoneIdsToTest.add("Africa/Casablanca"); // It is something like GMT+0..GMT+1
     zoneIdsToTest.add("America/Adak"); // It is something like GMT-10..GMT-9

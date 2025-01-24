@@ -77,7 +77,7 @@ class BaseDataSourceFailoverUrlsTest {
     assertThrows(IllegalArgumentException.class, bds::getUrl, "Number of ports not equal to the number of servers should throw an exception");
   }
 
-  private BaseDataSource newDS() {
+  private static BaseDataSource newDS() {
     return new BaseDataSource() {
       @Override
       public String getDescription() {
@@ -86,7 +86,7 @@ class BaseDataSourceFailoverUrlsTest {
     };
   }
 
-  private void roundTripFromUrl(String in, String expected) throws NamingException, ClassNotFoundException, IOException {
+  private static void roundTripFromUrl(String in, String expected) throws NamingException, ClassNotFoundException, IOException {
     BaseDataSource bds = newDS();
 
     bds.setUrl(in);

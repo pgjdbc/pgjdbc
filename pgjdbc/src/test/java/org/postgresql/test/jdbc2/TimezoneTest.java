@@ -817,7 +817,7 @@ public class TimezoneTest {
     localTimestamps("America/Adak"); // It is something like GMT-10..GMT-9
   }
 
-  private String setTimeTo00_00_00(String timestamp) {
+  private static String setTimeTo00_00_00(String timestamp) {
     return timestamp.substring(0, 11) + "00:00:00";
   }
 
@@ -923,11 +923,11 @@ public class TimezoneTest {
    * @param query The query to run.
    * @param correct The correct answers in UTC time zone as formatted by backend.
    */
-  private void checkDatabaseContents(String query, String[] correct) throws Exception {
+  private static void checkDatabaseContents(String query, String[] correct) throws Exception {
     checkDatabaseContents(query, new String[][]{correct});
   }
 
-  private void checkDatabaseContents(String query, String[][] correct) throws Exception {
+  private static void checkDatabaseContents(String query, String[][] correct) throws Exception {
     Connection con2 = TestUtil.openDB();
     Statement s = con2.createStatement();
     assertFalse(s.execute("set time zone 'UTC'"));
@@ -952,11 +952,11 @@ public class TimezoneTest {
    * @param tz The timezone to normalize to.
    * @return the Time normalized to 0 to 24 hours of epoc adjusted with given timezone.
    */
-  private Timestamp normalizeTimeOfDayPart(Timestamp t, Calendar tz) {
+  private static Timestamp normalizeTimeOfDayPart(Timestamp t, Calendar tz) {
     return new Timestamp(normalizeTimeOfDayPart(t.getTime(), tz.getTimeZone()));
   }
 
-  private long normalizeTimeOfDayPart(long t, TimeZone tz) {
+  private static long normalizeTimeOfDayPart(long t, TimeZone tz) {
     long millis = t;
     long low = -tz.getOffset(millis);
     long high = low + DAY;

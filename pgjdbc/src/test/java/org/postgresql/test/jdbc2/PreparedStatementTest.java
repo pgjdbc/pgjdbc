@@ -636,7 +636,7 @@ public class PreparedStatementTest extends BaseTest4 {
     checkNaNLiterals(stmt, stmt.executeQuery());
   }
 
-  private void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
+  private static void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
     rs.next();
     assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(3)));
     assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(3)));
@@ -680,7 +680,7 @@ public class PreparedStatementTest extends BaseTest4 {
     }
   }
 
-  private void checkInfinityLiterals(ResultSet rs) throws SQLException {
+  private static void checkInfinityLiterals(ResultSet rs) throws SQLException {
     rs.next();
     assertEquals("inf numeric rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(1));
     assertEquals("inf numeric rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(1), 0.0);
@@ -739,7 +739,7 @@ public class PreparedStatementTest extends BaseTest4 {
     checkNaNParams(ps);
   }
 
-  private void checkNaNParams(PreparedStatement ps) throws SQLException {
+  private static void checkNaNParams(PreparedStatement ps) throws SQLException {
     ResultSet rs = ps.executeQuery();
     rs.next();
 

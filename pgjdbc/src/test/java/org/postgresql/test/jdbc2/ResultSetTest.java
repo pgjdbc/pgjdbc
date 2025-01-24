@@ -1386,7 +1386,7 @@ public class ResultSetTest extends BaseTest4 {
   }
 
   @SuppressWarnings("unchecked")
-  private Map<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
+  private static Map<String, Integer> getResultSetColumnNameIndexMap(ResultSet stmt) {
     try {
       Field columnNameIndexMapField = stmt.getClass().getDeclaredField("columnNameIndexMap");
       columnNameIndexMapField.setAccessible(true);

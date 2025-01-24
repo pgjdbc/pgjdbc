@@ -61,7 +61,7 @@ public class BaseTest4 {
     }
   }
 
-  protected void forceBinary(Properties props) {
+  protected static void forceBinary(Properties props) {
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
     PGProperty.BINARY_TRANSFER_ENABLE.set(props, Oid.BOOL);
   }

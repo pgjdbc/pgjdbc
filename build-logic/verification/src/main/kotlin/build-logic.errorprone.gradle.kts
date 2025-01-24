@@ -29,6 +29,9 @@ if (!project.hasProperty("skipErrorprone")) {
                     "PackageLocation",
                     "UnusedVariable",
                 )
+                enable(
+                    "MethodCanBeStatic",
+                )
                 disable(
                     "EqualsGetClass",
                     "InlineMeSuggester",

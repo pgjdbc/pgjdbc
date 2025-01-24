@@ -99,7 +99,7 @@ public class ReaderInputStream extends InputStream {
     bbuf.flip();
   }
 
-  private void checkEncodeResult(CoderResult result) throws CharacterCodingException {
+  private static void checkEncodeResult(CoderResult result) throws CharacterCodingException {
     if (result.isError()) {
       result.throwException();
     }

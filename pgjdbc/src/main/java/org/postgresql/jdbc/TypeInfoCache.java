@@ -239,7 +239,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidToSQLType.keySet().iterator();
   }
 
-  private String getSQLTypeQuery(boolean typoidParam) {
+  private static String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -267,7 +267,7 @@ public class TypeInfoCache implements TypeInfo {
     return sql.toString();
   }
 
-  private int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
+  private static int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
     Integer type = null;
     boolean isArray = rs.getBoolean("is_array");
     String typtype = rs.getString("typtype");
