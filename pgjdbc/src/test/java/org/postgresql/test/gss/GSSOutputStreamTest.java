@@ -27,12 +27,10 @@ public class GSSOutputStreamTest {
   private final MessageProp messageProp = new MessageProp(0, true);
   private final GSSContext gssContext = new FakeGSSContext();
 
-
   @Test
   public void testGSSMessageBuffer() throws Exception {
     ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
-    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer
-        , 10), gssContext, messageProp, 10);
+    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer, 10), gssContext, messageProp, 10);
 
     gssOutputStream.write(new byte[0]);
     gssOutputStream.write(new byte[1]);
@@ -45,8 +43,7 @@ public class GSSOutputStreamTest {
   @Test
   public void testGSSMessageBigWrite() throws Exception {
     ByteArrayOutputStream outputBuffer = new ByteArrayOutputStream();
-    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer
-        , 10), gssContext, messageProp, 10);
+    GSSOutputStream gssOutputStream = new GSSOutputStream(new PgBufferedOutputStream(outputBuffer, 10), gssContext, messageProp, 10);
     gssOutputStream.write(new byte[1]);
     gssOutputStream.write(new byte[20]);
     gssOutputStream.flush();
