@@ -44,25 +44,44 @@ class ResultSetTest {
 
   @Test
   void holdableResultSet() throws SQLException {
-    Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-        ResultSet.HOLD_CURSORS_OVER_COMMIT);
+    try (Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+        ResultSet.HOLD_CURSORS_OVER_COMMIT)) {
 
-    conn.setAutoCommit(false);
-    stmt.setFetchSize(1);
+      conn.setAutoCommit(false);
+      stmt.setFetchSize(1);
 
-    ResultSet rs = stmt.executeQuery("SELECT a FROM hold ORDER BY a");
+      try (ResultSet rs = stmt.executeQuery("SELECT a FROM hold ORDER BY a")) {
 
-    assertTrue(rs.next());
-    assertEquals(1, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
 
-    conn.commit();
+        conn.commit();
 
-    assertTrue(rs.next());
-    assertEquals(2, rs.getInt(1));
-    assertFalse(rs.next());
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
 
-    rs.close();
-    stmt.close();
+      }
+    }
   }
 
+  @Test
+  void withHoldResultSet() throws SQLException {
+    try (Statement stmt = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+        ResultSet.HOLD_CURSORS_OVER_COMMIT)) {
+
+      stmt.setFetchSize(1);
+
+      try (ResultSet rs = stmt.executeQuery("SELECT a FROM hold ORDER BY a")) {
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
+
+      }
+    }
+  }
 }

@@ -12,6 +12,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 /**
  * V3 ResultCursor implementation in terms of backend Portals. This holds the state of a single
@@ -23,7 +24,7 @@ class Portal implements ResultCursor {
   Portal(@Nullable SimpleQuery query, String portalName) {
     this.query = query;
     this.portalName = portalName;
-    this.encodedName = portalName.getBytes(StandardCharsets.UTF_8);
+    this.encodedName = portalName.toLowerCase(Locale.US).getBytes(StandardCharsets.UTF_8);
   }
 
   @Override
