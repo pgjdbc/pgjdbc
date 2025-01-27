@@ -131,8 +131,9 @@ public class LargeObjectRead {
   public void readArrayRandom() throws SQLException, IOException {
     readBuffer(
         new StrangeInputStream(
-            getInputStream(),
-            ThreadLocalRandom.current().nextLong()));
+            ThreadLocalRandom.current().nextLong(),
+            getInputStream()
+        ));
   }
 
   private void readBuffer(InputStream is) throws IOException {

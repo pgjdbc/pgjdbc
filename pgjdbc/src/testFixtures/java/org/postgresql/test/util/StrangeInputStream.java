@@ -18,15 +18,20 @@ import java.util.Random;
 public class StrangeInputStream extends FilterInputStream {
   private final Random rand = new Random(); // generator of fun events
 
-  public StrangeInputStream(InputStream is, long seed) throws FileNotFoundException {
+  public StrangeInputStream(long seed, InputStream is) throws FileNotFoundException {
     super(is);
     rand.setSeed(seed);
   }
 
   @Override
   public int read(byte[] b) throws IOException {
-    int maxRead = rand.nextInt(b.length);
-    return super.read(b, 0, maxRead);
+    if (rand.nextInt(10) > 4) {
+      // Test read(byte[]) implementation
+      return super.read(b);
+    }
+    // Test teared reads
+    int maxRead = rand.nextInt(b.length + 1);
+    return read(b, 0, maxRead);
   }
 
   @Override
@@ -39,8 +44,18 @@ public class StrangeInputStream extends FilterInputStream {
       b[off] = (byte) next;
       return 1;
     }
-    int maxRead = rand.nextInt(len);
-    return super.read(b, off, maxRead);
+    int n = 0;
+    while (len > 0) {
+      int maxRead = rand.nextInt(len + 1);
+      int read = super.read(b, off, maxRead);
+      if (read == -1) {
+        return n == 0 ? -1 : n;
+      }
+      n += read;
+      off += read;
+      len -= read;
+    }
+    return n;
   }
 
   @Override
