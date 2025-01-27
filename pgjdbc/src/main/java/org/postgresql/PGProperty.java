@@ -252,6 +252,14 @@ public enum PGProperty {
           + "the statements reaches the same connection that is being initialized."
   ),
 
+  GLOBAL_TYPE_INFO_CACHE(
+      "globalTypeInfoCache",
+      "false",
+      "Use a type info cache that is global to the driver and not to each connection. "
+          + "This can improve overall performance over time by limiting queries to the database "
+          + "to get type metadata."
+  ),
+
   GSS_ENC_MODE(
       "gssEncMode",
       "allow",

@@ -7,6 +7,8 @@ package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -14,11 +16,13 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -122,6 +126,31 @@ class ScramTest {
       fail("SCRAM connection attempt with invalid password should fail");
     } catch (SQLException e) {
       assertEquals(expectedMessage, e.getMessage());
+    }
+  }
+
+  @Test
+  void testGlobalTypeInfoCache() throws SQLException {
+    String passwd = "this is a password";
+    createRole(passwd);
+
+    Properties props = new Properties();
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, passwd); // Open connection with spaces
+    PGProperty.GLOBAL_TYPE_INFO_CACHE.set(props, true);
+    try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
+      TypeInfo typeInfo = ((PgConnection) conn).getTypeInfo();
+      assertInstanceOf(TypeInfoCache.class, typeInfo);
+      assertTrue(((TypeInfoCache) typeInfo).isGlobalStorage());
+    }
+
+    props = new Properties();
+    PGProperty.USER.set(props, ROLE_NAME);
+    PGProperty.PASSWORD.set(props, passwd); // Open connection with spaces
+    try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
+      TypeInfo typeInfo = ((PgConnection) conn).getTypeInfo();
+      assertInstanceOf(TypeInfoCache.class, typeInfo);
+      assertFalse(((TypeInfoCache) typeInfo).isGlobalStorage());
     }
   }
 
