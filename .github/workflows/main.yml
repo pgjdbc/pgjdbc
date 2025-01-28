@@ -132,7 +132,7 @@ jobs:
         fetch-depth: 50
     - id: set-matrix
       run: |
-        node .github/workflows/matrix.js
+        node .github/workflows/matrix.mjs
 
   build-test:
     name: '${{ matrix.name }}'

@@ -1,6 +1,6 @@
-const fs = require('fs');
-const crypto = require('crypto');
-const seedrandom = require('./seedrandom');
+import { appendFileSync } from 'fs';
+import { randomBytes } from 'crypto';
+import { default as seedrandom } from './seedrandom.js';
 
 function genSeedText() {
     const { RNG_SEED } = process.env;
@@ -14,7 +14,7 @@ function genSeedText() {
         return 'pr_' + GITHUB_PR_NUMBER;
     }
     // Otherwise generate a random seed. Note that we do not actually care
-    return 'seed_' + Date.now() + '_' + crypto.randomBytes(16).toString('hex');
+    return 'seed_' + Date.now() + '_' + randomBytes(16).toString('hex');
 }
 
 function createRNG() {
@@ -25,7 +25,7 @@ function createRNG() {
     console.log('Initialized RNG with RNG_SEED = %s', seedText);
     console.log('::endgroup::');
     if (process.env.GITHUB_STEP_SUMMARY) {
-        fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
+        appendFileSync(process.env.GITHUB_STEP_SUMMARY, [
             '# Random Number Generator Seed',
             'To regenerate this matrix in a different build, run it with the following seed:',
             '',
@@ -41,4 +41,4 @@ function createRNG() {
     };
 }
 
-module.exports.RNG = createRNG();
+export const RNG = createRNG();
