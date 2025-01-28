@@ -38,7 +38,8 @@ create_replica () {
         CREATE USER ${replication_user} WITH REPLICATION PASSWORD '${replication_pass}';
         SELECT * FROM pg_create_physical_replication_slot('${replication_slot_name}');
     "
-    pg_basebackup -D "${replica_data_dir}" -S "${replication_slot_name}" -X stream -P -Fp -R
+    # checkpoint=fast is to prevent "checkpoint starting: force wait"
+    pg_basebackup --checkpoint=fast -D "${replica_data_dir}" -S "${replication_slot_name}" -X stream -P -Fp -R
 
     cat <<EOF >>"${replica_data_dir}/postgresql.conf"
 port = ${port}
