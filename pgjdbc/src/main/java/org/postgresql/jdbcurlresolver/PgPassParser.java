@@ -113,6 +113,8 @@ class PgPassParser {
             LOGGER.log(Level.WARNING, "password file [{0}] has group or world access [{1}]; permissions should be u=rw (0600) or less",
               new Object[]{fileName, PosixFilePermissions.toString(posixFilePermissions)});
             return false;
+          default:
+            break;
         }
       }
     }
