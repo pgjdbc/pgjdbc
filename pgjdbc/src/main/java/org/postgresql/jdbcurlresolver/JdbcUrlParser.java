@@ -299,6 +299,7 @@ class JdbcUrlParser {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private static PGProperty deprecatedToCurrent(PGProperty pgProperty) {
     if (pgProperty == PGProperty.PG_DBNAME) {
       return PGProperty.DBNAME;
