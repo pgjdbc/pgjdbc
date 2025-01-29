@@ -77,7 +77,7 @@ class PgServiceConfParser {
   }
 
   // choose resource where to search for service description
-  private String findPgServiceConfResourceName() throws JdbcUrlResolverFatalException {
+  private static String findPgServiceConfResourceName() throws JdbcUrlResolverFatalException {
     // if there is value, use it - 1st priority
     {
       String propertyName = PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName();
