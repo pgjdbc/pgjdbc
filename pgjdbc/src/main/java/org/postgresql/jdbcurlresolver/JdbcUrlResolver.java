@@ -122,7 +122,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse5JavaEnvironment(Properties result) {
+  private static void parse5JavaEnvironment(Properties result) {
     // scan & translate map
     Map<PGEnvironment, PGProperty> map = new TreeMap<>();
     map.put(PGEnvironment.ORG_POSTGRESQL_PGDATABASE, PGProperty.DBNAME);
@@ -136,7 +136,7 @@ public class JdbcUrlResolver {
     parseEnvironment(map, result);
   }
 
-  private void parse6OsEnvironment(Properties result) {
+  private static void parse6OsEnvironment(Properties result) {
     // scan & translate map
     Map<PGEnvironment, PGProperty> map = new TreeMap<>();
     map.put(PGEnvironment.PGDATABASE, PGProperty.DBNAME);
@@ -150,7 +150,7 @@ public class JdbcUrlResolver {
     parseEnvironment(map, result);
   }
 
-  private void parseEnvironment(Map<PGEnvironment, PGProperty> scanMap, Properties result) {
+  private static void parseEnvironment(Map<PGEnvironment, PGProperty> scanMap, Properties result) {
     //
     for (Map.Entry<PGEnvironment, PGProperty> entry : scanMap.entrySet()) {
       PGEnvironment environment = entry.getKey();
@@ -172,7 +172,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse4ServiceResource(Properties p4, Properties p0) throws JdbcUrlResolverFatalException {
+  private static void parse4ServiceResource(Properties p4, Properties p0) throws JdbcUrlResolverFatalException {
     String service = PGProperty.SERVICE.getOrNull(p0);
     if (service != null) {
       // read service properties
@@ -182,7 +182,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse8GlobalDefaults(Properties p8, Properties p0) {
+  private static void parse8GlobalDefaults(Properties p8, Properties p0) {
     // add global defaults
     PGProperty.HOST.set(p8, PGProperty.HOST.getDefaultValue());
     PGProperty.PORT.set(p8, PGProperty.PORT.getDefaultValue());
@@ -200,7 +200,7 @@ public class JdbcUrlResolver {
   //   jdbc:postgresql://:22,:33/      -> localhost:22,localhost:33
   //   jdbc:postgresql://:22,host2:33/ -> localhost:22,host2:33
   //   jdbc:postgresql://host1,host2/  -> host1:5432,host2:5432
-  private void adjust91HostPort(Properties result) {
+  private static void adjust91HostPort(Properties result) {
     String hosts = PGProperty.HOST.getOrNull(result);
     String ports = PGProperty.PORT.getOrNull(result);
     //
@@ -221,7 +221,7 @@ public class JdbcUrlResolver {
   // Goal: to support multiple hosts and one port option
   // Examples:
   //   jdbc:postgresql://host1,host2,host3?port=2222  -> host1:2222,host2:2222,host3:2222
-  private void adjust92HostPort(Properties result) throws JdbcUrlResolverFatalException {
+  private static void adjust92HostPort(Properties result) throws JdbcUrlResolverFatalException {
     String hosts = PGProperty.HOST.getOrNull(result);
     String ports = PGProperty.PORT.getOrNull(result);
     // to fix checker error
@@ -243,7 +243,7 @@ public class JdbcUrlResolver {
   // Goal: remove spaces around port numbers
   // Examples:
   //   jdbc:postgresql://host1:  2222  ,host2:  3333  /  -> host1:2222,host2:3333
-  private void adjust93Port(Properties result) {
+  private static void adjust93Port(Properties result) {
     // remove space around port values
     String portString = PGProperty.PORT.getOrNull(result);
     // to fix checker error
@@ -256,7 +256,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void verify94Port(Properties result) throws JdbcUrlResolverFatalException {
+  private static void verify94Port(Properties result) throws JdbcUrlResolverFatalException {
     String portString = PGProperty.PORT.getOrNull(result);
     // to fix checker error
     if (portString == null) {
@@ -277,7 +277,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void parse9Pgpass(Properties p0) {
+  private static void parse9Pgpass(Properties p0) {
     String pgpassFile = PGProperty.PASSFILE.getOrNull(p0);
     // to fix checker error
     if (pgpassFile == null) {
@@ -294,7 +294,7 @@ public class JdbcUrlResolver {
     }
   }
 
-  private void dumpStructures(Properties result, Properties p8, Properties p7, Properties p6, Properties p5, Properties p4, Properties p3, Properties p2, Properties p1, Properties p0) {
+  private static void dumpStructures(Properties result, Properties p8, Properties p7, Properties p6, Properties p5, Properties p4, Properties p3, Properties p2, Properties p1, Properties p0) {
     dumpStructure(result, "Final result");
     dumpStructure(p0, "Level p0");
     dumpStructure(p1, "Level p1");
@@ -307,7 +307,7 @@ public class JdbcUrlResolver {
     dumpStructure(p8, "Level p8");
   }
 
-  private void dumpStructure(Properties props, String message) {
+  private static void dumpStructure(Properties props, String message) {
     LOGGER.log(Level.FINE, "--- {0} ---", new String[]{message});
     for (Object oKey : props.keySet()) {
       String key = String.valueOf(oKey);
