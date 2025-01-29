@@ -16,7 +16,6 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
-import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -527,16 +526,6 @@ public class Driver implements java.sql.Driver {
     // resolve url (including "?service=" syntax and pgpass file)
     JdbcUrlResolver resolver = new JdbcUrlResolver(url, defaults);
     return resolver.getResult();
-  }
-
-  // decode url, on failure log and return null
-  private static @Nullable String urlDecode(String url) {
-    try {
-      return URLCoder.decode(url);
-    } catch (IllegalArgumentException e) {
-      LOGGER.log(Level.FINE, "Url [{0}] parsing failed with error [{1}]", new Object[]{url, e.getMessage()});
-    }
-    return null;
   }
 
   /**
