@@ -11,6 +11,7 @@ import org.postgresql.util.HostSpec;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,8 @@ public class GlobalHostStatusTracker {
   private static final Map<HostSpec, HostSpecStatus> hostStatusMap =
       new HashMap<>();
   private static final ResourceLock lock = new ResourceLock();
+  private static boolean changed;
+  private static Map<HostSpec, HostStatus> cachedReadOnlyMap = Collections.emptyMap();
 
   /**
    * Store the actual observed host status.
@@ -37,8 +40,13 @@ public class GlobalHostStatusTracker {
         hostSpecStatus = new HostSpecStatus(hostSpec);
         hostStatusMap.put(hostSpec, hostSpecStatus);
       }
+      HostStatus previousStatus = hostSpecStatus.status;
       hostSpecStatus.status = hostStatus;
       hostSpecStatus.lastUpdated = now;
+
+      if (previousStatus != hostStatus) {
+        changed = true;
+      }
     }
   }
 
@@ -66,6 +74,26 @@ public class GlobalHostStatusTracker {
       }
     }
     return candidates;
+  }
+
+  /**
+   * Returns a "read-only" card (host -> HostStatus).
+   * If the card has not been changed since the last time, the previous cache will be returned.
+   * If it has changed, create a new unmodifiableMap and reset the changed flag.
+   */
+  public static Map<HostSpec, HostStatus> getHostStatusMap() {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (changed) {
+        Map<HostSpec, HostStatus> tempMap = new HashMap<>();
+        for (Map.Entry<HostSpec, HostSpecStatus> e : hostStatusMap.entrySet()) {
+          HostStatus status = e.getValue().status;
+          tempMap.put(e.getKey(), status);
+        }
+        cachedReadOnlyMap = Collections.unmodifiableMap(tempMap);
+        changed = false;
+      }
+      return cachedReadOnlyMap;
+    }
   }
 
   static class HostSpecStatus {
