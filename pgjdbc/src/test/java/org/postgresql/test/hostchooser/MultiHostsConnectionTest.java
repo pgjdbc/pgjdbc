@@ -24,6 +24,7 @@ import static org.postgresql.test.TestUtil.closeDB;
 
 import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
+import org.postgresql.hostchooser.GlobalHostStatusTracker.HostStatusInfo;
 import org.postgresql.hostchooser.HostRequirement;
 import org.postgresql.hostchooser.HostStatus;
 import org.postgresql.test.TestUtil;
@@ -498,11 +499,11 @@ public class MultiHostsConnectionTest {
     assertGlobalState(primary1, "ConnectOK");
     assertGlobalState(fake1, "ConnectFail");
 
-    Map<HostSpec, HostStatus> statusMap = GlobalHostStatusTracker.getHostStatusMap();
+    Map<HostSpec, HostStatusInfo> statusMap = GlobalHostStatusTracker.getHostStatusMap();
 
     assertTrue(statusMap.containsKey(hostSpec(primary1)));
     assertTrue(statusMap.containsKey(hostSpec(fake1)));
-    assertEquals(statusMap.get(hostSpec(primary1)),  HostStatus.valueOf("ConnectOK"));
-    assertEquals(statusMap.get(hostSpec(fake1)),  HostStatus.valueOf("ConnectFail"));
+    assertEquals(statusMap.get(hostSpec(primary1)).getStatus(),  HostStatus.valueOf("ConnectOK"));
+    assertEquals(statusMap.get(hostSpec(fake1)).getStatus(),  HostStatus.valueOf("ConnectFail"));
   }
 }

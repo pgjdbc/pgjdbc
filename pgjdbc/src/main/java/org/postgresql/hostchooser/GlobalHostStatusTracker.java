@@ -9,6 +9,8 @@ import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.HostSpec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.checkerframework.checker.nullness.qual.NonNull;
+import org.checkerframework.checker.initialization.qual.Initialized;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +26,7 @@ public class GlobalHostStatusTracker {
       new HashMap<>();
   private static final ResourceLock lock = new ResourceLock();
   private static boolean changed;
-  private static Map<HostSpec, HostStatus> cachedReadOnlyMap = Collections.emptyMap();
+  private static Map<HostSpec, HostStatusInfo> cachedReadOnlyMap = Collections.emptyMap();
 
   /**
    * Store the actual observed host status.
@@ -81,13 +83,17 @@ public class GlobalHostStatusTracker {
    * If the card has not been changed since the last time, the previous cache will be returned.
    * If it has changed, create a new unmodifiableMap and reset the changed flag.
    */
-  public static Map<HostSpec, HostStatus> getHostStatusMap() {
+  public static Map<HostSpec, HostStatusInfo> getHostStatusMap() {
     try (ResourceLock ignore = lock.obtain()) {
       if (changed) {
-        Map<HostSpec, HostStatus> tempMap = new HashMap<>();
+        Map<HostSpec, HostStatusInfo> tempMap = new HashMap<>();
         for (Map.Entry<HostSpec, HostSpecStatus> e : hostStatusMap.entrySet()) {
           HostStatus status = e.getValue().status;
-          tempMap.put(e.getKey(), status);
+          long lastUpdated = e.getValue().lastUpdated;
+          if (status == null) {
+            status = HostStatus.ConnectFail;
+          }
+          tempMap.put(e.getKey(), new HostStatusInfo(status, lastUpdated));
         }
         cachedReadOnlyMap = Collections.unmodifiableMap(tempMap);
         changed = false;
@@ -108,6 +114,24 @@ public class GlobalHostStatusTracker {
     @Override
     public String toString() {
       return host.toString() + '=' + status;
+    }
+  }
+
+  public static class HostStatusInfo {
+    private final @NonNull HostStatus status;
+    private final long lastUpdated;
+
+    public HostStatusInfo(HostStatus status, long lastUpdated) {
+      this.status = status;
+      this.lastUpdated = lastUpdated;
+    }
+
+    public HostStatus getStatus() {
+      return status;
+    }
+
+    public long getLastUpdated() {
+      return lastUpdated;
     }
   }
 }
