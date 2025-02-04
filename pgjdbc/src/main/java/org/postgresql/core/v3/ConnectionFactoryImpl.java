@@ -394,8 +394,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
-    // we really don't know the version of the server yet so we can't set application name or extra float digits
+    // we really don't know the version of the server yet so we can't set extra float digits
     // set them in runInitialQueries
+
+    // application name is important to set as early as possible for connection logging
+    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
+    if( appName != null && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum() ) {
+      paramList.add(new StartupParam("application_name", appName));
+    }
 
     // probably no need to make sure the assumeVersion is 9.4 or greater. The user really wants replication.
     String replication = PGProperty.REPLICATION.getOrDefault(info);
