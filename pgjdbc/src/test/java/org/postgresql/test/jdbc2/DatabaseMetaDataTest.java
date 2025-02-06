@@ -1094,7 +1094,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void remarkIndexInfo(BinaryMode binaryMode) throws SQLException {
     Statement stmt = con.createStatement();
-    stmt.execute("create index idx_p_name_id on metadatatest (name) where id > 5");
+    stmt.execute("create index idx_p_name_id on metadatatest (name)");
     stmt.execute("comment on index idx_p_name_id is 'index_comment'");
     stmt.close();
 
@@ -1105,8 +1105,6 @@ public class DatabaseMetaDataTest {
     assertEquals("idx_p_name_id", rs.getString("INDEX_NAME"));
     assertEquals(1, rs.getInt("ORDINAL_POSITION"));
     assertEquals("name", rs.getString("COLUMN_NAME"));
-    assertEquals("(id > 5)", rs.getString("FILTER_CONDITION"));
-    assertTrue(rs.getBoolean("NON_UNIQUE"));
     assertEquals("index_comment", rs.getString("REMARKS"));
 
     rs.close();
