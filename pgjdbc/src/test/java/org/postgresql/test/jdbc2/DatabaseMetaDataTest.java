@@ -1092,6 +1092,26 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void remarkIndexInfo(BinaryMode binaryMode) throws SQLException {
+    Statement stmt = con.createStatement();
+    stmt.execute("create index idx_name on metadatatest (name)");
+    stmt.execute("comment on index idx_name is 'index_comment'");
+    stmt.close();
+
+    DatabaseMetaData dbmd = con.getMetaData();
+    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+
+    assertTrue(rs.next());
+    assertEquals("idx_name", rs.getString("INDEX_NAME"));
+    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+    assertEquals("name", rs.getString("COLUMN_NAME"));
+    assertEquals("index_comment", rs.getString("REMARKS"));
+
+    rs.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void tableTypes(BinaryMode binaryMode) throws SQLException {
     final List<String> expectedTableTypes = new ArrayList<>(Arrays.asList("FOREIGN TABLE", "INDEX", "PARTITIONED INDEX",
         "MATERIALIZED VIEW", "PARTITIONED TABLE", "SEQUENCE", "SYSTEM INDEX", "SYSTEM TABLE", "SYSTEM TOAST INDEX",
