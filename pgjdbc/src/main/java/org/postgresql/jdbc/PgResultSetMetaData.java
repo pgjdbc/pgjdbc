@@ -218,38 +218,49 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
             + "JOIN pg_catalog.pg_attribute a ON (c.oid = a.attrelid) "
             + "JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
             + "LEFT JOIN pg_catalog.pg_attrdef d ON (d.adrelid = a.attrelid AND d.adnum = a.attnum) "
-            + "JOIN (VALUES ");
+            + "JOIN (");
 
-    boolean needsComma = false;
+    // 7.4 servers don't support row IN operations (a,b) IN ((c,d),(e,f))
+    // so we've got to fake that with a JOIN here.
+    //
+    boolean hasSourceInfo = false;
     Set<String> oidSet = new HashSet<>();
     for (Field field : fields) {
       if (field.getMetadata() != null) {
         continue;
       }
-      if (needsComma) {
-        sql.append(", ");
-      }
-      sql.append("( ");
 
+      if (hasSourceInfo) {
+        sql.append(" UNION ALL ");
+      }
+
+      sql.append("SELECT ");
       sql.append(field.getTableOid());
+      if (!hasSourceInfo) {
+        sql.append(" AS oid ");
+      }
       sql.append(", ");
       sql.append(field.getPositionInTable());
-      sql.append(")");
-      needsComma = true;
+      if (!hasSourceInfo) {
+        sql.append(" AS attnum");
+      }
+
+      if (!hasSourceInfo) {
+        hasSourceInfo = true;
+      }
       oidSet.add(String.valueOf(field.getTableOid()));
     }
-    sql.append(") as vals (oid,attnum) ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
+    sql.append(") vals ON (c.oid = vals.oid AND a.attnum = vals.attnum) ");
 
     if (!oidSet.isEmpty()) {
       sql.append("where c.oid in (").append(String.join(",", oidSet)).append(")");
     }
 
-    /*
     if (!hasSourceInfo) {
       fieldInfoFetched = true;
       return;
     }
-*/
+
     Statement stmt = connection.createStatement();
     ResultSet rs = null;
     GettableHashMap<FieldMetadata.Key, FieldMetadata> md = new GettableHashMap<>();
