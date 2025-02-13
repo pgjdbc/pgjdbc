@@ -9,13 +9,14 @@ import org.postgresql.jdbc.ResourceLock;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.lang.ref.Cleaner;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class SharedTimer {
-  static class TimerCleanup implements LazyCleaner.CleaningAction<RuntimeException> {
+  static class TimerCleanup implements Runnable {
     private final Timer timer;
 
     TimerCleanup(Timer timer) {
@@ -23,19 +24,20 @@ public class SharedTimer {
     }
 
     @Override
-    public void onClean(boolean leak) throws RuntimeException {
+    public void run() {
       timer.cancel();
     }
   }
 
   // Incremented for each Timer created, this allows each to have a unique Timer name
   private static final AtomicInteger timerCount = new AtomicInteger(0);
+  private static final Cleaner cleaner = Cleaner.create();
 
   private static final Logger LOGGER = Logger.getLogger(SharedTimer.class.getName());
   private volatile @Nullable Timer timer;
   private final AtomicInteger refCount = new AtomicInteger(0);
   private final ResourceLock lock = new ResourceLock();
-  private LazyCleaner.@Nullable Cleanable<RuntimeException> timerCleanup;
+  private Cleaner.Cleanable cleanable;
 
   public SharedTimer() {
   }
@@ -62,7 +64,8 @@ public class SharedTimer {
           Thread.currentThread().setContextClassLoader(null);
 
           this.timer = timer = new Timer("PostgreSQL-JDBC-SharedTimer-" + index, true);
-          this.timerCleanup = LazyCleaner.getInstance().register(refCount, new TimerCleanup(timer));
+          cleanable = cleaner.register(refCount, new TimerCleanup(timer));
+
         } finally {
           Thread.currentThread().setContextClassLoader(prevContextCL);
         }
@@ -81,10 +84,10 @@ public class SharedTimer {
       } else if (count == 0) {
         // This is the last usage of the Timer so cancel it so it's resources can be release.
         LOGGER.log(Level.FINEST, "No outstanding references to shared Timer, will cancel and close it");
-        if (timerCleanup != null) {
-          timerCleanup.clean();
+        if (cleanable != null) {
+          cleanable.clean();
           timer = null;
-          timerCleanup = null;
+          cleanable = null;
         }
       } else {
         // Should not get here under normal circumstance, probably a bug in app code.

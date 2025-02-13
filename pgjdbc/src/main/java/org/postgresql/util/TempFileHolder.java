@@ -13,14 +13,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * The action deletes temporary file in case the user submits a large input stream,
  * and then abandons the statement.
  */
-class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
+class TempFileHolder implements Runnable {
 
   private static final Logger LOGGER = Logger.getLogger(StreamWrapper.class.getName());
   private @Nullable InputStream stream;
@@ -40,10 +39,7 @@ class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
   }
 
   @Override
-  public void onClean(boolean leak) throws IOException {
-    if (leak) {
-      LOGGER.log(Level.WARNING, GT.tr("StreamWrapper leak detected StreamWrapper.close() was not called. "));
-    }
+  public void run() {
     Path tempFile = this.tempFile;
     if (tempFile != null) {
       tempFile.toFile().delete();
@@ -51,7 +47,11 @@ class TempFileHolder implements LazyCleaner.CleaningAction<IOException> {
     }
     InputStream stream = this.stream;
     if (stream != null) {
-      stream.close();
+      try {
+        stream.close();
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
       this.stream = null;
     }
   }

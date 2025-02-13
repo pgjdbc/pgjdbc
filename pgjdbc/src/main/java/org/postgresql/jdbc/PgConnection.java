@@ -41,7 +41,6 @@ import org.postgresql.replication.PGReplicationConnectionImpl;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGInterval;
@@ -61,6 +60,7 @@ import java.io.IOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.ref.Cleaner;
 import java.security.Permission;
 import java.sql.Array;
 import java.sql.Blob;
@@ -105,7 +105,7 @@ public class PgConnection implements BaseConnection {
   private static final Set<Integer> SUPPORTED_BINARY_OIDS = getSupportedBinaryOids();
   private static final SQLPermission SQL_PERMISSION_ABORT = new SQLPermission("callAbort");
   private static final SQLPermission SQL_PERMISSION_NETWORK_TIMEOUT = new SQLPermission("setNetworkTimeout");
-
+  private static final Cleaner cleaner = Cleaner.create();
   private static final @Nullable MethodHandle SYSTEM_GET_SECURITY_MANAGER;
   private static final @Nullable MethodHandle SECURITY_MANAGER_CHECK_PERMISSION;
 
@@ -217,7 +217,7 @@ public class PgConnection implements BaseConnection {
 
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
-  private final LazyCleaner.Cleanable<IOException> cleanable;
+  private final Cleaner.Cleanable cleanable;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -250,6 +250,7 @@ public class PgConnection implements BaseConnection {
   }
 
   //
+  // Ctor.
   // Ctor.
   //
   @SuppressWarnings({"method.invocation"})
@@ -383,7 +384,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+    cleanable = cleaner.register(leakHandle, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
@@ -863,13 +864,7 @@ public class PgConnection implements BaseConnection {
       return;
     }
     openStackTrace = null;
-    try {
-      cleanable.clean();
-    } catch (IOException e) {
-      throw new PSQLException(
-          GT.tr("Unable to close connection properly"),
-          PSQLState.UNKNOWN_STATE, e);
-    }
+    cleanable.clean();
   }
 
   @Override
