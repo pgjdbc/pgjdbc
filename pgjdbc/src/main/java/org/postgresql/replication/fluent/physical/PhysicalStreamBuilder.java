@@ -19,7 +19,7 @@ public class PhysicalStreamBuilder extends AbstractStreamBuilder<ChainedPhysical
   private final StartPhysicalReplicationCallback startCallback;
 
   /**
-   * @param startCallback not null callback that should be execute after build parameters for start
+   * @param startCallback not null callback that should be executed after build parameters for start
    *                      replication
    */
   public PhysicalStreamBuilder(StartPhysicalReplicationCallback startCallback) {
@@ -49,5 +49,10 @@ public class PhysicalStreamBuilder extends AbstractStreamBuilder<ChainedPhysical
   @Override
   public int getStatusInterval() {
     return statusIntervalMs;
+  }
+
+  @Override
+  public boolean getAutomaticFlush() {
+    return automaticFlush;
   }
 }
