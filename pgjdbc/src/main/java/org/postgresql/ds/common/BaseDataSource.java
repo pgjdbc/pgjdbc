@@ -807,6 +807,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return SSL subject
+   * @see PGProperty#SSL_SUBJECT
+   */
+  public @Nullable String getSslSubject() {
+    return PGProperty.SSL_SUBJECT.getOrDefault(properties);
+  }
+
+  /**
+   * @param file SSL subject
+   * @see PGProperty#SSL_SUBJECT
+   */
+  public void setSslSubject(@Nullable String file) {
+    PGProperty.SSL_SUBJECT.set(properties, file);
+  }
+
+  /**
    * @param applicationName application name
    * @see PGProperty#APPLICATION_NAME
    */

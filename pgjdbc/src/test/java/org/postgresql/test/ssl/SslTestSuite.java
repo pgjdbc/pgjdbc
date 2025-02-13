@@ -13,7 +13,9 @@ import org.junit.runners.Suite;
     CommonNameVerifierTest.class,
     PKCS12KeyManagerTest.class,
     LibPQFactoryHostNameTest.class,
+    SSLFactoryTest.class,
     SslTest.class,
+    SubjectKeyManagerTest.class,
 })
 public class SslTestSuite {
 }
