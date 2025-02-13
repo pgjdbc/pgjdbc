@@ -96,6 +96,7 @@ import java.util.logging.Level;
 
 public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
+  private boolean endOfResults;
   // needed for updateable result set support
   private boolean updateable;
   private boolean doingUpdates;
@@ -184,6 +185,35 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     // Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
     this.lastUsedFetchSize = tuples.size();
+    endOfResults = true;
+  }
+
+  PgResultSet(@Nullable Query originalQuery, BaseStatement statement,
+      Field[] fields,
+      @Nullable ResultCursor cursor, int maxRows, int maxFieldSize, int rsType, int rsConcurrency,
+      int rsHoldability, boolean adaptiveFetch) throws SQLException {
+
+    if (fields == null) {
+      throw new NullPointerException("fields must be non-null");
+    }
+    this.rows = new ArrayList<Tuple>();
+    this.originalQuery = originalQuery;
+    this.connection = (BaseConnection) statement.getConnection();
+    this.statement = statement;
+    this.fields = fields;
+    this.cursor = cursor;
+    this.maxRows = maxRows;
+    this.maxFieldSize = maxFieldSize;
+    this.resultsettype = rsType;
+    this.resultsetconcurrency = rsConcurrency;
+    this.adaptiveFetch = adaptiveFetch;
+
+    // Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
+    this.lastUsedFetchSize = 1;
+    /*
+    this is called in async mode so set endOfResults false here
+     */
+    endOfResults = false;
   }
 
   @Override
@@ -2277,7 +2307,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           PSQLState.INVALID_CURSOR_STATE);
     }
 
-    if (currentRow + 1 >= rows.size()) {
+    /*
+    First check to make sure that more data isn't coming by checking see if endOfResults is true
+     */
+    if (endOfResults && (currentRow + 1 >= rows.size())) {
       ResultCursor cursor = this.cursor;
       if (cursor == null || (maxRows > 0 && rowOffset + rows.size() >= maxRows)) {
         currentRow = rows.size();
@@ -4343,4 +4376,17 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
     return this;
   }
+
+  /**
+   * called when there are no more results coming
+   */
+  public void setEndOfResults() {
+    endOfResults = true;
+  }
+
+  // This is here to prevent the Java compiler from generating
+  // a static initializer for this class which would execute
+  // any static initializers for this class' base classes.
+  // Instead, the static initializer for this class should
+  // call this method.
 }

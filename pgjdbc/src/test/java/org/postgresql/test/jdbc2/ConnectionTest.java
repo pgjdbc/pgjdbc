@@ -21,9 +21,11 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileInputStream;
 import java.lang.reflect.Field;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,6 +36,8 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
 
 /**
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
@@ -41,6 +45,12 @@ import java.util.Properties;
  */
 class ConnectionTest {
   private Connection con;
+  private static final Logger LOGGER = Logger.getLogger(ConnectionTest.class.getName());
+
+  @BeforeAll
+  static void startLogger() throws Exception {
+    LogManager.getLogManager().readConfiguration(new FileInputStream("logging.properties"));
+  }
 
   // Set up the fixture for this testcase: the tables for this test.
   @BeforeEach
