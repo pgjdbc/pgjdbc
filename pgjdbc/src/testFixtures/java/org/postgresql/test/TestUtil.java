@@ -19,11 +19,13 @@ import org.postgresql.util.PSQLException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.platform.commons.function.Try;
 
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -239,8 +241,9 @@ public class TestUtil {
               + " does not exist. Consider adding it to specify test db host and login");
           continue;
         }
-        try {
-          p.load(new FileInputStream(f));
+
+        try (InputStream inputStream = new FileInputStream(f)) {
+          p.load(inputStream);
         } catch (IOException ex) {
           // ignore
         }
