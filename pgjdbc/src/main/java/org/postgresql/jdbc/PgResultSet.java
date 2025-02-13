@@ -2065,7 +2065,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (originalQuery == null) {
       return;
     }
-    String sql = originalQuery.toString(null);
+    String sql = originalQuery.toStringLiteral(null);
     StringTokenizer st = new StringTokenizer(sql, " \r\t\n");
     boolean tableFound = false;
     boolean tablesChecked = false;

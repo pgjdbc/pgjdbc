@@ -153,7 +153,7 @@ public class BatchResultHandler extends ResultHandlerBase {
       String queryString = "<unknown>";
       if (pgStatement.getPGConnection().getLogServerErrorDetail()) {
         if (resultIndex < queries.length) {
-          queryString = queries[resultIndex].toString(
+          queryString = queries[resultIndex].toStringLiteral(
              parameterLists == null ? null : parameterLists[resultIndex]);
         }
       }

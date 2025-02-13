@@ -189,13 +189,24 @@ public interface ParameterList {
 
   /**
    * Return a human-readable representation of a particular parameter in this ParameterList. If the
+   * parameter is not bound or is of type bytea sourced from an InputStream, returns "?".
+   * This method will NOT consume InputStreams, instead "?" will be returned.
+   *
+   * @param index the 1-based parameter index to bind.
+   * @return a string representation of the parameter.
+   */
+  String toString(@Positive int index);
+
+  /**
+   * Return the string literal representation of a particular parameter in this ParameterList. If the
    * parameter is not bound, returns "?".
+   * This method will consume all InputStreams to produce the result.
    *
    * @param index the 1-based parameter index to bind.
    * @param standardConformingStrings true if \ is not an escape character in strings literals
    * @return a string representation of the parameter.
    */
-  String toString(@Positive int index, boolean standardConformingStrings);
+  String toStringLiteral(@Positive int index, boolean standardConformingStrings);
 
   /**
    * Use this operation to append more parameters to the current list.
