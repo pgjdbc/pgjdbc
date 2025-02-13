@@ -99,6 +99,7 @@ class DriverTest {
       verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1", "test-host1", "5444", "testdb1");
       verifyUrl(drv, "jdbc:postgresql://?service=driverTestService1&host=other-host", "other-host", "5444", "testdb1");
       verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1", "test-host1", "5444", "testdb1");
+      verifyUrl(drv, "jdbc:postgresql:///somedb?service=driverTestService1", "test-host1", "5444", "somedb");
       verifyUrl(drv, "jdbc:postgresql:///?service=driverTestService1&port=3333&dbname=other-db", "test-host1", "3333", "other-db");
       verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?service=driverTestService1", "localhost", "5432", "test");
       verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?port=7777&dbname=other-db&service=driverTestService1", "localhost", "7777", "other-db");
