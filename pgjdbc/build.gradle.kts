@@ -71,7 +71,7 @@ val String.v: String get() = rootProject.extra["$this.version"] as String
 
 dependencies {
     constraints {
-        api("com.github.waffle:waffle-jna:1.9.1")
+        api("com.github.waffle:waffle-jna:3.3.0")
         api("org.osgi:org.osgi.core:6.0.0")
         api("org.osgi:org.osgi.service.jdbc:1.0.0")
     }
