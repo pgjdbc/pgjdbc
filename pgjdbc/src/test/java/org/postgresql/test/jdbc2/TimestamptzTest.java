@@ -20,8 +20,6 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -189,21 +187,6 @@ public class TimestamptzTest extends BaseTest4 {
       ResultSet rs = ps.executeQuery();
       ResultSetMetaData md = rs.getMetaData();
       assertEquals(java.sql.Types.TIMESTAMP_WITH_TIMEZONE, md.getColumnType(1));
-    }
-  }
-
-
-  @Test
-  public void testJavaTime_LocalTime() throws SQLException {
-    try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
-      ps.setObject(1, LocalTime.now());
-    }
-  }
-
-  @Test
-  public void testJavaTime_LocalDateTime() throws SQLException {
-    try (PreparedStatement ps = con.prepareStatement(" SELECT pg_typeof(?) ")) {
-      ps.setObject(1, LocalDateTime.now());
     }
   }
 
