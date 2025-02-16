@@ -1250,7 +1250,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
@@ -1708,7 +1708,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql = "";
     }
 
-    sql += "SELECT current_database(), n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
+    sql += "SELECT current_database() AS current_database, n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
         + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
@@ -1904,7 +1904,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl, "
+    sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
           + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
           + " a.attname "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
@@ -1993,7 +1993,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     String sql;
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
-    sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl "
+    sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
@@ -3155,7 +3155,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
