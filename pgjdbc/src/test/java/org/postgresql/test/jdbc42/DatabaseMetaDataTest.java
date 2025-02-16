@@ -80,6 +80,16 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsForSchema() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns(null, "%", "decimaltest", "%");
+    assertTrue(rs.next());
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+  }
+
+  @Test
   void getCorrectSQLTypeForOffPathTypes_whenCatalogArgPercentSign_expectNoResults() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
