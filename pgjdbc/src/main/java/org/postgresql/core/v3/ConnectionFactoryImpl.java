@@ -400,7 +400,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // application name is important to set as early as possible for connection logging, we set it immediately
     // if we can assume the minimum version supports doing so
     String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-    if( appName != null && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum() ) {
+    if ( appName != null && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum() ) {
       paramList.add(new StartupParam("application_name", appName));
     }
 
@@ -929,26 +929,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     boolean groupStartupParameters = dbVersion >= ServerVersion.v9_0.getVersionNum()
             && PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info);
 
-    if( sendApplicationName || sendExtraFloatDigits ) {
+    if ( sendApplicationName || sendExtraFloatDigits ) {
       if (groupStartupParameters) {
         SetupQueryRunner.run(queryExecutor, "BEGIN", false);
       }
 
-      if( sendExtraFloatDigits ) {
+      if ( sendExtraFloatDigits ) {
         if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
           // server version < 9 so 8.x or less
           SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 2", false);
-        }
-        else {
+        } else {
           // server version < 12 so 9.0 - 11.x
           SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
         }
       }
 
-      if( sendApplicationName ) {
+      if ( sendApplicationName ) {
         StringBuilder sql = new StringBuilder();
         sql.append("SET application_name = '");
-        Utils.escapeLiteral(sql, appName, queryExecutor.getStandardConformingStrings());
+        Utils.escapeLiteral(sql, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
         sql.append("'");
         SetupQueryRunner.run(queryExecutor, sql.toString(), false);
       }
