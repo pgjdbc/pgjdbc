@@ -8,12 +8,12 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
 import org.junit.Assert;
 import org.junit.Test;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import java.sql.Statement;
 import java.util.Map;

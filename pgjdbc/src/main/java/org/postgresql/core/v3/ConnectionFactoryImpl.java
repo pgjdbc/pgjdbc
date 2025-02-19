@@ -948,7 +948,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       if( sendApplicationName ) {
         StringBuilder sql = new StringBuilder();
         sql.append("SET application_name = '");
-        Utils.escapeLiteral(sql, appName, queryExecutor.getStandardConformingStrings());
+        Utils.escapeLiteral(sql, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
         sql.append("'");
         SetupQueryRunner.run(queryExecutor, sql.toString(), false);
       }
