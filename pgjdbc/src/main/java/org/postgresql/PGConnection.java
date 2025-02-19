@@ -336,10 +336,6 @@ public interface PGConnection {
    *  </li>
    *  <li><code>DateStyle</code> - PgJDBC requires this to always be set to <code>ISO</code></li>
    *  <li><code>standard_conforming_strings</code> - indirectly via {@link #escapeLiteral(String)}</li>
-   *  <li>
-   *    <code>TimeZone</code> - set from JDK timezone see {@link java.util.TimeZone#getDefault()}
-   *    and {@link java.util.TimeZone#setDefault(TimeZone)}
-   *  </li>
    *  <li><code>integer_datetimes</code></li>
    *  <li><code>IntervalStyle</code></li>
    *  <li><code>server_encoding</code></li>
