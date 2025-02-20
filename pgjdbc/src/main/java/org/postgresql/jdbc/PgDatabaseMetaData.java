@@ -57,6 +57,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   private int nameDataLength; // length for name datatype
   private int indexMaxKeys; // maximum number of keys in an index.
 
+  private byte[] getCatalogName(@Nullable String catalog) throws SQLException {
+    if (catalog == null) {
+      return connection.getCatalog().getBytes();
+    }
+    return catalog.getBytes(); 
+  }
+
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
       String sql;
@@ -1224,6 +1231,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 20;
+    byte[] catalogName = getCatalogName(catalog);
 
     Field[] f = new Field[columns];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1250,7 +1258,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
@@ -1270,7 +1278,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] procedureName = rs.getBytes("proname");
       byte[] specificName =
@@ -1764,7 +1771,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = rs.getBytes("current_database"); // Catalog (database) name
+      tuple[0] = getCatalogName(catalog); // Catalog (database) name
       tuple[1] = rs.getBytes("nspname"); // Schema name
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
@@ -1904,7 +1911,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
+    sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl, "
           + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
           + " a.attname "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
@@ -1932,7 +1939,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
+      byte[] catalogName = getCatalogName(catalog);
       byte[] schemaName = rs.getBytes("nspname");
       byte[] tableName = rs.getBytes("relname");
       byte[] column = rs.getBytes("attname");
@@ -1993,7 +2000,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     String sql;
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
-    sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl "
+    sql = "SELECT n.nspname,c.relname,r.rolname,c.relacl "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
@@ -2014,8 +2021,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+  
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] table = rs.getBytes("relname");
       String owner = castNonNull(rs.getString("rolname"));
@@ -3155,7 +3163,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     String sql;
-    sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    sql = "SELECT n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
@@ -3174,8 +3182,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] functionName = rs.getBytes("proname");
       byte[] specificName =
