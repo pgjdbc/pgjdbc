@@ -2340,9 +2340,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
     String sql;
 
-    // Version 11 added "include columns" in index hence we need to filter only the key attributes
-    // when returning primary keys.
-    String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
+    String keyCountColumn = "("
+          + "  SELECT count(*)"
+          + "  FROM information_schema.key_column_usage"
+          + "  JOIN pg_catalog.pg_class ci2 ON ci2.relname = key_column_usage.constraint_name"
+          + "  WHERE ci2.oid = i.indexrelid"
+          + "  )";
 
     sql = "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
