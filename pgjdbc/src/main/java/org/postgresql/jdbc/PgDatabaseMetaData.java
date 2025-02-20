@@ -57,6 +57,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   private int nameDataLength; // length for name datatype
   private int indexMaxKeys; // maximum number of keys in an index.
 
+  private byte[] getCatalogName(@Nullable String catalog) throws SQLException {
+    if (catalog == null) {
+      return connection.getCatalog().getBytes();
+    }
+    return catalog.getBytes();
+  }
+
   protected int getMaxIndexKeys() throws SQLException {
     if (indexMaxKeys == 0) {
       String sql;
@@ -1300,6 +1307,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 20;
+    byte[] catalogName = getCatalogName(catalog);
 
     Field[] f = new Field[columns];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1349,7 +1357,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] procedureName = rs.getBytes("proname");
       byte[] specificName = connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
@@ -1867,7 +1874,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int typeOid = (int) rs.getLong("atttypid");
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = rs.getBytes("current_database"); // Catalog (database) name
+      tuple[0] = getCatalogName(catalog); // Catalog (database) name
       tuple[1] = rs.getBytes("nspname"); // Schema name
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
@@ -2041,7 +2048,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
+      byte[] catalogName = getCatalogName(catalog);
       byte[] schemaName = rs.getBytes("nspname");
       byte[] tableName = rs.getBytes("relname");
       byte[] column = rs.getBytes("attname");
@@ -2127,8 +2134,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] table = rs.getBytes("relname");
       String owner = castNonNull(rs.getString("rolname"));
@@ -3403,8 +3411,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = rs.getBytes("current_database");
       byte[] schema = rs.getBytes("nspname");
       byte[] functionName = rs.getBytes("proname");
       byte[] specificName = connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
