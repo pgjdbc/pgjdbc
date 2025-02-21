@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, PostgreSQL Global Development Group
+ * Copyright (c) 2025, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
  */
 
@@ -99,7 +99,7 @@ public class TimeZoneTest {
           Timestamp ts = rs.getTimestamp(1);
           Instant instant = ts.toInstant();
           long serverTime = instant.toEpochMilli();
-          assertTrue(Math.abs(serverTime - clientTime) <= 10_000L, "Client and server time are close enough");
+          assertTrue(Math.abs(serverTime - clientTime) <= 10_000L, "The time on the client and on the server is the same");
         }
       }
     }

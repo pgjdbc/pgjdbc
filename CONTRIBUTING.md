@@ -121,7 +121,7 @@ on a command line (the outputs are located in the relevant:
     ./gradlew test # execute tests
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class
     ./gradlew test -PincludeTestTags=!org.postgresql.test.SlowTests # skip slow tests
-    ./gradlew test -PincludeTestTags=org.postgresql.test.DateTimeZoneStamp&!org.postgresql.test.SlowTests # fast tests for timestamps and timezones
+    ./gradlew test -PincludeTestTags=org.postgresql.test.DateTimeZoneStamp # tests for timestamps and timezones
     ./gradlew test -PjdkTestVersion=21 --tests org.postgresql.test.ssl.SslTest # execute test with Java 21
 
     ./gradlew parameters # list most build parameters like jdkTestVersion above
