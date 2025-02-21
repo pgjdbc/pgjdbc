@@ -25,6 +25,7 @@ import org.checkerframework.checker.nullness.qual.KeyFor;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -59,9 +60,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private byte[] getCatalogName(@Nullable String catalog) throws SQLException {
     if (catalog == null) {
-      return connection.getCatalog().getBytes();
+      try {
+        return connection.encodeString(connection.getCatalog());
+      } catch (SQLException e) {
+        // If we can't get the catalog name, we'll just use the empty string
+        return new byte[0];
+      }
     }
-    return catalog.getBytes();
+    return catalog.getBytes(Charset.defaultCharset());
   }
 
   protected int getMaxIndexKeys() throws SQLException {
