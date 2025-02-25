@@ -10,7 +10,7 @@ configurations.checkstyle {
     // See https://github.com/gradle/gradle/issues/27035#issuecomment-1814997295
     // TODO: remove the workaround as https://github.com/checkstyle/checkstyle/issues/14123 is resolved
     resolutionStrategy.capabilitiesResolution.withCapability("com.google.collections:google-collections") {
-        select("com.google.guava:guava:0")
+        select("com.google.guava:guava:33.4.0-jre")
     }
 }
 
