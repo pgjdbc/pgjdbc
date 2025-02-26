@@ -37,13 +37,26 @@ class CompositeQuery implements Query {
   }
 
   @Override
-  public String toString(@Nullable ParameterList parameters) {
+  public String toStringLiteral(@Nullable ParameterList parameters) {
+    return toStringLiteral(false);
+  }
+
+  protected String toStringLiteral(boolean skipInputStream) {
     StringBuilder sbuf = new StringBuilder(subqueries[0].toString());
     for (int i = 1; i < subqueries.length; i++) {
       sbuf.append(';');
-      sbuf.append(subqueries[i]);
+      if (skipInputStream) {
+        sbuf.append(subqueries[i].toString());
+      } else {
+        sbuf.append(subqueries[i].toStringLiteral(null));
+      }
     }
     return sbuf.toString();
+  }
+
+  @Override
+  public String toString(@Nullable ParameterList parameters) {
+    return toStringLiteral( true);
   }
 
   @Override
@@ -63,7 +76,7 @@ class CompositeQuery implements Query {
 
   @Override
   public String toString() {
-    return toString(null);
+    return toStringLiteral(true);
   }
 
   @Override
