@@ -43,13 +43,11 @@ public class EscapeProcessing {
       "{fn qwer(t,y)}",
       "{fn concat(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)}"})
   private String fnEscapeSQL;
-  private boolean replaceProcessingEnabled = true;
   private boolean standardConformingStrings;
 
   @Benchmark
   public String escapeFunctionWithDate() throws Exception {
-    return Parser.replaceProcessing(fnEscapeSQL, replaceProcessingEnabled,
-        standardConformingStrings);
+    return Parser.replaceProcessing(fnEscapeSQL, standardConformingStrings);
   }
 
   public static void main(String[] args) throws RunnerException {

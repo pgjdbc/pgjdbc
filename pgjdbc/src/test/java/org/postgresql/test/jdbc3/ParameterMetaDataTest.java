@@ -8,15 +8,26 @@ package org.postgresql.test.jdbc3;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.postgresql.PGProperty;
+import org.postgresql.core.ParameterList;
+import org.postgresql.core.Query;
+import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultHandler;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.platform.commons.util.ReflectionUtils;
+import org.junit.platform.commons.util.ReflectionUtils.HierarchyTraversalMode;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -32,7 +43,7 @@ public class ParameterMetaDataTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
+  @Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -129,4 +140,79 @@ public class ParameterMetaDataTest extends BaseTest4 {
     rs.close();
   }
 
+  @Test
+  public void testGetParameterMetadata_cached() throws SQLException, IllegalAccessException {
+    // given
+    PreparedStatement pstmt =
+        con.prepareStatement("SELECT a FROM parametertest WHERE c = ? AND e = ?");
+
+    pstmt.setString(1, "anything");
+    pstmt.setTimestamp(2, new Timestamp(0L));
+
+    int expectedAmountOfExecutions =
+        binaryMode == BinaryMode.FORCE
+            ? 1
+            : Integer.parseInt(PGProperty.PREPARE_THRESHOLD.getDefaultValue());
+
+    for (int i = 0; i < expectedAmountOfExecutions; i++) {
+      pstmt.executeQuery();
+    }
+
+    // and
+    setUpSpyOnQueryExecutor();
+    QueryExecutor spyOnQueryExecutor = con.unwrap(PgConnection.class).getQueryExecutor();
+
+    // when
+    ParameterMetaData firstCall = pstmt.getParameterMetaData();
+    ParameterMetaData secondCall = pstmt.getParameterMetaData();
+    ParameterMetaData thirdCall = pstmt.getParameterMetaData();
+
+    // then
+    // We're not expecting any interactions with the QueryExecutor#execute when the statement
+    // is already prepared on the server side.
+    Mockito
+        .verify(spyOnQueryExecutor, Mockito.never())
+        .execute(
+            Mockito.any(Query.class),
+            Mockito.any(ParameterList.class),
+            Mockito.any(ResultHandler.class),
+            Mockito.anyInt(),
+            Mockito.anyInt(),
+            Mockito.anyInt()
+        );
+
+    // However, we d expect that for each three invocations of getParameterMetaData there would be a
+    // corresponding call to QueryExecutor#requiresDescribe
+    Mockito
+        .verify(spyOnQueryExecutor, Mockito.times(3))
+        .requiresDescribe(
+            Mockito.any(Query.class),
+            Mockito.any(ParameterList.class)
+        );
+  }
+
+  private QueryExecutor setUpSpyOnQueryExecutor() throws SQLException, IllegalAccessException {
+    PgConnection pgConnection = con.unwrap(PgConnection.class);
+
+    Field queryExecutorField = ReflectionUtils.findFields(
+        PgConnection.class,
+        field -> field.getName().equals("queryExecutor"),
+        HierarchyTraversalMode.TOP_DOWN
+    ).get(0);
+
+    queryExecutorField.setAccessible(true);
+    QueryExecutor originalQueryExecutor = (QueryExecutor) queryExecutorField.get(pgConnection);
+
+    // this check is necessary to not spy on spy.
+    // It is required since the connection is shared between the tests, and so is QueryExecutor bind to it.
+    if (Mockito.mockingDetails(originalQueryExecutor).isSpy()) {
+      Mockito.clearInvocations(originalQueryExecutor);
+    } else {
+      QueryExecutor spyOnQueryExecutor = Mockito.spy(originalQueryExecutor);
+      queryExecutorField.set(pgConnection, spyOnQueryExecutor);
+      return spyOnQueryExecutor;
+    }
+
+    return originalQueryExecutor;
+  }
 }

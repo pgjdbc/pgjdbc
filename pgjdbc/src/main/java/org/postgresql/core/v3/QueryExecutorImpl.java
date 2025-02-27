@@ -2630,6 +2630,37 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  public boolean requiresDescribe(Query query, ParameterList preparedParameters) {
+    if (preparedParameters.getParameterCount() == 0) {
+      return false;
+    }
+    // See org.postgresql.core.v3.QueryExecutorImpl.sendQuery
+    Query[] subqueries = query.getSubqueries();
+    SimpleParameterList[] subparams = ((V3ParameterList) preparedParameters).getSubparams();
+    if (subqueries == null) {
+      return requiresDescribeSimple((SimpleQuery) query, (SimpleParameterList) preparedParameters);
+    }
+
+    for (int i = 0; i < subparams.length; i++) {
+      SimpleQuery subQuery = (SimpleQuery) subqueries[i];
+      SimpleParameterList subparam = subparams[i];
+      if (requiresDescribeSimple(subQuery, subparam)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private boolean requiresDescribeSimple(
+      SimpleQuery query, @Nullable SimpleParameterList parameterList
+  ) {
+    if (parameterList == null) {
+      parameterList = SimpleQuery.NO_PARAMETERS;
+    }
+    return !query.isPreparedFor(parameterList.getTypeOIDs(), deallocateEpoch);
+  }
+
+  @Override
   public int getAdaptiveFetchSize(boolean adaptiveFetch, ResultCursor cursor) {
     if (cursor instanceof Portal) {
       Query query = ((Portal) cursor).getQuery();

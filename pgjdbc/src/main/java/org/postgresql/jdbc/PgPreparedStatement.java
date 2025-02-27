@@ -78,6 +78,8 @@ import java.util.Calendar;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
@@ -85,6 +87,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   protected final ParameterList preparedParameters; // Parameter values for prepared statement.
 
   private @Nullable TimeZone defaultTimeZone;
+
+  private static final Logger LOGGER = Logger.getLogger("org.postgresql.jdbc.PgPreparedStatement");
 
   PgPreparedStatement(PgConnection connection, String sql, int rsType, int rsConcurrency,
       int rsHoldability) throws SQLException {
@@ -1774,12 +1778,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public ParameterMetaData getParameterMetaData() throws SQLException {
-    int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
-        | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    StatementResultHandler handler = new StatementResultHandler();
-    connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
-        flags);
-
+    if (connection.getQueryExecutor().requiresDescribe(preparedQuery.query, preparedParameters)) {
+      int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
+          | QueryExecutor.QUERY_SUPPRESS_BEGIN;
+      StatementResultHandler handler = new StatementResultHandler();
+      connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
+          flags);
+    } else {
+      LOGGER.log(Level.FINE, "Returned ParameterMetaData from cache");
+    }
     int[] oids = preparedParameters.getTypeOIDs();
     return createParameterMetaData(connection, oids);
   }
