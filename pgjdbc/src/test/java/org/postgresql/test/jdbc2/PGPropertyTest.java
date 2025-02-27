@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
+import org.postgresql.ds.PGClusterAwareDataSource;
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc.AutoSave;
@@ -125,7 +126,7 @@ class PGPropertyTest {
    */
   @Test
   void dataSourceProperties() throws Exception {
-    PGSimpleDataSource dataSource = new PGSimpleDataSource();
+    PGSimpleDataSource dataSource = new PGClusterAwareDataSource();
     BeanInfo info = Introspector.getBeanInfo(dataSource.getClass());
 
     // index PropertyDescriptors by name
