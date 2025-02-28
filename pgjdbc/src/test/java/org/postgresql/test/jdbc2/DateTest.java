@@ -10,11 +10,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
+import org.postgresql.test.DateTimeZoneStamp;
 import org.postgresql.test.TestUtil;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -85,6 +87,7 @@ public class DateTest extends BaseTest4 {
    * Tests the time methods in ResultSet
    */
   @Test
+  @Category(DateTimeZoneStamp.class)
   public void testGetDate() throws SQLException {
     assumeTrue("TODO: Test fails on some server versions with local time zones (not GMT based)",
         false == Objects.equals(type, "timestamptz") || zoneId.startsWith("GMT"));
@@ -122,6 +125,7 @@ public class DateTest extends BaseTest4 {
    * Tests the time methods in PreparedStatement
    */
   @Test
+  @Category(DateTimeZoneStamp.class)
   public void testSetDate() throws SQLException {
     try (Statement stmt = con.createStatement()) {
       PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("test", "?"));
