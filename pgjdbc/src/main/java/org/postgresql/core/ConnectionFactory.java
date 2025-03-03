@@ -42,17 +42,19 @@ public abstract class ConnectionFactory {
    *        failover
    * @param info extra properties controlling the connection; notably, "password" if present
    *        supplies the password to authenticate with.
+   * @param url connection url. This is passed for the custom host manager to associate
+   *            the url with the HostChooserKey (url, info, custom hostchooser class)
    * @return the new, initialized, connection
    * @throws SQLException if the connection could not be established.
    */
   public static QueryExecutor openConnection(HostSpec[] hostSpecs,
-      Properties info) throws SQLException {
+      Properties info, String url) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
 
     if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
       QueryExecutor queryExecutor = connectionFactory.openConnectionImpl(
-          hostSpecs, info);
+          hostSpecs, info, url);
       if (queryExecutor != null) {
         return queryExecutor;
       }
@@ -71,12 +73,14 @@ public abstract class ConnectionFactory {
    *        failover
    * @param info extra properties controlling the connection; notably, "password" if present
    *        supplies the password to authenticate with.
+   * @param url connection url
    * @return the new, initialized, connection, or <code>null</code> if this protocol version is not
    *         supported by the server.
    * @throws SQLException if the connection could not be established for a reason other than
    *         protocol version incompatibility.
    */
-  public abstract QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException;
+  public abstract QueryExecutor openConnectionImpl(HostSpec[] hostSpecs,
+      Properties info, String url) throws SQLException;
 
   /**
    * Safely close the given stream.
