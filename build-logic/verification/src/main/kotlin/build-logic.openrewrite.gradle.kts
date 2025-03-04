@@ -1,4 +1,7 @@
 import org.openrewrite.gradle.RewriteDryRunTask
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.exists
+import kotlin.io.path.readText
 
 plugins {
     id("org.openrewrite.rewrite")
@@ -125,10 +128,7 @@ rewrite {
 // See https://github.com/openrewrite/rewrite-gradle-plugin/issues/255
 tasks.withType<RewriteDryRunTask>().configureEach {
     doFirst {
-        if (reportPath.exists()) {
-            // RewriteDryRunTask keeps the report file if there are no violations, so we remove it
-            reportPath.delete()
-        }
+        reportPath.deleteIfExists()
     }
     doLast {
         if (reportPath.exists()) {
