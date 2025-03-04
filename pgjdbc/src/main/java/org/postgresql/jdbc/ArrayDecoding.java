@@ -650,11 +650,10 @@ final class ArrayDecoding {
         // number of dimensions
         {
           for (int t = i + 1; t < chars.length; t++) {
-            if (Character.isWhitespace(chars[t])) {
-              continue;
-            } else if (chars[t] == '{') {
+            char c = chars[t];
+            if (c == '{') {
               curArray.dimensionsCount++;
-            } else {
+            } else if (!Character.isWhitespace(c)) {
               break;
             }
           }
