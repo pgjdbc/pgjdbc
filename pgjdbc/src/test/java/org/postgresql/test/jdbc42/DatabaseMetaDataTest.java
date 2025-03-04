@@ -5,6 +5,7 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -77,6 +78,18 @@ class DatabaseMetaDataTest {
     assertFalse(rs.wasNull());
 
     assertFalse(rs.next());
+  }
+
+  @Test
+  void getColumnsForSchema() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    String catalog = conn.getCatalog();
+
+    ResultSet rs = dbmd.getColumns(null, "%", "decimaltest", "%");
+    assertTrue(rs.next());
+    assertEquals(catalog, rs.getString("TABLE_CAT"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
   }
 
   @Test
