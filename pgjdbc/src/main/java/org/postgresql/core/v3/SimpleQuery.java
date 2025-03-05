@@ -54,6 +54,11 @@ class SimpleQuery implements Query {
   }
 
   @Override
+  public String toStringLiteral(@Nullable ParameterList parameters) {
+    return nativeQuery.toStringLiteral(parameters);
+  }
+
+  @Override
   public String toString(@Nullable ParameterList parameters) {
     return nativeQuery.toString(parameters);
   }
