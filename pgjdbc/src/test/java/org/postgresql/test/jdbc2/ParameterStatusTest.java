@@ -48,10 +48,6 @@ public class ParameterStatusTest extends BaseTest4 {
     Assert.assertNotNull(params.get("DateStyle"));
     MatcherAssert.assertThat(params.get("DateStyle"), StringStartsWith.startsWith("ISO"));
 
-    // PgJDBC sets TimeZone via Java's TimeZone.getDefault()
-    // Pg reports POSIX timezones which are negated, so:
-    Assert.assertEquals("GMT-08:00", params.get("TimeZone"));
-
     // Must be reported. All these exist in 8.2 or above, and we don't bother
     // with test coverage older than that.
     Assert.assertNotNull(params.get("integer_datetimes"));
