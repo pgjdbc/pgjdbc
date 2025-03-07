@@ -2339,51 +2339,34 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     String sql;
-
-    String keyCountColumn = "("
-          + "  SELECT count(*)"
-          + "  FROM information_schema.key_column_usage"
-          + "  JOIN pg_catalog.pg_class ci2 ON ci2.relname = key_column_usage.constraint_name"
-          + "  WHERE ci2.oid = i.indexrelid"
-          + "  )";
-
-    sql = "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
-          + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
-          + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
-          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
-          + keyCountColumn + " as KEY_COUNT "
-          + "FROM pg_catalog.pg_class ct "
-          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
-          + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
-          + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-          + "WHERE true ";
+    
+    sql = "SELECT "
+            + "       table_catalog AS \"TABLE_CAT\", "
+            + "       table_schema AS \"TABLE_SCHEM\", "
+            + "       table_name AS \"TABLE_NAME\", "
+            + "       column_name AS \"COLUMN_NAME\", "
+            + "       ordinal_position AS \"KEY_SEQ\", "
+            + "       constraint_name AS \"PK_NAME\" "
+            + "FROM "
+            + "     information_schema.key_column_usage"
+            + " JOIN pg_catalog.pg_class pg_class_key ON pg_class_key.relname = key_column_usage.constraint_name "
+            + " JOIN pg_catalog.pg_index i ON pg_class_key.oid = i.indexrelid "
+            + " WHERE table_catalog=current_database() "
+            + "    AND  i.indisprimary "			
 
     if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+      sql += " AND table_catalog = " + escapeQuotes(catalog);
     }
 
     if (schema != null) {
-      sql += " AND n.nspname = " + escapeQuotes(schema);
+      sql += " AND table_schema = " + escapeQuotes(schema);
     }
 
     if (table != null) {
-      sql += " AND ct.relname = " + escapeQuotes(table);
+      sql += " AND table_name = " + escapeQuotes(table);
     }
 
-    sql += " AND i.indisprimary ";
-    sql = "SELECT "
-            + "       result.TABLE_CAT AS \"TABLE_CAT\", "
-            + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
-            + "       result.TABLE_NAME AS \"TABLE_NAME\", "
-            + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
-            + "       result.KEY_SEQ AS \"KEY_SEQ\", "
-            + "       result.PK_NAME AS \"PK_NAME\""
-            + "FROM "
-            + "     (" + sql + " ) result"
-            + " where "
-            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ";
-    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
+    sql += " ORDER BY table_name, constraint_name, ordinal_position";
 
     return createMetaDataStatement().executeQuery(sql);
   }
