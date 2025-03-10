@@ -2352,7 +2352,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " JOIN pg_catalog.pg_class pg_class_key ON pg_class_key.relname = key_column_usage.constraint_name "
             + " JOIN pg_catalog.pg_index i ON pg_class_key.oid = i.indexrelid "
             + " WHERE table_catalog=current_database() "
-            + "    AND  i.indisprimary "			
+            + "    AND  i.indisprimary ";
 
     if (catalog != null) {
       sql += " AND table_catalog = " + escapeQuotes(catalog);
