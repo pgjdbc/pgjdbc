@@ -2339,7 +2339,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
     String sql;
-    
+
     sql = "SELECT "
             + "       table_catalog AS \"TABLE_CAT\", "
             + "       table_schema AS \"TABLE_SCHEM\", "
