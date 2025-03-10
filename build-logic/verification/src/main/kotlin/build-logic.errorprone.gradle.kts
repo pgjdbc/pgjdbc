@@ -12,7 +12,7 @@ if (!project.hasProperty("skipErrorprone")) {
     apply(plugin = "net.ltgt.errorprone")
 
     dependencies {
-        "errorprone"("com.google.errorprone:error_prone_core:2.34.0")
+        "errorprone"("com.google.errorprone:error_prone_core:2.36.0")
         "annotationProcessor"("com.google.guava:guava-beta-checker:1.0")
     }
 

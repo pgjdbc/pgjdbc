@@ -16,7 +16,7 @@ dependencies {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:1.2.1") // renovate:ignore
     }
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.11.4")
-    testImplementation("org.hamcrest:hamcrest:2.2")
+    testImplementation("org.hamcrest:hamcrest:3.0")
     testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
     if ((project.findProperty("junit4") ?: "true").toString().toBoolean()) {

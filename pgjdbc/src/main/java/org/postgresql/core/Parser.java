@@ -356,10 +356,7 @@ public class Parser {
         nextInd = Parser.parseLineComment(aChars, nextInd);
       } else if (nextChar == '/') {
         nextInd = Parser.parseBlockComment(aChars, nextInd);
-      } else if (Character.isWhitespace(nextChar)) {
-        // Skip whitespace
-        continue;
-      } else {
+      } else if (!Character.isWhitespace(nextChar)) {
         break;
       }
     }

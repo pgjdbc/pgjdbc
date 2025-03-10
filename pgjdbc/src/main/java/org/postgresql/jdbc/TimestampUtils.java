@@ -1552,8 +1552,7 @@ public class TimestampUtils {
     long secs = ts.millis / 1000L;
 
     // postgres epoc to java epoc
-    secs += PG_EPOCH_DIFF.getSeconds();
-    long millis = secs * 1000L;
+    long millis = secs * 1000L + PG_EPOCH_DIFF.toMillis();
 
     ts.millis = millis;
     return ts;
@@ -1790,6 +1789,7 @@ public class TimestampUtils {
    * @param secs Postgresql seconds.
    * @return Java seconds.
    */
+  @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toJavaSecs(long secs) {
     // postgres epoc to java epoc
     secs += PG_EPOCH_DIFF.getSeconds();
@@ -1814,6 +1814,7 @@ public class TimestampUtils {
    * @param secs Postgresql seconds.
    * @return Java seconds.
    */
+  @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toPgSecs(long secs) {
     // java epoc to postgres epoc
     secs -= PG_EPOCH_DIFF.getSeconds();
