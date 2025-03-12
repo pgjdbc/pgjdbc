@@ -33,6 +33,28 @@ public class ResultHandlerDelegate implements ResultHandler {
   }
 
   @Override
+  public void handleResultRow(Tuple tuple) {
+    if (delegate != null) {
+      delegate.handleResultRow(tuple);
+    }
+  }
+
+  @Override
+  public boolean handleEndOfResults() {
+    if (delegate != null) {
+      return delegate.handleEndOfResults();
+    }
+    return false;
+  }
+
+  @Override
+  public void handleFields(Query fromQuery, Field[] fields, @Nullable ResultCursor cursor) {
+    if (delegate != null) {
+      delegate.handleFields(fromQuery, fields, cursor);
+    }
+  }
+
+  @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
     if (delegate != null) {
       delegate.handleCommandStatus(status, updateCount, insertOID);
