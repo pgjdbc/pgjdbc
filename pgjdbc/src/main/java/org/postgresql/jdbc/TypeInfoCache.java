@@ -534,6 +534,10 @@ public class TypeInfoCache implements TypeInfo {
       ResultSet rs = castNonNull(oidStatement.getResultSet());
       if (rs.next()) {
         oid = (int) rs.getLong(1);
+        // preserve the schema if it is not public
+        if (pgTypeName.toLowerCase().startsWith("public.")) {
+          pgTypeName = pgTypeName.substring(7);
+        }
         oidToPgName.put(oid, pgTypeName);
         pgNameToOid.put(pgTypeName, oid);
       }
