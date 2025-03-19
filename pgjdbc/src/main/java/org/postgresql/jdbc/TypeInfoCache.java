@@ -538,6 +538,10 @@ public class TypeInfoCache implements TypeInfo {
         if (pgTypeName.toLowerCase().startsWith("public.")) {
           pgTypeName = pgTypeName.substring(7);
         }
+        // use the internal name if it is an array
+        if (pgTypeName.endsWith("[]")) {
+          pgTypeName = rs.getString(2);
+        }
         oidToPgName.put(oid, pgTypeName);
         pgNameToOid.put(pgTypeName, oid);
       }
