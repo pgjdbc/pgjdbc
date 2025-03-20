@@ -317,11 +317,13 @@ public class PgArray implements Array {
   }
 
   private TimestampUtils getTimestampUtils() {
-    if (timestampUtils == null) {
-      final BaseConnection connection = getConnection();
-      timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+    try (ResourceLock ignore = lock.obtain()) {
+      if (timestampUtils == null) {
+        final BaseConnection connection = getConnection();
+        timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      }
+      return timestampUtils;
     }
-    return timestampUtils;
   }
 
   /**
