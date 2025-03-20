@@ -133,7 +133,7 @@ class LargeObjectManagerTest {
       // Do not use try-with-resources to avoid closing the large object
       InputStream is = lo.getInputStream();
       {
-        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong())) {
+        try (StrangeInputStream fs = new StrangeInputStream(rnd.nextLong(), is)) {
           while (true) {
             int bufferIndex = rnd.nextInt(buffers.length);
             byte[] buf = buffers[bufferIndex];

@@ -503,11 +503,11 @@ class DatabaseMetaDataTest {
   }
 
   /** Assert some basic result from ResultSet of a GetFunctions method. Return the total row count. */
-  private int assertGetFunctionRS(ResultSet rs) throws SQLException {
+  private static int assertGetFunctionRS(ResultSet rs) throws SQLException {
     return assertFunctionRSAndReturnList(rs).size();
   }
 
-  private List<CatalogObject> assertFunctionRSAndReturnList(ResultSet rs) throws SQLException {
+  private static List<CatalogObject> assertFunctionRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
     assertThat(rs.getString("FUNCTION_CAT"), is(System.getProperty("database")));
@@ -544,11 +544,11 @@ class DatabaseMetaDataTest {
     return result;
   }
 
-  private int assertProcedureRS(ResultSet rs) throws SQLException {
+  private static int assertProcedureRS(ResultSet rs) throws SQLException {
     return assertProcedureRSAndReturnList(rs).size();
   }
 
-  private List<CatalogObject> assertProcedureRSAndReturnList(ResultSet rs) throws SQLException {
+  private static List<CatalogObject> assertProcedureRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
     assertThat(rs.getString("PROCEDURE_CAT"), is(System.getProperty("database")));
@@ -586,7 +586,7 @@ class DatabaseMetaDataTest {
     return result;
   }
 
-  private void assertListContains(String message, List<CatalogObject> list, String schema, String name) throws SQLException {
+  private static void assertListContains(String message, List<CatalogObject> list, String schema, String name) throws SQLException {
     boolean found = list.stream().anyMatch(item -> item.schema.equals(schema) && item.name.equals(name));
     assertTrue(found, message + "; schema=" + schema + " name=" + name);
   }

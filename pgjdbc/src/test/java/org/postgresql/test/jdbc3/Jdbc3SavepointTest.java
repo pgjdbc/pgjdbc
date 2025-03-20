@@ -39,7 +39,7 @@ class Jdbc3SavepointTest {
     TestUtil.closeDB(conn);
   }
 
-  private boolean hasSavepoints() throws SQLException {
+  private static boolean hasSavepoints() throws SQLException {
     return true;
   }
 

@@ -335,8 +335,9 @@ final class ArrayDecoding {
       Date.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toDate(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toDate(null, stringVal);
     }
   };
 
@@ -344,8 +345,9 @@ final class ArrayDecoding {
       Time.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTime(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTime(null, stringVal);
     }
   };
 
@@ -353,8 +355,9 @@ final class ArrayDecoding {
       Timestamp.class) {
 
     @Override
+    @SuppressWarnings("deprecation")
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTimestamp(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTimestamp(null, stringVal);
     }
   };
 
@@ -647,11 +650,10 @@ final class ArrayDecoding {
         // number of dimensions
         {
           for (int t = i + 1; t < chars.length; t++) {
-            if (Character.isWhitespace(chars[t])) {
-              continue;
-            } else if (chars[t] == '{') {
+            char c = chars[t];
+            if (c == '{') {
               curArray.dimensionsCount++;
-            } else {
+            } else if (!Character.isWhitespace(c)) {
               break;
             }
           }

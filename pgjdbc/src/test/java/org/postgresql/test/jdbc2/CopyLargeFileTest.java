@@ -63,7 +63,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
+  private static void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
     stmt.setString(1, textId);
     stmt.setString(2, name);
     stmt.executeUpdate();
@@ -95,7 +95,7 @@ class CopyLargeFileTest {
     }
     InputStream in = null;
     try {
-      in = new StrangeInputStream(new FileInputStream("target/buffer.txt"), seed);
+      in = new StrangeInputStream(seed, new FileInputStream("target/buffer.txt"));
       long size = copyAPI.copyIn(
           "COPY pgjdbc_issue366_test_data(data_text_id, glossary_text_id, value) FROM STDIN", in);
       assertEquals(BufferGenerator.ROW_COUNT, size);
@@ -115,7 +115,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void cleanupTable(Connection conn) throws Exception {
+  private static void cleanupTable(Connection conn) throws Exception {
     CallableStatement stmt = null;
     try {
       stmt = conn.prepareCall("TRUNCATE pgjdbc_issue366_test_data;");

@@ -115,7 +115,7 @@ public class BitFieldTest extends BaseTest4 {
     }
   }
 
-  private void checkBitFieldValue(PreparedStatement pstmt, String bitValue, boolean isVarBit) throws SQLException {
+  private static void checkBitFieldValue(PreparedStatement pstmt, String bitValue, boolean isVarBit) throws SQLException {
     ResultSet rs = pstmt.executeQuery();
     Assert.assertTrue(rs.next());
     Object o = rs.getObject(1);

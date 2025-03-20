@@ -101,7 +101,8 @@ public class CopyManager {
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
-      } // typically after several kB
+        // typically after several kB
+      }
       throw ioEX;
     } finally { // see to it that we do not leave the connection locked
       if (cp.isActive()) {
@@ -138,7 +139,8 @@ public class CopyManager {
         while ((buf = cp.readFromCopy()) != null) {
         }
       } catch (SQLException sqlEx) {
-      } // typically after several kB
+        // typically after several kB
+      }
       throw ioEX;
     } finally { // see to it that we do not leave the connection locked
       if (cp.isActive()) {

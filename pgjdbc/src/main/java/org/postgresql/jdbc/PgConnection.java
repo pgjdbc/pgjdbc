@@ -121,6 +121,7 @@ public class PgConnection implements BaseConnection {
           MethodHandles.lookup().findVirtual(securityManagerClass, "checkPermission",
               MethodType.methodType(void.class, Permission.class));
     } catch (NoSuchMethodException | IllegalAccessException | ClassNotFoundException ignore) {
+      // Ignore if the security manager is not available
     }
     SYSTEM_GET_SECURITY_MANAGER = systemGetSecurityManagerHandle;
     SECURITY_MANAGER_CHECK_PERMISSION = securityManagerCheckPermission;
@@ -481,7 +482,7 @@ public class PgConnection implements BaseConnection {
     return oids;
   }
 
-  private String oidsToString(Set<Integer> oids) {
+  private static String oidsToString(Set<Integer> oids) {
     StringBuilder sb = new StringBuilder();
     for (Integer oid : oids) {
       sb.append(Oid.toString(oid));
@@ -684,7 +685,6 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
     if (fastpath == null) {
@@ -694,7 +694,6 @@ public class PgConnection implements BaseConnection {
   }
 
   // This holds a reference to the Fastpath API if already open
-  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   private @Nullable Fastpath fastpath;
 
   @Override
@@ -709,14 +708,14 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the LargeObject API if already open
   private @Nullable LargeObjectManager largeobject;
 
-  /*
+  /**
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
    *
    * <p>It uses an internal HashMap to get the handling class. If the type is not supported, then an
    * instance of org.postgresql.util.PGobject is returned.
    *
-   * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
+   * <p>You can use the getValue() or setValue() methods to handle the returned object. Custom objects
    * can have their own methods.
    *
    * @return PGobject for this type, and set to value
@@ -787,6 +786,7 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  @Deprecated
   public void addDataType(String type, String name) {
     try {
       addDataType(type, Class.forName(name).asSubclass(PGobject.class));
@@ -1738,7 +1738,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  private void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
+  private static void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
     if (SYSTEM_GET_SECURITY_MANAGER != null && SECURITY_MANAGER_CHECK_PERMISSION != null) {
       try {
         Object securityManager = SYSTEM_GET_SECURITY_MANAGER.invoke();

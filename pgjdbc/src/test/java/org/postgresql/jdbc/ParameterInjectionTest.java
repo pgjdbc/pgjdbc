@@ -23,7 +23,7 @@ public class ParameterInjectionTest {
     void bind(PreparedStatement stmt) throws SQLException;
   }
 
-  private void testParamInjection(ParameterBinder bindPositiveOne, ParameterBinder bindNegativeOne)
+  private static void testParamInjection(ParameterBinder bindPositiveOne, ParameterBinder bindNegativeOne)
       throws SQLException {
     try (Connection conn = TestUtil.openDB()) {
       {

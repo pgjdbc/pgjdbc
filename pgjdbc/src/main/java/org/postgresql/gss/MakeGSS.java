@@ -75,6 +75,7 @@ public class MakeGSS {
       subjectDoAs = MethodHandles.lookup().findStatic(Subject.class, "doAs",
           MethodType.methodType(Object.class, Subject.class, PrivilegedAction.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
+      // E.g. Java 18+
     }
     SUBJECT_DO_AS = subjectDoAs;
 
@@ -83,6 +84,7 @@ public class MakeGSS {
       subjectCallAs = MethodHandles.lookup().findStatic(Subject.class, "callAs",
           MethodType.methodType(Object.class, Subject.class, Callable.class));
     } catch (NoSuchMethodException | IllegalAccessException ignore) {
+      // E.g. Java < 18
     }
     SUBJECT_CALL_AS = subjectCallAs;
   }

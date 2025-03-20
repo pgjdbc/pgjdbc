@@ -98,6 +98,7 @@ public class PGobject implements Serializable, Cloneable {
   /**
    * This must be overridden to allow the object to be cloned.
    */
+  @Override
   public Object clone() throws CloneNotSupportedException {
     return super.clone();
   }

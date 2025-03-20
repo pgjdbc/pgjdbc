@@ -17,6 +17,7 @@ import java.util.Map;
 /**
  * Caches values in simple least-recently-accessed order.
  */
+@SuppressWarnings("ExtendsObject")
 public class LruCache<Key extends Object, Value extends CanEstimateSize>
     implements Gettable<Key, Value> {
   /**

@@ -29,11 +29,11 @@ public class ServerVersionCondition implements ExecutionCondition {
   public ConditionEvaluationResult evaluateExecutionCondition(ExtensionContext context) {
     AnnotatedElement element = context.getElement().orElse(null);
     return AnnotationUtils.findAnnotation(element, DisabledIfServerVersionBelow.class)
-        .map(annotation -> this.toResult(element, annotation))
+        .map(annotation -> ServerVersionCondition.toResult(element, annotation))
         .orElse(ENABLED);
   }
 
-  private ConditionEvaluationResult toResult(AnnotatedElement element,
+  private static ConditionEvaluationResult toResult(AnnotatedElement element,
       DisabledIfServerVersionBelow annotation) {
     Version requiredVersion = ServerVersion.from(annotation.value());
     if (requiredVersion.getVersionNum() <= 0) {

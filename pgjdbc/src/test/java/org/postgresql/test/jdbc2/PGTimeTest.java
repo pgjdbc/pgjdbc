@@ -231,7 +231,7 @@ public class PGTimeTest extends BaseTest4 {
    * @param time the time object.
    * @return the new format instance.
    */
-  private SimpleDateFormat createSimpleDateFormat(PGTime time) {
+  private static SimpleDateFormat createSimpleDateFormat(PGTime time) {
     String pattern = "HH:mm:ss.SSS";
     if (time.getCalendar() != null) {
       pattern += " Z";

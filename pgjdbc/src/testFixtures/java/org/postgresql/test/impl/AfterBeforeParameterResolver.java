@@ -23,7 +23,7 @@ import java.util.Optional;
  * methods.
  *
  * @see <a href="https://github.com/junit-team/junit5/issues/3157">Parameterized BeforeEach or
- * AfterEach only</a>
+ *     AfterEach only</a>
  */
 public class AfterBeforeParameterResolver implements BeforeEachMethodAdapter, ParameterResolver {
   private @Nullable ParameterResolver parameterisedTestParameterResolver;
@@ -53,7 +53,7 @@ public class AfterBeforeParameterResolver implements BeforeEachMethodAdapter, Pa
     return false;
   }
 
-  private DefaultParameterContext getTestMethodParameterContext(ParameterContext parameterContext,
+  private static DefaultParameterContext getTestMethodParameterContext(ParameterContext parameterContext,
       ExtensionContext extensionContext) {
     return new DefaultParameterContext(
         parameterContext.getIndex(),
@@ -61,7 +61,7 @@ public class AfterBeforeParameterResolver implements BeforeEachMethodAdapter, Pa
         parameterContext.getTarget());
   }
 
-  private boolean isExecutedOnAfterOrBeforeMethod(ParameterContext parameterContext) {
+  private static boolean isExecutedOnAfterOrBeforeMethod(ParameterContext parameterContext) {
     for (Annotation annotation : parameterContext.getDeclaringExecutable().getDeclaredAnnotations()) {
       if (isAfterEachOrBeforeEachAnnotation(annotation)) {
         return true;
@@ -70,7 +70,7 @@ public class AfterBeforeParameterResolver implements BeforeEachMethodAdapter, Pa
     return false;
   }
 
-  private boolean isAfterEachOrBeforeEachAnnotation(Annotation annotation) {
+  private static boolean isAfterEachOrBeforeEachAnnotation(Annotation annotation) {
     return annotation.annotationType() == BeforeEach.class || annotation.annotationType() == AfterEach.class;
   }
 

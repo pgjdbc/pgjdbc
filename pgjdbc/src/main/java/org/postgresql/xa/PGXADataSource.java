@@ -61,6 +61,7 @@ public class PGXADataSource extends BaseDataSource implements XADataSource {
   /**
    * Generates a reference using the appropriate object factory.
    */
+  @Override
   protected Reference createReference() {
     return new Reference(getClass().getName(), PGXADataSourceFactory.class.getName(), null);
   }

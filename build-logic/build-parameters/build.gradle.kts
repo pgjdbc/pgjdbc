@@ -79,6 +79,10 @@ buildParameters {
         defaultValue.set(true)
         description.set("Fail build on javadoc warnings")
     }
+    bool("failOnJavacWarning") {
+        defaultValue.set(true)
+        description.set("Fail build on javac warnings")
+    }
     bool("enableGradleMetadata") {
         defaultValue.set(false)
         description.set("Generate and publish Gradle Module Metadata")

@@ -24,7 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.ConnectionEvent;
@@ -41,7 +41,7 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
-  private final List<ConnectionEventListener> listeners = new LinkedList<>();
+  private final List<ConnectionEventListener> listeners = new ArrayList<>();
   private @Nullable Connection con;
   private @Nullable ConnectionHandler last;
   private final boolean autoCommit;
@@ -95,6 +95,7 @@ public class PGPooledConnection implements PooledConnection {
           try {
             con.rollback();
           } catch (SQLException ignored) {
+            // TODO: should we rethrow it?
           }
         }
       }
@@ -145,6 +146,7 @@ public class PGPooledConnection implements PooledConnection {
             try {
               con.rollback();
             } catch (SQLException ignored) {
+              // TODO: should we rethrow it?
             }
           }
           con.clearWarnings();
@@ -379,6 +381,7 @@ public class PGPooledConnection implements PooledConnection {
       // No close event fired here: see JDBC 2.0 Optional Package spec section 6.3
     }
 
+    @SuppressWarnings("UnusedMethod")
     public boolean isClosed() {
       return con == null;
     }

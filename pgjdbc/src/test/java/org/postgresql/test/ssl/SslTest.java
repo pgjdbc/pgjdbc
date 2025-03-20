@@ -166,7 +166,7 @@ public class SslTest {
     return value != null && value.contains(substring);
   }
 
-  private void assertClientCertRequired(SQLException e, String caseName) {
+  private static void assertClientCertRequired(SQLException e, String caseName) {
     if (e == null) {
       fail(caseName + " should result in failure of client validation");
     }
@@ -294,7 +294,7 @@ public class SslTest {
     throw firstError;
   }
 
-  private List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
+  private static List<AssertionError> addError(@Nullable List<AssertionError> errors, AssertionError ae) {
     if (errors == null) {
       errors = new ArrayList<>();
     }

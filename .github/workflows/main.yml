@@ -8,8 +8,6 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
-      - '.travis.yml'
-      - '.travis/**'
   pull_request:
     branches:
       - '**'
@@ -17,8 +15,6 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'appveyor.xml'
-      - '.travis.yml'
-      - '.travis/**'
   workflow_dispatch:
     inputs:
       matrix_rng_seed:
@@ -49,7 +45,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 50
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK 17'
       uses: actions/setup-java@v4
       with:
         distribution: zulu
@@ -61,7 +57,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk17
-        arguments: styleCheck jandex
+        arguments: styleCheck jandex -PenableErrorprone classes
 
   linux-checkerframework:
     name: 'CheckerFramework'
@@ -136,7 +132,7 @@ jobs:
         fetch-depth: 50
     - id: set-matrix
       run: |
-        node .github/workflows/matrix.js
+        node .github/workflows/matrix.mjs
 
   build-test:
     name: '${{ matrix.name }}'

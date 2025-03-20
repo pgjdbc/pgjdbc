@@ -239,7 +239,7 @@ public class TypeInfoCache implements TypeInfo {
     return oidToSQLType.keySet().iterator();
   }
 
-  private String getSQLTypeQuery(boolean typoidParam) {
+  private static String getSQLTypeQuery(boolean typoidParam) {
     // There's no great way of telling what's an array type.
     // People can name their own types starting with _.
     // Other types use typelem that aren't actually arrays, like box.
@@ -267,7 +267,7 @@ public class TypeInfoCache implements TypeInfo {
     return sql.toString();
   }
 
-  private int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
+  private static int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
     Integer type = null;
     boolean isArray = rs.getBoolean("is_array");
     String typtype = rs.getString("typtype");
@@ -992,6 +992,8 @@ public class TypeInfoCache implements TypeInfo {
             return 13 + 1 + 8 + secondSize;
           case Oid.TIMESTAMPTZ:
             return 13 + 1 + 8 + secondSize + 6;
+          default:
+            throw new IllegalStateException("oid " + oid + " should not appear here");
         }
       case Oid.INTERVAL:
         // SELECT LENGTH('-123456789 years 11 months 33 days 23 hours 10.123456 seconds'::interval);

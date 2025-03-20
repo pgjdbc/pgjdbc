@@ -137,7 +137,9 @@ public class PasswordUtil {
       Arrays.fill(password, (char) 0);
       if (passwordBytes != null) {
         if (passwordBytes.hasArray()) {
-          Arrays.fill(passwordBytes.array(), (byte) 0);
+          @SuppressWarnings("ByteBufferBackingArray")
+          byte[] array = passwordBytes.array();
+          Arrays.fill(array, (byte) 0);
         } else {
           int limit = passwordBytes.limit();
           for (int i = 0; i < limit; i++) {

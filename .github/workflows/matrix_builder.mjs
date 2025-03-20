@@ -1,7 +1,7 @@
 // License: Apache-2.0
 // Copyright Vladimir Sitnikov, 2021
 // See https://github.com/vlsi/github-actions-random-matrix
-const { RNG } = require('./rng');
+import { RNG } from './rng.mjs';
 
 class Axis {
   constructor({name, title, values}) {
@@ -253,4 +253,4 @@ class MatrixBuilder {
   }
 }
 
-module.exports = {Axis, MatrixBuilder};
+export { Axis, MatrixBuilder };

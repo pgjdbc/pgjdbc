@@ -126,7 +126,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     pstmt.close();
   }
 
-  private void runStandardTests(ResultSetMetaData rsmd) throws SQLException {
+  private static void runStandardTests(ResultSetMetaData rsmd) throws SQLException {
     PGResultSetMetaData pgrsmd = (PGResultSetMetaData) rsmd;
 
     assertEquals(5, rsmd.getColumnCount());

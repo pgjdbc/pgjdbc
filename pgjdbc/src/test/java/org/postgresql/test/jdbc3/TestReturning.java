@@ -95,7 +95,7 @@ public class TestReturning extends BaseTest4 {
     super.tearDown();
   }
 
-  private void testGeneratedKeys(Connection conn, String sql, String[] columnNames, boolean exceptionExpected) throws SQLException {
+  private static void testGeneratedKeys(Connection conn, String sql, String[] columnNames, boolean exceptionExpected) throws SQLException {
 
     try (PreparedStatement stmt = conn.prepareStatement(sql, columnNames)) {
       stmt.execute();

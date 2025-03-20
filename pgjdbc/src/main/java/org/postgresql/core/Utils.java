@@ -167,9 +167,7 @@ public class Utils {
    *
    * @param serverVersion server version in a XXYYZZ form
    * @return server version in number form
-   * @deprecated use specific {@link Version} instance
    */
-  @Deprecated
   public static int parseServerVersionStr(@Nullable String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }

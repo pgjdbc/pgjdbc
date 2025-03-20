@@ -547,7 +547,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    return getTimestampUtils().toDate(cal, castNonNull(value));
+    return getTimestampUtils().toDate(cal, value);
   }
 
   @Override
@@ -681,7 +681,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
 
         OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(value);
-        if ( offsetDateTime != OffsetDateTime.MAX && offsetDateTime != OffsetDateTime.MIN ) {
+        if (!offsetDateTime.equals(OffsetDateTime.MAX) && !offsetDateTime.equals(OffsetDateTime.MIN)) {
           return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
         } else {
           return offsetDateTime;
@@ -2159,7 +2159,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
-      Tuple rowBuffer, HashMap<String, Object> updateValues) throws SQLException {
+      Tuple rowBuffer, Map<String, Object> updateValues) throws SQLException {
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
       Object valueObject = entry.getValue();
@@ -2514,6 +2514,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (byte) NumberParser.getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
 
@@ -2571,6 +2572,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (short) NumberParser.getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toShort(getFixedString(columnIndex));
@@ -2599,6 +2601,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (int) NumberParser.getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toInt(getFixedString(columnIndex));
@@ -2627,6 +2630,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return NumberParser.getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
     return toLong(getFixedString(columnIndex));
@@ -2637,6 +2641,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * The exact stack trace does not matter because the exception is always caught and is not visible
    * to users.
    */
+  @SuppressWarnings("StaticAssignmentOfThrowable")
   private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
 
     // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
@@ -2659,7 +2664,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
    */
-  private BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
+  private static BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
     if (bytes.length == 0) {
       throw FAST_NUMBER_FAILED;
     }
@@ -2800,6 +2805,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         res = scaleBigDecimal(res, scale);
         return res;
       } catch (NumberFormatException ignore) {
+        // Fast conversion to BigDecimal failed, try slower approach below
       }
     }
 
@@ -3171,7 +3177,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return trimMoney(stringValue);
   }
 
-  private @PolyNull String trimMoney(@PolyNull String s) {
+  private static @PolyNull String trimMoney(@PolyNull String s) {
     if (s == null) {
       return null;
     }
@@ -3410,7 +3416,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
-  public @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
+  public static @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -3418,7 +3424,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return scaleBigDecimal(val, scale);
   }
 
-  private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
+  private static BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
     if (scale == -1) {
       return val;
     }
@@ -3513,7 +3519,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return The value as double.
    * @throws PSQLException If the field type is not supported numeric type.
    */
-  private double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
+  private static double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3534,8 +3540,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
-  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown((float) Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp((float) Long.MIN_VALUE);
   private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double) Long.MAX_VALUE);
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
 
@@ -3559,7 +3565,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    *         range.
    */
   @Pure
-  private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
+  private static long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
     // currently implemented binary encoded fields
@@ -3899,7 +3905,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (timestamp == null) {
           return null;
         }
-        return type.cast(new java.util.Date(timestamp.getTime()));
+        @SuppressWarnings("JavaUtilDate")
+        java.util.Date res = new java.util.Date(timestamp.getTime());
+        return type.cast(res);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);

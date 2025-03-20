@@ -65,6 +65,7 @@ public class LargeObjectRead {
 
   private byte[] input;
   private byte[] output;
+  @SuppressWarnings("unused")
   private byte[] buffer;
 
   @Setup
@@ -131,8 +132,9 @@ public class LargeObjectRead {
   public void readArrayRandom() throws SQLException, IOException {
     readBuffer(
         new StrangeInputStream(
-            getInputStream(),
-            ThreadLocalRandom.current().nextLong()));
+            ThreadLocalRandom.current().nextLong(),
+            getInputStream()
+        ));
   }
 
   private void readBuffer(InputStream is) throws IOException {

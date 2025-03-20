@@ -5,11 +5,9 @@
 
 package org.postgresql.jdbc3;
 
-import org.postgresql.ds.PGPoolingDataSource;
-
 /**
- * @deprecated Since 42.0.0, see {@link PGPoolingDataSource}
+ * @deprecated Since 42.0.0, see {@link org.postgresql.ds.PGPoolingDataSource}
  */
 @Deprecated
-public class Jdbc3PoolingDataSource extends PGPoolingDataSource {
+public class Jdbc3PoolingDataSource extends org.postgresql.ds.PGPoolingDataSource {
 }

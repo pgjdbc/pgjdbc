@@ -9,6 +9,7 @@ package org.postgresql.util;
  * Optimised byte[] to number parser.
  */
 public class NumberParser {
+  @SuppressWarnings("StaticAssignmentOfThrowable")
   private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
     @Override
     public Throwable fillInStackTrace() {

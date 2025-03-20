@@ -18,6 +18,7 @@ import java.sql.SQLException;
  */
 public interface ReplicationProtocol {
   /**
+   * Starts logical replication.
    * @param options not null options for logical replication stream
    * @return not null stream instance from which available fetch wal logs that was decode by output
    *     plugin
@@ -26,6 +27,7 @@ public interface ReplicationProtocol {
   PGReplicationStream startLogical(LogicalReplicationOptions options) throws SQLException;
 
   /**
+   * Starts physical replication.
    * @param options not null options for physical replication stream
    * @return not null stream instance from which available fetch wal logs
    * @throws SQLException on error

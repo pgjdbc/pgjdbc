@@ -549,7 +549,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  /*
+  /**
    * {@inheritDoc}
    *
    * @return true if connected to PostgreSQL 6.4+
@@ -559,7 +559,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return true;
   }
 
-  /*
+  /**
    * {@inheritDoc}
    *
    * @return true if connected to PostgreSQL 7.1+
@@ -658,7 +658,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
-  /*
+  /**
    * Is the SQL Integrity Enhancement Facility supported? Our best guess is that this means support
    * for constraints
    *
@@ -2732,12 +2732,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
             + "  ci.oid AS CI_OID, "
             + "  i.indoption AS I_INDOPTION, "
-            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME " : "  am.amcanorder AS AM_CANORDER ")
+            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME, " : "  am.amcanorder AS AM_CANORDER, ")
+            + "  d.description AS REMARKS "
             + "FROM pg_catalog.pg_class ct "
             + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
             + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
             + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
             + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
+            + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid) "
             + "WHERE true ";
 
       if (catalog != null) {
@@ -2781,7 +2783,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                         + "  END AS \"ASC_OR_DESC\", ")
                 + "    tmp.CARDINALITY AS \"CARDINALITY\", "
                 + "    tmp.PAGES AS \"PAGES\", "
-                + "    tmp.FILTER_CONDITION AS \"FILTER_CONDITION\""
+                + "    tmp.FILTER_CONDITION AS \"FILTER_CONDITION\", "
+                + "    tmp.REMARKS AS \"REMARKS\""
                 + "FROM ("
                 + sql
                 + ") AS tmp";
@@ -2820,7 +2823,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " NULL AS \"ASC_OR_DESC\", "
             + " ci.reltuples AS \"CARDINALITY\", "
             + " ci.relpages AS \"PAGES\", "
-            + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS \"FILTER_CONDITION\" "
+            + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS \"FILTER_CONDITION\", "
+            + " null AS \"REMARKS\" "
             + from
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
             + where;

@@ -1,5 +1,7 @@
 import com.github.vlsi.gradle.dsl.configureEach
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 plugins {
     id("java-library")
@@ -26,12 +28,12 @@ autostyle {
     }
 }
 
-tasks.configureEach<KotlinCompile> {
-    kotlinOptions {
+tasks.configureEach<KotlinJvmCompile> {
+    compilerOptions {
         if (!name.startsWith("compileTest")) {
-            apiVersion = "kotlin.api".v
+            apiVersion = KotlinVersion.fromVersion("kotlin.api".v)
         }
-        freeCompilerArgs += "-Xjvm-default=all"
+        freeCompilerArgs.add("-Xjvm-default=all")
         val jdkRelease = buildParameters.targetJavaVersion.let {
             when {
                 it < 9 -> "1.8"
@@ -42,8 +44,8 @@ tasks.configureEach<KotlinCompile> {
         buildParameters.buildJdkVersion
             .takeIf { it > 8 }
             ?.let {
-                freeCompilerArgs += "-Xjdk-release=$jdkRelease"
+                freeCompilerArgs.add("-Xjdk-release=$jdkRelease")
             }
-        kotlinOptions.jvmTarget = jdkRelease
+        jvmTarget = JvmTarget.fromTarget(jdkRelease)
     }
 }

@@ -403,7 +403,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave, flags);
+          releaseSavePoint(autosave);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -439,7 +439,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return false;
   }
 
-  private void releaseSavePoint(boolean autosave, int flags) throws SQLException {
+  private void releaseSavePoint(boolean autosave) throws SQLException {
     if ( autosave
         && getAutoSave() == AutoSave.ALWAYS
         && getTransactionState() == TransactionState.OPEN) {
@@ -590,7 +590,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave, flags);
+          releaseSavePoint(autosave);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -835,7 +835,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               addWarning(warning);
               if (useTimeout) {
                 long newTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
-                timeoutMillis += startTime - newTimeMillis; // Overflows after 49 days, ignore that
+                timeoutMillis += (int) (startTime - newTimeMillis); // Overflows after 49 days, ignore that
                 startTime = newTimeMillis;
                 if (timeoutMillis == 0) {
                   timeoutMillis = -1; // Don't accidentally wait forever
@@ -906,6 +906,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case 'V': // FunctionCallResponse
+          @SuppressWarnings("unused")
           int msgLen = pgStream.receiveInteger4();
           int valueLen = pgStream.receiveInteger4();
 
@@ -1722,9 +1723,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     encodedSize = 4
         + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
         + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
-        + 2 + params.getParameterCount() * 2
+        + 2 + params.getParameterCount() * 2L
         + 2 + encodedSize
-        + 2 + numBinaryFields * 2;
+        + 2 + numBinaryFields * 2L;
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value

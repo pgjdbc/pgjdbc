@@ -230,7 +230,7 @@ class PGTimestampTest {
    * @param timestamp the timestamp object.
    * @return the new format instance.
    */
-  private SimpleDateFormat createSimpleDateFormat(PGTimestamp timestamp) {
+  private static SimpleDateFormat createSimpleDateFormat(PGTimestamp timestamp) {
     String pattern = "yyyy-MM-dd HH:mm:ss.SSS";
     if (timestamp.getCalendar() != null) {
       pattern += " Z";

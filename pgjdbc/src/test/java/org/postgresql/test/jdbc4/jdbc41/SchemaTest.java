@@ -306,7 +306,7 @@ class SchemaTest {
     }
   }
 
-  private void assertColType(PreparedStatement ps, String message, int expected) throws SQLException {
+  private static void assertColType(PreparedStatement ps, String message, int expected) throws SQLException {
     ResultSet rs = ps.executeQuery();
     ResultSetMetaData md = rs.getMetaData();
     int columnType = md.getColumnType(1);

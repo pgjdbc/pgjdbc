@@ -285,7 +285,7 @@ public class PgArray implements Array {
     return pos;
   }
 
-  private int calcRemainingDataLength(byte[] fieldBytes,
+  private static int calcRemainingDataLength(byte[] fieldBytes,
       int[] dims, int pos, int elementOid, int thisDimension) {
     if (thisDimension == dims.length - 1) {
       for (int i = 0; i < dims[thisDimension]; i++) {

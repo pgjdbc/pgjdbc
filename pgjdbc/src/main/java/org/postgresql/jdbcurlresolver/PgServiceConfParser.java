@@ -72,7 +72,7 @@ public class PgServiceConfParser {
   }
 
   // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  private static InputStream openInputStream(String resourceName) throws IOException {
 
     try {
       URL url = new URL(resourceName);
@@ -182,6 +182,7 @@ public class PgServiceConfParser {
   #   Line: "[service ONE]"
   #   --> these are unique service names
   */
+  @SuppressWarnings("RedundantControlFlow")
   private @Nullable Properties parseInputStream(InputStream inputStream) throws IOException {
     // build set of allowed keys
     Set<String> allowedServiceKeys = Arrays.stream(PGProperty.values())
@@ -223,6 +224,8 @@ public class PgServiceConfParser {
           }
         } else if (!isFound) {
           // skip further processing until section is found
+          // TODO: avoid continue here to resolve https://errorprone.info/bugpattern/RedundantControlFlow
+          //noinspection UnnecessaryContinue
           continue;
         } else if (indexOfEqualSign > 1) {
           // get key and value

@@ -82,7 +82,7 @@ public class HostSpec {
   }
 
   @SuppressWarnings("regex")
-  private @Nullable Pattern toPattern(String mask) {
+  private static @Nullable Pattern toPattern(String mask) {
     StringBuilder joiner = new StringBuilder();
     String separator = "";
     for (String disjunct : mask.split("\\|")) {
@@ -96,7 +96,7 @@ public class HostSpec {
     return joiner.length() == 0 ? null : compile(joiner.toString());
   }
 
-  private String disjunctToRegex(String disjunct) {
+  private static String disjunctToRegex(String disjunct) {
     String regex;
 
     if (disjunct.startsWith("*")) {

@@ -71,6 +71,7 @@ public class PgStatement implements Statement, BaseStatement {
    * cancelTask was created. Note: the field must be set/get/compareAndSet via
    * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
+  @SuppressWarnings("unused")
   private volatile @Nullable TimerTask cancelTimerTask;
 
   @SuppressWarnings("RedundantCast")
@@ -832,10 +833,6 @@ public class PgStatement implements Statement, BaseStatement {
 
     int flags;
 
-    // Force a Describe before any execution? We need to do this if we're going
-    // to send anything dependent on the Describe results, e.g. binary parameters.
-    boolean preDescribe = false;
-
     if (wantsGeneratedKeysAlways) {
       /*
        * This batch will return generated keys, tell the executor to expect result rows. We also
@@ -1004,7 +1001,8 @@ public class PgStatement implements Statement, BaseStatement {
         return;
       }
       cancel();
-    } catch (SQLException e) {
+    } catch (SQLException ignored) {
+      // We can't do much if the cancel fails
     }
   }
 

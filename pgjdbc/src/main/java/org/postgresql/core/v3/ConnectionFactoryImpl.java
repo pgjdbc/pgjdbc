@@ -91,11 +91,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB4 = 1;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB5 = 2;
   private static final int AUTH_REQ_PASSWORD = 3;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_CRYPT = 4;
   private static final int AUTH_REQ_MD5 = 5;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_SCM = 6;
   private static final int AUTH_REQ_GSS = 7;
   private static final int AUTH_REQ_GSS_CONTINUE = 8;
@@ -106,7 +110,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
-  private ISSPIClient createSSPI(PGStream pgStream,
+  private static ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
@@ -380,7 +384,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+  private static List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
     List<StartupParam> paramList = new ArrayList<>();
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
@@ -455,8 +459,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
-                                    int connectTimeout)
+  private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
+      int connectTimeout)
       throws IOException, PSQLException {
 
     if ( gssEncMode == GSSEncMode.DISABLE ) {
@@ -561,7 +565,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
+  private static PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
     if (sslMode == SslMode.DISABLE) {
@@ -637,7 +641,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
+  private static void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -674,7 +678,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
   }
 
-  private void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -901,7 +905,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   }
 
-  private void runInitialQueries(QueryExecutor queryExecutor, Properties info)
+  private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
     String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
     if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
@@ -915,11 +919,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       SetupQueryRunner.run(queryExecutor, "BEGIN", false);
     }
 
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum() && dbVersion < ServerVersion.v12.getVersionNum()) {
-      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
-    } else {
+    if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
       // server version < 9 so 8.x or less
       SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 2", false);
+    } else if (dbVersion < ServerVersion.v12.getVersionNum()) {
+      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
     }
 
     String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
@@ -966,7 +970,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * @see <a href="https://www.postgresql.org/message-id/flat/CAF3%2BxM%2B8-ztOkaV9gHiJ3wfgENTq97QcjXQt%2BrbFQ6F7oNzt9A%40mail.gmail.com">in_hot_standby patch thread v14</a>
    *
    */
-  private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
+  private static boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
     if ("on".equalsIgnoreCase(inHotStandby)) {
       return false;

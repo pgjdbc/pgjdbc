@@ -37,3 +37,11 @@ tasks.withType<JavaExec>().configureEach {
         classpath(layout.buildDirectory.dir("jmh-generated-resources"))
     }
 }
+
+if ("style" in tasks.names) {
+    tasks.style {
+        // This enables running `./gradlew style` or `./gradlew -PenableErrorprone` to verify
+        // benchmark code with ErrorProne as well
+        dependsOn(tasks.compileJmhJava)
+    }
+}

@@ -42,7 +42,7 @@ class AuthenticationPluginTest {
     }
   }
 
-  private void testAuthPlugin(String username, String passwordEncryption, AuthenticationRequestType expectedType) throws SQLException {
+  private static void testAuthPlugin(String username, String passwordEncryption, AuthenticationRequestType expectedType) throws SQLException {
     createRole(username, passwordEncryption, "DUMMY-" + expectedType.toString());
     try {
       Properties props = new Properties();

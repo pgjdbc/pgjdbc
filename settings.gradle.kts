@@ -16,13 +16,13 @@ pluginManagement {
         id("com.github.vlsi.ide") version "1.90"
         id("com.github.vlsi.stage-vote-release") version "1.90"
         id("org.nosphere.gradle.github.actions") version "1.4.0"
-        id("me.champeau.jmh") version "0.7.2"
-        kotlin("jvm") version "2.1.0"
+        id("me.champeau.jmh") version "0.7.3"
+        kotlin("jvm") version "2.1.10"
     }
 }
 
 plugins {
-    id("com.gradle.develocity") version "3.18.2"
+    id("com.gradle.develocity") version "3.19.2"
     id("com.github.burrunan.s3-build-cache")
 }
 

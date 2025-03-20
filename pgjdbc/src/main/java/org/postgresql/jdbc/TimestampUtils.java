@@ -74,10 +74,10 @@ public class TimestampUtils {
 
   private static final TimeZone UTC_TIMEZONE = TimeZone.getTimeZone(ZoneOffset.UTC);
 
-  private static final byte []INFINITY = "infinity".getBytes();
-  private static final byte []NEGATIVE_INFINITY = "-infinity".getBytes();
+  private static final byte []INFINITY = "infinity".getBytes(StandardCharsets.UTF_8);
+  private static final byte []NEGATIVE_INFINITY = "-infinity".getBytes(StandardCharsets.UTF_8);
 
-  private static final byte [] MAX_OFFSET = "24:00:00".getBytes();
+  private static final byte [] MAX_OFFSET = "24:00:00".getBytes(StandardCharsets.UTF_8);
 
   private @Nullable TimeZone prevDefaultZoneFieldValue;
   private @Nullable TimeZone defaultTimeZoneCache;
@@ -199,7 +199,7 @@ public class TimestampUtils {
   /**
    * Load date/time information into the provided calendar returning the fractional seconds.
    */
-  private ParsedTimestamp parseBackendTimestamp(byte[] s) throws SQLException {
+  private static ParsedTimestamp parseBackendTimestamp(byte[] s) throws SQLException {
     int slen = s.length;
 
     // This is pretty gross..
@@ -367,7 +367,7 @@ public class TimestampUtils {
 
       if (start < slen) {
         throw new NumberFormatException(
-            "Trailing junk on timestamp: '" + new String(s, start, slen - start) + "'");
+            "Trailing junk on timestamp: '" + new String(s, start, slen - start, StandardCharsets.UTF_8) + "'");
       }
 
       if (!result.hasTime && !result.hasDate) {
@@ -376,7 +376,7 @@ public class TimestampUtils {
 
     } catch (NumberFormatException nfe) {
       throw new PSQLException(
-          GT.tr("Bad value for type timestamp/date/time: {0}", new String(s)),
+          GT.tr("Bad value for type timestamp/date/time: {0}", new String(s, StandardCharsets.UTF_8)),
           PSQLState.BAD_DATETIME_FORMAT, nfe);
     }
 
@@ -416,17 +416,14 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a timestamp of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated use {@link #toTimestamp(Calendar, byte[])}
    */
-  @Deprecated
   public @PolyNull Timestamp toTimestamp(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (s == null) {
-        return null;
-      }
-      return toTimestamp(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toTimestamp(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -444,8 +441,6 @@ public class TimestampUtils {
       if (bytes == null) {
         return null;
       }
-
-      int blen = bytes.length;
 
       // convert postgres's infinity values to internal infinity magic value
       if (bytes[0] == 'i' && Arrays.equals(bytes,INFINITY)) {
@@ -533,9 +528,7 @@ public class TimestampUtils {
    * @param s The ISO formatted time string to parse.
    * @return null if s is null or a OffsetTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated  in use {@link #toOffsetTime(byte[])} instead
    */
-  @Deprecated
   public @PolyNull OffsetTime toOffsetTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -571,9 +564,7 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a LocalDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated use {@link #toLocalDateTime(byte[])}
   */
-  @Deprecated
   public @PolyNull LocalDateTime toLocalDateTime(@PolyNull String s) throws SQLException {
     if (s == null) {
       return null;
@@ -634,9 +625,7 @@ public class TimestampUtils {
    * @param s The ISO formatted date string to parse.
    * @return null if s is null or a OffsetDateTime of the parsed string s.
    * @throws SQLException if there is a problem parsing s.
-   * @deprecated  use {@link #toOffsetDateTimeBin(byte[])}
    */
-  @Deprecated
   public @PolyNull OffsetDateTime toOffsetDateTime(
       @PolyNull String s) throws SQLException {
     if (s == null) {
@@ -699,16 +688,13 @@ public class TimestampUtils {
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
-  @Deprecated
   public @PolyNull Time toTime(
       @Nullable Calendar cal, @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      // 1) Parse backend string
-      if (s == null) {
-        return null;
-      }
-      return toTime(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toTime(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   public @PolyNull Time toTime(
@@ -758,15 +744,13 @@ public class TimestampUtils {
     }
   }
 
-  @Deprecated
   public @PolyNull Date toDate(@Nullable Calendar cal,
       @PolyNull String s) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (s == null) {
-        return null;
-      }
-      return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
+    // TODO: replace all internal usages so they do not need to create intermediate strings
+    if (s == null) {
+      return null;
     }
+    return toDate(cal, s.getBytes(StandardCharsets.UTF_8));
   }
 
   public @PolyNull Date toDate(@Nullable Calendar cal,
@@ -996,7 +980,7 @@ public class TimestampUtils {
 
   /**
    * Appends time part to the {@code StringBuilder} in PostgreSQL-compatible format.
-   * The function truncates {@param nanos} to microseconds. The value is expected to be rounded
+   * The function truncates {@code nanos} to microseconds. The value is expected to be rounded
    * beforehand.
    * @param sb destination
    * @param hours hours
@@ -1036,13 +1020,13 @@ public class TimestampUtils {
     }
   }
 
-  private void appendTimeZone(StringBuilder sb, Calendar cal) {
+  private static void appendTimeZone(StringBuilder sb, Calendar cal) {
     int offset = (cal.get(Calendar.ZONE_OFFSET) + cal.get(Calendar.DST_OFFSET)) / 1000;
 
     appendTimeZone(sb, offset);
   }
 
-  private void appendTimeZone(StringBuilder sb, int offset) {
+  private static void appendTimeZone(StringBuilder sb, int offset) {
     int absoff = Math.abs(offset);
     int hours = absoff / 60 / 60;
     int mins = (absoff - hours * 60 * 60) / 60;
@@ -1096,6 +1080,7 @@ public class TimestampUtils {
         return "24:00:00";
       }
 
+      @SuppressWarnings("JavaLocalTimeGetNano")
       int nano = localTime.getNano();
       if (nanosExceed499(nano)) {
         // Technically speaking this is not a proper rounding, however
@@ -1151,7 +1136,7 @@ public class TimestampUtils {
    * @return adjusted offset time (it represents the same instant as the input one)
    */
   public OffsetTime withClientOffsetSameInstant(OffsetTime input) {
-    if (input == OffsetTime.MAX || input == OffsetTime.MIN) {
+    if (input.equals(OffsetTime.MAX) || input.equals(OffsetTime.MIN)) {
       return input;
     }
     TimeZone timeZone = timeZoneProvider.get();
@@ -1209,7 +1194,7 @@ public class TimestampUtils {
    * @return adjusted offset date time (it represents the same instant as the input one)
    */
   public OffsetDateTime withClientOffsetSameInstant(OffsetDateTime input) {
-    if (input == OffsetDateTime.MAX || input == OffsetDateTime.MIN) {
+    if (input.equals(OffsetDateTime.MAX) || input.equals(OffsetDateTime.MIN)) {
       return input;
     }
     int offsetMillis;
@@ -1241,7 +1226,9 @@ public class TimestampUtils {
 
       sbuf.setLength(0);
 
-      if (nanosExceed499(localDateTime.getNano())) {
+      @SuppressWarnings("JavaLocalDateTimeGetNano")
+      int nano = localDateTime.getNano();
+      if (nanosExceed499(nano)) {
         localDateTime = localDateTime.plus(ONE_MICROSECOND);
       }
 
@@ -1270,7 +1257,7 @@ public class TimestampUtils {
     appendTime(sb, hours, minutes, seconds, nanos);
   }
 
-  private void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
+  private static void appendTimeZone(StringBuilder sb, ZoneOffset offset) {
     int offsetSeconds = offset.getTotalSeconds();
 
     appendTimeZone(sb, offsetSeconds);
@@ -1565,8 +1552,7 @@ public class TimestampUtils {
     long secs = ts.millis / 1000L;
 
     // postgres epoc to java epoc
-    secs += PG_EPOCH_DIFF.getSeconds();
-    long millis = secs * 1000L;
+    long millis = secs * 1000L + PG_EPOCH_DIFF.toMillis();
 
     ts.millis = millis;
     return ts;
@@ -1803,6 +1789,7 @@ public class TimestampUtils {
    * @param secs Postgresql seconds.
    * @return Java seconds.
    */
+  @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toJavaSecs(long secs) {
     // postgres epoc to java epoc
     secs += PG_EPOCH_DIFF.getSeconds();
@@ -1827,6 +1814,7 @@ public class TimestampUtils {
    * @param secs Postgresql seconds.
    * @return Java seconds.
    */
+  @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toPgSecs(long secs) {
     // java epoc to postgres epoc
     secs -= PG_EPOCH_DIFF.getSeconds();

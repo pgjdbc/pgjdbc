@@ -32,6 +32,7 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.CharArrayWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -113,6 +114,7 @@ public class InsertBatch {
   }
 
   @Benchmark
+  @SuppressWarnings("IncrementInForLoopAndHeader")
   public int[] insertBatch() throws SQLException {
     if (p2multi > 1) {
       // Multi values(),(),() case
@@ -215,7 +217,7 @@ public class InsertBatch {
         wr.append(Integer.toString(i));
         wr.append('\n');
       }
-      byte[] bytes = wr.toString().getBytes("UTF-8");
+      byte[] bytes = wr.toString().getBytes(StandardCharsets.UTF_8);
       copyIn.writeToCopy(bytes, 0, bytes.length);
       b.consume(copyIn.endCopy());
     }

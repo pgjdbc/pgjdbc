@@ -652,7 +652,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     return false;
   }
 
-  private int mapSQLStateToXAErrorCode(SQLException sqlException) {
+  private static int mapSQLStateToXAErrorCode(SQLException sqlException) {
     if (isPostgreSQLIntegrityConstraintViolation(sqlException)) {
       return XAException.XA_RBINTEGRITY;
     }
@@ -660,7 +660,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     return XAException.XAER_RMFAIL;
   }
 
-  private boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
+  private static boolean isPostgreSQLIntegrityConstraintViolation(SQLException sqlException) {
     if (!(sqlException instanceof PSQLException)) {
       return false;
     }

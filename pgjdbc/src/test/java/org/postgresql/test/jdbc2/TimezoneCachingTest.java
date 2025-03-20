@@ -353,7 +353,7 @@ public class TimezoneCachingTest extends BaseTest4 {
     }
   }
 
-  private void checkTimestamp(String checkText, Statement stmt, Timestamp ts, TimeZone tz)
+  private static void checkTimestamp(String checkText, Statement stmt, Timestamp ts, TimeZone tz)
       throws SQLException {
     TimeZone prevTz = TimeZone.getDefault();
     TimeZone.setDefault(tz);
@@ -365,7 +365,7 @@ public class TimezoneCachingTest extends BaseTest4 {
     assertEquals(checkText, ts, dbTs);
   }
 
-  private TimeZone getTimeZoneCache(Object stmt) {
+  private static TimeZone getTimeZoneCache(Object stmt) {
     try {
       Field defaultTimeZoneField = stmt.getClass().getDeclaredField("defaultTimeZone");
       defaultTimeZoneField.setAccessible(true);

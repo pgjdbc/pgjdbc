@@ -41,8 +41,7 @@ If you find a regression in a minor patch update, please report an issue.
 
 Bug reports are not isolated only to code, errors in documentation as well as the website source
 code located in the **docs** directory also qualify. You are welcome to report issues and send a
-pull request on these as well. [skip ci] can be added to the commit message to prevent Travis-CI from building a
-pull request that only changes the documentation.
+pull request on these as well.
 
 For enhancements request keep reading the *Ideas, enhancements and new features* section.
 
@@ -115,8 +114,9 @@ on a command line (the outputs are located in the relevant:
     ./gradlew javadoc # build javadoc
 
     ./gradlew check # verify code style, execute tests
-    ./gradlew style # update code formatting (for auto-correctable cases) and verify style
+    ./gradlew style # update code formatting (for auto-correctable cases) and verify style (e.g. CheckStyle, ErrorProne, tab vs spaces, and so on)
     ./gradlew styleCheck # report code style violations
+    ./gradlew -PenableErrorprone classes # verify code with Error Prone tool
 
     ./gradlew test # execute tests
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class

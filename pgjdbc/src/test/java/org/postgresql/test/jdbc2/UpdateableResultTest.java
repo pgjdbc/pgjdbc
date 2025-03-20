@@ -154,7 +154,7 @@ public class UpdateableResultTest extends BaseTest4 {
     st.close();
   }
 
-  private void checkPositioning(ResultSet rs) throws SQLException {
+  private static void checkPositioning(ResultSet rs) throws SQLException {
     try {
       rs.getInt(1);
       fail("Can't use an incorrectly positioned result set.");

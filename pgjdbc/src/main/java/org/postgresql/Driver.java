@@ -330,7 +330,8 @@ public class Driver implements java.sql.Driver {
    *  due to a security issue
    * @param props Connection Properties
    */
-  private void setupLoggerFromProperties(final Properties props) {
+  @SuppressWarnings({"MethodCanBeStatic", "UnusedMethod"})
+  private void setupLoggerFromProperties(@SuppressWarnings("UnusedVariable") Properties props) {
   }
 
   /**
@@ -364,7 +365,8 @@ public class Driver implements java.sql.Driver {
           if (conn != null) {
             try {
               conn.close();
-            } catch (SQLException e) {
+            } catch (SQLException ignored) {
+              // TODO: should we rethrow it?
             }
           }
         } else {

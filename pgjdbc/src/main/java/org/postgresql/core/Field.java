@@ -84,6 +84,7 @@ public class Field {
   }
 
   /**
+   * Returns the oid of this Field's data type.
    * @return the oid of this Field's data type
    */
   @Pure
@@ -92,6 +93,7 @@ public class Field {
   }
 
   /**
+   * Returns the mod of this Field's data type
    * @return the mod of this Field's data type
    */
   public int getMod() {
@@ -99,6 +101,7 @@ public class Field {
   }
 
   /**
+   * Returns the column label of this Field's data type.
    * @return the column label of this Field's data type
    */
   public String getColumnLabel() {
@@ -106,6 +109,7 @@ public class Field {
   }
 
   /**
+   * Returns the length of this Field's data type.
    * @return the length of this Field's data type
    */
   public int getLength() {
@@ -113,6 +117,7 @@ public class Field {
   }
 
   /**
+   * Returns the format of this Field's data (text=0, binary=1).
    * @return the format of this Field's data (text=0, binary=1)
    */
   public int getFormat() {
@@ -120,6 +125,7 @@ public class Field {
   }
 
   /**
+   * Sets the format of this Field's data (text=0, binary=1).
    * @param format the format of this Field's data (text=0, binary=1)
    */
   public void setFormat(int format) {
@@ -127,6 +133,7 @@ public class Field {
   }
 
   /**
+   * Returns the columns' table oid, zero if no oid available.
    * @return the columns' table oid, zero if no oid available
    */
   public int getTableOid() {
@@ -170,7 +177,9 @@ public class Field {
     return pgType;
   }
 
+  @SuppressWarnings("ReferenceEquality")
   public boolean isTypeInitialized() {
+    //noinspection StringEquality
     return pgType != NOT_YET_LOADED;
   }
 

@@ -261,7 +261,7 @@ class PhysicalReplicationTest {
     return result;
   }
 
-  private byte[] toByteArray(ByteBuffer buffer) {
+  private static byte[] toByteArray(ByteBuffer buffer) {
     int offset = buffer.arrayOffset();
     byte[] source = buffer.array();
     return Arrays.copyOfRange(source, offset, source.length);
