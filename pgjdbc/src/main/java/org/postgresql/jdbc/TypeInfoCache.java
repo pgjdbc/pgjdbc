@@ -534,9 +534,16 @@ public class TypeInfoCache implements TypeInfo {
       ResultSet rs = castNonNull(oidStatement.getResultSet());
       if (rs.next()) {
         oid = (int) rs.getLong(1);
-        String internalName = castNonNull(rs.getString(2));
-        oidToPgName.put(oid, internalName);
-        pgNameToOid.put(internalName, oid);
+        // preserve the schema if it is not public
+        if (pgTypeName.toLowerCase().startsWith("public.")) {
+          pgTypeName = pgTypeName.substring(7);
+        }
+        // use the internal name if it is an array
+        if (pgTypeName.endsWith("[]")) {
+          pgTypeName = rs.getString(2);
+        }
+        oidToPgName.put(oid, pgTypeName);
+        pgNameToOid.put(pgTypeName, oid);
       }
       pgNameToOid.put(pgTypeName, oid);
       rs.close();
