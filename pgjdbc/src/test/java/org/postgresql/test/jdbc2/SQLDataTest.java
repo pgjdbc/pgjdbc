@@ -198,21 +198,6 @@ public class SQLDataTest {
     }
   }
 
-  // private void parseObj(String value) {
-  //   List<String> values = new SQLDataReader().parseObj(value);
-  //   System.out.println(values.size());
-  //   for (String item : values) {
-  //     System.out.println(item);
-  //   }
-  // }
-
-  // @Test
-  // public void parseTest() {
-  //   parseObj("(42,\"b\",  199)");
-  //   parseObj("(\"a\",\"b\",\"c\")");
-  //   parseObj("(   \"a\"    ,   \"b\"   ,    \"c\"    )");
-  // }
-
   @Test
   public void readSQLData() throws Exception {
     ResultSet rs = getResultSet(String.format("select %s from %s", TABLE_THING, TABLE_THING));

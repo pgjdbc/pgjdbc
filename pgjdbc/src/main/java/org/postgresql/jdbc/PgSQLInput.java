@@ -291,23 +291,6 @@ public class PgSQLInput implements SQLInput {
     return results;
   }
 
-  // //
-  // // I think you have to use java.lang.reflect or else you get a cannot cast exception.
-  // //
-  // private Object buildArray(Class<?> itemType, SQLFunction<String, ?> converter, String value) throws SQLException {
-  //   List<@Nullable String> items = new SQLDataReader().parseArray(value);
-  //   List<@Nullable Object>  results = new ArrayList<>(items.size());
-  //   for (int i = 0; i < items.size(); i++) {
-  //     @Nullable String item = items.get(i);
-  //     if ("NULL".equals(item)) {
-  //       results.add(null);
-  //     } else {
-  //       results.add(converter.apply(item));
-  //     }
-  //   }
-  //   return results.toArray();
-  // }
-
   public static <T> T readGenericArray(String value, Class<T> type, BaseConnection connection, TimestampUtils timestampUtils) throws SQLException {
     if (type == null) {
       throw new SQLException("type is null");
