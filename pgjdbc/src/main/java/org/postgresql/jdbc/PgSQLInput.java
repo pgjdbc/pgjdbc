@@ -35,7 +35,6 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
-import java.util.function.Function;
 
 public class PgSQLInput implements SQLInput {
   private static final SQLFunction<String, String> stringConv = (value) -> value;
@@ -61,17 +60,6 @@ public class PgSQLInput implements SQLInput {
       throw new SQLException(ex);
     }
   };
-  private static final Function<TimestampUtils, SQLFunction<String, Timestamp>> timestampConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toTimestamp(null, value.getBytes(UTF_8));
-  private static final Function<TimestampUtils, SQLFunction<String, Time>> timeConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toTime(null, value.getBytes(UTF_8));
-  private static final Function<TimestampUtils, SQLFunction<String, Date>> dateConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toDate(null, value.getBytes(UTF_8));
-  private static final Function<BaseConnection, SQLFunction<String, Array>> arrayConvFn =
-      (connection) ->  (value) -> {
-        // return new PgArray(connection, Oid.TEXT, value);
-        throw Driver.notImplemented(PgSQLInput.class, "readArray()");
-      };
 
   private final SQLFunction<String, Timestamp> timestampConv;
   private final SQLFunction<String, Time> timeConv;
@@ -89,10 +77,35 @@ public class PgSQLInput implements SQLInput {
     this.connection = connection;
     this.timestampUtils = timestampUtils;
 
-    timestampConv = timestampConvFn.apply(timestampUtils);
-    timeConv = timeConvFn.apply(timestampUtils);
-    dateConv = dateConvFn.apply(timestampUtils);
-    arrayConv = arrayConvFn.apply(connection);
+    timestampConv = getTimestampConvFn(timestampUtils);
+    timeConv = getTimeConvFn(timestampUtils);
+    dateConv = getDateConvFn(timestampUtils);
+    // arrayConv = getArrayConvFn(connection);
+    arrayConv = getArrayConvFn();
+  }
+
+  private static SQLFunction<String, Timestamp> getTimestampConvFn(TimestampUtils timestampUtils) {
+    return (value) -> timestampUtils.toTimestamp(null, value.getBytes(UTF_8));
+  }
+
+  private static SQLFunction<String, Time> getTimeConvFn(TimestampUtils timestampUtils) {
+    return (value) -> timestampUtils.toTime(null, value.getBytes(UTF_8));
+  }
+
+  private static SQLFunction<String, Date> getDateConvFn(TimestampUtils timestampUtils) {
+    return (value) -> timestampUtils.toDate(null, value.getBytes(UTF_8));
+  }
+
+  //
+  // NOTE: If we implement this we may need the BaseConnection so it would be passed in
+  // like this.
+  //
+  // private static SQLFunction<String, Array> getArrayConvFn(BaseConnection connection) {
+  private static SQLFunction<String, Array> getArrayConvFn() {
+    return (value) -> {
+      // return new PgArray(connection, Oid.TEXT, value);
+      throw Driver.notImplemented(PgSQLInput.class, "readArray()");
+    };
   }
 
   private @Nullable <T> T getNextValue(SQLFunction<String, T> convert) throws SQLException {
@@ -367,15 +380,15 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (type == Timestamp.class) {
-      return (SQLFunction<String, T>) timestampConvFn.apply(timestampUtils);
+      return (SQLFunction<String, T>) getTimestampConvFn(timestampUtils);
     }
 
     if (type == Time.class) {
-      return (SQLFunction<String, T>) timeConvFn.apply(timestampUtils);
+      return (SQLFunction<String, T>) getTimeConvFn(timestampUtils);
     }
 
     if (type == Date.class) {
-      return (SQLFunction<String, T>) dateConvFn.apply(timestampUtils);
+      return (SQLFunction<String, T>) getDateConvFn(timestampUtils);
     }
 
     if (type == URL.class) {
@@ -383,7 +396,8 @@ public class PgSQLInput implements SQLInput {
     }
 
     if (type == Array.class) {
-      return (SQLFunction<String, T>) arrayConvFn.apply(connection);
+      // return (SQLFunction<String, T>) getArrayConvFn(connection);
+      return (SQLFunction<String, T>) getArrayConvFn();
     }
 
     if (type == SQLXML.class) {
