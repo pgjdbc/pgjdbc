@@ -41,7 +41,7 @@ public class SQLDataReader {
     return parse(value, '{', '}');
   }
 
-  private List<@Nullable String> parse(String value, char begin, char end) {
+  private static List<@Nullable String> parse(String value, char begin, char end) {
     List<@Nullable String> values = new ArrayList<>();
 
     int len = value.length();
@@ -85,7 +85,7 @@ public class SQLDataReader {
     return values;
   }
 
-  private int readString(String value, int start, StringBuilder builder) {
+  private static int readString(String value, int start, StringBuilder builder) {
     int len = value.length();
     int index;
 
@@ -113,7 +113,7 @@ public class SQLDataReader {
     return index;
   }
 
-  private void addTextElement(@Nullable StringBuilder builder, int lastDelimIdx, int charIdx, List<@Nullable String> values) {
+  private static void addTextElement(@Nullable StringBuilder builder, int lastDelimIdx, int charIdx, List<@Nullable String> values) {
     if (lastDelimIdx == charIdx - 1) {
       values.add(null);
     } else if (builder != null) {

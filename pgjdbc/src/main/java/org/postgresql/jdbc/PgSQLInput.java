@@ -6,6 +6,7 @@
 package org.postgresql.jdbc;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.postgresql.Driver;
 import org.postgresql.core.BaseConnection;
@@ -46,7 +47,7 @@ public class PgSQLInput implements SQLInput {
   private static final SQLFunction<String, Double> doubleConv = (value) -> Double.valueOf(value);
   private static final SQLFunction<String, BigDecimal> bigDecimalConv = (value) -> new BigDecimal(value);
   private static final SQLFunction<String, BigInteger> bigIntConv = (value) -> new BigInteger(value);
-  private static final SQLFunction<String, byte[]> bytesConv = (value) -> value.getBytes();
+  private static final SQLFunction<String, byte[]> bytesConv = (value) -> value.getBytes(UTF_8);
   private static final SQLFunction<String, Boolean> boolConv = (value) -> {
     if ("t".equals(value)) {
       return Boolean.TRUE;
@@ -61,11 +62,11 @@ public class PgSQLInput implements SQLInput {
     }
   };
   private static final Function<TimestampUtils, SQLFunction<String, Timestamp>> timestampConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toTimestamp(null, value.getBytes());
+      (timestampUtils) -> (value) -> timestampUtils.toTimestamp(null, value.getBytes(UTF_8));
   private static final Function<TimestampUtils, SQLFunction<String, Time>> timeConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toTime(null, value.getBytes());
+      (timestampUtils) -> (value) -> timestampUtils.toTime(null, value.getBytes(UTF_8));
   private static final Function<TimestampUtils, SQLFunction<String, Date>> dateConvFn =
-      (timestampUtils) -> (value) -> timestampUtils.toDate(null, value.getBytes());
+      (timestampUtils) -> (value) -> timestampUtils.toDate(null, value.getBytes(UTF_8));
   private static final Function<BaseConnection, SQLFunction<String, Array>> arrayConvFn =
       (connection) ->  (value) -> {
         // return new PgArray(connection, Oid.TEXT, value);
