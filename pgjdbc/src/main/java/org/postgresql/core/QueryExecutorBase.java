@@ -265,7 +265,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     if (serverVersionNum != 0) {
       return serverVersionNum;
     }
-    return serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
+    serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
+    return serverVersionNum;
   }
 
   public void setServerVersion(String serverVersion) {
