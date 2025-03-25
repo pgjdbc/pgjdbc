@@ -534,8 +534,10 @@ public class TypeInfoCache implements TypeInfo {
       ResultSet rs = castNonNull(oidStatement.getResultSet());
       if (rs.next()) {
         oid = (int) rs.getLong(1);
-        // preserve the schema if it is not public
-        if (pgTypeName.toLowerCase().startsWith("public.")) {
+        // when this function is called it will be called with a fully qualified type name including the schema
+        // if the schema part is public then we can get rid of the schema, otherwise keep it.
+        // there is an outstanding question of how this works if the search path has changed
+        if (pgTypeName.toLowerCase(Locale.ROOT).startsWith("public.")) {
           pgTypeName = pgTypeName.substring(7);
         }
         // use the internal name if it is an array
