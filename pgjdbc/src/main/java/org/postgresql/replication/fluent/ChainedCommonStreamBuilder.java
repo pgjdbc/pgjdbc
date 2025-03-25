@@ -45,4 +45,12 @@ public interface ChainedCommonStreamBuilder<T extends ChainedCommonStreamBuilder
    * @return not null fluent
    */
   T withStartPosition(LogSequenceNumber lsn);
+
+  /**
+   * Specify if backend should flush data after receive notification from client.
+   *
+   * @param automaticFlush true if advance FlushLSN to ServerLSN data after receive notification
+   * @return not null fluent
+   */
+  T withAutomaticFlush(boolean automaticFlush);
 }
