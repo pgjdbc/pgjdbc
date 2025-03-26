@@ -1202,8 +1202,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
       sql += " AND p.prokind='p'";
     }
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1254,8 +1254,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1475,8 +1475,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
 
-    if (catalog != null) {
-      select += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      select += " AND false ";
     }
 
     if (schemaPattern != null) {
@@ -1620,8 +1620,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
           + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schemaPattern != null) {
       sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1740,8 +1740,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
            + " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') "
            + " WHERE c.relkind in ('r','p','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
 
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
@@ -1915,8 +1915,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND c.relkind = 'r' "
           + " AND a.attnum > 0 AND NOT a.attisdropped ";
 
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schema != null) {
       sql += " AND n.nspname = " + escapeQuotes(schema);
@@ -1999,8 +1999,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND c.relowner = r.oid "
           + " AND c.relkind IN ('r','p','v','m','f') ";
 
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
 
     if (schemaPattern != null) {
@@ -2249,8 +2249,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
           + "WHERE true ";
 
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
 
     if (schema != null) {
@@ -2356,8 +2356,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
           + "WHERE true ";
 
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
 
     if (schema != null) {
@@ -2521,14 +2521,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       sql += " AND pkic.oid = con.conindid ";
     }
 
-    if (primaryCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(primaryCatalog);
+    if (primaryCatalog != null && !primaryCatalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (primarySchema != null) {
       sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
     }
-    if (foreignCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(foreignCatalog);
+    if (foreignCatalog != null && !foreignCatalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (foreignSchema != null) {
       sql += " AND fkn.nspname = " + escapeQuotes(foreignSchema);
@@ -2742,8 +2742,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid) "
             + "WHERE true ";
 
-      if (catalog != null) {
-        sql += " AND current_database() = " + escapeQuotes(catalog);
+      if (catalog != null && !catalog.equals(connection.getCatalog())) {
+        sql += " AND false ";
       }
 
       if (schema != null) {
@@ -2800,8 +2800,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       where = " AND n.oid = ct.relnamespace ";
       from += ", pg_catalog.pg_index i ";
 
-      if (catalog != null) {
-        where += " AND current_database() = " + escapeQuotes(catalog);
+      if (catalog != null && !catalog.equals(connection.getCatalog())) {
+        where += " AND false ";
       }
 
       if (schema != null) {
@@ -2982,8 +2982,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       toAdd.append(" and t.typname like ").append(escapeQuotes(typeNamePattern));
     }
 
-    if (catalog != null) {
-      toAdd.append(" and current_database() = ").append(escapeQuotes(catalog));
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      toAdd.append(" and false ");
     }
 
     // schemaPattern may have been modified above
@@ -3107,8 +3107,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
       sql += " AND p.prokind='f'";
     }
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     /*
     if the user provides a schema then search inside the schema for it
@@ -3159,8 +3159,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
+      sql += " AND false ";
     }
     if (schemaPattern != null) {
       sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
