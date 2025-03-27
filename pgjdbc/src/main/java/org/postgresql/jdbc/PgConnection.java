@@ -1712,7 +1712,7 @@ public class PgConnection implements BaseConnection {
       return;
     }
 
-    SQL_PERMISSION_ABORT.checkGuard(this);
+    checkPermission(SQL_PERMISSION_ABORT);
 
     AbortCommand command = new AbortCommand();
     executor.execute(command);
