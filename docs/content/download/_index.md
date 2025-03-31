@@ -12,7 +12,7 @@ This is the current version of the driver. Unless you have unusual requirements 
 
 > **Note:**
 >
-> Testing of PostgreSQL versions is currently limited to versions 9.1 and newer. PgJDBC versions since 42.8.0 are not guaranteed to work with PostgreSQL older than 9.1.
+> Testing of PostgreSQL versions is currently limited to versions 9.1 and newer. PgJDBC versions since 42.7.4 are not guaranteed to work with PostgreSQL older than 9.1.
 
 {{< recent-versions >}}
 
