@@ -218,6 +218,8 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  /* this is actually the database we are connected to */
+  private @Nullable String catalog;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -1112,7 +1114,16 @@ public class PgConnection implements BaseConnection {
   @Override
   public String getCatalog() throws SQLException {
     checkClosed();
-    return queryExecutor.getDatabase();
+    String catalog = this.catalog;
+    if (catalog == null) {
+      try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ResultSet rs = stmt.executeQuery("select current_catalog")) {
+        if (rs.next()) {
+          this.catalog = catalog = rs.getString(1);
+        }
+      }
+    }
+    return castNonNull(catalog);
   }
 
   public boolean getHideUnprivilegedObjects() {
