@@ -18,6 +18,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.PreparedStatement;
@@ -542,7 +543,7 @@ public class TypeInfoCache implements TypeInfo {
         }
         // use the internal name if it is an array
         if (pgTypeName.endsWith("[]")) {
-          pgTypeName = rs.getString(2);
+          pgTypeName = castNonNull(rs.getString(2));
         }
         oidToPgName.put(oid, pgTypeName);
         pgNameToOid.put(pgTypeName, oid);
