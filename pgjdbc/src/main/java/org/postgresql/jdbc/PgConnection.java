@@ -1123,7 +1123,7 @@ public class PgConnection implements BaseConnection {
         }
       }
     }
-    return catalog;
+    return castNonNull(catalog);
   }
 
   public boolean getHideUnprivilegedObjects() {
