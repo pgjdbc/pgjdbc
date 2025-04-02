@@ -1029,6 +1029,11 @@ class AdaptiveFetchCacheTest {
     }
 
     @Override
+    public String toStringLiteral(ParameterList parameters) {
+      throw new WrongMethodCallException("Method shouldn't be called.");
+    }
+
+    @Override
     public String toString(ParameterList parameters) {
       throw new WrongMethodCallException("Method shouldn't be called.");
     }
