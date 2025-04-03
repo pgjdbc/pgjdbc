@@ -76,8 +76,10 @@ class DriverTest {
 
     // These are always correct
     verifyUrl(drv, "jdbc:postgresql:test", "localhost", "5432", "test");
+    verifyUrl(drv, "jdbc:postgresql:/test", "localhost", "5432", "/test");
+    verifyUrl(drv, "jdbc:postgresql:////", "localhost", "5432", "/");
     verifyUrl(drv, "jdbc:postgresql://localhost/test", "localhost", "5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432,5432", "test");
+    verifyUrl(drv, "jdbc:postgresql://localhost,locahost2/test", "localhost,locahost2", "5432," + "5432", "test");
     verifyUrl(drv, "jdbc:postgresql://localhost:5433,locahost2:5434/test", "localhost,locahost2", "5433,5434", "test");
     verifyUrl(drv, "jdbc:postgresql://[::1]:5433,:5434,[::1]/test", "[::1],localhost,[::1]", "5433,5434,5432", "test");
     verifyUrl(drv, "jdbc:postgresql://localhost/test?port=8888", "localhost", "8888", "test");
@@ -103,17 +105,17 @@ class DriverTest {
       verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?service=driverTestService1", "localhost", "5432", "test");
       verifyUrl(drv, "jdbc:postgresql://localhost:5432/test?port=7777&dbname=other-db&service=driverTestService1", "localhost", "7777", "other-db");
       verifyUrl(drv, "jdbc:postgresql://[::1]:5740/?service=driverTestService1", "[::1]", "5740", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://:5740/?service=driverTestService1", "localhost", "5740", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5432", "testdb1");
-      verifyUrl(drv, "jdbc:postgresql://localhost/?service=driverTestService2", "localhost", "5432", "testdb1");
+      verifyUrl(drv, "jdbc:postgresql://:5740/?service=driverTestService1", "test-host1", "5740", "testdb1");
+      verifyUrl(drv, "jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5444", "testdb1");
+      assertFalse(drv.acceptsURL("jdbc:postgresql://localhost/?service=driverTestService2"));
+      verifyUrl(drv, "jdbc:postgresql:/test", "localhost", "5432", "/test");
+      verifyUrl(drv, "jdbc:postgresql:////", "localhost", "5432", "/");
       // fail cases
       assertFalse(drv.acceptsURL("jdbc:postgresql://?service=driverTestService2"));
     });
 
     // Badly formatted url's
     assertFalse(drv.acceptsURL("jdbc:postgres:test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql:/test"));
-    assertFalse(drv.acceptsURL("jdbc:postgresql:////"));
     assertFalse(drv.acceptsURL("jdbc:postgresql:///?service=my data#base%1"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://[::1]:5740/my data#base%1"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost/dbname?loggerFile=C%3A%5Cdir%5Cfile.%log"));
@@ -125,25 +127,32 @@ class DriverTest {
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
 
     // failover urls
-    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5432,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5433,5432", "test");
+    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1", "5432,5432", "test");
+    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1", "5433,5432", "test");
     verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
-        "db");
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432", "db");
   }
 
   private static void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
       throws Exception {
+    String user = "osUser";
+    String pass = null;
+    // two properties are needed as they are.
+    Properties defaults = new Properties();
+    PGProperty.USER.set(defaults, user);
+    Properties props = new Properties(defaults);
+    // syntax check
     assertTrue(drv.acceptsURL(url), url);
-    Method parseMethod =
-        drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
+    // invoke parseURL
+    Method parseMethod = drv.getClass().getDeclaredMethod("parseURL", String.class, Properties.class);
     parseMethod.setAccessible(true);
-    Properties p = (Properties) parseMethod.invoke(drv, url, null);
-    assertEquals(dbName, p.getProperty(PGProperty.PG_DBNAME.getName()), url);
-    assertEquals(hosts, p.getProperty(PGProperty.PG_HOST.getName()), url);
-    assertEquals(ports, p.getProperty(PGProperty.PG_PORT.getName()), url);
+    Properties p = (Properties) parseMethod.invoke(drv, url, props);
+    //validate result
+    assertEquals(dbName, PGProperty.DBNAME.getOrNull(p), url);
+    assertEquals(hosts, PGProperty.HOST.getOrNull(p), url);
+    assertEquals(ports, PGProperty.PORT.getOrNull(p), url);
+    assertEquals(user, PGProperty.USER.getOrNull(p), url);
+    assertEquals(pass, PGProperty.PASSWORD.getOrNull(p), url);
   }
 
   /**
@@ -203,12 +212,12 @@ class DriverTest {
         con.close();
         // service=wrong port; Properties=correct port
         Properties info = new Properties();
-        info.setProperty("PGPORT", String.valueOf(TestUtil.getPort()));
+        PGProperty.PORT.set(info, String.valueOf(TestUtil.getPort()));
         con = DriverManager.getConnection(String.format("jdbc:postgresql://?service=%s", testService2), info);
         assertNotNull(con);
         con.close();
         // service=wrong port; Properties=wrong port; URL port=correct
-        info.setProperty("PGPORT", wrongPort);
+        PGProperty.PORT.set(info, wrongPort);
         con = DriverManager.getConnection(String.format("jdbc:postgresql://:%s/?service=%s", TestUtil.getPort(), testService2), info);
         assertNotNull(con);
         con.close();
@@ -228,7 +237,7 @@ class DriverTest {
           // Expected exception.
         }
         // service=correct port; Properties=wrong port
-        info.setProperty("PGPORT", wrongPort);
+        PGProperty.PORT.set(info, wrongPort);
         try {
           con = DriverManager.getConnection(String.format("jdbc:postgresql://?service=%s", testService1), info);
           fail("Expected an SQLException because port is out of range");
@@ -236,7 +245,7 @@ class DriverTest {
           // Expected exception.
         }
         // service=correct port; Properties=correct port; URL port=wrong
-        info.setProperty("PGPORT", String.valueOf(TestUtil.getPort()));
+        PGProperty.PORT.set(info, String.valueOf(TestUtil.getPort()));
         try {
           con = DriverManager.getConnection(String.format("jdbc:postgresql://:%s/?service=%s", wrongPort, testService1), info);
           fail("Expected an SQLException because port is out of range");
@@ -278,6 +287,16 @@ class DriverTest {
           new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), ""),
           new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-nonexistent",
               PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), tempPgPassFile.toString())
+      ).execute(() -> {
+        // password from .pgpass (correct)
+        Connection con = DriverManager.getConnection(String.format("jdbc:postgresql://%s:%s/%s?user=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getUser()));
+        assertNotNull(con);
+        con.close();
+      });
+      // same test, different way for .pgpass file
+      Resources.with(
+          new EnvironmentVariables(PGEnvironment.PGSERVICEFILE.getName(), "", PGEnvironment.PGSYSCONFDIR.getName(), "", PGEnvironment.PGPASSFILE.getName(), tempPgPassFile.toString()),
+          new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), "", "user.home", "/tmp/dir-non-existent")
       ).execute(() -> {
         // password from .pgpass (correct)
         Connection con = DriverManager.getConnection(String.format("jdbc:postgresql://%s:%s/%s?user=%s", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getUser()));

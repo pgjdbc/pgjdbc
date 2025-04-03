@@ -34,9 +34,12 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 /**
  * Utility class for JDBC tests.
@@ -70,46 +73,27 @@ public class TestUtil {
   }
 
   public static String getURL(String hostport, String database) {
-    String protocolVersion = "";
+    Map<PGProperty, String> map = new TreeMap<>();
+    map.put(PGProperty.APPLICATION_NAME, "Driver Tests");
     if (getProtocolVersion() != 0) {
-      protocolVersion = "&protocolVersion=" + getProtocolVersion();
+      map.put(PGProperty.PROTOCOL_VERSION, String.valueOf(getProtocolVersion()));
     }
-
-    String options = "";
-    if (getOptions() != null) {
-      options = "&options=" + getOptions();
-    }
-
-    String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !"".equals(getBinaryTransfer())) {
-      binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
-    }
-
-    String receiveBufferSize = "";
+    map.put(PGProperty.OPTIONS, getOptions());
+    map.put(PGProperty.BINARY_TRANSFER, getBinaryTransfer());
     if (getReceiveBufferSize() != -1) {
-      receiveBufferSize = "&receiveBufferSize=" + getReceiveBufferSize();
+      map.put(PGProperty.RECEIVE_BUFFER_SIZE, String.valueOf(getReceiveBufferSize()));
     }
-
-    String sendBufferSize = "";
     if (getSendBufferSize() != -1) {
-      sendBufferSize = "&sendBufferSize=" + getSendBufferSize();
+      map.put(PGProperty.SEND_BUFFER_SIZE, String.valueOf(getSendBufferSize()));
     }
+    map.put(PGProperty.SSL, getSSL());
 
-    String ssl = "";
-    if (getSSL() != null) {
-      ssl = "&ssl=" + getSSL();
-    }
+    String arguments = map.entrySet().stream()
+        .filter(e -> e.getValue() != null && !e.getValue().isEmpty())
+        .map(e -> String.format("%s=%s", e.getKey().getName(), e.getValue()))
+        .collect(Collectors.joining("&"));
 
-    return "jdbc:postgresql://"
-        + hostport + "/"
-        + database
-        + "?ApplicationName=Driver Tests"
-        + protocolVersion
-        + options
-        + binaryTransfer
-        + receiveBufferSize
-        + sendBufferSize
-        + ssl;
+    return String.format("jdbc:postgresql://%s/%s?%s", hostport, database, arguments);
   }
 
   /*
@@ -166,6 +150,7 @@ public class TestUtil {
    * Returns password for default callbackhandler
    */
   public static String getSslPassword() {
+    // todo PGProperty.SSL_PASSWORD.getName() shouldn't be used here. It is accidental that those strings match
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
@@ -358,7 +343,7 @@ public class TestUtil {
     initDriver();
 
     // Allow properties to override the user name.
-    String user = PGProperty.USER.getOrDefault(props);
+    String user = PGProperty.USER.getOrNull(props);
     if (user == null) {
       user = getUser();
     }
@@ -369,7 +354,7 @@ public class TestUtil {
     PGProperty.USER.set(props, user);
 
     // Allow properties to override the password.
-    String password = PGProperty.PASSWORD.getOrDefault(props);
+    String password = PGProperty.PASSWORD.getOrNull(props);
     if (password == null) {
       password = getPassword() != null ? getPassword() : "";
     }
@@ -397,7 +382,9 @@ public class TestUtil {
     if (PGProperty.GSS_ENC_MODE.getSetString(props) == null) {
       PGProperty.GSS_ENC_MODE.set(props, getGSSEncMode().value);
     }
-
+    // remove not valid properties to avoid error
+    props.remove(SERVER_HOST_PORT_PROP);
+    props.remove(DATABASE_PROP);
     return DriverManager.getConnection(getURL(hostport, database), props);
   }
 
