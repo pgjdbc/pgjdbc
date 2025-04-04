@@ -208,6 +208,22 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void getTablesWithCorrectCatalogAndWithout(BinaryMode binaryMode) throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    try (ResultSet rs = dbmd.getTables(null, null, "metadatates%", new String[]{"TABLE"})) {
+      assertTrue(rs.next());
+    }
+    try (ResultSet rs = dbmd.getTables("", null, "metadatates%", new String[]{"TABLE"})) {
+      assertTrue(rs.next());
+    }
+    try (ResultSet rs = dbmd.getTables("nonsensecatalog", null, "metadatates%", new String[]{"TABLE"})) {
+      assertFalse(rs.next(), "Should not have tables returned since the catalog should not exist");
+    }
+
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void arrayInt4DoubleDim(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getColumns(null, null, "intarraytable", "b");
@@ -822,8 +838,12 @@ public class DatabaseMetaDataTest {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getColumnPrivileges(null, null, "pg_statistic", null);
-    rs.close();
+    try (ResultSet rs = dbmd.getColumnPrivileges(null, null, "pg_statistic", null)){
+      assertTrue(rs.next());
+    }
+    try (ResultSet rs = dbmd.getColumnPrivileges("nonsensecatalog", null, "pg_statistic", null)) {
+      assertFalse(rs.next());
+    }
   }
 
   /*
@@ -882,9 +902,14 @@ public class DatabaseMetaDataTest {
     stmt.execute("REVOKE ALL ON metadatatest FROM PUBLIC");
     stmt.execute("REVOKE ALL ON metadatatest FROM " + TestUtil.getUser());
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest");
-    assertFalse(rs.next());
+    try (ResultSet rs = dbmd.getTablePrivileges(null, null, "metadatatest")) {
+      assertFalse(rs.next());
+    }
+    try (ResultSet rs = dbmd.getTablePrivileges("nonsensecatalog", null, "precision_test")) {
+      assertFalse(rs.next());
+    }
   }
+
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
@@ -1277,12 +1302,17 @@ public class DatabaseMetaDataTest {
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void bestRowIdentifier(BinaryMode binaryMode) throws SQLException {
-    // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs =
-        dbmd.getBestRowIdentifier(null, null, "pg_type", DatabaseMetaData.bestRowSession, false);
-    rs.close();
+    try (ResultSet rs =
+        dbmd.getBestRowIdentifier(null, null, "pg_type", DatabaseMetaData.bestRowSession, false)){
+      assertTrue(rs.next());
+    }
+    try (ResultSet rs =
+             dbmd.getBestRowIdentifier("nonsensecatalog", null, "pg_type", DatabaseMetaData.bestRowSession, false)){
+      assertFalse(rs.next());
+    }
+
   }
 
   @MethodSource("data")
