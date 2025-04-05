@@ -1856,7 +1856,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
       tuple[14] = null; // sql datetime sub (unused)
-      tuple[15] = tuple[6]; // char octet length
+      if (sqlType == Types.CHAR || sqlType == Types.VARCHAR || sqlType == Types.LONGVARCHAR || sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
+        tuple[15] = tuple[6]; // char octet length same as column size
+      } else {
+        tuple[15] = null; // char octet length not applicable for other types like integer[]
+      }
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
