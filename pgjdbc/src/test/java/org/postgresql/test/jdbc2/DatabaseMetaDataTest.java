@@ -1963,6 +1963,44 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void charOctetLengthIsNullForNonCharTypes(BinaryMode binaryMode) throws SQLException {
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    TestUtil.createTable(con, "char_octet_test", "intarray integer[], mytext varchar(100), mychar char(10), mybinary bytea");
+    DatabaseMetaData dbmd = con.getMetaData();
+
+    // integer[] -> null
+    ResultSet rs = dbmd.getColumns(null, "public", "char_octet_test", "intarray");
+    assertTrue(rs.next());
+    assertEquals("intarray", rs.getString("COLUMN_NAME"));
+    assertNull(rs.getString("CHAR_OCTET_LENGTH"), "Expected Null for integer[]");
+    rs.close();
+
+    // varchar(100) -> 100
+    rs = dbmd.getColumns(null, "public", "char_octet_test", "mytext");
+    assertTrue(rs.next());
+    assertEquals("mytext", rs.getString("COLUMN_NAME"));
+    assertEquals("100", rs.getString("CHAR_OCTET_LENGTH"), "Expected 100 for varchar(100)");
+    rs.close();
+
+    // char(10) -> 10
+    rs = dbmd.getColumns(null, "public", "char_octet_test", "mychar");
+    assertTrue(rs.next());
+    assertEquals("mychar", rs.getString("COLUMN_NAME"));
+    assertEquals("10", rs.getString("CHAR_OCTET_LENGTH"), "Expected 10 for char(10)");
+    rs.close();
+
+    // bytea -> not null
+    rs = dbmd.getColumns(null, "public", "char_octet_test", "mybinary");
+    assertTrue(rs.next());
+    assertEquals("mybinary", rs.getString("COLUMN_NAME"));
+    assertNotNull(rs.getString("CHAR_OCTET_LENGTH"), "Expected not null for bytea");
+    rs.close();
+
+    TestUtil.dropTable(con, "char_octet_test");
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void smallSerialColumns(BinaryMode binaryMode) throws SQLException {
     Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     TestUtil.createTable(con, "smallserial_test", "a smallserial");
