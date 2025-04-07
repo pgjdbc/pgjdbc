@@ -649,6 +649,7 @@ class DatabaseMetaDataTest {
 
     return result;
   }
+
   private static void assertListContains(String message, List<CatalogObject> list, String schema, String name) throws SQLException {
     boolean found = list.stream().anyMatch(item -> item.schema.equals(schema) && item.name.equals(name));
     assertTrue(found, message + "; schema=" + schema + " name=" + name);

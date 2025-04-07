@@ -1282,11 +1282,11 @@ public class DatabaseMetaDataTest {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
     try (ResultSet rs =
-             dbmd.getBestRowIdentifier(null, null, "bestrowid", DatabaseMetaData.bestRowSession, false)){
+             dbmd.getBestRowIdentifier(null, null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
       assertTrue(rs.next());
     }
     try (ResultSet rs =
-             dbmd.getBestRowIdentifier("nonsensecatalog", null, "bestrowid", DatabaseMetaData.bestRowSession, false)){
+             dbmd.getBestRowIdentifier("nonsensecatalog", null, "bestrowid", DatabaseMetaData.bestRowSession, false)) {
       assertFalse(rs.next());
     }
 

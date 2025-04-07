@@ -193,7 +193,7 @@ class DatabaseMetaDataTest {
   @Test
   void getSchemasWithInvalidCatalog() throws SQLException {
     DatabaseMetaData dbmd = conn.getMetaData();
-    try ( ResultSet rs = dbmd.getSchemas("nonsenseschema", null)){
+    try ( ResultSet rs = dbmd.getSchemas("nonsenseschema", null)) {
       assertFalse(rs.next());
     }
   }
