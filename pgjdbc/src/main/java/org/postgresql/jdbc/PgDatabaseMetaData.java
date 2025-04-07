@@ -8,7 +8,6 @@ package org.postgresql.jdbc;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
-import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
@@ -2302,13 +2301,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
       }
     }
+
     /*
      * At the moment this simply returns a table's primary key, if there is one. I believe other
      * unique indexes, ctid, and oid should also be considered. -KJ
      */
-
-    String sql;
-    sql = "SELECT a.attname, a.atttypid, atttypmod "
+    String sql = "SELECT a.attname, a.atttypid, atttypmod "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
