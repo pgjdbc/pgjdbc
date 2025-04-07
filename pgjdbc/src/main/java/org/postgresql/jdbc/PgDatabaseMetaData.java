@@ -2705,8 +2705,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[16] = new Field("SQL_DATETIME_SUB", Oid.INT4);
     f[17] = new Field("NUM_PREC_RADIX", Oid.INT4);
 
-    String sql;
-    sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
+    String sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
           + " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
           + " WHERE n.nspname  != 'pg_toast'"
           + " AND "
@@ -2814,10 +2813,34 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getIndexInfo(
       @Nullable String catalog, @Nullable String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
+
+    Field[] f = new Field[14];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+    f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("TABLE_NAME", Oid.INT4);
+    f[3] = new Field("NON_UNIQUE", Oid.BOOL);
+    f[4] = new Field("INDEX_QUALIFIER", Oid.VARCHAR);
+    f[5] = new Field("INDEX_NAME", Oid.VARCHAR);
+    f[6] = new Field("TYPE", Oid.INT2);
+    f[7] = new Field("ORDINAL_POSITION", Oid.INT2);
+    f[8] = new Field("COLUMN_NAME", Oid.VARCHAR);
+    f[9] = new Field("ASC_OR_DESC", Oid.VARCHAR);
+    f[10] = new Field("CARDINALITY", Oid.INT8);
+    f[11] = new Field("PAGES", Oid.INT8);
+    f[12] = new Field("FILTER_CONDITION", Oid.VARCHAR);
+    f[13] = new Field("REMARKS", Oid.VARCHAR);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      if (connection.isValid(1000)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
+    }
     /*
      * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
      * single column functional index 7.3 schemas, single column functional index >= 7.4 schemas,
-     * multi-column expressional index >= 8.3 supports ASC/DESC column info >= 9.0 no longer renames
+     * multi-column expression index >= 8.3 supports ASC/DESC column info >= 9.0 no longer renames
      * index columns on a table column rename, so we must look at the table attribute names
      *
      * with the single column functional index we need an extra join to the table's pg_attribute
@@ -3030,6 +3053,24 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
+
+    Field[] f = new Field[7];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("TYPE_CAT", Oid.VARCHAR);
+    f[1] = new Field("TYPE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("TYPE_NAME", Oid.VARCHAR);
+    f[3] = new Field("CLASS_NAME", Oid.VARCHAR);
+    f[4] = new Field("DATA_TYPE", Oid.INT4);
+    f[5] = new Field("REMARKS", Oid.VARCHAR);
+    f[6] = new Field("BASE_TYPE", Oid.INT2);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      if (connection.isValid(1000)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
+    }
+
     String sql = "select "
         + "current_database() as \"TYPE_CAT\", n.nspname as \"TYPE_SCHEM\", t.typname as \"TYPE_NAME\", null as \"CLASS_NAME\", "
         + "CASE WHEN t.typtype='c' then " + Types.STRUCT + " else "
@@ -3187,6 +3228,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern)
       throws SQLException {
 
+    Field[] f = new Field[7];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
+    f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("FUNCTION_NAME", Oid.VARCHAR);
+    f[5] = new Field("REMARKS", Oid.VARCHAR);
+    f[4] = new Field("FUNCTION_TYPE", Oid.INT2);
+    f[6] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      if (connection.isValid(1000)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
+    }
+
     // The pg_get_function_result only exists 8.4 or later
     boolean pgFuncResultExists = connection.haveMinimumServerVersion(ServerVersion.v8_4);
 
@@ -3264,8 +3321,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[15] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    String sql;
-    sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      if (connection.isValid(1000)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
+    }
+
+    String sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";

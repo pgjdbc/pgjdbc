@@ -392,6 +392,15 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getFunctionsWithBadCatalog() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    try (ResultSet rs = dbmd.getFunctions("nonsensecatalog", "", "")) {
+      assertFalse(rs.next());
+    }
+
+  }
+    @Test
   void getFunctionsWithBlankPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();

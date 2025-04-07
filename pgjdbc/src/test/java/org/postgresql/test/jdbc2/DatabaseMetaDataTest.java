@@ -753,68 +753,76 @@ public class DatabaseMetaDataTest {
     stmt.close();
 
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns(null, null, "metadatatest", null);
+    try (ResultSet rs = dbmd.getColumns(null, null, "metadatatest", null)) {
 
-    assertTrue(rs.next());
-    assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertTrue(rs.next());
+      assertEquals("id", rs.getString("COLUMN_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
 
-    assertTrue(rs.next());
-    assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+      assertTrue(rs.next());
+      assertEquals("updated", rs.getString("COLUMN_NAME"));
+      assertEquals(2, rs.getInt("ORDINAL_POSITION"));
 
-    assertTrue(rs.next());
-    assertEquals("quest", rs.getString("COLUMN_NAME"));
-    assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+      assertTrue(rs.next());
+      assertEquals("quest", rs.getString("COLUMN_NAME"));
+      assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+    }
 
-    rs.close();
-
-    rs = dbmd.getColumns(null, null, "metadatatest", "quest");
-    assertTrue(rs.next());
-    assertEquals("quest", rs.getString("COLUMN_NAME"));
-    assertEquals(3, rs.getInt("ORDINAL_POSITION"));
-    assertFalse(rs.next());
-    rs.close();
+    try (ResultSet rs = dbmd.getColumns(null, null, "metadatatest", "quest")) {
+      assertTrue(rs.next());
+      assertEquals("quest", rs.getString("COLUMN_NAME"));
+      assertEquals(3, rs.getInt("ORDINAL_POSITION"));
+      assertFalse(rs.next());
+    }
 
     /* getFunctionColumns also has to be aware of dropped columns
        add this in here to make sure it can deal with them
      */
-    rs = dbmd.getFunctionColumns(null, null, "f4", null);
-    assertTrue(rs.next());
+    try (ResultSet rs = dbmd.getFunctionColumns(null, null, "f4", null)) {
+      assertTrue(rs.next());
 
-    assertTrue(rs.next());
-    assertEquals("id", rs.getString(4));
+      assertTrue(rs.next());
+      assertEquals("id", rs.getString(4));
 
-    assertTrue(rs.next());
-    assertEquals("updated", rs.getString(4));
+      assertTrue(rs.next());
+      assertEquals("updated", rs.getString(4));
+    }
 
-    rs.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void testGetFunctionColumnsBadCatalog(BinaryMode binaryMode) throws SQLException {
+    DatabaseMetaData dbmd = con.getMetaData();
+    try(ResultSet rs = dbmd.getColumns("nonsensecatalog", null, "sercoltest", null)) {
+      assertFalse(rs.next());
+    }
   }
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
   void serialColumns(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null);
-    int rownum = 0;
-    while (rs.next()) {
-      assertEquals("sercoltest", rs.getString("TABLE_NAME"));
-      assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
-      if (rownum == 0) {
-        assertEquals("int4", rs.getString("TYPE_NAME"));
+    try(ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null)) {
+      int rownum = 0;
+      while (rs.next()) {
+        assertEquals("sercoltest", rs.getString("TABLE_NAME"));
+        assertEquals(rownum + 1, rs.getInt("ORDINAL_POSITION"));
+        if (rownum == 0) {
+          assertEquals("int4", rs.getString("TYPE_NAME"));
 
-      } else if (rownum == 1) {
-        assertEquals("serial", rs.getString("TYPE_NAME"));
-        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
-      } else if (rownum == 2) {
-        assertEquals("bigserial", rs.getString("TYPE_NAME"));
-        assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+        } else if (rownum == 1) {
+          assertEquals("serial", rs.getString("TYPE_NAME"));
+          assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+        } else if (rownum == 2) {
+          assertEquals("bigserial", rs.getString("TYPE_NAME"));
+          assertTrue(rs.getBoolean("IS_AUTOINCREMENT"));
+        }
+
+        rownum++;
       }
-
-      rownum++;
+      assertEquals(3, rownum);
     }
-    assertEquals(3, rownum);
-    rs.close();
   }
 
   @MethodSource("data")
@@ -909,48 +917,48 @@ public class DatabaseMetaDataTest {
 
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
+    try (ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false)) {
 
-    assertTrue(rs.next());
-    assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertFalse(rs.getBoolean("NON_UNIQUE"));
+      assertTrue(rs.next());
+      assertEquals("idx_un_id", rs.getString("INDEX_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("id", rs.getString("COLUMN_NAME"));
+      assertFalse(rs.getBoolean("NON_UNIQUE"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("colour", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.next());
+      assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("colour", rs.getString("COLUMN_NAME"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
-    assertEquals(2, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.next());
+      assertEquals("idx_func_mixed", rs.getString("INDEX_NAME"));
+      assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.next());
+      assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
-    assertEquals(2, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.next());
+      assertEquals("idx_func_multi", rs.getString("INDEX_NAME"));
+      assertEquals(2, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("upper(quest)", rs.getString("COLUMN_NAME"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_func_single", rs.getString("INDEX_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.next());
+      assertEquals("idx_func_single", rs.getString("INDEX_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("upper(colour)", rs.getString("COLUMN_NAME"));
 
-    assertTrue(rs.next());
-    assertEquals("idx_id", rs.getString("INDEX_NAME"));
-    assertEquals(1, rs.getInt("ORDINAL_POSITION"));
-    assertEquals("id", rs.getString("COLUMN_NAME"));
-    assertTrue(rs.getBoolean("NON_UNIQUE"));
+      assertTrue(rs.next());
+      assertEquals("idx_id", rs.getString("INDEX_NAME"));
+      assertEquals(1, rs.getInt("ORDINAL_POSITION"));
+      assertEquals("id", rs.getString("COLUMN_NAME"));
+      assertTrue(rs.getBoolean("NON_UNIQUE"));
 
-    assertFalse(rs.next());
+      assertFalse(rs.next());
 
-    rs.close();
+    }
   }
 
   /**
@@ -962,22 +970,42 @@ public class DatabaseMetaDataTest {
   void indexInfoColumnOrder(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false);
-    assertEquals(1, rs.findColumn("TABLE_CAT"));
-    assertEquals(2, rs.findColumn("TABLE_SCHEM"));
-    assertEquals(3, rs.findColumn("TABLE_NAME"));
-    assertEquals(4, rs.findColumn("NON_UNIQUE"));
-    assertEquals(5, rs.findColumn("INDEX_QUALIFIER"));
-    assertEquals(6, rs.findColumn("INDEX_NAME"));
-    assertEquals(7, rs.findColumn("TYPE"));
-    assertEquals(8, rs.findColumn("ORDINAL_POSITION"));
-    assertEquals(9, rs.findColumn("COLUMN_NAME"));
-    assertEquals(10, rs.findColumn("ASC_OR_DESC"));
-    assertEquals(11, rs.findColumn("CARDINALITY"));
-    assertEquals(12, rs.findColumn("PAGES"));
-    assertEquals(13, rs.findColumn("FILTER_CONDITION"));
-
-    rs.close();
+    /*
+    two tests here
+    first is that we should not return any reults for a nonsensecatalog
+    second is ordering of fields
+     */
+    try (ResultSet rs = dbmd.getIndexInfo("nonsensecatalog", null, "metadatatest", false, false)) {
+      assertFalse(rs.next());
+      assertEquals(1, rs.findColumn("TABLE_CAT"));
+      assertEquals(2, rs.findColumn("TABLE_SCHEM"));
+      assertEquals(3, rs.findColumn("TABLE_NAME"));
+      assertEquals(4, rs.findColumn("NON_UNIQUE"));
+      assertEquals(5, rs.findColumn("INDEX_QUALIFIER"));
+      assertEquals(6, rs.findColumn("INDEX_NAME"));
+      assertEquals(7, rs.findColumn("TYPE"));
+      assertEquals(8, rs.findColumn("ORDINAL_POSITION"));
+      assertEquals(9, rs.findColumn("COLUMN_NAME"));
+      assertEquals(10, rs.findColumn("ASC_OR_DESC"));
+      assertEquals(11, rs.findColumn("CARDINALITY"));
+      assertEquals(12, rs.findColumn("PAGES"));
+      assertEquals(13, rs.findColumn("FILTER_CONDITION"));
+    }
+    try (ResultSet rs = dbmd.getIndexInfo(null, null, "metadatatest", false, false)) {
+      assertEquals(1, rs.findColumn("TABLE_CAT"));
+      assertEquals(2, rs.findColumn("TABLE_SCHEM"));
+      assertEquals(3, rs.findColumn("TABLE_NAME"));
+      assertEquals(4, rs.findColumn("NON_UNIQUE"));
+      assertEquals(5, rs.findColumn("INDEX_QUALIFIER"));
+      assertEquals(6, rs.findColumn("INDEX_NAME"));
+      assertEquals(7, rs.findColumn("TYPE"));
+      assertEquals(8, rs.findColumn("ORDINAL_POSITION"));
+      assertEquals(9, rs.findColumn("COLUMN_NAME"));
+      assertEquals(10, rs.findColumn("ASC_OR_DESC"));
+      assertEquals(11, rs.findColumn("CARDINALITY"));
+      assertEquals(12, rs.findColumn("PAGES"));
+      assertEquals(13, rs.findColumn("FILTER_CONDITION"));
+    }
   }
 
   @MethodSource("data")
@@ -1401,13 +1429,13 @@ public class DatabaseMetaDataTest {
       int dataType;
       int baseType;
 
-      cat = rs.getString("type_cat");
-      schema = rs.getString("type_schem");
-      typeName = rs.getString("type_name");
-      className = rs.getString("class_name");
-      dataType = rs.getInt("data_type");
-      remarks = rs.getString("remarks");
-      baseType = rs.getInt("base_type");
+      cat = rs.getString("TYPE_CAT");
+      schema = rs.getString("TYPE_SCHEM");
+      typeName = rs.getString("TYPE_NAME");
+      className = rs.getString("CLASS_NAME");
+      dataType = rs.getInt("DATA_TYPE");
+      remarks = rs.getString("REMARKS");
+      baseType = rs.getInt("BASE_TYPE");
       assertEquals("testint8", typeName, "type name ");
       assertEquals("jdbc", schema, "schema name ");
 
@@ -1555,6 +1583,32 @@ public class DatabaseMetaDataTest {
       assertTrue(rs.wasNull(), "base type");
       assertEquals(Types.STRUCT, dataType, "data type");
       assertEquals("testint8", typeName, "type name ");
+    } finally {
+      try {
+        Statement stmt = con.createStatement();
+        stmt.execute("drop type testint8");
+      } catch (Exception ex) {
+      }
+    }
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
+  void getUDT5(BinaryMode binaryMode) throws Exception {
+    try {
+      Statement stmt = con.createStatement();
+      stmt.execute("create type testint8 as (i int8)");
+      DatabaseMetaData dbmd = con.getMetaData();
+      ResultSet rs = dbmd.getUDTs("nonsensecatalog", null, "testint8", null);
+      assertFalse(rs.next());
+
+      assertEquals(1, rs.findColumn("type_cat"));
+      assertEquals(2, rs.findColumn("type_schem"));
+      assertEquals(3, rs.findColumn("type_name"));
+      assertEquals(4, rs.findColumn("class_name"));
+      assertEquals(5, rs.findColumn("data_type"));
+      assertEquals(6, rs.findColumn("remarks"));
+      assertEquals(7, rs.findColumn("base_type"));
     } finally {
       try {
         Statement stmt = con.createStatement();
