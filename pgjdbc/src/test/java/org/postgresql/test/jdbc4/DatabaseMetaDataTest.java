@@ -398,9 +398,9 @@ class DatabaseMetaDataTest {
     try (ResultSet rs = dbmd.getFunctions("nonsensecatalog", "", "")) {
       assertFalse(rs.next());
     }
-
   }
-    @Test
+
+  @Test
   void getFunctionsWithBlankPatterns() throws SQLException {
     int minFuncCount = 1000;
     DatabaseMetaData dbmd = conn.getMetaData();

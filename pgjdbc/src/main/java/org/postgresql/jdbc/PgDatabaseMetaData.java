@@ -1189,7 +1189,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     // if the catalog is specified and does not equal the current catalog then return an empty resultset
-    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())){
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
       int columns = 9;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>();
@@ -2557,7 +2557,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[13] = new Field("DEFERRABILITY", Oid.INT2);
 
     if (primaryCatalog != null && !primaryCatalog.isEmpty() && !primaryCatalog.equals(connection.getCatalog())
-      || foreignCatalog != null && !foreignCatalog.isEmpty() && !foreignCatalog.equals(connection.getCatalog()))  {
+        || foreignCatalog != null && !foreignCatalog.isEmpty() && !foreignCatalog.equals(connection.getCatalog()))  {
       if (connection.isValid(1000)) {
         return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
       }

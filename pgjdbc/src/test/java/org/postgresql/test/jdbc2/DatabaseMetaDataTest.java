@@ -794,7 +794,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void testGetFunctionColumnsBadCatalog(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    try(ResultSet rs = dbmd.getColumns("nonsensecatalog", null, "sercoltest", null)) {
+    try (ResultSet rs = dbmd.getColumns("nonsensecatalog", null, "sercoltest", null)) {
       assertFalse(rs.next());
     }
   }
@@ -803,7 +803,7 @@ public class DatabaseMetaDataTest {
   @ParameterizedTest(name = "binary = {0}")
   void serialColumns(BinaryMode binaryMode) throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
-    try(ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null)) {
+    try (ResultSet rs = dbmd.getColumns(null, null, "sercoltest", null)) {
       int rownum = 0;
       while (rs.next()) {
         assertEquals("sercoltest", rs.getString("TABLE_NAME"));
@@ -831,8 +831,12 @@ public class DatabaseMetaDataTest {
     // At the moment just test that no exceptions are thrown KJ
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
-    ResultSet rs = dbmd.getColumnPrivileges(null, null, "pg_statistic", null);
-    rs.close();
+    try (ResultSet rs = dbmd.getColumnPrivileges(null, null, "pg_statistic", null)) {
+      assertTrue(rs.next());
+    }
+    try (ResultSet rs = dbmd.getColumnPrivileges("nonsensecatalog", null, "pg_statistic", null)) {
+      assertFalse(rs.next());
+    }
   }
 
   /*
