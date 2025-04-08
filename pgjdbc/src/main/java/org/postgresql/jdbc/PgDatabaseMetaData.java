@@ -1193,8 +1193,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       int columns = 9;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>();
-      // is the connection still valid, if not throw an exception
-      connection.isValid(1000);
       f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
       f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
       f[2] = new Field("PROCEDURE_NAME", Oid.VARCHAR);
@@ -1204,7 +1202,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[6] = new Field("REMARKS", Oid.VARCHAR);
       f[7] = new Field("PROCEDURE_TYPE", Oid.VARCHAR);
       f[8] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
-      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+
+      // is the connection still valid, if not throw an exception
+      if (connection.isValid(1000)) {
+        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+      }
     }
 
     String sql = "SELECT current_database() AS \"PROCEDURE_CAT\", "
