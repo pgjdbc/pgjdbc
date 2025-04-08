@@ -325,6 +325,28 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getProceduresWithCorrectCatalogAndWithout() throws SQLException {
+    // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+
+    DatabaseMetaData dbmd = conn.getMetaData();
+    try (ResultSet rs = dbmd.getProcedures(null, "hasprocedures", null)) {
+      int count = assertProcedureRS(rs);
+      assertEquals(1, count, "getProcedures() should be non-empty for the hasprocedures schema");
+    }
+    try (ResultSet rs = dbmd.getProcedures("nonsensecatalog", "hasprocedures", null)) {
+      assertFalse(rs.next(),"This should not return results as the catalog is not the same as the database");
+    }
+    try (ResultSet rs = dbmd.getProcedureColumns(null, "hasprocedures", null, null)) {
+      int count = assertProcedureColumnsRS(rs);
+      assertEquals(1, count, "getProcedureColumnss() should be non-empty for the hasprocedures schema");
+    }
+    try (ResultSet rs = dbmd.getProcedureColumns("nonsensecatalog", "hasprocedures", null,null)) {
+      assertFalse(rs.next(),"This should not return results as the catalog is not the same as the database");
+    }
+  }
+
+  @Test
   void getProceduresInSchemaForProcedures() throws SQLException {
     // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
     Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
@@ -365,6 +387,15 @@ class DatabaseMetaDataTest {
     }
 
     try (ResultSet rs = dbmd.getFunctions(null, null, "")) {
+      assertFalse(rs.next());
+    }
+  }
+
+  @Test
+  void getFunctionsWithBadCatalog() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    try (ResultSet rs = dbmd.getFunctions("nonsensecatalog", "", "")) {
       assertFalse(rs.next());
     }
   }
@@ -566,6 +597,48 @@ class DatabaseMetaDataTest {
     assertThat(rs.getString(7), is(rs.getString("REMARKS")));
     assertThat(rs.getShort(8), is(rs.getShort("PROCEDURE_TYPE")));
     assertThat(rs.getString(9), is(rs.getString("SPECIFIC_NAME")));
+
+    // Get all result and assert they are ordered per javadoc spec:
+    //   FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME and SPECIFIC_NAME
+    List<CatalogObject> result = new ArrayList<>();
+    do {
+      CatalogObject obj = new CatalogObject(
+          rs.getString("PROCEDURE_CAT"),
+          rs.getString("PROCEDURE_SCHEM"),
+          rs.getString("PROCEDURE_NAME"),
+          rs.getString("SPECIFIC_NAME"));
+      result.add(obj);
+    } while (rs.next());
+
+    List<CatalogObject> orderedResult = new ArrayList<>(result);
+    Collections.sort(orderedResult);
+    assertThat(result, is(orderedResult));
+
+    return result;
+  }
+
+  private static int assertProcedureColumnsRS(ResultSet rs) throws SQLException {
+    return assertProcedureColumnsRSAndReturnList(rs).size();
+  }
+
+  private static List<CatalogObject> assertProcedureColumnsRSAndReturnList(ResultSet rs) throws SQLException {
+    // There should be at least one row
+    assertThat(rs.next(), is(true));
+    assertThat(rs.getString("PROCEDURE_CAT"), is(System.getProperty("database")));
+    assertThat(rs.getString("PROCEDURE_SCHEM"), notNullValue());
+    assertThat(rs.getString("PROCEDURE_NAME"), notNullValue());
+    assertThat(rs.getString("COLUMN_NAME") , notNullValue());
+    assertThat(rs.getString("SPECIFIC_NAME"), notNullValue());
+
+    // Ensure there is enough column and column value retrieve by index should be same as column name (ordered)
+    assertThat(rs.getMetaData().getColumnCount(), is(20));
+    assertThat(rs.getString(1), is(rs.getString("PROCEDURE_CAT")));
+    assertThat(rs.getString(2), is(rs.getString("PROCEDURE_SCHEM")));
+    assertThat(rs.getString(3), is(rs.getString("PROCEDURE_NAME")));
+    // Per JDBC spec, indexes 4, 5, and 6 are reserved for future use
+    assertThat(rs.getString(13), is(rs.getString("REMARKS")));
+    assertThat(rs.getString(4), is(rs.getString("COLUMN_NAME")));
+    assertThat(rs.getString(20), is(rs.getString("SPECIFIC_NAME")));
 
     // Get all result and assert they are ordered per javadoc spec:
     //   FUNCTION_CAT, FUNCTION_SCHEM, FUNCTION_NAME and SPECIFIC_NAME

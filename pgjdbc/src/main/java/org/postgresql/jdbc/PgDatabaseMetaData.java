@@ -1187,8 +1187,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getProcedures(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String procedureNamePattern)
       throws SQLException {
-    String sql;
-    sql = "SELECT current_database() AS \"PROCEDURE_CAT\", "
+
+    // if the catalog is specified and does not equal the current catalog then return an empty resultset
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      int columns = 9;
+      Field[] f = new Field[columns];
+      List<Tuple> v = new ArrayList<>();
+      f[0] = new Field("PROCEDURE_CAT", Oid.VARCHAR);
+      f[1] = new Field("PROCEDURE_SCHEM", Oid.VARCHAR);
+      f[2] = new Field("PROCEDURE_NAME", Oid.VARCHAR);
+      f[3] = new Field("", Oid.VARCHAR);
+      f[4] = new Field("", Oid.VARCHAR);
+      f[5] = new Field("", Oid.VARCHAR);
+      f[6] = new Field("REMARKS", Oid.VARCHAR);
+      f[7] = new Field("PROCEDURE_TYPE", Oid.VARCHAR);
+      f[8] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
+
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
+    String sql = "SELECT current_database() AS \"PROCEDURE_CAT\", "
           + " n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
           + "NULL, NULL, NULL, d.description AS \"REMARKS\", "
           + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
@@ -1248,9 +1266,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[17] = new Field("ORDINAL_POSITION", Oid.INT4);
     f[18] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
-
-    String sql;
-    sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    // if the catalog is specified and it does not equal the current catalog then just return an empty resultset
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+    String sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
           + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
@@ -1428,10 +1448,25 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern, String @Nullable [] types) throws SQLException {
-    String select;
     String orderby;
     String useSchemas = "SCHEMAS";
-    select = "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
+    int columns = 10;
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      Field[] f = new Field[columns];
+      List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+      f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+      f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+      f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+      f[3] = new Field("TABLE_TYPE", Oid.VARCHAR);
+      f[4] = new Field("REMARKS", Oid.VARCHAR);
+      f[5] = new Field("TYPE_CAT", Oid.VARCHAR);
+      f[6] = new Field("TYPE_SCHEM", Oid.VARCHAR);
+      f[7] = new Field("TYPE_NAME", Oid.VARCHAR);
+      f[8] = new Field("REF_GENERATION", Oid.VARCHAR);
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
+    String select = "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
              + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
@@ -1475,7 +1510,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
              + " WHERE c.relnamespace = n.oid ";
 
-    if (catalog != null) {
+    if (catalog != null && !catalog.isEmpty()) {
       select += " AND current_database() = " + escapeQuotes(catalog);
     }
 
@@ -1514,7 +1549,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           orclause.append(" OR ( ").append(clause).append(" ) ");
         }
       }
-      select += orclause.toString() + ") ";
+      select += orclause + ") ";
     }
     String sql = select + orderby;
 
@@ -1615,8 +1650,16 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
-    String sql;
-    sql = "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      int columns = 2;
+      Field[] f = new Field[columns];
+      List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+      f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+      f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+    String sql = "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
           + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
           + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
@@ -1693,6 +1736,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
     // so the only way to calculate the correct column number is with
@@ -1903,8 +1949,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
-    String sql;
-    sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl, "
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
+    String sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl, "
           + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
           + " a.attname "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
@@ -1990,10 +2039,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("GRANTEE", Oid.VARCHAR);
     f[5] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
-
-    String sql;
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
-    sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl "
+    String sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
@@ -2233,13 +2283,15 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
     /*
      * At the moment this simply returns a table's primary key, if there is one. I believe other
      * unique indexes, ctid, and oid should also be considered. -KJ
      */
-
-    String sql;
-    sql = "SELECT a.attname, a.atttypid, atttypmod "
+    String sql = "SELECT a.attname, a.atttypid, atttypmod "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
@@ -2307,6 +2359,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     byte[] @Nullable [] tuple = new byte[8][];
 
     /*
@@ -2338,13 +2393,25 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getPrimaryKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
-    String sql;
 
+    Field[] f = new Field[6];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+    f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("TABLE_NAME", Oid.VARCHAR);
+    f[3] = new Field("COLUMN_NAME", Oid.VARCHAR);
+    f[4] = new Field("KEY_SEQ", Oid.INT4);
+    f[5] = new Field("PK_NAME", Oid.VARCHAR);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     // Version 11 added "include columns" in index hence we need to filter only the key attributes
     // when returning primary keys.
     String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
 
-    sql = "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+    String sql = "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
           + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
           + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
@@ -2391,8 +2458,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    */
   protected ResultSet getPrimaryUniqueKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
-    String sql;
-    sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+
+    String sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
         + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
         + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
         + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
@@ -2452,6 +2519,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String foreignCatalog, @Nullable String foreignSchema, @Nullable String foreignTable)
           throws SQLException {
 
+    Field[] f = new Field[14];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("PKTABLE_CAT", Oid.VARCHAR);
+    f[1] = new Field("PKTABLE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("PKTABLE_NAME", Oid.VARCHAR);
+    f[3] = new Field("PKCOLUMN_NAME", Oid.VARCHAR);
+    f[4] = new Field("FKTABLE_CAT", Oid.VARCHAR);
+    f[5] = new Field("FKTABLE_SCHEM", Oid.VARCHAR);
+    f[6] = new Field("FKTABLE_NAME", Oid.VARCHAR);
+    f[7] = new Field("FKCOLUMN_NAME", Oid.VARCHAR);
+    f[8] = new Field("UPDATE_RULE", Oid.INT2);
+    f[9] = new Field("DELETE_RULE", Oid.INT2);
+    f[10] = new Field("KEY_SEQ", Oid.INT2);
+    f[11] = new Field("FK_NAME", Oid.VARCHAR);
+    f[12] = new Field("PK_NAME", Oid.VARCHAR);
+    f[13] = new Field("DEFERRABILITY", Oid.INT2);
+
+    if (primaryCatalog != null && !primaryCatalog.isEmpty() && !primaryCatalog.equals(connection.getCatalog())
+        || foreignCatalog != null && !foreignCatalog.isEmpty() && !foreignCatalog.equals(connection.getCatalog()))  {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     /*
      * The addition of the pg_constraint in 7.3 table should have really helped us out here, but it
      * comes up just a bit short. - The conkey, confkey columns aren't really useful without
@@ -2595,8 +2684,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[16] = new Field("SQL_DATETIME_SUB", Oid.INT4);
     f[17] = new Field("NUM_PREC_RADIX", Oid.INT4);
 
-    String sql;
-    sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
+    String sql = "SELECT t.typname,t.oid FROM pg_catalog.pg_type t"
           + " JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
           + " WHERE n.nspname  != 'pg_toast'"
           + " AND "
@@ -2704,10 +2792,32 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getIndexInfo(
       @Nullable String catalog, @Nullable String schema, String tableName,
       boolean unique, boolean approximate) throws SQLException {
+
+    Field[] f = new Field[14];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
+    f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("TABLE_NAME", Oid.INT4);
+    f[3] = new Field("NON_UNIQUE", Oid.BOOL);
+    f[4] = new Field("INDEX_QUALIFIER", Oid.VARCHAR);
+    f[5] = new Field("INDEX_NAME", Oid.VARCHAR);
+    f[6] = new Field("TYPE", Oid.INT2);
+    f[7] = new Field("ORDINAL_POSITION", Oid.INT2);
+    f[8] = new Field("COLUMN_NAME", Oid.VARCHAR);
+    f[9] = new Field("ASC_OR_DESC", Oid.VARCHAR);
+    f[10] = new Field("CARDINALITY", Oid.INT8);
+    f[11] = new Field("PAGES", Oid.INT8);
+    f[12] = new Field("FILTER_CONDITION", Oid.VARCHAR);
+    f[13] = new Field("REMARKS", Oid.VARCHAR);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
     /*
      * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
      * single column functional index 7.3 schemas, single column functional index >= 7.4 schemas,
-     * multi-column expressional index >= 8.3 supports ASC/DESC column info >= 9.0 no longer renames
+     * multi-column expression index >= 8.3 supports ASC/DESC column info >= 9.0 no longer renames
      * index columns on a table column rename, so we must look at the table attribute names
      *
      * with the single column functional index we need an extra join to the table's pg_attribute
@@ -2920,6 +3030,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getUDTs(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String typeNamePattern, int @Nullable [] types) throws SQLException {
+
+    Field[] f = new Field[7];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("TYPE_CAT", Oid.VARCHAR);
+    f[1] = new Field("TYPE_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("TYPE_NAME", Oid.VARCHAR);
+    f[3] = new Field("CLASS_NAME", Oid.VARCHAR);
+    f[4] = new Field("DATA_TYPE", Oid.INT4);
+    f[5] = new Field("REMARKS", Oid.VARCHAR);
+    f[6] = new Field("BASE_TYPE", Oid.INT2);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
     String sql = "select "
         + "current_database() as \"TYPE_CAT\", n.nspname as \"TYPE_SCHEM\", t.typname as \"TYPE_NAME\", null as \"CLASS_NAME\", "
         + "CASE WHEN t.typtype='c' then " + Types.STRUCT + " else "
@@ -3077,6 +3203,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String functionNamePattern)
       throws SQLException {
 
+    Field[] f = new Field[7];
+    List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
+
+    f[0] = new Field("FUNCTION_CAT", Oid.VARCHAR);
+    f[1] = new Field("FUNCTION_SCHEM", Oid.VARCHAR);
+    f[2] = new Field("FUNCTION_NAME", Oid.VARCHAR);
+    f[5] = new Field("REMARKS", Oid.VARCHAR);
+    f[4] = new Field("FUNCTION_TYPE", Oid.INT2);
+    f[6] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
+
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
     // The pg_get_function_result only exists 8.4 or later
     boolean pgFuncResultExists = connection.haveMinimumServerVersion(ServerVersion.v8_4);
 
@@ -3154,8 +3294,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[15] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    String sql;
-    sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
+    }
+
+    String sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
         + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
