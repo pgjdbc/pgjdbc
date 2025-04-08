@@ -1203,10 +1203,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[7] = new Field("PROCEDURE_TYPE", Oid.VARCHAR);
       f[8] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-      // is the connection still valid, if not throw an exception
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     String sql = "SELECT current_database() AS \"PROCEDURE_CAT\", "
@@ -1271,9 +1268,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
     // if the catalog is specified and it does not equal the current catalog then just return an empty resultset
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     String sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
@@ -1468,9 +1463,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[6] = new Field("TYPE_SCHEM", Oid.VARCHAR);
       f[7] = new Field("TYPE_NAME", Oid.VARCHAR);
       f[8] = new Field("REF_GENERATION", Oid.VARCHAR);
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     String select = "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
@@ -1664,9 +1657,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
       f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
       f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     String sql = "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
@@ -1746,9 +1737,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     String sql;
     // a.attnum isn't decremented when preceding columns are dropped,
@@ -1961,9 +1950,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     String sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl, "
@@ -2053,9 +2040,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[5] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
     String sql = "SELECT current_database(), n.nspname,c.relname,r.rolname,c.relacl "
@@ -2299,9 +2284,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     /*
@@ -2377,9 +2360,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     byte[] @Nullable [] tuple = new byte[8][];
 
@@ -2424,9 +2405,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[5] = new Field("PK_NAME", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     // Version 11 added "include columns" in index hence we need to filter only the key attributes
     // when returning primary keys.
@@ -2560,9 +2539,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     if (primaryCatalog != null && !primaryCatalog.isEmpty() && !primaryCatalog.equals(connection.getCatalog())
         || foreignCatalog != null && !foreignCatalog.isEmpty() && !foreignCatalog.equals(connection.getCatalog()))  {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
      * The addition of the pg_constraint in 7.3 table should have really helped us out here, but it
@@ -2835,9 +2812,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[13] = new Field("REMARKS", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
      * This is a complicated function because we have three possible situations: <= 7.2 no schemas,
@@ -3068,9 +3043,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("BASE_TYPE", Oid.INT2);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     String sql = "select "
@@ -3241,9 +3214,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     // The pg_get_function_result only exists 8.4 or later
@@ -3324,9 +3295,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
-      if (connection.isValid(1000)) {
-        return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
-      }
+      return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
     String sql = "SELECT current_database(), n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
