@@ -149,7 +149,7 @@ public class VisibleBufferedInputStream extends InputStream {
    * fields.
    *
    * @param n The amount of bytes to ensure exists in buffer
-   * @param block whether or not to block the IO
+   * @param block whether to block the IO
    * @return true if required bytes are available and false if EOF or the parameter block was false and socket timeout occurred.
    * @throws IOException If reading of the wrapped stream failed.
    */
