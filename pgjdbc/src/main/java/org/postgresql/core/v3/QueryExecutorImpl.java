@@ -178,7 +178,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public int getProtocolVersion() {
-    return 3;
+    return getProtocolMajorVersion();
+  }
+
+  public int getProtocolMajorVersion() {
+    return (protocol >> 16) & 0xFF;
+  }
+
+  public int getProtocolMinorVersion() {
+    return protocol & 0xFF;
   }
 
   /**
@@ -2826,13 +2834,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case 'K':
           // BackendKeyData
           int msgLen = pgStream.receiveInteger4();
-          if (msgLen != 12) {
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
-          }
-
           int pid = pgStream.receiveInteger4();
-          int ckey = pgStream.receiveInteger4();
+          int keyLen = msgLen - 8;
+          byte[] ckey = new byte[keyLen];
+          if ( getProtocolMajorVersion() == 3 && getProtocolMinorVersion() == 0 ) {
+            if (msgLen != 12) {
+              throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+          }
+          ckey = pgStream.receive(keyLen);
 
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});

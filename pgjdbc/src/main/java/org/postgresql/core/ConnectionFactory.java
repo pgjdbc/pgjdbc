@@ -49,7 +49,7 @@ public abstract class ConnectionFactory {
       Properties info) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
 
-    if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
+    if (protoName == null || protoName.isEmpty() || protoName.startsWith("3")) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
       QueryExecutor queryExecutor = connectionFactory.openConnectionImpl(
           hostSpecs, info);

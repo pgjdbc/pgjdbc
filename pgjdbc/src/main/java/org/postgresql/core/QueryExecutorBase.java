@@ -41,8 +41,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final String database;
   private final int cancelSignalTimeout;
 
+  protected int protocol;
   private int cancelPid;
-  private int cancelKey;
+  private byte[] cancelKey;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
@@ -75,6 +76,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
+    this.protocol = pgStream.getProtocol();
     this.user = PGProperty.USER.getOrDefault(info);
     this.database = PGProperty.PG_DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
@@ -141,7 +143,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return database;
   }
 
-  public void setBackendKeyData(int cancelPid, int cancelKey) {
+  public void setBackendKeyData(int cancelPid, byte[]cancelKey) {
     this.cancelPid = cancelPid;
     this.cancelKey = cancelKey;
   }
@@ -190,17 +192,18 @@ public abstract class QueryExecutorBase implements QueryExecutor {
         LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
       }
 
-      // Cancel signal is 16 bytes only, so we use 16 as the max send buffer size
+      // Cancel signal is variable since protocol 3.2 so we use cancelKey.length + 12
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, 16);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, cancelKey.length + 12);
       if (cancelSignalTimeout > 0) {
         cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
-      cancelStream.sendInteger4(16);
+      // send the length including self
+      cancelStream.sendInteger4(cancelKey.length + 12);
       cancelStream.sendInteger2(1234);
       cancelStream.sendInteger2(5678);
       cancelStream.sendInteger4(cancelPid);
-      cancelStream.sendInteger4(cancelKey);
+      cancelStream.send(cancelKey);
       cancelStream.flush();
       cancelStream.receiveEOF();
     } catch (IOException e) {

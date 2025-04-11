@@ -211,7 +211,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
 
       List<StartupParam> paramList = getParametersForStartup(user, database, info);
-      sendStartupPacket(newStream, paramList);
+      String protocolVersion = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
+      int decimal = protocolVersion.indexOf('.');
+      int protocolMajor = 3;
+      int protocolMinor = 0;
+      if (decimal == -1) {
+        protocolMinor = Integer.parseInt(protocolVersion);
+        protocolMinor = 0;
+      } else {
+        protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
+        protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+      }
+      sendStartupPacket(newStream, protocolMajor, protocolMinor, paramList);
 
       // Do authentication (until AuthenticationOk).
       doAuthentication(newStream, hostSpec.getHost(), user, info);
@@ -412,7 +423,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (options != null) {
       paramList.add(new StartupParam("options", options));
     }
-
     return paramList;
   }
 
@@ -641,7 +651,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
+  private static void sendStartupPacket(PGStream pgStream, int protocolMajor, int protocolMinor, List<StartupParam> params)
       throws IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -667,8 +677,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-    pgStream.sendInteger2(3); // protocol major
-    pgStream.sendInteger2(0); // protocol minor
+    pgStream.sendInteger2(protocolMajor); // protocol major
+    pgStream.sendInteger2(protocolMinor); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);
       pgStream.sendChar(0);
@@ -678,7 +688,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     pgStream.flush();
   }
 
-  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static int doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -687,12 +697,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+    // TODO: figure out how to deal with new protocols
+    int protocol = 3 << 16;
 
     try {
       authloop: while (true) {
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
+          case 'v':  // Negotiate Protocol Version
+            // read the length and ignore it.
+            pgStream.receiveInteger4();
+            protocol = pgStream.receiveInteger4();
+            int numOptionsNotRecognized = pgStream.receiveInteger4();
+            String [] optionsNotRecognized = new String[numOptionsNotRecognized];
+            for (int i = 0; i < numOptionsNotRecognized; i++) {
+              optionsNotRecognized[i] = pgStream.receiveString();
+            }
+            pgStream.setProtocol(protocol);
+            break;
           case 'E':
             // An error occurred, so pass the error message to the
             // user.
@@ -899,10 +922,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (RuntimeException ex) {
           LOGGER.log(Level.FINE, "Unexpected error during SSPI context disposal", ex);
         }
-
       }
     }
-
+    return protocol;
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
