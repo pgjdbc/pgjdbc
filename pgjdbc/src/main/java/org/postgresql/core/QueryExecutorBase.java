@@ -43,7 +43,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   protected int protocol;
   private int cancelPid;
-  private byte[] cancelKey;
+  private byte[] cancelKey = null;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
