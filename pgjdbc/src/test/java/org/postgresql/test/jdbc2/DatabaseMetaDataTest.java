@@ -1963,40 +1963,50 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
-  void charOctetLengthIsNullForNonCharTypes(BinaryMode binaryMode) throws SQLException {
+  void charOctetLengthColumnTest(BinaryMode binaryMode) throws SQLException {
     Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
-    TestUtil.createTable(con, "char_octet_test", "intarray integer[], mytext varchar(100), mychar char(10), mybinary bytea");
+    TestUtil.createTable(con, "char_octet_test",
+        "intarray integer[], mytext varchar(100), mychar char(10), mybinary bytea, " +
+            "mynchar char(20), mynvarchar varchar(50), " +
+            "myclob text, myblob bytea, mylongvarchar text");
+
     DatabaseMetaData dbmd = con.getMetaData();
 
-    // integer[] -> null
-    ResultSet rs = dbmd.getColumns(null, "public", "char_octet_test", "intarray");
-    assertTrue(rs.next());
-    assertEquals("intarray", rs.getString("COLUMN_NAME"));
-    assertNull(rs.getString("CHAR_OCTET_LENGTH"), "Expected Null for integer[]");
-    rs.close();
-
-    // varchar(100) -> 100
-    rs = dbmd.getColumns(null, "public", "char_octet_test", "mytext");
-    assertTrue(rs.next());
-    assertEquals("mytext", rs.getString("COLUMN_NAME"));
-    assertEquals("100", rs.getString("CHAR_OCTET_LENGTH"), "Expected 100 for varchar(100)");
-    rs.close();
-
-    // char(10) -> 10
-    rs = dbmd.getColumns(null, "public", "char_octet_test", "mychar");
-    assertTrue(rs.next());
-    assertEquals("mychar", rs.getString("COLUMN_NAME"));
-    assertEquals("10", rs.getString("CHAR_OCTET_LENGTH"), "Expected 10 for char(10)");
-    rs.close();
-
-    // bytea -> not null
-    rs = dbmd.getColumns(null, "public", "char_octet_test", "mybinary");
-    assertTrue(rs.next());
-    assertEquals("mybinary", rs.getString("COLUMN_NAME"));
-    assertNotNull(rs.getString("CHAR_OCTET_LENGTH"), "Expected not null for bytea");
-    rs.close();
+    assertCharOctetLength(dbmd, "intarray", true, 0);
+    assertCharOctetLength(dbmd, "mytext", false, 100);
+    assertCharOctetLength(dbmd, "mychar", false, 10);
+    assertCharOctetLength(dbmd, "mybinary", false, -1);
+    assertCharOctetLength(dbmd, "mynchar", false, 20);
+    assertCharOctetLength(dbmd, "mynvarchar", false, 50);
+    assertCharOctetLength(dbmd, "myclob", false, -1);
+    assertCharOctetLength(dbmd, "myblob", false, -1);
+    assertCharOctetLength(dbmd, "mylongvarchar", false, -1);
 
     TestUtil.dropTable(con, "char_octet_test");
+  }
+
+  private void assertCharOctetLength(DatabaseMetaData dbmd, String columnName, boolean expectNull, int expectedLengthOrCompare)
+      throws SQLException {
+    try (ResultSet rs = dbmd.getColumns(null, null, "char_octet_test", columnName)) {
+      assertTrue(rs.next(), "No row returned for column: " + columnName);
+      assertEquals(columnName, rs.getString("COLUMN_NAME"));
+
+      int charOctetLength = rs.getInt("CHAR_OCTET_LENGTH");
+
+      if (expectNull) {
+        assertTrue(rs.wasNull(), "CHAR_OCTET_LENGTH should be null for column: " + columnName);
+      } else {
+        assertFalse(rs.wasNull(), "CHAR_OCTET_LENGTH should not be null for column: " + columnName);
+        if (expectedLengthOrCompare == -1) {
+          int columnSize = rs.getInt("COLUMN_SIZE");
+          assertEquals(columnSize, charOctetLength,
+              "CHAR_OCTET_LENGTH should match COLUMN_SIZE for column: " + columnName);
+        } else {
+          assertEquals(expectedLengthOrCompare, charOctetLength,
+              "CHAR_OCTET_LENGTH mismatch for column: " + columnName);
+        }
+      }
+    }
   }
 
   @MethodSource("data")
