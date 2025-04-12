@@ -212,16 +212,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       List<StartupParam> paramList = getParametersForStartup(user, database, info);
       String protocolVersion = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
-      int decimal = protocolVersion.indexOf('.');
       int protocolMajor = 3;
       int protocolMinor = 0;
-      if (decimal == -1) {
-        protocolMinor = Integer.parseInt(protocolVersion);
-        protocolMinor = 0;
-      } else {
-        protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
-        protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+
+      if (protocolVersion != null) {
+        int decimal = protocolVersion.indexOf('.');
+        if (decimal == -1) {
+          protocolMinor = Integer.parseInt(protocolVersion);
+          protocolMinor = 0;
+        } else {
+          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
+          protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+        }
       }
+
       sendStartupPacket(newStream, protocolMajor, protocolMinor, paramList);
 
       // Do authentication (until AuthenticationOk).
