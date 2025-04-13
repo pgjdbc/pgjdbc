@@ -9,6 +9,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
@@ -65,6 +66,10 @@ public class TimestamptzTest extends BaseTest4 {
    */
   @Test
   public void testTypeOnDbSite_functionOverloading() throws SQLException {
+    if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v10)) {
+      //psql code test not compatible with earlier versions
+      return;
+    }
 
     //SET time zone 'Europe/Berlin';
     try (PreparedStatement ps = con.prepareStatement("create or replace function testtimestamp.demoF(msg text, ts timestamptz) returns text language sql as $$select msg || ' at time ' || ts $$;  ")) {
