@@ -330,7 +330,7 @@ public class DatabaseMetaDataTest {
     assertTrue(rs.next());
     assertEquals("metadatatest", rs.getString("TABLE_NAME"));
     assertEquals("updated", rs.getString("COLUMN_NAME"));
-    assertEquals(Types.TIMESTAMP, rs.getInt("DATA_TYPE"));
+    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, rs.getInt("DATA_TYPE"));
   }
 
   @Test
