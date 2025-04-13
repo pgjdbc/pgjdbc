@@ -38,6 +38,20 @@ Information on how to actually implement such a class is beyond the scope of thi
 are the [JSSE Reference Guide](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html)
 and the source to the `NonValidatingFactory` provided by the JDBC driver.
 
+## Available SSLSocketFactory Implementations
+
+The following implementations of SSLSocketFactory are shipped with the driver.
+
+|sslfactory|Description|
+|---|---|
+|org.postgresql.ssl.DefaultJavaSSLFactory|Use the JDK default implementation.|
+|org.postgresql.ssl.KeychainSSLFactory|Use certificates and keys from the MacOS keychain. If the MacOS truststore is unsupported by the JDK, we fall back to the default cacerts JKS truststore.|
+|org.postgresql.ssl.LibPQFactory|Use the same certificates and keys as the libpq library. The key must be in DER encoded PKCS8 format. This is the default when sslfactory is unspecified.|
+|org.postgresql.ssl.MSCAPILocalMachineSSLFactory|Use certificates and keys from the Windows local machine certificate manager.|
+|org.postgresql.ssl.MSCAPISSLFactory|Use certificates and keys from the Windows certificate manager belonging to the current user.|
+|org.postgresql.ssl.NonValidatingFactory|Connect to anyone without checking. No validation is performed.|
+|org.postgresql.ssl.SingleCertValidatingFactory|Accept the pinned server certificate specified in the sslfactoryarg parameter.|
+
 ## Configuring the Client
 
 There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/use/#connection-parameters/)
@@ -129,6 +143,10 @@ When starting your Java application you must specify this keystore and password 
  `java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypassword com.mycompany.MyApp`
 
 In the event of problems extra debugging information is available by adding `-Djavax.net.debug=ssl` to your command line.
+
+### Choosing a Specific Certificate
+
+When using the Keychain or MSCAPI factories, and more than one client certificate matches during SSL negotiation, the first negotiated certificate will be chosen. To control which of many negotiated certificates will be returned, the sslsubject parameter can be used to set the subject of the certificate to be chosen. Note that sslsubject chooses from the list of negotiated certificates, it does not override the negotiation mechanism. If there is no match, no certificate will be sent to the server.
 
 ### Using SSL without Certificate Validation
 
