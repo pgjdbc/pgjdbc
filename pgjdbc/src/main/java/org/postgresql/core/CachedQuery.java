@@ -21,10 +21,26 @@ public class CachedQuery implements CanEstimateSize {
 
   private int executeCount;
 
+  /**
+   * @deprecated choose more specific constructor like {@link #CachedQuery(String, Query, boolean)} or {@link #CachedQuery(CanEstimateSize, Query, boolean)}
+   */
+  @Deprecated
   public CachedQuery(Object key, Query query, boolean isFunction) {
     assert key instanceof String || key instanceof CanEstimateSize
         : "CachedQuery.key should either be String or implement CanEstimateSize."
         + " Actual class is " + key.getClass();
+    this.key = key;
+    this.query = query;
+    this.isFunction = isFunction;
+  }
+
+  public CachedQuery(String key, Query query, boolean isFunction) {
+    this.key = key;
+    this.query = query;
+    this.isFunction = isFunction;
+  }
+
+  public CachedQuery(CanEstimateSize key, Query query, boolean isFunction) {
     this.key = key;
     this.query = query;
     this.isFunction = isFunction;

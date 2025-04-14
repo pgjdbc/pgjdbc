@@ -24,6 +24,12 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     this.queryExecutor = queryExecutor;
   }
 
+  /**
+   * TODO:
+   * Create two different methods for CachedQueryCreateAction
+   * 1. First that accepts {@link String} as cache key
+   * 2. Second that accepts {@link BaseQueryKey} as cache key
+   */
   @Override
   public CachedQuery create(Object key) throws SQLException {
     assert key instanceof String || key instanceof BaseQueryKey
@@ -40,7 +46,7 @@ class CachedQueryCreateAction implements LruCache.CreateAction<Object, CachedQue
     }
     if (key instanceof String || castNonNull(queryKey).escapeProcessing) {
       parsedSql =
-          Parser.replaceProcessing(parsedSql, true, queryExecutor.getStandardConformingStrings());
+          Parser.replaceProcessing(parsedSql, queryExecutor.getStandardConformingStrings());
     }
     boolean isFunction;
     if (key instanceof CallableQueryKey) {
