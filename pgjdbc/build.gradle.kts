@@ -86,7 +86,7 @@ dependencies {
     }
     shaded("com.ongres.scram:scram-client:3.1")
 
-    implementation("org.checkerframework:checker-qual:3.49.1")
+    implementation("org.checkerframework:checker-qual:3.49.2")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
     testFixturesImplementation("junit:junit:4.13.2")
     testFixturesImplementation(platform("org.junit:junit-bom:5.12.1"))
@@ -94,7 +94,7 @@ dependencies {
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine") {
         because("We use BeforeEachMethodAdapter to add parameters to beforeeach and aftereach methods")
     }
-    testFixturesImplementation("org.checkerframework:checker-qual:3.49.1")
+    testFixturesImplementation("org.checkerframework:checker-qual:3.49.2")
 }
 
 val skipReplicationTests by props()
