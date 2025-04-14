@@ -654,6 +654,7 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
 
   private static int mapSQLStateToXAErrorCode(SQLException sqlException) {
     if (isPostgreSQLIntegrityConstraintViolation(sqlException)) {
+      committedOrRolledBack = true;
       return XAException.XA_RBINTEGRITY;
     }
 
