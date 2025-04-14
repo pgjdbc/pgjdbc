@@ -361,7 +361,7 @@ jobs:
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
     - name: 'Upload code coverage'
-      uses: codecov/codecov-action@3440e5ef70c638a9f44602a80ab017feee1309fe
+      uses: codecov/codecov-action@f95a404f9265da16dee374e6e9dcb76d3eee88b1
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
 
@@ -412,6 +412,6 @@ jobs:
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !replication
     - name: 'Upload code coverage'
-      uses: codecov/codecov-action@3440e5ef70c638a9f44602a80ab017feee1309fe
+      uses: codecov/codecov-action@f95a404f9265da16dee374e6e9dcb76d3eee88b1
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
