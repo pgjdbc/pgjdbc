@@ -881,9 +881,12 @@ class StatementTest {
     executor.shutdownNow();
   }
 
-  @Test
-  @Timeout(10)
-  void closeInProgressStatement() throws Exception {
+  /*
+  We are going to use this test to test version 3.2 since the only change in 3.2 is the width of the
+  cancel key. We need a test that does a cancel. We call this below once without changing the
+  protocol version and once with protocol version 3.2
+   */
+  private void closePrivateInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     final Connection outerLockCon = TestUtil.openDB();
     outerLockCon.setAutoCommit(false);
@@ -942,66 +945,19 @@ class StatementTest {
 
   @Test
   @Timeout(10)
+  void closeInProgressStatement() throws Exception {
+    closePrivateInProgressStatement();
+  }
+
+  @Test
+  @Timeout(10)
   void closeInProgressStatementProtocol32() throws Exception {
     Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v11));
     Properties props = new Properties();
     con.close();
     PGProperty.PROTOCOL_VERSION.set(props, "3.2");
     con = TestUtil.openDB(props);
-    ExecutorService executor = Executors.newSingleThreadExecutor();
-    final Connection outerLockCon = TestUtil.openDB();
-    outerLockCon.setAutoCommit(false);
-    //Acquire an exclusive lock so we can block the notice generating statement
-    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
-
-    try {
-      con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
-      con.createStatement()
-          .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
-              + "$BODY$ "
-              + "BEGIN "
-              + "RAISE NOTICE 'start';"
-              + "LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;"
-              + "END "
-              + "$BODY$ "
-              + "LANGUAGE plpgsql;");
-      int cancels = 0;
-      for (int i = 0; i < 100; i++) {
-        final Statement st = con.createStatement();
-        executor.submit(new Callable<Void>() {
-          @Override
-          public Void call() throws Exception {
-            long start = System.nanoTime();
-            while (st.getWarnings() == null) {
-              long dt = System.nanoTime() - start;
-              if (dt > TimeUnit.SECONDS.toNanos(10)) {
-                throw new IllegalStateException("Expected to receive a notice within 10 seconds");
-              }
-            }
-            st.close();
-            return null;
-          }
-        });
-        st.setQueryTimeout(120);
-        try {
-          st.execute("select notify_then_sleep()");
-        } catch (SQLException e) {
-          assertEquals(
-              PSQLState.QUERY_CANCELED.getState(),
-              e.getSQLState(),
-              "Query is expected to be cancelled via st.close(), got " + e.getMessage()
-          );
-          cancels++;
-          break;
-        } finally {
-          TestUtil.closeQuietly(st);
-        }
-      }
-      assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
-    } finally {
-      executor.shutdown();
-      TestUtil.closeQuietly(outerLockCon);
-    }
+    closePrivateInProgressStatement();
   }
 
   @Test
