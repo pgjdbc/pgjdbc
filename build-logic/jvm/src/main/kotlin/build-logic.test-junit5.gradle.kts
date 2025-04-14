@@ -15,7 +15,7 @@ dependencies {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:2.1.7")
         // system-stubs-jupiter might come with an outdated byte-buddy version, so we mention
         // the latest one so it would be updated by the bots even if system-stubs-jupiter does not update
-        testImplementation(platform("net.bytebuddy:byte-buddy-parent:1.17.4"))
+        testImplementation(platform("net.bytebuddy:byte-buddy-parent:1.17.5"))
     } else {
         testImplementation("uk.org.webcompere:system-stubs-jupiter:1.2.1") // renovate:ignore
     }
