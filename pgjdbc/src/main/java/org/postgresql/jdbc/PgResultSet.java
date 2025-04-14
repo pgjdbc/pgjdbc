@@ -247,6 +247,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       case Types.TIME:
         return getTime(columnIndex);
       case Types.TIMESTAMP:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
         return getTimestamp(columnIndex, null);
       case Types.BINARY:
       case Types.VARBINARY:
