@@ -11,6 +11,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
@@ -681,7 +682,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-    pgStream.sendInteger2(protocolMajor); // protocol major
+      pgStream.sendInteger2(protocolMajor); // protocol major
     pgStream.sendInteger2(protocolMinor); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);
@@ -689,6 +690,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     pgStream.sendChar(0);
+    pgStream.setProtocolVersion(new ProtocolVersion(protocolMajor, protocolMinor));
     pgStream.flush();
   }
 
@@ -718,7 +720,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             for (int i = 0; i < numOptionsNotRecognized; i++) {
               optionsNotRecognized[i] = pgStream.receiveString();
             }
-            pgStream.setProtocol(protocol);
+            pgStream.setProtocolVersion(new ProtocolVersion(protocol));
             break;
           case 'E':
             // An error occurred, so pass the error message to the

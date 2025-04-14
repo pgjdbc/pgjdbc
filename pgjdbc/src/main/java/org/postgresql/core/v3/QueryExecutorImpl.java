@@ -23,6 +23,7 @@ import org.postgresql.core.PGBindException;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
@@ -177,16 +178,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public int getProtocolVersion() {
-    return getProtocolMajorVersion();
-  }
-
-  public int getProtocolMajorVersion() {
-    return (protocol >> 16) & 0xFF;
-  }
-
-  public int getProtocolMinorVersion() {
-    return protocol & 0xFF;
+  public ProtocolVersion getProtocolVersion() {
+    return protocolVersion;
   }
 
   /**
@@ -2836,8 +2829,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int msgLen = pgStream.receiveInteger4();
           int pid = pgStream.receiveInteger4();
           int keyLen = msgLen - 8;
-          byte[] ckey = new byte[keyLen];
-          if ( getProtocolMajorVersion() == 3 && getProtocolMinorVersion() == 0 ) {
+          byte[] ckey;
+          if ( protocolVersion.checkVersion(3,0)  ) {
             if (msgLen != 12) {
               throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                   PSQLState.PROTOCOL_VIOLATION);

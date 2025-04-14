@@ -41,9 +41,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final String database;
   private final int cancelSignalTimeout;
 
-  protected int protocol;
+  protected ProtocolVersion protocolVersion;
   private int cancelPid;
-  private byte[] cancelKey = new byte[0];
+  private @Nullable byte[] cancelKey = null;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
@@ -76,7 +76,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
-    this.protocol = pgStream.getProtocol();
+    this.protocolVersion = pgStream.getProtocolVersion();
     this.user = PGProperty.USER.getOrDefault(info);
     this.database = PGProperty.PG_DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
