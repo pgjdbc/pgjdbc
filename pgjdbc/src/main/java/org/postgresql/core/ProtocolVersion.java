@@ -50,4 +50,15 @@ public class ProtocolVersion {
   public int hashCode() {
     return Objects.hash(major, minor);
   }
+
+  /**
+   * Protocol version 3.0
+   */
+  public static final ProtocolVersion V_3_0 = new ProtocolVersion(3, 0);
+
+  /**
+   * Protocol version 3.2
+   */
+    public static final ProtocolVersion V_3_2 = new ProtocolVersion(3, 2);
+
 }

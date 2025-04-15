@@ -24,7 +24,6 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.ProtocolVersion;
-import org.postgresql.core.ProtocolVersions;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
@@ -2831,19 +2830,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           int pid = pgStream.receiveInteger4();
           int keyLen = msgLen - 8;
           byte[] ckey;
-          if (ProtocolVersions.VERSION_3_0.equals(protocolVersion)) {
+          if (ProtocolVersion.V_3_0.equals(protocolVersion)) {
             if (keyLen != 4) {
               throw new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
-                  + " but received {1} bytes. Session setup failed.", ProtocolVersions.VERSION_3_0, keyLen),
+                  + " but received {1} bytes. Session setup failed.", ProtocolVersion.V_3_0, keyLen),
                   PSQLState.PROTOCOL_VIOLATION);
             }
           }
-          if (ProtocolVersions.VERSION_3_2.equals(protocolVersion)) {
+          if (ProtocolVersion.V_3_2.equals(protocolVersion)) {
             if (keyLen > 256) {
               throw new PSQLException(GT.tr(
                   "Protocol error. Cancel Key cannot be greater than 256 for protocol version {0},"
                       + " but received {1} bytes. Session setup failed.",
-                  ProtocolVersions.VERSION_3_2, keyLen),
+                  ProtocolVersion.V_3_2, keyLen),
                   PSQLState.PROTOCOL_VIOLATION);
             }
           }
