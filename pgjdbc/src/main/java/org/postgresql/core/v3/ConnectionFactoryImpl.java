@@ -52,7 +52,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -390,7 +389,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     paramList.add(new StartupParam("database", database));
     paramList.add(new StartupParam("client_encoding", "UTF8"));
     paramList.add(new StartupParam("DateStyle", "ISO"));
-    paramList.add(new StartupParam("TimeZone", createPostgresTimeZone()));
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
@@ -426,37 +424,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     rec.setParameters(params);
     rec.setThrown(thrown);
     LOGGER.log(rec);
-  }
-
-  /**
-   * Convert Java time zone to postgres time zone. All others stay the same except that GMT+nn
-   * changes to GMT-nn and vise versa.
-   * If you provide GMT+/-nn postgres uses POSIX rules which has a positive sign for west of Greenwich
-   * JAVA uses ISO rules which the positive sign is east of Greenwich
-   * To make matters more interesting postgres will always report in ISO
-   *
-   * @return The current JVM time zone in postgresql format.
-   */
-  private static String createPostgresTimeZone() {
-    String tz = TimeZone.getDefault().getID();
-    if (tz.length() <= 3 || !tz.startsWith("GMT")) {
-      return tz;
-    }
-    char sign = tz.charAt(3);
-    String start;
-    switch (sign) {
-      case '+':
-        start = "GMT-";
-        break;
-      case '-':
-        start = "GMT+";
-        break;
-      default:
-        // unknown type
-        return tz;
-    }
-
-    return start + tz.substring(4);
   }
 
   private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
