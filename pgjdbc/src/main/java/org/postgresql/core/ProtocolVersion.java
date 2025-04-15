@@ -59,6 +59,6 @@ public class ProtocolVersion {
   /**
    * Protocol version 3.2
    */
-    public static final ProtocolVersion V_3_2 = new ProtocolVersion(3, 2);
+  public static final ProtocolVersion V_3_2 = new ProtocolVersion(3, 2);
 
 }

@@ -201,11 +201,11 @@ public abstract class QueryExecutorBase implements QueryExecutor {
         cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       // send the length including self
-      cancelStream.sendInteger4(castNonNull(cancelKey).length + 12);
+      cancelStream.sendInteger4(castNonNull(castNonNull(cancelKey)).length + 12);
       cancelStream.sendInteger2(1234);
       cancelStream.sendInteger2(5678);
       cancelStream.sendInteger4(cancelPid);
-      cancelStream.send(cancelKey);
+      cancelStream.send(castNonNull(cancelKey));
       cancelStream.flush();
       cancelStream.receiveEOF();
     } catch (IOException e) {
