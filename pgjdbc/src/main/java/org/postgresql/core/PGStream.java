@@ -52,7 +52,7 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
-  private ProtocolVersion protocolVersion = null;
+  private @Nullable ProtocolVersion protocolVersion = null;
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
