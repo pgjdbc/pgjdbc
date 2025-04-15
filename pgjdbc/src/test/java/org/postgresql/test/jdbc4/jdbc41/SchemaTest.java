@@ -155,6 +155,24 @@ class SchemaTest {
   }
 
   @Test
+  void setSchemaList() throws SQLException {
+    conn.setSchema("schema1,schema2");
+    assertEquals("schema1", conn.getSchema());
+    ResultSet searchPath = conn.prepareStatement("SHOW search_path").executeQuery();
+    searchPath.next();
+    assertEquals("schema1, schema2", searchPath.getString(1));
+  }
+
+  @Test
+  void setSchemaListWithSpecialChars() throws SQLException {
+    conn.setSchema("schema \"4, schema '5, UpperCase");
+    assertEquals("schema \"4", conn.getSchema());
+    ResultSet searchPath = conn.prepareStatement("SHOW search_path").executeQuery();
+    searchPath.next();
+    assertEquals("\"schema \"\"4\", \"schema '5\", \"UpperCase\"", searchPath.getString(1));
+  }
+
+  @Test
   void schemaInProperties() throws Exception {
     Properties properties = new Properties();
     properties.setProperty("currentSchema", "schema1");
