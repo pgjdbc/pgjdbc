@@ -806,7 +806,7 @@ public class PGStream implements Closeable, Flushable {
     resultBufferByteCount = 0;
   }
 
-  public ProtocolVersion getProtocolVersion() {
+  public @Nullable ProtocolVersion getProtocolVersion() {
     return protocolVersion;
   }
 

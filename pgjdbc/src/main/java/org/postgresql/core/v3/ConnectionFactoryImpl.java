@@ -682,7 +682,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-      pgStream.sendInteger2(protocolMajor); // protocol major
+    pgStream.sendInteger2(protocolMajor); // protocol major
     pgStream.sendInteger2(protocolMinor); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);

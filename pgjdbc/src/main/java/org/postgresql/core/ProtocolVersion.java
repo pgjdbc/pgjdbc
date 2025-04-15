@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2025, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.core;
 
 import java.util.Objects;
@@ -8,11 +13,11 @@ public class ProtocolVersion {
 
   private ProtocolVersion() {
     // not meant to be instantiated
-    major=0;
-    minor=0;
+    major = 0;
+    minor = 0;
   }
 
-  public ProtocolVersion (int major, int minor) {
+  public ProtocolVersion(int major, int minor) {
     this.major = major;
     this.minor = minor;
   }
@@ -24,7 +29,7 @@ public class ProtocolVersion {
 
   @Override
   public String toString() {
-    return ""+major+"."+minor;
+    return "" + major + "." + minor;
   }
 
   @Override
