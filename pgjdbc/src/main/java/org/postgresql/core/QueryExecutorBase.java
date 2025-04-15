@@ -5,6 +5,8 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
@@ -194,12 +196,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
       // Cancel signal is variable since protocol 3.2 so we use cancelKey.length + 12
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, cancelKey.length + 12);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, castNonNull(cancelKey).length + 12);
       if (cancelSignalTimeout > 0) {
         cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       // send the length including self
-      cancelStream.sendInteger4(cancelKey.length + 12);
+      cancelStream.sendInteger4(castNonNull(cancelKey).length + 12);
       cancelStream.sendInteger2(1234);
       cancelStream.sendInteger2(5678);
       cancelStream.sendInteger4(cancelPid);
