@@ -98,6 +98,19 @@ public class ParameterStatusTest extends BaseTest4 {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("9.0")
+  public void expectedApplicationNameWithNullMinVersion() throws Exception {
+    Properties properties = new Properties();
+    properties.remove("assumeMinServerVersion");
+    con = TestUtil.openDB(properties);
+
+    Map<String,String> params = ((PGConnection) con).getParameterStatuses();
+    Assert.assertEquals("Driver Tests", params.get("application_name"));
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
   public void reportUpdatedParameters() throws Exception {
     con = TestUtil.openDB();
 
