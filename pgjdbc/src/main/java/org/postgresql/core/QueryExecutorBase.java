@@ -45,7 +45,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   protected ProtocolVersion protocolVersion;
   private int cancelPid;
-  private byte @Nullable[] cancelKey = null;
+  private byte @Nullable[] cancelKey;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
