@@ -720,7 +720,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             for (int i = 0; i < numOptionsNotRecognized; i++) {
               optionsNotRecognized[i] = pgStream.receiveString();
             }
-            int major = protocol << 16 & 0xff;
+            int major = protocol >> 16 & 0xff;
             int minor = protocol & 0xff;
             pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
             break;
