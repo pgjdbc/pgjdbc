@@ -24,7 +24,7 @@ public enum ProtocolVersion {
   private final int major;
   private final int minor;
 
-  private static ProtocolVersion[] values = values();
+  private static final ProtocolVersion[] values = values();
 
   ProtocolVersion(int major, int minor) {
     this.major = major;
