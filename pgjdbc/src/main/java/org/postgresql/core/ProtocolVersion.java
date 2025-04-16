@@ -5,6 +5,9 @@
 
 package org.postgresql.core;
 
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
+
 import java.sql.SQLException;
 
 /**
@@ -46,8 +49,8 @@ public enum ProtocolVersion {
         return version;
       }
     }
-    throw new SQLException(String.format("Invalid version number major: %d, minor: %d",
-        major, minor));
+    throw new PSQLException(String.format("Invalid version number major: {0}, minor: {1}",
+        major, minor), PSQLState.NOT_IMPLEMENTED);
   }
 
   /**

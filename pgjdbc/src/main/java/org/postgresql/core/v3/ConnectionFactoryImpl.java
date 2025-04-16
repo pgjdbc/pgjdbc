@@ -227,7 +227,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
 
-      sendStartupPacket(newStream, protocolMajor, protocolMinor, paramList);
+      sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
       doAuthentication(newStream, hostSpec.getHost(), user, info);
@@ -656,7 +656,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void sendStartupPacket(PGStream pgStream, int protocolMajor, int protocolMinor, List<StartupParam> params)
+  private static void sendStartupPacket(PGStream pgStream, ProtocolVersion protocolVersion, List<StartupParam> params)
       throws SQLException, IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
@@ -682,19 +682,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-    pgStream.sendInteger2(protocolMajor); // protocol major
-    pgStream.sendInteger2(protocolMinor); // protocol minor
+    pgStream.sendInteger2(protocolVersion.getMajor()); // protocol major
+    pgStream.sendInteger2(protocolVersion.getMinor()); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);
       pgStream.sendChar(0);
     }
 
     pgStream.sendChar(0);
-    pgStream.setProtocolVersion(ProtocolVersion.fromMajorMinor(protocolMajor, protocolMinor));
+    pgStream.setProtocolVersion(protocolVersion);
     pgStream.flush();
   }
 
-  private static int doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -937,7 +937,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
     }
-    return protocol;
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
