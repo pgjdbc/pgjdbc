@@ -716,9 +716,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             pgStream.receiveInteger4();
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
-            String [] optionsNotRecognized = new String[numOptionsNotRecognized];
-            for (int i = 0; i < numOptionsNotRecognized; i++) {
-              optionsNotRecognized[i] = pgStream.receiveString();
+            if (numOptionsNotRecognized > 0) {
+              // do not connect and throw an error
+              String errorMessage = "Protocol error, received invalid options: ";
+              for (int i = 0; i < numOptionsNotRecognized; i++) {
+                errorMessage  += i > 0 ? "" : "," + pgStream.receiveString();
+              }
+              LOGGER.log(Level.FINEST, errorMessage);
+              throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
             }
             int major = protocol >> 16 & 0xff;
             int minor = protocol & 0xff;
