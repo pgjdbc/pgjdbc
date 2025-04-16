@@ -11,7 +11,7 @@ PROJECT_PUSH=@pgjdbc/pgjdbc
 
 build_deps=(
     git
-    java-17-openjdk-devel
+    java-21-openjdk-devel
     python-unversioned-command
 )
 
