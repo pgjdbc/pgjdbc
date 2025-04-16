@@ -729,7 +729,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   @SuppressWarnings("deprecation")
   public ParameterList createFastpathParameters(int count) {
-    return new SimpleParameterList(count, this);
+    return new SimpleParameterList(count, this, true);
   }
 
   private void sendFastpathCall(int fnid, SimpleParameterList params)
