@@ -657,7 +657,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   private static void sendStartupPacket(PGStream pgStream, int protocolMajor, int protocolMinor, List<StartupParam> params)
-      throws IOException {
+      throws SQLException, IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
       for (int i = 0; i < params.size(); i++) {
@@ -690,7 +690,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     pgStream.sendChar(0);
-    pgStream.setProtocolVersion(new ProtocolVersion(protocolMajor, protocolMinor));
+    pgStream.setProtocolVersion(ProtocolVersion.from(protocolMajor, protocolMinor));
     pgStream.flush();
   }
 

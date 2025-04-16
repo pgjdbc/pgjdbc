@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.SQLException;
 import java.util.Objects;
 
 public class ProtocolVersion {
@@ -49,6 +50,32 @@ public class ProtocolVersion {
   @Override
   public int hashCode() {
     return Objects.hash(major, minor);
+  }
+
+  /**
+   * @param major (int): The major version number of the protocol.
+   * @param minor (int): The minor version number of the protocol.
+   * @return A `ProtocolVersion` instance representing the specified protocol version.
+   * @throws SQLException
+   *
+   *      Performs a simple validation check to ensure that only supported protocol versions are used.
+   *      Currently, the PostgreSQL JDBC driver only supports protocol versions 3.0 and 3.2.
+   *      When a supported version is requested, the method returns the corresponding
+   *      pre-defined constant (`V_3_0` or `V_3_2`) rather than creating a new instance,
+   *      following the flyweight pattern.
+   */
+  public static ProtocolVersion from(int major, int minor) throws SQLException {
+    // we only support version 3.0 and 3.2
+    if ( major == 3 ) {
+      switch (minor) {
+        case 0:
+          return V_3_0;
+        case 2:
+          return V_3_2;
+      }
+    }
+    throw new SQLException(String.format("Invalid version number major: %d, minor: %d",
+        major, minor));
   }
 
   /**
