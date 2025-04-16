@@ -17,6 +17,7 @@ public abstract class AbstractStreamBuilder<T extends ChainedCommonStreamBuilder
   protected int statusIntervalMs = DEFAULT_STATUS_INTERVAL;
   protected LogSequenceNumber startPosition = LogSequenceNumber.INVALID_LSN;
   protected @Nullable String slotName;
+  protected boolean automaticFlush = true;
 
   protected abstract T self();
 
@@ -35,6 +36,11 @@ public abstract class AbstractStreamBuilder<T extends ChainedCommonStreamBuilder
   @Override
   public T withSlotName(String slotName) {
     this.slotName = slotName;
+    return self();
+  }
+
+  public T withAutomaticFlush(boolean automaticFlush) {
+    this.automaticFlush = automaticFlush;
     return self();
   }
 }
