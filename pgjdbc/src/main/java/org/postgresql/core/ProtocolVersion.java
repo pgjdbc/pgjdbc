@@ -24,6 +24,8 @@ public enum ProtocolVersion {
   private final int major;
   private final int minor;
 
+  private static ProtocolVersion[] values = values();
+
   ProtocolVersion(int major, int minor) {
     this.major = major;
     this.minor = minor;
@@ -39,7 +41,7 @@ public enum ProtocolVersion {
    *      Currently, the PostgreSQL JDBC driver only supports protocol versions 3.0 and 3.2.
    */
   public static ProtocolVersion fromMajorMinor(int major, int minor) throws SQLException {
-    for (ProtocolVersion version : values()) {
+    for (ProtocolVersion version : values) {
       if (version.major == major && version.minor == minor) {
         return version;
       }
