@@ -264,10 +264,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         oid = Oid.DATE;
         break;
       case Types.TIME:
+        oid = Oid.TIME;
+        break;
       case Types.TIME_WITH_TIMEZONE:
+        oid = Oid.TIMETZ;
+        break;
       case Types.TIMESTAMP_WITH_TIMEZONE:
+        oid = Oid.TIMESTAMPTZ;
+        break;
       case Types.TIMESTAMP:
-        oid = Oid.UNSPECIFIED;
+        oid = Oid.TIMESTAMP;
         break;
       case Types.BOOLEAN:
       case Types.BIT:
@@ -1464,7 +1470,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     checkClosed();
 
     if (t == null) {
-      setNull(i, Types.TIMESTAMP);
+      if (connection.isSqlTimestamptzAlways()) {
+        setNull(i, Types.TIMESTAMP_WITH_TIMEZONE);
+      } else {
+        setNull(i, Types.TIMESTAMP);
+      }
       return;
     }
 
@@ -1512,6 +1522,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
     if (cal == null) {
       cal = getDefaultCalendar();
+    }
+
+    if (connection.isSqlTimestamptzAlways()) {
+      oid = Oid.TIMESTAMPTZ;
     }
     bindString(i, getTimestampUtils().toString(cal, t), oid);
   }
