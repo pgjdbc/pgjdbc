@@ -139,7 +139,7 @@ class ParserTest {
 
   @Test
   void modifyJdbcCall() throws SQLException {
-    ProtocolVersion protocolVersion = new ProtocolVersion(3,0);
+    ProtocolVersion protocolVersion = ProtocolVersion.fromMajorMinor(3,0);
     assertEquals("select * from pack_getValue(?) as result", Parser.modifyJdbcCall("{ ? = call pack_getValue}", true, ServerVersion.v9_6.getVersionNum(),
         EscapeSyntaxCallMode.SELECT).getSql());
     assertEquals("select * from pack_getValue(?,?)  as result", Parser.modifyJdbcCall("{ ? = call pack_getValue(?) }", true, ServerVersion.v9_6.getVersionNum(),

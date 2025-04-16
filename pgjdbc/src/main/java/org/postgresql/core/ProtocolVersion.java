@@ -14,14 +14,19 @@ public class ProtocolVersion {
   private final int major;
   private final int minor;
 
-  public ProtocolVersion(int major, int minor) {
+  /**
+   * Protocol version 3.0
+   */
+  public static final ProtocolVersion v3_0 = new ProtocolVersion(3, 0);
+
+  /**
+   * Protocol version 3.2
+   */
+  public static final ProtocolVersion v3_2 = new ProtocolVersion(3, 2);
+
+  private ProtocolVersion(int major, int minor) {
     this.major = major;
     this.minor = minor;
-  }
-
-  public ProtocolVersion(int protocol) {
-    this.minor = protocol & 0xff;
-    this.major = (protocol >> 16 ) & 0xff;
   }
 
   @Override
@@ -58,28 +63,17 @@ public class ProtocolVersion {
    *      pre-defined constant (`V_3_0` or `V_3_2`) rather than creating a new instance,
    *      following the flyweight pattern.
    */
-  public static ProtocolVersion from(int major, int minor) throws SQLException {
+  public static ProtocolVersion fromMajorMinor(int major, int minor) throws SQLException {
     // we only support version 3.0 and 3.2
     if ( major == 3 ) {
       switch (minor) {
         case 0:
-          return V_3_0;
+          return v3_0;
         case 2:
-          return V_3_2;
+          return v3_2;
       }
     }
     throw new SQLException(String.format("Invalid version number major: %d, minor: %d",
         major, minor));
   }
-
-  /**
-   * Protocol version 3.0
-   */
-  public static final ProtocolVersion V_3_0 = new ProtocolVersion(3, 0);
-
-  /**
-   * Protocol version 3.2
-   */
-  public static final ProtocolVersion V_3_2 = new ProtocolVersion(3, 2);
-
 }

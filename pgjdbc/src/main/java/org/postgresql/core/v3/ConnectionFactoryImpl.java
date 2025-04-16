@@ -690,7 +690,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
 
     pgStream.sendChar(0);
-    pgStream.setProtocolVersion(ProtocolVersion.from(protocolMajor, protocolMinor));
+    pgStream.setProtocolVersion(ProtocolVersion.fromMajorMinor(protocolMajor, protocolMinor));
     pgStream.flush();
   }
 
@@ -720,7 +720,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             for (int i = 0; i < numOptionsNotRecognized; i++) {
               optionsNotRecognized[i] = pgStream.receiveString();
             }
-            pgStream.setProtocolVersion(new ProtocolVersion(protocol));
+            int major = protocol << 16 & 0xff;
+            int minor = protocol & 0xff;
+            pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
             break;
           case 'E':
             // An error occurred, so pass the error message to the
