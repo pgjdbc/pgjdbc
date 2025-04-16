@@ -1030,13 +1030,12 @@ public class Parser {
    * @param jdbcSql              sql text with JDBC escapes
    * @param stdStrings           if backslash in single quotes should be regular character or escape one
    * @param serverVersion        server version
-   * @param protocolVersion      protocol version
    * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
    * @throws SQLException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, ProtocolVersion protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+      int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.

@@ -14,12 +14,6 @@ public class ProtocolVersion {
   private final int major;
   private final int minor;
 
-  private ProtocolVersion() {
-    // not meant to be instantiated
-    major = 0;
-    minor = 0;
-  }
-
   public ProtocolVersion(int major, int minor) {
     this.major = major;
     this.minor = minor;
