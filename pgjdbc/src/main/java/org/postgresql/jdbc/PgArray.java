@@ -26,8 +26,10 @@ import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Array is used collect one column of query result data.
@@ -504,5 +506,36 @@ public class PgArray implements Array {
     fieldString = null;
     fieldBytes = null;
     arrayList = null;
+  }
+
+  @Override
+  public boolean equals(@Nullable Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null || getClass() != obj.getClass()) {
+      return false;
+    }
+
+    PgArray other = (PgArray) obj;
+    if (oid != other.oid) {
+      return false;
+    }
+    if (fieldString == null) {
+      if (other.fieldString != null) {
+        return false;
+      }
+    } else if (!fieldString.equals(other.fieldString)) {
+      return false;
+    }
+    if (!java.util.Arrays.equals(fieldBytes, other.fieldBytes)) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(oid, fieldString, Arrays.hashCode(fieldBytes));
   }
 }
