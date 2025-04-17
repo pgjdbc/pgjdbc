@@ -23,6 +23,7 @@ import org.postgresql.core.PGBindException;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.QueryExecutorBase;
@@ -177,8 +178,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
-  public int getProtocolVersion() {
-    return 3;
+  public ProtocolVersion getProtocolVersion() {
+    return protocolVersion;
   }
 
   /**
@@ -2826,13 +2827,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case 'K':
           // BackendKeyData
           int msgLen = pgStream.receiveInteger4();
-          if (msgLen != 12) {
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
-          }
-
           int pid = pgStream.receiveInteger4();
-          int ckey = pgStream.receiveInteger4();
+          int keyLen = msgLen - 8;
+          byte[] ckey;
+          if (ProtocolVersion.v3_0.equals(protocolVersion)) {
+            if (keyLen != 4) {
+              throw new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
+                  + " but received {1} bytes. Session setup failed.", ProtocolVersion.v3_0, keyLen),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+          }
+          if (ProtocolVersion.v3_2.equals(protocolVersion)) {
+            if (keyLen > 256) {
+              throw new PSQLException(GT.tr(
+                  "Protocol error. Cancel Key cannot be greater than 256 for protocol version {0},"
+                      + " but received {1} bytes. Session setup failed.",
+                  ProtocolVersion.v3_2, keyLen),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
+          }
+          ckey = pgStream.receive(keyLen);
 
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, " <=BE BackendKeyData(pid={0},ckey={1})", new Object[]{pid, ckey});

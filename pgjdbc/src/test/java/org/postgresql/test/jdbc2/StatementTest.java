@@ -24,6 +24,7 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -880,9 +881,12 @@ class StatementTest {
     executor.shutdownNow();
   }
 
-  @Test
-  @Timeout(10)
-  void closeInProgressStatement() throws Exception {
+  /*
+  We are going to use this test to test version 3.2 since the only change in 3.2 is the width of the
+  cancel key. We need a test that does a cancel. We call this below once without changing the
+  protocol version and once with protocol version 3.2
+   */
+  private void closePrivateInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     final Connection outerLockCon = TestUtil.openDB();
     outerLockCon.setAutoCommit(false);
@@ -937,6 +941,23 @@ class StatementTest {
       executor.shutdown();
       TestUtil.closeQuietly(outerLockCon);
     }
+  }
+
+  @Test
+  @Timeout(10)
+  void closeInProgressStatement() throws Exception {
+    closePrivateInProgressStatement();
+  }
+
+  @Test
+  @Timeout(10)
+  void closeInProgressStatementProtocol32() throws Exception {
+    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v11));
+    Properties props = new Properties();
+    con.close();
+    PGProperty.PROTOCOL_VERSION.set(props, "3.2");
+    con = TestUtil.openDB(props);
+    closePrivateInProgressStatement();
   }
 
   @Test

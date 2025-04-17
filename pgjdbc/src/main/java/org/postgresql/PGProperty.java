@@ -511,7 +511,7 @@ public enum PGProperty {
    */
   PROTOCOL_VERSION(
       "protocolVersion",
-      null,
+      "3",
       "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
       false,
       new String[]{"3"}),

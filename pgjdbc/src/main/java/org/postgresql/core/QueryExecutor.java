@@ -334,7 +334,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   /**
    * @return the version of the implementation
    */
-  int getProtocolVersion();
+  ProtocolVersion getProtocolVersion();
 
   /**
    * Adds a single oid that should be received using binary encoding.
