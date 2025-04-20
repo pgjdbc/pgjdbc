@@ -52,6 +52,7 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
+  private @Nullable ProtocolVersion protocolVersion;
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
@@ -803,6 +804,14 @@ public class PGStream implements Closeable, Flushable {
    */
   public void clearResultBufferCount() {
     resultBufferByteCount = 0;
+  }
+
+  public @Nullable ProtocolVersion getProtocolVersion() {
+    return protocolVersion;
+  }
+
+  public void setProtocolVersion(ProtocolVersion protocolVersion) {
+    this.protocolVersion = protocolVersion;
   }
 
   /**

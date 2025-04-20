@@ -11,6 +11,7 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
@@ -211,7 +212,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
 
       List<StartupParam> paramList = getParametersForStartup(user, database, info);
-      sendStartupPacket(newStream, paramList);
+      String protocolVersion = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
+      int protocolMajor = 3;
+      int protocolMinor = 0;
+
+      if (protocolVersion != null) {
+        int decimal = protocolVersion.indexOf('.');
+        if (decimal == -1) {
+          protocolMinor = Integer.parseInt(protocolVersion);
+          protocolMinor = 0;
+        } else {
+          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
+          protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+        }
+      }
+
+      sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
       doAuthentication(newStream, hostSpec.getHost(), user, info);
@@ -412,7 +428,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (options != null) {
       paramList.add(new StartupParam("options", options));
     }
-
     return paramList;
   }
 
@@ -641,8 +656,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
-      throws IOException {
+  private static void sendStartupPacket(PGStream pgStream, ProtocolVersion protocolVersion, List<StartupParam> params)
+      throws SQLException, IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
       for (int i = 0; i < params.size(); i++) {
@@ -667,14 +682,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-    pgStream.sendInteger2(3); // protocol major
-    pgStream.sendInteger2(0); // protocol minor
+    pgStream.sendInteger2(protocolVersion.getMajor()); // protocol major
+    pgStream.sendInteger2(protocolVersion.getMinor()); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);
       pgStream.sendChar(0);
     }
 
     pgStream.sendChar(0);
+    pgStream.setProtocolVersion(protocolVersion);
     pgStream.flush();
   }
 
@@ -687,12 +703,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+    // TODO: figure out how to deal with new protocols
+    int protocol = 3 << 16;
 
     try {
       authloop: while (true) {
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
+          case 'v':  // Negotiate Protocol Version
+            // read the length and ignore it.
+            pgStream.receiveInteger4();
+            protocol = pgStream.receiveInteger4();
+            int numOptionsNotRecognized = pgStream.receiveInteger4();
+            if (numOptionsNotRecognized > 0) {
+              // do not connect and throw an error
+              String errorMessage = "Protocol error, received invalid options: ";
+              for (int i = 0; i < numOptionsNotRecognized; i++) {
+                errorMessage  += i > 0 ? "" : "," + pgStream.receiveString();
+              }
+              LOGGER.log(Level.FINEST, errorMessage);
+              throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
+            }
+            int major = protocol >> 16 & 0xff;
+            int minor = protocol & 0xff;
+            pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
+            break;
           case 'E':
             // An error occurred, so pass the error message to the
             // user.
@@ -899,10 +935,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (RuntimeException ex) {
           LOGGER.log(Level.FINE, "Unexpected error during SSPI context disposal", ex);
         }
-
       }
     }
-
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)

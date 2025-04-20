@@ -17,6 +17,7 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -1292,7 +1293,7 @@ public class PgConnection implements BaseConnection {
     return LOGGER;
   }
 
-  public int getProtocolVersion() {
+  public ProtocolVersion getProtocolVersion() {
     return queryExecutor.getProtocolVersion();
   }
 
