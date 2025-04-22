@@ -2078,8 +2078,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         for (Map.Entry<String, List<@Nullable String[]>> userToGrantable : grantees.entrySet()) {
           List<@Nullable String[]> grantor = userToGrantable.getValue();
           String grantee = userToGrantable.getKey();
-          for (@Nullable
-          String[] grants : grantor) {
+          for (@Nullable String[] grants : grantor) {
             String grantable = owner.equals(grantee) ? "YES" : grants[1];
             byte[] @Nullable [] tuple = new byte[8][];
             tuple[0] = catalogName;
@@ -2157,8 +2156,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         for (Map.Entry<String, List<@Nullable String[]>> userToGrantable : grantees.entrySet()) {
           List<@Nullable String[]> grants = userToGrantable.getValue();
           String granteeUser = userToGrantable.getKey();
-          for (@Nullable
-          String[] grantTuple : grants) {
+          for (@Nullable String[] grantTuple : grants) {
             // report the owner as grantor if it's missing
             String grantor = grantTuple[0] == null ? owner : grantTuple[0];
             // owner always has grant privileges
