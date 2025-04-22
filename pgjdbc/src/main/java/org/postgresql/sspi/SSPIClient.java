@@ -9,6 +9,7 @@ package org.postgresql.sspi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -254,7 +255,7 @@ public class SSPIClient implements ISSPIClient {
      * 'password' message containing the required data; the server knows we're doing SSPI
      * negotiation and will deal with it appropriately.
      */
-    pgStream.sendChar('p');
+    pgStream.sendChar(PgMessageType.PASSWORD);
     pgStream.sendInteger4(4 + outToken.length);
     pgStream.send(outToken);
     pgStream.flush();
