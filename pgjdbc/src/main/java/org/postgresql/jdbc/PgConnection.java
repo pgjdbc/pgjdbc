@@ -1551,7 +1551,7 @@ public class PgConnection implements BaseConnection {
           }
         } else {
           try (Statement checkConnectionQuery = createStatement()) {
-            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+            ((PgStatement)checkConnectionQuery).executeWithFlags("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
           }
         }
         return true;

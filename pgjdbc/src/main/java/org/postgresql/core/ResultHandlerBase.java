@@ -34,6 +34,21 @@ public class ResultHandlerBase implements ResultHandler {
   }
 
   @Override
+  public void handleResultRow(Tuple tuple){
+
+  }
+
+  @Override
+  public boolean handleEndOfResults() {
+    return false;
+  }
+
+  @Override
+  public void handleFields(Query fromQuery, Field[] fields, @Nullable  ResultCursor cursor) {
+
+  }
+
+  @Override
   public void handleCommandStatus(String status, long updateCount, long insertOID) {
   }
 

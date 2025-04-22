@@ -29,6 +29,7 @@ import org.checkerframework.checker.lock.qual.GuardedBy;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -39,10 +40,13 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.logging.Logger;
 
 public class PgStatement implements Statement, BaseStatement {
+  private static final Logger LOGGER = Logger.getLogger(PgStatement.class.getName());
   private static final String[] NO_RETURNING_COLUMNS = new String[0];
 
   /**
@@ -197,6 +201,16 @@ public class PgStatement implements Statement, BaseStatement {
     return newResult;
   }
 
+  public PgResultSet createResultSet(@Nullable Query originalQuery, Field[] fields,
+      @Nullable ResultCursor cursor) throws SQLException {
+    PgResultSet newResult = new PgResultSet(originalQuery, this, fields, cursor,
+        getMaxRows(), getMaxFieldSize(), getResultSetType(), getResultSetConcurrency(),
+        getResultSetHoldability(), getAdaptiveFetch());
+    newResult.setFetchSize(getFetchSize());
+    newResult.setFetchDirection(getFetchDirection());
+    return newResult;
+  }
+
   public BaseConnection getPGConnection() {
     return connection;
   }
@@ -223,19 +237,81 @@ public class PgStatement implements Statement, BaseStatement {
    * ResultHandler implementations for updates, queries, and either-or.
    */
   public class StatementResultHandler extends ResultHandlerBase {
+    private AtomicBoolean hasResultSet = new AtomicBoolean(false);
+    private PgResultSet pgResultSet;
     private @Nullable ResultWrapper results;
     private @Nullable ResultWrapper lastResult;
+    private boolean wantsResults;
 
-    @Nullable ResultWrapper getResults() {
+    StatementResultHandler() {
+      wantsResults = false;
+
+    }
+
+    StatementResultHandler(boolean wantsResults) {
+      this.wantsResults = wantsResults;
+    }
+
+    @Nullable ResultWrapper getResults() throws SQLException {
+      while (hasResultSet.get() == false) {
+        try {
+          Thread.sleep(2);
+        } catch (InterruptedException e) {
+          return null;
+        }
+      }
+      SQLException sqlException  = getException();
+      if (sqlException != null) {
+        throw sqlException;
+      }
+      LOGGER.finest(() -> String.format("Get Results is null %b wants results %b", results == null, wantsResults));
       return results;
     }
 
     private void append(ResultWrapper newResult) {
       if (results == null) {
+        LOGGER.finest(() -> String.format("Append result newResult is null %b", newResult == null ));
         lastResult = results = newResult;
       } else {
         castNonNull(lastResult).append(newResult);
       }
+    }
+
+    @Override
+    public void handleFields(Query fromQuery, Field[] fields, @Nullable ResultCursor cursor) {
+      try {
+        pgResultSet = PgStatement.this.createResultSet(fromQuery, fields, cursor);
+        append(new ResultWrapper(pgResultSet));
+      } catch (SQLException e) {
+        handleError(e);
+      }
+
+    }
+
+    @Override
+    public void handleResultRow(Tuple t) {
+      pgResultSet.rows.add(t);
+      if (!hasResultSet.get()) {
+        lastResult = results = new ResultWrapper(pgResultSet);
+      }
+      /*
+      wait until we have at least one row
+       */
+      hasResultSet.set(true);
+      LOGGER.finest(() -> String.format("Handle Result Row hasResultSet is %b", hasResultSet.get() ));
+    }
+
+    @Override
+    public boolean handleEndOfResults() {
+      // TODO: currently a hack, not sure handleEndOfResults is being used correctly
+      hasResultSet.set(true);
+
+      if (pgResultSet == null) {
+        return false;
+      }
+      pgResultSet.setEndOfResults();
+
+      return true;
     }
 
     @Override
@@ -251,7 +327,13 @@ public class PgStatement implements Statement, BaseStatement {
 
     @Override
     public void handleCommandStatus(String status, long updateCount, long insertOID) {
-      append(new ResultWrapper(updateCount, insertOID));
+      if (wantsResults) {
+        append(new ResultWrapper(updateCount, insertOID));
+      } else {
+        LOGGER.finest(() -> String.format("handle command status: %s, count %d", status, updateCount));
+        results = new ResultWrapper(updateCount, insertOID);
+        hasResultSet.set(true);
+      }
     }
 
     @Override
@@ -259,6 +341,11 @@ public class PgStatement implements Statement, BaseStatement {
       PgStatement.this.addWarning(warning);
     }
 
+    @Override
+    public void handleError(SQLException e) {
+      this.handleError(e);
+      hasResultSet.set(true);
+    }
   }
 
   @Override
@@ -356,7 +443,9 @@ public class PgStatement implements Statement, BaseStatement {
     }
     execute(simpleQuery, null, flags);
     try (ResourceLock ignore = lock.obtain()) {
+      final boolean wantsResult = (flags & QueryExecutor.QUERY_NO_RESULTS) != QueryExecutor.QUERY_NO_RESULTS;
       checkClosed();
+      LOGGER.finest(() -> String.format("Execute Flags: wants: %b result is null %b, getResultSet is null: %b", wantsResult, result == null, (result != null && result.getResultSet() != null)));
       return result != null && result.getResultSet() != null;
     }
   }
@@ -500,7 +589,7 @@ public class PgStatement implements Statement, BaseStatement {
       // When binaryTransfer is forced, then we need to know resulting parameter and column types,
       // thus sending a describe request.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      StatementResultHandler handler2 = new StatementResultHandler();
+      StatementResultHandler handler2 = new StatementResultHandler(true);
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
           flags2);
       ResultWrapper result2 = handler2.getResults();
@@ -509,7 +598,7 @@ public class PgStatement implements Statement, BaseStatement {
       }
     }
 
-    StatementResultHandler handler = new StatementResultHandler();
+    StatementResultHandler handler = new StatementResultHandler((flags & QueryExecutor.QUERY_NO_RESULTS) != QueryExecutor.QUERY_NO_RESULTS);
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
     }
@@ -524,8 +613,13 @@ public class PgStatement implements Statement, BaseStatement {
       checkClosed();
 
       ResultWrapper currentResult = handler.getResults();
+      if (currentResult == null) {
+        LOGGER.finest("After get results currentResult is null ");
+      } else {
+        LOGGER.finest(
+            () -> String.format("After get %b if there are results ", currentResult.getResultSet() != null));
+      }
       result = firstUnclosedResult = currentResult;
-
       if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
         generatedKeys = currentResult;
         result = castNonNull(currentResult, "handler.getResults()").getNext();
@@ -1273,7 +1367,7 @@ public class PgStatement implements Statement, BaseStatement {
 
       wantsGeneratedKeysOnce = true;
       if (!executeCachedSql(sql, 0, columnNames)) {
-        // no resultset returned. What's a pity!
+        // no resultset returned. What a pity!
       }
       return getUpdateCount();
     }
