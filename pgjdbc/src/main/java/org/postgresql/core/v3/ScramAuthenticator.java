@@ -6,6 +6,7 @@
 package org.postgresql.core.v3;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -185,7 +186,7 @@ final class ScramAuthenticator {
 
   private void sendAuthenticationMessage(int bodyLength, BodySender bodySender)
       throws IOException {
-    pgStream.sendChar('p');
+    pgStream.sendChar(PgMessageType.SASL_INITIAL_RESPONSE);
     pgStream.sendInteger4(Integer.BYTES + bodyLength);
     bodySender.sendBody(pgStream);
     pgStream.flush();
