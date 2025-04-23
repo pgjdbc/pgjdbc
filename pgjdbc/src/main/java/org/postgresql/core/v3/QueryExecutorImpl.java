@@ -1418,13 +1418,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           // If the user sends a non-copy query, we've got to handle some additional things.
           //
-        case PgMessageType.ROW_DESCRIPTION: // Row Description (response to Describe)
+          case PgMessageType.ROW_DESCRIPTION: // Row Description (response to Describe)
             LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
             skipMessage();
             break;
 
-        case PgMessageType.DATA_ROW: // DataRow
+          case PgMessageType.DATA_ROW: // DataRow
             LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
             skipMessage();
@@ -2178,7 +2178,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           receiveAsyncNotify();
           break;
 
-      case PgMessageType.PARSE_COMPLETE: // Parse Complete (response to Parse)
+        case PgMessageType.PARSE_COMPLETE: // Parse Complete (response to Parse)
           pgStream.receiveInteger4(); // len, discarded
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
@@ -2818,12 +2818,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     for (int i = 0; i < 1000; i++) {
       int beresp = pgStream.receiveChar();
       switch (beresp) {
-      case PgMessageType.READY_FOR_QUERY:
+        case PgMessageType.READY_FOR_QUERY:
           receiveRFQ();
           // Ready For Query; we're done.
           return;
 
-      case PgMessageType.BACKEND_KEY_DATA:
+        case PgMessageType.BACKEND_KEY_DATA:
           // BackendKeyData
           int msgLen = pgStream.receiveInteger4();
           int pid = pgStream.receiveInteger4();

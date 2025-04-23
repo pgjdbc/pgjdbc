@@ -13,7 +13,7 @@ public class PgMessageType {
   public static final byte QUERY = 'Q';
   public static final byte PARSE = 'P';
   public static final byte CLOSE = 'C';
-  public static final byte PORTAL ='P';
+  public static final byte PORTAL = 'P';
   public static final byte BIND = 'B';
   public static final byte DESCRIBE = 'D';
   public static final byte EXECUTE = 'E';
