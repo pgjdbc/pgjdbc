@@ -1993,8 +1993,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = getCatalogName(catalog);
       byte[] schemaName = rs.getBytes("nspname");
       byte[] tableName = rs.getBytes("relname");
       byte[] column = rs.getBytes("attname");
@@ -2077,8 +2077,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = getCatalogName(catalog);
       byte[] schema = rs.getBytes("nspname");
       byte[] table = rs.getBytes("relname");
       String owner = castNonNull(rs.getString("rolname"));
@@ -3330,8 +3330,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
+    byte[] catalogName = getCatalogName(catalog);
     while (rs.next()) {
-      byte[] catalogName = getCatalogName(catalog);
       byte[] schema = rs.getBytes("nspname");
       byte[] functionName = rs.getBytes("proname");
       byte[] specificName =
