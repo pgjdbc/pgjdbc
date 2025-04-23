@@ -148,28 +148,22 @@ class SchemaTest {
   @Test
   void multipleSearchPath() throws SQLException {
     execute("SET search_path TO schema1,schema2");
-    assertEquals("schema1", conn.getSchema());
+    assertEquals("schema1, schema2", conn.getSchema());
 
     execute("SET search_path TO \"schema ,6\",schema2");
-    assertEquals("schema ,6", conn.getSchema());
+    assertEquals("\"schema ,6\", schema2", conn.getSchema());
   }
 
   @Test
-  void setSchemaList() throws SQLException {
+  void setAndGetSchemaList() throws SQLException {
     conn.setSchema("schema1,schema2");
-    assertEquals("schema1", conn.getSchema());
-    ResultSet searchPath = conn.prepareStatement("SHOW search_path").executeQuery();
-    searchPath.next();
-    assertEquals("schema1, schema2", searchPath.getString(1));
+    assertEquals("schema1, schema2", conn.getSchema());
   }
 
   @Test
   void setSchemaListWithSpecialChars() throws SQLException {
     conn.setSchema("schema \"4, schema '5, UpperCase");
-    assertEquals("schema \"4", conn.getSchema());
-    ResultSet searchPath = conn.prepareStatement("SHOW search_path").executeQuery();
-    searchPath.next();
-    assertEquals("\"schema \"\"4\", \"schema '5\", \"UpperCase\"", searchPath.getString(1));
+    assertEquals("\"schema \"\"4\", \"schema '5\", \"UpperCase\"", conn.getSchema());
   }
 
   @Test
@@ -195,9 +189,10 @@ class SchemaTest {
   }
 
   @Test
-  public void schemaPath$User() throws Exception {
+  void schemaPath$User() throws Exception {
     execute("SET search_path TO \"$user\",public,schema2");
-    assertEquals(TestUtil.getUser(), conn.getSchema());
+    // SHOW search_path does not resolve $user
+    assertEquals("\"$user\", public, schema2", conn.getSchema());
   }
 
   private void execute(String sql) throws SQLException {

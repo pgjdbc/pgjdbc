@@ -1681,7 +1681,8 @@ public class PgConnection implements BaseConnection {
   public @Nullable String getSchema() throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
-      try (ResultSet rs = stmt.executeQuery("select current_schema()")) {
+      // current_schema() only returns the first schema, SHOW search_path returns all schemas on the search path
+      try (ResultSet rs = stmt.executeQuery("SHOW search_path")) {
         if (!rs.next()) {
           return null; // Is it ever possible?
         }
