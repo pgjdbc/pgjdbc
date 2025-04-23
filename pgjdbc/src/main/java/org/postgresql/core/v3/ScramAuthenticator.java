@@ -186,7 +186,7 @@ final class ScramAuthenticator {
 
   private void sendAuthenticationMessage(int bodyLength, BodySender bodySender)
       throws IOException {
-    pgStream.sendChar(PgMessageType.PASSWORD);
+    pgStream.sendChar(PgMessageType.SASL_INITIAL_RESPONSE);
     pgStream.sendInteger4(Integer.BYTES + bodyLength);
     bodySender.sendBody(pgStream);
     pgStream.flush();

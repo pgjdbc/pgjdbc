@@ -88,7 +88,7 @@ public class QueryExecutorCloseAction implements Closeable {
     if (timeout == 0 || timeout > 1000) {
       pgStream.setNetworkTimeout(1000);
     }
-    pgStream.sendChar(PgMessageType.TERMINATE);
+    pgStream.sendChar(PgMessageType.TERMINATE_REQUEST);
     pgStream.sendInteger4(4);
   }
 }

@@ -255,7 +255,7 @@ public class SSPIClient implements ISSPIClient {
      * 'password' message containing the required data; the server knows we're doing SSPI
      * negotiation and will deal with it appropriately.
      */
-    pgStream.sendChar(PgMessageType.PASSWORD);
+    pgStream.sendChar(PgMessageType.SASL_RESPONSE);
     pgStream.sendInteger4(4 + outToken.length);
     pgStream.send(outToken);
     pgStream.flush();

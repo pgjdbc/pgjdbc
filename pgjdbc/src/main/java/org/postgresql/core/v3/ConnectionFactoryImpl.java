@@ -712,7 +712,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
-          case PgMessageType.NEGOTIATE_PROTOCOL:  // Negotiate Protocol Version
+          case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
             // read the length and ignore it.
             pgStream.receiveInteger4();
             protocol = pgStream.receiveInteger4();
@@ -744,7 +744,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
-          case PgMessageType.AUTHENTICATION:
+          case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
             // Get the message length
             int msgLen = pgStream.receiveInteger4();
@@ -771,7 +771,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 try {
-                  pgStream.sendChar(PgMessageType.PASSWORD);
+                  pgStream.sendChar(PgMessageType.PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + digest.length + 1);
                   pgStream.send(digest);
                 } finally {
@@ -788,7 +788,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
                 AuthenticationPluginManager.withEncodedPassword(AuthenticationRequestType.CLEARTEXT_PASSWORD, info, encodedPassword -> {
-                  pgStream.sendChar(PgMessageType.PASSWORD);
+                  pgStream.sendChar(PgMessageType.PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + encodedPassword.length + 1);
                   pgStream.send(encodedPassword);
                   return void.class;

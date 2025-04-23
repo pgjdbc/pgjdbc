@@ -134,7 +134,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
-          pgStream.sendChar(PgMessageType.PASSWORD);
+          pgStream.sendChar(PgMessageType.GSS_TOKEN_REQUEST);
           pgStream.sendInteger4(4 + outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
@@ -152,7 +152,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
               return new PSQLException(errorMsg, logServerErrorDetail);
-            case PgMessageType.AUTHENTICATION:
+            case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
               @SuppressWarnings("unused")

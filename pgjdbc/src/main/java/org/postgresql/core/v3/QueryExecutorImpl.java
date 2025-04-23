@@ -757,7 +757,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
 
-    pgStream.sendChar(PgMessageType.FUNCTION_CALL);
+    pgStream.sendChar(PgMessageType.FUNCTION_CALL_REQ);
     pgStream.sendInteger4(4 + 4 + 2 + 2 * paramCount + 2 + encodedSize + 2);
     pgStream.sendInteger4(fnid);
     pgStream.sendInteger2(paramCount);
@@ -902,7 +902,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           addWarning(warning);
           break;
 
-        case PgMessageType.READY_FOR_QUERY: // eventual response to Sync
+        case PgMessageType.READY_FOR_QUERY_RESPONSE: // eventual response to Sync
           receiveRFQ();
           endQuery = true;
           break;
@@ -922,7 +922,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           break;
 
-        case PgMessageType.PARAMETER_STATUS: // Parameter Status
+        case PgMessageType.PARAMETER_STATUS_RESPONSE: // Parameter Status
           try {
             receiveParameterStatus();
           } catch (SQLException e) {
@@ -974,7 +974,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
-        pgStream.sendChar(PgMessageType.QUERY);
+        pgStream.sendChar(PgMessageType.QUERY_REQUEST);
         pgStream.sendInteger4(buf.length + 4 + 1);
         pgStream.send(buf);
         pgStream.sendChar(0);
@@ -1267,7 +1267,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         //
         if (!block) {
           int c = pgStream.peekChar();
-          if (c == PgMessageType.COMMAND_COMPLETE) {
+          if (c == PgMessageType.COMMAND_COMPLETE_RESPONSE) {
             LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
             break;
           }
@@ -1289,7 +1289,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             addWarning(receiveNoticeResponse());
             break;
 
-          case PgMessageType.COMMAND_COMPLETE: // Command Complete
+          case PgMessageType.COMMAND_COMPLETE_RESPONSE: // Command Complete
 
             String status = receiveCommandStatus();
 
@@ -1397,7 +1397,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // keep receiving since we expect a CommandComplete
             block = true;
             break;
-          case PgMessageType.PARAMETER_STATUS: // Parameter Status
+          case PgMessageType.PARAMETER_STATUS_RESPONSE: // Parameter Status
             try {
               receiveParameterStatus();
             } catch (SQLException e) {
@@ -1406,7 +1406,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             }
             break;
 
-          case PgMessageType.READY_FOR_QUERY: // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
+          case PgMessageType.READY_FOR_QUERY_RESPONSE: // ReadyForQuery: After FE:CopyDone => BE:CommandComplete
 
             receiveRFQ();
             if (op != null && hasLock(op)) {
@@ -1418,13 +1418,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           // If the user sends a non-copy query, we've got to handle some additional things.
           //
-          case PgMessageType.ROW_DESCRIPTION: // Row Description (response to Describe)
+          case PgMessageType.ROW_DESCRIPTION_RESPONSE: // Row Description (response to Describe)
             LOGGER.log(Level.FINEST, " <=BE RowDescription (during copy ignored)");
 
             skipMessage();
             break;
 
-          case PgMessageType.DATA_ROW: // DataRow
+          case PgMessageType.DATA_ROW_RESPONSE: // DataRow
             LOGGER.log(Level.FINEST, " <=BE DataRow (during copy ignored)");
 
             skipMessage();
@@ -1571,7 +1571,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void sendSync() throws IOException {
     LOGGER.log(Level.FINEST, " FE=> Sync");
 
-    pgStream.sendChar(PgMessageType.SYNC); // Sync
+    pgStream.sendChar(PgMessageType.SYNC_REQUEST); // Sync
     pgStream.sendInteger4(4); // Length
     pgStream.flush();
     // Below "add queues" are likely not required at all
@@ -1642,7 +1642,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         + queryUtf8.length + 1
         + 2 + 4 * params.getParameterCount();
 
-    pgStream.sendChar(PgMessageType.PARSE); // Parse
+    pgStream.sendChar(PgMessageType.PARSE_REQUEST); // Parse
     pgStream.sendInteger4(encodedSize);
     if (encodedStatementName != null) {
       pgStream.send(encodedStatementName);
@@ -1822,7 +1822,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Total size = 4 (size field) + 1 (describe type, 'P') + N + 1 (portal name)
     int encodedSize = 4 + 1 + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1;
 
-    pgStream.sendChar(PgMessageType.DESCRIBE); // Describe
+    pgStream.sendChar(PgMessageType.DESCRIBE_REQUEST); // Describe
     pgStream.sendInteger4(encodedSize); // message size
     pgStream.sendChar(PgMessageType.PORTAL); // Describe (Portal)
     if (encodedPortalName != null) {
@@ -1845,7 +1845,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Total size = 4 (size field) + 1 (describe type, 'S') + N + 1 (portal name)
     int encodedSize = 4 + 1 + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1;
 
-    pgStream.sendChar(PgMessageType.DESCRIBE); // Describe
+    pgStream.sendChar(PgMessageType.DESCRIBE_REQUEST); // Describe
     pgStream.sendInteger4(encodedSize); // Message size
     pgStream.sendChar(PgMessageType.STATEMENT); // Describe (Statement);
     if (encodedStatementName != null) {
@@ -1875,7 +1875,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int encodedSize = encodedPortalName == null ? 0 : encodedPortalName.length;
 
     // Total size = 4 (size field) + 1 + N (source portal) + 4 (max rows)
-    pgStream.sendChar(PgMessageType.EXECUTE); // Execute
+    pgStream.sendChar(PgMessageType.EXECUTE_REQUEST); // Execute
     pgStream.sendInteger4(4 + 1 + encodedSize + 4); // message size
     if (encodedPortalName != null) {
       pgStream.send(encodedPortalName); // portal name
@@ -1897,7 +1897,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int encodedSize = encodedPortalName == null ? 0 : encodedPortalName.length;
 
     // Total size = 4 (size field) + 1 (close type, 'P') + 1 + N (portal name)
-    pgStream.sendChar(PgMessageType.CLOSE); // Close
+    pgStream.sendChar(PgMessageType.CLOSE_REQUEST); // Close
     pgStream.sendInteger4(4 + 1 + 1 + encodedSize); // message size
     pgStream.sendChar(PgMessageType.PORTAL); // Close (Portal)
     if (encodedPortalName != null) {
@@ -1916,7 +1916,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] encodedStatementName = statementName.getBytes(StandardCharsets.UTF_8);
 
     // Total size = 4 (size field) + 1 (close type, 'S') + N + 1 (statement name)
-    pgStream.sendChar(PgMessageType.CLOSE); // Close
+    pgStream.sendChar(PgMessageType.CLOSE_REQUEST); // Close
     pgStream.sendInteger4(4 + 1 + encodedStatementName.length + 1); // message size
     pgStream.sendChar(PgMessageType.STATEMENT); // Close (Statement)
     pgStream.send(encodedStatementName); // statement to close
@@ -2056,7 +2056,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding encoding = pgStream.getEncoding();
 
     byte[] encoded = encoding.encode(nativeSql);
-    pgStream.sendChar(PgMessageType.QUERY);
+    pgStream.sendChar(PgMessageType.QUERY_REQUEST);
     pgStream.sendInteger4(encoded.length + 4 + 1);
     pgStream.send(encoded);
     pgStream.sendChar(0);
@@ -2178,7 +2178,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           receiveAsyncNotify();
           break;
 
-        case PgMessageType.PARSE_COMPLETE: // Parse Complete (response to Parse)
+        case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
           pgStream.receiveInteger4(); // len, discarded
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
@@ -2188,7 +2188,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           break;
 
-        case PgMessageType.PARAMETER_DESCRIPTION: {
+        case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
           pgStream.receiveInteger4(); // len, discarded
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
@@ -2226,7 +2226,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         }
 
-        case PgMessageType.BIND_COMPLETE: // (response to Bind)
+        case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
           pgStream.receiveInteger4(); // len, discarded
 
           Portal boundPortal = pendingBindQueue.removeFirst();
@@ -2235,12 +2235,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           registerOpenPortal(boundPortal);
           break;
 
-        case PgMessageType.CLOSE_COMPLETE: // response to Close
+        case PgMessageType.CLOSE_COMPLETE_RESPONSE: // response to Close
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
-        case PgMessageType.NO_DATA: // response to Describe
+        case PgMessageType.NO_DATA_RESPONSE: // response to Describe
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
@@ -2260,7 +2260,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           break;
 
-        case PgMessageType.PORTAL_SUSPENDED: { // end of Execute
+        case PgMessageType.PORTAL_SUSPENDED_RESPONSE: { // end of Execute
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
@@ -2292,7 +2292,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         }
 
-        case PgMessageType.COMMAND_COMPLETE: { // end of Execute
+        case PgMessageType.COMMAND_COMPLETE_RESPONSE: { // end of Execute
           // Handle status.
           String status = receiveCommandStatus();
           if (isFlushCacheOnDeallocate()
@@ -2382,7 +2382,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
         }
 
-        case PgMessageType.DATA_ROW: // Data Transfer (ongoing Execute response)
+        case PgMessageType.DATA_ROW_RESPONSE: // Data Transfer (ongoing Execute response)
           Tuple tuple = null;
           try {
             tuple = pgStream.receiveTupleV3();
@@ -2452,7 +2452,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           handler.handleWarning(warning);
           break;
 
-        case PgMessageType.PARAMETER_STATUS:
+        case PgMessageType.PARAMETER_STATUS_RESPONSE:
           try {
             receiveParameterStatus();
           } catch (SQLException e) {
@@ -2461,7 +2461,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           break;
 
-        case PgMessageType.ROW_DESCRIPTION: // response to Describe
+        case PgMessageType.ROW_DESCRIPTION_RESPONSE: // response to Describe
           Field[] fields = receiveFields();
           tuples = new ArrayList<>();
 
@@ -2482,7 +2482,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           break;
 
-        case PgMessageType.READY_FOR_QUERY: // eventual response to Sync
+        case PgMessageType.READY_FOR_QUERY_RESPONSE: // eventual response to Sync
           receiveRFQ();
           if (!pendingExecuteQueue.isEmpty()
               && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
@@ -2818,12 +2818,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     for (int i = 0; i < 1000; i++) {
       int beresp = pgStream.receiveChar();
       switch (beresp) {
-        case PgMessageType.READY_FOR_QUERY:
+        case PgMessageType.READY_FOR_QUERY_RESPONSE:
           receiveRFQ();
           // Ready For Query; we're done.
           return;
 
-        case PgMessageType.BACKEND_KEY_DATA:
+        case PgMessageType.BACKEND_KEY_DATA_RESPONSE:
           // BackendKeyData
           int msgLen = pgStream.receiveInteger4();
           int pid = pgStream.receiveInteger4();
@@ -2863,7 +2863,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           addWarning(receiveNoticeResponse());
           break;
 
-        case PgMessageType.PARAMETER_STATUS:
+        case PgMessageType.PARAMETER_STATUS_RESPONSE:
           // ParameterStatus
           receiveParameterStatus();
 
