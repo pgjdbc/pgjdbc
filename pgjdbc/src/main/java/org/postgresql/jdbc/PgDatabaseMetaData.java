@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2004, PostgreSQL Global Development Group
  * See the LICENSE file in the project root for more information.
-*/
+ */
 
 package org.postgresql.jdbc;
 
@@ -99,7 +99,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (nameDataLength == 0) {
       String sql;
       sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n "
-          + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
+           + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
 
       Statement stmt = connection.createStatement();
       ResultSet rs = null;
@@ -1085,7 +1085,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
 
     try (Statement stmt = connection.createStatement();
-      ResultSet rs = stmt.executeQuery(sql)) {
+        ResultSet rs = stmt.executeQuery(sql)) {
       String level = null;
       if (rs.next()) {
         level = rs.getString(1);
