@@ -99,7 +99,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (nameDataLength == 0) {
       String sql;
       sql = "SELECT t.typlen FROM pg_catalog.pg_type t, pg_catalog.pg_namespace n "
-           + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
+            + "WHERE t.typnamespace=n.oid AND t.typname='name' AND n.nspname='pg_catalog'";
 
       Statement stmt = connection.createStatement();
       ResultSet rs = null;
@@ -1085,7 +1085,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         "SELECT setting FROM pg_catalog.pg_settings WHERE name='default_transaction_isolation'";
 
     try (Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery(sql)) {
+         ResultSet rs = stmt.executeQuery(sql)) {
       String level = null;
       if (rs.next()) {
         level = rs.getString(1);
@@ -1747,7 +1747,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[20] = new Field("SCOPE_TABLE", Oid.VARCHAR);
     f[21] = new Field("SOURCE_DATA_TYPE", Oid.INT2);
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
-    f[23] = new Field("IS_GENERATEDCOLUMN", Oid.VARCHAR);
+    f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
     if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
@@ -1847,7 +1847,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       String defval = rs.getString("adsrc");
 
-      if (defval != null && defval.contains("nextval(")) {
+      if (defval != null && defval.contains("nextval(") ) {
         if ("int4".equals(pgType)) {
           tuple[5] = connection.encodeString("serial"); // Type name == serial
         } else if ("int8".equals(pgType)) {
@@ -1879,9 +1879,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
         a domain, but for actual types this will return the correct value.
          */
-        if (typtypmod == -1) {
+        if ( typtypmod == -1 ) {
           columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
-        } else if (baseTypeOid == Oid.NUMERIC) {
+        } else if (baseTypeOid == Oid.NUMERIC ) {
           decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
           columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
         } else {
@@ -1890,7 +1890,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       } else {
         decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
         columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
-        if ( sqlType != Types.NUMERIC && columnSize == 0) {
+        if ( sqlType != Types.NUMERIC && columnSize == 0 ) {
           columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
         }
       }
