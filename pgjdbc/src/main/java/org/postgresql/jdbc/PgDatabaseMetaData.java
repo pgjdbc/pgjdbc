@@ -60,12 +60,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
   private byte[] getCatalogName(@Nullable String catalog) throws SQLException {
     if (catalog == null) {
-      try {
-        return connection.encodeString(connection.getCatalog());
-      } catch (SQLException e) {
-        // If we can't get the catalog name, we'll just use the empty string
-        return new byte[0];
-      }
+      return connection.encodeString(connection.getCatalog());
     }
     return catalog.getBytes(Charset.defaultCharset());
   }
@@ -1255,7 +1250,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       @Nullable String procedureNamePattern, @Nullable String columnNamePattern)
       throws SQLException {
     int columns = 20;
-    byte[] catalogName = getCatalogName(catalog);
 
     Field[] f = new Field[columns];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1301,6 +1295,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     byte[] isnullableUnknown = new byte[0];
 
+    byte[] catalogName = getCatalogName(catalog);
     Statement stmt = connection.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     while (rs.next()) {
