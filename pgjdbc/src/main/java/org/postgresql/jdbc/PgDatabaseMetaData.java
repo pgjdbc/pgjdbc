@@ -2289,8 +2289,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "        FROM pg_catalog.pg_index i) i "
           + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
           + "WHERE true ";
-
-
     if (schema != null) {
       sql += " AND n.nspname = " + escapeQuotes(schema);
     }
