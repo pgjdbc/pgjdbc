@@ -66,10 +66,10 @@ public class PasswordUtil {
       byte[] serverKey = ScramFunctions.serverKey(scramSha256, saltedPassword);
 
       return scramSha256.getName()
-        + "$" + iterations
-        + ":" + Base64.getEncoder().encodeToString(salt)
-        + "$" + Base64.getEncoder().encodeToString(storedKey)
-        + ":" + Base64.getEncoder().encodeToString(serverKey);
+          + "$" + iterations
+          + ":" + Base64.getEncoder().encodeToString(salt)
+          + "$" + Base64.getEncoder().encodeToString(storedKey)
+          + ":" + Base64.getEncoder().encodeToString(serverKey);
     } finally {
       Arrays.fill(password, (char) 0);
     }
