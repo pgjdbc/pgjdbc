@@ -45,18 +45,18 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 50
-    - name: 'Set up JDK 17'
+    - name: 'Set up JDK 21'
       uses: actions/setup-java@v4
       with:
         distribution: zulu
-        java-version: 17
+        java-version: 21
     - uses: burrunan/gradle-cache-action@v2
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
-        job-id: jdk17
+        job-id: jdk21
         arguments: styleCheck jandex -PenableErrorprone classes
 
   linux-checkerframework:
@@ -66,11 +66,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
-      - name: 'Set up JDK 17'
+      - name: 'Set up JDK 21'
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 17
+          java-version: 21
       - uses: burrunan/gradle-cache-action@v2
         name: Run CheckerFramework
         env:
@@ -78,11 +78,11 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           read-only: false
-          job-id: checker-jdk17
+          job-id: checker-jdk21
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
 
   source-distribution-check:
-    name: 'Source distribution (JDK 17)'
+    name: 'Source distribution (JDK 21)'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -91,18 +91,18 @@ jobs:
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
         run: docker compose up -d && docker compose logs
-      - name: 'Set up JDK 17'
+      - name: 'Set up JDK 21'
         uses: actions/setup-java@v4
         with:
           distribution: zulu
-          java-version: 17
+          java-version: 21
       - uses: burrunan/gradle-cache-action@v2
         name: Prepare source distribution
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
-          job-id: source-release-jdk17
+          job-id: source-release-jdk21
           arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease
       - name: Verify source distribution
         working-directory: pgjdbc/build/distributions
@@ -166,14 +166,14 @@ jobs:
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
         docker compose up -d
         docker compose logs
-    - name: Set up Java 17 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
+    - name: Set up Java 21 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
       uses: actions/setup-java@v4
       with:
-        # The latest one will be the default, so we use Java 17 for launching Gradle
-        # oracle-actions/setup-java below requires Java 17, so we must install Java 17 before calling oracle-actions/setup-java
+        # The latest one will be the default, so we use Java 21 for launching Gradle
+        # oracle-actions/setup-java below requires Java 21, so we must install Java 21 before calling oracle-actions/setup-java
         java-version: |
           ${{ matrix.non_ea_java_version }}
-          17
+          21
         distribution: ${{ matrix.java_distribution }}
         # Architecture is explicit to workaround https://github.com/actions/setup-java/issues/559
         architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
@@ -182,16 +182,17 @@ jobs:
       if: ${{ matrix.oracle_java_website != '' }}
       uses: oracle-actions/setup-java@8fb9d7717810ccde9f8d4bef1e6f43d180f506b5 # v1.4.1
       env:
-        JAVA_HOME_17_X64: ${{ env.JAVA_HOME_17_AARCH64 || env.JAVA_HOME_17_X64 }}
+        # Java 21 is needed for executing oracle-actions/setup-java, so we pass it here
+        JAVA_HOME_21_X64: ${{ env.JAVA_HOME_21_AARCH64 || env.JAVA_HOME_21_X64 }}
       with:
         website: ${{ matrix.oracle_java_website }}
         release: ${{ matrix.java_version }}
-    - name: Set up Java 17 ${{ matrix.java_distribution }} as default
-      # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 17 as the default
+    - name: Set up Java 21 ${{ matrix.java_distribution }} as default
+      # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 21 as the default
       if: ${{ matrix.oracle_java_website != '' }}
       uses: actions/setup-java@v4
       with:
-        java-version: 17
+        java-version: 21
         distribution: ${{ matrix.java_distribution }}
         # Architecture is explicit to workaround https://github.com/actions/setup-java/issues/559
         architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
@@ -218,7 +219,7 @@ jobs:
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
           testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
-          jdkBuildVersion=17
+          jdkBuildVersion=21
           jdkTestVersion=${{ matrix.java_version == 'EA' && steps.setup_ea_java.outputs.version || matrix.java_version }}
           jdkTestVendor=${{ matrix.java_vendor }}
           # We provision JDKs with GitHub Actions for caching purposes, so Gradle should rather fail in case JDK is not found

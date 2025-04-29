@@ -23,7 +23,7 @@ buildParameters {
     }
     val projectName = "pgjdbc"
     integer("jdkBuildVersion") {
-        defaultValue.set(17)
+        defaultValue.set(21)
         mandatory.set(true)
         description.set("JDK version to use for building $projectName. If the value is 0, then the current Java is used. (see https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming)")
     }

@@ -76,7 +76,7 @@ Here are a few important things you should know about contributing code:
 In order to build the source code for PgJDBC you will need the following tools:
 
   - A Git client
-  - A JDK for the JDBC version you'd like to build (Java 17 for pgjdbc 42.7.1, Java 8 for older pgjdbc releases)
+  - A JDK for the JDBC version you'd like to build (Java 21 for pgjdbc 42.7.1, Java 8 for older pgjdbc releases)
   - A running PostgreSQL instance (optional for unit/integration tests)
 
 We use [Gradle's Toolchains for JVM projects](https://docs.gradle.org/current/userguide/toolchains.html)
@@ -84,7 +84,7 @@ to separate JDK version used for building and running tests.
 This means Gradle will automatically find the required JDK version or download it for you.
 
 You could control JDK versions with the following Gradle properties:
-* `jdkBuildVersion`. Defaults to 17. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for building $projectName. If the value is 0, then the current Java is used.
+* `jdkBuildVersion`. Defaults to 21. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for building $projectName. If the value is 0, then the current Java is used.
 * `jdkBuildVendor`. [JDK vendor](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors) to use building
 * `jdkBuildImplementation`. Vendor-specific [virtual machine implementation](https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation) to use building
 * `jdkTestVersion`. Defaults to `jdkBuildVersion`. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for testing.
@@ -157,7 +157,7 @@ is used for releasing artifacts.
 ## Releasing a new version
 
 Prerequisites:
-- Java 17
+- Java 21
 - a PostgreSQL instance for running tests; it must have a user named `test` as well as a database named `test`
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)

@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu, macos, windows]
-        jdk: [17]
+        jdk: [21]
 
     name: '${{ matrix.os }}, ${{ matrix.jdk }} seed build cache'
     runs-on: ${{ matrix.os }}-latest
