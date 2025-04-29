@@ -36,7 +36,6 @@ main () {
 
     # Customize pg_hba.conf
     local pg_hba="/home/certdir/pg_hba.conf"
-    sed -i 's/127.0.0.1\/32/0.0.0.0\/0/g' "${pg_hba}"
     add_pg_opt "-c hba_file=${pg_hba}"
 
     if is_option_enabled "${SSL}"; then
