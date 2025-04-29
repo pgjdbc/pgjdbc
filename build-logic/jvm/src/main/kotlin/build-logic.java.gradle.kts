@@ -62,6 +62,11 @@ tasks.configureEach<JavaCompile> {
                 }
             }
         )
+        if (buildParameters.jdkBuildVersion >= 21 && buildParameters.targetJavaVersion < 11) {
+            // We know target Java 8 is deprecated with Java 21, so silence the warning
+            // otherwise the build fails due to -Werror below
+            compilerArgs.add("-Xlint:-options")
+        }
         if (!buildParameters.enableCheckerframework) {
             compilerArgs.add("-Xlint:deprecation")
         } else {
