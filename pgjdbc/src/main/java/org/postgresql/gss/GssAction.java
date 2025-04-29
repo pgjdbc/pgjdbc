@@ -6,6 +6,7 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -133,7 +134,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
-          pgStream.sendChar('p');
+          pgStream.sendChar(PgMessageType.GSS_TOKEN_REQUEST);
           pgStream.sendInteger4(4 + outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
@@ -143,7 +144,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           int response = pgStream.receiveChar();
           // Error
           switch (response) {
-            case 'E':
+            case PgMessageType.ERROR_RESPONSE:
               int elen = pgStream.receiveInteger4();
               ServerErrorMessage errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -151,7 +152,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
               return new PSQLException(errorMsg, logServerErrorDetail);
-            case 'R':
+            case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
               @SuppressWarnings("unused")

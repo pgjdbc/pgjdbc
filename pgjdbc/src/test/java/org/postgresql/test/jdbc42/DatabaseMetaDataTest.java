@@ -80,6 +80,18 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  void getColumnsForSchema() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    String catalog = conn.getCatalog();
+
+    ResultSet rs = dbmd.getColumns(null, "%", "decimaltest", "%");
+    assertTrue(rs.next());
+    assertEquals(catalog, rs.getString("TABLE_CAT"));
+    assertEquals("a", rs.getString("COLUMN_NAME"));
+    assertEquals(0, rs.getInt("DECIMAL_DIGITS"));
+  }
+
+  @Test
   void getCorrectSQLTypeForOffPathTypes_whenCatalogArgPercentSign_expectNoResults() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -188,5 +200,13 @@ class DatabaseMetaDataTest {
       TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
       ti.longOidToInt(1L << 32);
     });
+  }
+
+  @Test
+  void getSchemasWithInvalidCatalog() throws SQLException {
+    DatabaseMetaData dbmd = conn.getMetaData();
+    try ( ResultSet rs = dbmd.getSchemas("nonsenseschema", null)) {
+      assertFalse(rs.next());
+    }
   }
 }

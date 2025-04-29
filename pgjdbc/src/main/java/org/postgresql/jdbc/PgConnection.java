@@ -17,6 +17,7 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -218,6 +219,8 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  /* this is actually the database we are connected to */
+  private @Nullable String catalog;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -1112,7 +1115,16 @@ public class PgConnection implements BaseConnection {
   @Override
   public String getCatalog() throws SQLException {
     checkClosed();
-    return queryExecutor.getDatabase();
+    String catalog = this.catalog;
+    if (catalog == null) {
+      try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ResultSet rs = stmt.executeQuery("select current_catalog")) {
+        if (rs.next()) {
+          this.catalog = catalog = rs.getString(1);
+        }
+      }
+    }
+    return castNonNull(catalog);
   }
 
   public boolean getHideUnprivilegedObjects() {
@@ -1281,7 +1293,7 @@ public class PgConnection implements BaseConnection {
     return LOGGER;
   }
 
-  public int getProtocolVersion() {
+  public ProtocolVersion getProtocolVersion() {
     return queryExecutor.getProtocolVersion();
   }
 
@@ -1712,7 +1724,7 @@ public class PgConnection implements BaseConnection {
       return;
     }
 
-    SQL_PERMISSION_ABORT.checkGuard(this);
+    checkPermission(SQL_PERMISSION_ABORT);
 
     AbortCommand command = new AbortCommand();
     executor.execute(command);

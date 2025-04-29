@@ -36,7 +36,7 @@ println("Building pgjdbc $buildVersion")
 val isReleaseVersion = rootProject.releaseParams.release.get()
 
 jacoco {
-    toolVersion = "0.8.12"
+    toolVersion = "0.8.13"
     providers.gradleProperty("jacoco.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }

@@ -476,9 +476,6 @@ public class SslTest {
     } else {
       PGProperty.SSL_ROOT_CERT.set(props, TestUtil.getSslTestCertPath(clientRootCertificate.fileName + ".crt"));
     }
-    if (clientCertificate == ClientCertificate.BAD && sslmode == SslMode.PREFER) {
-      System.err.println("bad");
-    }
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
       if (sslmode == SslMode.ALLOW) {
