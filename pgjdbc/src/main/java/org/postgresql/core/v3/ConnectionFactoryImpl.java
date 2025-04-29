@@ -949,11 +949,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
+    String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
+    if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
+      // We already sent the parameter values in the StartupMessage so skip this
+      return;
+    }
 
     // The version we assumed the server would be prior to connecting, to determine what we have already sent
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
     // The actual version we connected to
     final int dbVersion = queryExecutor.getServerVersionNum();
+    StringBuilder sb = new StringBuilder();
 
     // Only need to send the application name if it's defined and wasn't already sent as a startup parameter
     String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
@@ -961,36 +967,32 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             && assumeVersion.getVersionNum() < ServerVersion.v9_0.getVersionNum()
             && dbVersion >= ServerVersion.v9_0.getVersionNum();
     boolean sendExtraFloatDigits = dbVersion < ServerVersion.v12.getVersionNum();
-    boolean groupStartupParameters = dbVersion >= ServerVersion.v9_0.getVersionNum()
-            && PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info);
 
     if ( sendApplicationName || sendExtraFloatDigits ) {
-      if (groupStartupParameters) {
-        SetupQueryRunner.run(queryExecutor, "BEGIN", false);
-      }
 
       if ( sendExtraFloatDigits ) {
         if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
           // server version < 9 so 8.x or less
-          SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 2", false);
+          sb.append("SET extra_float_digits = 2");
         } else {
           // server version < 12 so 9.0 - 11.x
-          SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
+          sb.append("SET extra_float_digits = 3");
         }
       }
 
       if ( sendApplicationName ) {
-        StringBuilder sql = new StringBuilder();
-        sql.append("SET application_name = '");
-        Utils.escapeLiteral(sql, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
-        sql.append("'");
-        SetupQueryRunner.run(queryExecutor, sql.toString(), false);
+        if (sb.length() > 0) {
+          sb.append(';');
+        }
+        sb.append("SET application_name = '");
+        Utils.escapeLiteral(sb, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
+        sb.append("'");
       }
-
-      if (groupStartupParameters) {
-        SetupQueryRunner.run(queryExecutor, "COMMIT", false);
+      if (sb.length() >0) {
+        SetupQueryRunner.run(queryExecutor, sb.toString(), false);
       }
     }
+
   }
 
   /**
