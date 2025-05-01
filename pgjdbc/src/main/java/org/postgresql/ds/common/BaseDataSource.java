@@ -1801,6 +1801,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
   }
 
+  public @Nullable String getPemKeyAlgorithm() {
+    return PGProperty.PEM_KEY_ALGORITHM.getOrDefault(properties);
+  }
+
+  public void setPemKeyAlgorithm(String algorithm) {
+    PGProperty.PEM_KEY_ALGORITHM.set(properties, algorithm);
+  }
+
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
    * which expect normal java bean getters / setters to exist for the property names.
@@ -1917,4 +1925,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public boolean isReWriteBatchedInserts() {
     return getReWriteBatchedInserts();
   }
+
+  public void setPemKeyAlgo(String algorithm) {
+    setPemKeyAlgorithm(algorithm);
+  }
+
+  public @Nullable String getPemKeyAlgo() {
+    return getPemKeyAlgorithm();
+  }
+
 }
