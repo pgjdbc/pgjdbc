@@ -949,11 +949,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
       throws SQLException {
-    String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
-    if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
-      // We already sent the parameter values in the StartupMessage so skip this
-      return;
-    }
 
     // The version we assumed the server would be prior to connecting, to determine what we have already sent
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
@@ -981,16 +976,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
 
       if ( sendApplicationName ) {
-        if (sb.length() > 0) {
+        // we could check the length of sb, but this should be faster
+        if (sendExtraFloatDigits) {
           sb.append(';');
         }
         sb.append("SET application_name = '");
         Utils.escapeLiteral(sb, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
         sb.append("'");
       }
-      if (sb.length() >0) {
-        SetupQueryRunner.run(queryExecutor, sb.toString(), false);
-      }
+      SetupQueryRunner.run(queryExecutor, sb.toString(), false);
     }
 
   }
