@@ -151,23 +151,23 @@ class DriverTest {
    */
   @Test
   void connect() throws Exception {
-    TestUtil.initDriver(); // Set up log levels, etc.
-
     // Test with the url, username & password
-    Connection con =
-        DriverManager.getConnection(TestUtil.getURL(), TestUtil.getUser(), TestUtil.getPassword());
-    assertNotNull(con);
-    con.close();
+    String url = TestUtil.getURL();
+    String user = TestUtil.getUser();
+    String password = TestUtil.getPassword();
+
+    try (Connection con = DriverManager.getConnection(url, user, password);) {
+      assertNotNull(con, "DriverManager.getConnection(url, user, password) should succeed");
+    }
 
     // Test with the username in the url
-    con = DriverManager.getConnection(
-        TestUtil.getURL()
-            + "&user=" + URLCoder.encode(TestUtil.getUser())
-            + "&password=" + URLCoder.encode(TestUtil.getPassword()));
-    assertNotNull(con);
-    con.close();
-
-    // Test with failover url
+    try (Connection con = DriverManager.getConnection(
+        url
+            + "&user=" + URLCoder.encode(user)
+            + "&password=" + URLCoder.encode(password));) {
+      assertNotNull(con,
+          "DriverManager.getConnection(url + \"&user=...&password=...\") should succeed");
+    }
   }
 
   /**

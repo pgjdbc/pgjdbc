@@ -5,7 +5,7 @@
 
 package org.postgresql.benchmark.statement;
 
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -27,10 +27,8 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -64,9 +62,7 @@ public class FinalizeStatement {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
-
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB();
     leakPctFloat = 0.01f * leakPct;
   }
 

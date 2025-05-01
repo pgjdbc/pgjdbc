@@ -138,15 +138,14 @@ rm src/test/java/org/postgresql/test/jdbc2/DriverTest.java \
 PGTESTS_LOCALE=C.UTF-8
 
 cat <<EOF > build.local.properties
-server=localhost
-port=$PGTESTS_PORT
-database=test
-username=test
+test.url.PGHOST=localhost
+test.url.PGPORT=$PGTESTS_PORT
+test.url.PGDBNAME=test
+user=test
 password=test
 privilegedUser=$PGTESTS_ADMIN
 privilegedPassword=$PGTESTS_ADMINPASS
 preparethreshold=5
-protocolVersion=0
 EOF
 
 # Start the local PG cluster.

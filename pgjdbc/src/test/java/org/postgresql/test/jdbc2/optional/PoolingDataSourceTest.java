@@ -11,6 +11,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Test;
 
@@ -39,7 +40,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource.
    */
   @Override
-  protected void initializeDataSource() {
+  protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
       bds = new PoolingDataSource();
       setupDataSource(bds);
@@ -76,7 +77,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    * Check that 2 DS instances can't use the same name.
    */
   @Test
-  public void testCantReuseName() {
+  public void testCantReuseName() throws PSQLException {
     initializeDataSource();
     PoolingDataSource pds = new PoolingDataSource();
     try {

@@ -1444,7 +1444,7 @@ public class DatabaseMetaDataTest {
       assertEquals("jdbc", schema, "schema name ");
 
       // now test to see if the fully qualified stuff works as planned
-      rs = dbmd.getUDTs(System.getProperty("database"), "public", "catalog.jdbc.testint8", null);
+      rs = dbmd.getUDTs(TestUtil.getDatabase(), "public", "catalog.jdbc.testint8", null);
       assertTrue(rs.next());
       cat = rs.getString("type_cat");
       schema = rs.getString("type_schem");

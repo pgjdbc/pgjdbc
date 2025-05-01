@@ -13,6 +13,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Assume;
 import org.junit.Test;
@@ -46,7 +47,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Creates and configures a ConnectionPool.
    */
   @Override
-  protected void initializeDataSource() {
+  protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
       bds = new ConnectionPool();
       setupDataSource(bds);

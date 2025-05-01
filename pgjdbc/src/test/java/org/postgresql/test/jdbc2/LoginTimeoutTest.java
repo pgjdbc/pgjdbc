@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -25,65 +24,39 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 class LoginTimeoutTest {
-
-  @BeforeEach
-  void setUp() throws Exception {
-    TestUtil.initDriver(); // Set up log levels, etc.
-  }
-
   @Test
   void intTimeout() throws Exception {
-    Properties props = new Properties();
-    PGProperty.USER.set(props, TestUtil.getUser());
-    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
-    PGProperty.LOGIN_TIMEOUT.set(props, 10);
-
-    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
-    conn.close();
+    testWithLoginTimeout("10");
   }
 
   @Test
   void floatTimeout() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
-    props.setProperty("loginTimeout", "10.0");
-
-    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
-    conn.close();
+    testWithLoginTimeout("10.0");
   }
 
   @Test
   void zeroTimeout() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
-    props.setProperty("loginTimeout", "0");
-
-    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
-    conn.close();
+    testWithLoginTimeout("0");
   }
 
   @Test
   void negativeTimeout() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
-    props.setProperty("loginTimeout", "-1");
-
-    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
-    conn.close();
+    testWithLoginTimeout("-1");
   }
 
   @Test
   void badTimeout() throws Exception {
-    Properties props = new Properties();
-    props.setProperty("user", TestUtil.getUser());
-    props.setProperty("password", TestUtil.getPassword());
-    props.setProperty("loginTimeout", "zzzz");
+    testWithLoginTimeout("zzzz");
+  }
 
-    Connection conn = DriverManager.getConnection(TestUtil.getURL(), props);
-    conn.close();
+  private static void testWithLoginTimeout(String value) throws SQLException {
+    Properties props = new Properties();
+    PGProperty.LOGIN_TIMEOUT.set(props, value);
+
+    try (Connection conn = TestUtil.openDB(props); ) {
+      assertTrue(conn.isValid(1), () -> "Connection should be valid when connecting with "
+          + PGProperty.LOGIN_TIMEOUT.name() + " = " + value);
+    }
   }
 
   private static class TimeoutHelper implements Runnable {

@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.tags.Xa;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
+import org.postgresql.util.PSQLException;
 import org.postgresql.xa.PGXADataSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -49,7 +50,7 @@ public class XADataSourceTest {
   private XAResource xaRes;
   private Connection conn;
 
-  public XADataSourceTest() {
+  public XADataSourceTest() throws PSQLException {
     xaDs = new PGXADataSource();
     BaseDataSourceTest.setupDataSource((PGXADataSource) xaDs);
   }

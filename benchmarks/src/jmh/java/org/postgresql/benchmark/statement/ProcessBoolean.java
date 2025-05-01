@@ -5,7 +5,7 @@
 
 package org.postgresql.benchmark.statement;
 
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,11 +28,9 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -61,9 +59,7 @@ public class ProcessBoolean {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
-
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB();
     ps = connection.prepareStatement("select (random() > 0.5) from generate_series(1, ?)",
         ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ps.setInt(1, rowsize);

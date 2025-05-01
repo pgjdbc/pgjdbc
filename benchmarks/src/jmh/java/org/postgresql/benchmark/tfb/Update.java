@@ -5,7 +5,7 @@
 
 package org.postgresql.benchmark.tfb;
 
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -27,14 +27,12 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Properties;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -142,8 +140,7 @@ public class Update {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
-    con = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    con = TestUtil.openDB();
   }
 
   @TearDown(Level.Trial)

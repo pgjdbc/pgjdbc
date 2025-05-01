@@ -8,6 +8,7 @@ package org.postgresql.jdbc;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
@@ -29,23 +30,22 @@ import java.util.concurrent.TimeUnit;
 
 @DisabledIfServerVersionBelow("9.4")
 class ConnectionValidTest {
-  private static final int LOCAL_SHADOW_PORT = 9009;
-
   private Connection connection;
 
   private ConnectionBreaker connectionBreaker;
 
   @BeforeEach
   void setUp() throws Exception {
-    final Properties shadowProperties = new Properties();
-    shadowProperties.setProperty(TestUtil.SERVER_HOST_PORT_PROP,
-        String.format("%s:%s", "localhost", LOCAL_SHADOW_PORT));
-
-    connectionBreaker = new ConnectionBreaker(LOCAL_SHADOW_PORT,
+    final Properties props = new Properties();
+    connectionBreaker = new ConnectionBreaker(
         TestUtil.getServer(),
         TestUtil.getPort());
     connectionBreaker.acceptAsyncConnection();
-    connection = TestUtil.openDB(shadowProperties);
+
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, connectionBreaker.getListenHost());
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(connectionBreaker.getListenPort()));
+
+    connection = TestUtil.openDB(props);
   }
 
   @AfterEach
@@ -78,22 +78,28 @@ class ConnectionValidTest {
 
     private final Socket pgSocket;
 
-    private boolean breakConnection;
+    private volatile boolean breakConnection;
 
     /**
      * Constructor of the forwarder for the PostgreSQL server.
      *
-     * @param serverPort The forwarder server port.
      * @param pgServer   The PostgreSQL server address.
      * @param pgPort     The PostgreSQL server port.
      * @throws Exception if anything goes wrong binding the server.
      */
-    ConnectionBreaker(final int serverPort, final String pgServer,
-        final int pgPort) throws Exception {
+    ConnectionBreaker(final String pgServer, final int pgPort) throws Exception {
       workers = Executors.newCachedThreadPool();
-      internalServer = new ServerSocket(serverPort);
+      internalServer = new ServerSocket(9009);
       pgSocket = new Socket(pgServer, pgPort);
       breakConnection = false;
+    }
+
+    public String getListenHost() {
+      return internalServer.getInetAddress().getHostAddress();
+    }
+
+    public int getListenPort() {
+      return internalServer.getLocalPort();
     }
 
     /**

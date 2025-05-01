@@ -459,8 +459,8 @@ public class SslTest {
   void run(Hostname host, TestDatabase db, SslMode sslmode,SslNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
     initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
     Properties props = new Properties();
-    props.put(TestUtil.SERVER_HOST_PORT_PROP, host.value + ":" + TestUtil.getPort());
-    props.put(TestUtil.DATABASE_PROP, db.toString());
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, host.value);
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
     PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value());
     PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
