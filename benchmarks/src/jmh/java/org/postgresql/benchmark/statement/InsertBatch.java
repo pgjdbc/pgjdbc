@@ -8,7 +8,7 @@ package org.postgresql.benchmark.statement;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -34,7 +34,6 @@ import java.io.CharArrayWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -73,14 +72,14 @@ public class InsertBatch {
     }
     p2multi = Math.min(p2multi, p1nrows);
 
-    Properties props = ConnectionUtil.getProperties();
+    Properties props = new Properties();
 
     if (bp.getBenchmark().contains("insertBatchWithRewrite")) {
       // PGProperty.REWRITE_BATCHED_INSERTS is not used for easier use with previous pgjdbc versions
       props.put("reWriteBatchedInserts", "true");
     }
 
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB(props);
     Statement s = connection.createStatement();
 
     try {

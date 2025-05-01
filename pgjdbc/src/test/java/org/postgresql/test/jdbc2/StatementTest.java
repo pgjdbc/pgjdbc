@@ -862,7 +862,8 @@ class StatementTest {
 
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       Properties props = new Properties();
-      props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(proxyServer.getServerPort()));
       PGProperty.CANCEL_SIGNAL_TIMEOUT.set(props, 1);
 
       try (Connection conn = TestUtil.openDB(props); Statement stmt = conn.createStatement()) {

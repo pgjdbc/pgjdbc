@@ -6,7 +6,7 @@
 package org.postgresql.benchmark.statement;
 
 import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,11 +28,9 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 @Fork(value = 5, jvmArgsPrepend = "-Xmx128m")
@@ -50,8 +48,7 @@ public class UpdateBatch {
 
   @Setup(Level.Trial)
   public void setUp(BenchmarkParams bp) throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB();
     Statement s = connection.createStatement();
 
     try {

@@ -44,7 +44,7 @@ tasks.configureEach<Test> {
             passProperty(e)
         }
     }
-    for (p in listOf("server", "port", "database", "username", "password",
+    for (p in listOf("test.url.PGHOST", "test.url.PGPORT", "test.url.PGDBNAME", "user", "password",
         "privilegedUser", "privilegedPassword",
         "simpleProtocolOnly", "enable_ssl_tests")) {
         passProperty(p)

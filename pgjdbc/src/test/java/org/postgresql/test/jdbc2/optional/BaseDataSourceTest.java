@@ -15,6 +15,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.MiniJndiContextFactory;
+import org.postgresql.util.PSQLException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -81,9 +82,9 @@ public abstract class BaseDataSourceTest {
    * Creates an instance of the current BaseDataSource for testing. Must be customized by each
    * subclass.
    */
-  protected abstract void initializeDataSource();
+  protected abstract void initializeDataSource() throws PSQLException;
 
-  public static void setupDataSource(BaseDataSource bds) {
+  public static void setupDataSource(BaseDataSource bds) throws PSQLException {
     bds.setServerName(TestUtil.getServer());
     bds.setPortNumber(TestUtil.getPort());
     bds.setDatabaseName(TestUtil.getDatabase());
@@ -97,7 +98,7 @@ public abstract class BaseDataSourceTest {
    * Test to make sure you can instantiate and configure the appropriate DataSource.
    */
   @Test
-  public void testCreateDataSource() {
+  public void testCreateDataSource() throws PSQLException {
     initializeDataSource();
   }
 
@@ -191,7 +192,7 @@ public abstract class BaseDataSourceTest {
    * mechanisms. Will probably be multiple tests when implemented.
    */
   @Test
-  public void testJndi() {
+  public void testJndi() throws PSQLException {
     initializeDataSource();
     BaseDataSource oldbds = bds;
     String oldurl = bds.getURL();

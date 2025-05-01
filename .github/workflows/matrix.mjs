@@ -274,6 +274,11 @@ include.forEach(v => {
         `-Duser.language=${v.locale.language}`,
     ];
     v.extraGradleArgs = gradleArgs.join(' ');
+    let assumeMinServerVersion = ['', '', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
+    v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(RNG.random() * assumeMinServerVersion.length)];
+    if (v.assumeMinServerVersion !== '') {
+        v.name += ', assume min version ' + v.assumeMinServerVersion;
+    }
 });
 include.forEach(v => {
   // Arguments passed to all the JVMs via _JAVA_OPTIONS
@@ -353,6 +358,9 @@ include.forEach(v => {
   }
   // Force using /dev/urandom so we do not worry about draining entropy pool
   testJvmArgs.push('-Djava.security.egd=file:/dev/./urandom')
+  if (v.assumeMinServerVersion) {
+      testJvmArgs.push(`-DassumeMinServerVersion=${v.assumeMinServerVersion}`);
+  }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;

@@ -29,6 +29,8 @@ dependencies {
 tasks.withType<JavaExec>().configureEach {
     // Execution of .main methods from IDEA should re-generate benchmark classes if required
     dependsOn("jmhCompileGeneratedClasses")
+    // Take build.properties from the root project
+    systemProperty("build.properties.relative.path", isolated.rootProject.projectDirectory.asFile)
     doFirst {
         // At best jmh plugin should add the generated directories to the Gradle model, however,
         // currently it builds the jar only :-/

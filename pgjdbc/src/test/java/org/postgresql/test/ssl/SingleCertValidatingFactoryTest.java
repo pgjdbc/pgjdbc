@@ -8,6 +8,7 @@ package org.postgresql.test.ssl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -46,14 +47,6 @@ public class SingleCertValidatingFactoryTest {
     return loadFile(badServerCertPath);
   }
 
-  protected @Nullable String getUsername() {
-    return System.getProperty("username");
-  }
-
-  protected @Nullable String getPassword() {
-    return System.getProperty("password");
-  }
-
   /**
    * Tests whether a given throwable or one of it's root causes matches of a given class.
    */
@@ -79,7 +72,7 @@ public class SingleCertValidatingFactoryTest {
    */
   protected static void testConnect(Properties info, boolean sslExpected,
       @Nullable Class<? extends Throwable> expectedThrowable) throws SQLException {
-    info.setProperty(TestUtil.DATABASE_PROP, "hostdb");
+    TestUtil.setTestUrlProperty(info, PGProperty.PG_DBNAME, "hostdb");
     try (Connection conn = TestUtil.openDB(info)) {
       Statement stmt = conn.createStatement();
       // Basic SELECT test:

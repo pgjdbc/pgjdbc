@@ -11,10 +11,10 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Version;
-import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.Assert;
@@ -35,131 +35,148 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 
 /**
  * Utility class for JDBC tests.
  */
 public class TestUtil {
-  /*
-   * The case is as follows:
-   * 1. Typically the database and hostname are taken from System.properties or build.properties or build.local.properties
-   *    That enables to override test DB via system property
-   * 2. There are tests where different DBs should be used (e.g. SSL tests), so we can't just use DB name from system property
-   *    That is why _test_ properties exist: they overpower System.properties and build.properties
+  /**
+   * A constant that defines the prefix used for test URL-related property keys.
+   * All the properties starting with this prefix would be passed to the JDBC URL.
    */
-  public static final String SERVER_HOST_PORT_PROP = "_test_hostport";
-  public static final String DATABASE_PROP = "_test_database";
+  public static final String TEST_URL_PROPERTY_PREFIX = "test.url.";
 
   private static final ResourceLock lock = new ResourceLock();
 
-  /*
+  static {
+    initDriver();
+  }
+
+  private static boolean isTestUrlProperty(String propertyName, PGProperty property) {
+    return propertyName.startsWith(property.getName(), TEST_URL_PROPERTY_PREFIX.length());
+  }
+
+  /**
+   * Sets a test URL property in the provided {@link Properties} object.
+   * The given {@link PGProperty} will be passed with JDBC URL rather than {@link Properties}
+   * when opening a connection.
+   *
+   * @param props    the {@link Properties} object where the property will be set
+   * @param property the {@link PGProperty} object representing the property name
+   * @param value    the value to associate with the property key
+   */
+  public static void setTestUrlProperty(Properties props, PGProperty property, String value) {
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + property.getName(), value);
+  }
+
+  /**
+   * Retrieves the test URL property value based on the specified property name and default value.
+   *
+   * @param props the Properties object containing the application configuration
+   * @param property the PGProperty object representing the specific property to retrieve
+   * @return the test URL property value if it exists in the Properties object;
+   *         otherwise, the default value of the specified property
+   */
+  public static String getTestUrlProperty(Properties props, PGProperty property) {
+    return props.getProperty(
+        TEST_URL_PROPERTY_PREFIX + property.getName(), property.getDefaultValue());
+  }
+
+  /**
    * Returns the Test database JDBC URL
    */
   public static String getURL() {
-    return getURL(getServer(), getPort());
+    return getURL(System.getProperties());
   }
 
-  public static String getURL(String database) {
-    return getURL(getServer() + ":" + getPort(), database);
-  }
-
-  public static String getURL(String server, int port) {
-    return getURL(server + ":" + port, getDatabase());
-  }
-
-  public static String getURL(String hostport, String database) {
-    String protocolVersion = "";
-    if (getProtocolVersion() != 0) {
-      protocolVersion = "&protocolVersion=" + getProtocolVersion();
+  /**
+   * Constructs a JDBC URL using the provided properties. The method builds the
+   * URL for a PostgreSQL database connection by utilizing specific property values
+   * for host, port, and database name, and appends additional properties as parameters.
+   * The URL uses {@link #setTestUrlProperty(Properties, PGProperty, String)} values for
+   * building the URL.
+   *
+   * <p>Note: the method uses only exliclitly provided properties, and it does not use
+   * build.properties and other property sources.
+   *
+   * @param props the properties object containing key-value pairs used to construct the URL.
+   *              The values that start with {@link #TEST_URL_PROPERTY_PREFIX} will be included
+   *              into the URL.
+   * @return the constructed JDBC URL as a String.
+   */
+  public static String getURL(Properties props) {
+    initDriver();
+    String host = getTestUrlProperty(props, PGProperty.PG_HOST);
+    String port = getTestUrlProperty(props, PGProperty.PG_PORT);
+    String database = getTestUrlProperty(props, PGProperty.PG_DBNAME);
+    StringBuilder sb = new StringBuilder("jdbc:postgresql://");
+    sb.append(host).append(":").append(port).append("/").append(database);
+    sb.append("?ApplicationName=Driver Tests");
+    for (String propertyName : props.stringPropertyNames()) {
+      if (!propertyName.startsWith(TEST_URL_PROPERTY_PREFIX)) {
+        continue;
+      }
+      if (isTestUrlProperty(propertyName, PGProperty.PG_HOST)
+          || isTestUrlProperty(propertyName, PGProperty.PG_PORT)
+          || isTestUrlProperty(propertyName, PGProperty.PG_DBNAME)
+      ) {
+        continue;
+      }
+      String value = props.getProperty(propertyName);
+      String name = propertyName.substring(TEST_URL_PROPERTY_PREFIX.length());
+      sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
     }
-
-    String options = "";
-    if (getOptions() != null) {
-      options = "&options=" + getOptions();
-    }
-
-    String binaryTransfer = "";
-    if (getBinaryTransfer() != null && !"".equals(getBinaryTransfer())) {
-      binaryTransfer = "&binaryTransfer=" + getBinaryTransfer();
-    }
-
-    String receiveBufferSize = "";
-    if (getReceiveBufferSize() != -1) {
-      receiveBufferSize = "&receiveBufferSize=" + getReceiveBufferSize();
-    }
-
-    String sendBufferSize = "";
-    if (getSendBufferSize() != -1) {
-      sendBufferSize = "&sendBufferSize=" + getSendBufferSize();
-    }
-
-    String ssl = "";
-    if (getSSL() != null) {
-      ssl = "&ssl=" + getSSL();
-    }
-
-    return "jdbc:postgresql://"
-        + hostport + "/"
-        + database
-        + "?ApplicationName=Driver Tests"
-        + protocolVersion
-        + options
-        + binaryTransfer
-        + receiveBufferSize
-        + sendBufferSize
-        + ssl;
+    return sb.toString();
   }
 
   /*
    * Returns the Test server
    */
   public static String getServer() {
-    return System.getProperty("server", "localhost");
+    return getTestUrlProperty(System.getProperties(), PGProperty.PG_HOST);
   }
 
   /*
    * Returns the Test port
    */
   public static int getPort() {
-    return Integer.parseInt(System.getProperty("port", System.getProperty("def_pgport")));
+    return Integer.parseInt(getTestUrlProperty(System.getProperties(), PGProperty.PG_PORT));
   }
 
   /*
    * Returns the server side prepared statement threshold.
    */
-  public static int getPrepareThreshold() {
-    return Integer.parseInt(System.getProperty("preparethreshold", "5"));
+  public static int getPrepareThreshold() throws PSQLException {
+    return PGProperty.PREPARE_THRESHOLD.getInt(System.getProperties());
   }
 
-  public static int getProtocolVersion() {
-    return Integer.parseInt(System.getProperty("protocolVersion", "0"));
-  }
-
-  public static String getOptions() {
-    return System.getProperty("options");
+  public static int getProtocolVersion() throws PSQLException {
+    return PGProperty.PROTOCOL_VERSION.getInt(System.getProperties());
   }
 
   /*
    * Returns the Test database
    */
   public static String getDatabase() {
-    return System.getProperty("database");
+    return getTestUrlProperty(System.getProperties(), PGProperty.PG_DBNAME);
   }
 
   /*
    * Returns the Postgresql username
    */
-  public static String getUser() {
-    return System.getProperty("username");
+  public static @Nullable String getUser() {
+    return PGProperty.USER.getOrDefault(System.getProperties());
   }
 
   /*
    * Returns the user's password
    */
-  public static String getPassword() {
-    return System.getProperty("password");
+  public static @Nullable String getPassword() {
+    return PGProperty.PASSWORD.getOrDefault(System.getProperties());
   }
 
   /*
@@ -167,13 +184,6 @@ public class TestUtil {
    */
   public static String getSslPassword() {
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
-  }
-
-  /*
-   *  Return the GSSEncMode for the tests
-   */
-  public static GSSEncMode getGSSEncMode() throws PSQLException {
-    return GSSEncMode.of(System.getProperties());
   }
 
   /*
@@ -192,25 +202,6 @@ public class TestUtil {
 
   public static String getPrivilegedPassword() {
     return System.getProperty("privilegedPassword");
-  }
-
-  /*
-   * Returns the binary transfer mode to use
-   */
-  public static String getBinaryTransfer() {
-    return System.getProperty("binaryTransfer");
-  }
-
-  public static int getSendBufferSize() {
-    return Integer.parseInt(System.getProperty("sendBufferSize", "-1"));
-  }
-
-  public static int getReceiveBufferSize() {
-    return Integer.parseInt(System.getProperty("receiveBufferSize", "-1"));
-  }
-
-  public static String getSSL() {
-    return System.getProperty("ssl");
   }
 
   static {
@@ -313,19 +304,16 @@ public class TestUtil {
    *         functions now as of 4/14
    */
   public static Connection openPrivilegedDB() throws SQLException {
-    return openPrivilegedDB(getDatabase());
+    return openPrivilegedDB(x -> { });
   }
 
-  public static Connection openPrivilegedDB(String databaseName) throws SQLException {
-    initDriver();
+  public static Connection openPrivilegedDB(Consumer<? super Properties> props) throws SQLException {
     Properties properties = new Properties();
-
-    PGProperty.GSS_ENC_MODE.set(properties, getGSSEncMode().value);
     PGProperty.USER.set(properties, getPrivilegedUser());
     PGProperty.PASSWORD.set(properties, getPrivilegedPassword());
     PGProperty.OPTIONS.set(properties, "-c synchronous_commit=on");
-    return DriverManager.getConnection(getURL(databaseName), properties);
-
+    props.accept(properties);
+    return openDB(properties);
   }
 
   public static Connection openReplicationConnection() throws Exception {
@@ -350,55 +338,48 @@ public class TestUtil {
     return openDB(new Properties());
   }
 
-  /*
+  /**
    * Helper - opens a connection with the allowance for passing additional parameters, like
    * "compatible".
    */
   public static Connection openDB(Properties props) throws SQLException {
-    initDriver();
+    Properties propsWithDefaults = mergeDefaultProperties(props);
+    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+  }
 
-    // Allow properties to override the user name.
-    String user = PGProperty.USER.getOrDefault(props);
-    if (user == null) {
-      user = getUser();
-    }
-    if (user == null) {
-      throw new IllegalArgumentException(
-          "user name is not specified. Please specify 'username' property via -D or build.properties");
-    }
-    PGProperty.USER.set(props, user);
+  /**
+   * Merges the default properties with the provided properties. The method prioritizes
+   * properties in the following order:
+   * 1. Properties passed within the method argument.
+   * 2. System properties.
+   * 3. Properties passed with {@code build.properties} file.
+   *
+   * @param props the properties object to merge with the default properties. Can be empty.
+   * @return a new Properties object containing the merged properties with precedence
+   *     applied as described.
+   */
+  public static Properties mergeDefaultProperties(Properties props) {
+    // Properties priority:
+    // 1. The ones that are passed within tests
+    // 2. System.properties
+    // 3. build.properties
 
-    // Allow properties to override the password.
-    String password = PGProperty.PASSWORD.getOrDefault(props);
-    if (password == null) {
-      password = getPassword() != null ? getPassword() : "";
-    }
-    PGProperty.PASSWORD.set(props, password);
-
-    String sslPassword = getSslPassword();
-    if (sslPassword != null) {
-      PGProperty.SSL_PASSWORD.set(props, sslPassword);
-    }
-
-    if (!props.containsKey(PGProperty.PREPARE_THRESHOLD.getName())) {
-      PGProperty.PREPARE_THRESHOLD.set(props, getPrepareThreshold());
-    }
-    if (!props.containsKey(PGProperty.PREFER_QUERY_MODE.getName())) {
-      String value = System.getProperty(PGProperty.PREFER_QUERY_MODE.getName());
-      if (value != null) {
-        props.put(PGProperty.PREFER_QUERY_MODE.getName(), value);
+    Properties propsWithDefaults;
+    // System.properties should override the given props
+    // The trivial case is when the input props argument is empty (including props.defaults)
+    Set<String> propertyNames = props.stringPropertyNames();
+    Properties systemProperties = System.getProperties();
+    if (propertyNames.isEmpty()) {
+      // When argument props is empty, default to System.properties
+      propsWithDefaults = systemProperties;
+    } else {
+      // Copy all the properties from the given set and make system ones as a fallback
+      propsWithDefaults = new Properties(systemProperties);
+      for (String propertyName : propertyNames) {
+        propsWithDefaults.setProperty(propertyName, props.getProperty(propertyName));
       }
     }
-    // Enable Base4 tests to override host,port,database
-    String hostport = props.getProperty(SERVER_HOST_PORT_PROP, getServer() + ":" + getPort());
-    String database = props.getProperty(DATABASE_PROP, getDatabase());
-
-    // Set GSSEncMode for tests only in the case the property is already missing
-    if (PGProperty.GSS_ENC_MODE.getSetString(props) == null) {
-      PGProperty.GSS_ENC_MODE.set(props, getGSSEncMode().value);
-    }
-
-    return DriverManager.getConnection(getURL(hostport, database), props);
+    return propsWithDefaults;
   }
 
   /*

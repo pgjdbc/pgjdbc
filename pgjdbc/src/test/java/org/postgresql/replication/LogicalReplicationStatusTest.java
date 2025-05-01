@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -42,7 +43,9 @@ class LogicalReplicationStatusTest {
   void setUp() throws Exception {
     //statistic available only for privileged user
     sqlConnection = TestUtil.openPrivilegedDB();
-    secondSqlConnection = TestUtil.openPrivilegedDB("test_2");
+    secondSqlConnection = TestUtil.openPrivilegedDB(props -> {
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "test_2");
+    });
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     replicationConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",

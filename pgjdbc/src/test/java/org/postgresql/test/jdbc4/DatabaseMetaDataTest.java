@@ -541,7 +541,7 @@ class DatabaseMetaDataTest {
   private static List<CatalogObject> assertFunctionRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
-    assertThat(rs.getString("FUNCTION_CAT"), is(System.getProperty("database")));
+    assertThat(rs.getString("FUNCTION_CAT"), is(TestUtil.getDatabase()));
     assertThat(rs.getString("FUNCTION_SCHEM"), notNullValue());
     assertThat(rs.getString("FUNCTION_NAME"), notNullValue());
     assertThat(rs.getShort("FUNCTION_TYPE") >= 0, is(true));
@@ -582,7 +582,7 @@ class DatabaseMetaDataTest {
   private static List<CatalogObject> assertProcedureRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
-    assertThat(rs.getString("PROCEDURE_CAT"), is(System.getProperty("database")));
+    assertThat(rs.getString("PROCEDURE_CAT"), is(TestUtil.getDatabase()));
     assertThat(rs.getString("PROCEDURE_SCHEM"), notNullValue());
     assertThat(rs.getString("PROCEDURE_NAME"), notNullValue());
     assertThat(rs.getShort("PROCEDURE_TYPE") >= 0, is(true));
@@ -624,7 +624,7 @@ class DatabaseMetaDataTest {
   private static List<CatalogObject> assertProcedureColumnsRSAndReturnList(ResultSet rs) throws SQLException {
     // There should be at least one row
     assertThat(rs.next(), is(true));
-    assertThat(rs.getString("PROCEDURE_CAT"), is(System.getProperty("database")));
+    assertThat(rs.getString("PROCEDURE_CAT"), is(TestUtil.getDatabase()));
     assertThat(rs.getString("PROCEDURE_SCHEM"), notNullValue());
     assertThat(rs.getString("PROCEDURE_NAME"), notNullValue());
     assertThat(rs.getString("COLUMN_NAME") , notNullValue());

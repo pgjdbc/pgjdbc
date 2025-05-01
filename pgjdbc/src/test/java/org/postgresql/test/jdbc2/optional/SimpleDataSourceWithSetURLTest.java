@@ -11,6 +11,7 @@ import static org.postgresql.Driver.parseURL;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.Test;
 
@@ -24,7 +25,7 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource using setURL method.
    */
   @Override
-  protected void initializeDataSource() {
+  protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
       bds = new SimpleDataSource();
       bds.setURL(String.format("jdbc:postgresql://%s:%d/%s?prepareThreshold=%d", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold()));
