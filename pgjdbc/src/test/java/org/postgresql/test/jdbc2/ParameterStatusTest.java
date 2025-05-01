@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
@@ -16,6 +17,7 @@ import org.junit.Test;
 
 import java.sql.Statement;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TimeZone;
 import java.util.logging.Logger;
 
@@ -78,6 +80,32 @@ public class ParameterStatusTest extends BaseTest4 {
     // Not reported
     Assert.assertNull(params.get("nonexistent"));
     Assert.assertNull(params.get("enable_hashjoin"));
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  @DisabledIfServerVersionBelow("9.0")
+  public void expectedApplicationNameWithMinVersion() throws Exception {
+    Properties properties = new Properties();
+    properties.put("assumeMinServerVersion", "9.0");
+    con = TestUtil.openDB(properties);
+
+    Map<String,String> params = ((PGConnection) con).getParameterStatuses();
+    Assert.assertEquals("Driver Tests", params.get("application_name"));
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  @DisabledIfServerVersionBelow("9.0")
+  public void expectedApplicationNameWithNullMinVersion() throws Exception {
+    Properties properties = new Properties();
+    properties.remove("assumeMinServerVersion");
+    con = TestUtil.openDB(properties);
+
+    Map<String,String> params = ((PGConnection) con).getParameterStatuses();
+    Assert.assertEquals("Driver Tests", params.get("application_name"));
 
     TestUtil.closeDB(con);
   }

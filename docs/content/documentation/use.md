@@ -366,7 +366,9 @@ The default is to sanitise the columns (off).
 
 * **`assumeMinServerVersion (`*String*`)`** *Default `null`*\
 Assume that the server is at least the given version, thus enabling to some optimization at connection time instead of
-trying to be version blind.
+trying to be version blind. 
+  * This allows the application name to be sent on startup instead of as a separate post-connection query.  In addition 
+to optimizing the initial connection, this allows the application name to be logged on the server earlier in the connection process.
 
 * **`currentSchema (`*String*`)`** *Default `null`*\
 Specify the schema (or several schema separated by commas) to be set in the search-path. 
