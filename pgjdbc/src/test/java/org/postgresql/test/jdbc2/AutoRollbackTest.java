@@ -34,7 +34,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(Parameterized.class)
-public class AutoRollbackTestSuite extends BaseTest4 {
+public class AutoRollbackTest extends BaseTest4 {
   private static final AtomicInteger counter = new AtomicInteger();
 
   private enum CleanSavePoint {
@@ -125,7 +125,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   private final TestStatement testSql;
   private final ReturnColumns cols;
 
-  public AutoRollbackTestSuite(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
+  public AutoRollbackTest(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
       FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate,
       boolean trans, TestStatement testSql, ReturnColumns cols) {
     this.autoSave = autoSave;
