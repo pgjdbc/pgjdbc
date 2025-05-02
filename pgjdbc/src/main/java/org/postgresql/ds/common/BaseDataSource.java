@@ -1092,7 +1092,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * parameters in a transaction
    * @return whether to group startup parameters or not
    * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   public boolean getGroupStartupParameters() {
     return PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(properties);
   }
@@ -1101,7 +1103,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param groupStartupParameters whether to group startup Parameters in a transaction or not
    * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   public void setGroupStartupParameters(boolean groupStartupParameters) {
     PGProperty.GROUP_STARTUP_PARAMETERS.set(properties, groupStartupParameters);
   }

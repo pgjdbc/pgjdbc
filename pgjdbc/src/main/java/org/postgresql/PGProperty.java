@@ -244,7 +244,9 @@ public enum PGProperty {
    * reaches the same connection that is being initialized. All of the startup parameters will be wrapped
    * in a transaction
    * Note this is off by default as pgbouncer in statement mode
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   GROUP_STARTUP_PARAMETERS(
       "groupStartupParameters",
       "false",
