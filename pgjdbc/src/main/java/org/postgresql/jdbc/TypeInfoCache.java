@@ -103,7 +103,7 @@ public class TypeInfoCache implements TypeInfo {
       {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
       {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
       {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
+      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP_WITH_TIMEZONE, "java.sql.Timestamp",
           Oid.TIMESTAMPTZ_ARRAY},
       {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
       {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},

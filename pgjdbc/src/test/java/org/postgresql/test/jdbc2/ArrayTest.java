@@ -422,7 +422,7 @@ public class ArrayTest extends BaseTest4 {
       Assert.assertEquals(Timestamp.valueOf("2012-01-01 13:02:03"), tzarr[1]);
 
       arr = rs.getArray(6);
-      Assert.assertEquals(Types.TIMESTAMP, arr.getBaseType());
+      Assert.assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, arr.getBaseType());
       tzarr = (Timestamp[]) arr.getArray();
       Assert.assertEquals(2, times.length);
       Assert.assertEquals(822427200000L, tzarr[0].getTime());
