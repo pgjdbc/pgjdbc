@@ -222,6 +222,15 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize, boolean adaptiveFetch) throws SQLException;
 
   /**
+   * Returns true if the given query should be re-prepared given the current set of parameters.
+   *
+   * @param query query
+   * @param preparedParameters current parameters
+   * @return true if the query should be re-prepared
+   */
+  boolean requiresDescribe(Query query, ParameterList preparedParameters);
+
+  /**
    * Create an unparameterized Query object suitable for execution by this QueryExecutor. The
    * provided query string is not parsed for parameter placeholders ('?' characters), and the
    * {@link Query#createParameterList} of the returned object will always return an empty
@@ -522,6 +531,7 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * {@code standard_conforming_strings} server variable.
    *
    * @return true if the server treats string literals according to the SQL standard
+   * @see <a href="https://www.postgresql.org/docs/current/runtime-config-compatible.html#GUC-STANDARD-CONFORMING-STRINGS">standard_conforming_strings doc</a>
    */
   boolean getStandardConformingStrings();
 

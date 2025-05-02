@@ -17,7 +17,13 @@ import static org.postgresql.core.SqlCommandType.WITH;
  *
  */
 public class SqlCommand {
+
   public static final SqlCommand BLANK = SqlCommand.createStatementTypeInfo(SqlCommandType.BLANK);
+
+  private final SqlCommandType commandType;
+  private final boolean parsedSQLhasRETURNINGKeyword;
+  private final int valuesBraceOpenPosition;
+  private final int valuesBraceClosePosition;
 
   public boolean isBatchedReWriteCompatible() {
     return valuesBraceOpenPosition >= 0;
@@ -72,10 +78,4 @@ public class SqlCommand {
     this.valuesBraceOpenPosition = batchedReWriteCompatible ? valuesBraceOpenPosition : -1;
     this.valuesBraceClosePosition = batchedReWriteCompatible ? valuesBraceClosePosition : -1;
   }
-
-  private final SqlCommandType commandType;
-  private final boolean parsedSQLhasRETURNINGKeyword;
-  private final int valuesBraceOpenPosition;
-  private final int valuesBraceClosePosition;
-
 }

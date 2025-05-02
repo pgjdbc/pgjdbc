@@ -5,6 +5,9 @@
 
 package org.postgresql;
 
+import java.util.Arrays;
+
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -472,11 +475,11 @@ public enum PGProperty {
    */
   PREFER_QUERY_MODE(
       "preferQueryMode",
-      "extended",
+      PreferQueryMode.EXTENDED.value(),
       "Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only), "
           + "extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only, "
           + "extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.", false,
-      new String[]{"extended", "extendedForPrepared", "extendedCacheEverything", "simple"}),
+      Arrays.stream(PreferQueryMode.values()).map(PreferQueryMode::value).toArray(String[]::new)),
 
   /**
    * Specifies the maximum number of entries in cache of prepared statements. A value of {@code 0}

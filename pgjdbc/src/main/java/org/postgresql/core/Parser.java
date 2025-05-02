@@ -430,7 +430,7 @@ public class Parser {
    */
   public static int parseSingleQuotes(final char[] query, int offset,
       boolean standardConformingStrings) {
-    // check for escape string syntax (E'')
+    // check for escape string syntax E''
     if (standardConformingStrings
         && offset >= 2
         && (query[offset - 1] == 'e' || query[offset - 1] == 'E')
@@ -1271,32 +1271,53 @@ public class Parser {
    * @param standardConformingStrings whether standard_conforming_strings is on
    * @return PostgreSQL-compatible SQL
    * @throws SQLException if given SQL is wrong
+   * @deprecated in favor of {@link #replaceProcessing(String, boolean)}
    */
+  @Deprecated
   public static String replaceProcessing(String sql, boolean replaceProcessingEnabled,
       boolean standardConformingStrings) throws SQLException {
     if (replaceProcessingEnabled) {
-      // Since escape codes can only appear in SQL CODE, we keep track
-      // of if we enter a string or not.
-      int len = sql.length();
-      char[] chars = sql.toCharArray();
-      StringBuilder newsql = new StringBuilder(len);
-      int i = 0;
-      while (i < len) {
-        i = parseSql(chars, i, newsql, false, standardConformingStrings);
-        // We need to loop here in case we encounter invalid
-        // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
-        // We can't ending replacing after the extra closing paren
-        // because that changes a syntax error to a valid query
-        // that isn't what the user specified.
-        if (i < len) {
-          newsql.append(chars[i]);
-          i++;
-        }
-      }
-      return newsql.toString();
+      return replaceProcessing(sql, standardConformingStrings);
     } else {
       return sql;
     }
+  }
+
+  /**
+   * <p>Filter the SQL string of Java SQL Escape clauses.</p>
+   *
+   * <p>Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
+   * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}
+   * in non-string sql code. When we find them, we just strip the escape part leaving only the xxx
+   * part. So, something like "select * from x where d={d '2001-10-09'}" would return "select * from
+   * x where d= '2001-10-09'".</p>
+   *
+   * @param sql                       the original query text
+   * @param standardConformingStrings whether standard_conforming_strings is on
+   * @return PostgreSQL-compatible SQL
+   * @throws SQLException if given SQL is wrong
+   */
+  public static String replaceProcessing(String sql, boolean standardConformingStrings)
+      throws SQLException {
+    // Since escape codes can only appear in SQL CODE, we keep track
+    // of if we enter a string or not.
+    int len = sql.length();
+    char[] chars = sql.toCharArray();
+    StringBuilder newsql = new StringBuilder(len);
+    int i = 0;
+    while (i < len) {
+      i = parseSql(chars, i, newsql, false, standardConformingStrings);
+      // We need to loop here in case we encounter invalid
+      // SQL, consider: SELECT a FROM t WHERE (1 > 0)) ORDER BY a
+      // We can't end replacing after the extra closing parenthesis
+      // because that changes a syntax error to a valid query
+      // that isn't what the user specified.
+      if (i < len) {
+        newsql.append(chars[i]);
+        i++;
+      }
+    }
+    return newsql.toString();
   }
 
   /**

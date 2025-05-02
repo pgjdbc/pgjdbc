@@ -117,24 +117,24 @@ class ParserTest {
 
   @Test
   void escapeProcessing() throws Exception {
-    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{d '1999-01-09'}", true, false));
-    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{D  '1999-01-09'}", true, false));
-    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{t '20:00:03'}", true, false));
-    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{T '20:00:03'}", true, false));
-    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{ts '1999-01-09 20:11:11.123455'}", true, false));
-    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{Ts '1999-01-09 20:11:11.123455'}", true, false));
+    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{d '1999-01-09'}", false));
+    assertEquals("DATE '1999-01-09'", Parser.replaceProcessing("{D  '1999-01-09'}", false));
+    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{t '20:00:03'}", false));
+    assertEquals("TIME '20:00:03'", Parser.replaceProcessing("{T '20:00:03'}", false));
+    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{ts '1999-01-09 20:11:11.123455'}", false));
+    assertEquals("TIMESTAMP '1999-01-09 20:11:11.123455'", Parser.replaceProcessing("{Ts '1999-01-09 20:11:11.123455'}", false));
 
-    assertEquals("user", Parser.replaceProcessing("{fn user()}", true, false));
-    assertEquals("cos(1)", Parser.replaceProcessing("{fn cos(1)}", true, false));
-    assertEquals("extract(week from DATE '2005-01-24')", Parser.replaceProcessing("{fn week({d '2005-01-24'})}", true, false));
+    assertEquals("user", Parser.replaceProcessing("{fn user()}", false));
+    assertEquals("cos(1)", Parser.replaceProcessing("{fn cos(1)}", false));
+    assertEquals("extract(week from DATE '2005-01-24')", Parser.replaceProcessing("{fn week({d '2005-01-24'})}", false));
 
     assertEquals("\"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id",
-            Parser.replaceProcessing("{oj \"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id}", true, false));
+            Parser.replaceProcessing("{oj \"T1\" LEFT OUTER JOIN t2 ON \"T1\".id = t2.id}", false));
 
-    assertEquals("ESCAPE '_'", Parser.replaceProcessing("{escape '_'}", true, false));
+    assertEquals("ESCAPE '_'", Parser.replaceProcessing("{escape '_'}", false));
 
     // nothing should be changed in that case, no valid escape code
-    assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
+    assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", false));
   }
 
   @Test
@@ -176,7 +176,7 @@ class ParserTest {
 
   @Test
   void unterminatedEscape() throws Exception {
-    assertEquals("{oj ", Parser.replaceProcessing("{oj ", true, false));
+    assertEquals("{oj ", Parser.replaceProcessing("{oj ", false));
   }
 
   @Test
