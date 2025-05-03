@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 
 import org.junit.Test;
@@ -78,7 +79,11 @@ public class CursorFetchTest extends BaseTest4 {
       assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSize, rs.getFetchSize());
+      if (!con.unwrap(PGConnection.class).getAdaptiveFetch()) {
+        assertEquals("ResultSet.fetchSize should not change after query execution",
+            testSize,
+            rs.getFetchSize());
+      }
 
       int count = 0;
       while (rs.next()) {
@@ -104,7 +109,11 @@ public class CursorFetchTest extends BaseTest4 {
       assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSize, rs.getFetchSize());
+      if (!con.unwrap(PGConnection.class).getAdaptiveFetch()) {
+        assertEquals("ResultSet.fetchSize should not change after query execution",
+            testSize,
+            rs.getFetchSize());
+      }
 
       for (int j = 0; j <= 50; j++) {
         assertTrue("ran out of rows at position " + j + " with fetch size " + testSize, rs.next());
@@ -147,7 +156,11 @@ public class CursorFetchTest extends BaseTest4 {
       assertEquals(testSize, stmt.getFetchSize());
 
       ResultSet rs = stmt.executeQuery();
-      assertEquals(testSize, rs.getFetchSize());
+      if (!con.unwrap(PGConnection.class).getAdaptiveFetch()) {
+        assertEquals("ResultSet.fetchSize should not change after query execution",
+            testSize,
+            rs.getFetchSize());
+      }
 
       int position = 50;
       assertTrue("ran out of rows doing an absolute fetch at " + position + " with fetch size "

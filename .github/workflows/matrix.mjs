@@ -197,6 +197,15 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'adaptive_fetch',
+  title: x => x.value === 'yes' ? 'adaptive_fetch' : '',
+  values: [
+      {value: 'yes', weight: 30},
+      {value: 'no', weight: 70}, // This is the default value, prefer testing it more
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -205,6 +214,7 @@ matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
+    'adaptive_fetch'
 ]);
 
 // We take EA builds from Oracle
@@ -302,6 +312,7 @@ include.forEach(v => {
   v.scram = v.scram.value;
   v.check_anorm_sbt = v.check_anorm_sbt.value;
   v.query_mode = v.query_mode.value;
+  v.adaptive_fetch = v.adaptive_fetch.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
@@ -360,6 +371,9 @@ include.forEach(v => {
   testJvmArgs.push('-Djava.security.egd=file:/dev/./urandom')
   if (v.assumeMinServerVersion) {
       testJvmArgs.push(`-DassumeMinServerVersion=${v.assumeMinServerVersion}`);
+  }
+  if (v.adaptive_fetch === 'yes') {
+      testJvmArgs.push('-DadaptiveFetch=true');
   }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
