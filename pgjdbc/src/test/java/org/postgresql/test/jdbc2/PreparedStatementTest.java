@@ -14,6 +14,7 @@ import static org.junit.Assert.fail;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -1477,6 +1478,8 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.executeBatch();
     }
     pstmt.close();
+    Assume.assumeFalse("Test assertions below support only non-rewritten insert statements",
+        con.unwrap(PgConnection.class).getQueryExecutor().isReWriteBatchedInsertsEnabled());
     assertTrue("prepareThreshold=5, so the statement should be server-prepared",
         ((PGStatement) pstmt).isUseServerPrepare());
     assertEquals("prepareThreshold=5, so the statement should be server-prepared", 1,

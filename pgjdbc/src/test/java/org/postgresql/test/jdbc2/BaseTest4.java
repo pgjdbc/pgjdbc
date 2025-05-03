@@ -15,6 +15,7 @@ import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -43,18 +44,19 @@ public class BaseTest4 {
     UNSPECIFIED, VARCHAR
   }
 
-  protected Connection con;
-  protected BinaryMode binaryMode;
-  private ReWriteBatchedInserts reWriteBatchedInserts;
-  protected PreferQueryMode preferQueryMode;
-  private StringType stringType;
+  protected @Nullable Connection con;
+  protected @Nullable BinaryMode binaryMode;
+  private @Nullable ReWriteBatchedInserts reWriteBatchedInserts;
+  protected @Nullable PreferQueryMode preferQueryMode;
+  private @Nullable StringType stringType;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {
       forceBinary(props);
     }
-    if (reWriteBatchedInserts == ReWriteBatchedInserts.YES) {
-      PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
+    if (reWriteBatchedInserts != null) {
+      PGProperty.REWRITE_BATCHED_INSERTS.set(props,
+          reWriteBatchedInserts == ReWriteBatchedInserts.YES);
     }
     if (stringType != null) {
       PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase(Locale.ROOT));
