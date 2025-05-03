@@ -13,6 +13,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
@@ -938,7 +939,11 @@ public class ResultSetTest extends BaseTest4 {
 
     assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
     assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
-    assertEquals(100, rs.getFetchSize());
+    if (!con.unwrap(PGConnection.class).getAdaptiveFetch()) {
+      assertEquals("ResultSet.fetchSize should not change after query execution",
+          100,
+          rs.getFetchSize());
+    }
     assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
 
     rs.close();
