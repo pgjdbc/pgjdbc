@@ -1689,7 +1689,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (params.isNull(i)) {
         encodedSize += 4;
       } else {
-        encodedSize += (long) 4 + params.getV3Length(i);
+        encodedSize += 4L + params.getV3Length(i);
       }
     }
 
