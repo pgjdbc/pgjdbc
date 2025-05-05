@@ -45,7 +45,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@v2
+      - uses: burrunan/gradle-cache-action@v3
         name: Publish Snapshot
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}

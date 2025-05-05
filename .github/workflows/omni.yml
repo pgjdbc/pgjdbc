@@ -350,7 +350,7 @@ jobs:
         preferQueryMode=${{ matrix.query_mode}}
         EOF
     - name: Test
-      uses: burrunan/gradle-cache-action@v2
+      uses: burrunan/gradle-cache-action@v3
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
@@ -406,7 +406,7 @@ jobs:
         cat <<EOF >build.local.properties
         EOF
     - name: Test
-      uses: burrunan/gradle-cache-action@v2
+      uses: burrunan/gradle-cache-action@v3
       with:
         arguments: --no-parallel --no-daemon --scan jandex test jacocoReport -PskipJavadoc
         properties: |
