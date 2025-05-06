@@ -9,53 +9,54 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 #### Features
 • fix: Enhanced DatabaseMetadata.getIndexInfo() method, added index comment as REMARKS property [PR #3513](https://github.com/pgjdbc/pgjdbc/pull/3513)
 • fix: Added back application name setting [PR #3509](https://github.com/pgjdbc/pgjdbc/pull/3509)
-• fix: Deprecated group startup parameters [PR #3613](https://github.com/pgjdbc/pgjdbc/pull/3613)
+• feat:Use a single simple query for all startup parameters, so groupStartupParameters is no longer needed  [PR #3613](https://github.com/pgjdbc/pgjdbc/pull/3613)
 
 ### Performance Improvements
-• performance: Use IN row values instead of UNION ALL for improved query performance (later reverted) [PR #3510](https://github.com/pgjdbc/pgjdbc/pull/3510)
-• test: Added CI executions with adaptive_fetch=true by default for performance testing [PR #bd572f40](https://github.com/pgjdbc/pgjdbc/commit/bd572f40)
-• test: Added tests with reWriteBatchedInserts=true [PR #972cddd9](https://github.com/pgjdbc/pgjdbc/commit/972cddd9)
+• performance: Improve ResultSetMetadata.fetchFieldMetaData by using IN row values instead of UNION ALL for improved query performance (later reverted) [PR #3510](https://github.com/pgjdbc/pgjdbc/pull/3510)
 
 ## Bug Fixes
 
 ### Protocol & Connection Handling
-• fix: Fixed sending extra_float_digits [PR #3491](https://github.com/pgjdbc/pgjdbc/pull/3491)
+• fix: send extra_float_digits=3 for PostgreSQL 12+ as well  [PR #3491](https://github.com/pgjdbc/pgjdbc/pull/3491)
 • fix: Fixed handling of protocol 3.2 and wider cancel keys [PR #3592](https://github.com/pgjdbc/pgjdbc/pull/3592)
-• fix: Made PgConnection#abort compatible with Java 24 [PR #11fc0fd9](https://github.com/pgjdbc/pgjdbc/commit/11fc0fd9)
-• fix: Fixed ArrayIndexOutOfBounds when writing big objects into GSS enabled connections [PR #96f6862b](https://github.com/pgjdbc/pgjdbc/commit/96f6862b)
+• fix: Made PgConnection#abort compatible with Java 24 [PR #3582](https://github.com/pgjdbc/pgjdbc/pull/3582)
+• fix: Fixed ArrayIndexOutOfBounds when writing big objects into GSS enabled connections [PR #3500](https://github.com/pgjdbc/pgjdbc/pull/3500)
 
 ### Metadata & Catalog Handling
-• fix: Set column name explicitly when using current_database() in queries [PR #1e0c88d8](https://github.com/pgjdbc/pgjdbc/commit/1e0c88d8)
-• fix: Use query to find the current catalog instead of relying on the database in the connection URL [PR #156d724e](https://github.com/pgjdbc/pgjdbc/commit/156d724e)
-• fix: Refactored empty resultset to use empty result set if the catalog is not correct [PR #d413ce30](https://github.com/pgjdbc/pgjdbc/commit/d413ce30)
+• fix: Set column name explicitly when using current_database() in queries [PR #3526](https://github.com/pgjdbc/pgjdbc/pull/3526)
+• fix: Use query to find the current catalog instead of relying on the database in the connection URL [pull #3565](https://github.com/pgjdbc/pgjdbc/pull/3565)
+• fix: Refactored empty resultset to use empty result set if the catalog is not correct [PR #3588](https://github.com/pgjdbc/pgjdbc/pull/3588)
 
 ### API Improvements
-• fix: Undeprecated Fastpath API and fixed deprecation warnings [PR #93747e83](https://github.com/pgjdbc/pgjdbc/commit/93747e83)
-• fix: Undeprecated sslfactoryarg [PR #031206b3](https://github.com/pgjdbc/pgjdbc/commit/031206b3)
-• fix: Added PgMessageType and used static variables for protocol literals [PR #64c6b0a9](https://github.com/pgjdbc/pgjdbc/commit/64c6b0a9)
+• fix: Undeprecated Fastpath API and fixed deprecation warnings [PR #3493](https://github.com/pgjdbc/pgjdbc/pull/3493)
+• fix: Undeprecated sslfactoryarg [PR #3496](https://github.com/pgjdbc/pgjdbc/pull/3496)
+• fix: Added PgMessageType and used static variables for protocol literals [PR #3609](https://github.com/pgjdbc/pgjdbc/pull/3609)
 
 ## Infrastructure & Build Improvements
 
 ### Java Support
-• update: Updated to use Java 21 for building pgjdbc by default [PR #4d273f16](https://github.com/pgjdbc/pgjdbc/commit/4d273f16)
-• update: Updated Java 21 as the build dependency for copr [PR #475812b2](https://github.com/pgjdbc/pgjdbc/commit/475812b2)
-• update: Updated latest JDK to version 24 [PR #e91b1c39](https://github.com/pgjdbc/pgjdbc/commit/e91b1c39)
-• update: Applied the latest byte-buddy version for tests to support the latest Java versions [PR #6454f2fe](https://github.com/pgjdbc/pgjdbc/commit/6454f2fe)
+• update: Updated to use Java 21 for building pgjdbc by default [PR #3612](https://github.com/pgjdbc/pgjdbc/pull/3612)
+• update: Updated Java 21 as the build dependency for copr [PR #3607](https://github.com/pgjdbc/pgjdbc/pull/3607)
+• update: Updated latest JDK to version 24 [PR #3580](https://github.com/pgjdbc/pgjdbc/pull/3580)
+• update: Applied the latest byte-buddy version for tests to support the latest Java versions [PR #3583](https://github.com/pgjdbc/pgjdbc/pull/3583)
 
 ### Testing & Quality
-• test: Added ErrorProne verification to detect bugs earlier [PR #86931cd6](https://github.com/pgjdbc/pgjdbc/commit/86931cd6)
-• test: Simplified TestUtil.openDB, added tests with various assumeMinServerVersion values [PR #9fb6cc1e](https://github.com/pgjdbc/pgjdbc/commit/9fb6cc1e)
-• test: Updated to use PostgreSQL 17 rather than 17rc1 for CI tests [PR #72d88d9c](https://github.com/pgjdbc/pgjdbc/commit/72d88d9c)
-• test: Removed stale logging message from SslTest [PR #98d0497a](https://github.com/pgjdbc/pgjdbc/commit/98d0497a)
+• test: Added ErrorProne verification to detect bugs earlier [PR #3493](https://github.com/pgjdbc/pgjdbc/pull/3493)
+• test: Simplified TestUtil.openDB, added tests with various assumeMinServerVersion values [PR #3624](https://github.com/pgjdbc/pgjdbc/pull/3614)
+• test: Updated to use PostgreSQL 17 rather than 17rc1 for CI tests [PR #3501](https://github.com/pgjdbc/pgjdbc/pull/3501)
+• test: Removed stale logging message from SslTest [PR #3584](https://github.com/pgjdbc/pgjdbc/pull/3584)
+• test: Added CI executions with adaptive_fetch=true by default for performance testing [PR #3615](https://github.com/pgjdbc/pgjdbc/pull/3615)
+• test: Added tests with reWriteBatchedInserts=true [PR #3616](https://github.com/pgjdbc/pgjdbc/pull/3616)
+
 
 ### Code Quality
-• doc: Fixed javadoc warnings [PR #68c51ae3](https://github.com/pgjdbc/pgjdbc/commit/68c51ae3)
-• fix: Added missing @Override annotations [PR #4f986ff8](https://github.com/pgjdbc/pgjdbc/commit/4f986ff8)
-• fix: Fixed empty catch block warnings [PR #840fdab9](https://github.com/pgjdbc/pgjdbc/commit/840fdab9)
-• fix: Fixed unused variables [PR #2d3b00c2](https://github.com/pgjdbc/pgjdbc/commit/2d3b00c2)
-• fix: Made private methods that do not use instance fields static [PR #ddb71441](https://github.com/pgjdbc/pgjdbc/commit/ddb71441)
-• fix: Fixed .equals when comparing offsetDateTime with OffsetDateTime.MIN and OffsetDateTime.MAX [PR #2bf410af](https://github.com/pgjdbc/pgjdbc/commit/2bf410af)
-• refactor: Factored out duplicated .getBytes() when converting date/time to Date/Time/Timestamp [PR #882b97f9](https://github.com/pgjdbc/pgjdbc/commit/882b97f9)
+• doc: Fixed javadoc warnings [PR #3493](https://github.com/pgjdbc/pgjdbc/pull/3493)
+• chore: Added missing @Override annotations [commit #4f986ff8](https://github.com/pgjdbc/pgjdbc/commit/4f986ff8)
+• chore: Fixed empty catch block warnings [commit #840fdab9](https://github.com/pgjdbc/pgjdbc/commit/840fdab9)
+• chore: Fixed unused variables [commit #2d3b00c2](https://github.com/pgjdbc/pgjdbc/commit/2d3b00c2)
+• refactor: Made private methods that do not use instance fields static [commit #ddb71441](https://github.com/pgjdbc/pgjdbc/commit/ddb71441)
+• fix: Fixed .equals when comparing offsetDateTime with OffsetDateTime.MIN and OffsetDateTime.MAX [commit #2bf410af](https://github.com/pgjdbc/pgjdbc/commit/2bf410af)
+• refactor: Factored out duplicated .getBytes() when converting date/time to Date/Time/Timestamp [commit #882b97f9](https://github.com/pgjdbc/pgjdbc/commit/882b97f9)
 
 ## Dependency Updates
 • Updated numerous dependencies including:
@@ -70,13 +71,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 • JaCoCo to v0.8.13
 
 ## Documentation
-• docs: Corrected location for 42.2.29 changelogs [PR #bb276568](https://github.com/pgjdbc/pgjdbc/commit/bb276568)
-• docs: Fixed naming of release note [PR #032d0e22](https://github.com/pgjdbc/pgjdbc/commit/032d0e22)
+• docs: Corrected location for 42.2.29 changelogs [commit #bb276568](https://github.com/pgjdbc/pgjdbc/commit/bb276568)
+• docs: Fixed naming of release note [commit #032d0e22](https://github.com/pgjdbc/pgjdbc/commit/032d0e22)
 
 ## Removed
-• fix: Removed unused Travis CI configuration [PR #f6a70eaa](https://github.com/pgjdbc/pgjdbc/commit/f6a70eaa)
-• fix: Excluded Oracle Java 17 from CI tests [PR #581e3a54](https://github.com/pgjdbc/pgjdbc/commit/581e3a54)
-• fix: Removed workaround which was needed for an old checkstyle [PR #4500ea04](https://github.com/pgjdbc/pgjdbc/commit/4500ea04)
+• chore: Removed unused Travis CI configuration [PR #3498](https://github.com/pgjdbc/pgjdbc/pull/3498)
+• chore: Excluded Oracle Java 17 from CI tests [PR #3499](https://github.com/pgjdbc/pgjdbc/pull/3499)
+• fix: Removed workaround which was needed for an old checkstyle [commit #4500ea04](https://github.com/pgjdbc/pgjdbc/commit/4500ea04)
 
 
 ## [42.7.5] (2025-01-14 08:00:00 -0400)
