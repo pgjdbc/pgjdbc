@@ -34,6 +34,18 @@ public interface Query {
   /**
    * Stringize this query to a human-readable form, substituting particular parameter values for
    * parameter placeholders.
+   * This method will consume all InputStreams to produce the result.
+   *
+   * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
+   *        or <code>null</code> to leave the parameter placeholders unsubstituted.
+   * @return a human-readable representation of this query
+   */
+  String toStringLiteral(@Nullable ParameterList parameters);
+
+  /**
+   * Stringize this query to a human-readable form, substituting particular parameter values for
+   * parameter placeholders.
+   * This method will NOT consume InputStreams, instead "?" will be returned.
    *
    * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
    *        or <code>null</code> to leave the parameter placeholders unsubstituted.
