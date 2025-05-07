@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 • fix: Undeprecated Fastpath API and fixed deprecation warnings [PR #3493](https://github.com/pgjdbc/pgjdbc/pull/3493)
 • fix: Undeprecated sslfactoryarg [PR #3496](https://github.com/pgjdbc/pgjdbc/pull/3496)
 • fix: Added PgMessageType and used static variables for protocol literals [PR #3609](https://github.com/pgjdbc/pgjdbc/pull/3609)
+• fix: Add the ability to turn off automatic LSN flush [PR #3403](https://github.com/pgjdbc/pgjdbc/pull/3403)
 
 ## Infrastructure & Build Improvements
 
