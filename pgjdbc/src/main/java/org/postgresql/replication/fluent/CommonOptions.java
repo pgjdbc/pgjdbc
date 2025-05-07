@@ -36,4 +36,6 @@ public interface CommonOptions {
    * @return the current status interval
    */
   int getStatusInterval();
+
+  boolean getAutomaticFlush();
 }

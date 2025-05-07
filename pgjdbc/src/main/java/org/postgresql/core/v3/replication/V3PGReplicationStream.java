@@ -32,6 +32,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   private final CopyDual copyDual;
   private final long updateInterval;
   private final ReplicationType replicationType;
+  private final boolean automaticFlush;
   private long lastStatusUpdate;
   private boolean closeFlag;
 
@@ -58,12 +59,13 @@ public class V3PGReplicationStream implements PGReplicationStream {
    * @param replicationType  LOGICAL or PHYSICAL
    */
   public V3PGReplicationStream(CopyDual copyDual, LogSequenceNumber startLSN, long updateIntervalMs,
-      ReplicationType replicationType
+      boolean automaticFlush, ReplicationType replicationType
   ) {
     this.copyDual = copyDual;
     this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
     this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
     this.lastReceiveLSN = startLSN;
+    this.automaticFlush = automaticFlush;
     this.replicationType = replicationType;
   }
 
@@ -238,7 +240,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     }
     // if the client has confirmed flush of last XLogData msg and KeepAlive shows ServerLSN is still
     // advancing, we can safely advance FlushLSN to ServerLSN
-    if (explicitlyFlushedLSN.asLong() >= startOfLastMessageLSN.asLong()
+    if (automaticFlush && explicitlyFlushedLSN.asLong() >= startOfLastMessageLSN.asLong()
         && lastServerLSN.asLong() > explicitlyFlushedLSN.asLong()
         && lastServerLSN.asLong() > lastFlushedLSN.asLong()) {
       lastFlushedLSN = lastServerLSN;

@@ -92,4 +92,9 @@ public class LogicalStreamBuilder extends AbstractStreamBuilder<ChainedLogicalSt
   public int getStatusInterval() {
     return statusIntervalMs;
   }
+
+  @Override
+  public boolean getAutomaticFlush() {
+    return automaticFlush;
+  }
 }
