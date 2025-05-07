@@ -39,6 +39,7 @@ public abstract class AbstractStreamBuilder<T extends ChainedCommonStreamBuilder
     return self();
   }
 
+  @Override
   public T withAutomaticFlush(boolean automaticFlush) {
     this.automaticFlush = automaticFlush;
     return self();
