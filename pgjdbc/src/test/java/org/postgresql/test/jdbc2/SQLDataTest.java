@@ -348,7 +348,6 @@ public class SQLDataTest {
     @Override
     public void readSQL(SQLInput stream, String typeName) throws SQLException {
       name = stream.readString();
-      System.out.println(name);
       things = SQLDataTest.toThingArray(stream.readArray());
     }
 
