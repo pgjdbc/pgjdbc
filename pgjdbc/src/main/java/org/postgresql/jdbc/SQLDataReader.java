@@ -59,6 +59,12 @@ public class SQLDataReader {
    * @return list of parsed strings.
    */
   public List<@Nullable String> parseArray(String value) {
+    //
+    // Handle special case where it is an empty array.
+    //
+    if ("{}".equals(value)) {
+      return new ArrayList<>();
+    }
     return parse(value, '{', '}');
   }
 

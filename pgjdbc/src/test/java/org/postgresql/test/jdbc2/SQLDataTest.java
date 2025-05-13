@@ -272,6 +272,13 @@ public class SQLDataTest {
     assertNull(ids[1]);
   }
 
+  @Test
+  public void readEmptyArray() throws Exception {
+    ResultSet rs = getResultSet("select ARRAY[]::text[];");
+    String[] array = rs.getObject(1, String[].class);
+    assertEquals(array.length, 0);
+  }
+
   public static class Thing implements SQLData {
     public int id;
     public long idl;
