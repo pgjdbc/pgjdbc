@@ -11,6 +11,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
@@ -236,6 +237,173 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setAsciiStream(2, is, length);
     pstmt.executeUpdate();
     pstmt.close();
+  }
+
+  @Test
+  public void ByteArrayInputStream_setBinaryStream_toString() throws SQLException {
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      byte[] buf = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+      ByteArrayInputStream byteStream = new ByteArrayInputStream(buf);
+
+      pstmt.setBinaryStream(1, byteStream, buf.length);
+      assertEquals(
+          "InputStream parameter should come as ?, and the second parameter is unset, so it should be ? as well",
+          "INSERT INTO streamtable VALUES (?,?)",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed with half-set parameters"));
+
+      pstmt.setString(2, "test");
+
+      String expected = "INSERT INTO streamtable VALUES (?,('test'))";
+      assertEquals(
+          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed after setting parameters"));
+
+      assertEquals(
+          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "Second PreparedStatement#toString call should succeed as well"));
+
+      pstmt.execute();
+
+      assertEquals(
+          "PreparedStatement#toString after .execute()",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed even after execute()"));
+    }
+  }
+
+  @Test
+  public void ByteArrayInputStream_setBinaryStream_addBatch_toString() throws SQLException {
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      pstmt.setBinaryStream(1, new ByteArrayInputStream(new byte[]{0, 1}), 2);
+      pstmt.setString(2, "line1");
+      pstmt.addBatch();
+      pstmt.setBinaryStream(1, new ByteArrayInputStream(new byte[]{0, 1, 2}), 3);
+      pstmt.setString(2, "line2");
+      pstmt.addBatch();
+
+      String expected = "INSERT INTO streamtable VALUES (?,('line1'));\n"
+          + "INSERT INTO streamtable VALUES (?,('line2'))";
+      assertEquals(
+          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed after addBatch"));
+
+      assertEquals(
+          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "Second PreparedStatement#toString call should succeed as well"));
+
+      pstmt.executeBatch();
+
+      assertEquals(
+          "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row",
+          "INSERT INTO streamtable VALUES (?,('line2'))",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed even after executeBatch()"));
+    }
+  }
+
+  @Test
+  public void ByteArray_setBytes_toString() throws SQLException {
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      byte[] buf = new byte[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+      pstmt.setBytes(1, buf);
+
+      assertEquals(
+          "byte[] parameter could be rendered, and the second parameter is unset, so it should be ? as well",
+          "INSERT INTO streamtable VALUES ('\\x00010203040506070809'::bytea,?)",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed with half-set parameters"));
+
+      pstmt.setString(2, "test");
+
+      String expected = "INSERT INTO streamtable VALUES ('\\x00010203040506070809'::bytea,('test'))";
+      assertEquals(
+          "byte[] should be rendered when calling PreparedStatement#toString",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed after setting parameters"));
+
+      assertEquals(
+          "byte[] should be rendered when calling PreparedStatement#toString",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "Second PreparedStatement#toString call should succeed as well"));
+
+      pstmt.execute();
+
+      assertEquals(
+          "PreparedStatement#toString after .execute()",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed even after execute()"));
+    }
+  }
+
+  @Test
+  public void ByteArray_setBytes_addBatch_toString() throws SQLException {
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      pstmt.setBytes(1, new byte[]{0, 1});
+      pstmt.setString(2, "line1");
+      pstmt.addBatch();
+
+      pstmt.setBytes(1, new byte[]{0, 1, 2});
+      pstmt.setString(2, "line2");
+      pstmt.addBatch();
+
+      String expected = "INSERT INTO streamtable VALUES ('\\x0001'::bytea,('line1'));\n"
+          + "INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))";
+      assertEquals(
+          "byte[] should be rendered when calling PreparedStatement#toString",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed after addBatch"));
+
+      assertEquals(
+          "byte[] should be rendered when calling PreparedStatement#toString",
+          expected,
+          assertDoesNotThrow(
+              pstmt::toString,
+              "Second PreparedStatement#toString call should succeed as well"));
+
+      pstmt.executeBatch();
+
+      assertEquals(
+          "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row",
+          "INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString call should succeed even after executeBatch()"));
+    }
   }
 
   @Test

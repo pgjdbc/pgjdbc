@@ -82,11 +82,11 @@ public class BatchedQuery extends SimpleQuery {
     if (sql != null) {
       return sql;
     }
-    sql = buildNativeSql(null);
+    sql = buildNativeSql(null, DefaultSqlSerializationContext.STDSTR_IDEMPOTENT);
     return sql;
   }
 
-  private String buildNativeSql(@Nullable ParameterList params) {
+  private String buildNativeSql(@Nullable ParameterList params, SqlSerializationContext context) {
     String sql = null;
     // dynamically build sql with parameters for batches
     String nativeSql = super.getNativeSql();
@@ -158,7 +158,7 @@ public class BatchedQuery extends SimpleQuery {
         if (params == null) {
           NativeQuery.appendBindName(s, pos++);
         } else {
-          s.append(params.toString(pos++, true));
+          s.append(params.toString(pos++, context));
         }
         s.append(nativeSql, chunkStart[j], chunkEnd[j]);
       }
@@ -174,11 +174,11 @@ public class BatchedQuery extends SimpleQuery {
   }
 
   @Override
-  public String toString(@Nullable ParameterList params) {
+  public String toString(@Nullable ParameterList params, SqlSerializationContext context) {
     if (getBatchSize() < 2) {
-      return super.toString(params);
+      return super.toString(params, context);
     }
-    return buildNativeSql(params);
+    return buildNativeSql(params, context);
   }
 
 }

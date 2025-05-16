@@ -1672,7 +1672,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       StringBuilder sbuf = new StringBuilder(" FE=> Bind(stmt=" + statementName + ",portal=" + portal);
       for (int i = 1; i <= params.getParameterCount(); i++) {
         sbuf.append(",$").append(i).append("=<")
-            .append(params.toString(i, true))
+            .append(params.toString(i, getStandardConformingStrings()))
             .append(">,type=").append(Oid.toString(params.getTypeOID(i)));
       }
       sbuf.append(")");
@@ -2050,7 +2050,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
-    String nativeSql = query.toString(params);
+    String nativeSql = query.toString(
+        params,
+        SqlSerializationContext.of(getStandardConformingStrings(), false));
 
     LOGGER.log(Level.FINEST, " FE=> SimpleQuery(query=\"{0}\")", nativeSql);
     Encoding encoding = pgStream.getEncoding();
