@@ -1429,63 +1429,67 @@ final class ArrayEncoding {
   }
 
   public static void validateRectangular(Object array) throws PSQLException {
-      validateRectangular(array, new ArrayList<>());
+    validateRectangular(array, new ArrayList<>());
   }
 
   private static void validateRectangular(Object array, List<Integer> path) throws PSQLException {
-      if (array == null || !array.getClass().isArray()) {
-          return;
+    if (array == null || !array.getClass().isArray()) {
+      return;
+    }
+
+    Class<?> componentType = array.getClass().getComponentType();
+    if (!componentType.isArray()) {
+      return; // Single-dimensional array is always valid
+    }
+
+    int length = Array.getLength(array);
+    if (length == 0) {
+      return; // Empty arrays are valid (no jaggedness possible)
+    }
+
+    int expectedLength = -1;
+    for (int i = 0; i < length; i++) {
+      Object element = Array.get(array, i);
+      if (element == null) {
+        continue;
       }
 
-      Class<?> componentType = array.getClass().getComponentType();
-      if (!componentType.isArray()) {
-          return; // Single-dimensional array is always valid
+      // Check element type consistency
+      if (!element.getClass().isArray()) {
+        throw new PSQLException(
+        "Invalid array structure at " + formatPath(path, i)
+        + ". Expected array element, found: " + element.getClass().getSimpleName(),
+        PSQLState.INVALID_PARAMETER_TYPE);
       }
 
-      int length = Array.getLength(array);
-      if (length == 0) return; // Empty arrays are valid (no jaggedness possible)
-
-      int expectedLength = -1;
-      for (int i = 0; i < length; i++) {
-          Object element = Array.get(array, i);
-          if (element == null) continue;
-
-          // Check element type consistency
-          if (!element.getClass().isArray()) {
-              throw new PSQLException(
-                  "Invalid array structure at " + formatPath(path, i) +
-                  ". Expected array element, found: " + element.getClass().getSimpleName(),
-                  PSQLState.INVALID_PARAMETER_TYPE);
-          }
-
-          // Check sub-array length consistency
-          int elementLength = Array.getLength(element);
-          if (expectedLength == -1) {
-              expectedLength = elementLength;
-          } else if (elementLength != expectedLength) {
-              throw new PSQLException(
-                  "Jagged array detected at " + formatPath(path, i) +
-                  ". Expected sub-array length " + expectedLength +
-                  ", found " + elementLength + ". Ensure all sub-arrays have consistent lengths or preprocess the array to make it rectangular.",
-                  PSQLState.INVALID_PARAMETER_VALUE);
-          }
-
-          // Recursive validation for higher dimensions
-          path.add(i);
-          validateRectangular(element, path);
-          path.remove(path.size() - 1);
+      // Check sub-array length consistency
+      int elementLength = Array.getLength(element);
+      if (expectedLength == -1) {
+        expectedLength = elementLength;
+      } else if (elementLength != expectedLength) {
+        throw new PSQLException(
+        "Jagged array detected at " + formatPath(path, i)
+        + ". Expected sub-array length " + expectedLength
+        + ", found " + elementLength + ". Ensure all sub-arrays have consistent lengths or preprocess the array to make it rectangular.",
+        PSQLState.INVALID_PARAMETER_VALUE);
       }
+
+      // Recursive validation for higher dimensions
+      path.add(i);
+      validateRectangular(element, path);
+      path.remove(path.size() - 1);
+    }
   }
 
   private static String formatPath(List<Integer> path, int currentIndex) {
-      if (path.isEmpty()) {
-          return "[" + currentIndex + "]";
-      }
+    if (path.isEmpty()) {
+      return "[" + currentIndex + "]";
+    }
 
-      StringBuilder sb = new StringBuilder();
-      for (int idx : path) {
-          sb.append("[").append(idx).append("]");
-      }
-      return sb.append("[").append(currentIndex).append("]").toString();
+    StringBuilder sb = new StringBuilder();
+    for (int idx : path) {
+      sb.append("[").append(idx).append("]");
+    }
+    return sb.append("[").append(currentIndex).append("]").toString();
   }
 }

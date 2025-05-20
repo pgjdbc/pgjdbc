@@ -1510,10 +1510,8 @@ public class PgConnection implements BaseConnection {
       return makeArray(oid, null);
     }
 
-    // Checks for jagged arrays
-    // Jagged arrays are not supported in postgres
+    // Checks for jagged arrays. Jagged arrays are not supported in postgres
     ArrayEncoding.validateRectangular(elements);
-
 
     final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
     if (arraySupport.supportBinaryRepresentation(oid) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {

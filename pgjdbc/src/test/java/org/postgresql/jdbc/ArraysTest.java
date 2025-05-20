@@ -93,7 +93,7 @@ class ArraysTest {
   }
 
   @Test
-  void nullArraysAreValid(){
+  void nullArraysAreValid() {
     assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(null));
   }
 
@@ -107,10 +107,9 @@ class ArraysTest {
     ArrayEncoding.validateRectangular(arrayWithNulls);
   }
 
-
   @Test
   void testNestedNullSubarrays() throws PSQLException {
-      Long[][] array = {{1L, 2L}, null, {3L, 4L}};
-      assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(array));
+    Long[][] array = {{1L, 2L}, null, {3L, 4L}};
+    assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(array));
   }
 }
