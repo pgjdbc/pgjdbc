@@ -51,13 +51,13 @@ class ArraysTest {
         {4, 5, 6},
         {7, 8, 9}
     };
-    ArrayEncoding.validateRectangular(regular);
+    assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(regular));
   }
 
   @Test
   void validateEmptyArray() throws PSQLException {
     int[][] empty = new int[0][0];
-    ArrayEncoding.validateRectangular(empty);
+    assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(empty));
   }
 
   @Test
@@ -78,7 +78,7 @@ class ArraysTest {
         {{1, 2}, {3, 4}},
         {{5, 6}, {7, 8}}
     };
-    ArrayEncoding.validateRectangular(regular3D);
+    assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(regular3D));
   }
 
   @Test
@@ -104,7 +104,7 @@ class ArraysTest {
         {4, 5, 6},
         {7, 8, 9}
     };
-    ArrayEncoding.validateRectangular(arrayWithNulls);
+    assertDoesNotThrow(() -> ArrayEncoding.validateRectangular(arrayWithNulls));
   }
 
   @Test
