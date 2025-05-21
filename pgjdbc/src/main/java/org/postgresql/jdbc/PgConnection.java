@@ -46,8 +46,14 @@ import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGInterval;
+import org.postgresql.util.PGdaterange;
+import org.postgresql.util.PGint4range;
+import org.postgresql.util.PGint8range;
 import org.postgresql.util.PGmoney;
+import org.postgresql.util.PGnumrange;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PGtsrange;
+import org.postgresql.util.PGtstzrange;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.xml.DefaultPGXmlFactoryFactory;
@@ -409,15 +415,21 @@ public class PgConnection implements BaseConnection {
         Oid.BYTEA,
         Oid.INT2,
         Oid.INT4,
+        Oid.INT4RANGE,
         Oid.INT8,
+        Oid.INT8RANGE,
         Oid.FLOAT4,
         Oid.FLOAT8,
         Oid.NUMERIC,
+        Oid.NUMRANGE,
         Oid.TIME,
         Oid.DATE,
+        Oid.DATERANGE,
         Oid.TIMETZ,
         Oid.TIMESTAMP,
+        Oid.TSRANGE,
         Oid.TIMESTAMPTZ,
+        Oid.TSTZRANGE,
         Oid.BYTEA_ARRAY,
         Oid.INT2_ARRAY,
         Oid.INT4_ARRAY,
@@ -467,8 +479,12 @@ public class PgConnection implements BaseConnection {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
     if (oids == null) {
-      return Collections.emptySet();
+      oids = "";
     }
+    if (!oids.trim().isEmpty()) {
+      oids += ",";
+    }
+    oids += "numrange,daterange,tsrange,tstzrange";
     return getOidSet(oids);
   }
 
@@ -829,6 +845,12 @@ public class PgConnection implements BaseConnection {
     addDataType("polygon", PGpolygon.class);
     addDataType("money", PGmoney.class);
     addDataType("interval", PGInterval.class);
+    addDataType("int4range", PGint4range.class);
+    addDataType("int8range", PGint8range.class);
+    addDataType("numrange", PGnumrange.class);
+    addDataType("daterange", PGdaterange.class);
+    addDataType("tsrange", PGtsrange.class);
+    addDataType("tstzrange", PGtstzrange.class);
 
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
