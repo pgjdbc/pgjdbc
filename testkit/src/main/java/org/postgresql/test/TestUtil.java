@@ -134,7 +134,9 @@ public class TestUtil {
         throw new IllegalArgumentException("Null value for property " + propertyName);
       }
       String name = propertyName.substring(TEST_URL_PROPERTY_PREFIX.length());
-      sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
+      if (PGProperty.forName(name) != null) {
+        sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
+      }
     }
     return sb.toString();
   }
@@ -356,7 +358,8 @@ public class TestUtil {
    */
   public static Connection openDB(Properties props) throws SQLException {
     Properties propsWithDefaults = mergeDefaultProperties(props);
-    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+    Properties validDriverProps = PGProperty.removeNonExistingProperties(propsWithDefaults);
+    return DriverManager.getConnection(getURL(propsWithDefaults), validDriverProps);
   }
 
   /**

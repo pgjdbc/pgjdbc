@@ -1153,4 +1153,23 @@ public enum PGProperty {
     }
     return null;
   }
+
+  /**
+   * Return valid properties. Not existing properties are not returned.
+   *
+   * @param properties properties bundle
+   * @return properties bundle with valid properties
+   */
+  public static Properties removeNonExistingProperties(Properties properties) {
+    Properties props = new Properties();
+    properties.stringPropertyNames().stream()
+        .filter(name -> PGProperty.forName(name) != null)
+        .forEach(name -> {
+          String value = properties.getProperty(name);
+          if (value != null) {
+            props.setProperty(name, value);
+          }
+        });
+    return props;
+  }
 }
