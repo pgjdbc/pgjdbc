@@ -128,7 +128,9 @@ public class TestUtil {
       }
       String value = props.getProperty(propertyName);
       String name = propertyName.substring(TEST_URL_PROPERTY_PREFIX.length());
-      sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
+      if (PGProperty.forName(name) != null) {
+        sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
+      }
     }
     return sb.toString();
   }
@@ -183,6 +185,7 @@ public class TestUtil {
    * Returns password for default callbackhandler
    */
   public static String getSslPassword() {
+    // todo PGProperty.SSL_PASSWORD.getName() shouldn't be used here. It is accidental that those strings match
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
@@ -344,7 +347,8 @@ public class TestUtil {
    */
   public static Connection openDB(Properties props) throws SQLException {
     Properties propsWithDefaults = mergeDefaultProperties(props);
-    return DriverManager.getConnection(getURL(propsWithDefaults), propsWithDefaults);
+    Properties validDriverProps = PGProperty.removeNonExistingProperties(propsWithDefaults);
+    return DriverManager.getConnection(getURL(propsWithDefaults), validDriverProps);
   }
 
   /**
