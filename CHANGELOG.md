@@ -32,6 +32,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: Undeprecated sslfactoryarg [PR #3496](https://github.com/pgjdbc/pgjdbc/pull/3496)
 * fix: Added PgMessageType and used static variables for protocol literals [PR #3609](https://github.com/pgjdbc/pgjdbc/pull/3609)
 * fix: Add the ability to turn off automatic LSN flush [PR #3403](https://github.com/pgjdbc/pgjdbc/pull/3403)
+* fix: isValid incorrectly called execute, instead of executeWithFlags [PR #3631](https://github.com/pgjdbc/pgjdbc/pull/3631). Fixes [Issue #3630](https://github.com/pgjdbc/pgjdbc/issues/3630)
+* fix: EOFException on PreparedStatement#toString with unset bytea parameter since 42.7.4 [Commit 0a88ea4](https://github.com/pgjdbc/pgjdbc/commit/0a88ea425e86dce691a96d6aa7023c20ac887b98). Fixes [Issue #3365](https://github.com/pgjdbc/pgjdbc/issues/3365)
 
 ## Infrastructure & Build Improvements
 
