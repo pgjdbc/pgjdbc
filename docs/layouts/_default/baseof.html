@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width,minimum-scale=1">
 
     {{ $sass := resources.Get "sass/main.scss" }}
-    {{ $style := $sass | resources.ToCSS | resources.Fingerprint }}
+    {{ $style := $sass | css.Sass | resources.Fingerprint }}
     <link rel="stylesheet" href="{{ $style.Permalink }}" integrity="{{ $style.Data.Integrity }}">
     {{ partial "site-manifest.html" . }}
     {{ partial "scripts.html" . }}

@@ -1,3 +1,4 @@
+ignoreLogs = ['warning-goldmark-raw-html']
 # Production BaseURL
 #baseURL = "https://pgjdbc.github.io/pgjdbcdocs/"
 baseURL = "https://jdbc.postgresql.org/"
