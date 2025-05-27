@@ -8,12 +8,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 #### Features
 * fix: Enhanced DatabaseMetadata.getIndexInfo() method, added index comment as REMARKS property [PR #3513](https://github.com/pgjdbc/pgjdbc/pull/3513)
-* fix: Added back application name setting [PR #3509](https://github.com/pgjdbc/pgjdbc/pull/3509)
-* feat:Use a single simple query for all startup parameters, so groupStartupParameters is no longer needed  [PR #3613](https://github.com/pgjdbc/pgjdbc/pull/3613)
 
 ### Performance Improvements
 * performance: Improve ResultSetMetadata.fetchFieldMetaData by using IN row values instead of UNION ALL for improved query performance (later reverted) [PR #3510](https://github.com/pgjdbc/pgjdbc/pull/3510)
-
+* feat:Use a single simple query for all startup parameters, so groupStartupParameters is no longer needed  [PR #3613](https://github.com/pgjdbc/pgjdbc/pull/3613)
+* 
 ## Bug Fixes
 
 ### Protocol & Connection Handling
@@ -21,6 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: Fixed handling of protocol 3.2 and wider cancel keys [PR #3592](https://github.com/pgjdbc/pgjdbc/pull/3592)
 * fix: Made PgConnection#abort compatible with Java 24 [PR #3582](https://github.com/pgjdbc/pgjdbc/pull/3582)
 * fix: Fixed ArrayIndexOutOfBounds when writing big objects into GSS enabled connections [PR #3500](https://github.com/pgjdbc/pgjdbc/pull/3500)
+* fix: Added back application name setting [PR #3509](https://github.com/pgjdbc/pgjdbc/pull/3509)
 
 ### Metadata & Catalog Handling
 * fix: Set column name explicitly when using current_database() in queries [PR #3526](https://github.com/pgjdbc/pgjdbc/pull/3526)
