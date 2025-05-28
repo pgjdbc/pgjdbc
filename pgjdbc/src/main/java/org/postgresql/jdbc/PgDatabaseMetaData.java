@@ -2531,9 +2531,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql.append(
-      " ) result"
-        + " where "
-        + " result.A_ATTNUM = (result.KEYS).x ");
+        " ) result"
+          + " where "
+          + " result.A_ATTNUM = (result.KEYS).x ");
     sql.append(" ORDER BY result.table_name, result.pk_name, result.key_seq");
 
     return executeMetadataStatement(sql.toString(), args);
@@ -3272,35 +3272,39 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     // Build query and result
-    String sql;
-    sql = "SELECT current_database() AS \"FUNCTION_CAT\", "
-        + " n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
-        + " d.description AS \"REMARKS\", "
-        + funcTypeSql + " AS \"FUNCTION_TYPE\", "
-        + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
-        + "FROM pg_catalog.pg_proc p "
-        + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
-        + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
-        + "WHERE true  ";
+    StringBuilder sql = new StringBuilder(
+        // language=sql
+        "SELECT current_database() AS \"FUNCTION_CAT\", "
+            + " n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
+            + " d.description AS \"REMARKS\", "
+            + funcTypeSql + " AS \"FUNCTION_TYPE\", "
+            + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
+            + "FROM pg_catalog.pg_proc p "
+            + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
+            + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
+            + "WHERE true  ");
 
+    List<String> args = new ArrayList<>();
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
-      sql += " AND p.prokind='f'";
+      sql.append(" AND p.prokind='f'");
     }
     /*
     if the user provides a schema then search inside the schema for it
      */
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(functionNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+      sql.append(" AND has_function_privilege(p.oid,'EXECUTE')");
     }
-    sql += " ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ";
+    sql.append(" ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -3335,22 +3339,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    StringBuilder sql = new StringBuilder(
+        "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
-        + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
+        + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
+    List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(functionNamePattern);
     }
-    sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
+    sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
 
     byte[] isnullableUnknown = new byte[0];
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
       byte[] schema = rs.getBytes("nspname");
@@ -3468,11 +3476,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       // if we are returning a multi-column result.
       if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
-        String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
-            + " WHERE a.attrelid = " + returnTypeRelid
-            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
-        Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        PreparedStatement columnstmt = connection.prepareStatement(
+            "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
+                + " WHERE a.attrelid = ?"
+                + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ");
+        columnstmt.setInt(1, returnTypeRelid);
+        ResultSet columnrs = columnstmt.executeQuery();
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[] @Nullable [] tuple = new byte[columns][];
