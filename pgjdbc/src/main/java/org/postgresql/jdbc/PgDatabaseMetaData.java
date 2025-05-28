@@ -29,6 +29,7 @@ import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
@@ -2532,7 +2533,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * covering the same keys can be created which make it difficult to determine the PK_NAME field.
      */
 
-    String sql =
+    StringBuilder sql = new StringBuilder(
+        // language=sql
         "SELECT current_database() AS \"PKTABLE_CAT\", pkn.nspname AS \"PKTABLE_SCHEM\", pkc.relname AS \"PKTABLE_NAME\", pka.attname AS \"PKCOLUMN_NAME\", "
             + "current_database() AS \"FKTABLE_CAT\", fkn.nspname AS \"FKTABLE_SCHEM\", fkc.relname AS \"FKTABLE_NAME\", fka.attname AS \"FKCOLUMN_NAME\", "
             + "pos.n AS \"KEY_SEQ\", "
@@ -2564,61 +2566,59 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, "
             + " pg_catalog.pg_constraint con, "
             + " pg_catalog.generate_series(1, " + getMaxIndexKeys() + ") pos(n), "
-            + " pg_catalog.pg_class pkic";
+            + " pg_catalog.pg_class pkic");
     // Starting in Postgres 9.0, pg_constraint was augmented with the conindid column, which
     // contains the oid of the index supporting the constraint. This makes it unnecessary to do a
     // further join on pg_depend.
     if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += ", pg_catalog.pg_depend dep ";
+      sql.append(", pg_catalog.pg_depend dep ");
     }
-    sql +=
+    sql.append(
+        // language=sql
         " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
             + " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid "
-            + " AND con.contype = 'f' ";
+            + " AND con.contype = 'f' ");
     /*
     In version 11 we added Partitioned indexes indicated by relkind = 'I'
     I could have done this using lower(relkind) = 'i' but chose to be explicit
     for clarity
     */
-
+    List<String> args = new ArrayList<>();
     if (!connection.haveMinimumServerVersion(ServerVersion.v11)) {
-      sql += "AND pkic.relkind = 'i' ";
+      sql.append("AND pkic.relkind = 'i' ");
     } else {
-      sql += "AND (pkic.relkind = 'i' OR pkic.relkind = 'I')";
+      sql.append("AND (pkic.relkind = 'i' OR pkic.relkind = 'I')");
     }
 
     if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += " AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
+      sql.append(" AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ");
     } else {
-      sql += " AND pkic.oid = con.conindid ";
+      sql.append(" AND pkic.oid = con.conindid ");
     }
 
-    if (primaryCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(primaryCatalog);
-    }
     if (primarySchema != null) {
-      sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
-    }
-    if (foreignCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(foreignCatalog);
+      sql.append(" AND pkn.nspname = ?");
+      args.add(primarySchema);
     }
     if (foreignSchema != null) {
-      sql += " AND fkn.nspname = " + escapeQuotes(foreignSchema);
+      sql.append(" AND fkn.nspname = ?");
+      args.add(foreignSchema);
     }
     if (primaryTable != null) {
-      sql += " AND pkc.relname = " + escapeQuotes(primaryTable);
+      sql.append(" AND pkc.relname = ?");
+      args.add(primaryTable);
     }
     if (foreignTable != null) {
-      sql += " AND fkc.relname = " + escapeQuotes(foreignTable);
+      sql.append(" AND fkc.relname = ?");
+      args.add(foreignTable);
     }
 
     if (primaryTable != null) {
-      sql += " ORDER BY fkn.nspname,fkc.relname,con.conname,pos.n";
+      sql.append(" ORDER BY fkn.nspname,fkc.relname,con.conname,pos.n");
     } else {
-      sql += " ORDER BY pkn.nspname,pkc.relname, con.conname,pos.n";
+      sql.append(" ORDER BY pkn.nspname,pkc.relname, con.conname,pos.n");
     }
-
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -3108,6 +3108,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   protected Statement createMetaDataStatement() throws SQLException {
     return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
+  }
+
+  private ResultSet executeMetadataStatement(String sql, List<String> args) throws SQLException {
+    return prepareMetaDataStatement(sql, args).executeQuery();
+  }
+
+  private PreparedStatement prepareMetaDataStatement(String sql, List<String> args) throws SQLException {
+    PreparedStatement ps = connection.prepareStatement(sql.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_READ_ONLY);
+    for (int i = 0; i < args.size(); i++) {
+      String arg = args.get(i);
+      ps.setString(i + 1, arg);
+    }
+    return ps;
   }
 
   @Override
