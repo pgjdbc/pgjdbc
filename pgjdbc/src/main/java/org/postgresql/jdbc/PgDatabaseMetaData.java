@@ -1523,7 +1523,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      select.append(" AND n.nspname LIKE ");
+      select.append(" AND n.nspname LIKE ?");
       args.add(schemaPattern);
     }
 
@@ -1987,7 +1987,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       args.add(table);
     }
     if (columnNamePattern != null) {
-      sql.append(" AND a.attname LIKE ");
+      sql.append(" AND a.attname LIKE ?");
       args.add(columnNamePattern);
     }
     sql.append(" ORDER BY attname ");
