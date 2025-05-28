@@ -51,7 +51,7 @@ public class DatabaseMetadataBenchmark {
   @Benchmark
   public void getCrossReferences(Blackhole blackhole) throws SQLException {
     index++;
-    try (ResultSet rs = connection.getMetaData().getCrossReference("", "", "vv" + index, null, null, "ww" + index); ) {
+    try (ResultSet rs = connection.getMetaData().getCrossReference(null, null, "vv" + index, null, null, "ww" + index); ) {
       while (rs.next()) {
         blackhole.consume(rs.getString("PK_NAME"));
       }
