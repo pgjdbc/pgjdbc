@@ -44,7 +44,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.StringTokenizer;
 
 public class PgDatabaseMetaData implements DatabaseMetaData {
