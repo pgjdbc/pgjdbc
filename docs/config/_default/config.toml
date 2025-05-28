@@ -1,4 +1,3 @@
-ignoreLogs = ['warning-goldmark-raw-html']
 # Production BaseURL
 #baseURL = "https://pgjdbc.github.io/pgjdbcdocs/"
 baseURL = "https://jdbc.postgresql.org/"
@@ -7,6 +6,7 @@ title = "pgJDBC"
 [permalinks]
 page = "/:slug/"
 posts = "/:year/:month/:slug/"
+#changelogs = "/changelogs/:filename/"
 
 # Search index for lunr.js
 [outputFormats.SearchIndex]
