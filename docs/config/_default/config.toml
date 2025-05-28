@@ -6,6 +6,7 @@ title = "pgJDBC"
 [permalinks]
 page = "/:slug/"
 posts = "/:year/:month/:slug/"
+#changelogs = "/changelogs/:filename/"
 
 # Search index for lunr.js
 [outputFormats.SearchIndex]
