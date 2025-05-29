@@ -3168,6 +3168,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String arg = args.get(i);
       ps.setString(i + 1, arg);
     }
+    // We know the statements won't be reused after processing the ResultSet, so we configure
+    // the statement to close on ResultSet.close. It enables the query to release to the pool,
+    // so the query gets server-prepared
+    ps.closeOnCompletion();
     return ps;
   }
 
