@@ -2479,6 +2479,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             SimpleQuery currentQuery = describeData.query;
             currentQuery.setFields(fields);
 
+            // We do not need creating resultset here, however, it is actually used
+            // in PgPreparedStatement#getMetaData()
             handler.handleResultRows(currentQuery, fields, tuples, null);
             tuples = null;
           }
