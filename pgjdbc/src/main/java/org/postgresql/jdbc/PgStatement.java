@@ -503,9 +503,17 @@ public class PgStatement implements Statement, BaseStatement {
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
           flags2);
+      // We should not create temporary ResultSet when processing "describe row" command;
+      // however, it is the way PgPreparedStatement#getMetaData() works now
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
+        // Note: if the user requested "statement.closeOnCompletion()" then we should not
+        // let the driver's internal resultset to close the user statement
+        // At best we should stop creating the intermediate ResultSet objects
+        boolean prevCloseOnCompletion = closeOnCompletion;
+        closeOnCompletion = false;
         castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
+        closeOnCompletion = prevCloseOnCompletion;
       }
     }
 
