@@ -29,6 +29,7 @@ import java.nio.charset.Charset;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
@@ -43,7 +44,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.StringTokenizer;
 
 public class PgDatabaseMetaData implements DatabaseMetaData {
@@ -1191,7 +1191,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       throws SQLException {
 
     // if the catalog is specified and does not equal the current catalog then return an empty resultset
-    if (catalog != null && !catalog.isEmpty() && !catalog.equals(connection.getCatalog())) {
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
       int columns = 9;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>();
@@ -1208,7 +1208,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String sql = "SELECT current_database() AS \"PROCEDURE_CAT\", "
+    StringBuilder sql = new StringBuilder(
+        // language=sql
+        "SELECT current_database() AS \"PROCEDURE_CAT\", "
           + " n.nspname AS \"PROCEDURE_SCHEM\", p.proname AS \"PROCEDURE_NAME\", "
           + "NULL, NULL, NULL, d.description AS \"REMARKS\", "
           + DatabaseMetaData.procedureReturnsResult + " AS \"PROCEDURE_TYPE\", "
@@ -1217,26 +1219,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " LEFT JOIN pg_catalog.pg_description d ON (p.oid=d.objoid) "
           + " LEFT JOIN pg_catalog.pg_class c ON (d.classoid=c.oid AND c.relname='pg_proc') "
           + " LEFT JOIN pg_catalog.pg_namespace pn ON (c.relnamespace=pn.oid AND pn.nspname='pg_catalog') "
-          + " WHERE p.pronamespace=n.oid ";
+          + " WHERE p.pronamespace=n.oid ");
 
+    List<String> args = new ArrayList<>();
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
-      sql += " AND p.prokind='p'";
-    }
-    if (catalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(catalog);
+      sql.append(" AND p.prokind='p'");
     }
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (procedureNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(procedureNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+      sql.append(" AND has_function_privilege(p.oid,'EXECUTE')");
     }
-    sql += " ORDER BY \"PROCEDURE_SCHEM\", \"PROCEDURE_NAME\", p.oid::text ";
+    sql.append(" ORDER BY \"PROCEDURE_SCHEM\", \"PROCEDURE_NAME\", p.oid::text ");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -1270,26 +1272,31 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[18] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[19] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
     // if the catalog is specified and it does not equal the current catalog then just return an empty resultset
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
-    String sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    StringBuilder sql = new StringBuilder(
+        // language = sql
+        "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
           + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
           + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
-          + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
+          + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
+    List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (procedureNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(procedureNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(procedureNamePattern);
     }
-    sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
+    sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
 
     byte[] isnullableUnknown = new byte[0];
 
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
       byte[] schema = rs.getBytes("nspname");
       byte[] procedureName = rs.getBytes("proname");
@@ -1405,11 +1412,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       // if we are returning a multi-column result.
       if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
-        String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
-                           + " WHERE a.attrelid = " + returnTypeRelid
-                           + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
-        Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        PreparedStatement columnstmt = connection.prepareStatement(
+            "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
+                + " WHERE a.attrelid = ?"
+                + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ");
+        columnstmt.setInt(1, returnTypeRelid);
+        ResultSet columnrs = columnstmt.executeQuery();
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[] @Nullable [] tuple = new byte[columns][];
@@ -1448,11 +1456,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTables(@Nullable String catalog, @Nullable String schemaPattern,
       @Nullable String tableNamePattern, String @Nullable [] types) throws SQLException {
-    String currentCatalog = connection.getCatalog();
     String orderby;
     String useSchemas = "SCHEMAS";
     int columns = 10;
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
       f[0] = new Field("TABLE_CAT", Oid.VARCHAR);
@@ -1467,7 +1474,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String select = "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
+    StringBuilder select = new StringBuilder(
+        "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", c.relname AS \"TABLE_NAME\", "
              + " CASE n.nspname ~ '^pg_' OR n.nspname = 'information_schema' "
              + " WHEN true THEN CASE "
              + " WHEN n.nspname = 'pg_catalog' OR n.nspname = 'information_schema' THEN CASE c.relkind "
@@ -1509,48 +1517,46 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
              + "'' AS \"SELF_REFERENCING_COL_NAME\", '' AS \"REF_GENERATION\" "
              + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c "
              + " LEFT JOIN pg_catalog.pg_description d ON (c.oid = d.objoid AND d.objsubid = 0  and d.classoid = 'pg_class'::regclass) "
-             + " WHERE c.relnamespace = n.oid ";
+             + " WHERE c.relnamespace = n.oid ");
 
+    List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
-    }
-
-    /*
-     as of https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=fefa76f70fdc75c91f80bddce2df7a8825205962
-     The RULE privilege has been removed
-     */
-    String privileges = " 'SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER')";
-
-    if ( connection.getServerMajorVersion() < ServerVersion.v18.getMajorVersionNumber()) {
-      privileges = " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+      select.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
 
     if (connection.getHideUnprivilegedObjects()) {
-      select += " AND has_table_privilege(c.oid, "
-          + privileges;
+      select.append(" AND has_table_privilege(c.oid, ?)");
+      // as of https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=fefa76f70fdc75c91f80bddce2df7a8825205962
+      // The RULE privilege has been removed
+      if (connection.getServerMajorVersion() < ServerVersion.v18.getMajorVersionNumber()) {
+        args.add("SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER");
+      } else {
+        args.add("SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER");
+      }
     }
 
     orderby = " ORDER BY \"TABLE_TYPE\",\"TABLE_SCHEM\",\"TABLE_NAME\" ";
 
     if (tableNamePattern != null) {
-      select += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
+      select.append(" AND c.relname LIKE ?");
+      args.add(tableNamePattern);
     }
 
     if (types != null) {
-      select += " AND (false ";
-      StringBuilder orclause = new StringBuilder();
+      select.append(" AND (false ");
       for (String type : types) {
         Map<String, String> clauses = tableTypeClauses.get(type);
         if (clauses != null) {
           String clause = clauses.get(useSchemas);
-          orclause.append(" OR ( ").append(clause).append(" ) ");
+          select.append(" OR ( ").append(clause).append(" ) ");
         }
       }
-      select += orclause + ") ";
+      select.append(") ");
     }
-    String sql = select + orderby;
+    select.append(orderby);
 
-    return ((PgResultSet) createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
+    return executeMetadataStatement(select.toString(), args).unwrap(PgResultSet.class).upperCaseFieldLabels();
   }
 
   private static final Map<String, Map<String, String>> tableTypeClauses;
@@ -1647,9 +1653,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getSchemas(@Nullable String catalog, @Nullable String schemaPattern)
       throws SQLException {
-    String currentCatalog = connection.getCatalog();
-
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(connection.getCatalog())) {
       int columns = 2;
       Field[] f = new Field[columns];
       List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
@@ -1657,19 +1661,23 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[1] = new Field("TABLE_SCHEM", Oid.VARCHAR);
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
-    String sql = "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
+    StringBuilder sql = new StringBuilder(
+        // langauge=sql
+        "SELECT nspname AS \"TABLE_SCHEM\", current_database() AS \"TABLE_CATALOG\" FROM pg_catalog.pg_namespace "
           + " WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_' "
           + " OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_' "
-          + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ";
+          + " OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_')) ");
+    List<String> args = new ArrayList<>(1);
     if (schemaPattern != null) {
-      sql += " AND nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_schema_privilege(nspname, 'USAGE, CREATE')";
+      sql.append(" AND has_schema_privilege(nspname, 'USAGE, CREATE')");
     }
-    sql += " ORDER BY \"TABLE_SCHEM\"";
+    sql.append(" ORDER BY \"TABLE_SCHEM\"");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -1732,10 +1740,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[22] = new Field("IS_AUTOINCREMENT", Oid.VARCHAR);
     f[23] = new Field( "IS_GENERATEDCOLUMN", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
-    String sql;
+    StringBuilder sql = new StringBuilder();
+    List<String> args = new ArrayList<>();
     // a.attnum isn't decremented when preceding columns are dropped,
     // so the only way to calculate the correct column number is with
     // window functions, new in 8.4.
@@ -1745,33 +1754,35 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // column name outside so we correctly count the other columns.
     //
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql = "SELECT * FROM (";
+      sql.append("SELECT * FROM (");
     } else {
-      sql = "";
+      sql.append("");
     }
 
-    sql += "SELECT current_database() AS current_database, n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-        + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,";
+    sql.append("SELECT current_database() AS current_database, n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
+        + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,");
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql += "row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ";
+      sql.append("row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ");
     } else {
-      sql += "a.attnum,";
+      sql.append("a.attnum,");
     }
 
     if (connection.haveMinimumServerVersion(ServerVersion.v10)) {
-      sql += "nullif(a.attidentity, '') as attidentity,";
+      sql.append("nullif(a.attidentity, '') as attidentity,");
     } else {
-      sql += "null as attidentity,";
+      sql.append("null as attidentity,");
     }
 
     if (connection.haveMinimumServerVersion(ServerVersion.v12)) {
-      sql += "nullif(a.attgenerated, '') as attgenerated,";
+      sql.append("nullif(a.attgenerated, '') as attgenerated,");
     } else {
-      sql += "null as attgenerated,";
+      sql.append("null as attgenerated,");
     }
 
-    sql += "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype "
+    sql.append(
+        // language=sql
+        "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype "
            + " FROM pg_catalog.pg_namespace n "
            + " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) "
            + " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) "
@@ -1780,24 +1791,27 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
            + " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) "
            + " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') "
            + " LEFT JOIN pg_catalog.pg_namespace dn ON (dc.relnamespace=dn.oid AND dn.nspname='pg_catalog') "
-           + " WHERE c.relkind in ('r','p','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ";
+           + " WHERE c.relkind in ('r','p','v','f','m') and a.attnum > 0 AND NOT a.attisdropped ");
 
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (tableNamePattern != null) {
-      sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
+      sql.append(" AND c.relname LIKE ?");
+      args.add(tableNamePattern);
     }
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
-      sql += ") c WHERE true ";
+      sql.append(") c WHERE true ");
     }
     if (columnNamePattern != null) {
-      sql += " AND attname LIKE " + escapeQuotes(columnNamePattern);
+      sql.append(" AND attname LIKE ?");
+      args.add(columnNamePattern);
     }
-    sql += " ORDER BY nspname,c.relname,attnum ";
+    sql.append(" ORDER BY nspname,c.relname,attnum ");
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[numberOfFields][];
       int typeOid = (int) rs.getLong("atttypid");
@@ -1943,11 +1957,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[7] = new Field("IS_GRANTABLE", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
+    StringBuilder sql = new StringBuilder(
+        "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl, "
           + (connection.haveMinimumServerVersion(ServerVersion.v8_4) ? "a.attacl, " : "")
           + " a.attname "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, "
@@ -1956,21 +1971,25 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + " AND c.relowner = r.oid "
           + " AND c.oid = a.attrelid "
           + " AND c.relkind = 'r' "
-          + " AND a.attnum > 0 AND NOT a.attisdropped ";
+          + " AND a.attnum > 0 AND NOT a.attisdropped ");
 
+    List<String> args = new ArrayList<>();
     if (schema != null) {
-      sql += " AND n.nspname = " + escapeQuotes(schema);
+      sql.append(" AND n.nspname = ?");
+      args.add(schema);
     }
     if (table != null) {
-      sql += " AND c.relname = " + escapeQuotes(table);
+      sql.append(" AND c.relname = ?");
+      args.add(table);
     }
     if (columnNamePattern != null) {
-      sql += " AND a.attname LIKE " + escapeQuotes(columnNamePattern);
+      sql.append(" AND a.attname LIKE ?");
+      args.add(columnNamePattern);
     }
-    sql += " ORDER BY attname ";
+    sql.append(" ORDER BY attname ");
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
       byte[] schemaName = rs.getBytes("nspname");
@@ -2031,27 +2050,31 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("GRANTEE", Oid.VARCHAR);
     f[5] = new Field("PRIVILEGE", Oid.VARCHAR);
     f[6] = new Field("IS_GRANTABLE", Oid.VARCHAR);
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     // r = ordinary table, p = partitioned table, v = view, m = materialized view, f = foreign table
-    String sql = "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl "
+    StringBuilder sql = new StringBuilder(
+        "SELECT current_database() AS current_database, n.nspname,c.relname,r.rolname,c.relacl "
           + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class c, pg_catalog.pg_roles r "
           + " WHERE c.relnamespace = n.oid "
           + " AND c.relowner = r.oid "
-          + " AND c.relkind IN ('r','p','v','m','f') ";
+          + " AND c.relkind IN ('r','p','v','m','f') ");
 
+    List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
 
     if (tableNamePattern != null) {
-      sql += " AND c.relname LIKE " + escapeQuotes(tableNamePattern);
+      sql.append(" AND c.relname LIKE ?");
+      args.add(tableNamePattern);
     }
-    sql += " ORDER BY nspname, relname ";
+    sql.append(" ORDER BY nspname, relname ");
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
       byte[] schema = rs.getBytes("nspname");
@@ -2272,7 +2295,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -2280,7 +2303,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * At the moment this simply returns a table's primary key, if there is one. I believe other
      * unique indexes, ctid, and oid should also be considered. -KJ
      */
-    String sql = "SELECT a.attname, a.atttypid, atttypmod "
+    StringBuilder sql = new StringBuilder(
+        // language=sql
+        "SELECT a.attname, a.atttypid, atttypmod "
           + "FROM pg_catalog.pg_class ct "
           + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
@@ -2288,17 +2313,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "             information_schema._pg_expandarray(i.indkey) AS keys "
           + "        FROM pg_catalog.pg_index i) i "
           + "    ON (a.attnum = (i.keys).x AND a.attrelid = i.indrelid) "
-          + "WHERE true ";
+          + "WHERE true ");
+    List<String> args = new ArrayList<>(2);
     if (schema != null) {
-      sql += " AND n.nspname = " + escapeQuotes(schema);
+      sql.append(" AND n.nspname = ?");
+      args.add(schema);
     }
 
-    sql += " AND ct.relname = " + escapeQuotes(table)
+    sql.append(" AND ct.relname = ?"
         + " AND i.indisprimary "
-        + " ORDER BY a.attnum ";
+        + " ORDER BY a.attnum ");
+    args.add(table);
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
@@ -2344,7 +2372,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[6] = new Field("DECIMAL_DIGITS", Oid.INT2);
     f[7] = new Field("PSEUDO_COLUMN", Oid.INT2);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     byte[] @Nullable [] tuple = new byte[8][];
@@ -2390,14 +2418,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("KEY_SEQ", Oid.INT4);
     f[5] = new Field("PK_NAME", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     // Version 11 added "include columns" in index hence we need to filter only the key attributes
     // when returning primary keys.
     String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
 
-    String sql = "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+    StringBuilder sql = new StringBuilder();
+    sql.append(
+        // language=sql
+        "SELECT "
+            + "       result.TABLE_CAT AS \"TABLE_CAT\", "
+            + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
+            + "       result.TABLE_NAME AS \"TABLE_NAME\", "
+            + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
+            + "       result.KEY_SEQ AS \"KEY_SEQ\", "
+            + "       result.PK_NAME AS \"PK_NAME\""
+            + "FROM "
+            + "     (");
+    sql.append(
+        // language=sql
+        "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
           + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
           + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
@@ -2407,31 +2449,27 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
           + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
           + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-          + "WHERE true ";
+          + "WHERE true ");
 
+    List<String> args = new ArrayList<>(2);
     if (schema != null) {
-      sql += " AND n.nspname = " + escapeQuotes(schema);
+      sql.append(" AND n.nspname = ?");
+      args.add(schema);
     }
 
     if (table != null) {
-      sql += " AND ct.relname = " + escapeQuotes(table);
+      sql.append(" AND ct.relname = ?");
+      args.add(table);
     }
 
-    sql += " AND i.indisprimary ";
-    sql = "SELECT "
-            + "       result.TABLE_CAT AS \"TABLE_CAT\", "
-            + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
-            + "       result.TABLE_NAME AS \"TABLE_NAME\", "
-            + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
-            + "       result.KEY_SEQ AS \"KEY_SEQ\", "
-            + "       result.PK_NAME AS \"PK_NAME\""
-            + "FROM "
-            + "     (" + sql + " ) result"
+    sql.append(" AND i.indisprimary ");
+    sql.append(
+        " ) result"
             + " where "
-            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ";
-    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
+            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ");
+    sql.append(" ORDER BY result.table_name, result.pk_name, result.key_seq");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   /*
@@ -2441,7 +2479,22 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   protected ResultSet getPrimaryUniqueKeys(@Nullable String catalog, @Nullable String schema, String table)
       throws SQLException {
 
-    String sql = "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
+    StringBuilder sql = new StringBuilder();
+    sql.append(
+        // language=sql
+        "SELECT "
+            + "       result.TABLE_CAT AS \"TABLE_CAT\", "
+            + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
+            + "       result.TABLE_NAME AS \"TABLE_NAME\", "
+            + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
+            + "       result.KEY_SEQ AS \"KEY_SEQ\", "
+            + "       result.PK_NAME AS \"PK_NAME\", "
+            + "       result.IS_NOT_NULL AS \"IS_NOT_NULL\""
+            + "FROM "
+            + "     (");
+    sql.append(
+        // language=sql
+        "SELECT NULL AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
         + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
         + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
         + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
@@ -2459,31 +2512,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "    AND i.indpred IS NULL "
         // indexes with expressions are not allowed
         + "    AND i.indexprs IS NULL "
-        + "  )) ";
+        + "  )) ");
 
+    List<String> args = new ArrayList<>(2);
     if (schema != null && !schema.isEmpty()) {
-      sql += " AND n.nspname = " + escapeQuotes(schema);
+      sql.append(" AND n.nspname = ?");
+      args.add(schema);
     }
 
     if (table != null && !table.isEmpty()) {
-      sql += " AND ct.relname = " + escapeQuotes(table);
+      sql.append(" AND ct.relname = ?");
+      args.add(table);
     }
 
-    sql = "SELECT "
-        + "       result.TABLE_CAT AS \"TABLE_CAT\", "
-        + "       result.TABLE_SCHEM AS \"TABLE_SCHEM\", "
-        + "       result.TABLE_NAME AS \"TABLE_NAME\", "
-        + "       result.COLUMN_NAME AS \"COLUMN_NAME\", "
-        + "       result.KEY_SEQ AS \"KEY_SEQ\", "
-        + "       result.PK_NAME AS \"PK_NAME\", "
-        + "       result.IS_NOT_NULL AS \"IS_NOT_NULL\""
-        + "FROM "
-        + "     (" + sql + " ) result"
-        + " where "
-        + " result.A_ATTNUM = (result.KEYS).x ";
-    sql += " ORDER BY result.table_name, result.pk_name, result.key_seq";
+    sql.append(
+        " ) result"
+          + " where "
+          + " result.A_ATTNUM = (result.KEYS).x ");
+    sql.append(" ORDER BY result.table_name, result.pk_name, result.key_seq");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   /**
@@ -2519,8 +2567,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("PK_NAME", Oid.VARCHAR);
     f[13] = new Field("DEFERRABILITY", Oid.INT2);
 
-    if (primaryCatalog != null && !primaryCatalog.isEmpty() && !primaryCatalog.equals(connection.getCatalog())
-        || foreignCatalog != null && !foreignCatalog.isEmpty() && !foreignCatalog.equals(connection.getCatalog()))  {
+    if (primaryCatalog != null && !primaryCatalog.equals(connection.getCatalog())
+        || foreignCatalog != null && !foreignCatalog.equals(connection.getCatalog()))  {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
@@ -2531,7 +2579,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * covering the same keys can be created which make it difficult to determine the PK_NAME field.
      */
 
-    String sql =
+    StringBuilder sql = new StringBuilder(
+        // language=sql
         "SELECT current_database() AS \"PKTABLE_CAT\", pkn.nspname AS \"PKTABLE_SCHEM\", pkc.relname AS \"PKTABLE_NAME\", pka.attname AS \"PKCOLUMN_NAME\", "
             + "current_database() AS \"FKTABLE_CAT\", fkn.nspname AS \"FKTABLE_SCHEM\", fkc.relname AS \"FKTABLE_NAME\", fka.attname AS \"FKCOLUMN_NAME\", "
             + "pos.n AS \"KEY_SEQ\", "
@@ -2563,61 +2612,59 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " pg_catalog.pg_namespace fkn, pg_catalog.pg_class fkc, pg_catalog.pg_attribute fka, "
             + " pg_catalog.pg_constraint con, "
             + " pg_catalog.generate_series(1, " + getMaxIndexKeys() + ") pos(n), "
-            + " pg_catalog.pg_class pkic";
+            + " pg_catalog.pg_class pkic");
     // Starting in Postgres 9.0, pg_constraint was augmented with the conindid column, which
     // contains the oid of the index supporting the constraint. This makes it unnecessary to do a
     // further join on pg_depend.
     if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += ", pg_catalog.pg_depend dep ";
+      sql.append(", pg_catalog.pg_depend dep ");
     }
-    sql +=
+    sql.append(
+        // language=sql
         " WHERE pkn.oid = pkc.relnamespace AND pkc.oid = pka.attrelid AND pka.attnum = con.confkey[pos.n] AND con.confrelid = pkc.oid "
             + " AND fkn.oid = fkc.relnamespace AND fkc.oid = fka.attrelid AND fka.attnum = con.conkey[pos.n] AND con.conrelid = fkc.oid "
-            + " AND con.contype = 'f' ";
+            + " AND con.contype = 'f' ");
     /*
     In version 11 we added Partitioned indexes indicated by relkind = 'I'
     I could have done this using lower(relkind) = 'i' but chose to be explicit
     for clarity
     */
-
+    List<String> args = new ArrayList<>();
     if (!connection.haveMinimumServerVersion(ServerVersion.v11)) {
-      sql += "AND pkic.relkind = 'i' ";
+      sql.append("AND pkic.relkind = 'i' ");
     } else {
-      sql += "AND (pkic.relkind = 'i' OR pkic.relkind = 'I')";
+      sql.append("AND (pkic.relkind = 'i' OR pkic.relkind = 'I')");
     }
 
     if (!connection.haveMinimumServerVersion(ServerVersion.v9_0)) {
-      sql += " AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ";
+      sql.append(" AND con.oid = dep.objid AND pkic.oid = dep.refobjid AND dep.classid = 'pg_constraint'::regclass::oid AND dep.refclassid = 'pg_class'::regclass::oid ");
     } else {
-      sql += " AND pkic.oid = con.conindid ";
+      sql.append(" AND pkic.oid = con.conindid ");
     }
 
-    if (primaryCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(primaryCatalog);
-    }
     if (primarySchema != null) {
-      sql += " AND pkn.nspname = " + escapeQuotes(primarySchema);
-    }
-    if (foreignCatalog != null) {
-      sql += " AND current_database() = " + escapeQuotes(foreignCatalog);
+      sql.append(" AND pkn.nspname = ?");
+      args.add(primarySchema);
     }
     if (foreignSchema != null) {
-      sql += " AND fkn.nspname = " + escapeQuotes(foreignSchema);
+      sql.append(" AND fkn.nspname = ?");
+      args.add(foreignSchema);
     }
     if (primaryTable != null) {
-      sql += " AND pkc.relname = " + escapeQuotes(primaryTable);
+      sql.append(" AND pkc.relname = ?");
+      args.add(primaryTable);
     }
     if (foreignTable != null) {
-      sql += " AND fkc.relname = " + escapeQuotes(foreignTable);
+      sql.append(" AND fkc.relname = ?");
+      args.add(foreignTable);
     }
 
     if (primaryTable != null) {
-      sql += " ORDER BY fkn.nspname,fkc.relname,con.conname,pos.n";
+      sql.append(" ORDER BY fkn.nspname,fkc.relname,con.conname,pos.n");
     } else {
-      sql += " ORDER BY pkn.nspname,pkc.relname, con.conname,pos.n";
+      sql.append(" ORDER BY pkn.nspname,pkc.relname, con.conname,pos.n");
     }
-
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -2794,7 +2841,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("FILTER_CONDITION", Oid.VARCHAR);
     f[13] = new Field("REMARKS", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
     /*
@@ -2806,46 +2853,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
      * with the single column functional index we need an extra join to the table's pg_attribute
      * data to get the column the function operates on.
      */
-    String sql;
+    StringBuilder sql = new StringBuilder();
+    List<String> args = new ArrayList<>();
     if (connection.haveMinimumServerVersion(ServerVersion.v8_3)) {
-      sql = "SELECT current_database() AS TABLE_CAT, "
-            + " n.nspname AS TABLE_SCHEM, "
-            + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
-            + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
-            + "  CASE i.indisclustered "
-            + "    WHEN true THEN " + DatabaseMetaData.tableIndexClustered
-            + "    ELSE CASE am.amname "
-            + "      WHEN 'hash' THEN " + DatabaseMetaData.tableIndexHashed
-            + "      ELSE " + DatabaseMetaData.tableIndexOther
-            + "    END "
-            + "  END AS TYPE, "
-            + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
-            + "  ci.reltuples AS CARDINALITY, "
-            + "  ci.relpages AS PAGES, "
-            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
-            + "  ci.oid AS CI_OID, "
-            + "  i.indoption AS I_INDOPTION, "
-            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME, " : "  am.amcanorder AS AM_CANORDER, ")
-            + "  d.description AS REMARKS "
-            + "FROM pg_catalog.pg_class ct "
-            + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-            + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
-            + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-            + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
-            + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid) "
-            + "WHERE true ";
-
-      if (schema != null) {
-        sql += " AND n.nspname = " + escapeQuotes(schema);
-      }
-
-      sql += " AND ct.relname = " + escapeQuotes(tableName);
-
-      if (unique) {
-        sql += " AND i.indisunique ";
-      }
-
-      sql = "SELECT "
+      sql.append(
+          // language=sql
+          "SELECT "
                 + "    tmp.TABLE_CAT AS \"TABLE_CAT\", "
                 + "    tmp.TABLE_SCHEM AS \"TABLE_SCHEM\", "
                 + "    tmp.TABLE_NAME AS \"TABLE_NAME\", "
@@ -2874,26 +2887,53 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
                 + "    tmp.PAGES AS \"PAGES\", "
                 + "    tmp.FILTER_CONDITION AS \"FILTER_CONDITION\", "
                 + "    tmp.REMARKS AS \"REMARKS\""
-                + "FROM ("
-                + sql
-                + ") AS tmp";
-    } else {
-      String select;
-      String from;
-      String where;
-
-      select = "SELECT current_database() AS \"TABLE_CAT\", "
-              + " n.nspname AS \"TABLE_SCHEM\", ";
-      from = " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, "
-             + " pg_catalog.pg_attribute a, pg_catalog.pg_am am ";
-      where = " AND n.oid = ct.relnamespace ";
-      from += ", pg_catalog.pg_index i ";
+                + "FROM (");
+      sql.append(
+          // language=sql
+          "SELECT current_database() AS TABLE_CAT, "
+            + " n.nspname AS TABLE_SCHEM, "
+            + "  ct.relname AS TABLE_NAME, NOT i.indisunique AS NON_UNIQUE, "
+            + "  NULL AS INDEX_QUALIFIER, ci.relname AS INDEX_NAME, "
+            + "  CASE i.indisclustered "
+            + "    WHEN true THEN " + DatabaseMetaData.tableIndexClustered
+            + "    ELSE CASE am.amname "
+            + "      WHEN 'hash' THEN " + DatabaseMetaData.tableIndexHashed
+            + "      ELSE " + DatabaseMetaData.tableIndexOther
+            + "    END "
+            + "  END AS TYPE, "
+            + "  (information_schema._pg_expandarray(i.indkey)).n AS ORDINAL_POSITION, "
+            + "  ci.reltuples AS CARDINALITY, "
+            + "  ci.relpages AS PAGES, "
+            + "  pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS FILTER_CONDITION, "
+            + "  ci.oid AS CI_OID, "
+            + "  i.indoption AS I_INDOPTION, "
+            + (connection.haveMinimumServerVersion(ServerVersion.v9_6) ? "  am.amname AS AM_NAME, " : "  am.amcanorder AS AM_CANORDER, ")
+            + "  d.description AS REMARKS "
+            + "FROM pg_catalog.pg_class ct "
+            + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
+            + "  JOIN pg_catalog.pg_index i ON (ct.oid = i.indrelid) "
+            + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
+            + "  JOIN pg_catalog.pg_am am ON (ci.relam = am.oid) "
+            + "  LEFT JOIN pg_catalog.pg_description d ON (ci.oid = d.objoid) "
+            + "WHERE true ");
 
       if (schema != null) {
-        where += " AND n.nspname = " + escapeQuotes(schema);
+        sql.append(" AND n.nspname = ?");
+        args.add(schema);
       }
 
-      sql = select
+      sql.append(" AND ct.relname = ?");
+      args.add(tableName);
+
+      if (unique) {
+        sql.append(" AND i.indisunique ");
+      }
+
+      sql.append(") AS tmp");
+    } else {
+      sql.append(
+          // language=sql
+          "SELECT current_database() AS \"TABLE_CAT\", n.nspname AS \"TABLE_SCHEM\", "
             + " ct.relname AS \"TABLE_NAME\", NOT i.indisunique AS \"NON_UNIQUE\", NULL AS \"INDEX_QUALIFIER\", ci.relname AS \"INDEX_NAME\", "
             + " CASE i.indisclustered "
             + " WHEN true THEN " + DatabaseMetaData.tableIndexClustered
@@ -2910,20 +2950,27 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + " ci.relpages AS \"PAGES\", "
             + " pg_catalog.pg_get_expr(i.indpred, i.indrelid) AS \"FILTER_CONDITION\", "
             + " null AS \"REMARKS\" "
-            + from
+            + " FROM pg_catalog.pg_namespace n, pg_catalog.pg_class ct, pg_catalog.pg_class ci, "
+            + " pg_catalog.pg_attribute a, pg_catalog.pg_am am "
+            + ", pg_catalog.pg_index i "
             + " WHERE ct.oid=i.indrelid AND ci.oid=i.indexrelid AND a.attrelid=ci.oid AND ci.relam=am.oid "
-            + where;
+            + " AND n.oid = ct.relnamespace ");
 
-      sql += " AND ct.relname = " + escapeQuotes(tableName);
+      if (schema != null) {
+        sql.append(" AND n.nspname = ?");
+        args.add(schema);
+      }
 
+      sql.append(" AND ct.relname = ?");
+      args.add(tableName);
       if (unique) {
-        sql += " AND i.indisunique ";
+        sql.append(" AND i.indisunique ");
       }
     }
 
-    sql += " ORDER BY \"NON_UNIQUE\", \"TYPE\", \"INDEX_NAME\", \"ORDINAL_POSITION\" ";
+    sql.append(" ORDER BY \"NON_UNIQUE\", \"TYPE\", \"INDEX_NAME\", \"ORDINAL_POSITION\" ");
 
-    return ((PgResultSet) createMetaDataStatement().executeQuery(sql)).upperCaseFieldLabels();
+    return executeMetadataStatement(sql.toString(), args).unwrap(PgResultSet.class).upperCaseFieldLabels();
   }
 
   // ** JDBC 2 Extensions **
@@ -3018,7 +3065,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[5] = new Field("REMARKS", Oid.VARCHAR);
     f[6] = new Field("BASE_TYPE", Oid.INT2);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -3105,8 +3152,28 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   protected Statement createMetaDataStatement() throws SQLException {
-    return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+    Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
+    statement.closeOnCompletion();
+    return statement;
+  }
+
+  private ResultSet executeMetadataStatement(String sql, List<String> args) throws SQLException {
+    return prepareMetaDataStatement(sql, args).executeQuery();
+  }
+
+  private PreparedStatement prepareMetaDataStatement(String sql, List<String> args) throws SQLException {
+    PreparedStatement ps = connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_READ_ONLY);
+    for (int i = 0; i < args.size(); i++) {
+      String arg = args.get(i);
+      ps.setString(i + 1, arg);
+    }
+    // We know the statements won't be reused after processing the ResultSet, so we configure
+    // the statement to close on ResultSet.close. It enables the query to release to the pool,
+    // so the query gets server-prepared
+    ps.closeOnCompletion();
+    return ps;
   }
 
   @Override
@@ -3186,7 +3253,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[4] = new Field("FUNCTION_TYPE", Oid.INT2);
     f[6] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
@@ -3206,35 +3273,39 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     // Build query and result
-    String sql;
-    sql = "SELECT current_database() AS \"FUNCTION_CAT\", "
-        + " n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
-        + " d.description AS \"REMARKS\", "
-        + funcTypeSql + " AS \"FUNCTION_TYPE\", "
-        + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
-        + "FROM pg_catalog.pg_proc p "
-        + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
-        + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
-        + "WHERE true  ";
+    StringBuilder sql = new StringBuilder(
+        // language=sql
+        "SELECT current_database() AS \"FUNCTION_CAT\", "
+            + " n.nspname AS \"FUNCTION_SCHEM\", p.proname AS \"FUNCTION_NAME\", "
+            + " d.description AS \"REMARKS\", "
+            + funcTypeSql + " AS \"FUNCTION_TYPE\", "
+            + " p.proname || '_' || p.oid AS \"SPECIFIC_NAME\" "
+            + "FROM pg_catalog.pg_proc p "
+            + "INNER JOIN pg_catalog.pg_namespace n ON p.pronamespace=n.oid "
+            + "LEFT JOIN pg_catalog.pg_description d ON p.oid=d.objoid "
+            + "WHERE true  ");
 
+    List<String> args = new ArrayList<>();
     if (connection.haveMinimumServerVersion(ServerVersion.v11)) {
-      sql += " AND p.prokind='f'";
+      sql.append(" AND p.prokind='f'");
     }
     /*
     if the user provides a schema then search inside the schema for it
      */
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(functionNamePattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
-      sql += " AND has_function_privilege(p.oid,'EXECUTE')";
+      sql.append(" AND has_function_privilege(p.oid,'EXECUTE')");
     }
-    sql += " ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ";
+    sql.append(" ORDER BY \"FUNCTION_SCHEM\", \"FUNCTION_NAME\", p.oid::text ");
 
-    return createMetaDataStatement().executeQuery(sql);
+    return executeMetadataStatement(sql.toString(), args);
   }
 
   @Override
@@ -3265,26 +3336,30 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[15] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[16] = new Field("SPECIFIC_NAME", Oid.VARCHAR);
 
-    if (catalog != null && (catalog.isEmpty() || !Objects.equals(catalog, currentCatalog))) {
+    if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String sql = "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
+    StringBuilder sql = new StringBuilder(
+        "SELECT current_database() AS current_database, n.nspname,p.proname,p.prorettype,p.proargtypes, t.typtype,t.typrelid, "
         + " p.proargnames, p.proargmodes, p.proallargtypes, p.oid "
         + " FROM pg_catalog.pg_proc p, pg_catalog.pg_namespace n, pg_catalog.pg_type t "
-        + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ";
+        + " WHERE p.pronamespace=n.oid AND p.prorettype=t.oid ");
+    List<String> args = new ArrayList<>();
     if (schemaPattern != null) {
-      sql += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
+      sql.append(" AND n.nspname LIKE ?");
+      args.add(schemaPattern);
     }
     if (functionNamePattern != null) {
-      sql += " AND p.proname LIKE " + escapeQuotes(functionNamePattern);
+      sql.append(" AND p.proname LIKE ?");
+      args.add(functionNamePattern);
     }
-    sql += " ORDER BY n.nspname, p.proname, p.oid::text ";
+    sql.append(" ORDER BY n.nspname, p.proname, p.oid::text ");
 
     byte[] isnullableUnknown = new byte[0];
 
-    Statement stmt = connection.createStatement();
-    ResultSet rs = stmt.executeQuery(sql);
+    PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
+    ResultSet rs = stmt.executeQuery();
     byte[] catalogName = currentCatalog.getBytes(Charset.defaultCharset());
     while (rs.next()) {
       byte[] schema = rs.getBytes("nspname");
@@ -3402,11 +3477,12 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
       // if we are returning a multi-column result.
       if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
-        String columnsql = "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
-            + " WHERE a.attrelid = " + returnTypeRelid
-            + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ";
-        Statement columnstmt = connection.createStatement();
-        ResultSet columnrs = columnstmt.executeQuery(columnsql);
+        PreparedStatement columnstmt = connection.prepareStatement(
+            "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
+                + " WHERE a.attrelid = ?"
+                + " AND NOT a.attisdropped AND a.attnum > 0 ORDER BY a.attnum ");
+        columnstmt.setInt(1, returnTypeRelid);
+        ResultSet columnrs = columnstmt.executeQuery();
         while (columnrs.next()) {
           int columnTypeOid = (int) columnrs.getLong("atttypid");
           byte[] @Nullable [] tuple = new byte[columns][];
