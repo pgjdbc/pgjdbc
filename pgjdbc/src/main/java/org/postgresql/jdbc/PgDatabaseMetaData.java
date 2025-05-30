@@ -3153,8 +3153,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   protected Statement createMetaDataStatement() throws SQLException {
-    return connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+    Statement statement = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
+    statement.closeOnCompletion();
+    return statement;
   }
 
   private ResultSet executeMetadataStatement(String sql, List<String> args) throws SQLException {
