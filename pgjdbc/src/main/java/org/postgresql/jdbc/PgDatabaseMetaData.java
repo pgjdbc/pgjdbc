@@ -3164,7 +3164,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   }
 
   private PreparedStatement prepareMetaDataStatement(String sql, List<String> args) throws SQLException {
-    PreparedStatement ps = connection.prepareStatement(sql.toString(), ResultSet.TYPE_SCROLL_INSENSITIVE,
+    PreparedStatement ps = connection.prepareStatement(sql, ResultSet.TYPE_SCROLL_INSENSITIVE,
         ResultSet.CONCUR_READ_ONLY);
     for (int i = 0; i < args.size(); i++) {
       String arg = args.get(i);
