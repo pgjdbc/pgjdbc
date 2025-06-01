@@ -5,14 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -23,7 +23,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class NumericTransferTest extends BaseTest4 {
   public NumericTransferTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
@@ -35,7 +36,6 @@ public class NumericTransferTest extends BaseTest4 {
     PGProperty.BINARY_TRANSFER_ENABLE.set(props, Oid.NUMERIC);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -54,12 +54,12 @@ public class NumericTransferTest extends BaseTest4 {
         rs.next();
         if (i == 0) {
           final String expected = sign + "1";
-          assertEquals("getString for " + sql, expected, rs.getString(1));
-          assertEquals("getBigDecimal for " + sql, expected, rs.getBigDecimal(1).toString());
+          assertEquals(expected, rs.getString(1), () -> "getString for " + sql);
+          assertEquals(expected, rs.getBigDecimal(1).toString(), () -> "getBigDecimal for " + sql);
         } else {
           final String expected = sign + String.format("1%0" + i + "d", 0);
-          assertEquals("getString for " + sql, expected, rs.getString(1));
-          assertEquals("getBigDecimal for " + sql, expected, rs.getBigDecimal(1).toString());
+          assertEquals(expected, rs.getString(1), () -> "getString for " + sql);
+          assertEquals(expected, rs.getBigDecimal(1).toString(), () -> "getBigDecimal for " + sql);
         }
         rs.close();
       }
@@ -76,8 +76,14 @@ public class NumericTransferTest extends BaseTest4 {
         statement.setBigDecimal(1, new BigDecimal(expected));
         ResultSet rs = statement.executeQuery();
         rs.next();
-        assertEquals("getString for " + expected, expected, rs.getString(1));
-        assertEquals("getBigDecimal for " + expected, expected, rs.getBigDecimal(1).toString());
+        assertEquals(
+            expected,
+            rs.getString(1),
+            () -> "getString for " + expected);
+        assertEquals(
+            expected,
+            rs.getBigDecimal(1).toString(),
+            () -> "getBigDecimal for " + expected);
         rs.close();
       }
     }

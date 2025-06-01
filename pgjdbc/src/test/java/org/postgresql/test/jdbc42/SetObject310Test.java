@@ -5,19 +5,19 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -47,7 +47,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
@@ -75,7 +76,6 @@ public class SetObject310Test extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BaseTest4.BinaryMode binaryMode : BaseTest4.BinaryMode.values()) {
@@ -84,7 +84,7 @@ public class SetObject310Test extends BaseTest4 {
     return ids;
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void createTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
@@ -96,7 +96,7 @@ public class SetObject310Test extends BaseTest4 {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void dropTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "table1");
@@ -175,8 +175,7 @@ public class SetObject310Test extends BaseTest4 {
 
         assertTrue(rs.next());
         if (checkRoundtrip) {
-          assertEquals("Roundtrip set/getObject with type should return same result",
-              data, rs.getObject(1, data.getClass()));
+          assertEquals(data, rs.getObject(1, data.getClass()), "Roundtrip set/getObject with type should return same result");
         }
         return expectedType.cast(rs.getObject(1));
       } finally {
@@ -208,8 +207,10 @@ public class SetObject310Test extends BaseTest4 {
 
         assertTrue(rs.next());
         if (checkRoundtrip) {
-          assertEquals("Roundtrip set/getObject with type should return same result",
-              data, rs.getObject(1, data.getClass()));
+          assertEquals(
+              data,
+              rs.getObject(1, data.getClass()),
+              "Roundtrip set/getObject with type should return same result");
         }
         return expectedType.cast(rs.getObject(1));
       } finally {
@@ -311,14 +312,16 @@ public class SetObject310Test extends BaseTest4 {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     String readBack = insertThenReadStringWithoutType(localDateTime, "timestamp_without_time_zone_column");
     assertEquals(
-        "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object)",
-        expected, readBack);
+        expected,
+        readBack,
+        () -> "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object)");
     deleteRows();
 
     readBack = insertThenReadStringWithType(localDateTime, "timestamp_without_time_zone_column");
     assertEquals(
-        "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object, TIMESTAMP)",
-        expected, readBack);
+        expected,
+        readBack,
+        () -> "LocalDateTime=" + localDateTime + ", with TimeZone.default=" + zoneId + ", setObject(int, Object, TIMESTAMP)");
     deleteRows();
   }
 
@@ -335,15 +338,17 @@ public class SetObject310Test extends BaseTest4 {
           String noType = rs.getString(1);
           OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
           assertEquals(
-              "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
-                  + storeZone + ", setObject(int, Object)", data.toInstant(),
-              noTypeRes.toInstant());
+              data.toInstant(),
+              noTypeRes.toInstant(),
+              () -> "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone"
+                  + ".default=" + storeZone + ", setObject(int, Object)");
           String withType = rs.getString(2);
           OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
           assertEquals(
-              "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone.default="
-                  + storeZone + ", setObject(int, Object, TIMESTAMP_WITH_TIMEZONE)",
-              data.toInstant(), withTypeRes.toInstant());
+              data.toInstant(),
+              withTypeRes.toInstant(),
+              () -> "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone"
+                  + ".default=" + storeZone + ", setObject(int, Object, TIMESTAMP_WITH_TIMEZONE)");
         }
       }
     }

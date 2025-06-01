@@ -5,17 +5,18 @@
 
 package org.postgresql.test.util;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.ByteStreamWriter;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -74,7 +75,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
       try {
         rs.next();
         byte[] actualData = rs.getBytes(1);
-        assertArrayEquals("Sent and received data are not the same", data, actualData);
+        assertArrayEquals(data, actualData, "Sent and received data are not the same");
       } finally {
         rs.close();
       }
@@ -183,9 +184,8 @@ public class ByteStreamWriterTest extends BaseTest4 {
       fail("did not throw exception when too much content");
     } catch (SQLException e) {
       Throwable cause = e.getCause();
-      assertTrue("cause wan't an IOException", cause instanceof IOException);
-      assertEquals("Incorrect exception message",
-          cause.getMessage(), "Attempt to write more than the specified 4 bytes");
+      assertInstanceOf(IOException.class, cause, "cause wan't an IOException");
+      assertEquals(cause.getMessage(), "Attempt to write more than the specified 4 bytes", "Incorrect exception message");
     }
   }
 
@@ -197,7 +197,7 @@ public class ByteStreamWriterTest extends BaseTest4 {
       fail("did not throw exception when IOException thrown");
     } catch (SQLException sqle) {
       Throwable cause = sqle.getCause();
-      assertEquals("Incorrect exception cause", e, cause);
+      assertEquals(e, cause, "Incorrect exception cause");
     }
   }
 
@@ -209,11 +209,10 @@ public class ByteStreamWriterTest extends BaseTest4 {
       fail("did not throw exception when RuntimeException thrown");
     } catch (SQLException sqle) {
       Throwable cause = sqle.getCause();
-      assertTrue("cause wan't an IOException", cause instanceof IOException);
-      assertEquals("Incorrect exception message",
-          cause.getMessage(), "Error writing bytes to stream");
+      assertInstanceOf(IOException.class, cause, "cause wan't an IOException");
+      assertEquals(cause.getMessage(), "Error writing bytes to stream", "Incorrect exception message");
       Throwable nestedCause = cause.getCause();
-      assertEquals("Incorrect exception cause", e, nestedCause);
+      assertEquals(e, nestedCause, "Incorrect exception cause");
     }
   }
 

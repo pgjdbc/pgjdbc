@@ -5,6 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -12,8 +17,7 @@ import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Statement;
 import java.util.Map;
@@ -46,40 +50,40 @@ public class ParameterStatusTest extends BaseTest4 {
     Map<String,String> params = ((PGConnection) con).getParameterStatuses();
 
     // PgJDBC forces the following parameters
-    Assert.assertEquals("UTF8", params.get("client_encoding"));
-    Assert.assertNotNull(params.get("DateStyle"));
+    assertEquals("UTF8", params.get("client_encoding"));
+    assertNotNull(params.get("DateStyle"));
     MatcherAssert.assertThat(params.get("DateStyle"), StringStartsWith.startsWith("ISO"));
 
     // PgJDBC sets TimeZone via Java's TimeZone.getDefault()
     // Pg reports POSIX timezones which are negated, so:
-    Assert.assertEquals("GMT-08:00", params.get("TimeZone"));
+    assertEquals("GMT-08:00", params.get("TimeZone"));
 
     // Must be reported. All these exist in 8.2 or above, and we don't bother
     // with test coverage older than that.
-    Assert.assertNotNull(params.get("integer_datetimes"));
-    Assert.assertNotNull(params.get("is_superuser"));
-    Assert.assertNotNull(params.get("server_encoding"));
-    Assert.assertNotNull(params.get("server_version"));
-    Assert.assertNotNull(params.get("session_authorization"));
-    Assert.assertNotNull(params.get("standard_conforming_strings"));
+    assertNotNull(params.get("integer_datetimes"));
+    assertNotNull(params.get("is_superuser"));
+    assertNotNull(params.get("server_encoding"));
+    assertNotNull(params.get("server_version"));
+    assertNotNull(params.get("session_authorization"));
+    assertNotNull(params.get("standard_conforming_strings"));
 
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      Assert.assertNotNull(params.get("IntervalStyle"));
+      assertNotNull(params.get("IntervalStyle"));
     } else {
-      Assert.assertNull(params.get("IntervalStyle"));
+      assertNull(params.get("IntervalStyle"));
     }
 
     // TestUtil forces "ApplicationName=Driver Tests"
     // if application_name is supported (9.0 or newer)
     if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0)) {
-      Assert.assertEquals("Driver Tests", params.get("application_name"));
+      assertEquals("Driver Tests", params.get("application_name"));
     } else {
-      Assert.assertNull(params.get("application_name"));
+      assertNull(params.get("application_name"));
     }
 
     // Not reported
-    Assert.assertNull(params.get("nonexistent"));
-    Assert.assertNull(params.get("enable_hashjoin"));
+    assertNull(params.get("nonexistent"));
+    assertNull(params.get("enable_hashjoin"));
 
     TestUtil.closeDB(con);
   }
@@ -92,7 +96,7 @@ public class ParameterStatusTest extends BaseTest4 {
     con = TestUtil.openDB(properties);
 
     Map<String,String> params = ((PGConnection) con).getParameterStatuses();
-    Assert.assertEquals("Driver Tests", params.get("application_name"));
+    assertEquals("Driver Tests", params.get("application_name"));
 
     TestUtil.closeDB(con);
   }
@@ -105,7 +109,7 @@ public class ParameterStatusTest extends BaseTest4 {
     con = TestUtil.openDB(properties);
 
     Map<String,String> params = ((PGConnection) con).getParameterStatuses();
-    Assert.assertEquals("Driver Tests", params.get("application_name"));
+    assertEquals("Driver Tests", params.get("application_name"));
 
     TestUtil.closeDB(con);
   }
@@ -127,7 +131,7 @@ public class ParameterStatusTest extends BaseTest4 {
 
     // Parameter status should be reported before the ReadyForQuery so we will
     // have already processed it
-    Assert.assertEquals("pgjdbc_ParameterStatusTest2", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("pgjdbc_ParameterStatusTest2", ((PGConnection) con).getParameterStatus("application_name"));
 
     TestUtil.closeDB(con);
   }
@@ -138,17 +142,17 @@ public class ParameterStatusTest extends BaseTest4 {
     Statement stmt = con.createStatement();
 
     // Initial value assigned by TestUtil
-    Assert.assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
 
     // PgJDBC begins an explicit txn here due to autocommit=off so the effect
     // should be lost on rollback but retained on commit per the docs.
     stmt.executeUpdate("SET application_name = 'pgjdbc_ParameterStatusTestTxn';");
-    Assert.assertEquals("pgjdbc_ParameterStatusTestTxn", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("pgjdbc_ParameterStatusTestTxn", ((PGConnection) con).getParameterStatus("application_name"));
 
     // SET LOCAL is always txn scoped so the effect here will always be
     // unwound on txn end.
     stmt.executeUpdate("SET LOCAL application_name = 'pgjdbc_ParameterStatusTestLocal';");
-    Assert.assertEquals("pgjdbc_ParameterStatusTestLocal", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("pgjdbc_ParameterStatusTestLocal", ((PGConnection) con).getParameterStatus("application_name"));
 
     stmt.close();
   }
@@ -169,7 +173,7 @@ public class ParameterStatusTest extends BaseTest4 {
     // SET unwinds on ROLLBACK
     con.rollback();
 
-    Assert.assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
 
     TestUtil.closeDB(con);
   }
@@ -190,7 +194,7 @@ public class ParameterStatusTest extends BaseTest4 {
     // SET is retained on commit but SET LOCAL is unwound
     con.commit();
 
-    Assert.assertEquals("pgjdbc_ParameterStatusTestTxn", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("pgjdbc_ParameterStatusTestTxn", ((PGConnection) con).getParameterStatus("application_name"));
 
     TestUtil.closeDB(con);
   }
@@ -208,21 +212,23 @@ public class ParameterStatusTest extends BaseTest4 {
     Statement stmt = con.createStatement();
 
     // A SET LOCAL in autocommit should have no visible effect as we report the reset value too
-    Assert.assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
     stmt.executeUpdate("SET LOCAL application_name = 'pgjdbc_ParameterStatusTestLocal';");
-    Assert.assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
+    assertEquals("Driver Tests", ((PGConnection) con).getParameterStatus("application_name"));
 
     stmt.close();
     TestUtil.closeDB(con);
   }
 
-  @Test(expected = UnsupportedOperationException.class)
+  @Test
   public void parameterMapReadOnly() throws Exception {
     try {
       con = TestUtil.openDB();
       Map params = ((PGConnection) con).getParameterStatuses();
-      params.put("DateStyle", "invalid");
-      Assert.fail("Attempt to write to exposed parameters map must throw");
+      assertThrows(
+          UnsupportedOperationException.class,
+          () -> params.put("DateStyle", "invalid"),
+          "con..getParameterStatuses().put(...) should fail as the map should be read-only");
     } finally {
       TestUtil.closeDB(con);
     }
@@ -241,9 +247,9 @@ public class ParameterStatusTest extends BaseTest4 {
 
     Statement stmt = con.createStatement();
 
-    Assert.assertEquals("Driver Tests", params.get("application_name"));
+    assertEquals("Driver Tests", params.get("application_name"));
     stmt.executeUpdate("SET application_name = 'pgjdbc_paramstatus_view';");
-    Assert.assertEquals("pgjdbc_paramstatus_view", params.get("application_name"));
+    assertEquals("pgjdbc_paramstatus_view", params.get("application_name"));
 
     stmt.close();
     TestUtil.closeDB(con);

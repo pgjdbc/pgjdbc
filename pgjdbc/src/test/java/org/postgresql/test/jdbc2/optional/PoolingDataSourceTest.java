@@ -5,15 +5,15 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.util.PSQLException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -29,7 +29,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
   private static final String DS_NAME = "JDBC 2 SE Test DataSource";
 
   @Override
-  public void tearDown() throws Exception {
+  public void tearDown() throws SQLException {
     if (bds instanceof PoolingDataSource) {
       ((PoolingDataSource) bds).close();
     }
@@ -61,7 +61,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
     con = getDataSourceConnection();
     String name2 = con.toString();
     con.close();
-    assertEquals("Pooled DS doesn't appear to be pooling connections!", name, name2);
+    assertEquals(name, name2, "Pooled DS doesn't appear to be pooling connections!");
   }
 
   /**
@@ -69,8 +69,7 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    */
   @Override
   protected void compareJndiDataSource(BaseDataSource oldbds, BaseDataSource bds) {
-    assertSame("DataSource was serialized or recreated, should have been dereferenced",
-        bds, oldbds);
+    assertSame(bds, oldbds, "DataSource was serialized or recreated, should have been dereferenced");
   }
 
   /**

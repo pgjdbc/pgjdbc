@@ -5,15 +5,15 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -54,7 +54,7 @@ public class TypesTest extends BaseTest4 {
     pstmt.setObject(4, Boolean.FALSE);
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue(!rs.getBoolean(1));
+    assertFalse(rs.getBoolean(1));
     assertTrue(rs.wasNull());
     assertNull(rs.getObject(2));
     assertTrue(rs.getBoolean(3));
@@ -62,7 +62,7 @@ public class TypesTest extends BaseTest4 {
     // The V2 path will return a String because it doesn't know
     // any better.
     if (preferQueryMode != PreferQueryMode.SIMPLE) {
-      assertTrue(!((Boolean) rs.getObject(4)).booleanValue());
+      assertFalse(((Boolean) rs.getObject(4)).booleanValue());
     }
   }
 
@@ -88,7 +88,7 @@ public class TypesTest extends BaseTest4 {
     cs.registerOutParameter(1, Types.BOOLEAN);
     cs.setBoolean(2, true);
     cs.execute();
-    assertEquals(true, cs.getBoolean(1));
+    assertTrue(cs.getBoolean(1));
     cs.close();
   }
 
@@ -98,8 +98,8 @@ public class TypesTest extends BaseTest4 {
 
     ResultSet rs = stmt.executeQuery("select 'foo1' as icon1, 'foo2' as icon2 ");
     assertTrue(rs.next());
-    assertEquals("failed", "foo1", rs.getString("icon1"));
-    assertEquals("failed", "foo2", rs.getString("icon2"));
+    assertEquals("foo1", rs.getString("icon1"), "failed");
+    assertEquals("foo2", rs.getString("icon2"), "failed");
   }
 
 }

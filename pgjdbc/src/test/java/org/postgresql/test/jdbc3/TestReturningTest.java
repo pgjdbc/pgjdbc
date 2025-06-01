@@ -5,18 +5,18 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,8 +26,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
-public class TestReturning extends BaseTest4 {
+@ParameterizedClass(name = "returningInQuery = {0}, quoteReturning = {1}")
+@MethodSource("data")
+public class TestReturningTest extends BaseTest4 {
 
   public enum ColumnsReturned {
     Id("Id"),
@@ -60,7 +61,6 @@ public class TestReturning extends BaseTest4 {
 
   static String []returningOptions = {"true", "false"};
 
-  @Parameterized.Parameters(name = "returningInQuery = {0}, quoteReturning = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (ColumnsReturned columnsReturned : ColumnsReturned.values()) {
@@ -74,7 +74,7 @@ public class TestReturning extends BaseTest4 {
   private final ColumnsReturned columnsReturned;
   private final String quoteReturning;
 
-  public TestReturning(ColumnsReturned columnsReturned, String quoteReturning) throws Exception {
+  public TestReturningTest(ColumnsReturned columnsReturned, String quoteReturning) throws Exception {
     this.columnsReturned = columnsReturned;
     this.quoteReturning = quoteReturning;
   }

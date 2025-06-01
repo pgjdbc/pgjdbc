@@ -5,15 +5,17 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
 import java.sql.PreparedStatement;
@@ -27,7 +29,8 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "numBinds={0}, preferQueryMode={1}, binaryMode={2}}")
+@MethodSource("data")
 public class PreparedStatement64KBindsTest extends BaseTest4 {
   private final int numBinds;
   private final PreferQueryMode preferQueryMode;
@@ -40,7 +43,6 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
     this.binaryMode = binaryMode;
   }
 
-  @Parameterized.Parameters(name = "numBinds={0}, preferQueryMode={1}, binaryMode={2}}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (PreferQueryMode preferQueryMode : PreferQueryMode.values()) {
@@ -81,17 +83,17 @@ public class PreparedStatement64KBindsTest extends BaseTest4 {
         String actual = Arrays.toString(elements);
 
         if (preferQueryMode == PreferQueryMode.SIMPLE || numBinds <= 65535) {
-          Assert.assertEquals("SELECT query with " + numBinds + " should work", actual, expected);
+          assertEquals(actual, expected, () -> "SELECT query with " + numBinds + " should work");
         } else {
-          Assert.fail("con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters");
+          fail("con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters");
         }
       }
     } catch (SQLException e) {
       if (preferQueryMode != PreferQueryMode.SIMPLE && numBinds > 65535) {
-        Assert.assertEquals(
-            "con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters. SQL State is ",
+        assertEquals(
             PSQLState.INVALID_PARAMETER_VALUE.getState(),
-            e.getSQLState()
+            e.getSQLState(),
+            () -> "con.prepareStatement(..." + numBinds + " binds) should fail since the wire protocol allows only 65535 parameters. SQL State is "
         );
       } else {
         throw e;

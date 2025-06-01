@@ -5,19 +5,19 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.CallableStatement;
@@ -33,7 +33,7 @@ import java.time.LocalDate;
  * @author davec
  */
 public class Jdbc3CallableStatementTest extends BaseTest4 {
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
@@ -214,18 +214,15 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
     call.executeUpdate();
     BigDecimal ret = call.getBigDecimal(1);
-    assertTrue(
-        "correct return from getNumeric () should be 999999999999999.000000000000000 but returned "
-            + ret.toString(),
-        ret.equals(new BigDecimal("999999999999999.000000000000000")));
+    assertTrue(ret.equals(new BigDecimal("999999999999999.000000000000000")), "correct return from getNumeric () should be 999999999999999.000000000000000 but returned "
+        + ret.toString());
 
     ret = call.getBigDecimal(2);
-    assertTrue("correct return from getNumeric ()",
-        ret.equals(new BigDecimal("0.000000000000001")));
+    assertTrue(ret.equals(new BigDecimal("0.000000000000001")), "correct return from getNumeric ()");
     try {
       ret = call.getBigDecimal(3);
     } catch (NullPointerException ex) {
-      assertTrue("This should be null", call.wasNull());
+      assertTrue(call.wasNull(), "This should be null");
     }
   }
 
@@ -1055,7 +1052,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.setInt(2, 2);
     cs.setInt(3, 3);
     cs.execute();
-    assertEquals("2+3 should be 5 when executed via {?= call mysum(?, ?)}", 5, cs.getInt(1));
+    assertEquals(5, cs.getInt(1), "2+3 should be 5 when executed via {?= call mysum(?, ?)}");
   }
 
   @Test
@@ -1063,7 +1060,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     CallableStatement cs = con.prepareCall("{?= call mynoparams()}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.execute();
-    assertEquals("{?= call mynoparam()} should return 733, but did not.", 733, cs.getInt(1));
+    assertEquals(733, cs.getInt(1), "{?= call mynoparam()} should return 733, but did not.");
     TestUtil.closeQuietly(cs);
   }
 
@@ -1072,7 +1069,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     CallableStatement cs = con.prepareCall("{?= call mynoparams}");
     cs.registerOutParameter(1, Types.INTEGER);
     cs.execute();
-    assertEquals("{?= call mynoparam()} should return 733, but did not.", 733, cs.getInt(1));
+    assertEquals(733, cs.getInt(1), "{?= call mynoparam()} should return 733, but did not.");
     TestUtil.closeQuietly(cs);
   }
 
@@ -1107,7 +1104,7 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
     cs.setInt(1, 5);
     cs.registerOutParameter(1, Types.INTEGER);
     cs.execute();
-    assertEquals("call inoutprocedure(?) should return 10 (when input param = 5) via the INOUT parameter, but did not.", 10, cs.getInt(1));
+    assertEquals(10, cs.getInt(1), "call inoutprocedure(?) should return 10 (when input param = 5) via the INOUT parameter, but did not.");
     TestUtil.closeQuietly(cs);
   }
 

@@ -70,7 +70,6 @@ BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-engine)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-params)
-BuildRequires:	mvn(org.junit.vintage:junit-vintage-engine)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib

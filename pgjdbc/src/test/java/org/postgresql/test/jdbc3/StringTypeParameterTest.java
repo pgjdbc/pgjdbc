@@ -5,9 +5,11 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -15,10 +17,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,7 +29,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "stringType = {0}")
+@MethodSource("data")
 public class StringTypeParameterTest extends BaseTest4 {
   private static final String UNSPECIFIED_STRING_TYPE = "unspecified";
 
@@ -42,7 +44,7 @@ public class StringTypeParameterTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     // Assume enum supported
-    Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
     TestUtil.createEnumType(con, "mood", "'happy', 'sad'");
     TestUtil.createTable(con, "stringtypetest", "m mood");
   }
@@ -62,7 +64,6 @@ public class StringTypeParameterTest extends BaseTest4 {
     super.tearDown();
   }
 
-  @Parameterized.Parameters(name = "stringType = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (String stringType : new String[]{null, "varchar", UNSPECIFIED_STRING_TYPE}) {
@@ -73,8 +74,8 @@ public class StringTypeParameterTest extends BaseTest4 {
 
   @Test
   public void testVarcharAsEnum() throws Exception {
-    Assume.assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
-    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
 
     PreparedStatement update = con.prepareStatement("insert into stringtypetest (m) values (?)");
     for (int i = 0; i < 2; i++) {
@@ -110,8 +111,8 @@ public class StringTypeParameterTest extends BaseTest4 {
 
   @Test
   public void testMultipleEnumBinds() throws Exception {
-    Assume.assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
-    Assume.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeFalse(UNSPECIFIED_STRING_TYPE.equals(stringType));
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE);
 
     PreparedStatement query =
         con.prepareStatement("select * from stringtypetest where m = ? or m = ?");
@@ -132,7 +133,7 @@ public class StringTypeParameterTest extends BaseTest4 {
 
   @Test
   public void testParameterUnspecified() throws Exception {
-    Assume.assumeTrue(UNSPECIFIED_STRING_TYPE.equals(stringType));
+    assumeTrue(UNSPECIFIED_STRING_TYPE.equals(stringType));
 
     PreparedStatement update = con.prepareStatement("insert into stringtypetest (m) values (?)");
     update.setString(1, "happy");

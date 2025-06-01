@@ -5,6 +5,11 @@
 
 package org.postgresql.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
@@ -17,8 +22,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Assert;
-import org.junit.Assume;
+import org.junit.jupiter.api.Test;
 
 import java.io.Closeable;
 import java.io.File;
@@ -250,13 +254,18 @@ public class TestUtil {
     }
   }
 
+  @Test
+  public void test() {
+
+  }
+
   private static String getSslTestProperty(String name) {
     initSslTestProperties();
     return sslTestProperties.getProperty(name);
   }
 
   public static void assumeSslTestsEnabled() {
-    Assume.assumeTrue(Boolean.parseBoolean(getSslTestProperty("enable_ssl_tests")));
+    assumeTrue(Boolean.parseBoolean(getSslTestProperty("enable_ssl_tests")));
   }
 
   public static String getSslTestCertPath(String name) {
@@ -652,7 +661,7 @@ public class TestUtil {
       ps = con.prepareStatement("select count(*) from " + tableName + " as t");
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertEquals(message, expectedRows, rs.getInt(1));
+      assertEquals(expectedRows, rs.getInt(1), message);
     } finally {
       closeQuietly(rs);
       closeQuietly(ps);
@@ -661,7 +670,7 @@ public class TestUtil {
 
   public static void assertTransactionState(String message, Connection con, TransactionState expected) {
     TransactionState actual = TestUtil.getTransactionState(con);
-    Assert.assertEquals(message, expected, actual);
+    assertEquals(expected, actual, message);
   }
 
   /*
@@ -766,7 +775,7 @@ public class TestUtil {
   public static void assumeHaveMinimumServerVersion(Version version)
       throws SQLException {
     try (Connection conn = openPrivilegedDB()) {
-      Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version));
+      assumeTrue(TestUtil.haveMinimumServerVersion(conn, version));
     }
   }
 
@@ -999,9 +1008,9 @@ public class TestUtil {
   public static String queryForString(Connection conn, String sql) throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
-    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    assertTrue(rs.next(), () -> "Query should have returned exactly one row but none was found: " + sql);
     String value = rs.getString(1);
-    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    assertFalse(rs.next(), () -> "Query should have returned exactly one row but more than one found: " + sql);
     rs.close();
     stmt.close();
     return value;
@@ -1014,9 +1023,9 @@ public class TestUtil {
     PreparedStatement stmt = conn.prepareStatement(sql);
     stmt.setString(1, param);
     ResultSet rs = stmt.executeQuery();
-    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    assertTrue(rs.next(), () -> "Query should have returned exactly one row but none was found: " + sql);
     String value = rs.getString(1);
-    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    assertFalse(rs.next(), () -> "Query should have returned exactly one row but more than one found: " + sql);
     rs.close();
     stmt.close();
     return value;
@@ -1029,12 +1038,12 @@ public class TestUtil {
   public static Boolean queryForBoolean(Connection conn, String sql) throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
-    Assert.assertTrue("Query should have returned exactly one row but none was found: " + sql, rs.next());
+    assertTrue(rs.next(), () -> "Query should have returned exactly one row but none was found: " + sql);
     Boolean value = rs.getBoolean(1);
     if (rs.wasNull()) {
       value = null;
     }
-    Assert.assertFalse("Query should have returned exactly one row but more than one found: " + sql, rs.next());
+    assertFalse(rs.next(), () -> "Query should have returned exactly one row but more than one found: " + sql);
     rs.close();
     stmt.close();
     return value;

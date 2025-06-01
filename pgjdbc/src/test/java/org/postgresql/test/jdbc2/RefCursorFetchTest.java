@@ -5,18 +5,18 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -27,7 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}, numRows = {1}, defaultFetchSize = {2}, statementFetchSize = {3}, resultSetFetchSize = {4}, autoCommit = {5}, commitAfterExecute = {6}")
+@MethodSource("data")
 public class RefCursorFetchTest extends BaseTest4 {
   private final int numRows;
   private final @Nullable Integer defaultFetchSize;
@@ -50,7 +51,6 @@ public class RefCursorFetchTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, numRows = {1}, defaultFetchSize = {2}, statementFetchSize = {3}, resultSetFetchSize = {4}, autoCommit = {5}, commitAfterExecute = {6}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -79,7 +79,7 @@ public class RefCursorFetchTest extends BaseTest4 {
     }
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_0);
     try (Connection con = TestUtil.openDB()) {
@@ -101,7 +101,7 @@ public class RefCursorFetchTest extends BaseTest4 {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "test_blob");
@@ -141,7 +141,7 @@ public class RefCursorFetchTest extends BaseTest4 {
         while (rs.next()) {
           cnt++;
         }
-        assertEquals("number of rows from test_blob(...) call", numRows, cnt);
+        assertEquals(numRows, cnt, "number of rows from test_blob(...) call");
       } catch (SQLException e) {
         if (commitAfterExecute && "34000".equals(e.getSQLState())) {
           // Transaction commit closes refcursor, so the fetch call is expected to fail
@@ -152,12 +152,11 @@ public class RefCursorFetchTest extends BaseTest4 {
           int expectedRows =
               fetchSize != null && fetchSize != 0 ? Math.min(fetchSize, numRows) : numRows;
           assertEquals(
-              "The transaction was committed before processing the results,"
-                  + " so expecting ResultSet to buffer fetchSize=" + fetchSize + " rows out of "
-                  + numRows,
               expectedRows,
-              cnt
-          );
+              cnt,
+              () -> "The transaction was committed before processing the results,"
+                  + " so expecting ResultSet to buffer fetchSize=" + fetchSize + " rows out of "
+                  + numRows);
           return;
         }
         throw e;

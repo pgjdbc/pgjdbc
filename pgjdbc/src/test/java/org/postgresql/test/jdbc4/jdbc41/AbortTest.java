@@ -5,12 +5,13 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -89,8 +90,10 @@ public class AbortTest extends BaseTest4 {
    * According to the javadoc, calling abort when the {@code executor} is {@code null}
    * results in SQLException
    */
-  @Test(expected = SQLException.class)
+  @Test
   public void abortWithNullExecutor() throws SQLException {
-    con.abort(null);
+    assertThrows(SQLException.class, () -> {
+      con.abort(null);
+    });
   }
 }

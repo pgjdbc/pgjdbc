@@ -5,17 +5,20 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -25,13 +28,13 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.sql.Types;
 
-/*
+/**
  * CallableStatement tests.
  *
  * @author Paul Bethe
  */
 public class CallableStmtTest extends BaseTest4 {
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
@@ -125,11 +128,11 @@ public class CallableStmtTest extends BaseTest4 {
     assertNotNull(rs);
     assertTrue(rs.next());
     assertEquals(42.42, rs.getDouble(1), 0.00001);
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
 
     assertEquals(-1, call.getUpdateCount());
-    assertTrue(!call.getMoreResults());
+    assertFalse(call.getMoreResults());
     call.close();
   }
 
@@ -175,7 +178,7 @@ public class CallableStmtTest extends BaseTest4 {
     call.setBigDecimal(2, new java.math.BigDecimal(4));
     call.registerOutParameter(1, Types.NUMERIC);
     call.execute();
-    assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
+    assertEquals(new BigDecimal(42), call.getBigDecimal(1));
   }
 
   @Test
@@ -183,7 +186,7 @@ public class CallableStmtTest extends BaseTest4 {
     CallableStatement call = con.prepareCall(func + pkgName + "getNumericWithoutArg () }");
     call.registerOutParameter(1, Types.NUMERIC);
     call.execute();
-    assertEquals(new java.math.BigDecimal(42), call.getBigDecimal(1));
+    assertEquals(new BigDecimal(42), call.getBigDecimal(1));
   }
 
   @Test
@@ -207,7 +210,7 @@ public class CallableStmtTest extends BaseTest4 {
     assertEquals(1, rs.getInt(1));
     assertTrue(rs.next());
     assertEquals(2, rs.getInt(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
@@ -235,7 +238,7 @@ public class CallableStmtTest extends BaseTest4 {
       cs.wasNull();
       fail("expected exception");
     } catch (Exception e) {
-      assertTrue(e instanceof SQLException);
+      assertInstanceOf(SQLException.class, e);
     }
   }
 
@@ -248,7 +251,7 @@ public class CallableStmtTest extends BaseTest4 {
       cs.getString(1);
       fail("expected exception");
     } catch (Exception e) {
-      assertTrue(e instanceof SQLException);
+      assertInstanceOf(SQLException.class, e);
     }
   }
 
@@ -260,7 +263,7 @@ public class CallableStmtTest extends BaseTest4 {
       cs.getObject(1);
       fail("expected exception");
     } catch (Exception e) {
-      assertTrue(e instanceof SQLException);
+      assertInstanceOf(SQLException.class, e);
     }
   }
 
@@ -300,7 +303,7 @@ public class CallableStmtTest extends BaseTest4 {
     assertEquals(2, rs.getInt(1));
     assertTrue(rs.next());
     assertEquals(3, rs.getInt(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
 }

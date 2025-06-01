@@ -5,16 +5,21 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -27,7 +32,8 @@ import java.util.Properties;
  * Test methods with small counts that return long and failure scenarios. This have two really big
  * and slow test, they are ignored for CI but can be tested locally to check that it works.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}, insertRewrite = {1}")
+@MethodSource("data")
 public class LargeCountJdbc42Test extends BaseTest4 {
 
   private final boolean insertRewrite;
@@ -37,7 +43,6 @@ public class LargeCountJdbc42Test extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, insertRewrite = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -92,7 +97,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   /*
    * Test PreparedStatement.executeLargeUpdate() and Statement.executeLargeUpdate(String sql)
    */
-  @Ignore("This is the big and SLOW test")
+  @Disabled("This is the big and SLOW test")
   @Test
   public void testExecuteLargeUpdateBIG() throws Exception {
     long expected = Integer.MAX_VALUE + 110L;
@@ -103,12 +108,12 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setLong(1, 1);
       stmt.setLong(2, 2_147_483_757L); // Integer.MAX_VALUE + 110L
       long count = stmt.executeLargeUpdate();
-      Assert.assertEquals("PreparedStatement 110 rows more than Integer.MAX_VALUE", expected, count);
+      assertEquals(expected, count, "PreparedStatement 110 rows more than Integer.MAX_VALUE");
     }
     // Test Statement.executeLargeUpdate(String sql)
     try (Statement stmt = con.createStatement()) {
       long count = stmt.executeLargeUpdate("delete from largetable");
-      Assert.assertEquals("Statement 110 rows more than Integer.MAX_VALUE", expected, count);
+      assertEquals(expected, count, "Statement 110 rows more than Integer.MAX_VALUE");
     }
     con.setAutoCommit(true);
   }
@@ -122,7 +127,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       long count = stmt.executeLargeUpdate("insert into largetable "
           + "select true from generate_series(1, 1010)");
       long expected = 1010L;
-      Assert.assertEquals("Small long return 1010L", expected, count);
+      assertEquals(expected, count, "Small long return 1010L");
     }
   }
 
@@ -137,7 +142,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setLong(2, 1010L);
       long count = stmt.executeLargeUpdate();
       long expected = 1010L;
-      Assert.assertEquals("Small long return 1010L", expected, count);
+      assertEquals(expected, count, "Small long return 1010L");
     }
   }
 
@@ -149,10 +154,10 @@ public class LargeCountJdbc42Test extends BaseTest4 {
     try (Statement stmt = con.createStatement()) {
       boolean isResult = stmt.execute("insert into largetable "
           + "select true from generate_series(1, 1010)");
-      Assert.assertFalse("False if it is an update count or there are no results", isResult);
+      assertFalse(isResult, "False if it is an update count or there are no results");
       long count = stmt.getLargeUpdateCount();
       long expected = 1010L;
-      Assert.assertEquals("Small long return 1010L", expected, count);
+      assertEquals(expected, count, "Small long return 1010L");
     }
   }
 
@@ -166,10 +171,10 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setInt(1, 1);
       stmt.setInt(2, 1010);
       boolean isResult = stmt.execute();
-      Assert.assertFalse("False if it is an update count or there are no results", isResult);
+      assertFalse(isResult, "False if it is an update count or there are no results");
       long count = stmt.getLargeUpdateCount();
       long expected = 1010L;
-      Assert.assertEquals("Small long return 1010L", expected, count);
+      assertEquals(expected, count, "Small long return 1010L");
     }
   }
 
@@ -180,9 +185,9 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   public void testExecuteLargeUpdateStatementSELECT() throws Exception {
     try (Statement stmt = con.createStatement()) {
       long count = stmt.executeLargeUpdate("select true from generate_series(1, 5)");
-      Assert.fail("A result was returned when none was expected. Returned: " + count);
+      fail("A result was returned when none was expected. Returned: " + count);
     } catch (SQLException e) {
-      Assert.assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
+      assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
     }
   }
 
@@ -195,9 +200,9 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setLong(1, 1);
       stmt.setLong(2, 5L);
       long count = stmt.executeLargeUpdate();
-      Assert.fail("A result was returned when none was expected. Returned: " + count);
+      fail("A result was returned when none was expected. Returned: " + count);
     } catch (SQLException e) {
-      Assert.assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
+      assertEquals(PSQLState.TOO_MANY_RESULTS.getState(), e.getSQLState());
     }
   }
 
@@ -208,10 +213,10 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   public void testGetLargeUpdateCountStatementSELECT() throws Exception {
     try (Statement stmt = con.createStatement()) {
       boolean isResult = stmt.execute("select true from generate_series(1, 5)");
-      Assert.assertTrue("True since this is a SELECT", isResult);
+      assertTrue(isResult, "True since this is a SELECT");
       long count = stmt.getLargeUpdateCount();
       long expected = -1L;
-      Assert.assertEquals("-1 if the current result is a ResultSet object", expected, count);
+      assertEquals(expected, count, "-1 if the current result is a ResultSet object");
     }
   }
 
@@ -224,10 +229,10 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setLong(1, 1);
       stmt.setLong(2, 5L);
       boolean isResult = stmt.execute();
-      Assert.assertTrue("True since this is a SELECT", isResult);
+      assertTrue(isResult, "True since this is a SELECT");
       long count = stmt.getLargeUpdateCount();
       long expected = -1L;
-      Assert.assertEquals("-1 if the current result is a ResultSet object", expected, count);
+      assertEquals(expected, count, "-1 if the current result is a ResultSet object");
     }
   }
 
@@ -262,7 +267,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   /*
    * Test simple PreparedStatement.executeLargeBatch();
    */
-  @Ignore("This is the big and SLOW test")
+  @Disabled("This is the big and SLOW test")
   @Test
   public void testExecuteLargeBatchStatementBIG() throws Exception {
     con.setAutoCommit(false);
@@ -278,7 +283,10 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.setInt(2, 50);
       stmt.addBatch(); // statement three
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("Large rows inserted via 3 batch", new long[]{200L, 3_000_000_000L, 50L}, actual);
+      assertArrayEquals(
+          new long[]{200L, 3_000_000_000L, 50L},
+          actual,
+          "Large rows inserted via 3 batch");
     }
     con.setAutoCommit(true);
   }
@@ -294,7 +302,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.addBatch("insert into largetable(a) values(true)"); // statement three
       stmt.addBatch("insert into largetable values(false)"); // statement four
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("Rows inserted via 4 batch", new long[]{1L, 1L, 1L, 1L}, actual);
+      assertArrayEquals(new long[]{1L, 1L, 1L, 1L}, actual, "Rows inserted via 4 batch");
     }
   }
 
@@ -316,7 +324,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.addBatch(); // statement three
       stmt.addBatch(); // statement four, same parms as three
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("Rows inserted via 4 batch", new long[]{200L, 100L, 50L, 50L}, actual);
+      assertArrayEquals(new long[]{200L, 100L, 50L, 50L}, actual, "Rows inserted via 4 batch");
     }
   }
 
@@ -334,7 +342,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
         stmt.addBatch();
       }
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("Rows inserted via batch", loop, actual);
+      assertArrayEquals(loop, actual, "Rows inserted via batch");
     }
   }
 
@@ -350,12 +358,12 @@ public class LargeCountJdbc42Test extends BaseTest4 {
         stmt.addBatch();
       }
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertEquals("Rows inserted via batch", loop.length, actual.length);
+      assertEquals(loop.length, actual.length, "Rows inserted via batch");
       for (long i : actual) {
         if (insertRewrite) {
-          Assert.assertEquals(Statement.SUCCESS_NO_INFO, i);
+          assertEquals(Statement.SUCCESS_NO_INFO, i);
         } else {
-          Assert.assertEquals(1, i);
+          assertEquals(1, i);
         }
       }
     }
@@ -368,7 +376,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   public void testNullExecuteLargeBatchStatement() throws Exception {
     try (Statement stmt = con.createStatement()) {
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("addBatch() not called batchStatements is null", new long[0], actual);
+      assertArrayEquals(new long[0], actual, "addBatch() not called batchStatements is null");
     }
   }
 
@@ -381,7 +389,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.addBatch("");
       stmt.clearBatch();
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("clearBatch() called, batchStatements.isEmpty()", new long[0], actual);
+      assertArrayEquals(new long[0], actual, "clearBatch() called, batchStatements.isEmpty()");
     }
   }
 
@@ -392,7 +400,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
   public void testNullExecuteLargeBatchPreparedStatement() throws Exception {
     try (PreparedStatement stmt = con.prepareStatement("")) {
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("addBatch() not called batchStatements is null", new long[0], actual);
+      assertArrayEquals(new long[0], actual, "addBatch() not called batchStatements is null");
     }
   }
 
@@ -405,7 +413,7 @@ public class LargeCountJdbc42Test extends BaseTest4 {
       stmt.addBatch();
       stmt.clearBatch();
       long[] actual = stmt.executeLargeBatch();
-      Assert.assertArrayEquals("clearBatch() called, batchStatements.isEmpty()", new long[0], actual);
+      assertArrayEquals(new long[0], actual, "clearBatch() called, batchStatements.isEmpty()");
     }
   }
 

@@ -5,19 +5,18 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -29,14 +28,14 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
-public class SetObject310InfinityTests extends BaseTest4 {
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
+public class SetObject310InfinityTest extends BaseTest4 {
 
-  public SetObject310InfinityTests(BinaryMode binaryMode) {
+  public SetObject310InfinityTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>(2);
     for (BaseTest4.BinaryMode binaryMode : BaseTest4.BinaryMode.values()) {
@@ -48,8 +47,7 @@ public class SetObject310InfinityTests extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("PostgreSQL 8.3 does not support 'infinity' for 'date'",
-        TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4), "PostgreSQL 8.3 does not support 'infinity' for 'date'");
     super.setUp();
     TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
             + "timestamp_with_time_zone_column timestamp with time zone,"
@@ -57,7 +55,7 @@ public class SetObject310InfinityTests extends BaseTest4 {
     );
   }
 
-  @After
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "table1");
     super.tearDown();

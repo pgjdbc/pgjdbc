@@ -5,15 +5,16 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.sql.PreparedStatement;
@@ -26,14 +27,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
-public class GetObject310InfinityTests extends BaseTest4 {
+@ParameterizedClass(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
+@MethodSource("data")
+public class GetObject310InfinityTest extends BaseTest4 {
   private final String expression;
   private final String pgType;
   private final Class<?> klass;
   private final Object expectedValue;
 
-  public GetObject310InfinityTests(BinaryMode binaryMode, String expression,
+  public GetObject310InfinityTest(BinaryMode binaryMode, String expression,
       String pgType, Class<?> klass, Object expectedValue) {
     setBinaryMode(binaryMode);
     this.expression = expression;
@@ -45,11 +47,11 @@ public class GetObject310InfinityTests extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("PostgreSQL 8.3 does not support 'infinity' for 'date'",
-        !"date".equals(pgType) || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
+    assumeTrue(
+        !"date".equals(pgType) || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4),
+        "PostgreSQL 8.3 does not support 'infinity' for 'date'");
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
   public static Iterable<Object[]> data() throws IllegalAccessException {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -92,6 +94,6 @@ public class GetObject310InfinityTests extends BaseTest4 {
     ResultSet rs = stmt.executeQuery();
     rs.next();
     Object res = rs.getObject(1, klass);
-    Assert.assertEquals(expectedValue, res);
+    assertEquals(expectedValue, res);
   }
 }
