@@ -180,7 +180,7 @@ jobs:
     - name: Set up Java ${{ matrix.java_version }}, oracle
       id: setup_ea_java
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: oracle-actions/setup-java@8fb9d7717810ccde9f8d4bef1e6f43d180f506b5 # v1.4.1
+      uses: oracle-actions/setup-java@b1546e588c27008e88bfcabda44d11c22316b9b8 # v1.4.2
       env:
         # Java 21 is needed for executing oracle-actions/setup-java, so we pass it here
         JAVA_HOME_21_X64: ${{ env.JAVA_HOME_21_AARCH64 || env.JAVA_HOME_21_X64 }}
