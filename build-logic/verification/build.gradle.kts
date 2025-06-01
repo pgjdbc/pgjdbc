@@ -11,5 +11,5 @@ dependencies {
     implementation("de.thetaphi.forbiddenapis:de.thetaphi.forbiddenapis.gradle.plugin:3.9")
     implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:4.2.0")
     implementation("org.checkerframework:org.checkerframework.gradle.plugin:0.6.53")
-    implementation("org.openrewrite.rewrite:org.openrewrite.rewrite.gradle.plugin:7.5.0")
+    implementation("org.openrewrite.rewrite:org.openrewrite.rewrite.gradle.plugin:7.7.0")
 }
