@@ -28,7 +28,7 @@ dependencies {
     testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
     testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.16")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
-    testImplementation("ch.qos.logback:logback-core:1.2.13")
+    testImplementation("ch.qos.logback:logback-core:1.3.15")
     testImplementation("ch.qos.logback:logback-classic:1.2.13")
 }
 
