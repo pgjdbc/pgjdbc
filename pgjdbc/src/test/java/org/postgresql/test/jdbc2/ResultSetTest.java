@@ -5,13 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -19,10 +21,11 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
@@ -44,17 +47,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/*
+/**
  * ResultSet tests.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class ResultSetTest extends BaseTest4 {
 
   public ResultSetTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -216,7 +219,7 @@ public class ResultSetTest extends BaseTest4 {
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 
-    assertTrue(!rs.absolute(0));
+    assertFalse(rs.absolute(0));
     assertEquals(0, rs.getRow());
 
     assertTrue(rs.absolute(-1));
@@ -225,12 +228,12 @@ public class ResultSetTest extends BaseTest4 {
     assertTrue(rs.absolute(1));
     assertEquals(1, rs.getRow());
 
-    assertTrue(!rs.absolute(-10));
+    assertFalse(rs.absolute(-10));
     assertEquals(0, rs.getRow());
     assertTrue(rs.next());
     assertEquals(1, rs.getRow());
 
-    assertTrue(!rs.absolute(10));
+    assertFalse(rs.absolute(10));
     assertEquals(0, rs.getRow());
     assertTrue(rs.previous());
     assertEquals(6, rs.getRow());
@@ -244,7 +247,7 @@ public class ResultSetTest extends BaseTest4 {
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs");
 
-    assertTrue(!rs.relative(0));
+    assertFalse(rs.relative(0));
     assertEquals(0, rs.getRow());
     assertTrue(rs.isBeforeFirst());
 
@@ -257,7 +260,7 @@ public class ResultSetTest extends BaseTest4 {
     assertTrue(rs.relative(0));
     assertEquals(3, rs.getRow());
 
-    assertTrue(!rs.relative(-3));
+    assertFalse(rs.relative(-3));
     assertEquals(0, rs.getRow());
     assertTrue(rs.isBeforeFirst());
 
@@ -267,14 +270,14 @@ public class ResultSetTest extends BaseTest4 {
     assertTrue(rs.relative(-1));
     assertEquals(3, rs.getRow());
 
-    assertTrue(!rs.relative(6));
+    assertFalse(rs.relative(6));
     assertEquals(0, rs.getRow());
     assertTrue(rs.isAfterLast());
 
     assertTrue(rs.relative(-4));
     assertEquals(3, rs.getRow());
 
-    assertTrue(!rs.relative(-6));
+    assertFalse(rs.relative(-6));
     assertEquals(0, rs.getRow());
     assertTrue(rs.isBeforeFirst());
 
@@ -288,9 +291,9 @@ public class ResultSetTest extends BaseTest4 {
     ResultSet rs = stmt.executeQuery("SELECT * FROM testrs where id=100");
     rs.beforeFirst();
     rs.afterLast();
-    assertTrue(!rs.first());
-    assertTrue(!rs.last());
-    assertTrue(!rs.next());
+    assertFalse(rs.first());
+    assertFalse(rs.last());
+    assertFalse(rs.next());
   }
 
   @Test
@@ -362,7 +365,7 @@ public class ResultSetTest extends BaseTest4 {
           rs.getBoolean(1);
           fail();
         } catch (SQLException e) {
-          assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+          assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
         }
       }
     }
@@ -392,15 +395,15 @@ public class ResultSetTest extends BaseTest4 {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("select 1::" + dataType + ", 0::" + dataType + ", 2::" + dataType);
     assertTrue(rs.next());
-    assertEquals(true, rs.getBoolean(1));
-    assertEquals(false, rs.getBoolean(2));
+    assertTrue(rs.getBoolean(1));
+    assertFalse(rs.getBoolean(2));
 
     try {
       // The JDBC ResultSet JavaDoc states that only 1 and 0 are valid values, so 2 should return error.
       rs.getBoolean(3);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       // message can be 2 or 2.0 depending on whether binary or text
       final String message = e.getMessage();
       if (!"Cannot cast to boolean: \"2.0\"".equals(message)) {
@@ -444,7 +447,7 @@ public class ResultSetTest extends BaseTest4 {
           fail(message);
         }
       } else {
-        assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+        assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
         assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
       }
     }
@@ -940,9 +943,7 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(ResultSet.CONCUR_UPDATABLE, rs.getConcurrency());
     assertEquals(ResultSet.TYPE_SCROLL_SENSITIVE, rs.getType());
     if (!con.unwrap(PGConnection.class).getAdaptiveFetch()) {
-      assertEquals("ResultSet.fetchSize should not change after query execution",
-          100,
-          rs.getFetchSize());
+      assertEquals(100, rs.getFetchSize(), "ResultSet.fetchSize should not change after query execution");
     }
     assertEquals(ResultSet.FETCH_UNKNOWN, rs.getFetchDirection());
 
@@ -1001,23 +1002,23 @@ public class ResultSetTest extends BaseTest4 {
         con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
     ResultSet rs =
         stmt.executeQuery("SELECT * FROM pg_database WHERE datname='nonexistentdatabase'");
-    assertTrue(!rs.previous());
-    assertTrue(!rs.previous());
-    assertTrue(!rs.next());
-    assertTrue(!rs.next());
-    assertTrue(!rs.next());
-    assertTrue(!rs.next());
-    assertTrue(!rs.next());
-    assertTrue(!rs.previous());
-    assertTrue(!rs.first());
-    assertTrue(!rs.last());
+    assertFalse(rs.previous());
+    assertFalse(rs.previous());
+    assertFalse(rs.next());
+    assertFalse(rs.next());
+    assertFalse(rs.next());
+    assertFalse(rs.next());
+    assertFalse(rs.next());
+    assertFalse(rs.previous());
+    assertFalse(rs.first());
+    assertFalse(rs.last());
     assertEquals(0, rs.getRow());
-    assertTrue(!rs.absolute(1));
-    assertTrue(!rs.relative(1));
-    assertTrue(!rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
-    assertTrue(!rs.isFirst());
-    assertTrue(!rs.isLast());
+    assertFalse(rs.absolute(1));
+    assertFalse(rs.relative(1));
+    assertFalse(rs.isBeforeFirst());
+    assertFalse(rs.isAfterLast());
+    assertFalse(rs.isFirst());
+    assertFalse(rs.isLast());
     rs.close();
     stmt.close();
   }
@@ -1030,51 +1031,51 @@ public class ResultSetTest extends BaseTest4 {
     ResultSet rs = stmt.executeQuery("SELECT * FROM pg_database WHERE datname='template1'");
 
     assertTrue(rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
-    assertTrue(!rs.isFirst());
-    assertTrue(!rs.isLast());
+    assertFalse(rs.isAfterLast());
+    assertFalse(rs.isFirst());
+    assertFalse(rs.isLast());
 
     assertTrue(rs.next());
 
-    assertTrue(!rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
+    assertFalse(rs.isBeforeFirst());
+    assertFalse(rs.isAfterLast());
     assertTrue(rs.isFirst());
     assertTrue(rs.isLast());
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
-    assertTrue(!rs.isBeforeFirst());
+    assertFalse(rs.isBeforeFirst());
     assertTrue(rs.isAfterLast());
-    assertTrue(!rs.isFirst());
-    assertTrue(!rs.isLast());
+    assertFalse(rs.isFirst());
+    assertFalse(rs.isLast());
 
     assertTrue(rs.previous());
 
-    assertTrue(!rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
+    assertFalse(rs.isBeforeFirst());
+    assertFalse(rs.isAfterLast());
     assertTrue(rs.isFirst());
     assertTrue(rs.isLast());
 
     assertTrue(rs.absolute(1));
 
-    assertTrue(!rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
+    assertFalse(rs.isBeforeFirst());
+    assertFalse(rs.isAfterLast());
     assertTrue(rs.isFirst());
     assertTrue(rs.isLast());
 
-    assertTrue(!rs.absolute(0));
+    assertFalse(rs.absolute(0));
 
     assertTrue(rs.isBeforeFirst());
-    assertTrue(!rs.isAfterLast());
-    assertTrue(!rs.isFirst());
-    assertTrue(!rs.isLast());
+    assertFalse(rs.isAfterLast());
+    assertFalse(rs.isFirst());
+    assertFalse(rs.isLast());
 
-    assertTrue(!rs.absolute(2));
+    assertFalse(rs.absolute(2));
 
-    assertTrue(!rs.isBeforeFirst());
+    assertFalse(rs.isBeforeFirst());
     assertTrue(rs.isAfterLast());
-    assertTrue(!rs.isFirst());
-    assertTrue(!rs.isLast());
+    assertFalse(rs.isFirst());
+    assertFalse(rs.isLast());
 
     rs.close();
     stmt.close();
@@ -1094,8 +1095,7 @@ public class ResultSetTest extends BaseTest4 {
     }
     try {
       rs.afterLast();
-      fail(
-          "afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset");
+      fail("afterLast() on a TYPE_FORWARD_ONLY resultset did not throw an exception on a TYPE_FORWARD_ONLY resultset");
     } catch (SQLException e) {
     }
     try {
@@ -1126,15 +1126,13 @@ public class ResultSetTest extends BaseTest4 {
 
     try {
       rs.setFetchDirection(ResultSet.FETCH_REVERSE);
-      fail(
-          "setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+      fail("setFetchDirection(FETCH_REVERSE) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     } catch (SQLException e) {
     }
 
     try {
       rs.setFetchDirection(ResultSet.FETCH_UNKNOWN);
-      fail(
-          "setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
+      fail("setFetchDirection(FETCH_UNKNOWN) on a TYPE_FORWARD_ONLY resultset did not throw an exception");
     } catch (SQLException e) {
     }
 
@@ -1308,10 +1306,10 @@ public class ResultSetTest extends BaseTest4 {
     ResultSet rs = stmt.executeQuery("select * from testrs");
     Map<String, Integer> columnNameIndexMap;
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     assertTrue(rs.next());
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     rs.getInt("ID");
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertNotNull(columnNameIndexMap);
@@ -1320,7 +1318,7 @@ public class ResultSetTest extends BaseTest4 {
     rs.close();
     rs = stmt.executeQuery("select * from testrs");
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     assertTrue(rs.next());
     rs.getInt("Id");
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
@@ -1338,10 +1336,10 @@ public class ResultSetTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     Map<String, Integer> columnNameIndexMap;
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     assertTrue(rs.next());
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     rs.getInt("id");
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertNotNull(columnNameIndexMap);
@@ -1349,7 +1347,7 @@ public class ResultSetTest extends BaseTest4 {
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
-    assertEquals(null, columnNameIndexMap);
+    assertNull(columnNameIndexMap);
     rs.getInt("id");
     columnNameIndexMap = getResultSetColumnNameIndexMap(rs);
     assertNotNull(columnNameIndexMap);
@@ -1363,8 +1361,7 @@ public class ResultSetTest extends BaseTest4 {
    */
   @Test
   public void testNamedPreparedStatementResultSetColumnMappingCache() throws SQLException {
-    assumeTrue("Simple protocol only mode does not support server-prepared statements",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "Simple protocol only mode does not support server-prepared statements");
     PreparedStatement pstmt = con.prepareStatement("SELECT id FROM testrs");
     ResultSet rs;
     // Make sure the prepared statement is named.
@@ -1383,9 +1380,7 @@ public class ResultSetTest extends BaseTest4 {
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     rs.getInt("id");
-    assertSame(
-        "Cached mapping should be same between different result sets of same named prepared statement",
-        columnNameIndexMap, getResultSetColumnNameIndexMap(rs));
+    assertSame(columnNameIndexMap, getResultSetColumnNameIndexMap(rs), "Cached mapping should be same between different result sets of same named prepared statement");
     rs.close();
     pstmt.close();
   }
@@ -1441,8 +1436,8 @@ public class ResultSetTest extends BaseTest4 {
     Future<Integer> future1 = e.submit(new SelectTimestampManyTimes(con, year1));
     Integer year2 = 2017;
     Future<Integer> future2 = e.submit(new SelectTimestampManyTimes(con, year2));
-    assertEquals("Year was changed in another thread", year1, future1.get(1, TimeUnit.MINUTES));
-    assertEquals("Year was changed in another thread", year2, future2.get(1, TimeUnit.MINUTES));
+    assertEquals(year1, future1.get(1, TimeUnit.MINUTES), "Year was changed in another thread");
+    assertEquals(year2, future2.get(1, TimeUnit.MINUTES), "Year was changed in another thread");
     e.shutdown();
     e.awaitTermination(1, TimeUnit.MINUTES);
   }

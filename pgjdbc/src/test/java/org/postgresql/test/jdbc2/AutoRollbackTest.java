@@ -5,6 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
@@ -17,11 +23,9 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -33,7 +37,8 @@ import java.util.EnumSet;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
+@MethodSource("data")
 public class AutoRollbackTest extends BaseTest4 {
   private static final AtomicInteger counter = new AtomicInteger();
 
@@ -150,12 +155,9 @@ public class AutoRollbackTest extends BaseTest4 {
     con.setAutoCommit(autoCommit == AutoCommit.YES);
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
     baseConnection.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
-    Assume.assumeTrue("DEALLOCATE ALL requires PostgreSQL 8.3+",
-        failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
-    Assume.assumeTrue("DISCARD ALL requires PostgreSQL 8.3+",
-        failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
-    Assume.assumeTrue("Plan invalidation on table redefinition requires PostgreSQL 8.3+",
-        failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3));
+    assumeTrue(failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "DEALLOCATE ALL requires PostgreSQL 8.3+");
+    assumeTrue(failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "DISCARD ALL requires PostgreSQL 8.3+");
+    assumeTrue(failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "Plan invalidation on table redefinition requires PostgreSQL 8.3+");
   }
 
   @Override
@@ -177,7 +179,6 @@ public class AutoRollbackTest extends BaseTest4 {
     PGProperty.PREPARE_THRESHOLD.set(props, 1);
   }
 
-  @Parameterized.Parameters(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     boolean[] booleans = new boolean[]{true, false};
@@ -249,10 +250,9 @@ public class AutoRollbackTest extends BaseTest4 {
       case SELECT:
         try {
           statement.execute("select 1/0");
-          Assert.fail("select 1/0 should fail");
+          fail("select 1/0 should fail");
         } catch (SQLException e) {
-          Assert.assertEquals("division by zero expected",
-              PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState());
+          assertEquals(PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState(), "division by zero expected");
         }
         break;
       case DEALLOCATE:
@@ -268,24 +268,21 @@ public class AutoRollbackTest extends BaseTest4 {
         try {
           statement.addBatch("insert into rollbacktest(a, str) values (1/0, 'test')");
           statement.executeBatch();
-          Assert.fail("select 1/0 should fail");
+          fail("select 1/0 should fail");
         } catch (SQLException e) {
-          Assert.assertEquals("division by zero expected",
-              PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState());
+          assertEquals(PSQLState.DIVISION_BY_ZERO.getState(), e.getSQLState(), "division by zero expected");
         }
         break;
       default:
-        Assert.fail("Fail mode " + failMode + " is not implemented");
+        fail("Fail mode " + failMode + " is not implemented");
     }
 
     PgConnection pgConnection = con.unwrap(PgConnection.class);
     if (autoSave == AutoSave.ALWAYS) {
-      Assert.assertNotEquals("In AutoSave.ALWAYS, transaction should not fail",
-          TransactionState.FAILED, pgConnection.getTransactionState());
+      assertNotEquals(TransactionState.FAILED, pgConnection.getTransactionState(), "In AutoSave.ALWAYS, transaction should not fail");
     }
     if (autoCommit == AutoCommit.NO) {
-      Assert.assertNotEquals("AutoCommit == NO, thus transaction should be active (open or failed)",
-          TransactionState.IDLE, pgConnection.getTransactionState());
+      assertNotEquals(TransactionState.IDLE, pgConnection.getTransactionState(), "AutoCommit == NO, thus transaction should be active (open or failed)");
     }
     statement.close();
 
@@ -297,18 +294,19 @@ public class AutoRollbackTest extends BaseTest4 {
         } catch (SQLException e) {
           if (!flushCacheOnDeallocate && DEALLOCATES.contains(failMode)
               && autoSave == AutoSave.NEVER) {
-            Assert.assertEquals(
-                "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
-                    + " error message is " + e.getMessage(),
-                PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+            assertEquals(
+                PSQLState.INVALID_SQL_STATEMENT_NAME.getState(),
+                e.getSQLState(),
+                () -> "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause "
+                    + "'prepared statement \"...\" does not exist'"
+                    + " error message is " + e.getMessage());
             return;
           }
           throw e;
         }
         return;
       case IS_VALID:
-        Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
-            con.isValid(4));
+        assertTrue(con.isValid(4), "Connection.isValid should return true unless the connection is closed as .isValid should use simple queries only which should not fail in face of prepared statement failures");
         return;
       default:
         break;
@@ -321,25 +319,19 @@ public class AutoRollbackTest extends BaseTest4 {
       executeSqlSuccess();
     } catch (SQLException e) {
       if (autoSave != AutoSave.ALWAYS && TRANS_KILLERS.contains(failMode) && autoCommit == AutoCommit.NO) {
-        Assert.assertEquals(
-            "AutoSave==" + autoSave + ", thus statements should fail with 'current transaction is aborted...', "
-                + " error message is " + e.getMessage(),
-            PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
+        assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState(), "AutoSave==" + autoSave + ", thus statements should fail with 'current transaction is aborted...', "
+            + " error message is " + e.getMessage());
         return;
       }
 
       if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
         if (DEALLOCATES.contains(failMode) && !flushCacheOnDeallocate) {
-          Assert.assertEquals(
-              "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
-                  + " error message is " + e.getMessage(),
-              PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState());
+          assertEquals(PSQLState.INVALID_SQL_STATEMENT_NAME.getState(), e.getSQLState(), "flushCacheOnDeallocate is disabled, thus " + failMode + " should cause 'prepared statement \"...\" does not exist'"
+              + " error message is " + e.getMessage());
         } else if (failMode == FailMode.ALTER) {
-          Assert.assertEquals(
-              "AutoSave==NEVER, autocommit=NO, thus ALTER TABLE causes SELECT * to fail with "
-                  + "'cached plan must not change result type', "
-                  + " error message is " + e.getMessage(),
-              PSQLState.NOT_IMPLEMENTED.getState(), e.getSQLState());
+          assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), e.getSQLState(), "AutoSave==NEVER, autocommit=NO, thus ALTER TABLE causes SELECT * to fail with "
+              + "'cached plan must not change result type', "
+              + " error message is " + e.getMessage());
         } else {
           throw e;
         }
@@ -357,10 +349,8 @@ public class AutoRollbackTest extends BaseTest4 {
             || failMode == FailMode.ALTER) {
           // The above statement failed with "prepared statement does not exist", thus subsequent one should fail with
           // transaction aborted.
-          Assert.assertEquals(
-              "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
-                  + " error message is " + e.getMessage(),
-              PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState());
+          assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState(), "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
+              + " error message is " + e.getMessage());
         }
       } else {
         throw e;
@@ -373,22 +363,21 @@ public class AutoRollbackTest extends BaseTest4 {
       // in autocommit everything should just work
     } else if (TRANS_KILLERS.contains(failMode)) {
       if (autoSave != AutoSave.ALWAYS) {
-        Assert.fail(
-            "autosave= " + autoSave + " != ALWAYS, thus the transaction should be killed");
+        fail("autosave= " + autoSave + " != ALWAYS, thus the transaction should be killed");
       }
     } else if (DEALLOCATES.contains(failMode)) {
       if (autoSave == AutoSave.NEVER && !flushCacheOnDeallocate
           && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-        Assert.fail("flushCacheOnDeallocate == false, thus DEALLOCATE ALL should kill the transaction");
+        fail("flushCacheOnDeallocate == false, thus DEALLOCATE ALL should kill the transaction");
       }
     } else if (failMode == FailMode.ALTER) {
       if (autoSave == AutoSave.NEVER
           && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE
           && cols == ReturnColumns.STAR) {
-        Assert.fail("autosave=NEVER, thus the transaction should be killed");
+        fail("autosave=NEVER, thus the transaction should be killed");
       }
     } else {
-      Assert.fail("It is not specified why the test should pass, thus marking a failure");
+      fail("It is not specified why the test should pass, thus marking a failure");
     }
   }
 
@@ -396,7 +385,7 @@ public class AutoRollbackTest extends BaseTest4 {
     Statement st = con.createStatement();
     ResultSet rs = st.executeQuery("select count(*) from " + tableName);
     rs.next();
-    Assert.assertEquals("Table " + tableName, nrows, rs.getInt(1));
+    assertEquals(nrows, rs.getInt(1), "Table " + tableName);
   }
 
   private void doCommit() throws SQLException {

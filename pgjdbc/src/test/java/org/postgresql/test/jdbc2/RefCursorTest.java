@@ -5,17 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -34,7 +34,8 @@ import java.util.Arrays;
  *
  * @author Nic Ferrier (nferrier@tapsellferrier.co.uk)
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "typeName = {0}, cursorType = {1}")
+@MethodSource("data")
 public class RefCursorTest extends BaseTest4 {
 
   private final int cursorType;
@@ -43,7 +44,6 @@ public class RefCursorTest extends BaseTest4 {
     this.cursorType = cursorType;
   }
 
-  @Parameterized.Parameters(name = "typeName = {0}, cursorType = {1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"OTHER", Types.OTHER},
@@ -51,7 +51,7 @@ public class RefCursorTest extends BaseTest4 {
     });
   }
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
@@ -132,7 +132,7 @@ public class RefCursorTest extends BaseTest4 {
     call.execute();
 
     ResultSet rs = (ResultSet) call.getObject(1);
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
     rs.close();
 
     call.close();
@@ -163,8 +163,8 @@ public class RefCursorTest extends BaseTest4 {
     call.execute();
     ResultSet rs = (ResultSet) call.getObject(1);
 
-    assertEquals(rs.getType(), ResultSet.TYPE_SCROLL_INSENSITIVE);
-    assertEquals(rs.getConcurrency(), ResultSet.CONCUR_READ_ONLY);
+    assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, rs.getType());
+    assertEquals(ResultSet.CONCUR_READ_ONLY, rs.getConcurrency());
 
     assertTrue(rs.last());
     assertEquals(6, rs.getRow());

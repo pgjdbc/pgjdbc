@@ -5,8 +5,9 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -14,10 +15,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,7 +28,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary={0}, stringType={1}")
+@MethodSource("data")
 public class UUIDTest extends BaseTest4 {
 
   public UUIDTest(BinaryMode binaryMode, StringType stringType) {
@@ -36,7 +37,6 @@ public class UUIDTest extends BaseTest4 {
     setStringType(stringType);
   }
 
-  @Parameterized.Parameters(name = "binary={0}, stringType={1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -93,9 +93,8 @@ public class UUIDTest extends BaseTest4 {
     try {
       ps.executeUpdate();
       if (getStringType() == StringType.VARCHAR && preferQueryMode != PreferQueryMode.SIMPLE) {
-        Assert.fail(
-            "setString(, uuid) should fail to insert value into UUID column when stringType=varchar."
-                + " Expecting error <<column \"id\" is of type uuid but expression is of type character varying>>");
+        fail("setString(, uuid) should fail to insert value into UUID column when stringType=varchar."
+            + " Expecting error <<column \"id\" is of type uuid but expression is of type character varying>>");
       }
     } catch (SQLException e) {
       if (getStringType() == StringType.VARCHAR

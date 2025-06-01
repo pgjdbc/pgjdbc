@@ -5,9 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
@@ -21,9 +21,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -33,17 +33,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-/*
+/**
  * Test case for geometric type I/O
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class GeometricTest extends BaseTest4 {
 
   public GeometricTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -73,10 +73,10 @@ public class GeometricTest extends BaseTest4 {
     Statement stmt = con.createStatement();
     ResultSet rs = stmt.executeQuery("SELECT " + column + " FROM testgeometric");
     assertTrue(rs.next());
-    assertEquals("PGObject#equals(rs.getObject)", obj, rs.getObject(1));
+    assertEquals(obj, rs.getObject(1), "PGObject#equals(rs.getObject)");
     PGobject obj2 = (PGobject) obj.clone();
     obj2.setValue(rs.getString(1));
-    assertEquals("PGobject.toString vs rs.getString", obj, obj2);
+    assertEquals(obj, obj2, "PGobject.toString vs rs.getString");
     rs.close();
 
     stmt.executeUpdate("DELETE FROM testgeometric");

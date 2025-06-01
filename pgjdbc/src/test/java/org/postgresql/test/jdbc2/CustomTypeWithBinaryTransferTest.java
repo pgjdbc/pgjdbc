@@ -5,9 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
@@ -19,11 +19,11 @@ import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGobject;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -36,7 +36,8 @@ import java.util.Collection;
 /**
  * TestCase to test handling of binary types for custom objects.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
   // define an oid of a binary type for testing, POINT is used here as it already exists in the
   // database and requires no complex own type definition
@@ -46,7 +47,6 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -60,7 +60,7 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
    *
    * @throws SQLException if a database error occurs
    */
-  @BeforeClass
+  @BeforeAll
   public static void createTestTable() throws SQLException {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "test_binary_pgobject", "id integer,name text,geom point");
@@ -72,7 +72,7 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
    *
    * @throws SQLException if a database error occurs
    */
-  @AfterClass
+  @AfterAll
   public static void dropTestTable() throws SQLException {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "test_binary_pgobject");
@@ -108,8 +108,7 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
     PGConnection pgconn = con.unwrap(PGConnection.class);
 
     // make sure the test type implements PGBinaryObject
-    assertTrue("test type should implement PGBinaryObject",
-        PGBinaryObject.class.isAssignableFrom(TestCustomType.class));
+    assertTrue(PGBinaryObject.class.isAssignableFrom(TestCustomType.class), "test type should implement PGBinaryObject");
 
     // now define a custom type, which will add it to the binary sent/received OIDs (if the type
     // implements PGBinaryObject)
@@ -129,27 +128,20 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
     try (PreparedStatement pst = con.prepareStatement("SELECT geom FROM test_binary_pgobject WHERE id=?")) {
       pst.setInt(1, 1);
       try (ResultSet rs = pst.executeQuery()) {
-        assertTrue("rs.next()", rs.next());
+        assertTrue(rs.next(), "rs.next()");
         Object o = rs.getObject(1);
         co = (TestCustomType) o;
         // now binary transfer should be working
         if (preferQueryMode == PreferQueryMode.SIMPLE) {
-          assertEquals(
-              "reading via prepared statement: TestCustomType.wasReadBinary() should use text encoding since preferQueryMode=SIMPLE",
-              "text",
-              co.wasReadBinary() ? "binary" : "text");
+          assertEquals("text", co.wasReadBinary() ? "binary" : "text", "reading via prepared statement: TestCustomType.wasReadBinary() should use text encoding since preferQueryMode=SIMPLE");
         } else {
-          assertEquals(
-              "reading via prepared statement: TestCustomType.wasReadBinary() should use match binary mode requested by the test",
-              binaryMode == BinaryMode.FORCE ? "binary" : "text",
-              co.wasReadBinary() ? "binary" : "text");
+          assertEquals(binaryMode == BinaryMode.FORCE ? "binary" : "text", co.wasReadBinary() ? "binary" : "text", "reading via prepared statement: TestCustomType.wasReadBinary() should use match binary mode requested by the test");
         }
       }
     }
 
     // ensure flag is still unset
-    assertFalse("wasWrittenBinary should be false since we have not written the object yet",
-        co.wasWrittenBinary());
+    assertFalse(co.wasWrittenBinary(), "wasWrittenBinary should be false since we have not written the object yet");
     // now try to write it
     try (PreparedStatement pst =
              con.prepareStatement("INSERT INTO test_binary_pgobject(id,geom) VALUES(?,?)")) {
@@ -159,14 +151,14 @@ public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
       // make sure transfer was binary
       if (preferQueryMode == PreferQueryMode.SIMPLE) {
         assertEquals(
-            "writing via prepared statement: TestCustomType.wasWrittenBinary() should use text encoding since preferQueryMode=SIMPLE",
             "text",
-            co.wasWrittenBinary() ? "binary" : "text");
+            co.wasWrittenBinary() ? "binary" : "text",
+            "writing via prepared statement: TestCustomType.wasWrittenBinary() should use text encoding since preferQueryMode=SIMPLE");
       } else {
         assertEquals(
-            "writing via prepared statement: TestCustomType.wasWrittenBinary() should use match binary mode requested by the test",
             binaryMode == BinaryMode.FORCE ? "binary" : "text",
-            co.wasWrittenBinary() ? "binary" : "text");
+            co.wasWrittenBinary() ? "binary" : "text",
+            "writing via prepared statement: TestCustomType.wasWrittenBinary() should use match binary mode requested by the test");
       }
     }
   }

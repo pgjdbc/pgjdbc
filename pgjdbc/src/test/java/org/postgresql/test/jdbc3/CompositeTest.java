@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc3;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -16,7 +17,6 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,11 +33,8 @@ class CompositeTest {
 
   @BeforeAll
   static void beforeClass() throws Exception {
-    Connection conn = TestUtil.openDB();
-    try {
-      Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "uuid requires PostgreSQL 8.3+");
-    } finally {
-      conn.close();
+    try (Connection conn = TestUtil.openDB();) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "uuid requires PostgreSQL 8.3+");
     }
   }
 
@@ -89,7 +86,7 @@ class CompositeTest {
 
   @Test
   void simpleArgumentSelect() throws SQLException {
-    Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
+    assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("simplecompositetest");
@@ -103,7 +100,7 @@ class CompositeTest {
 
   @Test
   void complexArgumentSelect() throws SQLException {
-    Assumptions.assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
+    assumeTrue(conn.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE, "Skip if running in simple query mode");
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?");
     PGobject pgo = new PGobject();
     pgo.setType("\"Composites\".\"ComplexCompositeTest\"");

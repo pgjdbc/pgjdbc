@@ -5,13 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,14 +58,17 @@ class ConnectTimeoutTest {
        * We treat this as a skipped test, as the test didn't really "succeed"
        * in testing the original behaviour, but it didn't fail either.
        */
-      Assumptions.assumeFalse(e.getCause() instanceof NoRouteToHostException
-                        && interval < connectTimeoutMillis,
-                        "Host fast-failed connection to unreachable address "
-                        + UNREACHABLE_HOST + " after " + interval + " ms, "
-                        + " before timeout should have triggered.");
+      assumeFalse(
+          e.getCause() instanceof NoRouteToHostException
+              && interval < connectTimeoutMillis,
+          () -> "Host fast-failed connection to unreachable address "
+              + UNREACHABLE_HOST + " after " + interval + " ms, "
+              + " before timeout should have triggered.");
 
-      assertTrue(e.getCause() instanceof SocketTimeoutException,
-          "Unexpected " + e.toString() + " with cause " + e.getCause());
+      assertInstanceOf(
+          SocketTimeoutException.class,
+          e.getCause(),
+          () -> "Unexpected " + e + " with cause " + e.getCause());
       // check that it was not a default system timeout, an approximate value is used
       assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation);
       return;

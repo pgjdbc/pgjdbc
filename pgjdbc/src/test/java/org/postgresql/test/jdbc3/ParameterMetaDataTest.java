@@ -5,17 +5,17 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
@@ -26,13 +26,13 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class ParameterMetaDataTest extends BaseTest4 {
   public ParameterMetaDataTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -44,8 +44,7 @@ public class ParameterMetaDataTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("simple protocol only does not support describe statement requests",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support describe statement requests");
     TestUtil.createTable(con, "parametertest",
         "a int4, b float8, c text, d point, e timestamp with time zone");
   }

@@ -5,14 +5,17 @@
 
 package org.postgresql.core;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.lang.reflect.Field;
 import java.sql.ResultSet;
@@ -28,12 +31,13 @@ import java.util.Map;
 /**
  * Test to check if values in Oid class are correct with Oid values in a database.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "oidName={0}, oidValue={1}")
+@MethodSource("data")
 public class OidValuesCorrectnessTest extends BaseTest4 {
 
-  @Parameterized.Parameter(0)
+  @Parameter(0)
   public String oidName;
-  @Parameterized.Parameter(1)
+  @Parameter(1)
   public int oidValue;
 
   /**
@@ -100,7 +104,6 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("REF_CURSOR_ARRAY", "_REFCURSOR");
   }
 
-  @Parameterized.Parameters(name = "oidName={0}, oidValue={1}")
   public static Iterable<Object[]> data() throws IllegalAccessException {
     Field[] fields = Oid.class.getFields();
     List<Object[]> data = new ArrayList<>();
@@ -122,7 +125,7 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
   public void testValue() throws SQLException {
     // check if Oid can be tested with given database by checking version
     if (oidsMinimumVersions.containsKey(oidName)) {
-      Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, oidsMinimumVersions.get(oidName)));
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, oidsMinimumVersions.get(oidName)));
     }
 
     String typeName = oidTypeNames.getOrDefault(oidName, oidName);
@@ -133,11 +136,8 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     resultSet = stmt.getResultSet();
 
     // resultSet have to have next row
-    Assert.assertTrue("Oid value doesn't exist for oid " + oidName + ";with used type: " + typeName,
-        resultSet.next());
+    assertTrue(resultSet.next(), () -> "Oid value doesn't exist for oid " + oidName + ";with used type: " + typeName);
     // check if expected value from a database is the same as value in Oid class
-    Assert.assertEquals("Wrong value for oid: " + oidName + ";with used type: " + typeName,
-        resultSet.getInt(1), oidValue);
-
+    assertEquals(resultSet.getInt(1), oidValue, () -> "Wrong value for oid: " + oidName + ";with used type: " + typeName);
   }
 }

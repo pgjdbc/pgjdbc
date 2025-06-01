@@ -5,11 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
@@ -17,9 +17,9 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -41,7 +41,8 @@ import java.util.TimeZone;
  * TODO: refactor to a property-based testing or parameterized testing somehow so adding new times
  *  don't require to add constants and setters/getters. JUnit 5 would probably help here.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class TimestampTest extends BaseTest4 {
 
   public TimestampTest(BinaryMode binaryMode) {
@@ -50,7 +51,6 @@ public class TimestampTest extends BaseTest4 {
 
   private TimeZone currentTZ;
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -187,14 +187,10 @@ public class TimestampTest extends BaseTest4 {
 
     // Insert the three timestamp values in raw pg format
     for (int i = 0; i < 3; i++) {
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS2WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS3WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS2WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS3WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
     }
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
         "'" + tsu.toString(null, new Timestamp(tmpDate1.getTime())) + "'")));
@@ -361,8 +357,8 @@ public class TimestampTest extends BaseTest4 {
     // With java.sql.Date, java.sql.Time
     for (java.util.Date date : TEST_DATE_TIMES) {
       pstmt.setObject(1, date, Types.TIMESTAMP);
-      assertEquals("insert into TSWOTZ_TABLE via setObject(1, " + date
-          + ", Types.TIMESTAMP) -> expecting one row inserted", 1, pstmt.executeUpdate());
+      assertEquals(1, pstmt.executeUpdate(), "insert into TSWOTZ_TABLE via setObject(1, " + date
+          + ", Types.TIMESTAMP) -> expecting one row inserted");
     }
 
     // Fall through helper
@@ -563,7 +559,7 @@ public class TimestampTest extends BaseTest4 {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals("rs.getTimestamp(1).getTime()", expected.getTime(), t.getTime());
+      assertEquals(expected.getTime(), t.getTime(), "rs.getTimestamp(1).getTime()");
     }
 
     assertTrue(!rs.next()); // end of table. Fail if more entries exist.
@@ -588,10 +584,10 @@ public class TimestampTest extends BaseTest4 {
     Integer tNanos = t.getNanos();
     Integer tzNanos = tz.getNanos();
 
-    assertEquals("Time should be microsecond-accurate", desiredNanos, tNanos);
-    assertEquals("Time with time zone should be microsecond-accurate", desiredNanos, tzNanos);
-    assertEquals("Unix epoch timestamp and Time should match", ts, t);
-    assertEquals("Unix epoch timestamp with time zone and time with time zone should match", tstz, tz);
+    assertEquals(desiredNanos, tNanos, "Time should be microsecond-accurate");
+    assertEquals(desiredNanos, tzNanos, "Time with time zone should be microsecond-accurate");
+    assertEquals(ts, t, "Unix epoch timestamp and Time should match");
+    assertEquals(tstz, tz, "Unix epoch timestamp with time zone and time with time zone should match");
   }
 
   private static Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,

@@ -5,13 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
@@ -27,7 +30,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
+@MethodSource("data")
 public class BatchFailureTest extends BaseTest4 {
   private final BatchType batchType;
   private final AutoCommit autoCommit;
@@ -123,7 +127,6 @@ public class BatchFailureTest extends BaseTest4 {
     this.insertRewrite = insertRewrite;
   }
 
-  @Parameterized.Parameters(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     boolean[] booleans = new boolean[]{true, false};
@@ -210,15 +213,13 @@ public class BatchFailureTest extends BaseTest4 {
     int expectedRows = 1;
     try {
       batchResult = statement.executeBatch();
-      Assert.assertTrue("Expecting BatchUpdateException due to " + failMode
-              + ", executeBatch returned " + Arrays.toString(batchResult),
-          failPosition == FailPosition.NONE);
+      assertTrue(failPosition == FailPosition.NONE, "Expecting BatchUpdateException due to " + failMode
+              + ", executeBatch returned " + Arrays.toString(batchResult));
       expectedRows = pos + 1; // +1 since key-2 is already in the DB
     } catch (BatchUpdateException ex) {
       batchResult = ex.getUpdateCounts();
-      Assert.assertTrue("Should not fail since fail mode should be " + failMode
-              + ", executeBatch returned " + Arrays.toString(batchResult),
-          failPosition != FailPosition.NONE);
+      assertTrue(failPosition != FailPosition.NONE, "Should not fail since fail mode should be " + failMode
+              + ", executeBatch returned " + Arrays.toString(batchResult));
 
       for (int i : batchResult) {
         if (i != Statement.EXECUTE_FAILED) {
@@ -226,11 +227,10 @@ public class BatchFailureTest extends BaseTest4 {
         }
       }
 
-      Assert.assertTrue("Batch should fail at row " + minBatchResults
+      assertTrue(batchResult.length >= minBatchResults, "Batch should fail at row " + minBatchResults
               + ", thus at least " + minBatchResults
               + " items should be returned, actual result is " + batchResult.length + " items, "
-              + Arrays.toString(batchResult),
-          batchResult.length >= minBatchResults);
+              + Arrays.toString(batchResult));
     } finally {
       if (batchType == BatchType.PREPARED_WITH_GENERATED) {
         ResultSet rs = statement.getGeneratedKeys();
@@ -246,29 +246,37 @@ public class BatchFailureTest extends BaseTest4 {
     }
 
     int finalCount = getBatchUpdCount();
-    Assert.assertEquals(
-        "Number of new rows in batchUpdCnt should match number of non-error batchResult items"
-            + Arrays.toString(batchResult),
-        expectedRows - 1, finalCount - 1);
+    int[] batchResultForAssertion = batchResult;
+    assertEquals(
+        expectedRows - 1,
+        finalCount - 1,
+        () -> "Number of new rows in batchUpdCnt should match number of non-error batchResult items"
+            + Arrays.toString(batchResultForAssertion));
 
     if (batchType != BatchType.PREPARED_WITH_GENERATED) {
       return;
     }
 
     if (finalCount > 1) {
-      Assert.assertFalse((finalCount - 1) + " rows were inserted, thus expecting generated keys",
-          keys.isEmpty());
+      assertFalse(
+          keys.isEmpty(),
+          () -> (finalCount - 1) + " rows were inserted, thus expecting generated keys");
     }
     Set<String> uniqueKeys = new HashSet<>(keys);
-    Assert.assertEquals("Generated keys should be unique: " + keys, keys.size(), uniqueKeys.size());
-    Assert.assertEquals("Number of generated keys should match the number of inserted rows" + keys,
-        keys.size(), finalCount - 1);
+    assertEquals(
+        keys.size(),
+        uniqueKeys.size(),
+        () -> "Generated keys should be unique: " + keys);
+    assertEquals(
+        keys.size(),
+        finalCount - 1,
+        () -> "Number of generated keys should match the number of inserted rows" + keys);
   }
 
   private int getBatchUpdCount() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select count(*) from batchUpdCnt");
     ResultSet rs = ps.executeQuery();
-    Assert.assertTrue("count(*) must return 1 row", rs.next());
+    assertTrue(rs.next(), "count(*) must return 1 row");
     return rs.getInt(1);
   }
 }

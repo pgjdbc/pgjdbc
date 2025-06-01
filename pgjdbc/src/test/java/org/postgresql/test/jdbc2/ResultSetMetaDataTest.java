@@ -5,9 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGResultSetMetaData;
@@ -15,11 +17,9 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -33,7 +33,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "databaseMetadataCacheFields = {0}, databaseMetadataCacheFieldsMib = {1}")
+@MethodSource("data")
 public class ResultSetMetaDataTest extends BaseTest4 {
   Connection conn;
   private final Integer databaseMetadataCacheFields;
@@ -44,7 +45,6 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     this.databaseMetadataCacheFieldsMib = databaseMetadataCacheFieldsMib;
   }
 
-  @Parameterized.Parameters(name = "databaseMetadataCacheFields = {0}, databaseMetadataCacheFieldsMib = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (Integer fields : new Integer[]{null, 0}) {
@@ -240,7 +240,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     ResultSet rs = stmt.executeQuery("SELECT c,b,a FROM serialtest");
     ResultSetMetaData rsmd = rs.getMetaData();
 
-    assertTrue(!rsmd.isAutoIncrement(1));
+    assertFalse(rsmd.isAutoIncrement(1));
     assertTrue(rsmd.isAutoIncrement(2));
     assertTrue(rsmd.isAutoIncrement(3));
     assertEquals("bigserial", rsmd.getColumnTypeName(2));
@@ -301,7 +301,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     PreparedStatement pstmt = conn.prepareStatement("SELECT id FROM identitytest");
     ResultSet rs = pstmt.executeQuery();
     ResultSetMetaData rsmd = pstmt.getMetaData();
-    Assert.assertTrue(rsmd.isAutoIncrement(1));
+    assertTrue(rsmd.isAutoIncrement(1));
   }
 
   // Verifies that the field metadatacache will cache when enabled and also functions properly
@@ -336,13 +336,12 @@ public class ResultSetMetaDataTest extends BaseTest4 {
   }
 
   private void assumePreparedStatementMetadataSupported() {
-    Assume.assumeTrue("prepared statement metadata is not supported for simple protocol",
-        preferQueryMode.compareTo(PreferQueryMode.EXTENDED_FOR_PREPARED) >= 0);
+    assumeTrue(preferQueryMode.compareTo(PreferQueryMode.EXTENDED_FOR_PREPARED) >= 0, "prepared statement metadata is not supported for simple protocol");
   }
 
   @Test
   public void testSmallSerialColumns() throws SQLException {
-    org.junit.Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_2));
     TestUtil.createTable(con, "smallserial_test", "a smallserial");
 
     Statement stmt = conn.createStatement();

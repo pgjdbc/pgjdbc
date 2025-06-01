@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc3;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.CallableStatement;
 import java.sql.SQLException;
@@ -62,7 +62,7 @@ public class EscapeSyntaxCallModeCallIfNoReturnTest extends EscapeSyntaxCallMode
     cs.setInt(3, 20);
     cs.execute();
     int ret = cs.getInt(1);
-    assertTrue("Expected mysumproc(10,20) to return 30 but returned " + ret, ret == 30);
+    assertEquals(30, ret, "mysumproc(10,20)");
   }
 
   @Test
@@ -81,7 +81,7 @@ public class EscapeSyntaxCallModeCallIfNoReturnTest extends EscapeSyntaxCallMode
     // Expected output: a==1 (param 1), b==10 (param 2)
     int a = cs.getInt(1);
     int b = cs.getInt(2);
-    assertTrue("Expected myioproc() to return output parameter values 1,10 but returned " + a + "," + b, (a == 1 && b == 10));
+    assertTrue((a == 1 && b == 10), "Expected myioproc() to return output parameter values 1,10 but returned " + a + "," + b);
   }
 
 }

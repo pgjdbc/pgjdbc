@@ -5,26 +5,27 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGbox;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class StringTypeUnspecifiedArrayTest extends BaseTest4 {
   public StringTypeUnspecifiedArrayTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -43,6 +44,6 @@ public class StringTypeUnspecifiedArrayTest extends BaseTest4 {
   public void testCreateArrayWithNonCachedType() throws Exception {
     PGbox[] in = new PGbox[0];
     Array a = con.createArrayOf("box", in);
-    Assert.assertEquals(1111, a.getBaseType());
+    assertEquals(1111, a.getBaseType());
   }
 }

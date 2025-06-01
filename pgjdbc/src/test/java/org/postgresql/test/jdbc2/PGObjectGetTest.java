@@ -5,8 +5,8 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGcircle;
@@ -20,9 +20,9 @@ import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +30,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}, sql = {1}, type = {2}")
+@MethodSource("data")
 public class PGObjectGetTest extends BaseTest4 {
   private final String sqlExpression;
   private final Class<? extends PGobject> type;
@@ -46,7 +47,6 @@ public class PGObjectGetTest extends BaseTest4 {
     this.stringValue = stringValue;
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, sql = {1}, type = {2}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -90,10 +90,9 @@ public class PGObjectGetTest extends BaseTest4 {
     ResultSet rs = ps.executeQuery();
     rs.next();
     assertEquals(
-        "'" + sqlExpression + "'.getString(1)",
         stringValue,
-        rs.getString(1)
-    );
+        rs.getString(1),
+        () -> "'" + sqlExpression + "'.getString(1)");
   }
 
   private void testGet(final String s, String expected, Class<? extends PGobject> type) throws SQLException {
@@ -101,22 +100,19 @@ public class PGObjectGetTest extends BaseTest4 {
     ResultSet rs = ps.executeQuery();
     rs.next();
     assertEquals(
-        "'" + s + "'.getObject(1, " + type.getSimpleName() + ".class)",
         expected,
-        printObject(rs.getObject(1, type))
-    );
+        printObject(rs.getObject(1, type)),
+        () -> "'" + s + "'.getObject(1, " + type.getSimpleName() + ".class)");
     if (expected.contains("value=null)")) {
       // For some reason we return objects as nulls
       assertNull(
-          "'select " + s + "'.getObject(1)",
-          rs.getObject(1)
-      );
+          rs.getObject(1),
+          () -> "'select " + s + "'.getObject(1)");
     } else {
       assertEquals(
-          "'select " + s + "'.getObject(1)",
           expected,
-          printObject(rs.getObject(1))
-      );
+          printObject(rs.getObject(1)),
+          () -> "'select " + s + "'.getObject(1)");
     }
   }
 

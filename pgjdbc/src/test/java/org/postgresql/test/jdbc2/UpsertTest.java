@@ -5,15 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -25,14 +24,14 @@ import java.util.Collection;
 /**
  * Tests {@code INSERT .. ON CONFLICT} introduced in PostgreSQL 9.5.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}, reWriteBatchedInserts = {1}")
+@MethodSource("data")
 public class UpsertTest extends BaseTest4 {
   public UpsertTest(BinaryMode binaryMode, ReWriteBatchedInserts rewrite) {
     setBinaryMode(binaryMode);
     setReWriteBatchedInserts(rewrite);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, reWriteBatchedInserts = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -71,32 +70,28 @@ public class UpsertTest extends BaseTest4 {
   public void testUpsertDoNothingConflict() throws SQLException {
     int count = executeUpdate(
         "INSERT INTO test_statement(i, t) VALUES (42, '42') ON CONFLICT DO NOTHING");
-    assertEquals("insert on CONFLICT DO NOTHING should report 0 modified rows on CONFLICT",
-        0, count);
+    assertEquals(0, count, "insert on CONFLICT DO NOTHING should report 0 modified rows on CONFLICT");
   }
 
   @Test
   public void testUpsertDoNothingNoConflict() throws SQLException {
     int count = executeUpdate(
         "INSERT INTO test_statement(i, t) VALUES (43, '43') ON CONFLICT DO NOTHING");
-    assertEquals("insert on conflict DO NOTHING should report 1 modified row on plain insert",
-        1, count);
+    assertEquals(1, count, "insert on conflict DO NOTHING should report 1 modified row on plain insert");
   }
 
   @Test
   public void testUpsertDoUpdateConflict() throws SQLException {
     int count = executeUpdate(
         "INSERT INTO test_statement(i, t) VALUES (42, '42') ON CONFLICT(i) DO UPDATE SET t='43'");
-    assertEquals("insert ON CONFLICT DO UPDATE should report 1 modified row on CONFLICT",
-        1, count);
+    assertEquals(1, count, "insert ON CONFLICT DO UPDATE should report 1 modified row on CONFLICT");
   }
 
   @Test
   public void testUpsertDoUpdateNoConflict() throws SQLException {
     int count = executeUpdate(
         "INSERT INTO test_statement(i, t) VALUES (43, '43') ON CONFLICT(i) DO UPDATE SET t='43'");
-    assertEquals("insert on conflict do update should report 1 modified row on plain insert",
-        1, count);
+    assertEquals(1, count, "insert on conflict do update should report 1 modified row on plain insert");
   }
 
   @Test
@@ -142,7 +137,7 @@ public class UpsertTest extends BaseTest4 {
       ResultSet rs =
           st.executeQuery("select count(*) from test_statement where i between 50 and 53");
       rs.next();
-      Assert.assertEquals("test_statement should have 4 rows with 'i' of 50..53", 4, rs.getInt(1));
+      assertEquals(4, rs.getInt(1), "test_statement should have 4 rows with 'i' of 50..53");
     } finally {
       TestUtil.closeQuietly(ps);
     }

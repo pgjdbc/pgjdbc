@@ -5,18 +5,17 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
 import java.sql.PreparedStatement;
@@ -27,13 +26,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class JsonbTest extends BaseTest4 {
   public JsonbTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -45,7 +44,9 @@ public class JsonbTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("jsonb requires PostgreSQL 9.4+", TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4));
+    assumeTrue(
+        TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4),
+        "jsonb requires PostgreSQL 9.4+");
     TestUtil.createTable(con, "jsonbtest", "detail jsonb");
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO jsonbtest (detail) VALUES ('{\"a\": 1}')");
@@ -97,17 +98,15 @@ public class JsonbTest extends BaseTest4 {
     assertTrue(rs.next());
     Array array = rs.getArray(1);
     Object[] objectArray = (Object[]) array.getArray();
-    Assert.assertEquals(
-        "'{[2],[3]}'::" + type + "[] should come up as Java array with two entries",
+    assertEquals(
         "[[2], [3]]",
-        Arrays.deepToString(objectArray)
-    );
+        Arrays.deepToString(objectArray),
+        () -> "'{[2],[3]}'::" + type + "[] should come up as Java array with two entries");
 
-    Assert.assertEquals(
-        type + " array entries should come up as strings",
+    assertEquals(
         arrayElement.getName() + ", " + arrayElement.getName(),
-        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName()
-    );
+        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName(),
+        () -> type + " array entries should come up as strings");
     rs.close();
     stmt.close();
   }

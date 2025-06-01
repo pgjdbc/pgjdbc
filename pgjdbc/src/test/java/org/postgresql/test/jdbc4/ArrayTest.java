@@ -5,9 +5,15 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
@@ -20,11 +26,9 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
 import org.hamcrest.MatcherAssert;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -38,7 +42,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class ArrayTest extends BaseTest4 {
 
   private Connection conn;
@@ -47,7 +52,6 @@ public class ArrayTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -89,14 +93,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.unwrap(PgConnection.class).createArrayOf("boolean", new boolean[]{true, true, false}));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Boolean[] out = (Boolean[]) arr.getArray();
 
-    Assert.assertEquals(3, out.length);
-    Assert.assertEquals(Boolean.TRUE, out[0]);
-    Assert.assertEquals(Boolean.TRUE, out[1]);
-    Assert.assertEquals(Boolean.FALSE, out[2]);
+    assertEquals(3, out.length);
+    assertEquals(Boolean.TRUE, out[0]);
+    assertEquals(Boolean.TRUE, out[1]);
+    assertEquals(Boolean.FALSE, out[2]);
   }
 
   @Test
@@ -109,14 +113,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("int4", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Integer[] out = (Integer[]) arr.getArray();
 
-    Assert.assertEquals(3, out.length);
-    Assert.assertEquals(0, out[0].intValue());
-    Assert.assertEquals(-1, out[1].intValue());
-    Assert.assertEquals(2, out[2].intValue());
+    assertEquals(3, out.length);
+    assertEquals(0, out[0].intValue());
+    assertEquals(-1, out[1].intValue());
+    assertEquals(2, out[2].intValue());
   }
 
   @Test
@@ -128,29 +132,29 @@ public class ArrayTest extends BaseTest4 {
 
     byte[][] inCopy = (byte[][]) createdArray.getArray();
 
-    Assert.assertEquals(4, inCopy.length);
+    assertEquals(4, inCopy.length);
 
-    Assert.assertArrayEquals(in[0], inCopy[0]);
-    Assert.assertArrayEquals(in[1], inCopy[1]);
-    Assert.assertArrayEquals(in[2], inCopy[2]);
-    Assert.assertArrayEquals(in[3], inCopy[3]);
-    Assert.assertNull(inCopy[3]);
+    assertArrayEquals(in[0], inCopy[0]);
+    assertArrayEquals(in[1], inCopy[1]);
+    assertArrayEquals(in[2], inCopy[2]);
+    assertArrayEquals(in[3], inCopy[3]);
+    assertNull(inCopy[3]);
 
     pstmt.setArray(1, createdArray);
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
 
     byte[][] out = (byte[][]) arr.getArray();
 
-    Assert.assertEquals(4, out.length);
+    assertEquals(4, out.length);
 
-    Assert.assertArrayEquals(in[0], out[0]);
-    Assert.assertArrayEquals(in[1], out[1]);
-    Assert.assertArrayEquals(in[2], out[2]);
-    Assert.assertArrayEquals(in[3], out[3]);
-    Assert.assertNull(out[3]);
+    assertArrayEquals(in[0], out[0]);
+    assertArrayEquals(in[1], out[1]);
+    assertArrayEquals(in[2], out[2]);
+    assertArrayEquals(in[3], out[3]);
+    assertNull(out[3]);
   }
 
   @Test
@@ -165,18 +169,18 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setString(1, "{\"\\\\x01ff12\",\"\\\\x\",\"\\\\xace4\",NULL}");
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
 
     byte[][] out = (byte[][]) arr.getArray();
 
-    Assert.assertEquals(4, out.length);
+    assertEquals(4, out.length);
 
-    Assert.assertArrayEquals(in[0], out[0]);
-    Assert.assertArrayEquals(in[1], out[1]);
-    Assert.assertArrayEquals(in[2], out[2]);
-    Assert.assertArrayEquals(in[3], out[3]);
-    Assert.assertNull(out[3]);
+    assertArrayEquals(in[0], out[0]);
+    assertArrayEquals(in[1], out[1]);
+    assertArrayEquals(in[2], out[2]);
+    assertArrayEquals(in[3], out[3]);
+    assertNull(out[3]);
   }
 
   @Test
@@ -189,14 +193,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("int2", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Short[] out = (Short[]) arr.getArray();
 
-    Assert.assertEquals(3, out.length);
-    Assert.assertEquals(0, out[0].shortValue());
-    Assert.assertEquals(-1, out[1].shortValue());
-    Assert.assertEquals(2, out[2].shortValue());
+    assertEquals(3, out.length);
+    assertEquals(0, out[0].shortValue());
+    assertEquals(-1, out[1].shortValue());
+    assertEquals(2, out[2].shortValue());
   }
 
   @Test
@@ -210,16 +214,16 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("text", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     String[][] out = (String[][]) arr.getArray();
 
-    Assert.assertEquals(2, out.length);
-    Assert.assertEquals(2, out[0].length);
-    Assert.assertEquals("a", out[0][0]);
-    Assert.assertEquals("", out[0][1]);
-    Assert.assertEquals("\\", out[1][0]);
-    Assert.assertEquals("\"\\'z", out[1][1]);
+    assertEquals(2, out.length);
+    assertEquals(2, out[0].length);
+    assertEquals("a", out[0][0]);
+    assertEquals("", out[0][1]);
+    assertEquals("\\", out[1][0]);
+    assertEquals("\"\\'z", out[1][1]);
   }
 
   @Test
@@ -239,14 +243,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("json", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     ResultSet arrRs = arr.getResultSet();
-    Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[0], arrRs.getObject(2));
+    assertTrue(arrRs.next());
+    assertEquals(in[0], arrRs.getObject(2));
 
-    Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[1], arrRs.getObject(2));
+    assertTrue(arrRs.next());
+    assertEquals(in[1], arrRs.getObject(2));
   }
 
   @Test
@@ -258,14 +262,14 @@ public class ArrayTest extends BaseTest4 {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::box[]");
     pstmt.setArray(1, conn.createArrayOf("box", in));
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     ResultSet arrRs = arr.getResultSet();
-    Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[0], arrRs.getObject(2));
-    Assert.assertTrue(arrRs.next());
-    Assert.assertEquals(in[1], arrRs.getObject(2));
-    Assert.assertFalse(arrRs.next());
+    assertTrue(arrRs.next());
+    assertEquals(in[0], arrRs.getObject(2));
+    assertTrue(arrRs.next());
+    assertEquals(in[1], arrRs.getObject(2));
+    assertFalse(arrRs.next());
   }
 
   @Test
@@ -283,13 +287,13 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("int8", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Long[] out = (Long[]) arr.getArray();
 
-    Assert.assertEquals(2, out.length);
-    Assert.assertNull(out[0]);
-    Assert.assertNull(out[1]);
+    assertEquals(2, out.length);
+    assertNull(out[0]);
+    assertNull(out[1]);
   }
 
   @Test
@@ -299,14 +303,14 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, conn.createArrayOf("integer", in));
 
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     Integer[] out = (Integer[]) arr.getArray();
 
-    Assert.assertEquals(0, out.length);
+    assertEquals(0, out.length);
 
     ResultSet arrRs = arr.getResultSet();
-    Assert.assertFalse(arrRs.next());
+    assertFalse(arrRs.next());
   }
 
   @Test
@@ -320,12 +324,12 @@ public class ArrayTest extends BaseTest4 {
     Array arr = conn.createArrayOf("varchar", in);
     String[][] out = (String[][]) arr.getArray();
 
-    Assert.assertEquals(2, out.length);
-    Assert.assertEquals(2, out[0].length);
-    Assert.assertEquals("a", out[0][0]);
-    Assert.assertEquals("", out[0][1]);
-    Assert.assertEquals("\\", out[1][0]);
-    Assert.assertEquals("\"\\'z", out[1][1]);
+    assertEquals(2, out.length);
+    assertEquals(2, out[0].length);
+    assertEquals("a", out[0][0]);
+    assertEquals("", out[0][1]);
+    assertEquals("\\", out[1][0]);
+    assertEquals("\"\\'z", out[1][1]);
   }
 
   @Test
@@ -339,20 +343,18 @@ public class ArrayTest extends BaseTest4 {
     Array arr = conn.createArrayOf("float8", in);
     Double[][] out = (Double[][]) arr.getArray();
 
-    Assert.assertEquals(2, out.length);
-    Assert.assertEquals(2, out[0].length);
-    Assert.assertEquals(3.5, out[0][0], 0.00001);
-    Assert.assertEquals(-4.5, out[0][1], 0.00001);
-    Assert.assertEquals(10.0 / 3, out[1][0], 0.00001);
-    Assert.assertEquals(77, out[1][1], 0.00001);
+    assertEquals(2, out.length);
+    assertEquals(2, out[0].length);
+    assertEquals(3.5, out[0][0], 0.00001);
+    assertEquals(-4.5, out[0][1], 0.00001);
+    assertEquals(10.0 / 3, out[1][0], 0.00001);
+    assertEquals(77, out[1][1], 0.00001);
   }
 
   @Test
   public void testUUIDArray() throws SQLException {
-    Assume.assumeTrue("UUID is not supported in PreferQueryMode.SIMPLE",
-        preferQueryMode != PreferQueryMode.SIMPLE);
-    Assume.assumeTrue("UUID requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "UUID is not supported in PreferQueryMode.SIMPLE");
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "UUID requires PostgreSQL 8.3+");
     UUID uuid1 = UUID.randomUUID();
     UUID uuid2 = UUID.randomUUID();
     UUID uuid3 = UUID.randomUUID();
@@ -366,14 +368,14 @@ public class ArrayTest extends BaseTest4 {
         conn.prepareStatement("SELECT uuidarr FROM arrtest WHERE uuidarr @> ?");
     pstmt2.setObject(1, conn.createArrayOf("uuid", new UUID[]{uuid1}), Types.OTHER);
     ResultSet rs = pstmt2.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Array arr = rs.getArray(1);
     UUID[] out = (UUID[]) arr.getArray();
 
-    Assert.assertEquals(3, out.length);
-    Assert.assertEquals(uuid1, out[0]);
-    Assert.assertEquals(uuid2, out[1]);
-    Assert.assertEquals(uuid3, out[2]);
+    assertEquals(3, out.length);
+    assertEquals(uuid1, out[0]);
+    assertEquals(uuid2, out[1]);
+    assertEquals(uuid3, out[2]);
 
     // concatenate a uuid, and check
     UUID uuid4 = UUID.randomUUID();
@@ -386,15 +388,15 @@ public class ArrayTest extends BaseTest4 {
     // --
     pstmt2.setObject(1, conn.createArrayOf("uuid", new UUID[]{uuid4}), Types.OTHER);
     rs = pstmt2.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     arr = rs.getArray(1);
     out = (UUID[]) arr.getArray();
 
-    Assert.assertEquals(4, out.length);
-    Assert.assertEquals(uuid1, out[0]);
-    Assert.assertEquals(uuid2, out[1]);
-    Assert.assertEquals(uuid3, out[2]);
-    Assert.assertEquals(uuid4, out[3]);
+    assertEquals(4, out.length);
+    assertEquals(uuid1, out[0]);
+    assertEquals(uuid2, out[1]);
+    assertEquals(uuid3, out[2]);
+    assertEquals(uuid4, out[3]);
   }
 
   @Test
@@ -408,7 +410,7 @@ public class ArrayTest extends BaseTest4 {
     try {
       pstmt.setObject(1, objCopy, Types.ARRAY);
       pstmt.executeUpdate();
-      Assert.fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
+      fail("setObject() with a Java array parameter and Types.ARRAY shouldn't succeed");
     } catch (org.postgresql.util.PSQLException ex) {
       // Expected failure.
     }
@@ -416,7 +418,7 @@ public class ArrayTest extends BaseTest4 {
     try {
       pstmt.setObject(1, objCopy);
       pstmt.executeUpdate();
-      Assert.fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
+      fail("setObject() with a Java array parameter and no Types argument shouldn't succeed");
     } catch (org.postgresql.util.PSQLException ex) {
       // Expected failure.
     }
@@ -438,8 +440,7 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testGetArrayOfComposites() throws SQLException {
-    Assume.assumeTrue("array_agg(expression) requires PostgreSQL 8.4+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_4), "array_agg(expression) requires PostgreSQL 8.4+");
 
     PreparedStatement insertParentPstmt =
         conn.prepareStatement("INSERT INTO arrcompprnttest (name) "
@@ -482,7 +483,7 @@ public class ArrayTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
 
     assertNotNull(rs);
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
 
     Array childrenArray = rs.getArray("children");
     assertNotNull(childrenArray);
@@ -497,17 +498,16 @@ public class ArrayTest extends BaseTest4 {
         int childID = Integer.parseInt(token.getToken(0));
         // remove double quotes escaping with double quotes
         String value = token.getToken(2).replace("\"\"", "\"");
-        Assert.assertEquals(children[childID - 1], value);
+        assertEquals(children[childID - 1], value);
       } else {
-        Assert.fail("Needs to have 3 tokens");
+        fail("Needs to have 3 tokens");
       }
     }
   }
 
   @Test
   public void testCasingComposite() throws SQLException {
-    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "Arrays of composite types requires PostgreSQL 8.3+");
 
     PGobject cc = new PGobject();
     cc.setType("\"CorrectCasing\"");
@@ -520,12 +520,12 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
 
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    Assert.assertTrue(resArr[0] instanceof PGobject);
+    assertInstanceOf(PGobject.class, resArr[0]);
     PGobject resObj = (PGobject) resArr[0];
-    Assert.assertEquals("(1)", resObj.getValue());
+    assertEquals("(1)", resObj.getValue());
   }
 
   @Test
@@ -535,10 +535,10 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
 
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Integer[] resArr = (Integer[]) rs.getArray(1).getArray();
 
-    Assert.assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
+    assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
   }
 
   @Test
@@ -548,16 +548,15 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
 
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Integer[] resArr = (Integer[]) rs.getArray(1).getArray();
 
-    Assert.assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
+    assertArrayEquals(new Integer[]{1, 2, 3}, resArr);
   }
 
   @Test
   public void testEvilCasing() throws SQLException {
-    Assume.assumeTrue("Arrays of composite types requires PostgreSQL 8.3+",
-        TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "Arrays of composite types requires PostgreSQL 8.3+");
 
     PGobject cc = new PGobject();
     cc.setType("\"Evil.Table\"");
@@ -570,12 +569,12 @@ public class ArrayTest extends BaseTest4 {
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
 
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    Assert.assertTrue(resArr[0] instanceof PGobject);
+    assertInstanceOf(PGobject.class, resArr[0]);
     PGobject resObj = (PGobject) resArr[0];
-    Assert.assertEquals("(1)", resObj.getValue());
+    assertEquals("(1)", resObj.getValue());
   }
 
   @Test
@@ -636,18 +635,18 @@ public class ArrayTest extends BaseTest4 {
     ps.close();
     ps = con.prepareStatement("select floatarr from arrtest");
     ResultSet rs = ps.executeQuery();
-    Assert.assertTrue("arrtest should contain a row", rs.next());
+    assertTrue(rs.next(), "arrtest should contain a row");
     Array getArray = rs.getArray(1);
-    Assert.assertNull("null array should return null value on getArray", getArray);
+    assertNull(getArray, "null array should return null value on getArray");
     Object getObject = rs.getObject(1);
-    Assert.assertNull("null array should return null on getObject", getObject);
+    assertNull(getObject, "null array should return null on getObject");
   }
 
   @Test
   public void createNullArray() throws SQLException {
     Array arr = con.createArrayOf("float8", null);
     assertNotNull(arr);
-    Assert.assertNull(arr.getArray());
+    assertNull(arr.getArray());
   }
 
   @Test
@@ -666,7 +665,7 @@ public class ArrayTest extends BaseTest4 {
     }
     // Both {{"1","2"},{"3","4"}} and {{1,2},{3,4}} are the same array representation
     stringValue = stringValue.replaceAll("\"", "");
-    Assert.assertEquals("{{1,2},{3,4}}", stringValue);
+    assertEquals("{{1,2},{3,4}}", stringValue);
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
   }
@@ -686,13 +685,13 @@ public class ArrayTest extends BaseTest4 {
     Array array = rs.getArray(1);
     Integer[][] secondRowValues = (Integer[][]) array.getArray(2, 1);
 
-    Assert.assertEquals(3, secondRowValues[0][0].intValue());
-    Assert.assertEquals(4, secondRowValues[0][1].intValue());
+    assertEquals(3, secondRowValues[0][0].intValue());
+    assertEquals(4, secondRowValues[0][1].intValue());
   }
 
   @Test
   public void testJsonbArray() throws  SQLException {
-    Assume.assumeTrue("jsonb requires PostgreSQL 9.4+", TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4), "jsonb requires PostgreSQL 9.4+");
     TestUtil.createTempTable(con, "jsonbarray", "jbarray jsonb[]");
     try (Statement stmt = con.createStatement()) {
       stmt.executeUpdate("insert into jsonbarray values( ARRAY['{\"a\":\"a\"}'::jsonb, '{\"b\":\"b\"}'::jsonb] )");

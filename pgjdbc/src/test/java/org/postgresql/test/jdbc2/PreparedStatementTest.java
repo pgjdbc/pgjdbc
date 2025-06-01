@@ -5,13 +5,17 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
@@ -23,11 +27,9 @@ import org.postgresql.test.util.BrokenInputStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -55,7 +57,8 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class PreparedStatementTest extends BaseTest4 {
 
   private static final int NUMERIC_MAX_PRECISION = 1000;
@@ -65,7 +68,6 @@ public class PreparedStatementTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -202,17 +204,27 @@ public class PreparedStatementTest extends BaseTest4 {
 
   private void runBrokenStream(InputStream is, int length) throws SQLException, IOException {
     assertThrows(
-        "the provided stream length is " + length
-            + ", and the number of available bytes on stream length is " + is.available()
-            + ", so the bind should fail",
-        SQLException.class, () -> {
+        SQLException.class,
+        () -> {
           try (PreparedStatement pstmt =
                    con.prepareStatement("INSERT INTO streamtable (bin,str) VALUES (?,?)");) {
             pstmt.setBinaryStream(1, is, length);
             pstmt.setString(2, "Other");
             pstmt.executeUpdate();
           }
-        });
+        },
+        () -> {
+          String available;
+          try {
+            available = String.valueOf(is.available());
+          } catch (IOException e) {
+            available = "exception from .available(): " + e.getMessage();
+          }
+          return "the provided stream length is " + length
+              + ", and the number of available bytes on stream length is " + available
+              + ", so the bind should fail";
+        }
+    );
     // verify the connection is still valid and the row didn't go in.
     try (Statement stmt = con.createStatement();
          ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM streamtable");) {
@@ -248,38 +260,26 @@ public class PreparedStatementTest extends BaseTest4 {
       ByteArrayInputStream byteStream = new ByteArrayInputStream(buf);
 
       pstmt.setBinaryStream(1, byteStream, buf.length);
-      assertEquals(
-          "InputStream parameter should come as ?, and the second parameter is unset, so it should be ? as well",
-          "INSERT INTO streamtable VALUES (?,?)",
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed with half-set parameters"));
+      assertEquals("INSERT INTO streamtable VALUES (?,?)", assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed with half-set parameters"), "InputStream parameter should come as ?, and the second parameter is unset, so it should be ? as well");
 
       pstmt.setString(2, "test");
 
       String expected = "INSERT INTO streamtable VALUES (?,('test'))";
-      assertEquals(
-          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed after setting parameters"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed after setting parameters"), "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet");
 
-      assertEquals(
-          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "Second PreparedStatement#toString call should succeed as well"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "Second PreparedStatement#toString call should succeed as well"), "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet");
 
       pstmt.execute();
 
-      assertEquals(
-          "PreparedStatement#toString after .execute()",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed even after execute()"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed even after execute()"), "PreparedStatement#toString after .execute()");
     }
   }
 
@@ -297,28 +297,19 @@ public class PreparedStatementTest extends BaseTest4 {
 
       String expected = "INSERT INTO streamtable VALUES (?,('line1'));\n"
           + "INSERT INTO streamtable VALUES (?,('line2'))";
-      assertEquals(
-          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed after addBatch"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed after addBatch"), "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet");
 
-      assertEquals(
-          "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "Second PreparedStatement#toString call should succeed as well"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "Second PreparedStatement#toString call should succeed as well"), "InputStream parameter should come as ? when calling PreparedStatement#toString as we can't process input stream twice yet");
 
       pstmt.executeBatch();
 
-      assertEquals(
-          "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row",
-          "INSERT INTO streamtable VALUES (?,('line2'))",
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed even after executeBatch()"));
+      assertEquals("INSERT INTO streamtable VALUES (?,('line2'))", assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed even after executeBatch()"), "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row");
     }
   }
 
@@ -331,38 +322,26 @@ public class PreparedStatementTest extends BaseTest4 {
 
       pstmt.setBytes(1, buf);
 
-      assertEquals(
-          "byte[] parameter could be rendered, and the second parameter is unset, so it should be ? as well",
-          "INSERT INTO streamtable VALUES ('\\x00010203040506070809'::bytea,?)",
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed with half-set parameters"));
+      assertEquals("INSERT INTO streamtable VALUES ('\\x00010203040506070809'::bytea,?)", assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed with half-set parameters"), "byte[] parameter could be rendered, and the second parameter is unset, so it should be ? as well");
 
       pstmt.setString(2, "test");
 
       String expected = "INSERT INTO streamtable VALUES ('\\x00010203040506070809'::bytea,('test'))";
-      assertEquals(
-          "byte[] should be rendered when calling PreparedStatement#toString",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed after setting parameters"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed after setting parameters"), "byte[] should be rendered when calling PreparedStatement#toString");
 
-      assertEquals(
-          "byte[] should be rendered when calling PreparedStatement#toString",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "Second PreparedStatement#toString call should succeed as well"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "Second PreparedStatement#toString call should succeed as well"), "byte[] should be rendered when calling PreparedStatement#toString");
 
       pstmt.execute();
 
-      assertEquals(
-          "PreparedStatement#toString after .execute()",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed even after execute()"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed even after execute()"), "PreparedStatement#toString after .execute()");
     }
   }
 
@@ -381,28 +360,19 @@ public class PreparedStatementTest extends BaseTest4 {
 
       String expected = "INSERT INTO streamtable VALUES ('\\x0001'::bytea,('line1'));\n"
           + "INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))";
-      assertEquals(
-          "byte[] should be rendered when calling PreparedStatement#toString",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed after addBatch"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed after addBatch"), "byte[] should be rendered when calling PreparedStatement#toString");
 
-      assertEquals(
-          "byte[] should be rendered when calling PreparedStatement#toString",
-          expected,
-          assertDoesNotThrow(
-              pstmt::toString,
-              "Second PreparedStatement#toString call should succeed as well"));
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "Second PreparedStatement#toString call should succeed as well"), "byte[] should be rendered when calling PreparedStatement#toString");
 
       pstmt.executeBatch();
 
-      assertEquals(
-          "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row",
-          "INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))",
-          assertDoesNotThrow(
-              pstmt::toString,
-              "PreparedStatement#toString call should succeed even after executeBatch()"));
+      assertEquals("INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))", assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString call should succeed even after executeBatch()"), "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row");
     }
   }
 
@@ -438,12 +408,12 @@ public class PreparedStatementTest extends BaseTest4 {
     ps.setInt(1, 100500);
     ps.execute();
     ResultSet rs = ps.getResultSet();
-    Assert.assertNull("insert produces no results ==> getResultSet should be null", rs);
-    Assert.assertTrue("There are two statements => getMoreResults should be true", ps.getMoreResults());
+    assertNull(rs, "insert produces no results ==> getResultSet should be null");
+    assertTrue(ps.getMoreResults(), "There are two statements => getMoreResults should be true");
     rs = ps.getResultSet();
-    Assert.assertNotNull("select produces results ==> getResultSet should be not null", rs);
-    Assert.assertTrue("select produces 1 row ==> rs.next should be true", rs.next());
-    Assert.assertEquals("second result of query " + query, 42, rs.getInt(1));
+    assertNotNull(rs, "select produces results ==> getResultSet should be not null");
+    assertTrue(rs.next(), "select produces 1 row ==> rs.next should be true");
+    assertEquals(42, rs.getInt(1), "second result of query " + query);
 
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
@@ -729,7 +699,7 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     for (int i = 1; i < 5; i++) {
-      assertTrue(rs.getBigDecimal(i).compareTo(values[i - 1]) == 0);
+      assertEquals(0, rs.getBigDecimal(i).compareTo(values[i - 1]));
     }
     rs.getDouble(5);
     assertTrue(rs.wasNull());
@@ -756,8 +726,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     double d = rs.getDouble(1);
-    assertTrue(rs.getDouble(1) == 1.0E125);
-    assertTrue(rs.getDouble(2) == 1.0E-130);
+    assertEquals(1.0E125, rs.getDouble(1));
+    assertEquals(1.0E-130, rs.getDouble(2));
     rs.getDouble(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -783,8 +753,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     float f = rs.getFloat(1);
-    assertTrue("expected 1.0E37,received " + rs.getFloat(1), rs.getFloat(1) == (float) 1.0E37);
-    assertTrue("expected 1.0E-37,received " + rs.getFloat(2), rs.getFloat(2) == (float) 1.0E-37);
+    assertEquals((float) 1.0E37, rs.getFloat(1), "expected 1.0E37,received " + rs.getFloat(1));
+    assertEquals((float) 1.0E-37, rs.getFloat(2), "expected 1.0E-37,received " + rs.getFloat(2));
     rs.getDouble(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -807,12 +777,12 @@ public class PreparedStatementTest extends BaseTest4 {
 
   private static void checkNaNLiterals(Statement stmt, ResultSet rs) throws SQLException {
     rs.next();
-    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(3)));
-    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(3)));
-    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(2)));
-    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(2)));
-    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(1)));
-    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(1)));
+    assertTrue(Double.isNaN((Double) rs.getObject(3)), "Double.isNaN((Double) rs.getObject");
+    assertTrue(Double.isNaN(rs.getDouble(3)), "Double.isNaN(rs.getDouble");
+    assertTrue(Float.isNaN((Float) rs.getObject(2)), "Float.isNaN((Float) rs.getObject");
+    assertTrue(Float.isNaN(rs.getFloat(2)), "Float.isNaN(rs.getFloat");
+    assertTrue(Double.isNaN((Double) rs.getObject(1)), "Double.isNaN((Double) rs.getObject");
+    assertTrue(Double.isNaN(rs.getDouble(1)), "Double.isNaN(rs.getDouble");
     try {
       rs.getBigDecimal(1);
       fail("NaN::numeric rs.getBigDecimal");
@@ -851,19 +821,19 @@ public class PreparedStatementTest extends BaseTest4 {
 
   private static void checkInfinityLiterals(ResultSet rs) throws SQLException {
     rs.next();
-    assertEquals("inf numeric rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(1));
-    assertEquals("inf numeric rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(1), 0.0);
-    assertEquals("inf real rs.getObject", Float.POSITIVE_INFINITY, rs.getObject(2));
-    assertEquals("inf real rs.getFloat", Float.POSITIVE_INFINITY, rs.getFloat(2), 0.0);
-    assertEquals("inf double precision rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(3));
-    assertEquals("inf double precision rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(3), 0.0);
+    assertEquals(Double.POSITIVE_INFINITY, rs.getObject(1), "inf numeric rs.getObject");
+    assertEquals(Double.POSITIVE_INFINITY, rs.getDouble(1), 0.0, "inf numeric rs.getDouble");
+    assertEquals(Float.POSITIVE_INFINITY, rs.getObject(2), "inf real rs.getObject");
+    assertEquals(Float.POSITIVE_INFINITY, rs.getFloat(2), 0.0, "inf real rs.getFloat");
+    assertEquals(Double.POSITIVE_INFINITY, rs.getObject(3), "inf double precision rs.getObject");
+    assertEquals(Double.POSITIVE_INFINITY, rs.getDouble(3), 0.0, "inf double precision rs.getDouble");
 
-    assertEquals("-inf numeric rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(4));
-    assertEquals("-inf numeric rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(4), 0.0);
-    assertEquals("-inf real rs.getObject", Float.NEGATIVE_INFINITY, rs.getObject(5));
-    assertEquals("-inf real rs.getFloat", Float.NEGATIVE_INFINITY, rs.getFloat(5), 0.0);
-    assertEquals("-inf double precision rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(6));
-    assertEquals("-inf double precision rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(6), 0.0);
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(4), "-inf numeric rs.getObject");
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getDouble(4), 0.0, "-inf numeric rs.getDouble");
+    assertEquals(Float.NEGATIVE_INFINITY, rs.getObject(5), "-inf real rs.getObject");
+    assertEquals(Float.NEGATIVE_INFINITY, rs.getFloat(5), 0.0, "-inf real rs.getFloat");
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(6), "-inf double precision rs.getObject");
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getDouble(6), 0.0, "-inf double precision rs.getDouble");
 
     try {
       rs.getBigDecimal(1);
@@ -912,18 +882,18 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = ps.executeQuery();
     rs.next();
 
-    assertTrue("Float.isNaN((Float) rs.getObject", Float.isNaN((Float) rs.getObject(1)));
-    assertTrue("Float.isNaN(rs.getFloat", Float.isNaN(rs.getFloat(1)));
-    assertTrue("Double.isNaN((Double) rs.getObject", Double.isNaN((Double) rs.getObject(2)));
-    assertTrue("Double.isNaN(rs.getDouble", Double.isNaN(rs.getDouble(2)));
-    assertEquals("Float.POSITIVE_INFINITY rs.getObject", Float.POSITIVE_INFINITY, rs.getObject(3));
-    assertEquals("Float.POSITIVE_INFINITY rs.getFloat", Float.POSITIVE_INFINITY, rs.getFloat(3), 0);
-    assertEquals("Double.POSITIVE_INFINITY rs.getObject", Double.POSITIVE_INFINITY, rs.getObject(4));
-    assertEquals("Double.POSITIVE_INFINITY rs.getDouble", Double.POSITIVE_INFINITY, rs.getDouble(4), 0);
-    assertEquals("Float.NEGATIVE_INFINITY rs.getObject", Float.NEGATIVE_INFINITY, rs.getObject(5));
-    assertEquals("Float.NEGATIVE_INFINITY rs.getFloat", Float.NEGATIVE_INFINITY, rs.getFloat(5), 0);
-    assertEquals("Double.NEGATIVE_INFINITY rs.getObject", Double.NEGATIVE_INFINITY, rs.getObject(6));
-    assertEquals("Double.NEGATIVE_INFINITY rs.getDouble", Double.NEGATIVE_INFINITY, rs.getDouble(6), 0);
+    assertTrue(Float.isNaN((Float) rs.getObject(1)), "Float.isNaN((Float) rs.getObject");
+    assertTrue(Float.isNaN(rs.getFloat(1)), "Float.isNaN(rs.getFloat");
+    assertTrue(Double.isNaN((Double) rs.getObject(2)), "Double.isNaN((Double) rs.getObject");
+    assertTrue(Double.isNaN(rs.getDouble(2)), "Double.isNaN(rs.getDouble");
+    assertEquals(Float.POSITIVE_INFINITY, rs.getObject(3), "Float.POSITIVE_INFINITY rs.getObject");
+    assertEquals(Float.POSITIVE_INFINITY, rs.getFloat(3), 0, "Float.POSITIVE_INFINITY rs.getFloat");
+    assertEquals(Double.POSITIVE_INFINITY, rs.getObject(4), "Double.POSITIVE_INFINITY rs.getObject");
+    assertEquals(Double.POSITIVE_INFINITY, rs.getDouble(4), 0, "Double.POSITIVE_INFINITY rs.getDouble");
+    assertEquals(Float.NEGATIVE_INFINITY, rs.getObject(5), "Float.NEGATIVE_INFINITY rs.getObject");
+    assertEquals(Float.NEGATIVE_INFINITY, rs.getFloat(5), 0, "Float.NEGATIVE_INFINITY rs.getFloat");
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(6), "Double.NEGATIVE_INFINITY rs.getObject");
+    assertEquals(Double.NEGATIVE_INFINITY, rs.getDouble(6), 0, "Double.NEGATIVE_INFINITY rs.getDouble");
 
     TestUtil.closeQuietly(rs);
     TestUtil.closeQuietly(ps);
@@ -956,7 +926,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setObject(7, "On", Types.BIT);
     pstmt.setObject(8, '1', Types.BIT);
     pstmt.setObject(8, "1", Types.BIT);
-    assertEquals("one row inserted, true values", 1, pstmt.executeUpdate());
+    assertEquals(1, pstmt.executeUpdate(), "one row inserted, true values");
     // Test FALSE values
     pstmt.setBoolean(1, false);
     pstmt.setObject(1, Boolean.FALSE);
@@ -972,7 +942,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setObject(7, "Off", Types.BOOLEAN);
     pstmt.setObject(8, "0", Types.BOOLEAN);
     pstmt.setObject(8, '0', Types.BOOLEAN);
-    assertEquals("one row inserted, false values", 1, pstmt.executeUpdate());
+    assertEquals(1, pstmt.executeUpdate(), "one row inserted, false values");
     // Test weird values
     pstmt.setObject(1, (byte) 0, Types.BOOLEAN);
     pstmt.setObject(2, BigDecimal.ONE, Types.BOOLEAN);
@@ -991,26 +961,26 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
 
     assertTrue(rs.next());
-    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertTrue(rs.getBoolean(1), "expected true, received " + rs.getBoolean(1));
     rs.getFloat(2);
     assertTrue(rs.wasNull());
-    assertTrue("expected true, received " + rs.getBoolean(3), rs.getBoolean(3));
-    assertTrue("expected true, received " + rs.getBoolean(4), rs.getBoolean(4));
-    assertTrue("expected true, received " + rs.getBoolean(5), rs.getBoolean(5));
-    assertTrue("expected true, received " + rs.getBoolean(6), rs.getBoolean(6));
-    assertTrue("expected true, received " + rs.getBoolean(7), rs.getBoolean(7));
-    assertTrue("expected true, received " + rs.getBoolean(8), rs.getBoolean(8));
+    assertTrue(rs.getBoolean(3), "expected true, received " + rs.getBoolean(3));
+    assertTrue(rs.getBoolean(4), "expected true, received " + rs.getBoolean(4));
+    assertTrue(rs.getBoolean(5), "expected true, received " + rs.getBoolean(5));
+    assertTrue(rs.getBoolean(6), "expected true, received " + rs.getBoolean(6));
+    assertTrue(rs.getBoolean(7), "expected true, received " + rs.getBoolean(7));
+    assertTrue(rs.getBoolean(8), "expected true, received " + rs.getBoolean(8));
 
     assertTrue(rs.next());
-    assertFalse("expected false, received " + rs.getBoolean(1), rs.getBoolean(1));
+    assertFalse(rs.getBoolean(1), "expected false, received " + rs.getBoolean(1));
     rs.getBoolean(2);
     assertTrue(rs.wasNull());
-    assertFalse("expected false, received " + rs.getBoolean(3), rs.getBoolean(3));
-    assertFalse("expected false, received " + rs.getBoolean(4), rs.getBoolean(4));
-    assertFalse("expected false, received " + rs.getBoolean(5), rs.getBoolean(5));
-    assertFalse("expected false, received " + rs.getBoolean(6), rs.getBoolean(6));
-    assertFalse("expected false, received " + rs.getBoolean(7), rs.getBoolean(7));
-    assertFalse("expected false, received " + rs.getBoolean(8), rs.getBoolean(8));
+    assertFalse(rs.getBoolean(3), "expected false, received " + rs.getBoolean(3));
+    assertFalse(rs.getBoolean(4), "expected false, received " + rs.getBoolean(4));
+    assertFalse(rs.getBoolean(5), "expected false, received " + rs.getBoolean(5));
+    assertFalse(rs.getBoolean(6), "expected false, received " + rs.getBoolean(6));
+    assertFalse(rs.getBoolean(7), "expected false, received " + rs.getBoolean(7));
+    assertFalse(rs.getBoolean(8), "expected false, received " + rs.getBoolean(8));
 
     rs.close();
     pstmt.close();
@@ -1027,14 +997,14 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.setObject(1, "this is not boolean", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"this is not boolean\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, 'X', Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"X\"", e.getMessage());
     }
     try {
@@ -1042,63 +1012,63 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.setObject(1, obj, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean", e.getMessage());
     }
     try {
       pstmt.setObject(1, "1.0", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"1.0\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, "-1", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"-1\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, "ok", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"ok\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, 0.99f, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"0.99\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, -0.01d, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"-0.01\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, new java.sql.Date(0), Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean", e.getMessage());
     }
     try {
       pstmt.setObject(1, new java.math.BigInteger("1000"), Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"1000\"", e.getMessage());
     }
     try {
       pstmt.setObject(1, Math.PI, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
-      assertEquals(org.postgresql.util.PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
+      assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       assertEquals("Cannot cast to boolean: \"3.141592653589793\"", e.getMessage());
     }
     pstmt.close();
@@ -1128,10 +1098,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxFloat + " ,received " + rs.getObject(1),
-        rs.getObject(1).equals(maxFloat));
-    assertTrue("expected " + minFloat + " ,received " + rs.getObject(2),
-        rs.getObject(2).equals(minFloat));
+    assertEquals(maxFloat, rs.getObject(1));
+    assertEquals(minFloat, rs.getObject(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1166,16 +1134,16 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue(((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue(((Double) rs.getObject(2)).equals(minFloat));
-    assertTrue(rs.getDouble(1) == maxFloat);
-    assertTrue(rs.getDouble(2) == minFloat);
+    assertEquals(maxFloat, ((Double) rs.getObject(1)));
+    assertEquals(minFloat, ((Double) rs.getObject(2)));
+    assertEquals(maxFloat, rs.getDouble(1));
+    assertEquals(minFloat, rs.getDouble(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
 
     assertTrue(rs.next());
-    assertTrue("expected true, received " + rs.getBoolean(1), rs.getBoolean(1));
-    assertFalse("expected false,received " + rs.getBoolean(2), rs.getBoolean(2));
+    assertTrue(rs.getBoolean(1));
+    assertFalse(rs.getBoolean(2));
 
     rs.close();
     pstmt.close();
@@ -1205,10 +1173,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxFloat + " ,received " + rs.getObject(1),
-        ((Double) rs.getObject(1)).equals(maxFloat));
-    assertTrue("expected " + minFloat + " ,received " + rs.getObject(2),
-        ((Double) rs.getObject(2)).equals(minFloat));
+    assertEquals(maxFloat, ((Double) rs.getObject(1)));
+    assertEquals(minFloat, ((Double) rs.getObject(2)));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1239,32 +1205,28 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertEquals("maxInt as rs.getObject", maxInt, rs.getObject(1));
-    assertEquals("minInt as rs.getObject", minInt, rs.getObject(2));
+    assertEquals(maxInt, rs.getObject(1), "maxInt as rs.getObject");
+    assertEquals(minInt, rs.getObject(2), "minInt as rs.getObject");
     rs.getObject(3);
-    assertTrue("rs.wasNull after rs.getObject", rs.wasNull());
-    assertEquals("maxInt as rs.getInt", maxInt, (Integer) rs.getInt(1));
-    assertEquals("minInt as rs.getInt", minInt, (Integer) rs.getInt(2));
+    assertTrue(rs.wasNull(), "rs.wasNull after rs.getObject");
+    assertEquals(maxInt, (Integer) rs.getInt(1), "maxInt as rs.getInt");
+    assertEquals(minInt, (Integer) rs.getInt(2), "minInt as rs.getInt");
     rs.getInt(3);
-    assertTrue("rs.wasNull after rs.getInt", rs.wasNull());
-    assertEquals("maxInt as rs.getLong", Long.valueOf(maxInt), (Long) rs.getLong(1));
-    assertEquals("minInt as rs.getLong", Long.valueOf(minInt), (Long) rs.getLong(2));
+    assertTrue(rs.wasNull(), "rs.wasNull after rs.getInt");
+    assertEquals(Long.valueOf(maxInt), (Long) rs.getLong(1), "maxInt as rs.getLong");
+    assertEquals(Long.valueOf(minInt), (Long) rs.getLong(2), "minInt as rs.getLong");
     rs.getLong(3);
-    assertTrue("rs.wasNull after rs.getLong", rs.wasNull());
-    assertEquals("maxInt as rs.getBigDecimal", BigDecimal.valueOf(maxInt), rs.getBigDecimal(1));
-    assertEquals("minInt as rs.getBigDecimal", BigDecimal.valueOf(minInt), rs.getBigDecimal(2));
-    assertNull("rs.getBigDecimal", rs.getBigDecimal(3));
-    assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
-    assertEquals("maxInt as rs.getBigDecimal(scale=0)", BigDecimal.valueOf(maxInt),
-        rs.getBigDecimal(1, 0));
-    assertEquals("minInt as rs.getBigDecimal(scale=0)", BigDecimal.valueOf(minInt),
-        rs.getBigDecimal(2, 0));
-    assertNull("rs.getBigDecimal(scale=0)", rs.getBigDecimal(3, 0));
-    assertTrue("rs.getBigDecimal after rs.getLong", rs.wasNull());
-    assertEquals("maxInt as rs.getBigDecimal(scale=1)",
-        BigDecimal.valueOf(maxInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, 1));
-    assertEquals("minInt as rs.getBigDecimal(scale=1)",
-        BigDecimal.valueOf(minInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, 1));
+    assertTrue(rs.wasNull(), "rs.wasNull after rs.getLong");
+    assertEquals(BigDecimal.valueOf(maxInt), rs.getBigDecimal(1), "maxInt as rs.getBigDecimal");
+    assertEquals(BigDecimal.valueOf(minInt), rs.getBigDecimal(2), "minInt as rs.getBigDecimal");
+    assertNull(rs.getBigDecimal(3), "rs.getBigDecimal");
+    assertTrue(rs.wasNull(), "rs.getBigDecimal after rs.getLong");
+    assertEquals(BigDecimal.valueOf(maxInt), rs.getBigDecimal(1, 0), "maxInt as rs.getBigDecimal(scale=0)");
+    assertEquals(BigDecimal.valueOf(minInt), rs.getBigDecimal(2, 0), "minInt as rs.getBigDecimal(scale=0)");
+    assertNull(rs.getBigDecimal(3, 0), "rs.getBigDecimal(scale=0)");
+    assertTrue(rs.wasNull(), "rs.getBigDecimal after rs.getLong");
+    assertEquals(BigDecimal.valueOf(maxInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, 1), "maxInt as rs.getBigDecimal(scale=1)");
+    assertEquals(BigDecimal.valueOf(minInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, 1), "minInt as rs.getBigDecimal(scale=1)");
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1295,10 +1257,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxInt + " ,received " + rs.getObject(1),
-        rs.getObject(1).equals(maxInt));
-    assertTrue("expected " + minInt + " ,received " + rs.getObject(2),
-        rs.getObject(2).equals(minInt));
+    assertEquals(maxInt, rs.getObject(1));
+    assertEquals(minInt, rs.getObject(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1328,10 +1288,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + maxInt + " ,received " + rs.getObject(1),
-        ((Integer) rs.getObject(1)).equals(maxInt));
-    assertTrue("expected " + minInt + " ,received " + rs.getObject(2),
-        ((Integer) rs.getObject(2)).equals(minInt));
+    assertEquals(maxInt, ((Integer) rs.getObject(1)));
+    assertEquals(minInt, ((Integer) rs.getObject(2)));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1360,10 +1318,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1),
-        rs.getObject(1).equals(dBooleanTrue));
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2),
-        rs.getObject(2).equals(dBooleanFalse));
+    assertEquals(dBooleanTrue, rs.getObject(1));
+    assertEquals(dBooleanFalse, rs.getObject(2));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1392,10 +1348,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1),
-        ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue) == 0);
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2),
-        ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse) == 0);
+    assertEquals(0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
+    assertEquals(0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1424,10 +1378,8 @@ public class PreparedStatementTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
 
-    assertTrue("expected " + dBooleanTrue + " ,received " + rs.getObject(1),
-        ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue) == 0);
-    assertTrue("expected " + dBooleanFalse + " ,received " + rs.getObject(2),
-        ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse) == 0);
+    assertEquals(0, ((BigDecimal) rs.getObject(1)).compareTo(dBooleanTrue));
+    assertEquals(0, ((BigDecimal) rs.getObject(2)).compareTo(dBooleanFalse));
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
@@ -1458,15 +1410,11 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt = con.prepareStatement("select n1,n2,n3,n4 from decimal_scale");
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
-    assertTrue("expected numeric set via BigDecimal " + v + " stored as " + rs.getBigDecimal(1),
-        v.compareTo(rs.getBigDecimal(1)) == 0);
-    assertTrue("expected numeric set via String" + vs + " stored as " + rs.getBigDecimal(2),
-        v.compareTo(rs.getBigDecimal(2)) == 0);
+    assertEquals(0, v.compareTo(rs.getBigDecimal(1)), "expected numeric set via BigDecimal " + v + " stored as " + rs.getBigDecimal(1));
+    assertEquals(0, v.compareTo(rs.getBigDecimal(2)), "expected numeric set via String" + vs + " stored as " + rs.getBigDecimal(2));
     // float is really bad...
-    assertTrue("expected numeric set via Float" + vf + " stored as " + rs.getBigDecimal(3),
-        v.compareTo(rs.getBigDecimal(3).setScale(6, RoundingMode.HALF_UP)) == 0);
-    assertTrue("expected numeric set via Double" + vd + " stored as " + rs.getBigDecimal(4),
-        v.compareTo(rs.getBigDecimal(4)) == 0);
+    assertEquals(0, v.compareTo(rs.getBigDecimal(3).setScale(6, RoundingMode.HALF_UP)), "expected numeric set via Float" + vf + " stored as " + rs.getBigDecimal(3));
+    assertEquals(0, v.compareTo(rs.getBigDecimal(4)), "expected numeric set via Double" + vd + " stored as " + rs.getBigDecimal(4));
 
     rs.close();
     pstmt.close();
@@ -1496,18 +1444,10 @@ public class PreparedStatementTest extends BaseTest4 {
       ResultSet rs = psselect.executeQuery();
       assertTrue(rs.next());
       BigDecimal vscaled = v.setScale(s, RoundingMode.HALF_UP);
-      assertTrue(
-          "expected numeric set via BigDecimal " + v + " with scale " + s + " stored as " + vscaled,
-          vscaled.compareTo(rs.getBigDecimal(1)) == 0);
-      assertTrue(
-          "expected numeric set via String" + vs + " with scale " + s + " stored as " + vscaled,
-          vscaled.compareTo(rs.getBigDecimal(2)) == 0);
-      assertTrue(
-          "expected numeric set via Float" + vf + " with scale " + s + " stored as " + vscaled,
-          vscaled.compareTo(rs.getBigDecimal(3)) == 0);
-      assertTrue(
-          "expected numeric set via Double" + vd + " with scale " + s + " stored as " + vscaled,
-          vscaled.compareTo(rs.getBigDecimal(4)) == 0);
+      assertEquals(0, vscaled.compareTo(rs.getBigDecimal(1)), "expected numeric set via BigDecimal " + v + " with scale " + s + " stored as " + vscaled);
+      assertEquals(0, vscaled.compareTo(rs.getBigDecimal(2)), "expected numeric set via String" + vs + " with scale " + s + " stored as " + vscaled);
+      assertEquals(0, vscaled.compareTo(rs.getBigDecimal(3)), "expected numeric set via Float" + vf + " with scale " + s + " stored as " + vscaled);
+      assertEquals(0, vscaled.compareTo(rs.getBigDecimal(4)), "expected numeric set via Double" + vd + " with scale " + s + " stored as " + vscaled);
       rs.close();
       pstruncate.executeUpdate();
     }
@@ -1529,9 +1469,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
     ResultSet rs = psselect.executeQuery();
     assertTrue(rs.next());
-    assertTrue(
-        "expected 733, but received " + rs.getBigDecimal(1),
-        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+    assertEquals(0, new BigDecimal("733").compareTo(rs.getBigDecimal(1)), "expected 733, but received " + rs.getBigDecimal(1));
 
     psinsert.close();
     psselect.close();
@@ -1549,9 +1487,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
     ResultSet rs = psselect.executeQuery();
     assertTrue(rs.next());
-    assertTrue(
-        "expected 733, but received " + rs.getBigDecimal(1),
-        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+    assertEquals(0, new BigDecimal("733").compareTo(rs.getBigDecimal(1)), "expected 733, but received " + rs.getBigDecimal(1));
 
     psinsert.close();
     psselect.close();
@@ -1569,9 +1505,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
     ResultSet rs = psselect.executeQuery();
     assertTrue(rs.next());
-    assertTrue(
-        "expected 733, but received " + rs.getBigDecimal(1),
-        new BigDecimal("733").compareTo(rs.getBigDecimal(1)) == 0);
+    assertEquals(0, new BigDecimal("733").compareTo(rs.getBigDecimal(1)), "expected 733, but received " + rs.getBigDecimal(1));
 
     psinsert.close();
     psselect.close();
@@ -1584,8 +1518,7 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.setString(1, "1 week");
     try {
       pstmt.executeUpdate();
-      assertTrue("When using extended protocol, interval vs character varying type mismatch error is expected",
-          preferQueryMode == PreferQueryMode.SIMPLE);
+      assertSame(PreferQueryMode.SIMPLE, preferQueryMode, "When using extended protocol, interval vs character varying type mismatch error is expected");
     } catch (SQLException sqle) {
       // ERROR: column "i" is of type interval but expression is of type character varying
     }
@@ -1627,8 +1560,7 @@ public class PreparedStatementTest extends BaseTest4 {
   @Test
   public void testBatchWithPrepareThreshold5() throws SQLException {
     assumeBinaryModeRegular();
-    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
 
     PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE batch_tab_threshold5 (id bigint, val bigint)");
     pstmt.executeUpdate();
@@ -1646,19 +1578,15 @@ public class PreparedStatementTest extends BaseTest4 {
       pstmt.executeBatch();
     }
     pstmt.close();
-    Assume.assumeFalse("Test assertions below support only non-rewritten insert statements",
-        con.unwrap(PgConnection.class).getQueryExecutor().isReWriteBatchedInsertsEnabled());
-    assertTrue("prepareThreshold=5, so the statement should be server-prepared",
-        ((PGStatement) pstmt).isUseServerPrepare());
-    assertEquals("prepareThreshold=5, so the statement should be server-prepared", 1,
-        getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold5 (id, val) VALUES ($1,$2)"));
+    assumeFalse(con.unwrap(PgConnection.class).getQueryExecutor().isReWriteBatchedInsertsEnabled(), "Test assertions below support only non-rewritten insert statements");
+    assertTrue(((PGStatement) pstmt).isUseServerPrepare(), "prepareThreshold=5, so the statement should be server-prepared");
+    assertEquals(1, getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold5 (id, val) VALUES ($1,$2)"), "prepareThreshold=5, so the statement should be server-prepared");
   }
 
   @Test
   public void testBatchWithPrepareThreshold0() throws SQLException {
     assumeBinaryModeRegular();
-    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
 
     PreparedStatement pstmt = con.prepareStatement("CREATE temp TABLE batch_tab_threshold0 (id bigint, val bigint)");
     pstmt.executeUpdate();
@@ -1677,17 +1605,14 @@ public class PreparedStatementTest extends BaseTest4 {
     }
     pstmt.close();
 
-    assertFalse("prepareThreshold=0, so the statement should not be server-prepared",
-        ((PGStatement) pstmt).isUseServerPrepare());
-    assertEquals("prepareThreshold=0, so the statement should not be server-prepared", 0,
-        getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold0 (id, val) VALUES ($1,$2)"));
+    assertFalse(((PGStatement) pstmt).isUseServerPrepare(), "prepareThreshold=0, so the statement should not be server-prepared");
+    assertEquals(0, getNumberOfServerPreparedStatements("INSERT INTO batch_tab_threshold0 (id, val) VALUES ($1,$2)"), "prepareThreshold=0, so the statement should not be server-prepared");
   }
 
   @Test
   public void testSelectPrepareThreshold0AutoCommitFalseFetchSizeNonZero() throws SQLException {
     assumeBinaryModeRegular();
-    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
 
     con.setAutoCommit(false);
     PreparedStatement pstmt = null;
@@ -1704,11 +1629,9 @@ public class PreparedStatementTest extends BaseTest4 {
       TestUtil.closeQuietly(pstmt);
     }
 
-    assertFalse("prepareThreshold=0, so the statement should not be server-prepared",
-        ((PGStatement) pstmt).isUseServerPrepare());
+    assertFalse(((PGStatement) pstmt).isUseServerPrepare(), "prepareThreshold=0, so the statement should not be server-prepared");
 
-    assertEquals("prepareThreshold=0, so the statement should not be server-prepared", 0,
-        getNumberOfServerPreparedStatements("SELECT 42"));
+    assertEquals(0, getNumberOfServerPreparedStatements("SELECT 42"), "prepareThreshold=0, so the statement should not be server-prepared");
   }
 
   @Test
@@ -1729,8 +1652,7 @@ public class PreparedStatementTest extends BaseTest4 {
             "date", ps);
         try {
           assertTrue(rs.next());
-          assertNull("NULL DATE converted to TIMESTAMP should return NULL value on getObject",
-              rs.getObject(1));
+          assertNull(rs.getObject(1), "NULL DATE converted to TIMESTAMP should return NULL value on getObject");
         } finally {
           rs.close();
         }
@@ -1743,9 +1665,7 @@ public class PreparedStatementTest extends BaseTest4 {
             "timestamp", ps);
         try {
           assertTrue(rs.next());
-          assertEquals(
-              "Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.",
-              ts, rs.getObject(1));
+          assertEquals(ts, rs.getObject(1), "Looks like we got a narrowing of the data (TIMESTAMP -> DATE). It might caused by inappropriate caching of the statement.");
         } finally {
           rs.close();
         }
@@ -1760,8 +1680,7 @@ public class PreparedStatementTest extends BaseTest4 {
       return;
     }
     ParameterMetaData pmd = ps.getParameterMetaData();
-    assertEquals("getParameterMetaData().getParameterTypeName(1) " + msg,
-        expected, pmd.getParameterTypeName(1));
+    assertEquals(expected, pmd.getParameterTypeName(1), () -> "getParameterMetaData().getParameterTypeName(1) " + msg);
   }
 
   @Test
@@ -1796,25 +1715,23 @@ public class PreparedStatementTest extends BaseTest4 {
       ps.setString(1, "42");
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
+      assertEquals("42", rs.getObject(1), "setString(1, \"42\") -> \"42\" expected");
       rs.close();
 
       // The bind type is flipped from VARCHAR to INTEGER, and it causes the driver to prepare statement again
       ps.setNull(1, Types.INTEGER);
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
-      Assert.assertEquals("A re-parse was expected, so the number of parses should be 1",
-          1, numOfReParses.get());
+      assertNull(rs.getObject(1), "setNull(1, Types.INTEGER) -> null expected");
+      assertEquals(1, numOfReParses.get(), "A re-parse was expected, so the number of parses should be 1");
       rs.close();
 
       // The bind type is flipped from INTEGER to VARCHAR, and it causes the driver to prepare statement again
       ps.setString(1, "42");
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertEquals("setString(1, \"42\") -> \"42\" expected", "42", rs.getObject(1));
-      Assert.assertEquals("One more re-parse is expected, so the number of parses should be 2",
-          2, numOfReParses.get());
+      assertEquals("42", rs.getObject(1), "setString(1, \"42\") -> \"42\" expected");
+      assertEquals(2, numOfReParses.get(), "One more re-parse is expected, so the number of parses should be 2");
       rs.close();
 
       // Types.OTHER null is sent as UNSPECIFIED, and pgjdbc does not re-parse on UNSPECIFIED nulls
@@ -1822,17 +1739,15 @@ public class PreparedStatementTest extends BaseTest4 {
       ps.setNull(1, Types.OTHER);
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertNull("setNull(1, Types.OTHER) -> null expected", rs.getObject(1));
-      Assert.assertEquals("setNull(, Types.OTHER) should not cause re-parse",
-          2, numOfReParses.get());
+      assertNull(rs.getObject(1), "setNull(1, Types.OTHER) -> null expected");
+      assertEquals(2, numOfReParses.get(), "setNull(, Types.OTHER) should not cause re-parse");
 
       // Types.INTEGER null is sent as int4 null, and it leads to re-parse
       ps.setNull(1, Types.INTEGER);
       rs = ps.executeQuery();
       rs.next();
-      Assert.assertNull("setNull(1, Types.INTEGER) -> null expected", rs.getObject(1));
-      Assert.assertEquals("setNull(, Types.INTEGER) causes re-parse",
-          3, numOfReParses.get());
+      assertNull(rs.getObject(1), "setNull(1, Types.INTEGER) -> null expected");
+      assertEquals(3, numOfReParses.get(), "setNull(, Types.INTEGER) causes re-parse");
       rs.close();
     } finally {
       TestUtil.closeQuietly(ps);

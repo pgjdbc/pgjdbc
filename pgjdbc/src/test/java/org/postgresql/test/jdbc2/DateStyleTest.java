@@ -5,28 +5,30 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.fail;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "dateStyle={0}, shouldPass={1}")
+@MethodSource("data")
 public class DateStyleTest extends BaseTest4 {
 
-  @Parameterized.Parameter(0)
+  @Parameter(0)
   public String dateStyle;
 
-  @Parameterized.Parameter(1)
+  @Parameter(1)
   public boolean shouldPass;
 
-  @Parameterized.Parameters(name = "dateStyle={0}, shouldPass={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"iso, mdy", true},
@@ -42,7 +44,7 @@ public class DateStyleTest extends BaseTest4 {
     try {
       st.execute("set DateStyle='" + dateStyle + "'");
       if (!shouldPass) {
-        Assert.fail("Set DateStyle=" + dateStyle + " should not be allowed");
+        fail("Set DateStyle=" + dateStyle + " should not be allowed");
       }
     } catch (SQLException e) {
       if (shouldPass) {

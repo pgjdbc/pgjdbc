@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
@@ -24,7 +25,6 @@ import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -54,9 +54,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-/*
-* Test for getObject
-*/
 class StatementTest {
   private Connection con;
 
@@ -953,7 +950,7 @@ class StatementTest {
   @Test
   @Timeout(10)
   void closeInProgressStatementProtocol32() throws Exception {
-    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v11));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v11));
     Properties props = new Properties();
     con.close();
     PGProperty.PROTOCOL_VERSION.set(props, "3.2");

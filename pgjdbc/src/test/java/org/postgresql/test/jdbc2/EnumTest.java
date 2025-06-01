@@ -5,12 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
 import java.sql.PreparedStatement;
@@ -20,13 +22,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class EnumTest extends BaseTest4 {
   public EnumTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -53,19 +55,17 @@ public class EnumTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     rs.next();
     Array array = rs.getArray(1);
-    Assert.assertNotNull("{duplicate,new} should come up as a non-null array", array);
+    assertNotNull(array, "{duplicate,new} should come up as a non-null array");
     Object[] objectArray = (Object[]) array.getArray();
-    Assert.assertEquals(
-        "{duplicate,new} should come up as Java array with two entries",
+    assertEquals(
         "[duplicate, new]",
-        Arrays.deepToString(objectArray)
-    );
+        Arrays.deepToString(objectArray),
+        "{duplicate,new} should come up as Java array with two entries");
 
-    Assert.assertEquals(
-        "Enum array entries should come up as strings",
+    assertEquals(
         "java.lang.String, java.lang.String",
-        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName()
-    );
+        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName(),
+        "Enum array entries should come up as strings");
     rs.close();
     pstmt.close();
   }
@@ -77,19 +77,17 @@ public class EnumTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     rs.next();
     Array array = rs.getArray(1);
-    Assert.assertNotNull(value + " should come up as a non-null array", array);
+    assertNotNull(array, value + " should come up as a non-null array");
     Object[] objectArray = (Object[]) array.getArray();
-    Assert.assertEquals(
-        value + " should come up as Java array with two entries",
+    assertEquals(
         "[[duplicate, new], [spike, spike]]",
-        Arrays.deepToString(objectArray)
-    );
+        Arrays.deepToString(objectArray),
+        () -> value + " should come up as Java array with two entries");
 
-    Assert.assertEquals(
-        "Enum array entries should come up as strings",
+    assertEquals(
         "[Ljava.lang.String;, [Ljava.lang.String;",
-        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName()
-    );
+        objectArray[0].getClass().getName() + ", " + objectArray[1].getClass().getName(),
+        "Enum array entries should come up as strings");
     rs.close();
     pstmt.close();
   }

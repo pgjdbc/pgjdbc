@@ -5,23 +5,25 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.SQLException;
 import java.util.Arrays;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "input={0}, expected={1}")
+@MethodSource("data")
 public class ReplaceProcessingTest extends BaseTest4 {
 
-  @Parameterized.Parameter(0)
+  @Parameter(0)
   public String input;
-  @Parameterized.Parameter(1)
+  @Parameter(1)
   public String expected;
 
-  @Parameterized.Parameters(name = "input={0}, expected={1}")
   public static Iterable<Object[]> data() {
     return Arrays.asList(new Object[][]{
         {"{fn timestampadd(SQL_TSI_YEAR, ?, {fn now()})}", "(CAST( $1||' year' as interval)+ now())"},
@@ -41,6 +43,6 @@ public class ReplaceProcessingTest extends BaseTest4 {
 
   @Test
   public void run() throws SQLException {
-    Assert.assertEquals(input, expected, con.nativeSQL(input));
+    assertEquals(expected, con.nativeSQL(input), input);
   }
 }
