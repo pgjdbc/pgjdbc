@@ -5,12 +5,12 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -18,9 +18,9 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -45,7 +45,8 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "binary = {0}")
+@MethodSource("data")
 public class GetObject310Test extends BaseTest4 {
 
   private static final TimeZone saveTZ = TimeZone.getDefault();
@@ -61,7 +62,6 @@ public class GetObject310Test extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {

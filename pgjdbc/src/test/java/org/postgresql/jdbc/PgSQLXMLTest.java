@@ -5,18 +5,17 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.StringWriter;
 import java.io.Writer;
@@ -42,7 +41,6 @@ import javax.xml.transform.stream.StreamResult;
 public class PgSQLXMLTest extends BaseTest4 {
 
   @Override
-  @Before
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTempTable(con, "xmltab", "x xml");
@@ -98,8 +96,8 @@ public class PgSQLXMLTest extends BaseTest4 {
     });
     String message = ex.getCause().getMessage();
     assertTrue(
-        "Expected to get a <<DOCTYPE disallowed>> SAXParseException. Actual message is " + message,
-        message.contains("DOCTYPE"));
+        message.contains("DOCTYPE"),
+        () -> "Expected to get a <<DOCTYPE disallowed>> SAXParseException. Actual message is " + message);
   }
 
   @Test
@@ -121,8 +119,8 @@ public class PgSQLXMLTest extends BaseTest4 {
     });
     String message = ex.getCause().getMessage();
     assertTrue(
-        "Expected to get a <<DOCTYPE disallowed>> TransformerException. Actual message is " + message,
-        message.contains("DOCTYPE"));
+        message.contains("DOCTYPE"),
+        () -> "Expected to get a <<DOCTYPE disallowed>> TransformerException. Actual message is " + message);
   }
 
   @Test

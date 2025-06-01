@@ -5,9 +5,12 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.ds.PGConnectionPoolDataSource;
@@ -15,8 +18,7 @@ import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -55,7 +57,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   @Override
-  public void tearDown() throws Exception {
+  public void tearDown() throws SQLException {
     for (PooledConnection c : connections) {
       try {
         c.close();
@@ -124,8 +126,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       String name2 = con.toString();
       con.close();
       pc.close();
-      assertTrue("Physical connection doesn't appear to be reused across PooledConnection wrappers",
-          name.equals(name2));
+      assertEquals(name, name2, "Physical connection doesn't appear to be reused across PooledConnection wrappers");
     } catch (SQLException e) {
       fail(e.getMessage());
     }
@@ -143,8 +144,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       Connection con2 = pc.getConnection();
       try {
         con.createStatement();
-        fail(
-            "Original connection wrapper should be closed when new connection wrapper is generated");
+        fail("Original connection wrapper should be closed when new connection wrapper is generated");
       } catch (SQLException e) {
       }
       con2.close();
@@ -167,9 +167,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       Connection con2 = pc.getConnection();
       con2.close();
       pc.close();
-      assertTrue(
-          "Two calls to PooledConnection.getConnection should not return the same connection wrapper",
-          con != con2);
+      assertNotSame(con, con2, "Two calls to PooledConnection.getConnection should not return the same connection wrapper");
     } catch (SQLException e) {
       fail(e.getMessage());
     }
@@ -279,7 +277,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
       assertEquals(0, cc.getErrorCount());
       // Open a 2nd connection, causing the first to be closed. No even should be generated.
       Connection con2 = pc.getConnection();
-      assertTrue("Connection handle was not closed when new handle was opened", con.isClosed());
+      assertTrue(con.isClosed(), "Connection handle was not closed when new handle was opened");
       assertEquals(1, cc.getCount());
       assertEquals(0, cc.getErrorCount());
       con2.close();
@@ -300,13 +298,13 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     try {
       PooledConnection pc = getPooledConnection();
       con = pc.getConnection();
-      assertTrue(!con.isClosed());
+      assertFalse(con.isClosed());
       con.close();
       assertTrue(con.isClosed());
       con = pc.getConnection();
       Connection con2 = pc.getConnection();
       assertTrue(con.isClosed());
-      assertTrue(!con2.isClosed());
+      assertFalse(con2.isClosed());
       con2.close();
       assertTrue(con.isClosed());
       pc.close();
@@ -324,10 +322,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
     try {
       PooledConnection pc = getPooledConnection();
       con = pc.getConnection();
-      assertTrue(!con.isClosed());
+      assertFalse(con.isClosed());
 
-      Assume.assumeTrue("pg_terminate_backend requires PostgreSQL 8.4+",
-          TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4), "pg_terminate_backend requires PostgreSQL 8.4+");
 
       TestUtil.terminateBackend(con);
       try {

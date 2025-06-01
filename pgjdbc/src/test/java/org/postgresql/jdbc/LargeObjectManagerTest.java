@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -18,7 +19,6 @@ import org.postgresql.test.util.StrangeOutputStream;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -42,7 +42,7 @@ class LargeObjectManagerTest {
   @Test
   void openWithErrorAndSubsequentParameterStatusMessageShouldLeaveConnectionInUsableStateAndUpdateParameterStatus() throws Exception {
     try (PgConnection con = (PgConnection) TestUtil.openDB()) {
-      Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
       con.setAutoCommit(false);
       String originalApplicationName = con.getParameterStatus("application_name");
       try (Statement statement = con.createStatement()) {

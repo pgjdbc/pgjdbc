@@ -5,14 +5,14 @@
 
 package org.postgresql.test.jdbc2;
 
-import org.postgresql.test.SlowTests;
-import org.postgresql.test.TestUtil;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import org.junit.Assert;
-import org.junit.Test;
-import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.tags.Slow;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,7 +20,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass(name = "{index}: quotes(style={0}, src={1}, quoted={2})")
+@MethodSource("data")
 public class QuotationTest extends BaseTest4 {
   private enum QuoteStyle {
     SIMPLE("'"), DOLLAR_NOTAG("$$"), DOLLAR_A("$a$"), DOLLAR_DEF("$DEF$"),
@@ -47,7 +48,6 @@ public class QuotationTest extends BaseTest4 {
     this.expr = expr;
   }
 
-  @Parameterized.Parameters(name = "{index}: quotes(style={0}, src={1}, quoted={2})")
   public static Iterable<Object[]> data() {
     Collection<String> prefix = new ArrayList<>();
     // Too many prefixes make test run long
@@ -114,21 +114,21 @@ public class QuotationTest extends BaseTest4 {
   }
 
   @Test
-  @Category(SlowTests.class)
+  @Slow
   public void quotedString() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select " + expr);
     try {
       ResultSet rs = ps.executeQuery();
       rs.next();
       String val = rs.getString(1);
-      Assert.assertEquals(expected, val);
+      assertEquals(expected, val);
     } catch (SQLException e) {
       TestUtil.closeQuietly(ps);
     }
   }
 
   @Test
-  @Category(SlowTests.class)
+  @Slow
   public void bindInTheMiddle() throws SQLException {
     PreparedStatement ps = con.prepareStatement("select " + expr + ", ?, " + expr);
     try {
@@ -137,8 +137,8 @@ public class QuotationTest extends BaseTest4 {
       rs.next();
       String val1 = rs.getString(1);
       String val3 = rs.getString(3);
-      Assert.assertEquals(expected, val1);
-      Assert.assertEquals(expected, val3);
+      assertEquals(expected, val1);
+      assertEquals(expected, val3);
     } catch (SQLException e) {
       TestUtil.closeQuietly(ps);
     }

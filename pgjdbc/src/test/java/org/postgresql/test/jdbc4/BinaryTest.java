@@ -5,7 +5,9 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
@@ -14,8 +16,7 @@ import org.postgresql.core.Field;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -34,8 +35,9 @@ public class BinaryTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("Server-prepared statements are not supported in 'simple protocol only'",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(
+        preferQueryMode != PreferQueryMode.SIMPLE,
+        "Server-prepared statements are not supported in 'simple protocol only'");
     statement = con.prepareStatement("select 1");
 
     ((PGStatement) statement).setPrepareThreshold(5);
@@ -123,7 +125,7 @@ public class BinaryTest extends BaseTest4 {
     for (int i = 0; i < 10; i++) {
       ps.setInt(1, 42 + i);
       ResultSet rs = ps.executeQuery();
-      assertEquals("One row should be returned", true, rs.next());
+      assertTrue(rs.next(), "One row should be returned");
       assertEquals(42 + i, rs.getInt(1));
       rs.close();
     }

@@ -5,13 +5,12 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -25,7 +24,6 @@ import java.sql.Statement;
  */
 public class NoColumnMetadataIssue1613Test extends BaseTest4 {
   @Override
-  @Before
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTempTable(con, "test_no_column_metadata", "id int");

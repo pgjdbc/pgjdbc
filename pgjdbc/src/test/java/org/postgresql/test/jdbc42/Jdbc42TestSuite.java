@@ -13,7 +13,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @SuiteClasses({
     AdaptiveFetchSizeTest.class,
     CustomizeDefaultFetchSizeTest.class,
-    GetObject310InfinityTests.class,
+    GetObject310InfinityTest.class,
     GetObject310Test.class,
     Jdbc42CallableStatementTest.class,
     LargeCountJdbc42Test.class,

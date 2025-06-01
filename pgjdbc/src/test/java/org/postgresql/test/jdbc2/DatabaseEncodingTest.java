@@ -7,12 +7,12 @@ package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.Encoding;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -68,7 +68,7 @@ class DatabaseEncodingTest {
   @Test
   void encoding() throws Exception {
     String databaseEncoding = TestUtil.queryForString(con, "SELECT getdatabaseencoding()");
-    Assumptions.assumeTrue("UTF8".equals(databaseEncoding), "Database encoding must be UTF8");
+    assumeTrue("UTF8".equals(databaseEncoding), "Database encoding must be UTF8");
 
     boolean testHighUnicode = true;
 

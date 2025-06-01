@@ -5,11 +5,13 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.Reader;
 import java.io.StringReader;
@@ -52,7 +54,11 @@ public class CharacterStreamTest extends BaseTest4 {
     try {
       Reader reader = data != null ? new StringReader(data) : null;
       long length = data != null ? data.length() : 0;
-      insertPS.setCharacterStream(1, reader, length);
+      try {
+        insertPS.setCharacterStream(1, reader, length);
+      } catch (SQLFeatureNotSupportedException e) {
+        assumeTrue(false, "PreparedStatement.setCharacterStream(int, Reader, long) is not implemented");
+      }
       insertPS.executeUpdate();
     } finally {
       TestUtil.closeQuietly(insertPS);
@@ -72,7 +78,7 @@ public class CharacterStreamTest extends BaseTest4 {
 
   private void validateContent(String data) throws Exception {
     String actualData = TestUtil.queryForString(con, _select);
-    Assert.assertEquals("Sent and received data are not the same", data, actualData);
+    assertEquals(data, actualData, "Sent and received data are not the same");
   }
 
   private static String getTestData(int size) {
@@ -101,7 +107,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLengthNull() throws Exception {
     String data = null;
     insertStreamKnownLongLength(data);
@@ -122,7 +128,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLengthEmpty() throws Exception {
     String data = "";
     insertStreamKnownLongLength(data);
@@ -143,7 +149,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength2Kb() throws Exception {
     String data = getTestData(2 * 1024);
     insertStreamKnownLongLength(data);
@@ -164,7 +170,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength10Kb() throws Exception {
     String data = getTestData(10 * 1024);
     insertStreamKnownLongLength(data);
@@ -185,7 +191,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength100Kb() throws Exception {
     String data = getTestData(100 * 1024);
     insertStreamKnownLongLength(data);
@@ -206,7 +212,7 @@ public class CharacterStreamTest extends BaseTest4 {
     validateContent(data);
   }
 
-  @Test(expected = SQLFeatureNotSupportedException.class)
+  @Test
   public void testKnownLongLength200Kb() throws Exception {
     String data = getTestData(200 * 1024);
     insertStreamKnownLongLength(data);

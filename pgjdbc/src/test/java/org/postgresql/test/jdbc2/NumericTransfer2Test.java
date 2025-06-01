@@ -5,15 +5,15 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -25,12 +25,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@RunWith(Parameterized.class)
-public class NumericTransferTest2 extends BaseTest4 {
+@ParameterizedClass(name = "binary = {0}, value = {1,number,#,###.##################################################}")
+@MethodSource("data")
+public class NumericTransfer2Test extends BaseTest4 {
 
   final BigDecimal value;
 
-  public NumericTransferTest2(BinaryMode binaryMode, BigDecimal value) {
+  public NumericTransfer2Test(BinaryMode binaryMode, BigDecimal value) {
     setBinaryMode(binaryMode);
     this.value = value;
   }
@@ -41,7 +42,6 @@ public class NumericTransferTest2 extends BaseTest4 {
     PGProperty.BINARY_TRANSFER_ENABLE.set(props, Oid.NUMERIC);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}, value = {1,number,#,###.##################################################}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> numbers = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -95,7 +95,7 @@ public class NumericTransferTest2 extends BaseTest4 {
       final String sql = "SELECT " + valString + "::numeric";
       try (ResultSet rs = statement.executeQuery(sql)) {
         assertTrue(rs.next());
-        assertEquals("getBigDecimal for " + sql, valString, rs.getBigDecimal(1).toPlainString());
+        assertEquals(valString, rs.getBigDecimal(1).toPlainString(), "getBigDecimal for " + sql);
       }
     }
   }
@@ -107,7 +107,7 @@ public class NumericTransferTest2 extends BaseTest4 {
       statement.setBigDecimal(1, value);
       try (ResultSet rs = statement.executeQuery()) {
         rs.next();
-        assertEquals("getBigDecimal for " + valString, valString, rs.getBigDecimal(1).toPlainString());
+        assertEquals(valString, rs.getBigDecimal(1).toPlainString(), "getBigDecimal for " + valString);
       }
     }
   }

@@ -5,21 +5,20 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.util.MiniJndiContextFactory;
 import org.postgresql.util.PSQLException;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -38,16 +37,15 @@ import javax.naming.NamingException;
  *
  * @author Aaron Mulder (ammulder@chariotsolutions.com)
  */
-public abstract class BaseDataSourceTest {
+public abstract class BaseDataSourceTest extends BaseTest4 {
   public static final String DATA_SOURCE_JNDI = "BaseDataSource";
 
-  protected Connection con;
   protected BaseDataSource bds;
 
   /**
    * Creates a test table using a standard connection (not from a DataSource).
    */
-  @Before
+  @Override
   public void setUp() throws Exception {
     con = TestUtil.openDB();
     TestUtil.createTable(con, "poolingtest", "id int4 not null primary key, name varchar(50)");
@@ -60,8 +58,8 @@ public abstract class BaseDataSourceTest {
   /**
    * Removes the test table using a standard connection (not from a DataSource).
    */
-  @After
-  public void tearDown() throws Exception {
+  @Override
+  public void tearDown() throws SQLException {
     TestUtil.closeDB(con);
     con = TestUtil.openDB();
     TestUtil.dropTable(con, "poolingtest");
@@ -200,7 +198,7 @@ public abstract class BaseDataSourceTest {
     try {
       ic.rebind(DATA_SOURCE_JNDI, bds);
       bds = (BaseDataSource) ic.lookup(DATA_SOURCE_JNDI);
-      assertNotNull("Got null looking up DataSource from JNDI!", bds);
+      assertNotNull(bds, "Got null looking up DataSource from JNDI!");
       compareJndiDataSource(oldbds, bds);
     } catch (NamingException e) {
       fail(e.getMessage());
@@ -208,10 +206,8 @@ public abstract class BaseDataSourceTest {
     oldbds = bds;
     String url = bds.getURL();
     testUseConnection();
-    assertSame("Test should not have changed DataSource (" + bds + " != " + oldbds + ")!",
-        oldbds, bds);
-    assertEquals("Test should not have changed DataSource URL",
-        oldurl, url);
+    assertSame(oldbds, bds, "Test should not have changed DataSource (" + bds + " != " + oldbds + ")!");
+    assertEquals(oldurl, url, "Test should not have changed DataSource URL");
   }
 
   /**
@@ -232,6 +228,6 @@ public abstract class BaseDataSourceTest {
    * Check whether a DS was dereferenced from JNDI or recreated.
    */
   protected void compareJndiDataSource(BaseDataSource oldbds, BaseDataSource bds) {
-    assertNotSame("DataSource was dereferenced, should have been serialized or recreated", oldbds, bds);
+    assertNotSame(oldbds, bds, "DataSource was dereferenced, should have been serialized or recreated");
   }
 }
