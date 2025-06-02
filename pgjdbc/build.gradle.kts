@@ -87,7 +87,6 @@ dependencies {
     shaded("com.ongres.scram:scram-client:3.1")
 
     implementation("org.checkerframework:checker-qual:3.49.3")
-    testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
     testFixturesImplementation(platform("org.junit:junit-bom:5.13.0"))
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-api")
     testFixturesImplementation("org.checkerframework:checker-qual:3.49.3")

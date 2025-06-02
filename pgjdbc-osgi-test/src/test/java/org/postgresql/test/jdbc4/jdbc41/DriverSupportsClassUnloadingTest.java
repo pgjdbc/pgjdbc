@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4.jdbc41;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 
 import org.postgresql.Driver;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 import se.jiderhamn.classloader.PackagesLoadedOutsideClassLoader;
 import se.jiderhamn.classloader.leak.JUnitClassloaderRunner;
@@ -34,7 +34,7 @@ import java.sql.Types;
     packages = {"java.", "javax.", "jdk.", "com.sun.", "sun.", "org.w3c", "org.junit.", "junit.",
         "se.jiderhamn."}
 )
-class DriverSupportsClassUnloadingTest {
+public class DriverSupportsClassUnloadingTest {
   // See https://github.com/mjiderhamn/classloader-leak-prevention/tree/master/classloader-leak-test-framework#verifying-prevention-measures
   public static class LeakPreventor implements Runnable {
     @Override
@@ -57,20 +57,20 @@ class DriverSupportsClassUnloadingTest {
     }
   }
 
-  @BeforeAll
-  static void setSmallCleanupThreadTtl() {
+  @BeforeClass
+  public static void setSmallCleanupThreadTtl() {
     // Make the tests faster
     System.setProperty("pgjdbc.config.cleanup.thread.ttl", "100");
   }
 
-  @AfterAll
-  static void resetCleanupThreadTtl() {
+  @AfterClass
+  public static void resetCleanupThreadTtl() {
     System.clearProperty("pgjdbc.config.cleanup.thread.ttl");
   }
 
   @Test
   @Leaks(dumpHeapOnError = true)
-  void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
+  public void driverUnloadsWhenConnectionLeaks() throws SQLException, InterruptedException {
     if (!Driver.isRegistered()) {
       Driver.register();
     }
@@ -82,9 +82,9 @@ class DriverSupportsClassUnloadingTest {
     if (con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       ResultSetMetaData md = ps.getMetaData();
       assertEquals(
+          ".getColumnType for column 1 c1 should be INTEGER",
           Types.INTEGER,
-          md.getColumnType(1),
-          ".getColumnType for column 1 c1 should be INTEGER"
+          md.getColumnType(1)
       );
     }
 
@@ -92,12 +92,12 @@ class DriverSupportsClassUnloadingTest {
     ps.setQueryTimeout(1000);
     ResultSet rs = ps.executeQuery();
     rs.next();
-    assertEquals(1, rs.getInt(1), ".getInt for column c1");
+    assertEquals(".getInt for column c1", 1, rs.getInt(1));
   }
 
   @Test
   @Leaks(dumpHeapOnError = true)
-  void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException {
+  public void driverUnloadsWhenConnectionClosedExplicitly() throws SQLException {
     if (!Driver.isRegistered()) {
       Driver.register();
     }
@@ -109,9 +109,9 @@ class DriverSupportsClassUnloadingTest {
         if (con.unwrap(PgConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
           ResultSetMetaData md = ps.getMetaData();
           assertEquals(
+              ".getColumnType for column 1 c1 should be INTEGER",
               Types.INTEGER,
-              md.getColumnType(1),
-              ".getColumnType for column 1 c1 should be INTEGER"
+              md.getColumnType(1)
           );
         }
 
@@ -119,7 +119,7 @@ class DriverSupportsClassUnloadingTest {
         ps.setQueryTimeout(1000);
         try (ResultSet rs = ps.executeQuery()) {
           rs.next();
-          assertEquals(1, rs.getInt(1), ".getInt for column c1");
+          assertEquals(".getInt for column c1", 1, rs.getInt(1));
         }
       }
     }

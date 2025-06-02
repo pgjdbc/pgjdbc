@@ -48,15 +48,11 @@
             <version>%{com.ongres.scram:scram-client}</version>
         </dependency>
         <dependency>
-            <groupId>se.jiderhamn</groupId>
-            <artifactId>classloader-leak-test-framework</artifactId>
-            <version>%{se.jiderhamn:classloader-leak-test-framework}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
+            <!-- The tests do not use junit4, however, we still use org.hamcrest assertions
+                 so add junit for test execution for now -->
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>%{junit:junit}</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
