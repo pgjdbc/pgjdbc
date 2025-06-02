@@ -34,7 +34,7 @@ import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(Parameterized.class)
-public class AutoRollbackTestSuite extends BaseTest4 {
+public class AutoRollbackTest extends BaseTest4 {
   private static final AtomicInteger counter = new AtomicInteger();
 
   private enum CleanSavePoint {
@@ -125,7 +125,7 @@ public class AutoRollbackTestSuite extends BaseTest4 {
   private final TestStatement testSql;
   private final ReturnColumns cols;
 
-  public AutoRollbackTestSuite(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
+  public AutoRollbackTest(AutoSave autoSave, CleanSavePoint cleanSavePoint, AutoCommit autoCommit,
       FailMode failMode, ContinueMode continueMode, boolean flushCacheOnDeallocate,
       boolean trans, TestStatement testSql, ReturnColumns cols) {
     this.autoSave = autoSave;
@@ -307,16 +307,8 @@ public class AutoRollbackTestSuite extends BaseTest4 {
         }
         return;
       case IS_VALID:
-        if (!flushCacheOnDeallocate && autoSave == AutoSave.NEVER
-            && DEALLOCATES.contains(failMode) && autoCommit == AutoCommit.NO
-            && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-          Assert.assertFalse("Connection.isValid should return false since failMode=" + failMode
-              + ", flushCacheOnDeallocate=false, and autosave=NEVER",
-              con.isValid(4));
-        } else {
-          Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
-              con.isValid(4));
-        }
+        Assert.assertTrue("Connection.isValid should return true unless the connection is closed",
+            con.isValid(4));
         return;
       default:
         break;

@@ -318,8 +318,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     switch (getPreferQueryMode()) {
       case SIMPLE:
         return flags | QUERY_EXECUTE_AS_SIMPLE;
-      case EXTENDED:
-        return flags & ~QUERY_EXECUTE_AS_SIMPLE;
       default:
         return flags;
     }
