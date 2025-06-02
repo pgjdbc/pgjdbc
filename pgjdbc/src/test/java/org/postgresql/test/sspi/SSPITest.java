@@ -5,11 +5,10 @@
 
 package org.postgresql.test.sspi;
 
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.junit.MatcherAssume.assumeThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
@@ -38,9 +37,10 @@ class SSPITest {
    */
   @BeforeAll
   static void checkPlatform() {
-    assumeThat("SSPI not supported on this platform",
-               System.getProperty("os.name").toLowerCase(Locale.ROOT),
-               containsString("windows"));
+    String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+    assumeTrue(
+        os.contains("windows"),
+        "SSPI not supported on this platform, current os.name is " + os);
   }
 
   /*
