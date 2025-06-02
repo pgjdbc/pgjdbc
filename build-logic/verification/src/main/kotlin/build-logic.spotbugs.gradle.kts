@@ -26,12 +26,7 @@ dependencies {
             .takeIf { it.isPresent }
             ?.let {
                 val asmVersion = it.get()
-                spotbugs("org.ow2.asm:asm:$asmVersion")
-                spotbugs("org.ow2.asm:asm-all:$asmVersion")
-                spotbugs("org.ow2.asm:asm-analysis:$asmVersion")
-                spotbugs("org.ow2.asm:asm-commons:$asmVersion")
-                spotbugs("org.ow2.asm:asm-tree:$asmVersion")
-                spotbugs("org.ow2.asm:asm-util:$asmVersion")
+                spotbugs(platform("org.ow2.asm:asm-bom:$asmVersion"))
             }
     }
 }
