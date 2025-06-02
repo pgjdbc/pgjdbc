@@ -332,6 +332,10 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return statementCache.borrow(sql);
   }
 
+  protected final @Nullable CachedQuery getQuery(String sql) {
+    return statementCache.get(sql);
+  }
+
   @Override
   public final CachedQuery borrowCallableQuery(String sql) throws SQLException {
     return statementCache.borrow(new CallableQueryKey(sql));
