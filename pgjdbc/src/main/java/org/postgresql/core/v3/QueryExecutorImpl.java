@@ -12,6 +12,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.core.CachedQuery;
 import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
@@ -283,17 +284,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
     if (queries.size() == 1) {
       NativeQuery firstQuery = queries.get(0);
-      if (isReWriteBatchedInsertsEnabled()
-          && firstQuery.getCommand().isBatchedReWriteCompatible()) {
-        int valuesBraceOpenPosition =
-            firstQuery.getCommand().getBatchRewriteValuesBraceOpenPosition();
-        int valuesBraceClosePosition =
-            firstQuery.getCommand().getBatchRewriteValuesBraceClosePosition();
-        return new BatchedQuery(firstQuery, this, valuesBraceOpenPosition,
-            valuesBraceClosePosition, isColumnSanitiserDisabled());
-      } else {
-        return new SimpleQuery(firstQuery, this, isColumnSanitiserDisabled());
-      }
+      return getSimpleQuery(firstQuery);
     }
 
     // Multiple statements.
@@ -303,11 +294,29 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     for (int i = 0; i < queries.size(); i++) {
       NativeQuery nativeQuery = queries.get(i);
       offsets[i] = offset;
-      subqueries[i] = new SimpleQuery(nativeQuery, this, isColumnSanitiserDisabled());
+      CachedQuery cached = getQuery(nativeQuery.originalSql);
+      if (cached == null) {
+        cached = new CachedQuery(nativeQuery.originalSql, getSimpleQuery(nativeQuery), false);
+        releaseQuery(cached);
+      }
+      subqueries[i] = (SimpleQuery) cached.query;
       offset += nativeQuery.bindPositions.length;
     }
-
     return new CompositeQuery(subqueries, offsets);
+  }
+
+  private SimpleQuery getSimpleQuery(NativeQuery firstQuery) {
+    if (isReWriteBatchedInsertsEnabled()
+        && firstQuery.getCommand().isBatchedReWriteCompatible()) {
+      int valuesBraceOpenPosition =
+          firstQuery.getCommand().getBatchRewriteValuesBraceOpenPosition();
+      int valuesBraceClosePosition =
+          firstQuery.getCommand().getBatchRewriteValuesBraceClosePosition();
+      return new BatchedQuery(firstQuery, this, valuesBraceOpenPosition,
+          valuesBraceClosePosition, isColumnSanitiserDisabled());
+    } else {
+      return new SimpleQuery(firstQuery, this, isColumnSanitiserDisabled());
+    }
   }
 
   //
