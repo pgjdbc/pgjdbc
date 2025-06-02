@@ -28,8 +28,13 @@ dependencies {
     testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
     testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.16")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
-    testImplementation("ch.qos.logback:logback-core:1.2.13")
-    testImplementation("ch.qos.logback:logback-classic:1.2.13")
+    testImplementation("ch.qos.logback:logback-core:1.5.18")
+    testImplementation("ch.qos.logback:logback-classic:1.5.18")
+    testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.8"))
+    testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
+    testRuntimeOnly("org.apache.bcel:bcel:6.10.0") {
+        because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
+    }
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
