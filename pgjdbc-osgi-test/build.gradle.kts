@@ -17,6 +17,10 @@ dependencies {
     pgjdbcRepository(project(":postgresql"))
 
     testImplementation(project(":postgresql"))
+    testImplementation(testFixtures(project(":postgresql")))
+    testRuntimeOnly("com.ongres.scram:scram-client:3.1") {
+        because("We can't use shaded :postgresql artifact and testFixtures at the same time")
+    }
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("javax:javaee-api:8.0.1")
@@ -32,6 +36,7 @@ dependencies {
     testImplementation("ch.qos.logback:logback-classic:1.5.18")
     testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.8"))
     testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
+    testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
     testRuntimeOnly("org.apache.bcel:bcel:6.10.0") {
         because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
     }
