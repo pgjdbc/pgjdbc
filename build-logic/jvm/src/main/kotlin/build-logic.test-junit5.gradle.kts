@@ -21,7 +21,6 @@ dependencies {
     }
     testImplementation("org.junit.jupiter:junit-jupiter-params")
     testImplementation("org.hamcrest:hamcrest:3.0")
-    testImplementation("org.hamcrest:hamcrest-junit:2.0.0.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
