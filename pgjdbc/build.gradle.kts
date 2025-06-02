@@ -74,6 +74,12 @@ dependencies {
         api("com.github.waffle:waffle-jna:1.9.1")
         api("org.osgi:org.osgi.core:6.0.0")
         api("org.osgi:org.osgi.service.jdbc:1.0.0")
+        testCompileOnly("junit:junit") {
+            because("We use JUnit 5 for testing, so we do not like to have JUnit 4 on the classpath")
+            version {
+                rejectAll()
+            }
+        }
     }
 
     "sspiImplementation"("com.github.waffle:waffle-jna")
