@@ -17,6 +17,7 @@ import org.junit.runners.Suite;
     CloseOnCompletionTest.class,
     GetObjectTest.class,
     NetworkTimeoutTest.class,
+    RangeTypeTest.class,
     SchemaTest.class,
 })
 public class Jdbc41TestSuite {
