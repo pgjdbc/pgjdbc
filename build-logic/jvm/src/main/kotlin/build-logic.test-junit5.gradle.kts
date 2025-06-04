@@ -44,6 +44,7 @@ tasks.configureEach<Test> {
     }
     passProperty("junit.jupiter.execution.parallel.enabled", "true")
     passProperty("junit.jupiter.extensions.autodetection.enabled", "true")
+    passProperty("junit.platform.discovery.issue.severity.critical", "warn")
     // TODO: remove when upgrade to JUnit 5.9+
     // See https://github.com/junit-team/junit5/commit/347e3119d36a5c226cddd7981452f11335fad422
     passProperty("junit.jupiter.execution.parallel.config.strategy", "DYNAMIC")
