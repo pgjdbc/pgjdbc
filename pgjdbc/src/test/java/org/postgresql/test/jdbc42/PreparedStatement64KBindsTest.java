@@ -29,7 +29,7 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-@ParameterizedClass(name = "numBinds={0}, preferQueryMode={1}, binaryMode={2}}")
+@ParameterizedClass
 @MethodSource("data")
 public class PreparedStatement64KBindsTest extends BaseTest4 {
   private final int numBinds;

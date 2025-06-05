@@ -40,7 +40,7 @@ public class LibPQFactoryHostNameTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "host={0}, pattern={1}")
+  @ParameterizedTest
   void checkPattern(String hostname, String pattern, boolean expected) throws Exception {
     assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
 

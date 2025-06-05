@@ -47,7 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();

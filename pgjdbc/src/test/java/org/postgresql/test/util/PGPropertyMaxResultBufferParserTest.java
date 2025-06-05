@@ -42,7 +42,7 @@ public class PGPropertyMaxResultBufferParserTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "{index}: Test with valueToParse={0}, expectedResult={1}")
+  @ParameterizedTest
   void getMaxResultBufferValue(String valueToParse, long expectedResult) {
     assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);

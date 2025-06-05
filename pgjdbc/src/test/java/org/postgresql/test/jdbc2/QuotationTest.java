@@ -20,7 +20,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "{index}: quotes(style={0}, src={1}, quoted={2})")
+@ParameterizedClass
 @MethodSource("data")
 public class QuotationTest extends BaseTest4 {
   private enum QuoteStyle {

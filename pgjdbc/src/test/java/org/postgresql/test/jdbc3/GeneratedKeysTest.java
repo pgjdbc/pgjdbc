@@ -31,7 +31,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "returningInQuery = {0}, binary = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class GeneratedKeysTest extends BaseTest4 {
   public enum ReturningInQuery {

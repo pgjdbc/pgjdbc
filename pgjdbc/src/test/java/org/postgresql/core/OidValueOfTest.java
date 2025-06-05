@@ -25,7 +25,7 @@ public class OidValueOfTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "expected={0}, value={1}")
+  @ParameterizedTest
   void run(int expected, String value) throws PSQLException {
     assertEquals(expected, Oid.valueOf(value));
   }

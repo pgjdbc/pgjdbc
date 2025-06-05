@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class ArrayTest extends BaseTest4 {
 

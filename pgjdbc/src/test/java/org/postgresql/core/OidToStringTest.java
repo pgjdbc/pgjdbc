@@ -24,7 +24,7 @@ public class OidToStringTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "expected={1}, value={0}")
+  @ParameterizedTest
   void run(int value, String expected) throws PSQLException {
     assertEquals(expected, Oid.toString(value));
   }
