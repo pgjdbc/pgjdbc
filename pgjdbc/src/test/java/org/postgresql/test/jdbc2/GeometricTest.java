@@ -36,7 +36,7 @@ import java.util.List;
 /**
  * Test case for geometric type I/O
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class GeometricTest extends BaseTest4 {
 

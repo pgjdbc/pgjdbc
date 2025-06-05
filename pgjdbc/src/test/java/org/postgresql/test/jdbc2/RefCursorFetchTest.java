@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "binary = {0}, numRows = {1}, defaultFetchSize = {2}, statementFetchSize = {3}, resultSetFetchSize = {4}, autoCommit = {5}, commitAfterExecute = {6}")
+@ParameterizedClass
 @MethodSource("data")
 public class RefCursorFetchTest extends BaseTest4 {
   private final int numRows;

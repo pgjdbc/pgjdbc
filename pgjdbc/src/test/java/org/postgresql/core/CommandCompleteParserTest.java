@@ -39,7 +39,7 @@ public class CommandCompleteParserTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "input={0}, oid={1}, rows={2}")
+  @ParameterizedTest
   void run(String input, long oid, long rows) throws PSQLException {
     CommandCompleteParser expected = new CommandCompleteParser();
     CommandCompleteParser actual = new CommandCompleteParser();

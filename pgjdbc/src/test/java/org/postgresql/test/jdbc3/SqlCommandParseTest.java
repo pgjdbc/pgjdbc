@@ -37,7 +37,7 @@ public class SqlCommandParseTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "expected={0}, sql={1}")
+  @ParameterizedTest
   void run(SqlCommandType type, String sql) throws SQLException {
     List<NativeQuery> queries;
     queries = Parser.parseJdbcSql(sql, true, true, false, true, true);

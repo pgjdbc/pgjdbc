@@ -50,7 +50,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * ResultSet tests.
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class ResultSetTest extends BaseTest4 {
 

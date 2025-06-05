@@ -24,7 +24,7 @@ import java.util.Collection;
 /**
  * Tests {@code INSERT .. ON CONFLICT} introduced in PostgreSQL 9.5.
  */
-@ParameterizedClass(name = "binary = {0}, reWriteBatchedInserts = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class UpsertTest extends BaseTest4 {
   public UpsertTest(BinaryMode binaryMode, ReWriteBatchedInserts rewrite) {

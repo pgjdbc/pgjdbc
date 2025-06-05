@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 
-@ParameterizedClass(name = "{index}: batchTest(mode={2}, position={3}, autoCommit={1}, batchType={0}, generateKeys={1}, binary={4}, insertRewrite={5})")
+@ParameterizedClass
 @MethodSource("data")
 public class BatchFailureTest extends BaseTest4 {
   private final BatchType batchType;

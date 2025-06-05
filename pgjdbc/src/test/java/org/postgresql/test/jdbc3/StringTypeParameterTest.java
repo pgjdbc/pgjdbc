@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "stringType = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class StringTypeParameterTest extends BaseTest4 {
   private static final String UNSPECIFIED_STRING_TYPE = "unspecified";
