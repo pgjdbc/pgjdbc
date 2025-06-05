@@ -24,7 +24,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Properties;
 
-@ParameterizedClass(name = "allowEncodingChanges={0}")
+@ParameterizedClass
 @MethodSource("data")
 public class ClientEncodingTest extends BaseTest4 {
 

@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "databaseMetadataCacheFields = {0}, databaseMetadataCacheFieldsMib = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class ResultSetMetaDataTest extends BaseTest4 {
   Connection conn;

@@ -70,7 +70,7 @@ public class ServerVersionParseTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "str = {0}, expected = {1}")
+  @ParameterizedTest
   void run(String versionString, int versionNum, String rejectReason) {
     try {
       Version version = ServerVersion.from(versionString);

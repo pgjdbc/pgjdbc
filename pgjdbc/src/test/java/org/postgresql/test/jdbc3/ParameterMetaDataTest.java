@@ -26,7 +26,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class ParameterMetaDataTest extends BaseTest4 {
   public ParameterMetaDataTest(BinaryMode binaryMode) {

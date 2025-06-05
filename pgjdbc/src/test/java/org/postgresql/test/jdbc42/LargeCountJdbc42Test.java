@@ -32,7 +32,7 @@ import java.util.Properties;
  * Test methods with small counts that return long and failure scenarios. This have two really big
  * and slow test, they are ignored for CI but can be tested locally to check that it works.
  */
-@ParameterizedClass(name = "binary = {0}, insertRewrite = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class LargeCountJdbc42Test extends BaseTest4 {
 

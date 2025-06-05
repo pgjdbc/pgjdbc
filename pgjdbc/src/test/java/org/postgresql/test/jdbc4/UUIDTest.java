@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
-@ParameterizedClass(name = "binary={0}, stringType={1}")
+@ParameterizedClass
 @MethodSource("data")
 public class UUIDTest extends BaseTest4 {
 

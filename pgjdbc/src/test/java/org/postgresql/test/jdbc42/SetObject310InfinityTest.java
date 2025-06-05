@@ -28,7 +28,7 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class SetObject310InfinityTest extends BaseTest4 {
 

@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class NumericTransferTest extends BaseTest4 {
   public NumericTransferTest(BinaryMode binaryMode) {

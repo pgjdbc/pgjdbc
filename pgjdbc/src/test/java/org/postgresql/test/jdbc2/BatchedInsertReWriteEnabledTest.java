@@ -24,7 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "{index}: autoCommit={0}, binary={1}")
+@ParameterizedClass
 @MethodSource("data")
 public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
   private final AutoCommit autoCommit;

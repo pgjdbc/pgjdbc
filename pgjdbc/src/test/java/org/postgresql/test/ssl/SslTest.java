@@ -455,7 +455,7 @@ public class SslTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "host={0}, db={1} sslMode={2}, sslNegotiation={3}, clientCert={4}, clientRootCert={5}, gssEncMode={6}")
+  @ParameterizedTest
   void run(Hostname host, TestDatabase db, SslMode sslmode,SslNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
     initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
     Properties props = new Properties();

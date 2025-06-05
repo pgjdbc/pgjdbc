@@ -24,7 +24,7 @@ public class CommandCompleteParserNegativeTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "input={0}")
+  @ParameterizedTest
   void run(String input) throws PSQLException {
     CommandCompleteParser parser = new CommandCompleteParser();
     try {

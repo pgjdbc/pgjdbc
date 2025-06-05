@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 /**
  * Tests for using non-zero setFetchSize().
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class CursorFetchTest extends BaseTest4 {
 

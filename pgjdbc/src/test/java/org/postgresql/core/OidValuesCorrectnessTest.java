@@ -31,7 +31,7 @@ import java.util.Map;
 /**
  * Test to check if values in Oid class are correct with Oid values in a database.
  */
-@ParameterizedClass(name = "oidName={0}, oidValue={1}")
+@ParameterizedClass
 @MethodSource("data")
 public class OidValuesCorrectnessTest extends BaseTest4 {
 

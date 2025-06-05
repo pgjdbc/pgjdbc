@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
-@ParameterizedClass(name = "binary = {0}, expr = {1}, pgType = {2}, klass = {3}")
+@ParameterizedClass
 @MethodSource("data")
 public class GetObject310InfinityTest extends BaseTest4 {
   private final String expression;

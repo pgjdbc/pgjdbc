@@ -47,7 +47,7 @@ import java.util.Set;
 /**
  * TestCase to test the internal functionality of org.postgresql.jdbc2.DatabaseMetaData
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class DatabaseMetaDataTest {
   private Connection con;

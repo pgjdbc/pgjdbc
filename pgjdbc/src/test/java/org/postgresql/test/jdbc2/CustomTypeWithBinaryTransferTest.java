@@ -36,7 +36,7 @@ import java.util.Collection;
 /**
  * TestCase to test handling of binary types for custom objects.
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class CustomTypeWithBinaryTransferTest extends BaseTest4 {
   // define an oid of a binary type for testing, POINT is used here as it already exists in the

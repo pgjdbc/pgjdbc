@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Properties;
 
-@ParameterizedClass(name = "returningInQuery = {0}, quoteReturning = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class TestReturningTest extends BaseTest4 {
 

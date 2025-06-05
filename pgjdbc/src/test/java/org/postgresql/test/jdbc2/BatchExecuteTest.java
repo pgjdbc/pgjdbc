@@ -39,7 +39,7 @@ import java.util.Properties;
  *   - SQLExceptions chained to a BatchUpdateException
  *   - test PreparedStatement as thoroughly as Statement
  */
-@ParameterizedClass(name = "binary = {0}, insertRewrite = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class BatchExecuteTest extends BaseTest4 {
 

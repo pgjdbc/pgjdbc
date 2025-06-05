@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-@ParameterizedClass(name = "input={0}, expected={1}")
+@ParameterizedClass
 @MethodSource("data")
 public class ReplaceProcessingTest extends BaseTest4 {
 

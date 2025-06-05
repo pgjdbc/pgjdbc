@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "binary = {0}, sql = {1}, type = {2}")
+@ParameterizedClass
 @MethodSource("data")
 public class PGObjectGetTest extends BaseTest4 {
   private final String sqlExpression;

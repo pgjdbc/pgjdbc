@@ -37,7 +37,7 @@ import java.util.EnumSet;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@ParameterizedClass(name = "{index}: autorollback(autoSave={0}, cleanSavePoint={1}, autoCommit={2}, failMode={3}, continueMode={4}, flushOnDeallocate={5}, hastransaction={6}, sql={7}, columns={8})")
+@ParameterizedClass
 @MethodSource("data")
 public class AutoRollbackTest extends BaseTest4 {
   private static final AtomicInteger counter = new AtomicInteger();

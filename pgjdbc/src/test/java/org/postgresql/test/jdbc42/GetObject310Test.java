@@ -45,7 +45,7 @@ import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class GetObject310Test extends BaseTest4 {
 

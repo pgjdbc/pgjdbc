@@ -41,7 +41,7 @@ import java.util.TimeZone;
  * TODO: refactor to a property-based testing or parameterized testing somehow so adding new times
  *  don't require to add constants and setters/getters. JUnit 5 would probably help here.
  */
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class TimestampTest extends BaseTest4 {
 

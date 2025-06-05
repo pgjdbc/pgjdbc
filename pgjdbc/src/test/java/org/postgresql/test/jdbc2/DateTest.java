@@ -34,7 +34,7 @@ import java.util.stream.Stream;
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
  */
-@ParameterizedClass(name = "type = {0}, zoneId = {1}, binary = {2}")
+@ParameterizedClass
 @MethodSource("data")
 public class DateTest extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();

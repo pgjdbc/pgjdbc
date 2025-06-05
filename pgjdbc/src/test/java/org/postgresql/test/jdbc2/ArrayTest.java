@@ -39,7 +39,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "binary = {0}")
+@ParameterizedClass
 @MethodSource("data")
 public class ArrayTest extends BaseTest4 {
   private Connection conn;

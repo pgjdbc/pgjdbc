@@ -19,7 +19,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Arrays;
 
-@ParameterizedClass(name = "dateStyle={0}, shouldPass={1}")
+@ParameterizedClass
 @MethodSource("data")
 public class DateStyleTest extends BaseTest4 {
 

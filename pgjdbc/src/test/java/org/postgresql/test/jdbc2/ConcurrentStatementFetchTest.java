@@ -22,7 +22,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@ParameterizedClass(name = "{index}: fetch(autoCommit={0}, fetchSize={1}, binaryMode={2})")
+@ParameterizedClass
 @MethodSource("data")
 public class ConcurrentStatementFetchTest extends BaseTest4 {
 

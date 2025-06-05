@@ -34,7 +34,7 @@ import java.util.Arrays;
  *
  * @author Nic Ferrier (nferrier@tapsellferrier.co.uk)
  */
-@ParameterizedClass(name = "typeName = {0}, cursorType = {1}")
+@ParameterizedClass
 @MethodSource("data")
 public class RefCursorTest extends BaseTest4 {
 
