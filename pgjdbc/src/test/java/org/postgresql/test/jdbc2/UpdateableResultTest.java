@@ -5,20 +5,19 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -692,7 +691,7 @@ public class UpdateableResultTest extends BaseTest4 {
   @Test
   public void simpleAndUpdateableSameQuery() throws Exception {
     PGConnection unwrap = con.unwrap(PGConnection.class);
-    Assume.assumeNotNull(unwrap);
+    assumeTrue(unwrap != null, "con.unwrap(PGConnection.class) should not be null");
     int prepareThreshold = unwrap.getPrepareThreshold();
     String sql = "select * from second where id1=?";
     for (int i = 0; i <= prepareThreshold; i++) {
@@ -704,9 +703,9 @@ public class UpdateableResultTest extends BaseTest4 {
         rs = ps.executeQuery();
         rs.next();
         String name1 = rs.getString("name1");
-        Assert.assertEquals("anyvalue", name1);
+        assertEquals("anyvalue", name1);
         int id1 = rs.getInt("id1");
-        Assert.assertEquals(1, id1);
+        assertEquals(1, id1);
       } finally {
         TestUtil.closeQuietly(rs);
         TestUtil.closeQuietly(ps);
@@ -722,9 +721,9 @@ public class UpdateableResultTest extends BaseTest4 {
         rs = ps.executeQuery();
         rs.next();
         String name1 = rs.getString("name1");
-        Assert.assertEquals("anyvalue", name1);
+        assertEquals("anyvalue", name1);
         int id1 = rs.getInt("id1");
-        Assert.assertEquals(1, id1);
+        assertEquals(1, id1);
         rs.updateString("name1", "updatedValue");
         rs.updateRow();
       } finally {
@@ -777,8 +776,7 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateString("name1", "bob");
       fail("Should have failed since unique column u1 is nullable");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table unique_null_constraint.",
-          ex.getMessage());
+      assertEquals("No eligible primary or unique key found for table unique_null_constraint.", ex.getMessage());
     }
     rs.close();
     st.close();
@@ -875,8 +873,7 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since id2 is nullable column");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.",
-          ex.getMessage());
+      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
     }
     rs.close();
     st.close();
@@ -893,8 +890,7 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since no UK/PK are in the select statement");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.",
-          ex.getMessage());
+      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
     }
     rs.close();
     st.close();

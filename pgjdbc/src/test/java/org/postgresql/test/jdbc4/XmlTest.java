@@ -5,16 +5,18 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.w3c.dom.Node;
 
 import java.io.IOException;
@@ -69,7 +71,7 @@ public class XmlTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
     assumeMinimumServerVersion(ServerVersion.v8_3);
-    assumeTrue("Server has been compiled --with-libxml", isXmlEnabled(con));
+    assumeTrue(isXmlEnabled(con), "Server has been compiled --with-libxml");
 
     Statement stmt = con.createStatement();
     stmt.execute("CREATE TEMP TABLE xmltest(id int primary key, val xml)");
@@ -215,7 +217,7 @@ public class XmlTest extends BaseTest4 {
     xml = rs.getSQLXML(1);
     assertEquals(header + _xmlDocument, xml.getString());
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
@@ -301,11 +303,11 @@ public class XmlTest extends BaseTest4 {
     ResultSet rs = getRS();
     assertTrue(rs.next());
     Object o = rs.getObject(1);
-    assertTrue(o instanceof SQLXML);
+    assertInstanceOf(SQLXML.class, o);
     assertEquals(_xmlDocument, ((SQLXML) o).getString());
     assertTrue(rs.next());
     assertEquals(_xmlDocument, rs.getSQLXML(1).getString());
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test
@@ -335,7 +337,7 @@ public class XmlTest extends BaseTest4 {
     assertNull(rs.getSQLXML(1));
     assertTrue(rs.next());
     assertNull(rs.getSQLXML("val"));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 
   @Test

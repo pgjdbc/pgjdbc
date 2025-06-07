@@ -5,14 +5,15 @@
 
 package org.postgresql.jdbc;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -67,7 +68,6 @@ public class BitFieldTest extends BaseTest4 {
   };
 
   @Override
-  @Before
   public void setUp() throws Exception {
     super.setUp();
     con = TestUtil.openDB();
@@ -79,7 +79,7 @@ public class BitFieldTest extends BaseTest4 {
     }
   }
 
-  @After
+  @Override
   public void tearDown() throws SQLException {
     Statement stmt = con.createStatement();
     for (TestData testData : testBitValues) {
@@ -117,18 +117,18 @@ public class BitFieldTest extends BaseTest4 {
 
   private static void checkBitFieldValue(PreparedStatement pstmt, String bitValue, boolean isVarBit) throws SQLException {
     ResultSet rs = pstmt.executeQuery();
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     Object o = rs.getObject(1);
     if (bitValue.length() == 1 && !isVarBit) {
-      Assert.assertTrue("Failed for " + bitValue, o instanceof java.lang.Boolean);
+      assertInstanceOf(Boolean.class, o, "Failed for " + bitValue);
       Boolean b = (Boolean) o;
-      Assert.assertEquals("Failed for " + bitValue, bitValue.charAt(0) == '1', b);
+      assertEquals(bitValue.charAt(0) == '1', b, "Failed for " + bitValue);
     } else {
-      Assert.assertTrue("Failed for " + bitValue, o instanceof PGobject);
+      assertInstanceOf(PGobject.class, o, "Failed for " + bitValue);
       PGobject pGobject = (PGobject) o;
-      Assert.assertEquals("Failed for " + bitValue, bitValue, pGobject.getValue());
+      assertEquals(bitValue, pGobject.getValue(), "Failed for " + bitValue);
     }
     String s = rs.getString(1);
-    Assert.assertEquals(bitValue, s);
+    assertEquals(bitValue, s);
   }
 }

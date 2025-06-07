@@ -62,7 +62,6 @@ ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
 BuildRequires:	maven-bundle-plugin
-BuildRequires:	classloader-leak-test-framework
 
 BuildRequires:	mvn(com.ongres.scram:scram-client)
 BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
@@ -70,7 +69,6 @@ BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-engine)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-params)
-BuildRequires:	mvn(org.junit.vintage:junit-vintage-engine)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib

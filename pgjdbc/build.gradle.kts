@@ -74,6 +74,12 @@ dependencies {
         api("com.github.waffle:waffle-jna:1.9.1")
         api("org.osgi:org.osgi.core:6.0.0")
         api("org.osgi:org.osgi.service.jdbc:1.0.0")
+        testCompileOnly("junit:junit") {
+            because("We use JUnit 5 for testing, so we do not like to have JUnit 4 on the classpath")
+            version {
+                rejectAll()
+            }
+        }
     }
 
     "sspiImplementation"("com.github.waffle:waffle-jna")
@@ -87,13 +93,8 @@ dependencies {
     shaded("com.ongres.scram:scram-client:3.1")
 
     implementation("org.checkerframework:checker-qual:3.49.3")
-    testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
-    testFixturesImplementation("junit:junit:4.13.2")
-    testFixturesImplementation(platform("org.junit:junit-bom:5.12.2"))
+    testFixturesImplementation(platform("org.junit:junit-bom:5.13.0"))
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-api")
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine") {
-        because("We use BeforeEachMethodAdapter to add parameters to beforeeach and aftereach methods")
-    }
     testFixturesImplementation("org.checkerframework:checker-qual:3.49.3")
 }
 

@@ -28,7 +28,7 @@ public class CommonNameVerifierTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "a={0}, b={1}")
+  @ParameterizedTest
   void comparePatterns(String a, String b, int expected) throws Exception {
     assertEquals(expected, PGjdbcHostnameVerifier.HOSTNAME_PATTERN_COMPARATOR.compare(a, b), a + " vs " + b);
 

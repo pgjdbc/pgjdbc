@@ -7,7 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;

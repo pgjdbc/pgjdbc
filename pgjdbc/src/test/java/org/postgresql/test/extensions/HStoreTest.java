@@ -5,16 +5,17 @@
 
 package org.postgresql.test.extensions;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -34,9 +35,8 @@ public class HStoreTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("server has installed hstore", isHStoreEnabled(con));
-    Assume.assumeFalse("hstore is not supported in simple protocol only mode",
-        preferQueryMode == PreferQueryMode.SIMPLE);
+    assumeTrue(isHStoreEnabled(con), "server has installed hstore");
+    assumeFalse(preferQueryMode == PreferQueryMode.SIMPLE, "hstore is not supported in simple protocol only mode");
     assumeMinimumServerVersion("hstore requires PostgreSQL 8.3+", ServerVersion.v8_3);
   }
 

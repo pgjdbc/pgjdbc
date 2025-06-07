@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
@@ -13,7 +14,6 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.lang.management.ManagementFactory;
@@ -301,7 +301,7 @@ class AdaptiveFetchSizeTest {
     PGConnection pgConnection = connection.unwrap(PGConnection.class);
     PreferQueryMode preferQueryMode =
         pgConnection == null ? PreferQueryMode.EXTENDED : pgConnection.getPreferQueryMode();
-    Assumptions.assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
         "Fetching tests can't be performed in simple mode");
   }
 

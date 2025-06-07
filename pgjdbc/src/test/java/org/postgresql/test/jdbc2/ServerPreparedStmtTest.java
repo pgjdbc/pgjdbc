@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,8 +30,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
   public void setUp() throws Exception {
     super.setUp();
 
-    Assume.assumeTrue("Server-prepared statements are not supported in simple protocol, thus ignoring the tests",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "Server-prepared statements are not supported in simple protocol, thus ignoring the tests");
 
     Statement stmt = con.createStatement();
 
@@ -103,7 +102,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
       return;
     }
     setUseServerPrepare(pstmt, false);
-    assertTrue(!pstmt.unwrap(PGStatement.class).isUseServerPrepare());
+    assertFalse(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
@@ -138,7 +137,7 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     }
 
     setUseServerPrepare(pstmt, false);
-    assertTrue(!pstmt.unwrap(PGStatement.class).isUseServerPrepare());
+    assertFalse(pstmt.unwrap(PGStatement.class).isUseServerPrepare());
 
     pstmt.setInt(1, 9);
     rs = pstmt.executeQuery();
@@ -284,13 +283,13 @@ public class ServerPreparedStmtTest extends BaseTest4 {
     ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals(1, rs.getInt(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     // Change to text parameter, check it still works.
     pstmt.setString(1, "test string");
     rs = pstmt.executeQuery();
     assertTrue(rs.next());
     assertEquals("test string", rs.getString(1));
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
   }
 }

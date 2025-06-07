@@ -9,9 +9,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -26,7 +24,7 @@ public class SendRecvBufferSizeTest extends BaseTest4 {
     PGProperty.RECEIVE_BUFFER_SIZE.set(props, "1024");
   }
 
-  @Before
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "hold", "a int");
@@ -36,7 +34,7 @@ public class SendRecvBufferSizeTest extends BaseTest4 {
     stmt.close();
   }
 
-  @After
+  @Override
   public void tearDown() throws SQLException {
     TestUtil.dropTable(con, "hold");
     super.tearDown();

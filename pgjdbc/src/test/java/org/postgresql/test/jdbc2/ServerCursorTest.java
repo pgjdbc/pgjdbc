@@ -5,11 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -58,9 +58,9 @@ public class ServerCursorTest extends BaseTest4 {
     ResultSet rs = stmt.executeQuery();
     while (rs.next()) {
       // there should only be one row returned
-      assertEquals("query value error", 1, rs.getInt(1));
+      assertEquals(1, rs.getInt(1), "query value error");
       byte[] dataBytes = rs.getBytes(2);
-      assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
+      assertEquals(DATA_STRING, new String(dataBytes, "UTF8"), "binary data got munged");
     }
 
   }
@@ -79,7 +79,7 @@ public class ServerCursorTest extends BaseTest4 {
     while (rs.next()) {
       // there should only be one row returned
       byte[] dataBytes = rs.getBytes(2);
-      assertEquals("binary data got munged", DATA_STRING, new String(dataBytes, "UTF8"));
+      assertEquals(DATA_STRING, new String(dataBytes, "UTF8"), "binary data got munged");
     }
 
   }

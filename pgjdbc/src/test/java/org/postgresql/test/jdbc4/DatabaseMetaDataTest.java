@@ -12,12 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -303,7 +303,7 @@ class DatabaseMetaDataTest {
   @Test
   void getProceduresInSchemaForProcedures_whenCatalogArgEmpty_expectNoResults() throws SQLException {
     // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
-    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
 
     DatabaseMetaData dbmd = conn.getMetaData();
 
@@ -327,7 +327,7 @@ class DatabaseMetaDataTest {
   @Test
   void getProceduresWithCorrectCatalogAndWithout() throws SQLException {
     // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
-    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
 
     DatabaseMetaData dbmd = conn.getMetaData();
     try (ResultSet rs = dbmd.getProcedures(null, "hasprocedures", null)) {
@@ -349,7 +349,7 @@ class DatabaseMetaDataTest {
   @Test
   void getProceduresInSchemaForProcedures() throws SQLException {
     // Only run this test for PostgreSQL version 11+; assertions for versions prior would be vacuously true as we don't create a procedure in the setup for older versions
-    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11));
 
     DatabaseMetaData dbmd = conn.getMetaData();
 
