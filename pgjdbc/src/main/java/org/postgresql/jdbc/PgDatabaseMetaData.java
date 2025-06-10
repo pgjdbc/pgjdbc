@@ -2255,7 +2255,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return privileges;
   }
 
-  private ResultSet findPrimaryUnique(@Nullable String schema, @Nullable String table, boolean primaryOrUnique) throws SQLException {
+  private ResultSet findPrimaryUnique(@Nullable String schema, String table, boolean primaryOrUnique) throws SQLException {
     /*
      * At the moment this simply returns a table's primary key, if there is one. I believe other
      * unique indexes, ctid, and oid should also be considered. -KJ
