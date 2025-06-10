@@ -2255,7 +2255,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     return privileges;
   }
 
-  private ResultSet findPrimaryUnique(String catalog, String schema, String table, boolean primaryOrUnique) throws SQLException{
+  private ResultSet findPrimaryUnique(String schema, String table, boolean primaryOrUnique) throws SQLException{
     /*
      * At the moment this simply returns a table's primary key, if there is one. I believe other
      * unique indexes, ctid, and oid should also be considered. -KJ
@@ -2308,11 +2308,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     // look for primary key
-    ResultSet rs = findPrimaryUnique(catalog, schema, table, true);
+    ResultSet rs = findPrimaryUnique(schema, table, true);
     if (!rs.isBeforeFirst()) {
       // if primary key not found then look for unique key
       rs.close();
-      rs = findPrimaryUnique(catalog, schema, table, false);
+      rs = findPrimaryUnique(schema, table, false);
     }
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[8][];
