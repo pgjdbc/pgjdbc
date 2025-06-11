@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.test.DateTimeZoneStamp;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 
@@ -14,6 +15,7 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Statement;
 import java.util.Map;
@@ -39,6 +41,7 @@ public class ParameterStatusTest extends BaseTest4 {
   }
 
   @Test
+  @Category(DateTimeZoneStamp.class)
   public void expectedInitialParameters() throws Exception {
     TimeZone.setDefault(tzPlus0800);
     con = TestUtil.openDB();
