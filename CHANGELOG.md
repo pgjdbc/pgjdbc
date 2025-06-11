@@ -4,6 +4,23 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+## [42.7.7] (2025-06-10)
+
+### Security
+* security: **Client Allows Fallback to Insecure Authentication Despite channelBinding=require configuration.**
+Fix `channel binding required` handling to reject non-SASL authentication 
+Previously, when channel binding was set to "require", the driver would silently ignore this 
+requirement for non-SASL authentication methods. This could lead to a false sense of security 
+when channel binding was explicitly requested but not actually enforced. The fix ensures that when 
+channel binding is set to "require", the driver will reject connections that use 
+non-SASL authentication methods or when SASL authentication has not completed properly. 
+See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54) for more detail. Reported by [George MacKerron](https://github.com/jawj)
+The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) has been issued
+
+
+### Added
+* test: Added ChannelBindingRequiredTest to verify proper behavior of channel binding settings
+
 ## [42.7.6]
 
 #### Features
