@@ -21,7 +21,7 @@ description= "If you are using Java 6  then you should use the  JDBC 4.0 version
 url= "/download/postgresql-42.2.27.jre6.jar"
 
 # Past Versions
-[[recent]]
+[[past]]
 j_name= "Java 8"
 version= "42.7.6"
 suffix=""
