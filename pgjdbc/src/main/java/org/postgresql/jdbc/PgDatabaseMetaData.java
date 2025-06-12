@@ -1463,7 +1463,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       f[5] = new Field("TYPE_CAT", Oid.VARCHAR);
       f[6] = new Field("TYPE_SCHEM", Oid.VARCHAR);
       f[7] = new Field("TYPE_NAME", Oid.VARCHAR);
-      f[8] = new Field("REF_GENERATION", Oid.VARCHAR);
+      f[8] = new Field("SELF_REFERENCING_COL_NAME", Oid.VARCHAR);
+      f[9] = new Field("REF_GENERATION", Oid.VARCHAR);
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
