@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -384,6 +385,20 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
     stmt.execute("DROP TABLE smallserial_test");
     stmt.close();
+  }
+
+  @Test
+  public void testColumnCountWhenZero() throws SQLException {
+    ResultSet rs = con.getMetaData().getTables(
+        "WrongCatalog", // catalog
+        null, // schemaPattern
+        null, // tableNamePattern
+        null // types
+    );
+    ResultSetMetaData rsmd = rs.getMetaData();
+    for (int col = 1; col <= rsmd.getColumnCount(); col++){
+       assertNotNull("column label should not be null", rsmd.getColumnLabel(col));
+    }
   }
 
 }
