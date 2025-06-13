@@ -274,6 +274,23 @@ public class DatabaseMetaDataTest {
 
   @MethodSource("data")
   @ParameterizedTest(name = "binary = {0}")
+  void tables_whenWrongCatalogGetMetaData_expectNoException(BinaryMode binaryMode) throws Exception {
+    DatabaseMetaData dbmd = con.getMetaData();
+    assertNotNull(dbmd);
+
+    ResultSet rs = dbmd.getTables("FakeCatalog", "", null, new String[]{"TABLE"});
+    assertFalse(rs.next());
+
+    ResultSetMetaData resultSetMetaData = rs.getMetaData();
+    for (int col = 1; col <= resultSetMetaData.getColumnCount(); col++) {
+      resultSetMetaData.getColumnLabel(col);
+    }
+
+    rs.close();
+  }
+
+  @MethodSource("data")
+  @ParameterizedTest(name = "binary = {0}")
   void tables(BinaryMode binaryMode) throws Exception {
     DatabaseMetaData dbmd = con.getMetaData();
     assertNotNull(dbmd);
