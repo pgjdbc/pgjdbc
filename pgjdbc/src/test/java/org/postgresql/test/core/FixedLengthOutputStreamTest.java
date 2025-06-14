@@ -21,18 +21,8 @@ import java.sql.SQLException;
 
 class FixedLengthOutputStreamTest {
 
-  private ByteArrayOutputStream targetStream;
-  private FixedLengthOutputStream fixedLengthStream;
-
-  @BeforeEach
-  void setUp() throws Exception {
-    targetStream = new ByteArrayOutputStream();
-    fixedLengthStream = new FixedLengthOutputStream(10, targetStream);
-  }
-
-  @AfterEach
-  void tearDown() throws SQLException {
-  }
+  private ByteArrayOutputStream targetStream = new ByteArrayOutputStream();
+  private FixedLengthOutputStream fixedLengthStream = new FixedLengthOutputStream(10, targetStream);
 
   private void verifyExpectedOutput(byte[] expected) {
     assertArrayEquals(expected, targetStream.toByteArray(), "Incorrect data written to target stream");
