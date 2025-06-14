@@ -17,7 +17,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.EOFException;
@@ -33,6 +34,8 @@ import java.util.Properties;
 
 import javax.net.ssl.SSLHandshakeException;
 
+@ParameterizedClass
+@MethodSource("data")
 public class SslTest {
   enum Hostname {
     GOOD("localhost"),
@@ -97,12 +100,25 @@ public class SslTest {
     }
   }
 
-  public Hostname host;
-  public TestDatabase db;
-  public SslMode sslmode;
-  public ClientCertificate clientCertificate;
-  public ClientRootCertificate clientRootCertificate;
-  public GSSEncMode gssEncMode;
+  private final Hostname host;
+  private final TestDatabase db;
+  private final SslMode sslmode;
+  private final SslNegotiation sslNegotiation;
+  private final ClientCertificate clientCertificate;
+  private final ClientRootCertificate clientRootCertificate;
+  private final GSSEncMode gssEncMode;
+
+  SslTest(Hostname host, TestDatabase db, SslMode sslmode, SslNegotiation sslNegotiation,
+      ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate,
+      GSSEncMode gssEncMode) {
+    this.host = host;
+    this.db = db;
+    this.sslmode = sslmode;
+    this.sslNegotiation = sslNegotiation;
+    this.clientCertificate = clientCertificate;
+    this.clientRootCertificate = clientRootCertificate;
+    this.gssEncMode = gssEncMode;
+  }
 
   public static Iterable<Object[]> data() {
     TestUtil.assumeSslTestsEnabled();
@@ -454,10 +470,8 @@ public class SslTest {
     return null;
   }
 
-  @MethodSource("data")
-  @ParameterizedTest
-  void run(Hostname host, TestDatabase db, SslMode sslmode,SslNegotiation sslNegotiation, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) throws SQLException {
-    initSslTest(host, db, sslmode, clientCertificate, clientRootCertificate, gssEncMode);
+  @Test
+  void run() throws SQLException {
     Properties props = new Properties();
     TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, host.value);
     TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, db.toString());
@@ -493,14 +507,5 @@ public class SslTest {
         throw ae;
       }
     }
-  }
-
-  public void initSslTest(Hostname host, TestDatabase db, SslMode sslmode, ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate, GSSEncMode gssEncMode) {
-    this.host = host;
-    this.db = db;
-    this.sslmode = sslmode;
-    this.clientCertificate = clientCertificate;
-    this.clientRootCertificate = clientRootCertificate;
-    this.gssEncMode = gssEncMode;
   }
 }
