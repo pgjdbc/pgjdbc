@@ -16,10 +16,10 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
-    id("java-test-fixtures")
     id("build-logic.java-published-library")
     id("build-logic.test-junit5")
     id("build-logic.java-comment-preprocessor")
+    id("build-logic.without-type-annotations")
     id("biz.aQute.bnd.builder") apply false
     id("com.github.johnrengelman.shadow")
     id("com.github.lburgazzoli.karaf")
@@ -54,6 +54,21 @@ val shaded by configurations.creating
 
 val karafFeatures by configurations.creating {
     isTransitive = false
+}
+
+val testKitSourcesWithoutAnnotations by configurations.dependencyScope("testKitSourcesWithoutAnnotations") {
+    description = "Declares dependencies on sources-without-annotations"
+}
+
+val testKitSourcesWithoutAnnotationsResolved by configurations.resolvable("testKitSourcesWithoutAnnotationsResolved") {
+    description = "Resolves sources-without-annotations dependencies"
+    extendsFrom(testKitSourcesWithoutAnnotations)
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.DOCUMENTATION))
+        attribute(DocsType.DOCS_TYPE_ATTRIBUTE, objects.named("sources-without-annotations"))
+    }
 }
 
 configurations {
@@ -93,9 +108,10 @@ dependencies {
     shaded("com.ongres.scram:scram-client:3.1")
 
     implementation("org.checkerframework:checker-qual:3.49.4")
-    testFixturesImplementation(platform("org.junit:junit-bom:5.13.1"))
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-api")
-    testFixturesImplementation("org.checkerframework:checker-qual:3.49.4")
+
+    testKitSourcesWithoutAnnotations(projects.testkit)
+
+    testImplementation(projects.testkit)
 }
 
 val skipReplicationTests by props()
@@ -280,47 +296,11 @@ karaf {
     }
 }
 
-// <editor-fold defaultstate="collapsed" desc="Trim checkerframework annotations from the source code">
-val withoutAnnotations = layout.buildDirectory.dir("without-annotations").get().asFile
-
-val sourceWithoutCheckerAnnotations by configurations.creating {
-    isCanBeResolved = false
-    isCanBeConsumed = true
-}
-
-val hiddenAnnotation = Regex(
-    "@(?:Nullable|NonNull|PolyNull|MonotonicNonNull|RequiresNonNull|EnsuresNonNull|" +
-            "Regex|" +
-            "Pure|" +
-            "KeyFor|" +
-            "Positive|NonNegative|IntRange|" +
-            "GuardedBy|UnderInitialization|" +
-            "DefaultQualifier)(?:\\([^)]*\\))?")
-val hiddenImports = Regex("import org.checkerframework")
-
-val removeTypeAnnotations by tasks.registering(Sync::class) {
-    destinationDir = withoutAnnotations
-    inputs.property("regexpsUpdatedOn", "2020-08-25")
-    from(projectDir) {
-        filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
-        filter { x: String ->
-            x.replace(hiddenAnnotation, "/* $0 */")
-                .replace(hiddenImports, "// $0")
-        }
-        include("src/**")
-    }
-}
-
-(artifacts) {
-    sourceWithoutCheckerAnnotations(withoutAnnotations) {
-        builtBy(removeTypeAnnotations)
-    }
-}
-// </editor-fold>
-
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
 val sourceDistribution by tasks.registering(Tar::class) {
-    dependsOn(removeTypeAnnotations)
+    dependsOn(tasks.removeTypeAnnotations)
+    dependsOn(testKitSourcesWithoutAnnotationsResolved)
+    val withoutAnnotations = tasks.removeTypeAnnotations.get().destinationDir
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Source distribution for building pgjdbc with minimal features"
     archiveClassifier.set("jdbc-src")
@@ -385,7 +365,11 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
         }
-        from("$withoutAnnotations/src/testFixtures")
+        from(testKitSourcesWithoutAnnotationsResolved.elements.map { set ->
+            set.map {
+                fileTree("$it/src/main")
+            }
+        })
     }
     into("certdir") {
         from("$rootDir/certdir") {

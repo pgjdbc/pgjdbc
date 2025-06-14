@@ -14,13 +14,14 @@ val pgjdbcRepository by configurations.creating {
 }
 
 dependencies {
-    pgjdbcRepository(project(":postgresql"))
+    pgjdbcRepository(projects.postgresql)
 
-    testImplementation(project(":postgresql"))
-    testImplementation(testFixtures(project(":postgresql")))
-    testRuntimeOnly("com.ongres.scram:scram-client:3.1") {
-        because("We can't use shaded :postgresql artifact and testFixtures at the same time")
+    testImplementation(projects.postgresql) {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.SHADOWED))
+        }
     }
+    testImplementation(projects.testkit)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("javax:javaee-api:8.0.1")
