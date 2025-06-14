@@ -7,6 +7,14 @@
   "schedule": ["every 3 weeks on Monday"],
   "packageRules": [
     {
+      "matchPackagePrefixes": ["ch.qos.logback"],
+      "groupName": "logback"
+    },
+    {
+      "matchPackagePrefixes": ["com.github.vlsi"],
+      "groupName": "com.github.vlsi"
+    },
+    {
       "matchPackagePrefixes": ["org.checkerframework"],
       "groupName": "checkerframework"
     },
@@ -15,17 +23,13 @@
       "groupName": "jmh"
     },
     {
-      "matchPackagePrefixes": ["com.github.vlsi"],
-      "groupName": "com.github.vlsi"
+      "matchPackagePrefixes": ["org.ops4j.pax.exam"],
+      "groupName": "pax-exam"
     },
     {
       "matchPackageNames": ["org.postgresql:postgresql"],
       "matchCurrentVersion": "1.0.0-dev-master-SNAPSHOT",
       "enabled": false
-    },
-    {
-      "matchPackagePrefixes": ["ch.qos.logback"],
-      "groupName": "logback"
     },
     {
       "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
