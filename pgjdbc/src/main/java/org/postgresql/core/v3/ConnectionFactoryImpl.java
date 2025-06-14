@@ -738,6 +738,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int protocol = 3 << 16;
 
     boolean saslHandshakeCompleted = false;
+    ChannelBinding channelBinding = ChannelBinding.of(info);
 
     try {
       authloop: while (true) {
@@ -784,7 +785,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Get the type of request
             int areq = pgStream.receiveInteger4();
 
-            if (ChannelBindingOption.of(info) == ChannelBindingOption.REQUIRE) {
+            if (channelBinding == ChannelBinding.REQUIRE) {
               if (areq == AUTH_REQ_OK) {
                 if (!saslHandshakeCompleted) {
                   throw new PSQLException(
@@ -932,7 +933,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                scramAuthenticator = AuthenticationPluginManager.withPassword(AuthenticationRequestType.SASL, info, password -> {
+                scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
                         GT.tr(
@@ -945,7 +946,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(password, pgStream, info);
+                  return new ScramAuthenticator(password, pgStream, channelBinding);
                 });
                 scramAuthenticator.handleAuthenticationSASL();
                 break;
