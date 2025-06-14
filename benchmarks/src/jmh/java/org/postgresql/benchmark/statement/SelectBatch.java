@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 
-public class selectBatch {
+public class SelectBatch {
 
   public enum Scenario { CACHED_REPEAT, VARYING_LENGTH }
 
@@ -115,7 +115,7 @@ public class selectBatch {
 
   public static void main(String[] args) throws RunnerException {
     Options opt = new OptionsBuilder()
-        .include(selectBatch.class.getSimpleName())
+        .include(SelectBatch.class.getSimpleName())
         .addProfiler(GCProfiler.class)
         .addProfiler(FlightRecorderProfiler.class)
         .detectJvmArgs()
