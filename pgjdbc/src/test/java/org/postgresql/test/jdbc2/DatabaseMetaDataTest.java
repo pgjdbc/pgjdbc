@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.jupiter.api.AfterEach;
@@ -1362,12 +1363,15 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
+  @DisabledIfServerVersionBelow("9.2")
   void escaping() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "a'", new String[]{"TABLE"});
     assertTrue(rs.next());
     rs = dbmd.getTables(null, null, "a\\\\", new String[]{"TABLE"});
     assertTrue(rs.next());
+    // PostgreSQL 9.1 fails LIKE pattern must not end with escape character even though
+    // we pass the pattern as a bind variable, so it should not be a subject to escaping
     rs = dbmd.getTables(null, null, "a\\", new String[]{"TABLE"});
     assertFalse(rs.next());
   }
