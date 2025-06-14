@@ -19,6 +19,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Submit the build
+        # See https://github.com/orgs/community/discussions/15452
+        # continue-on-error on the job level still marks the CI checks as failed,
+        # so we use continue-on-error on the step level.
+        # The drawback is that the step and the job display as "fully successful", so it is hard to tell
+        # if it failed or not without digging into the log.
+        continue-on-error: true
         env:
           COPR_PR_WEBHOOK: https://copr.fedorainfracloud.org/webhooks/custom/55296/cf449c12-03b4-4f5b-ae84-3f5aa1d2b462/postgresql-jdbc/
           COPR_PUSH_WEBHOOK: ${{ secrets.COPR_PUSH_WEBHOOK }}
