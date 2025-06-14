@@ -2513,9 +2513,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[5] = new Field("FKTABLE_SCHEM", Oid.VARCHAR);
     f[6] = new Field("FKTABLE_NAME", Oid.VARCHAR);
     f[7] = new Field("FKCOLUMN_NAME", Oid.VARCHAR);
-    f[8] = new Field("UPDATE_RULE", Oid.INT2);
-    f[9] = new Field("DELETE_RULE", Oid.INT2);
-    f[10] = new Field("KEY_SEQ", Oid.INT2);
+    f[8] = new Field("KEY_SEQ", Oid.INT2);
+    f[9] = new Field("UPDATE_RULE", Oid.INT2);
+    f[10] = new Field("DELETE_RULE", Oid.INT2);
     f[11] = new Field("FK_NAME", Oid.VARCHAR);
     f[12] = new Field("PK_NAME", Oid.VARCHAR);
     f[13] = new Field("DEFERRABILITY", Oid.INT2);
