@@ -46,7 +46,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1851,5 +1853,69 @@ public class PreparedStatementTest extends BaseTest4 {
     } catch (SQLException ex) {
       // ignore
     }
+  }
+
+  @Test
+  public void testBatchSelect() throws SQLException {
+    PreparedStatement pstmt = null;
+    PreparedStatement batchSelect = null;
+    ResultSet rs = null;
+    try {
+      pstmt = con.prepareStatement("INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);");
+      ((PgStatement) pstmt).setPrepareThreshold(0);
+      for (int i = 0; i < 4; i++) {
+        pstmt.setInt(i + 1, i + 1);
+      }
+      pstmt.execute();
+      batchSelect =  con.prepareStatement("select * from inttable where a = ?;"
+          + "select * from inttable where a = ?;"
+          + "select * from inttable where a = ?;");
+      for (int i = 0; i < 3; i++) {
+        batchSelect.setInt(i + 1, i + 1);
+      }
+
+      List<Integer> results = new ArrayList<>();
+      boolean hasResults = batchSelect.execute();
+      while (hasResults) {
+        rs = batchSelect.getResultSet();
+        while (rs.next()) {
+          results.add(rs.getInt(1));
+        }
+        hasResults = batchSelect.getMoreResults();
+      }
+      assertEquals(Arrays.asList(1, 2, 3), results);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+      TestUtil.closeQuietly(batchSelect);
+    }
+  }
+
+  @Test
+  public void testBatchSelectWithPrepareThreshold1() throws SQLException {
+    assumeBinaryModeRegular();
+    Assume.assumeTrue("simple protocol only does not support prepared statement requests",
+        preferQueryMode != PreferQueryMode.SIMPLE);
+
+    PreparedStatement pstmt =  con.prepareStatement("select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;");
+    ((PgStatement) pstmt).setPrepareThreshold(1);
+    for (int i = 0; i < 3; i++) {
+      pstmt.setInt(i + 1, i + 1);
+    }
+    pstmt.execute();
+    pstmt.close();
+    Assume.assumeFalse("Test assertions below support only non-rewritten insert statements",
+        con.unwrap(PgConnection.class).getQueryExecutor().isReWriteBatchedInsertsEnabled());
+    assertTrue("prepareThreshold=1, so the statement should be server-prepared",
+        ((PGStatement) pstmt).isUseServerPrepare());
+    assertEquals("prepareThreshold=1, so the one statement should be server-prepared", 1,
+        getNumberOfServerPreparedStatements("select * from inttable where a = $1"));
   }
 }
