@@ -13,7 +13,7 @@ import org.postgresql.util.internal.Nullness;
 
 import java.util.Properties;
 
-enum ChannelBindingOption {
+enum ChannelBinding {
   /**
    * Prevents the use of channel binding
    */
@@ -27,7 +27,7 @@ enum ChannelBindingOption {
    */
   REQUIRE;
 
-  public static ChannelBindingOption of(Properties info) throws PSQLException {
+  public static ChannelBinding of(Properties info) throws PSQLException {
     String option = Nullness.castNonNull(PGProperty.CHANNEL_BINDING.getOrDefault(info));
     switch (option) {
       case "disable":
