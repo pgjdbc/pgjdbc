@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.Version;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
@@ -17,6 +18,8 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -30,6 +33,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 
 import javax.net.ssl.SSLHandshakeException;
@@ -100,74 +104,132 @@ public class SslTest {
     }
   }
 
+  enum ChannelBinding {
+    DISABLE("disable"),
+    PREFER("prefer"),
+    REQUIRE("require"),
+    ;
+
+    public static final ChannelBinding[] VALUES = values();
+    public final String value;
+
+    ChannelBinding(String value) {
+      this.value = value;
+    }
+  }
+
+  enum Role {
+    CLIENT_CERT_ROLE("md5", TestUtil.getUser() /* it has to match CN in the certificate */),
+    MD5_ROLE("md5", "ssl_test_md5"),
+    SCRAM_ROLE("scram-sha-256", "ssl_test_scram");
+
+    public static final Role[] VALUES = values();
+    public final String passwordEncryption;
+    public final String username;
+
+    Role(String passwordEncryption, String username) {
+      this.passwordEncryption = passwordEncryption;
+      this.username = username;
+    }
+
+    String getPassword() {
+      return "ssl_test_pass_" + name().toLowerCase(Locale.ROOT);
+    }
+  }
+
   private final Hostname host;
   private final TestDatabase db;
   private final SslMode sslmode;
+  private final ChannelBinding channelBinding;
   private final SslNegotiation sslNegotiation;
   private final ClientCertificate clientCertificate;
   private final ClientRootCertificate clientRootCertificate;
   private final GSSEncMode gssEncMode;
+  private final Role clientRole;
 
-  SslTest(Hostname host, TestDatabase db, SslMode sslmode, SslNegotiation sslNegotiation,
+  SslTest(Hostname host, TestDatabase db, SslMode sslmode, ChannelBinding channelBinding, SslNegotiation sslNegotiation,
       ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate,
-      GSSEncMode gssEncMode) {
+      GSSEncMode gssEncMode, Role clientRole) {
     this.host = host;
     this.db = db;
     this.sslmode = sslmode;
+    this.channelBinding = channelBinding;
     this.sslNegotiation = sslNegotiation;
     this.clientCertificate = clientCertificate;
     this.clientRootCertificate = clientRootCertificate;
     this.gssEncMode = gssEncMode;
+    this.clientRole = clientRole;
   }
 
-  public static Iterable<Object[]> data() {
+  public static Iterable<Object[]> data() throws SQLException {
     TestUtil.assumeSslTestsEnabled();
 
     Collection<Object[]> tests = new ArrayList<>();
 
+    Version serverVersion;
+    try (Connection con = TestUtil.openDB()) {
+      serverVersion = ServerVersion.from(con.getMetaData().getDatabaseProductVersion());
+    }
+
     for (SslNegotiation sslNegotiation :  SslNegotiation.values()) {
       if (sslNegotiation == SslNegotiation.DIRECT) {
-        try (Connection con = TestUtil.openDB()) {
-          if (!TestUtil.haveMinimumServerVersion(con, ServerVersion.v17)) {
-            continue; // ignore direct connection unless we have version 17
-          }
-        } catch (SQLException e) {
-          fail("Failed to connect to the database: " + e.getMessage());
+        if (serverVersion.getVersionNum() < ServerVersion.v17.getVersionNum()) {
+          continue; // ignore direct connection unless we have version 17
         }
       }
       // iterate over all possible combinations of parameters
       for (SslMode sslMode : SslMode.VALUES) {
-        if ( sslMode == SslMode.DISABLE && sslNegotiation == SslNegotiation.DIRECT) {
+        if (sslMode == SslMode.DISABLE && sslNegotiation == SslNegotiation.DIRECT) {
           // no need to test as this is the same as DISABLE and POSTGRESQL
           continue;
         }
-        for (Hostname hostname : Hostname.values()) {
-          for (TestDatabase database : TestDatabase.VALUES) {
-            for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
-              for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
-                if ((sslMode == SslMode.DISABLE
-                    || database.rejectsSsl())
-                    && (clientCertificate != ClientCertificate.GOOD
-                    || rootCertificate != ClientRootCertificate.GOOD)) {
-                  // When SSL is disabled, it does not make sense to verify "bad certificates"
-                  // since certificates are NOT used in plaintext connections
-                  continue;
-                }
-                if (database.rejectsSsl()
-                    && (sslMode.verifyCertificate()
-                    || hostname == Hostname.BAD)
-                ) {
-                  // DB would reject SSL connection, so it makes no sense to test cases like verify-full
-                  continue;
-                }
-                for (GSSEncMode gssEncMode : GSSEncMode.values()) {
-                  if (gssEncMode == GSSEncMode.REQUIRE) {
-                    // TODO: support gss tests in /certdir/pg_hba.conf
+        for (ChannelBinding channelBinding : ChannelBinding.VALUES) {
+          for (Hostname hostname : Hostname.values()) {
+            for (TestDatabase database : TestDatabase.VALUES) {
+              if (database.rejectsSsl() && sslNegotiation == SslNegotiation.DIRECT) {
+                // The database would reject TLS anyway, so there's no need to test "direct" TLS
+                // connection
+              }
+              for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
+                for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
+                  if ((sslMode == SslMode.DISABLE
+                      || database.rejectsSsl())
+                      && (clientCertificate != ClientCertificate.EMPTY
+                      || rootCertificate != ClientRootCertificate.EMPTY)) {
+                    // When SSL is disabled, it does not make sense to verify "bad certificates"
+                    // since certificates are NOT used in plaintext connections
                     continue;
                   }
-                  tests.add(
-                      new Object[]{hostname, database, sslMode, sslNegotiation, clientCertificate, rootCertificate,
-                          gssEncMode});
+                  if (database.rejectsSsl()
+                      && (sslMode.verifyCertificate()
+                      || hostname == Hostname.BAD)
+                  ) {
+                    // DB would reject SSL connection, so it makes no sense to test cases like verify-full
+                    continue;
+                  }
+                  for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                    if (gssEncMode == GSSEncMode.REQUIRE) {
+                      // TODO: support gss tests in /certdir/pg_hba.conf
+                      continue;
+                    }
+                    for (Role role : Role.VALUES) {
+                      if (clientCertificate != ClientCertificate.EMPTY && role != Role.CLIENT_CERT_ROLE) {
+                        // Skip client certificates (good, bad) for the other roles (md5, scram)
+                        // We do not test mixed "client_cert + scram" auth for now.
+                        // Client certificate auth requires username to be encoded within the CN,
+                        // so we need to generate more certificates if we want to add such tests.
+                        continue;
+                      }
+                      if (serverVersion.getVersionNum() < ServerVersion.v10.getVersionNum() && role != Role.CLIENT_CERT_ROLE) {
+                        // PostgreSQL <10 supports only boolean password_encryption,
+                        // so it makes no sense testing extra md5/scram roles for 9.x
+                        continue;
+                      }
+                      tests.add(
+                          new Object[]{hostname, database, sslMode, channelBinding, sslNegotiation,
+                              clientCertificate, rootCertificate, gssEncMode, role});
+                    }
+                  }
                 }
               }
             }
@@ -176,6 +238,37 @@ public class SslTest {
       }
     }
     return tests;
+  }
+
+  @BeforeAll
+  static void createRoles() throws SQLException {
+    try (Connection conn = TestUtil.openPrivilegedDB()) {
+      if (!TestUtil.haveMinimumServerVersion(conn, ServerVersion.v10)) {
+        // PostgreSQL <10 supports only boolean values for password_encryption, so we don't
+        // create extra roles
+        return;
+      }
+      for (Role role : Role.VALUES) {
+        if (role == Role.CLIENT_CERT_ROLE) {
+          continue;
+        }
+        TestUtil.execute(conn, "SET password_encryption = '" + role.passwordEncryption + "'");
+        TestUtil.execute(conn, "DROP ROLE IF EXISTS " + role.username);
+        TestUtil.execute(conn, "CREATE ROLE " + role.username + " WITH LOGIN PASSWORD '" + role.getPassword() + "'");
+      }
+    }
+  }
+
+  @AfterAll
+  static void dropRoles() throws SQLException {
+    try (Connection conn = TestUtil.openPrivilegedDB()) {
+      for (Role role : Role.VALUES) {
+        if (role == Role.CLIENT_CERT_ROLE) {
+          continue;
+        }
+        TestUtil.execute(conn, "DROP ROLE IF EXISTS " + role.username);
+      }
+    }
   }
 
   private static boolean contains(@Nullable String value, String substring) {
@@ -241,6 +334,7 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -249,6 +343,7 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -257,6 +352,16 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
+      errors = addError(errors, ae);
+    }
+
+    try {
+      if (assertChannelBinding(e)) {
+        return;
+      }
+    } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -372,6 +477,71 @@ public class SslTest {
   }
 
   /**
+   * Returns true if the error is expected.
+   * @param e sql exception to analyze, or null if no exception happened during connect
+   * @return true if the error is expected.
+   */
+  private boolean assertChannelBinding(@Nullable SQLException e) {
+    if (channelBinding != ChannelBinding.REQUIRE) {
+      // So far we expect errors only with channelBinding=require
+      return false;
+    }
+
+    if (sslmode == SslMode.DISABLE) {
+      String caseName = "channelBinding=require + sslmode=disable";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected as channelBinding requires TLS");
+      return true;
+    }
+
+    if (db.rejectsSsl()) {
+      String caseName = "channelBinding=require + db.rejectsSsl()";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      if (sslmode == SslMode.PREFER && e.getSQLState().equals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState())
+          && e.getMessage().contains("pg_hba.conf")) {
+        // It is fine for the connection to fail as follows:
+        //   FATAL: no pg_hba.conf entry for host "192.168.107.1", user "test", database "hostnossldb", SSL encryption
+        return true;
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected as channelBinding requires TLS");
+      return true;
+    }
+
+    if (sslmode == SslMode.ALLOW && !db.requiresSsl()) {
+      String caseName = "channelBinding=require + sslMode=allow + !db.requiresSsl()";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected as channelBinding requires TLS");
+      return true;
+    }
+
+    if (clientRole == Role.CLIENT_CERT_ROLE) {
+      String caseName = "channelBinding=require + db=certdb";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected as channelBinding requires SCRAM auth type, not cert");
+      return true;
+    }
+
+    if (clientRole == Role.MD5_ROLE) {
+      String caseName = "channelBinding=require + authType=md5";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected as channelBinding requires SCRAM auth type, not md5");
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
    * Checks client certificate validation error.
    *
    * @param e connection exception or null if no exception
@@ -473,10 +643,15 @@ public class SslTest {
   @Test
   void run() throws SQLException {
     Properties props = new Properties();
+    if (clientRole != Role.CLIENT_CERT_ROLE) {
+      PGProperty.USER.set(props, clientRole.username);
+      PGProperty.PASSWORD.set(props, clientRole.getPassword());
+    }
     TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, host.value);
     TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
     PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value());
+    PGProperty.CHANNEL_BINDING.set(props, channelBinding.value);
     PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");
