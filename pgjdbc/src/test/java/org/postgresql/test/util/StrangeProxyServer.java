@@ -5,8 +5,6 @@
 
 package org.postgresql.test.util;
 
-import org.postgresql.test.TestUtil;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -43,7 +41,11 @@ public class StrangeProxyServer implements Closeable {
           throw new RuntimeException(e);
         }
       }
-      TestUtil.closeQuietly(serverSock);
+      try {
+        serverSock.close();
+      } catch (IOException ignore) {
+        // ignore
+      }
     });
   }
 
@@ -71,7 +73,8 @@ public class StrangeProxyServer implements Closeable {
   }
 
   private void transferOneByOne(long acceptedAt, Socket source, Socket dest) {
-    try {
+    try (Closeable sourceSocket = source;
+         Closeable destSocket = dest) {
       InputStream in = source.getInputStream();
       OutputStream out = dest.getOutputStream();
       int b;
@@ -83,9 +86,6 @@ public class StrangeProxyServer implements Closeable {
         }
       }
     } catch (IOException ignore) {
-    } finally {
-      TestUtil.closeQuietly(source);
-      TestUtil.closeQuietly(dest);
     }
   }
 }

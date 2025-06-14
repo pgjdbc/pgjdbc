@@ -24,7 +24,6 @@ import org.postgresql.util.URLCoder;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.Test;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -851,38 +850,15 @@ public class TestUtil {
    * the caller to detect if the column lookup was successful.
    */
   public static int findColumn(PreparedStatement query, String label) throws SQLException {
-    int returnValue = 0;
-    ResultSet rs = query.executeQuery();
-    if (rs.next()) {
-      try {
-        returnValue = rs.findColumn(label);
-      } catch (SQLException sqle) {
-      } // consume exception to allow cleanup of resource.
-    }
-    rs.close();
-    return returnValue;
-  }
-
-  /**
-   * Close a resource and ignore any errors during closing.
-   */
-  public static void closeQuietly(@Nullable Closeable resource) {
-    if (resource != null) {
-      try {
-        resource.close();
-      } catch (Exception ignore) {
+    try (ResultSet rs = query.executeQuery()) {
+      if (!rs.next()) {
+        return 0;
       }
-    }
-  }
-
-  /**
-   * Close a Connection and ignore any errors during closing.
-   */
-  public static void closeQuietly(@Nullable Connection conn) {
-    if (conn != null) {
       try {
-        conn.close();
-      } catch (SQLException ignore) {
+        return rs.findColumn(label);
+      } catch (SQLException e) {
+        // Column was not found, return 0
+        return 0;
       }
     }
   }
@@ -895,6 +871,7 @@ public class TestUtil {
       try {
         stmt.close();
       } catch (SQLException ignore) {
+        // ignore
       }
     }
   }
@@ -907,6 +884,7 @@ public class TestUtil {
       try {
         rs.close();
       } catch (SQLException ignore) {
+        // ignore
       }
     }
   }
