@@ -40,14 +40,13 @@ final class ScramAuthenticator {
   private final PGStream pgStream;
   private final ScramClient scramClient;
 
-  ScramAuthenticator(char[] password, PGStream pgStream, Properties info) throws PSQLException {
+  ScramAuthenticator(char[] password, PGStream pgStream, ChannelBinding channelBinding) throws PSQLException {
     this.pgStream = pgStream;
-    this.scramClient = initializeScramClient(password, pgStream, info);
+    this.scramClient = initializeScramClient(password, pgStream, channelBinding);
   }
 
-  private static ScramClient initializeScramClient(char[] password, PGStream stream, Properties info) throws PSQLException {
+  private static ScramClient initializeScramClient(char[] password, PGStream stream, ChannelBinding channelBinding) throws PSQLException {
     try {
-      final ChannelBindingOption channelBinding = ChannelBindingOption.of(info);
       LOGGER.log(Level.FINEST, "channelBinding( {0} )", channelBinding);
       final byte[] cbindData = getChannelBindingData(stream, channelBinding);
       final List<String> advertisedMechanisms = advertisedMechanisms(stream, channelBinding);
@@ -69,7 +68,7 @@ final class ScramAuthenticator {
     }
   }
 
-  private static List<String> advertisedMechanisms(PGStream stream, ChannelBindingOption channelBinding)
+  private static List<String> advertisedMechanisms(PGStream stream, ChannelBinding channelBinding)
       throws PSQLException, IOException {
     List<String> mechanisms = new ArrayList<>();
     do {
@@ -83,7 +82,7 @@ final class ScramAuthenticator {
           PSQLState.CONNECTION_REJECTED);
     }
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL( {0} )", mechanisms);
-    if (channelBinding == ChannelBindingOption.REQUIRE
+    if (channelBinding == ChannelBinding.REQUIRE
         && !mechanisms.stream().anyMatch(m -> m.endsWith("-PLUS"))) {
       throw new PSQLException(
           GT.tr("Channel Binding is required, but server did not offer an "
@@ -93,9 +92,9 @@ final class ScramAuthenticator {
     return mechanisms;
   }
 
-  private static byte[] getChannelBindingData(PGStream stream, ChannelBindingOption channelBinding)
+  private static byte[] getChannelBindingData(PGStream stream, ChannelBinding channelBinding)
       throws PSQLException {
-    if (channelBinding == ChannelBindingOption.DISABLE) {
+    if (channelBinding == ChannelBinding.DISABLE) {
       return new byte[0];
     }
 
@@ -113,14 +112,14 @@ final class ScramAuthenticator {
         }
       } catch (CertificateEncodingException | SSLPeerUnverifiedException e) {
         LOGGER.log(Level.FINEST, "Error extracting channel binding data", e);
-        if (channelBinding == ChannelBindingOption.REQUIRE) {
+        if (channelBinding == ChannelBinding.REQUIRE) {
           throw new PSQLException(
               GT.tr("Channel Binding is required, but could not extract "
                   + "channel binding data from SSL session"),
               PSQLState.CONNECTION_REJECTED);
         }
       }
-    } else if (channelBinding == ChannelBindingOption.REQUIRE) {
+    } else if (channelBinding == ChannelBinding.REQUIRE) {
       throw new PSQLException(
           GT.tr("Channel Binding is required, but SSL is not in use"),
           PSQLState.CONNECTION_REJECTED);

@@ -100,20 +100,36 @@ public class SslTest {
     }
   }
 
+  enum ChannelBinding {
+    DISABLE("disable"),
+    PREFER("prefer"),
+    REQUIRE("require"),
+    ;
+
+    public static final ChannelBinding[] VALUES = values();
+    public final String value;
+
+    ChannelBinding(String value) {
+      this.value = value;
+    }
+  }
+
   private final Hostname host;
   private final TestDatabase db;
   private final SslMode sslmode;
+  private final ChannelBinding channelBinding;
   private final SslNegotiation sslNegotiation;
   private final ClientCertificate clientCertificate;
   private final ClientRootCertificate clientRootCertificate;
   private final GSSEncMode gssEncMode;
 
-  SslTest(Hostname host, TestDatabase db, SslMode sslmode, SslNegotiation sslNegotiation,
+  SslTest(Hostname host, TestDatabase db, SslMode sslmode, ChannelBinding channelBinding, SslNegotiation sslNegotiation,
       ClientCertificate clientCertificate, ClientRootCertificate clientRootCertificate,
       GSSEncMode gssEncMode) {
     this.host = host;
     this.db = db;
     this.sslmode = sslmode;
+    this.channelBinding = channelBinding;
     this.sslNegotiation = sslNegotiation;
     this.clientCertificate = clientCertificate;
     this.clientRootCertificate = clientRootCertificate;
@@ -141,33 +157,35 @@ public class SslTest {
           // no need to test as this is the same as DISABLE and POSTGRESQL
           continue;
         }
-        for (Hostname hostname : Hostname.values()) {
-          for (TestDatabase database : TestDatabase.VALUES) {
-            for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
-              for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
-                if ((sslMode == SslMode.DISABLE
-                    || database.rejectsSsl())
-                    && (clientCertificate != ClientCertificate.GOOD
-                    || rootCertificate != ClientRootCertificate.GOOD)) {
-                  // When SSL is disabled, it does not make sense to verify "bad certificates"
-                  // since certificates are NOT used in plaintext connections
-                  continue;
-                }
-                if (database.rejectsSsl()
-                    && (sslMode.verifyCertificate()
-                    || hostname == Hostname.BAD)
-                ) {
-                  // DB would reject SSL connection, so it makes no sense to test cases like verify-full
-                  continue;
-                }
-                for (GSSEncMode gssEncMode : GSSEncMode.values()) {
-                  if (gssEncMode == GSSEncMode.REQUIRE) {
-                    // TODO: support gss tests in /certdir/pg_hba.conf
+        for (ChannelBinding channelBinding : ChannelBinding.VALUES) {
+          for (Hostname hostname : Hostname.values()) {
+            for (TestDatabase database : TestDatabase.VALUES) {
+              for (ClientCertificate clientCertificate : ClientCertificate.VALUES) {
+                for (ClientRootCertificate rootCertificate : ClientRootCertificate.VALUES) {
+                  if ((sslMode == SslMode.DISABLE
+                      || database.rejectsSsl())
+                      && (clientCertificate != ClientCertificate.GOOD
+                      || rootCertificate != ClientRootCertificate.GOOD)) {
+                    // When SSL is disabled, it does not make sense to verify "bad certificates"
+                    // since certificates are NOT used in plaintext connections
                     continue;
                   }
-                  tests.add(
-                      new Object[]{hostname, database, sslMode, sslNegotiation, clientCertificate, rootCertificate,
-                          gssEncMode});
+                  if (database.rejectsSsl()
+                      && (sslMode.verifyCertificate()
+                      || hostname == Hostname.BAD)
+                  ) {
+                    // DB would reject SSL connection, so it makes no sense to test cases like verify-full
+                    continue;
+                  }
+                  for (GSSEncMode gssEncMode : GSSEncMode.values()) {
+                    if (gssEncMode == GSSEncMode.REQUIRE) {
+                      // TODO: support gss tests in /certdir/pg_hba.conf
+                      continue;
+                    }
+                    tests.add(
+                        new Object[]{hostname, database, sslMode, channelBinding, sslNegotiation,
+                            clientCertificate, rootCertificate, gssEncMode});
+                  }
                 }
               }
             }
@@ -241,6 +259,7 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -249,6 +268,7 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -257,6 +277,16 @@ public class SslTest {
         return;
       }
     } catch (AssertionError ae) {
+      ae.addSuppressed(e);
+      errors = addError(errors, ae);
+    }
+
+    try {
+      if (assertChannelBinding(e)) {
+        return;
+      }
+    } catch (AssertionError ae) {
+      ae.addSuppressed(e);
       errors = addError(errors, ae);
     }
 
@@ -371,6 +401,57 @@ public class SslTest {
     return true;
   }
 
+  private boolean assertChannelBinding(SQLException e) {
+    if (channelBinding != ChannelBinding.REQUIRE) {
+      // So far we expect errors only with channelBinding=require
+      return false;
+    }
+
+    if (sslmode == SslMode.VERIFY_FULL) {
+      // sslMode=verify-full prevents MITM thanks to X.509, so we assume it is a good enough for
+      // channelBinding=require
+      return false;
+    }
+
+    if (sslmode == SslMode.DISABLE) {
+      String caseName = "channelBinding=require + sslmode=disable";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected");
+      return true;
+    }
+
+    if (db.rejectsSsl()) {
+      String caseName = "channelBinding=require + db.rejectsSsl()";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected");
+      return true;
+    }
+
+    if (sslmode == SslMode.ALLOW && !db.requiresSsl()) {
+      String caseName = "channelBinding=require + sslMode=allow + !db.requiresSsl()";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected");
+      return true;
+    }
+
+    if (db == TestDatabase.certdb) {
+      String caseName = "channelBinding=require + db=certdb";
+      if (e == null) {
+        fail(caseName + " ==> CONNECTION_REJECTED expected");
+      }
+      assertEquals(PSQLState.CONNECTION_REJECTED.getState(), e.getSQLState(), caseName + " ==> CONNECTION_REJECTED is expected");
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Checks client certificate validation error.
    *
@@ -477,6 +558,7 @@ public class SslTest {
     TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, db.toString());
     PGProperty.SSL_MODE.set(props, sslmode.value);
     PGProperty.SSL_NEGOTIATION.set(props, sslNegotiation.value());
+    PGProperty.CHANNEL_BINDING.set(props, channelBinding.value);
     PGProperty.GSS_ENC_MODE.set(props, gssEncMode.value);
     if (clientCertificate == ClientCertificate.EMPTY) {
       PGProperty.SSL_CERT.set(props, "");

@@ -738,6 +738,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     int protocol = 3 << 16;
 
     boolean saslHandshakeCompleted = false;
+    ChannelBinding channelBinding = ChannelBinding.of(info);
 
     try {
       authloop: while (true) {
@@ -784,7 +785,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Get the type of request
             int areq = pgStream.receiveInteger4();
 
-            if (ChannelBindingOption.of(info) == ChannelBindingOption.REQUIRE) {
+            // sslMode=verify-full ensures X.509 server verification which is inherently preventing MITM
+            // So if the client configures channelBinding=require, we allow any authentication type
+            // as long as we verify server's certificate and hostname.
+            if (channelBinding == ChannelBinding.REQUIRE && SslMode.of(info) != SslMode.VERIFY_FULL) {
               if (areq == AUTH_REQ_OK) {
                 if (!saslHandshakeCompleted) {
                   throw new PSQLException(
@@ -945,7 +949,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(password, pgStream, info);
+                  return new ScramAuthenticator(password, pgStream, channelBinding);
                 });
                 scramAuthenticator.handleAuthenticationSASL();
                 break;
