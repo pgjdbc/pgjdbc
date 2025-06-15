@@ -27,10 +27,7 @@ public class SelectBatch {
   @Param({ "CACHED_REPEAT", "VARYING_LENGTH" })
   private Scenario scenario;
 
-  @Param({"10"})
-  private int repeatCount;
-
-  @Param({"100", "1000"})
+  @Param({"1", "100", "1000"})
   private int batchSize;
 
   private Connection connection;
@@ -85,28 +82,24 @@ public class SelectBatch {
     switch (scenario) {
 
     case CACHED_REPEAT:
-      for (int run = 1; run <= repeatCount; run++) {
-        try (PreparedStatement ps = connection.prepareStatement(cachedSql)) {
-          for (int idx = 1; idx <= batchSize; idx++) {
-            ps.setInt(idx, idx);
-          }
-          boolean hasResult = ps.execute();
-          bh.consume(hasResult);
+      try (PreparedStatement ps = connection.prepareStatement(cachedSql)) {
+        for (int idx = 1; idx <= batchSize; idx++) {
+          ps.setInt(idx, idx);
         }
+        boolean hasResult = ps.execute();
+        bh.consume(hasResult);
       }
       break;
 
     case VARYING_LENGTH:
       for (int len = 1; len <= batchSize; len++) {
         String sql = varyingSqls[len - 1];
-        for (int run = 1; run <= repeatCount; run++) {
-          try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            for (int idx = 1; idx <= len; idx++) {
-              ps.setInt(idx, idx);
-            }
-            boolean hasResult = ps.execute();
-            bh.consume(hasResult);
+        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+          for (int idx = 1; idx <= len; idx++) {
+            ps.setInt(idx, idx);
           }
+          boolean hasResult = ps.execute();
+          bh.consume(hasResult);
         }
       }
       break;
