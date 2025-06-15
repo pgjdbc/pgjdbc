@@ -122,6 +122,7 @@ on a command line (the outputs are located in the relevant:
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class
     ./gradlew test -PincludeTestTags=!org.postgresql.test.SlowTests # skip slow tests
     ./gradlew test -PjdkTestVersion=21 --tests org.postgresql.test.ssl.SslTest # execute test with Java 21
+    ./gradlew sourceDistributionTest # prepare source distribution.tar.gz, unpack it, and execute tests with Maven to verify the source distribution
 
     ./gradlew parameters # list most build parameters like jdkTestVersion above
 
