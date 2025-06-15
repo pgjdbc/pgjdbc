@@ -814,38 +814,29 @@ class StatementTest {
   void multipleCancels() throws Exception {
     SharedTimer sharedTimer = Driver.getSharedTimer();
 
-    Connection connA = null;
-    Connection connB = null;
-    Statement stmtA = null;
-    Statement stmtB = null;
-    ResultSet rsA = null;
-    ResultSet rsB = null;
-    try {
+    try (Connection connA = TestUtil.openDB();
+         Connection connB = TestUtil.openDB();
+         Statement stmtA = connA.createStatement();
+         Statement stmtB = connB.createStatement();
+    ) {
       assertEquals(0, sharedTimer.getRefCount());
-      connA = TestUtil.openDB();
-      connB = TestUtil.openDB();
-      stmtA = connA.createStatement();
-      stmtB = connB.createStatement();
       stmtA.setQueryTimeout(1);
       stmtB.setQueryTimeout(1);
-      try {
-        rsA = stmtA.executeQuery("SELECT pg_sleep(2)");
+      try (ResultSet rsA = stmtA.executeQuery("SELECT pg_sleep(2)")) {
+        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
       } catch (SQLException e) {
-        // ignore the expected timeout
+        assertEquals(
+            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
+            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
       }
       assertEquals(1, sharedTimer.getRefCount());
-      try {
-        rsB = stmtB.executeQuery("SELECT pg_sleep(2)");
+      try (ResultSet rsB = stmtB.executeQuery("SELECT pg_sleep(2)");) {
+        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
       } catch (SQLException e) {
-        // ignore the expected timeout
+        assertEquals(
+            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
+            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
       }
-    } finally {
-      TestUtil.closeQuietly(rsA);
-      TestUtil.closeQuietly(rsB);
-      TestUtil.closeQuietly(stmtA);
-      TestUtil.closeQuietly(stmtB);
-      TestUtil.closeQuietly(connA);
-      TestUtil.closeQuietly(connB);
     }
     assertEquals(0, sharedTimer.getRefCount());
   }
@@ -886,12 +877,11 @@ class StatementTest {
    */
   private void closePrivateInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    final Connection outerLockCon = TestUtil.openDB();
-    outerLockCon.setAutoCommit(false);
-    //Acquire an exclusive lock so we can block the notice generating statement
-    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+    try (Connection outerLockCon = TestUtil.openDB()) {
+      outerLockCon.setAutoCommit(false);
+      //Acquire an exclusive lock so we can block the notice generating statement
+      outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
 
-    try {
       con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
       con.createStatement()
           .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
@@ -937,7 +927,6 @@ class StatementTest {
       assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
     } finally {
       executor.shutdown();
-      TestUtil.closeQuietly(outerLockCon);
     }
   }
 
