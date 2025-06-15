@@ -385,6 +385,29 @@ val sourceDistribution by tasks.registering(Tar::class) {
         }
     }
 }
+
+val extractedSourceDistributionDir = layout.buildDirectory.dir("extracted-source-distribution")
+
+val extractSourceDistribution by tasks.registering(Sync::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Extracts source distribution into build/extracted-source-distribution for manual analysis"
+    from(tarTree(sourceDistribution.map { it.archiveFile.get() }))
+    into(extractedSourceDistributionDir.map { it.asFile })
+    eachFile {
+        // Strip the first directory which is postgresql-version-jdbc-src
+        path = path.substringAfter('/')
+    }
+}
+
+val sourceDistributionTest by tasks.registering(Exec::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Executes Maven build against source distribution"
+    dependsOn(extractSourceDistribution)
+    workingDir(extractedSourceDistributionDir)
+    executable = "mvn"
+    args("--batch-mode", "--fail-at-end", "--show-version")
+    args("verify")
+}
 // </editor-fold>
 
 tasks.test {
