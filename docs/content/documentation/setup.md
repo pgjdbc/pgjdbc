@@ -32,7 +32,16 @@ Where MM is the major version, nn is the minor version and pp is the patch versi
 
 This is a very brief outline of how to build the driver. Much more detailed information can be found on the [github repo](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md)
 
-Even though the JDBC driver should be built with Gradle, for situations, where use of Gradle is not possible, e.g., when building pgJDBC for distributions, the pgJDBC Gradle build provides a convenience source release artifact `*-src.tar.gz` - a Maven based project. The Maven based project contains a version of the JDBC driver with complete functionality, which can be used in production and is still validly buildable within the Maven build environment. The Maven-based project is created with **`gradlew -d :postgresql:sourceDistribution -Prelease`**. The produced `*-src.tar.gz` can be then found in `pgjdbc/build/distributions/` directory. JDBC driver can be built from the Maven-based project with **mvn package** or, when the tests are to be skipped, with **`mvn -DskipTests package`**. Source files `*-src.tar.gz`'s are released in the [Maven central repository](https://repo1.maven.org/maven2/org/postgresql/postgresql/).
+Even though the JDBC driver should be built with Gradle, for situations, where use of Gradle is not possible, e.g.,
+when building pgJDBC for distributions, the pgJDBC Gradle build provides a convenience source release artifact `*-src.tar.gz` - a Maven-based project.
+The Maven-based project contains a version of the JDBC driver with complete functionality, which can be used in production and is still validly buildable
+within the Maven build environment.
+
+The Maven-based project is created with **`gradlew -d :postgresql:sourceDistribution -Prelease`**.
+The produced `*-src.tar.gz` can be then found in `pgjdbc/build/distributions/` directory. JDBC driver can be built from the Maven-based project with **mvn package** or,
+when the tests are to be skipped, with **`mvn -DskipTests package`**.
+
+Source files `*-src.tar.gz`'s are released in the [Maven central repository](https://repo1.maven.org/maven2/org/postgresql/postgresql/).
 
 ## Setting up the Class Path
 
