@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
@@ -22,7 +23,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
-import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -84,7 +84,7 @@ public class TestUtil {
    * @return the test URL property value if it exists in the Properties object;
    *         otherwise, the default value of the specified property
    */
-  public static String getTestUrlProperty(Properties props, PGProperty property) {
+  public static @Nullable String getTestUrlProperty(Properties props, PGProperty property) {
     return props.getProperty(
         TEST_URL_PROPERTY_PREFIX + property.getName(), property.getDefaultValue());
   }
@@ -130,6 +130,9 @@ public class TestUtil {
         continue;
       }
       String value = props.getProperty(propertyName);
+      if (value == null) {
+        throw new IllegalArgumentException("Null value for property " + propertyName);
+      }
       String name = propertyName.substring(TEST_URL_PROPERTY_PREFIX.length());
       sb.append("&").append(URLCoder.encode(name)).append("=").append(URLCoder.encode(value));
     }
@@ -140,14 +143,15 @@ public class TestUtil {
    * Returns the Test server
    */
   public static String getServer() {
-    return getTestUrlProperty(System.getProperties(), PGProperty.PG_HOST);
+    return castNonNull(getTestUrlProperty(System.getProperties(), PGProperty.PG_HOST));
   }
 
   /*
    * Returns the Test port
    */
   public static int getPort() {
-    return Integer.parseInt(getTestUrlProperty(System.getProperties(), PGProperty.PG_PORT));
+    return Integer.parseInt(
+        castNonNull(getTestUrlProperty(System.getProperties(), PGProperty.PG_PORT)));
   }
 
   /*
@@ -165,7 +169,7 @@ public class TestUtil {
    * Returns the Test database
    */
   public static String getDatabase() {
-    return getTestUrlProperty(System.getProperties(), PGProperty.PG_DBNAME);
+    return castNonNull(getTestUrlProperty(System.getProperties(), PGProperty.PG_DBNAME));
   }
 
   /*
@@ -185,25 +189,25 @@ public class TestUtil {
   /*
    * Returns password for default callbackhandler
    */
-  public static String getSslPassword() {
+  public static @Nullable String getSslPassword() {
     return System.getProperty(PGProperty.SSL_PASSWORD.getName());
   }
 
   /*
    * Returns the user for SSPI authentication tests
    */
-  public static String getSSPIUser() {
+  public static @Nullable String getSSPIUser() {
     return System.getProperty("sspiusername");
   }
 
   /*
    * postgres like user
    */
-  public static String getPrivilegedUser() {
+  public static @Nullable String getPrivilegedUser() {
     return System.getProperty("privilegedUser");
   }
 
-  public static String getPrivilegedPassword() {
+  public static @Nullable String getPrivilegedPassword() {
     return System.getProperty("privilegedPassword");
   }
 
@@ -243,7 +247,7 @@ public class TestUtil {
     return p;
   }
 
-  private static Properties sslTestProperties;
+  private static @Nullable Properties sslTestProperties;
 
   private static void initSslTestProperties() {
     try (ResourceLock ignore = lock.obtain()) {
@@ -253,14 +257,9 @@ public class TestUtil {
     }
   }
 
-  @Test
-  public void test() {
-
-  }
-
-  private static String getSslTestProperty(String name) {
+  private static @Nullable String getSslTestProperty(String name) {
     initSslTestProperties();
-    return sslTestProperties.getProperty(name);
+    return castNonNull(sslTestProperties).getProperty(name);
   }
 
   public static void assumeSslTestsEnabled() {
@@ -268,7 +267,11 @@ public class TestUtil {
   }
 
   public static String getSslTestCertPath(String name) {
-    File certdir = TestUtil.getFile(getSslTestProperty("certdir"));
+    String certdirProp = getSslTestProperty("certdir");
+    if (certdirProp == null) {
+      throw new IllegalArgumentException("Missing property certdir in ssltest.properties");
+    }
+    File certdir = TestUtil.getFile(certdirProp);
     return new File(certdir, name).getAbsolutePath();
   }
 
@@ -384,7 +387,11 @@ public class TestUtil {
       // Copy all the properties from the given set and make system ones as a fallback
       propsWithDefaults = new Properties(systemProperties);
       for (String propertyName : propertyNames) {
-        propsWithDefaults.setProperty(propertyName, props.getProperty(propertyName));
+        String value = props.getProperty(propertyName);
+        if (value == null) {
+          throw new IllegalArgumentException("Property " + propertyName + " is null");
+        }
+        propsWithDefaults.setProperty(propertyName, value);
       }
     }
     return propsWithDefaults;
@@ -679,7 +686,7 @@ public class TestUtil {
     return insertSQL(table, null, values);
   }
 
-  public static String insertSQL(String table, String columns, String values) {
+  public static String insertSQL(String table, @Nullable String columns, String values) {
     String s = "INSERT INTO " + table;
 
     if (columns != null) {
@@ -696,11 +703,11 @@ public class TestUtil {
     return selectSQL(table, columns, null, null);
   }
 
-  public static String selectSQL(String table, String columns, String where) {
+  public static String selectSQL(String table, String columns, @Nullable String where) {
     return selectSQL(table, columns, where, null);
   }
 
-  public static String selectSQL(String table, String columns, String where, String other) {
+  public static String selectSQL(String table, String columns, @Nullable String where, @Nullable String other) {
     String s = "SELECT " + columns + " FROM " + table;
 
     if (where != null) {
@@ -983,7 +990,7 @@ public class TestUtil {
    * Execute a SQL query with a given connection, fetch the first row, and return its
    * string value.
    */
-  public static String queryForString(Connection conn, String sql) throws SQLException {
+  public static @Nullable String queryForString(Connection conn, String sql) throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     assertTrue(rs.next(), () -> "Query should have returned exactly one row but none was found: " + sql);
@@ -997,7 +1004,7 @@ public class TestUtil {
   /**
    * Same as queryForString(...) above but with a single string param.
    */
-  public static String queryForString(Connection conn, String sql, String param) throws SQLException {
+  public static @Nullable String queryForString(Connection conn, String sql, String param) throws SQLException {
     PreparedStatement stmt = conn.prepareStatement(sql);
     stmt.setString(1, param);
     ResultSet rs = stmt.executeQuery();
@@ -1013,7 +1020,7 @@ public class TestUtil {
    * Execute a SQL query with a given connection, fetch the first row, and return its
    * boolean value.
    */
-  public static Boolean queryForBoolean(Connection conn, String sql) throws SQLException {
+  public static @Nullable Boolean queryForBoolean(Connection conn, String sql) throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet rs = stmt.executeQuery(sql);
     assertTrue(rs.next(), () -> "Query should have returned exactly one row but none was found: " + sql);
@@ -1071,6 +1078,9 @@ public class TestUtil {
    */
   private static Connection createPrivilegedConnection(Connection conn) throws SQLException {
     String url = conn.getMetaData().getURL();
+    if (url == null) {
+      throw new IllegalStateException("conn.getMetaData().getURL() returned null, so can't reconstruct the URL");
+    }
     Properties props = new Properties(conn.getClientInfo());
     PGProperty.USER.set(props, getPrivilegedUser());
     PGProperty.PASSWORD.set(props, getPrivilegedPassword());
