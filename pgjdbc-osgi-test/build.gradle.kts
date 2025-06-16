@@ -25,11 +25,11 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("javax:javaee-api:8.0.1")
     testImplementation("org.osgi:org.osgi.service.jdbc:1.0.0")
-    testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.13.5")
+    testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.14.0")
     // pax-exam is not yet compatible with junit5
     // see https://github.com/ops4j/org.ops4j.pax.exam2/issues/886
-    testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.13.5")
-    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
+    testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.14.0")
+    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.14.0")
     testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.16")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testImplementation("ch.qos.logback:logback-core:1.5.18")
