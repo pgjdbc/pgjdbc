@@ -92,10 +92,10 @@ dependencies {
     }
     shaded("com.ongres.scram:scram-client:3.1")
 
-    implementation("org.checkerframework:checker-qual:3.49.3")
+    implementation("org.checkerframework:checker-qual:3.49.4")
     testFixturesImplementation(platform("org.junit:junit-bom:5.13.1"))
     testFixturesImplementation("org.junit.jupiter:junit-jupiter-api")
-    testFixturesImplementation("org.checkerframework:checker-qual:3.49.3")
+    testFixturesImplementation("org.checkerframework:checker-qual:3.49.4")
 }
 
 val skipReplicationTests by props()
