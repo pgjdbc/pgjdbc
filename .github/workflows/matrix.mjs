@@ -293,7 +293,10 @@ include.forEach(v => {
         `-Duser.language=${v.locale.language}`,
     ];
     v.extraGradleArgs = gradleArgs.join(' ');
-    let assumeMinServerVersion = ['', '', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
+    // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
+    // The idea is that everything should still work since the option is just a hint to the driver
+    // on the minimal set of features it can use when connecting to the database.
+    let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
     v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(RNG.random() * assumeMinServerVersion.length)];
     if (v.assumeMinServerVersion !== '') {
         v.name += ', assume min version ' + v.assumeMinServerVersion;
