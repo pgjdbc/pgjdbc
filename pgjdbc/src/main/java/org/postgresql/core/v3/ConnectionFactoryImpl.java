@@ -1000,37 +1000,42 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     final int dbVersion = queryExecutor.getServerVersionNum();
     StringBuilder sb = new StringBuilder();
 
-    // Only need to send the application name if it's defined and wasn't already sent as a startup parameter
-    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-    boolean sendApplicationName = appName != null
-            && assumeVersion.getVersionNum() < ServerVersion.v9_0.getVersionNum()
-            && dbVersion >= ServerVersion.v9_0.getVersionNum();
-    boolean sendExtraFloatDigits = dbVersion < ServerVersion.v12.getVersionNum();
-
-    if ( sendApplicationName || sendExtraFloatDigits ) {
-
-      if ( sendExtraFloatDigits ) {
-        if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
-          // server version < 9 so 8.x or less
-          sb.append("SET extra_float_digits = 2");
-        } else {
-          // server version < 12 so 9.0 - 11.x
-          sb.append("SET extra_float_digits = 3");
-        }
+    if (dbVersion < ServerVersion.v12.getVersionNum()) {
+      if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
+        // server version < 9 so 8.x or less
+        sb.append("SET extra_float_digits = 2");
+      } else {
+        // server version < 12 so 9.0 - 11.x
+        sb.append("SET extra_float_digits = 3");
       }
-
-      if ( sendApplicationName ) {
-        // we could check the length of sb, but this should be faster
-        if (sendExtraFloatDigits) {
-          sb.append(';');
-        }
-        sb.append("SET application_name = '");
-        Utils.escapeLiteral(sb, Nullness.castNonNull(appName), queryExecutor.getStandardConformingStrings());
-        sb.append("'");
-      }
-      SetupQueryRunner.run(queryExecutor, sb.toString(), false);
     }
 
+    // Only need to send the application name if it's defined and wasn't already sent as a
+    // startup parameter
+    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
+    if (appName != null && assumeVersion.getVersionNum() < ServerVersion.v9_0.getVersionNum()
+        && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+      if (sb.length() != 0) {
+        sb.append(';');
+      }
+      sb.append("SET application_name = '");
+      Utils.escapeLiteral(sb, appName,
+          queryExecutor.getStandardConformingStrings());
+      sb.append("'");
+    }
+    if (sb.length() == 0) {
+      // All the necessary parameters were set in the startup packet
+      return;
+    }
+    if (PGProperty.REPLICATION.getOrDefault(info) != null) {
+      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow 'set ...' commands,"
+          + " so skipping the following initial queries: ({0})."
+          + " Consider configuring assumeMinServerVersion property so the driver"
+          + " propagates the needed parameters in the startup packet", sb);
+      return;
+    }
+
+    SetupQueryRunner.run(queryExecutor, sb.toString(), false);
   }
 
   /**
