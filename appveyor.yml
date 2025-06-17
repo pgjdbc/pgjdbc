@@ -9,6 +9,7 @@ environment:
   - pg: 16
   # AppVeyor takes ~20 min for running the tests, so testing two PG versions results in slow PR feedback
   # It might be worth uncommenting if the tests get faster somehow
+  # Note: PostgreSQL 11 requires clientcert=1 instead of clientcert=verify-full in pg_hba.conf
   # - pg: 11
 
 skip_commits:
@@ -44,11 +45,18 @@ before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
+- ps: Add-Content -PATH "ssltest.local.properties" "enable_ssl_tests=true"
+- ps: Copy-Item -Path .\certdir\server\server.crt -Destination "$env:pgroot\data\server.crt"
+- ps: Copy-Item -Path .\certdir\server\server.key -Destination "$env:pgroot\data\server.key"
+- ps: Copy-Item -Path .\certdir\server\root.crt -Destination "$env:pgroot\data\root.crt"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "ssl=on"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "ssl_cert_file=$env:pgroot\data\server.crt"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "ssl_cert_file=$env:pgroot\data\server.key"
+- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "ssl_cert_file=$env:pgroot\data\server.crt"
 - ps: |
     Copy-Item -Path .\certdir\server\pg_hba.conf -Destination "$env:pgroot\data\pg_hba.conf" -Force
     (Get-Content -Raw "$env:pgroot\data\pg_hba.conf") -replace '(?m)^local\b', '#local' | Set-Content "$env:pgroot\data\pg_hba.conf"
     # PostgreSQL 11 can't start if ssl=off and pg_hba.conf includes hostssl, so we comment it out as we don't configure ssl yet
-    (Get-Content -Raw "$env:pgroot\data\pg_hba.conf") -replace '(?m)^hostssl\b', '#hostssl' | Set-Content "$env:pgroot\data\pg_hba.conf"
     Write-Host "Here's the contents of pg_hba.conf:"
     Get-Content "$env:pgroot\data\pg_hba.conf" | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }
 - ps: |
