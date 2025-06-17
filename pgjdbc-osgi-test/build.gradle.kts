@@ -31,7 +31,7 @@ dependencies {
     // see https://github.com/ops4j/org.ops4j.pax.exam2/issues/886
     testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.14.0")
     testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.14.0")
-    testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.16")
+    testImplementation("org.ops4j.pax.url:pax-url-aether:3.0.1")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testImplementation("ch.qos.logback:logback-core:1.5.18")
     testImplementation("ch.qos.logback:logback-classic:1.5.18")
