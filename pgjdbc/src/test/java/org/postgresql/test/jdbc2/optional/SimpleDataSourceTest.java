@@ -60,13 +60,13 @@ public class SimpleDataSourceTest extends BaseDataSourceTest {
       source.setProperty(PGProperty.HOST.getName(), hosts);
       source.setProperty(PGProperty.PORT.getName(), ports);
       source.setProperty(PGProperty.DBNAME.getName(), "dbname4");
-      assertEquals("url", result, source.getURL());
+      assertEquals(result, source.getURL());
       // deprecated properties
       source = new PGSimpleDataSource();
       source.setProperty(PGProperty.PG_HOST.getName(), hosts);
       source.setProperty(PGProperty.PG_PORT.getName(), ports);
       source.setProperty(PGProperty.PG_DBNAME.getName(), "dbname4");
-      assertEquals("url", result, source.getURL());
+      assertEquals(result, source.getURL());
     }
   }
 }
