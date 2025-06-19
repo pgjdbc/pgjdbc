@@ -71,8 +71,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       Class.forName("org.postgresql.Driver");
     } catch (ClassNotFoundException e) {
       throw new IllegalStateException(
-        "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
-        e);
+          "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
+          e);
     }
   }
 
