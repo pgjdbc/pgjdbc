@@ -1,0 +1,143 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: false
+        type: string
+        default: ''
+        description: Release version number (without v, defaults to gradle.properties)
+
+jobs:
+  publish-release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    permissions:
+      # write permission is required to create a GitHub release
+      contents: write
+      # write permission is required for autolabeler
+      # otherwise, read permission is required at least
+      pull-requests: read
+    steps:
+      - name: Validate input parameters
+        # language=bash
+        run: |
+          # Ensure we release from master or release/** branches, ensure version number follows semver
+          BRANCH_NAME=${GITHUB_REF##refs/heads/}
+          if [[ ! "$BRANCH_NAME" =~ ^(master|release/.+)$ ]]; then
+            echo "Error: Release must be created from 'master' or 'release/**' branch. Current branch is '$BRANCH_NAME'"
+            exit 1
+          fi
+
+          # Validate version follows semver or is empty
+          VERSION="${{ inputs.version }}"
+          if [[ -n "$VERSION" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Version must be blank or follow semantic versioning format (x.y.z). Got '$VERSION'"
+            exit 1
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Get the release version
+        id: release_version
+        shell: bash
+        # language=bash
+        run: |
+          if [[ -n "${{ inputs.version }}" ]]; then
+            VERSION="${{ inputs.version }}"
+            echo "Got release version from workflow input: $VERSION"
+          else
+            VERSION=$(grep "^pgjdbc.version=" gradle.properties | cut -d'=' -f2)
+            echo "Got release version from gradle.properties: $VERSION"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7
+        env:
+          VERSION: ${{ steps.release_version.outputs.version }}
+        with:
+          # language=javascript
+          script: |
+             const tag = `REL${process.env.VERSION}`;
+             // Check if the tag exists
+             const { data: tags } = await github.rest.git.listMatchingRefs({
+                 owner: context.repo.owner,
+                 repo: context.repo.repo,
+                 ref: `tags/${tag}`
+             });
+             if (tags.length > 0) {
+                 core.setFailed(`Tag ${tag} already exists. Bump version in gradle.properties and try releasing again.`);
+             }
+
+      - name: Prepare git name and email
+        # language=bash
+        run: |
+          # Configure git user.name and user.email
+          # See https://github.com/actions/checkout?tab=readme-ov-file#push-a-commit-using-the-built-in-token
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - uses: actions/create-github-app-token@df432ceedc7162793a195dd1713ff69aefc7379e # v2
+        id: app_token
+        with:
+          app-id: ${{ vars.GH_BUMP_VERSION_APP_ID }}
+          private-key: ${{ secrets.GH_BUMP_VERSION_APP_KEY }}
+
+      - name: Update version in gradle.properties to ${{ steps.release_version.outputs.version }}
+        uses: ./.github/actions/update_version
+        with:
+          token: ${{ steps.app_token.outputs.token }}
+          version: ${{ steps.release_version.outputs.version }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        with:
+          distribution: zulu
+          java-version: 21
+          server-id: central
+
+      # Publish to Central before generating a tag, so we don't need to drop the tag if
+      # Central deployment fails.
+      - name: Publish to Central Portal
+        uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
+        with:
+          arguments: publishAllPublicationsToCentralPortal
+          # language=properties
+          properties: |
+            release=true
+            centralPortalPublishingType=AUTOMATIC
+        env:
+          CENTRAL_PORTAL_USERNAME: ${{ secrets.NEXUS_USERNAME }}
+          CENTRAL_PORTAL_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
+          SIGNING_PGP_PRIVATE_KEY: ${{ secrets.RELEASE_PGP_PRIVATE_KEY }}
+          SIGNING_PGP_PASSPHRASE: ${{ secrets.RELEASE_PGP_PASSPHRASE }}
+
+      - name: Publish GitHub release
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
+        id: publish_release
+        with:
+          disable-autolabeler: true
+          publish: true
+          latest: ${{ github.ref_name == github.event.repository.default_branch }}
+          version: ${{ steps.release_version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute the next patch version
+        id: next_version
+        # language=bash
+        run: |
+          # Compute the next patch version
+          IFS='.' read -r major minor patch <<< "${{ steps.release_version.outputs.version }}"
+          next_version="${major}.${minor}.$((patch + 1))"
+          echo "Next version: $next_version"
+          echo "version=$next_version" >> "$GITHUB_OUTPUT"
+
+      - name: Update version in gradle.properties to ${{ steps.next_version.outputs.version }}
+        uses: ./.github/actions/update_version
+        with:
+          token: ${{ steps.app_token.outputs.token }}
+          version: ${{ steps.next_version.outputs.version }}

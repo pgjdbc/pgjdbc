@@ -33,7 +33,7 @@ cd "$workdir"
 test -f "$hook_payload" && webhook-checkout "$hook_payload"
 
 # generate source tarball
-./gradlew :postgresql:sourceDistribution -Prelease -PjdkBuildVersion=21
+./gradlew :postgresql:sourceDistribution -Prelease -PjdkBuildVersion=21 -Psigning.gpg.enabled=OFF
 
 project_version=$(grep pgjdbc.version gradle.properties | cut -d "=" -f2-)
 cp pgjdbc/build/distributions/postgresql-$project_version-jdbc-src.tar.gz "$resultdir"

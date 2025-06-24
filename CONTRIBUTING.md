@@ -150,10 +150,7 @@ Updating translations can be accomplished with the following command:
 
     ./gradlew generateGettextSources && git add pgjdbc && git commit -m "Translations updated"
 
-## Releasing a snapshot version
-
-[Stage Vote Release Plugin](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin)
-is used for releasing artifacts.
+## Release steps
 
 ## Releasing a new version
 
@@ -163,22 +160,22 @@ Prerequisites:
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)
 
-### Manual release procedure
+### Trigger the release procedure
 
-See details in [Stage Vote Release readme](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin#making-a-release-candidate)
+This project defines a [manual release workflow](.github/workflows/release.yaml).
 
-Prepare release candidate:
+The suggested flow is as follows:
+1. Prepare release notes, commit it to Git.
+2. Open the "release" action at 👉 [Actions tab → release.yaml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yaml).
+3. Click "run workflow".
+4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
+5. Click "Run workflow"
 
-    ./gradlew prepareVote -Prc=1 -Pgh
+The workflow performs the following steps:
 
-It will create a release candidate tag, push the artifacts to Maven Central and print the announcement draft.
-The staged repository will become open for smoke testing access at https://oss.sonatype.org/content/repositories/orgpostgresql-1082/
-
-If staged artifacts look fine, release it
-
-    ./gradlew publishDist -Prc=1 -Pgh
-
-Then update version, and readme as required.
+1. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
+2. It builds and pushes artifacts to Central Portal.
+3. It updates the version to the next patch version.
 
 ### Updating changelog
 

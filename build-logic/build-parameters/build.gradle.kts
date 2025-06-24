@@ -92,8 +92,33 @@ buildParameters {
         defaultValue.set("")
         description.set("Lists tags to include in test execution. For instance -PincludeTestTags=!org.postgresql.test.SlowTests, or or -PincludeTestTags=!replication")
     }
-    bool("useGpgCmd") {
+    bool("release") {
         defaultValue.set(false)
-        description.set("By default use Java implementation to sign artifacts. When useGpgCmd=true, then gpg command line tool is used for signing artifacts")
+        description.set("Create a release version of the library (by default, -SNAPSHOT is used)")
+    }
+    group("centralPortal") {
+        enumeration("publishingType") {
+            defaultValue.set("AUTOMATIC")
+            values.addAll("AUTOMATIC", "MANUAL")
+            description.set("Publishing type")
+        }
+        integer("verificationTimeout") {
+            defaultValue.set(60)
+            description.set("Timeout (minutes) to wait for Central Portal to verify the publication")
+        }
+    }
+    group("signing") {
+        group("pgp") {
+            enumeration("enabled") {
+                defaultValue.set("AUTO")
+                values.addAll("AUTO", "OFF")
+                description.set("Configures whether PGP signing should be enabled or not. By default (AUTO) signing is enabled for release versions")
+            }
+            enumeration("implementation") {
+                defaultValue.set("IN_MEMORY")
+                values.addAll("IN_MEMORY", "GPG_CLI")
+                description.set("Configures PGP implementation to use. By default (IN_MEMORY) PGP keys are stored in memory")
+            }
+        }
     }
 }

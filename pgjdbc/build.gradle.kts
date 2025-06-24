@@ -26,6 +26,7 @@ plugins {
     id("com.github.vlsi.gettext")
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.ide")
+    id("com.github.vlsi.stage-vote-release") apply false
 }
 
 buildscript {
