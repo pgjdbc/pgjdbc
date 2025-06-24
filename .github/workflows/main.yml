@@ -42,15 +42,15 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
         fetch-depth: 50
     - name: 'Set up JDK 21'
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
       with:
         distribution: zulu
         java-version: 21
-    - uses: burrunan/gradle-cache-action@v3
+    - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
       name: Verify code style
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -63,15 +63,15 @@ jobs:
     name: 'CheckerFramework'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@v3
+      - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
         name: Run CheckerFramework
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -85,18 +85,18 @@ jobs:
     name: 'Source distribution (JDK 21)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
           fetch-depth: 50
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
         run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@v3
+      - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
         name: Prepare source distribution
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -112,7 +112,7 @@ jobs:
           mvn --batch-mode --fail-at-end --show-version verify
       - name: Attach heap dump if any
         if: ${{ failure() && github.event_name == 'pull_request' }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: pgjdbc-heapdump-source-distribution
           path: pgjdbc/build/distributions/postgresql-1.0-jdbc-src/target/surefire-reports/*.hprof
@@ -127,7 +127,7 @@ jobs:
       GITHUB_PR_NUMBER: ${{ github.event.number }}
       RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
         fetch-depth: 50
     - id: set-matrix
@@ -146,7 +146,7 @@ jobs:
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
       with:
         fetch-depth: 50
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
@@ -167,7 +167,7 @@ jobs:
         docker compose up -d
         docker compose logs
     - name: Set up Java 21 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
       with:
         # The latest one will be the default, so we use Java 21 for launching Gradle
         # oracle-actions/setup-java below requires Java 21, so we must install Java 21 before calling oracle-actions/setup-java
@@ -190,7 +190,7 @@ jobs:
     - name: Set up Java 21 ${{ matrix.java_distribution }} as default
       # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 21 as the default
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
       with:
         java-version: 21
         distribution: ${{ matrix.java_distribution }}
@@ -206,7 +206,7 @@ jobs:
         preferQueryMode=${{ matrix.query_mode }}
         EOF
 
-    - uses: burrunan/gradle-cache-action@v3
+    - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
       name: Test
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
@@ -237,7 +237,7 @@ jobs:
       run: |
         sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com localhost > /etc/hosts"
         cat /etc/hosts
-    - uses: burrunan/gradle-cache-action@v3
+    - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
       if: ${{ matrix.deploy_to_maven_local }}
       name: Deploy pgjdbc to mavenLocal
       with:
@@ -246,7 +246,7 @@ jobs:
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Attach heap dump if any
       if: ${{ failure() && github.event_name == 'pull_request' }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
       with:
         name: pgjdbc-heapdump
         path: pgjdbc/*.hprof
