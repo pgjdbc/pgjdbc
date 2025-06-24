@@ -1,0 +1,43 @@
+name: bump version in gradle.properties
+inputs:
+  version:
+    required: true
+    description: new version
+  token:
+    required: true
+    description: token to use when
+
+runs:
+  using: composite
+  steps:
+    - name: Update the worktree
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        ref: ${{ github.ref_name }}
+        token: ${{ inputs.token }}
+        persist-credentials: true
+
+    - name: update version
+      shell: bash
+      # language=bash
+      run: |
+        # Check if version needs to be updated to
+        VERSION_LINE="pgjdbc.version=${{ inputs.version }}"
+        if grep -q "^${VERSION_LINE}$" gradle.properties; then
+          echo "Version is already up to date"
+          exit 0
+        fi
+
+        # Update version in gradle.properties
+        sed -i "s/^pgjdbc\.version=.*$/${VERSION_LINE}/" gradle.properties
+
+        # Commit and push changes
+        git add gradle.properties
+        git commit -m "chore: bump version to ${{ inputs.version }}" -m "[ci-skip]"
+        git push origin "${{ github.ref_name }}"
+
+    - name: Update the worktree, revert to the default token
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      with:
+        ref: ${{ github.ref_name }}
+        token: ${{ github.token }}
