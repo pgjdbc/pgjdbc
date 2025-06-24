@@ -3,42 +3,62 @@
   "extends": [
     "config:best-practices"
   ],
-  "labels": ["dependencies"],
-  "schedule": ["every 3 weeks on Monday"],
+  "labels": [
+    "dependencies"
+  ],
+  "schedule": [
+    "every 3 weeks on Monday"
+  ],
   "packageRules": [
     {
-      "matchPackagePrefixes": ["ch.qos.logback"],
-      "groupName": "logback"
+      "groupName": "logback",
+      "matchPackageNames": [
+        "ch.qos.logback{/,}**"
+      ]
     },
     {
-      "matchPackagePrefixes": ["com.github.vlsi"],
-      "groupName": "com.github.vlsi"
+      "groupName": "com.github.vlsi",
+      "matchPackageNames": [
+        "com.github.vlsi{/,}**"
+      ]
     },
     {
-      "matchPackagePrefixes": ["org.checkerframework"],
-      "groupName": "checkerframework"
+      "groupName": "checkerframework",
+      "matchPackageNames": [
+        "org.checkerframework{/,}**"
+      ]
     },
     {
-      "matchPackagePrefixes": ["org.openjdk.jmh"],
-      "groupName": "jmh"
+      "groupName": "jmh",
+      "matchPackageNames": [
+        "org.openjdk.jmh{/,}**"
+      ]
     },
     {
-      "matchPackagePrefixes": ["org.ops4j.pax.exam"],
-      "groupName": "pax-exam"
+      "groupName": "pax-exam",
+      "matchPackageNames": [
+        "org.ops4j.pax.exam{/,}**"
+      ]
     },
     {
-      "matchPackageNames": ["org.postgresql:postgresql"],
+      "matchPackageNames": [
+        "org.postgresql:postgresql"
+      ],
       "matchCurrentVersion": "1.0.0-dev-master-SNAPSHOT",
       "enabled": false
     },
     {
-      "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
+      "matchPackageNames": [
+        "uk.org.webcompere:system-stubs-jupiter"
+      ],
       "groupName": "system-stubs-jupiter",
       "matchCurrentVersion": "< 2.0",
       "enabled": false
     },
     {
-      "matchPackageNames": ["uk.org.webcompere:system-stubs-jupiter"],
+      "matchPackageNames": [
+        "uk.org.webcompere:system-stubs-jupiter"
+      ],
       "groupName": "system-stubs-jupiter",
       "matchCurrentVersion": "> 2.0"
     }
