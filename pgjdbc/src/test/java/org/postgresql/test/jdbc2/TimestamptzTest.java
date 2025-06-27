@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +30,8 @@ import java.util.TimeZone;
 /**
  * Tests both db and java side that correct type are passed.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass
+@MethodSource("data")
 public class TimestamptzTest extends BaseTest4 {
 
   public TimestamptzTest(BinaryMode binaryMode) {
@@ -38,7 +39,6 @@ public class TimestamptzTest extends BaseTest4 {
     setTimestamptzAlways(TimestamptzAlways.YES);
   }
 
-  @Parameterized.Parameters(name = "timestamptzAlways = {1}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<Object[]>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
