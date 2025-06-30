@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.time.LocalTime;
@@ -64,6 +65,42 @@ public class PreparedStatementTest extends BaseTest4 {
       try (ResultSet rs = ps.executeQuery()) {
         assert (rs.next());
         rs.getBoolean(1);
+      }
+    }
+  }
+
+  @Test
+  public void testSetNulls() throws SQLException {
+    try (PreparedStatement ps = con.prepareStatement("select ?, ?, ?, ?, ?, ?, ?, ?")) {
+      ps.setNull(1, Types.BIT);
+      ps.setNull(2, Types.SMALLINT);
+      ps.setNull(3, Types.INTEGER);
+      ps.setNull(4, Types.BIGINT);
+      ps.setNull(5, Types.REAL);
+      ps.setNull(6, Types.DOUBLE);
+      ps.setNull(7, Types.DATE);
+      ps.setNull(8, Types.NUMERIC);
+
+      try (ResultSet rs = ps.executeQuery()) {
+        assert (rs.next());
+        ResultSetMetaData metaData = rs.getMetaData();
+        Assert.assertEquals(Types.BIT, metaData.getColumnType(1));
+        Assert.assertEquals(Types.SMALLINT, metaData.getColumnType(2));
+        Assert.assertEquals(Types.INTEGER, metaData.getColumnType(3));
+        Assert.assertEquals(Types.BIGINT, metaData.getColumnType(4));
+        Assert.assertEquals(Types.REAL, metaData.getColumnType(5));
+        Assert.assertEquals(Types.DOUBLE, metaData.getColumnType(6));
+        Assert.assertEquals(Types.DATE, metaData.getColumnType(7));
+        Assert.assertEquals(Types.NUMERIC, metaData.getColumnType(8));
+
+        Assert.assertFalse(rs.getBoolean(1));
+        Assert.assertEquals(0, rs.getShort(2));
+        Assert.assertEquals(0, rs.getInt(3));
+        Assert.assertEquals(0, rs.getLong(4));
+        Assert.assertEquals(0, rs.getFloat(5), 0);
+        Assert.assertEquals(0, rs.getDouble(6), 0);
+        Assert.assertNull(rs.getDate(7));
+        Assert.assertNull(rs.getBigDecimal(8));
       }
     }
   }
