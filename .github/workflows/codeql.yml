@@ -19,6 +19,9 @@ on:
   schedule:
     - cron: '22 13 * * 6'
 
+# Declare default permissions as read-only.
+permissions: read-all
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
