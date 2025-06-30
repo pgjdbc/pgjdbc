@@ -27,7 +27,6 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
   public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
-  private static final long NANOS_PER_MILLISECOND = 1000000L;
 
   private final CopyDual copyDual;
   private final long updateInterval;
@@ -40,7 +39,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   /**
    * Last receive LSN + payload size.
    */
-  private volatile LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber lastReceiveLSN;
   private volatile LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber startOfLastMessageLSN = LogSequenceNumber.INVALID_LSN;
@@ -62,8 +61,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
       boolean automaticFlush, ReplicationType replicationType
   ) {
     this.copyDual = copyDual;
-    this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
-    this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
+    this.updateInterval = updateIntervalMs;
+    this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
     this.lastReceiveLSN = startLSN;
     this.automaticFlush = automaticFlush;
     this.replicationType = replicationType;
@@ -183,7 +182,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = System.nanoTime() - lastStatusUpdate;
+    long diff = System.currentTimeMillis() - lastStatusUpdate;
     return diff >= updateInterval;
   }
 
@@ -200,16 +199,17 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.flushCopy();
 
     explicitlyFlushedLSN = flushed;
-    lastStatusUpdate = System.nanoTime();
+    lastStatusUpdate = System.currentTimeMillis();
   }
 
   private byte[] prepareUpdateStatus(LogSequenceNumber received, LogSequenceNumber flushed,
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    long now = System.nanoTime() / NANOS_PER_MILLISECOND;
-    long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
-        TimeUnit.MICROSECONDS);
+    // update status is microseconds since 01/01/1970 as per https://www.postgresql.org/docs/devel/protocol-replication.html
+    long now = System.currentTimeMillis();
+    long systemClock = TimeUnit.MICROSECONDS.convert(now,
+        TimeUnit.MILLISECONDS);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       @SuppressWarnings("JavaUtilDate")

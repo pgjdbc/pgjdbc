@@ -33,4 +33,4 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/debezium/debezium.git
           cd debezium
-          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgres.server=14 -Dversion.postgresql.driver=1.0.0-dev-master-SNAPSHOT
+          mvn clean verify -pl :debezium-connector-postgres -am -Dversion.postgres.server=17 -Dversion.postgresql.driver=1.0.0-dev-master-SNAPSHOT
