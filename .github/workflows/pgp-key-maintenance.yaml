@@ -1,0 +1,19 @@
+name: PGP Key Maintenance
+
+on:
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  pgp-key-maintenance:
+    name: PGP key maintenance
+    uses: vlsi/provision-release-pgp-key/.github/workflows/pgp-key-maintenance.yaml@47caa11d98dd9e897523af1f16532bf6152e8444 # v1
+    secrets:
+      RELEASE_PGP_SECRET_UPDATE_TOKEN: ${{ secrets.RELEASE_PGP_SECRET_UPDATE_TOKEN }}
+      RELEASE_PGP_PRIVATE_KEY: ${{ secrets.RELEASE_PGP_PRIVATE_KEY }}
+      RELEASE_PGP_PASSPHRASE: ${{ secrets.RELEASE_PGP_PASSPHRASE }}
+    with:
+      key-name: pgjdbc releases
+      key-email: pgjdbc-releases@jdbc.postgresql.org
+      key-lifetime: 1825
