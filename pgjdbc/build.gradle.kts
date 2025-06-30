@@ -21,7 +21,7 @@ plugins {
     id("build-logic.java-comment-preprocessor")
     id("build-logic.without-type-annotations")
     id("biz.aQute.bnd.builder") apply false
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
     id("com.github.lburgazzoli.karaf")
     id("com.github.vlsi.gettext")
     id("com.github.vlsi.gradle-extensions")
