@@ -188,7 +188,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       return false;
     }
     long diff = Instant.now().getEpochSecond() - lastStatusUpdate.getEpochSecond();
-    return diff >= updateInterval;
+    return (diff *1000) >= updateInterval;
   }
 
   private void timeUpdateStatus() throws SQLException {
@@ -219,7 +219,6 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
     // Convert to microseconds
     long systemClock = duration.toNanos() / 1000;
-
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       @SuppressWarnings("JavaUtilDate")
