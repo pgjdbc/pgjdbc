@@ -18,6 +18,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -26,13 +30,14 @@ import java.util.logging.Logger;
 public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
-  public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
+  public static final Instant POSTGRES_EPOCH_2000_01_01 = LocalDateTime.of(2000, 1, 1, 0, 0, 0)
+      .toInstant(ZoneOffset.UTC);
 
   private final CopyDual copyDual;
   private final long updateInterval;
   private final ReplicationType replicationType;
   private final boolean automaticFlush;
-  private long lastStatusUpdate;
+  private Instant lastStatusUpdate;
   private boolean closeFlag;
 
   private LogSequenceNumber lastServerLSN = LogSequenceNumber.INVALID_LSN;
@@ -62,7 +67,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
   ) {
     this.copyDual = copyDual;
     this.updateInterval = updateIntervalMs;
-    this.lastStatusUpdate = System.currentTimeMillis() - updateIntervalMs;
+    this.lastStatusUpdate = Instant.now().minusMillis(updateIntervalMs);
     this.lastReceiveLSN = startLSN;
     this.automaticFlush = automaticFlush;
     this.replicationType = replicationType;
@@ -182,7 +187,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = System.currentTimeMillis() - lastStatusUpdate;
+    long diff = Instant.now().getEpochSecond() - lastStatusUpdate.getEpochSecond();
     return diff >= updateInterval;
   }
 
@@ -199,21 +204,26 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.flushCopy();
 
     explicitlyFlushedLSN = flushed;
-    lastStatusUpdate = System.currentTimeMillis();
+    lastStatusUpdate = Instant.now();
   }
 
   private byte[] prepareUpdateStatus(LogSequenceNumber received, LogSequenceNumber flushed,
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    // update status is microseconds since 01/01/1970 as per https://www.postgresql.org/docs/devel/protocol-replication.html
-    long now = System.currentTimeMillis();
-    long systemClock = TimeUnit.MICROSECONDS.convert(now,
-        TimeUnit.MILLISECONDS);
+    // update status is microseconds since 01/01/2000 as per https://www.postgresql.org/docs/devel/protocol-replication.html
+    Instant now = Instant.now();
+
+    // Calculate duration
+    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now);
+
+    // Convert to microseconds
+    long systemClock = duration.toNanos() / 1000;
+
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       @SuppressWarnings("JavaUtilDate")
-      Date clock = new Date(now);
+      Date clock = new Date(now.toEpochMilli());
       LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
           new Object[]{received.asString(), flushed.asString(), applied.asString(), clock});
     }
@@ -254,7 +264,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       @SuppressWarnings("JavaUtilDate")
       Date clockTime = new Date(
           TimeUnit.MILLISECONDS.convert(lastServerClock, TimeUnit.MICROSECONDS)
-          + POSTGRES_EPOCH_2000_01_01);
+          + POSTGRES_EPOCH_2000_01_01.toEpochMilli());
       LOGGER.log(Level.FINEST, "  <=BE Keepalive(lastServerWal: {0}, clock: {1} needReply: {2})",
           new Object[]{lastServerLSN.asString(), clockTime, replyRequired});
     }
