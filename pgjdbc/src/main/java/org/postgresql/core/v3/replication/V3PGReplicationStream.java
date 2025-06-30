@@ -187,8 +187,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = Instant.now().getEpochSecond() - lastStatusUpdate.getEpochSecond();
-    return (diff *1000) >= updateInterval;
+    long diff = Instant.now().toEpochMilli() - lastStatusUpdate.toEpochMilli();
+    return diff >= updateInterval;
   }
 
   private void timeUpdateStatus() throws SQLException {
