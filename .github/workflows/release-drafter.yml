@@ -8,12 +8,18 @@ on:
       - 'release/**'
   # pull_request_target allows PR from forks to access secrets, so please NEVER add pull_request_target
 
+# Declare default permissions as read-only.
+permissions: read-all
+
 jobs:
   update_release_draft:
     # Skip release drafts in forks
     if: github.repository_owner == 'pgjdbc'
     name: Update Release Draft
     runs-on: ubuntu-latest
+    permissions:
+      # write permission is required to create a github release
+      contents: write
     env:
       # Publish pre-release files to a draft release
       PUBLISH_SNAPSHOT: true
