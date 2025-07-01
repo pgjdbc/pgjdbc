@@ -19,6 +19,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.lock.qual.Holding;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -282,10 +283,9 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.serverVersionNum = serverVersionNum;
   }
 
+  @Holding("lock")
   public void setTransactionState(TransactionState state) {
-    try (ResourceLock ignore = lock.obtain()) {
-      transactionState = state;
-    }
+    transactionState = state;
   }
 
   public void setStandardConformingStrings(boolean value) {

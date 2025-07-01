@@ -26,6 +26,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.lock.qual.GuardedBy;
+import org.checkerframework.checker.lock.qual.Holding;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
@@ -272,17 +273,16 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Holding("lock")
   protected ResultSet getSingleResultSet() throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      checkClosed();
-      ResultWrapper result = castNonNull(this.result);
-      if (result.getNext() != null) {
-        throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-            PSQLState.TOO_MANY_RESULTS);
-      }
-
-      return castNonNull(result.getResultSet(), "result.getResultSet()");
+    checkClosed();
+    ResultWrapper result = castNonNull(this.result);
+    if (result.getNext() != null) {
+      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
+          PSQLState.TOO_MANY_RESULTS);
     }
+
+    return castNonNull(result.getResultSet(), "result.getResultSet()");
   }
 
   @Override
@@ -446,6 +446,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Holding("lock")
   private void executeInternal(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
@@ -518,9 +519,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
 
     StatementResultHandler handler = new StatementResultHandler();
-    try (ResourceLock ignore = lock.obtain()) {
-      result = null;
-    }
+    result = null;
     try {
       startTimer();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
@@ -528,19 +527,17 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
     }
-    try (ResourceLock ignore = lock.obtain()) {
-      checkClosed();
+    checkClosed();
 
-      ResultWrapper currentResult = handler.getResults();
-      result = firstUnclosedResult = currentResult;
+    ResultWrapper currentResult = handler.getResults();
+    result = firstUnclosedResult = currentResult;
 
-      if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-        generatedKeys = currentResult;
-        result = castNonNull(currentResult, "handler.getResults()").getNext();
+    if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
+      generatedKeys = currentResult;
+      result = castNonNull(currentResult, "handler.getResults()").getNext();
 
-        if (wantsGeneratedKeysOnce) {
-          wantsGeneratedKeysOnce = false;
-        }
+      if (wantsGeneratedKeysOnce) {
+        wantsGeneratedKeysOnce = false;
       }
     }
   }

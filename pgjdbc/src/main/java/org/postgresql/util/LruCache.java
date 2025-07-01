@@ -5,8 +5,6 @@
 
 package org.postgresql.util;
 
-import org.postgresql.jdbc.ResourceLock;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.SQLException;
@@ -44,7 +42,6 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
   private final long maxSizeBytes;
   private long currentSize;
   private final Map<Key, Value> cache;
-  private final ResourceLock lock = new ResourceLock();
 
   private class LimitedMap extends LinkedHashMap<Key, Value> {
     LimitedMap(int initialCapacity, float loadFactor, boolean accessOrder) {
@@ -109,7 +106,8 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    */
   @Override
   public @Nullable Value get(Key key) {
-    try (ResourceLock ignore = lock.obtain()) {
+    Map<Key, Value> cache = this.cache;
+    synchronized (cache) {
       return cache.get(key);
     }
   }
@@ -122,7 +120,8 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @throws SQLException if entry creation fails
    */
   public Value borrow(Key key) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
+    Map<Key, Value> cache = this.cache;
+    synchronized (cache) {
       Value value = cache.remove(key);
       if (value == null) {
         if (createAction == null) {
@@ -142,7 +141,8 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param value value
    */
   public void put(Key key, Value value) {
-    try (ResourceLock ignore = lock.obtain()) {
+    Map<Key, Value> cache = this.cache;
+    synchronized (cache) {
       long valueSize = value.getSize();
       if (maxSizeBytes == 0 || maxSizeEntries == 0 || valueSize * 2 > maxSizeBytes) {
         // Just destroy the value if cache is disabled or if entry would consume more than a half of
@@ -169,7 +169,8 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
    * @param m The map containing entries to put into the cache
    */
   public void putAll(Map<Key, Value> m) {
-    try (ResourceLock ignore = lock.obtain()) {
+    Map<Key, Value> cache = this.cache;
+    synchronized (cache) {
       for (Map.Entry<Key, Value> entry : m.entrySet()) {
         this.put(entry.getKey(), entry.getValue());
       }
