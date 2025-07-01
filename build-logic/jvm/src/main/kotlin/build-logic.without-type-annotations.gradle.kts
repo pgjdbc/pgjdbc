@@ -23,6 +23,7 @@ val hiddenAnnotation = Regex(
             "KeyFor|" +
             "Positive|NonNegative|IntRange|" +
             "GuardedBy|UnderInitialization|" +
+            "Holding|" +
             "DefaultQualifier)(?:\\([^)]*\\))?")
 val hiddenImports = Regex("import org.checkerframework")
 
