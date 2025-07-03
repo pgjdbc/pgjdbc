@@ -392,7 +392,7 @@ class LogicalReplicationStatusTest {
     stream.setAppliedLSN(waitLSN);
     stream.setFlushedLSN(waitLSN);
 
-    timeFormat.sleep(intervalTime + 1);
+    timeFormat.sleep(intervalTime + 2);
 
     //get pending message and trigger update status by timeout
     stream.readPending();

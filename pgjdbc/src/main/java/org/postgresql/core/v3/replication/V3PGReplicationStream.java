@@ -5,6 +5,10 @@
 
 package org.postgresql.core.v3.replication;
 
+import static org.postgresql.core.PgMessageType.REPLICATION_KEEP_ALIVE;
+import static org.postgresql.core.PgMessageType.REPLICATION_STATUS_REQUEST;
+import static org.postgresql.core.PgMessageType.REPLICATION_XLOG_DATA;
+
 import org.postgresql.copy.CopyDual;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
@@ -18,6 +22,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -26,21 +34,21 @@ import java.util.logging.Logger;
 public class V3PGReplicationStream implements PGReplicationStream {
 
   private static final Logger LOGGER = Logger.getLogger(V3PGReplicationStream.class.getName());
-  public static final long POSTGRES_EPOCH_2000_01_01 = 946684800000L;
-  private static final long NANOS_PER_MILLISECOND = 1000000L;
+  public static final Instant POSTGRES_EPOCH_2000_01_01 = LocalDateTime.of(2000, 1, 1, 0, 0, 0)
+      .toInstant(ZoneOffset.UTC);
 
   private final CopyDual copyDual;
   private final long updateInterval;
   private final ReplicationType replicationType;
   private final boolean automaticFlush;
-  private long lastStatusUpdate;
+  private Instant lastStatusUpdate;
   private boolean closeFlag;
 
   private LogSequenceNumber lastServerLSN = LogSequenceNumber.INVALID_LSN;
   /**
    * Last receive LSN + payload size.
    */
-  private volatile LogSequenceNumber lastReceiveLSN = LogSequenceNumber.INVALID_LSN;
+  private volatile LogSequenceNumber lastReceiveLSN;
   private volatile LogSequenceNumber lastAppliedLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber lastFlushedLSN = LogSequenceNumber.INVALID_LSN;
   private volatile LogSequenceNumber startOfLastMessageLSN = LogSequenceNumber.INVALID_LSN;
@@ -62,8 +70,8 @@ public class V3PGReplicationStream implements PGReplicationStream {
       boolean automaticFlush, ReplicationType replicationType
   ) {
     this.copyDual = copyDual;
-    this.updateInterval = updateIntervalMs * NANOS_PER_MILLISECOND;
-    this.lastStatusUpdate = System.nanoTime() - (updateIntervalMs * NANOS_PER_MILLISECOND);
+    this.updateInterval = updateIntervalMs;
+    this.lastStatusUpdate = Instant.now().minusMillis(updateIntervalMs);
     this.lastReceiveLSN = startLSN;
     this.automaticFlush = automaticFlush;
     this.replicationType = replicationType;
@@ -141,12 +149,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
       switch (code) {
 
-        case 'k': //KeepAlive message
+        case REPLICATION_KEEP_ALIVE:
           updateStatusRequired = processKeepAliveMessage(buffer);
           updateStatusRequired |= updateInterval == 0;
           break;
 
-        case 'w': //XLogData
+        case REPLICATION_XLOG_DATA:
           return processXLogData(buffer);
 
         default:
@@ -183,7 +191,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     if ( updateInterval == 0 ) {
       return false;
     }
-    long diff = System.nanoTime() - lastStatusUpdate;
+    long diff = Instant.now().toEpochMilli() - lastStatusUpdate.toEpochMilli();
     return diff >= updateInterval;
   }
 
@@ -200,25 +208,30 @@ public class V3PGReplicationStream implements PGReplicationStream {
     copyDual.flushCopy();
 
     explicitlyFlushedLSN = flushed;
-    lastStatusUpdate = System.nanoTime();
+    lastStatusUpdate = Instant.now();
   }
 
   private byte[] prepareUpdateStatus(LogSequenceNumber received, LogSequenceNumber flushed,
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    long now = System.nanoTime() / NANOS_PER_MILLISECOND;
-    long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
-        TimeUnit.MICROSECONDS);
+    // update status is microseconds since 01/01/2000 as per https://www.postgresql.org/docs/devel/protocol-replication.html
+    Instant now = Instant.now();
+
+    // Calculate duration
+    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now);
+
+    // Convert to microseconds
+    long systemClock = duration.toNanos() / 1000;
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       @SuppressWarnings("JavaUtilDate")
-      Date clock = new Date(now);
+      Date clock = new Date(now.toEpochMilli());
       LOGGER.log(Level.FINEST, " FE=> StandbyStatusUpdate(received: {0}, flushed: {1}, applied: {2}, clock: {3})",
           new Object[]{received.asString(), flushed.asString(), applied.asString(), clock});
     }
 
-    byteBuffer.put((byte) 'r');
+    byteBuffer.put(REPLICATION_STATUS_REQUEST);
     byteBuffer.putLong(received.asLong());
     byteBuffer.putLong(flushed.asLong());
     byteBuffer.putLong(applied.asLong());
@@ -254,7 +267,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
       @SuppressWarnings("JavaUtilDate")
       Date clockTime = new Date(
           TimeUnit.MILLISECONDS.convert(lastServerClock, TimeUnit.MICROSECONDS)
-          + POSTGRES_EPOCH_2000_01_01);
+          + POSTGRES_EPOCH_2000_01_01.toEpochMilli());
       LOGGER.log(Level.FINEST, "  <=BE Keepalive(lastServerWal: {0}, clock: {1} needReply: {2})",
           new Object[]{lastServerLSN.asString(), clockTime, replyRequired});
     }
