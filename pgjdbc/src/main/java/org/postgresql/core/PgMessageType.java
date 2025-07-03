@@ -25,6 +25,7 @@ public class PgMessageType {
   public static final byte PASSWORD_REQUEST = 'p';
   public static final byte SASL_RESPONSE = 'p';
   public static final byte SASL_INITIAL_RESPONSE = 'p';
+  public static final byte REPLICATION_STATUS_REQUEST = 'r';
 
   // following 2 are used for describe and close
   public static final byte PORTAL = 'P';
@@ -53,6 +54,9 @@ public class PgMessageType {
   public static final byte PORTAL_SUSPENDED_RESPONSE = 's';
   public static final byte PARAMETER_DESCRIPTION_RESPONSE = 't';
   public static final byte FUNCTION_CALL_RESPONSE = 'V';
+  public static final byte REPLICATION_KEEP_ALIVE = 'k';
+  public static final byte REPLICATION_XLOG_DATA = 'w';
+
 
   // sent by both backend and client
   public static final byte COPY_DONE = 'c';

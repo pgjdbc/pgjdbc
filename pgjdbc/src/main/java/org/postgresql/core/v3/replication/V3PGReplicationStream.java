@@ -5,6 +5,10 @@
 
 package org.postgresql.core.v3.replication;
 
+import static org.postgresql.core.PgMessageType.REPLICATION_KEEP_ALIVE;
+import static org.postgresql.core.PgMessageType.REPLICATION_STATUS_REQUEST;
+import static org.postgresql.core.PgMessageType.REPLICATION_XLOG_DATA;
+
 import org.postgresql.copy.CopyDual;
 import org.postgresql.replication.LogSequenceNumber;
 import org.postgresql.replication.PGReplicationStream;
@@ -145,12 +149,12 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
       switch (code) {
 
-        case 'k': //KeepAlive message
+        case REPLICATION_KEEP_ALIVE:
           updateStatusRequired = processKeepAliveMessage(buffer);
           updateStatusRequired |= updateInterval == 0;
           break;
 
-        case 'w': //XLogData
+        case REPLICATION_XLOG_DATA:
           return processXLogData(buffer);
 
         default:
@@ -215,7 +219,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     Instant now = Instant.now();
 
     // Calculate duration
-    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now);
+    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now).abs();
 
     // Convert to microseconds
     long systemClock = duration.toNanos() / 1000;
@@ -227,7 +231,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
           new Object[]{received.asString(), flushed.asString(), applied.asString(), clock});
     }
 
-    byteBuffer.put((byte) 'r');
+    byteBuffer.put(REPLICATION_STATUS_REQUEST);
     byteBuffer.putLong(received.asLong());
     byteBuffer.putLong(flushed.asLong());
     byteBuffer.putLong(applied.asLong());
