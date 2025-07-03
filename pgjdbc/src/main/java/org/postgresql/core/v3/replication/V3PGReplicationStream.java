@@ -219,7 +219,7 @@ public class V3PGReplicationStream implements PGReplicationStream {
     Instant now = Instant.now();
 
     // Calculate duration
-    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now).abs();
+    Duration duration = Duration.between(POSTGRES_EPOCH_2000_01_01, now);
 
     // Convert to microseconds
     long systemClock = duration.toNanos() / 1000;
