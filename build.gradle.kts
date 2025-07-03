@@ -5,12 +5,12 @@
 
 plugins {
     id("build-logic.repositories")
+    id("build-logic.build-params")
     id("org.nosphere.gradle.github.actions")
     // IDE configuration
     id("com.github.vlsi.ide")
     // Release
     id("com.github.vlsi.gradle-extensions")
-    id("com.github.vlsi.stage-vote-release")
     id("jacoco")
 }
 
@@ -29,11 +29,11 @@ ide {
 
 val String.v: String get() = rootProject.extra["$this.version"] as String
 
-val buildVersion = "pgjdbc".v + releaseParams.snapshotSuffix
+val buildVersion = "pgjdbc".v + if (buildParameters.release) "" else "-SNAPSHOT"
 
 println("Building pgjdbc $buildVersion")
 
-val isReleaseVersion = rootProject.releaseParams.release.get()
+val isReleaseVersion = buildParameters.release
 
 jacoco {
     toolVersion = "0.8.13"
@@ -47,27 +47,6 @@ val jacocoReport by tasks.registering(JacocoReport::class) {
     description = "Generates an aggregate report from all subprojects"
 }
 
-releaseParams {
-    tlp.set("pgjdbc")
-    organizationName.set("pgjdbc")
-    componentName.set("pgjdbc")
-    prefixForProperties.set("gh")
-    svnDistEnabled.set(false)
-    sitePreviewEnabled.set(false)
-    releaseTag.set("REL$buildVersion")
-    nexus {
-        mavenCentral()
-    }
-    voteText.set {
-        """
-        ${it.componentName} v${it.version}-rc${it.rc} is ready for preview.
-
-        Git SHA: ${it.gitSha}
-        Staging repository: ${it.nexusRepositoryUri}
-        """.trimIndent()
-    }
-}
-
 allprojects {
     group = "org.postgresql"
     version = buildVersion
@@ -77,17 +56,4 @@ val parameters by tasks.registering {
     group = HelpTasksPlugin.HELP_GROUP
     description = "Displays build parameters (i.e. -P flags) that can be used to customize the build"
     dependsOn(gradle.includedBuild("build-logic").task(":build-parameters:parameters"))
-}
-
-plugins.withId("de.marcphilipp.nexus-publish") {
-    configure<de.marcphilipp.gradle.nexus.NexusPublishExtension> {
-        clientTimeout.set(java.time.Duration.ofMinutes(15))
-    }
-}
-
-plugins.withId("io.codearte.nexus-staging") {
-    configure<io.codearte.gradle.nexus.NexusStagingExtension> {
-        numberOfRetries = 20 * 60 / 2
-        delayBetweenRetriesInMillis = 2000
-    }
 }
