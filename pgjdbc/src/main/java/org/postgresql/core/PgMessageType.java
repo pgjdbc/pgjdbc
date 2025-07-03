@@ -57,7 +57,6 @@ public class PgMessageType {
   public static final byte REPLICATION_KEEP_ALIVE = 'k';
   public static final byte REPLICATION_XLOG_DATA = 'w';
 
-
   // sent by both backend and client
   public static final byte COPY_DONE = 'c';
   public static final byte COPY_DATA = 'd';
