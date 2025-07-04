@@ -206,6 +206,14 @@ public enum PGProperty {
       "Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache."),
 
   /**
+   * Default parameter for {@link java.sql.Statement#getQueryTimeout()}. A value of {@code 0} means no timeout.
+   */
+  DEFAULT_QUERY_TIMEOUT(
+      "defaultQueryTimeout",
+      "0",
+      "The default timeout value in seconds that the driver will wait for a query to execute."),
+
+  /**
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
    * that need fetch all rows at once
    */
