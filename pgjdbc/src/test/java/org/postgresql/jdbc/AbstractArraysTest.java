@@ -1007,6 +1007,22 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    public void setDefaultQueryTimeout(int seconds) throws SQLException {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getDefaultQueryTimeout() {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public int getBackendPID() {
       throw new UnsupportedOperationException();
     }
