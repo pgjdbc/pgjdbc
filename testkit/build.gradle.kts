@@ -4,7 +4,7 @@ plugins {
 }
 
 dependencies {
-    api(platform("org.junit:junit-bom:5.13.1"))
+    api(platform("org.junit:junit-bom:5.13.3"))
     api("org.junit.jupiter:junit-jupiter-api")
 
     // We want testkit to be compatible with both regular and shadowed variants,
