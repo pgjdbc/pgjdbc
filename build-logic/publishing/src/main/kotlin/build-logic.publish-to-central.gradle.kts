@@ -1,13 +1,71 @@
+import buildparameters.signing.pgp.Enabled
+import buildparameters.signing.pgp.Implementation
 import com.github.vlsi.gradle.dsl.configureEach
 import org.gradle.api.publish.internal.PublicationInternal
 import com.github.vlsi.gradle.publishing.dsl.simplifyXml
+import org.gradle.kotlin.dsl.support.serviceOf
+import java.time.Duration
 import java.util.Locale
 
 plugins {
     id("java-library")
     id("maven-publish")
+    id("signing")
+    id("build-logic.build-params")
     id("build-logic.publish-to-tmp-maven-repo")
     id("com.github.vlsi.gradle-extensions")
+    id("com.gradleup.nmcp")
+}
+
+if (!buildParameters.release) {
+    publishing {
+        repositories {
+            maven {
+                name = "centralSnapshots"
+                url = uri("https://central.sonatype.com/repository/maven-snapshots")
+                credentials(PasswordCredentials::class)
+            }
+        }
+    }
+} else {
+    nmcp {
+        centralPortal {
+            username = providers.environmentVariable("CENTRAL_PORTAL_USERNAME")
+            password = providers.environmentVariable("CENTRAL_PORTAL_PASSWORD")
+            publishingType = buildParameters.centralPortal.publishingType.name
+            verificationTimeout = Duration.ofMinutes(buildParameters.centralPortal.publishingTimeout.toLong())
+        }
+    }
+    if (buildParameters.signing.pgp.enabled == Enabled.AUTO) {
+        signing {
+            sign(publishing.publications)
+            if (buildParameters.signing.pgp.implementation == Implementation.GPG_CLI) {
+                useGpgCmd()
+            } else {
+                val pgpPrivateKey = System.getenv("SIGNING_PGP_PRIVATE_KEY")
+                val pgpPassphrase = System.getenv("SIGNING_PGP_PASSPHRASE")
+                val problems = project.serviceOf<Problems>()
+                if (pgpPrivateKey.isNullOrBlank() || pgpPassphrase.isNullOrBlank()) {
+                    throw problems.reporter.throwing(
+                        IllegalArgumentException("PGP private key (SIGNING_PGP_PRIVATE_KEY) and passphrase (SIGNING_PGP_PASSPHRASE) must be set for signing the release artifacts"),
+                        ProblemId.create(
+                            "gpg_credentials_not_set",
+                            "PGP private key (SIGNING_PGP_PRIVATE_KEY) and passphrase (SIGNING_PGP_PASSPHRASE) must be set for signing the release artifacts",
+                            ProblemGroup.create("release_params", "Release parameters")
+                        )
+                    ) {
+                        contextualLabel("Using in-memory PGP keys from the environment variables")
+                        solution("Ensure SIGNING_PGP_PRIVATE_KEY and SIGNING_PGP_PASSPHRASE environment variables are set or use -Psigning.pgp.implementation=GPG_CLI to sign with gpg command line utility")
+                        solution("Disable signing with -Psigning.pgp.enabled=OFF")
+                    }
+                }
+                useInMemoryPgpKeys(
+                    pgpPrivateKey,
+                    pgpPassphrase
+                )
+            }
+        }
+    }
 }
 
 publishing {
