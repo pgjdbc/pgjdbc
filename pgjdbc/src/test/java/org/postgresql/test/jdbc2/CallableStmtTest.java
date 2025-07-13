@@ -13,6 +13,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.junit.jupiter.params.ParameterizedTest;
+
+import org.junit.jupiter.params.provider.CsvSource;
+
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.BeforeAll;
@@ -306,4 +310,36 @@ public class CallableStmtTest extends BaseTest4 {
     assertFalse(rs.next());
   }
 
+  @ParameterizedTest
+  @CsvSource(value = {
+      "{? = call testspg__insertInt(?)}",
+      "/* test comment */ {? = call testspg__insertInt(?)}",
+      "{/* test comment */ ? = call testspg__insertInt(?)}",
+      "{/* test comment */? = call testspg__insertInt(?)}",
+      "{ /* test comment */ ? = call testspg__insertInt(?)}",
+      "{ /* test comment */? = call testspg__insertInt(?)}",
+      "{ ? /* test comment */ = call testspg__insertInt(?)}",
+      "{ ? /* test comment */= call testspg__insertInt(?)}",
+      "{ ?/* test comment */ = call testspg__insertInt(?)}",
+      "{ ?/* test comment */= call testspg__insertInt(?)}",
+      "{ ? = /* test comment */ call testspg__insertInt(?)}",
+      "{ ? =/* test comment */ call testspg__insertInt(?)}",
+      "{ ? =/* test comment */call testspg__insertInt(?)}",
+      "{ ? = call /* test comment */ testspg__insertInt(?)}",
+      "{ ? = call/* test comment */ testspg__insertInt(?)}",
+      "{ ? = call /* test comment */testspg__insertInt(?)}",
+      "{ ? = call testspg__insertInt(?) /* test comment */}",
+      "{ ? = call testspg__insertInt(?)/* test comment */}",
+      "{ ? = call testspg__insertInt(?)}/* test comment */",
+      "{ ? = call testspg__insertInt(?)} /* test comment */",
+      "{ ? = call testspg__insertInt(?)} /* test comment */ ",
+  }, delimiter = '#')
+  public void testCallableStatementWithComment(String sqlCall) throws SQLException {
+    CallableStatement call = con.prepareCall(sqlCall);
+    call.setInt(2, 100);
+    call.registerOutParameter(1, java.sql.Types.INTEGER);//this will fail for statement with preceding comment
+    call.executeUpdate();
+    int result = call.getInt(1);
+    assertEquals(1, result);
+  }
 }

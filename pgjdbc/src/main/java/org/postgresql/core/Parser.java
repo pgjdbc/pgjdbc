@@ -1055,6 +1055,17 @@ public class Parser {
     while (i < len && !syntaxError) {
       char ch = jdbcSql.charAt(i);
 
+      if (ch == '/') { // possibly /* */ style comment
+        int prevI = i;
+        i = Parser.parseBlockComment(jdbcSql.toCharArray(), i);
+        if (i > prevI) {
+          ++i; // found comment block, advance index to skip closing comment char /
+        }
+        if (i < len) {
+          ch = jdbcSql.charAt(i);
+        }
+      }
+
       switch (state) {
         case 1:  // Looking for { at start of query
           if (ch == '{') {
@@ -1156,10 +1167,10 @@ public class Parser {
           }
           break;
 
-        case 8:  // At trailing end of query, eating whitespace
-          if (Character.isWhitespace(ch)) {
+        case 8:  // At trailing end of query, eating closing comment or whitespace
+          if (ch == '/' || Character.isWhitespace(ch)) {
             ++i;
-          } else {
+          } else if (i < len) {
             syntaxError = true;
           }
           break;
