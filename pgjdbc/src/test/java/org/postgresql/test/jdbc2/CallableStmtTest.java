@@ -337,7 +337,8 @@ public class CallableStmtTest extends BaseTest4 {
   public void testCallableStatementWithComment(String sqlCall) throws SQLException {
     CallableStatement call = con.prepareCall(sqlCall);
     call.setInt(2, 100);
-    call.registerOutParameter(1, java.sql.Types.INTEGER);//this will fail for statement with preceding comment
+    //this should not fail for statement with comment in various positions
+    call.registerOutParameter(1, java.sql.Types.INTEGER);
     call.executeUpdate();
     int result = call.getInt(1);
     assertEquals(1, result);
