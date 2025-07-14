@@ -13,12 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.junit.jupiter.params.provider.ValueSource;
+
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -309,7 +310,7 @@ public class CallableStmtTest extends BaseTest4 {
   }
 
   @ParameterizedTest
-  @CsvSource(value = {
+  @ValueSource(strings = {
       "{? = call testspg__insertInt(?)}",
       "/* test comment */ {? = call testspg__insertInt(?)}",
       "{/* test comment */ ? = call testspg__insertInt(?)}",
@@ -331,7 +332,7 @@ public class CallableStmtTest extends BaseTest4 {
       "{ ? = call testspg__insertInt(?)}/* test comment */",
       "{ ? = call testspg__insertInt(?)} /* test comment */",
       "{ ? = call testspg__insertInt(?)} /* test comment */ ",
-  }, delimiter = '#')
+  })
   public void testCallableStatementWithComment(String sqlCall) throws SQLException {
     CallableStatement call = con.prepareCall(sqlCall);
     call.setInt(2, 100);
