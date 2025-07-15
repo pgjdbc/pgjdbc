@@ -13,13 +13,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import org.junit.jupiter.params.provider.ValueSource;
-
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -332,6 +331,19 @@ public class CallableStmtTest extends BaseTest4 {
       "{ ? = call testspg__insertInt(?)}/* test comment */",
       "{ ? = call testspg__insertInt(?)} /* test comment */",
       "{ ? = call testspg__insertInt(?)} /* test comment */ ",
+      "{ ? = call testspg__insertInt(?)} -- test comment",
+      "{ -- test comment\n? = call testspg__insertInt(?)}",
+      "{ -- test comment\n ? = call testspg__insertInt(?)}",
+      "-- test comment\n {? = call testspg__insertInt(?)}",
+      "{? = call testspg__insertInt(?)}-- test comment",
+      "{? -- test comment \n = call testspg__insertInt(?)}",
+      "{? = -- test comment \n call testspg__insertInt(?)}",
+      "{? = call -- test comment \n testspg__insertInt(?)}",
+      "{? = call testspg__insertInt(?)-- test comment \n }",
+      "{? = call testspg__insertInt(-- test comment \n ?)}",
+      "{? = call testspg__insertInt(?-- test comment \n)}",
+      "{? = call testspg__insertInt(?)-- test comment \n}",
+      "{? = call testspg__insertInt-- test comment \n(?)}",
   })
   public void testCallableStatementWithComment(String sqlCall) throws SQLException {
     CallableStatement call = con.prepareCall(sqlCall);

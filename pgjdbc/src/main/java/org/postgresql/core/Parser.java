@@ -1065,6 +1065,16 @@ public class Parser {
           ch = jdbcSql.charAt(i);
         }
       }
+      if (ch == '-') { // possibly -- style comment
+        i = Parser.parseLineComment(jdbcSql.toCharArray(), i);
+        if (i < len) {
+          ch = jdbcSql.charAt(i);
+        }
+
+        if (i == len - 1) {
+          i++; // end of line comment
+        }
+      }
 
       switch (state) {
         case 1:  // Looking for { at start of query
@@ -1167,10 +1177,12 @@ public class Parser {
           }
           break;
 
-        case 8:  // At trailing end of query, eating closing comment or whitespace
+        case 8:  // At trailing end of query, eating closing block comment or whitespace
           if (ch == '/' || Character.isWhitespace(ch)) {
             ++i;
-          } else if (i < len) {
+          } else if (ch == '-' && jdbcSql.charAt(i + 1) == '-') {
+            i = len; // found start of the line comment, ignoring rest of the query
+          } else if (i < len - 1) {
             syntaxError = true;
           }
           break;
