@@ -339,6 +339,19 @@ public class SetObject310Test extends BaseTest4 {
         setInstantValueAndReadItBack(ps, data.toInstant(), data.toInstant(),
             () -> "(with ZoneId=" + dataZone + "), with TimeZone"
                 + ".default=" + storeZone);
+        setInstantValueAndReadItBack(
+            ps,
+            data.toZonedDateTime(),
+            data.toInstant(),
+            () -> "(with ZoneId=" + dataZone + "), with TimeZone"
+                + ".default=" + storeZone);
+        //
+        setInstantValueAndReadItBack(
+            ps,
+            data.toZonedDateTime().withZoneSameInstant(ZoneId.of("America/New_York")),
+            data.toInstant(),
+            () -> "(with ZoneId=" + dataZone + "), with TimeZone"
+                + ".default=" + storeZone + ", ZonedDateTime.zoneId=America/New_York");
       }
     }
   }

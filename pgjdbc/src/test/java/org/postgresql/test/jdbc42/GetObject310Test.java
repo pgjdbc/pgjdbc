@@ -35,6 +35,7 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.time.chrono.IsoChronology;
 import java.time.chrono.IsoEra;
 import java.time.temporal.Temporal;
@@ -198,6 +199,10 @@ public class GetObject310Test extends BaseTest4 {
     Instant expectedInstant = offsetDT.toInstant();
     assertEquals(expectedInstant, rs.getObject(columnName, Instant.class), () -> "getObject(" + columnName + ", Instant.class)");
     assertEquals(expectedInstant, rs.getObject(1, Instant.class), "getObject(int, Instant.class)");
+
+    ZonedDateTime expectedZonedDateTime = offsetDT.toZonedDateTime();
+    assertEquals(expectedZonedDateTime, rs.getObject(columnName, ZonedDateTime.class), () -> "getObject(" + columnName + ", ZonedDateTime.class)");
+    assertEquals(expectedZonedDateTime, rs.getObject(1, ZonedDateTime.class), "getObject(int, ZonedDateTime.class)");
   }
 
   /**
@@ -215,6 +220,7 @@ public class GetObject310Test extends BaseTest4 {
         assertEquals(localTime, rs.getObject(1, LocalTime.class));
 
         assertDataTypeMismatch(rs, "time_without_time_zone_column", Instant.class);
+        assertDataTypeMismatch(rs, "time_without_time_zone_column", ZonedDateTime.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", OffsetTime.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", OffsetDateTime.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", LocalDate.class);
@@ -346,6 +352,7 @@ public class GetObject310Test extends BaseTest4 {
         // TODO: this should also not work, but that's an open discussion (see https://github.com/pgjdbc/pgjdbc/pull/2467):
         // assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", OffsetDateTime.class);
         assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", Instant.class);
+        assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", ZonedDateTime.class);
       }
       stmt.executeUpdate("DELETE FROM table1");
     }
@@ -356,13 +363,13 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetTimestampWithTimeZone() throws SQLException {
-    runGetOffsetDateTimeAndInstant(UTC);
-    runGetOffsetDateTimeAndInstant(GMT03);
-    runGetOffsetDateTimeAndInstant(GMT05);
-    runGetOffsetDateTimeAndInstant(GMT13);
+    runGetOffsetDateTime(UTC);
+    runGetOffsetDateTime(GMT03);
+    runGetOffsetDateTime(GMT05);
+    runGetOffsetDateTime(GMT13);
   }
 
-  private void runGetOffsetDateTimeAndInstant(ZoneOffset offset) throws SQLException {
+  private void runGetOffsetDateTime(ZoneOffset offset) throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
 
@@ -446,6 +453,10 @@ public class GetObject310Test extends BaseTest4 {
         Instant.class,
         "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz",
         range.stream().map(OffsetDateTime::toInstant).collect(Collectors.toList()));
+    runProlepticTests(
+        ZonedDateTime.class,
+        "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz",
+        range.stream().map(OffsetDateTime::toZonedDateTime).collect(Collectors.toList()));
   }
 
   private <T extends Temporal> void runProlepticTests(Class<T> clazz, String selectRange, List<T> expectedTemporals) throws SQLException {

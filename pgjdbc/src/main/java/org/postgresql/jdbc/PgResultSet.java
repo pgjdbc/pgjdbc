@@ -80,6 +80,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -753,6 +754,36 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         GT.tr("Cannot convert the column of type {0} to requested type {1}.",
             Oid.toString(oid), "java.time.OffsetTime"),
         PSQLState.DATA_TYPE_MISMATCH);
+  }
+
+  private @Nullable ZonedDateTime getZonedDateTime(int i) throws SQLException {
+    OffsetDateTime value = getOffsetDateTime(i);
+    if (value == null) {
+      return null;
+    }
+
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    if (oid != Oid.TIMETZ && oid != Oid.TIMESTAMPTZ) {
+      throw new PSQLException(
+          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+              Oid.toString(oid), "java.time.Instant"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    if (value.equals(OffsetDateTime.MAX)) {
+      throw new PSQLException(
+          GT.tr("Cannot convert value '{0}' to requested type {1}.",
+              "infinity", "java.time.ZonedDateTime"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+    if (value.equals(OffsetDateTime.MIN)) {
+      throw new PSQLException(
+          GT.tr("Cannot convert value '{0}' to requested type {1}.",
+              "-infinity", "java.time.ZonedDateTime"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+    return value.toZonedDateTime();
   }
 
   private @Nullable LocalDateTime getLocalDateTime(int i) throws SQLException {
@@ -3985,6 +4016,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return type.cast(getInstant(columnIndex));
     } else if (type == OffsetTime.class) {
       return type.cast(getOffsetTime(columnIndex));
+    } else if (type == ZonedDateTime.class) {
+      return type.cast(getZonedDateTime(columnIndex));
     } else if (PGobject.class.isAssignableFrom(type)) {
       Object object;
       if (isBinary(columnIndex)) {
