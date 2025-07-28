@@ -73,6 +73,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -696,6 +697,39 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         GT.tr("Cannot convert the column of type {0} to requested type {1}.",
             Oid.toString(oid), "java.time.OffsetDateTime"),
         PSQLState.DATA_TYPE_MISMATCH);
+  }
+
+  private @Nullable Instant getInstant(int i) throws SQLException {
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+    int col = i - 1;
+    int oid = fields[col].getOID();
+
+    if (oid != Oid.TIMETZ && (oid != Oid.TIMESTAMPTZ || isBinary(i))) {
+      if (oid == Oid.TIMESTAMPTZ) {
+        return getTimestampUtils().toInstantBin(value);
+      }
+
+      throw new PSQLException(
+          GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+              Oid.toString(oid), "java.time.Instant"),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    // Handle TIMETZ and text-based TIMESTAMPTZ
+    OffsetDateTime offsetDateTime = getOffsetDateTime(i);
+    if (offsetDateTime == null) {
+      return null;
+    }
+    if (offsetDateTime.equals(OffsetDateTime.MAX)) {
+      return Instant.MAX;
+    }
+    if (offsetDateTime.equals(OffsetDateTime.MIN)) {
+      return Instant.MIN;
+    }
+    return offsetDateTime.toInstant();
   }
 
   private @Nullable OffsetTime getOffsetTime(int i) throws SQLException {
@@ -3947,6 +3981,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return type.cast(getLocalDateTime(columnIndex));
     } else if (type == OffsetDateTime.class) {
       return type.cast(getOffsetDateTime(columnIndex));
+    } else if (type == Instant.class) {
+      return type.cast(getInstant(columnIndex));
     } else if (type == OffsetTime.class) {
       return type.cast(getOffsetTime(columnIndex));
     } else if (PGobject.class.isAssignableFrom(type)) {

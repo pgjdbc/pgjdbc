@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Types;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -46,6 +47,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Supplier;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -331,26 +333,37 @@ public class SetObject310Test extends BaseTest4 {
         "select ?::timestamp with time zone, ?::timestamp with time zone")) {
       for (TimeZone storeZone : storeZones) {
         TimeZone.setDefault(storeZone);
-        ps.setObject(1, data);
-        ps.setObject(2, data, Types.TIMESTAMP_WITH_TIMEZONE);
-        try (ResultSet rs = ps.executeQuery()) {
-          rs.next();
-          String noType = rs.getString(1);
-          OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
-          assertEquals(
-              data.toInstant(),
-              noTypeRes.toInstant(),
-              () -> "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone"
-                  + ".default=" + storeZone + ", setObject(int, Object)");
-          String withType = rs.getString(2);
-          OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
-          assertEquals(
-              data.toInstant(),
-              withTypeRes.toInstant(),
-              () -> "OffsetDateTime=" + data + " (with ZoneId=" + dataZone + "), with TimeZone"
-                  + ".default=" + storeZone + ", setObject(int, Object, TIMESTAMP_WITH_TIMEZONE)");
-        }
+        setInstantValueAndReadItBack(ps, data, data.toInstant(),
+            () -> "(with ZoneId=" + dataZone + "), with TimeZone"
+                + ".default=" + storeZone);
+        setInstantValueAndReadItBack(ps, data.toInstant(), data.toInstant(),
+            () -> "(with ZoneId=" + dataZone + "), with TimeZone"
+                + ".default=" + storeZone);
       }
+    }
+  }
+
+  private static void setInstantValueAndReadItBack(
+      PreparedStatement ps,
+      Object data,
+      Instant instant,
+      Supplier<String> message) throws SQLException {
+    ps.setObject(1, data);
+    ps.setObject(2, data, Types.TIMESTAMP_WITH_TIMEZONE);
+    try (ResultSet rs = ps.executeQuery()) {
+      rs.next();
+      String noType = rs.getString(1);
+      OffsetDateTime noTypeRes = parseBackendTimestamp(noType);
+      assertEquals(
+          instant,
+          noTypeRes.toInstant(),
+          () -> "setObject(int, " + data + " as " + data.getClass().getSimpleName() + "), " + message.get());
+      String withType = rs.getString(2);
+      OffsetDateTime withTypeRes = parseBackendTimestamp(withType);
+      assertEquals(
+          instant,
+          withTypeRes.toInstant(),
+          () -> "setObject(int, " + data + " as " + data.getClass().getSimpleName() + ", TIMESTAMP_WITH_TIMEZONE)" + message.get());
     }
   }
 

@@ -27,6 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -179,8 +180,7 @@ public class GetObject310Test extends BaseTest4 {
 
           //Also test that we get the correct values when retrieving the data as OffsetDateTime objects on EPOCH (required by JDBC)
           OffsetDateTime offsetDT = offsetTime.atDate(LocalDate.of(1970, 1, 1));
-          assertEquals(offsetDT, rs.getObject("time_with_time_zone_column", OffsetDateTime.class));
-          assertEquals(offsetDT, rs.getObject(1, OffsetDateTime.class));
+          assertOffsetDateTime(rs, offsetDT, "time_with_time_zone_column");
 
           assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalDate.class);
           assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalTime.class);
@@ -189,6 +189,15 @@ public class GetObject310Test extends BaseTest4 {
         stmt.executeUpdate("DELETE FROM table1");
       }
     }
+  }
+
+  private static void assertOffsetDateTime(ResultSet rs, OffsetDateTime offsetDT, String columnName) throws SQLException {
+    assertEquals(offsetDT, rs.getObject(columnName, OffsetDateTime.class), () -> "getObject(" + columnName + ", OffsetDateTime.class)");
+    assertEquals(offsetDT, rs.getObject(1, OffsetDateTime.class), "getObject(int, OffsetDateTime.class)");
+
+    Instant expectedInstant = offsetDT.toInstant();
+    assertEquals(expectedInstant, rs.getObject(columnName, Instant.class), () -> "getObject(" + columnName + ", Instant.class)");
+    assertEquals(expectedInstant, rs.getObject(1, Instant.class), "getObject(int, Instant.class)");
   }
 
   /**
@@ -205,6 +214,7 @@ public class GetObject310Test extends BaseTest4 {
         assertEquals(localTime, rs.getObject("time_without_time_zone_column", LocalTime.class));
         assertEquals(localTime, rs.getObject(1, LocalTime.class));
 
+        assertDataTypeMismatch(rs, "time_without_time_zone_column", Instant.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", OffsetTime.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", OffsetDateTime.class);
         assertDataTypeMismatch(rs, "time_without_time_zone_column", LocalDate.class);
@@ -335,6 +345,7 @@ public class GetObject310Test extends BaseTest4 {
         assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", OffsetTime.class);
         // TODO: this should also not work, but that's an open discussion (see https://github.com/pgjdbc/pgjdbc/pull/2467):
         // assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", OffsetDateTime.class);
+        assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", Instant.class);
       }
       stmt.executeUpdate("DELETE FROM table1");
     }
@@ -345,13 +356,13 @@ public class GetObject310Test extends BaseTest4 {
    */
   @Test
   public void testGetTimestampWithTimeZone() throws SQLException {
-    runGetOffsetDateTime(UTC);
-    runGetOffsetDateTime(GMT03);
-    runGetOffsetDateTime(GMT05);
-    runGetOffsetDateTime(GMT13);
+    runGetOffsetDateTimeAndInstant(UTC);
+    runGetOffsetDateTimeAndInstant(GMT03);
+    runGetOffsetDateTimeAndInstant(GMT05);
+    runGetOffsetDateTimeAndInstant(GMT13);
   }
 
-  private void runGetOffsetDateTime(ZoneOffset offset) throws SQLException {
+  private void runGetOffsetDateTimeAndInstant(ZoneOffset offset) throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
 
@@ -360,8 +371,7 @@ public class GetObject310Test extends BaseTest4 {
         LocalDateTime localDateTime = LocalDateTime.of(2004, 10, 19, 10, 23, 54, 123456000);
 
         OffsetDateTime offsetDateTime = localDateTime.atOffset(offset).withOffsetSameInstant(ZoneOffset.UTC);
-        assertEquals(offsetDateTime, rs.getObject("timestamp_with_time_zone_column", OffsetDateTime.class));
-        assertEquals(offsetDateTime, rs.getObject(1, OffsetDateTime.class));
+        assertOffsetDateTime(rs, offsetDateTime, "timestamp_with_time_zone_column");
 
         assertDataTypeMismatch(rs, "timestamp_with_time_zone_column", LocalTime.class);
         assertDataTypeMismatch(rs, "timestamp_with_time_zone_column", LocalDateTime.class);
@@ -395,11 +405,10 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testBcTimestamptz() throws SQLException {
     try (Statement stmt = con.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56Z BC'::timestamp")) {
+        ResultSet rs = stmt.executeQuery("SELECT '1582-09-30 12:34:56Z BC'::timestamptz as tstz")) {
       assertTrue(rs.next());
       OffsetDateTime expected = ISO.date(IsoEra.BCE, 1582, 9, 30).atTime(OffsetTime.of(12, 34, 56, 0, UTC));
-      OffsetDateTime actual = rs.getObject(1, OffsetDateTime.class);
-      assertEquals(expected, actual);
+      assertOffsetDateTime(rs, expected, "tstz");
       assertFalse(rs.next());
     }
   }
@@ -429,29 +438,52 @@ public class GetObject310Test extends BaseTest4 {
         .limit(numberOfDays)
         .collect(Collectors.toList());
 
-    runProlepticTests(OffsetDateTime.class, "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz", range);
+    runProlepticTests(
+        OffsetDateTime.class,
+        "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz",
+        range);
+    runProlepticTests(
+        Instant.class,
+        "'1582-09-30 00:00:00 Z'::timestamptz, '1582-10-16 00:00:00 Z'::timestamptz",
+        range.stream().map(OffsetDateTime::toInstant).collect(Collectors.toList()));
   }
 
-  private <T extends Temporal> void runProlepticTests(Class<T> clazz, String selectRange, List<T> range) throws SQLException {
-    List<T> temporals = new ArrayList<>(range.size());
+  private <T extends Temporal> void runProlepticTests(Class<T> clazz, String selectRange, List<T> expectedTemporals) throws SQLException {
+    List<T> actualTemporals = new ArrayList<>(expectedTemporals.size());
 
     try (PreparedStatement stmt = con.prepareStatement("SELECT * FROM generate_series(" + selectRange + ", '1 day');");
         ResultSet rs = stmt.executeQuery()) {
       while (rs.next()) {
         T temporal = rs.getObject(1, clazz);
-        temporals.add(temporal);
+        actualTemporals.add(temporal);
       }
-      assertEquals(range, temporals);
     }
+    assertEquals(expectedTemporals, actualTemporals, () -> "getObject(1, " + clazz.getSimpleName() + ")");
   }
 
   /** checks if getObject with given column name or index 1 throws an exception with DATA_TYPE_MISMATCH as SQLState */
   private static void assertDataTypeMismatch(ResultSet rs, String columnName, Class<?> typeToGet) {
-    PSQLException ex = assertThrows(PSQLException.class, () -> rs.getObject(columnName, typeToGet));
-    assertEquals(PSQLState.DATA_TYPE_MISMATCH.getState(), ex.getSQLState());
+    PSQLException ex = assertThrows(
+        PSQLException.class,
+        () -> rs.getObject(columnName, typeToGet),
+        () -> "rs.getObject(\"" + columnName + "\", " + typeToGet.getSimpleName() + ")"
+    );
+    assertEquals(
+        PSQLState.DATA_TYPE_MISMATCH.getState(),
+        ex.getSQLState(),
+        () -> "rs.getObject(\"" + columnName + "\", " + typeToGet.getSimpleName() + ") should have thrown DATA_TYPE_MISMATCH"
+    );
 
-    ex = assertThrows(PSQLException.class, () -> rs.getObject(1, typeToGet));
-    assertEquals(PSQLState.DATA_TYPE_MISMATCH.getState(), ex.getSQLState());
+    ex = assertThrows(
+        PSQLException.class,
+        () -> rs.getObject(1, typeToGet),
+        () -> "rs.getObject(1, " + typeToGet.getSimpleName() + ")"
+    );
+    assertEquals(
+        PSQLState.DATA_TYPE_MISMATCH.getState(),
+        ex.getSQLState(),
+        () -> "rs.getObject(1, " + typeToGet.getSimpleName() + ") should have thrown DATA_TYPE_MISMATCH"
+    );
   }
 
 }
