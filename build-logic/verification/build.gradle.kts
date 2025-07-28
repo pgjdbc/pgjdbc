@@ -9,7 +9,7 @@ dependencies {
     implementation("com.github.spotbugs:com.github.spotbugs.gradle.plugin:6.2.2")
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:2.0.0")
     implementation("de.thetaphi.forbiddenapis:de.thetaphi.forbiddenapis.gradle.plugin:3.9")
-    implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:4.2.0")
+    implementation("net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:4.3.0")
     implementation("org.checkerframework:org.checkerframework.gradle.plugin:0.6.56")
     implementation("org.openrewrite.rewrite:org.openrewrite.rewrite.gradle.plugin:7.8.0")
 }
