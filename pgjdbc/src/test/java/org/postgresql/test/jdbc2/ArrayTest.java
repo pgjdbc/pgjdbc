@@ -570,6 +570,122 @@ public class ArrayTest extends BaseTest4 {
   }
 
   @Test
+  public void testMultiDimensionalArrayRetrieveResultSets() throws SQLException {
+    final int[][][] origIntArray = new int[3][2][1];
+    int i = 0;
+    for (int x = 0; x < 3; x++) {
+      for (int y = 0; y < 2; y++) {
+        for (int z = 0; z < 1; z++) {
+          origIntArray[x][y][z] = i;
+          i++;
+        }
+      }
+    }
+
+    PreparedStatement pstmt = conn.prepareStatement("INSERT INTO arrtest(intarr) VALUES (?)");
+    pstmt.setObject(1, origIntArray, Types.ARRAY);
+    pstmt.executeUpdate();
+    pstmt.close();
+
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT intarr FROM arrtest");
+    assertTrue(rs.next());
+
+    // {{{0},{1}},{{2},{3}},{{4},{5}}}
+    Array arr = rs.getArray(1);
+    assertEquals(Types.INTEGER, arr.getBaseType());
+    ResultSet arrrs = arr.getResultSet();
+    assertTrue(arrrs.next());
+    // {{0},{1}}
+    assertEquals(1, arrrs.getInt(1));
+    Array arr1 =  arrrs.getArray(2);
+    ResultSet arr1rs = arr1.getResultSet();
+    assertTrue(arr1rs.next());
+    // {0}
+    assertEquals(1, arr1rs.getInt(1));
+    Array arr11 =  arr1rs.getArray(2);
+    ResultSet arr11rs = arr11.getResultSet();
+    assertTrue(arr11rs.next());
+    assertEquals(1, arr11rs.getInt(1));
+    assertEquals(0, arr11rs.getInt(2));
+    assertFalse(arr11rs.next());
+    arr11rs.close();
+    assertTrue(arr1rs.next());
+    // {1}
+    assertEquals(2, arr1rs.getInt(1));
+    Array arr12 =  arr1rs.getArray(2);
+    ResultSet arr12rs = arr12.getResultSet();
+    assertTrue(arr12rs.next());
+    assertEquals(1, arr12rs.getInt(1));
+    assertEquals(1, arr12rs.getInt(2));
+    assertFalse(arr12rs.next());
+    arr12rs.close();
+    assertFalse(arr1rs.next());
+    arr1rs.close();
+    assertTrue(arrrs.next());
+
+    // {{2},{3}}
+    assertEquals(2, arrrs.getInt(1));
+    Array arr2 =  arrrs.getArray(2);
+    ResultSet arr2rs = arr2.getResultSet();
+    assertTrue(arr2rs.next());
+    // {2}
+    assertEquals(1, arr2rs.getInt(1));
+    Array arr21 =  arr2rs.getArray(2);
+    ResultSet arr21rs = arr21.getResultSet();
+    assertTrue(arr21rs.next());
+    assertEquals(1, arr21rs.getInt(1));
+    assertEquals(2, arr21rs.getInt(2));
+    assertFalse(arr21rs.next());
+    arr21rs.close();
+    assertTrue(arr2rs.next());
+    // {3}
+    assertEquals(2, arr2rs.getInt(1));
+    Array arr22 =  arr2rs.getArray(2);
+    ResultSet arr22rs = arr22.getResultSet();
+    assertTrue(arr22rs.next());
+    assertEquals(1, arr22rs.getInt(1));
+    assertEquals(3, arr22rs.getInt(2));
+    assertFalse(arr22rs.next());
+    arr22rs.close();
+    assertFalse(arr2rs.next());
+    arr2rs.close();
+    assertTrue(arrrs.next());
+
+    // {{4},{5}}
+    assertEquals(3, arrrs.getInt(1));
+    Array arr3 =  arrrs.getArray(2);
+    ResultSet arr3rs = arr3.getResultSet();
+    assertTrue(arr3rs.next());
+    // {4}
+    assertEquals(1, arr3rs.getInt(1));
+    Array arr31 =  arr3rs.getArray(2);
+    ResultSet arr31rs = arr31.getResultSet();
+    assertTrue(arr31rs.next());
+    assertEquals(1, arr31rs.getInt(1));
+    assertEquals(4, arr31rs.getInt(2));
+    assertFalse(arr31rs.next());
+    arr31rs.close();
+    assertTrue(arr3rs.next());
+    // {5}
+    assertEquals(2, arr3rs.getInt(1));
+    Array arr32 =  arr3rs.getArray(2);
+    ResultSet arr32rs = arr32.getResultSet();
+    assertTrue(arr32rs.next());
+    assertEquals(1, arr32rs.getInt(1));
+    assertEquals(5, arr32rs.getInt(2));
+    assertFalse(arr32rs.next());
+    arr32rs.close();
+    assertFalse(arr3rs.next());
+    arr3rs.close();
+    assertFalse(arrrs.next());
+    arrrs.close();
+
+    rs.close();
+    stmt.close();
+  }
+
+  @Test
   public void testSetArray() throws SQLException {
     Statement stmt = conn.createStatement();
     ResultSet arrRS = stmt.executeQuery("SELECT '{1,2,3}'::int4[]");

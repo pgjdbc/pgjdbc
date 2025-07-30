@@ -291,7 +291,9 @@ public class PgArray implements Array {
         pos += len;
       }
     } else {
-      pos = calcRemainingDataLength(fieldBytes, dims, elementOid, pos, thisDimension + 1);
+      for (int i = 0; i < dims[thisDimension]; i++) {
+        pos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, thisDimension + 1);
+      }
     }
     return pos;
   }
