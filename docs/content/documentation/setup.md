@@ -37,7 +37,7 @@ when building pgJDBC for distributions, the pgJDBC Gradle build provides a conve
 The Maven-based project contains a version of the JDBC driver with complete functionality, which can be used in production and is still validly buildable
 within the Maven build environment.
 
-The Maven-based project is created with **`gradlew -d :postgresql:sourceDistribution -Prelease`**.
+The Maven-based project is created with **`gradlew -d :postgresql:sourceDistribution -Prelease -Psigning.gpg.enabled=OFF`**.
 The produced `*-src.tar.gz` can be then found in `pgjdbc/build/distributions/` directory. JDBC driver can be built from the Maven-based project with **mvn package** or,
 when the tests are to be skipped, with **`mvn -DskipTests package`**.
 

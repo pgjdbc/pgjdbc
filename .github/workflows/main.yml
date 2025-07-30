@@ -103,7 +103,7 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: source-release-jdk21
-          arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease
+          arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease -Psigning.pgp.enabled=OFF
       - name: Verify source distribution
         working-directory: pgjdbc/build/distributions
         run: |
