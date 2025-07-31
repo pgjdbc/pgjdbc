@@ -15,11 +15,10 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.jupiter.api.Test;
-
 import org.postgresql.xml.NullErrorHandler;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
+import org.junit.jupiter.api.Test;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
