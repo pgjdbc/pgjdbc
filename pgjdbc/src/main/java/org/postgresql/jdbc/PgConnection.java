@@ -1958,7 +1958,7 @@ public class PgConnection implements BaseConnection {
             GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
             PSQLState.INVALID_PARAMETER_VALUE, ex);
       }
-      if (!clazz.isAssignableFrom(PGXmlFactoryFactory.class)) {
+      if (!PGXmlFactoryFactory.class.isAssignableFrom(clazz)) {
         throw new PSQLException(
             GT.tr("Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}", xmlFactoryFactoryClass),
             PSQLState.INVALID_PARAMETER_VALUE);
