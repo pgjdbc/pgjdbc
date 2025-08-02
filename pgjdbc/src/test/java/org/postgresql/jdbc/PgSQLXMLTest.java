@@ -14,7 +14,6 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
-
 import org.postgresql.xml.NullErrorHandler;
 import org.postgresql.xml.PGXmlFactoryFactory;
 
