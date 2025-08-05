@@ -12,6 +12,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.net.Socket;
 import java.security.KeyStore;
@@ -190,7 +191,7 @@ public class PKCS12KeyManager implements X509KeyManager {
 
       }
 
-      keyStore.load(new FileInputStream(keyfile), pwdcb.getPassword());
+      keyStore.load(new BufferedInputStream(new FileInputStream(keyfile)), pwdcb.getPassword());
       keystoreLoaded = true;
     }
   }
