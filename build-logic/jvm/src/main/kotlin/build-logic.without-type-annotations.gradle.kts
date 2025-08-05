@@ -31,7 +31,7 @@ val removeTypeAnnotations by tasks.registering(Sync::class) {
     destinationDir = withoutAnnotations
     inputs.property("regexpsUpdatedOn", "2020-08-25")
     from(projectDir) {
-        filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
+        filteringCharset = Charsets.UTF_8.name()
         filter { x: String ->
             x.replace(hiddenAnnotation, "/* $0 */")
                 .replace(hiddenImports, "// $0")
