@@ -172,7 +172,13 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   @Override
   public String getSchemaName(int column) throws SQLException {
-    return "";
+    Field field = getField(column);
+    if (field.getTableOid() == 0) {
+      return "";
+    }
+    fetchFieldMetaData();
+    FieldMetadata metadata = field.getMetadata();
+    return metadata == null ? "" : metadata.schemaName;
   }
 
   private boolean populateFieldsWithMetadata(Gettable<FieldMetadata.Key, FieldMetadata> metadata) {
