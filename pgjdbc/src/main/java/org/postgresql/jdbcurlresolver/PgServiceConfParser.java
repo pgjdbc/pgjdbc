@@ -9,13 +9,12 @@ import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.util.OSUtil;
 import org.postgresql.util.PGPropertyUtil;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -81,7 +80,7 @@ public class PgServiceConfParser {
     } catch ( MalformedURLException ex ) {
       // try file
       File file = new File(resourceName);
-      return new BufferedInputStream(new FileInputStream(file));
+      return FileUtils.newBufferedInputStream(file);
     }
   }
 

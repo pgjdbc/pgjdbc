@@ -9,11 +9,10 @@ import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
 import java.net.Socket;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -191,7 +190,7 @@ public class PKCS12KeyManager implements X509KeyManager {
 
       }
 
-      keyStore.load(new BufferedInputStream(new FileInputStream(keyfile)), pwdcb.getPassword());
+      keyStore.load(FileUtils.newBufferedInputStream(keyfile), pwdcb.getPassword());
       keystoreLoaded = true;
     }
   }

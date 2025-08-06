@@ -14,13 +14,12 @@ import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.BufferedInputStream;
 import java.io.Console;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -147,7 +146,7 @@ public class LibPQFactory extends WrappedFactory {
         }
         InputStream is;
         try {
-          is = new BufferedInputStream(new FileInputStream(sslrootcertfile)); // NOSONAR
+          is = FileUtils.newBufferedInputStream(sslrootcertfile); // NOSONAR
         } catch (FileNotFoundException ex) {
           throw new PSQLException(
               GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
