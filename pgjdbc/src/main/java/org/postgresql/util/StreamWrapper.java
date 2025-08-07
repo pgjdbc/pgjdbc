@@ -54,9 +54,9 @@ public class StreamWrapper {
         final File tempFile =
             //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
             java.nio.file.Files.createTempFile(TEMP_FILE_PREFIX, null).toFile();
-            //#else
-            File.createTempFile(TEMP_FILE_PREFIX, null);
-            //#endif
+        //#else
+        File.createTempFile(TEMP_FILE_PREFIX, null);
+        //#endif
         FileOutputStream diskOutputStream = new FileOutputStream(tempFile);
         diskOutputStream.write(rawData);
         try {
