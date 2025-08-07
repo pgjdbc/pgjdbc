@@ -1,4 +1,3 @@
-version: "3"
 services:
   pgdb:
     image: postgres:${PGV:-latest}
