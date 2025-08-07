@@ -13,7 +13,7 @@ on:
 
 jobs:
   ubuntu-code-style:
-    name: 'Ubuntu, code style (JDK 8)'
+    name: Code style
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -109,7 +109,7 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
 
   source-distribution-check:
-    name: 'Source distribution (JDK 11)'
+    name: Source distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
