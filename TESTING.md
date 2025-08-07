@@ -35,15 +35,15 @@ create a file named `$JDBC_SRC/build.local.properties` and add your
 customized values of the properties `database`, `username` and
 `password`.
 
-If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
+If you have Docker, you can use `docker compose` to launch test database (see [docker](docker)):
 
     cd docker
 
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
-    docker-compose down && docker-compose up
+    docker compose down && docker compose up
 
     # Launch PostgreSQL 9.6, with XA, without SSL
-    docker-compose down && SSL=no XA=yes docker-compose up
+    docker compose down && SSL=no XA=yes docker compose up
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.

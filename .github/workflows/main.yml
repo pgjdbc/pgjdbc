@@ -66,7 +66,7 @@ jobs:
         fetch-depth: 50
     - name: Start PostgreSQL
       working-directory: docker
-      run: docker-compose up -d && docker-compose logs
+      run: docker compose up -d && docker compose logs
     - name: 'Set up JDK ${{ matrix.jdk }}'
       uses: actions/setup-java@v1
       with:
@@ -75,7 +75,7 @@ jobs:
       run: echo enable_ssl_tests=true > ssltest.local.properties
     - name: Get Docker logs
       working-directory: docker
-      run: docker-compose logs
+      run: docker compose logs
     - uses: burrunan/gradle-cache-action@v3
       name: Test
       env:
@@ -117,7 +117,7 @@ jobs:
           fetch-depth: 50
       - name: Start PostgreSQL
         working-directory: docker
-        run: docker-compose up -d && docker-compose logs
+        run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 11'
         uses: actions/setup-java@v1
         with:
