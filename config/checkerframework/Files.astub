@@ -1,0 +1,7 @@
+package java.nio.file;
+
+import org.checkerframework.checker.nullness.qual.*;
+
+class Files {
+    public static Path createTempFile(String prefix, @Nullable String suffix, FileAttribute<?>... attrs);
+}
