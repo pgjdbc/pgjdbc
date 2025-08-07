@@ -222,7 +222,7 @@ As mentioned above this version is broken and should not be used.
  - Build system update from Maven to Gradle [PR 1627](https://github.com/pgjdbc/pgjdbc/pull/1627)
 
 ### Added
- - docker-compose image for creating test databases (see `docker` folder)
+ - docker compose image for creating test databases (see `docker` folder)
 
 ## [42.2.10] (2020-01-30)
 ### Changed
