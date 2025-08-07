@@ -29,7 +29,7 @@ class TestPostgres {
         currentEnvironment[environment.size()] = kerberos.env[0]
         currentEnvironment[environment.size() + 1] = kerberos.env[1]
 
-        Postgres postgres = new Postgres('/usr/lib/postgresql/12/bin/', '/tmp/pggss')
+        Postgres postgres = new Postgres('/usr/lib/postgresql/16/bin/', '/tmp/pggss')
         /*
         make sure we can connect
          */
