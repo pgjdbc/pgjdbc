@@ -12,13 +12,13 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
+import org.postgresql.util.internal.FileUtils;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -95,7 +95,7 @@ class CopyLargeFileTest {
     }
     InputStream in = null;
     try {
-      in = new StrangeInputStream(seed, new FileInputStream("target/buffer.txt"));
+      in = new StrangeInputStream(seed, FileUtils.newBufferedInputStream("target/buffer.txt"));
       long size = copyAPI.copyIn(
           "COPY pgjdbc_issue366_test_data(data_text_id, glossary_text_id, value) FROM STDIN", in);
       assertEquals(BufferGenerator.ROW_COUNT, size);
