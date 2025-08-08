@@ -10,6 +10,7 @@ import static org.ops4j.pax.exam.CoreOptions.options;
 import static org.postgresql.test.osgi.DefaultPgjdbcOsgiOptions.defaultPgjdbcOsgiOptions;
 
 import org.postgresql.PGProperty;
+import org.postgresql.util.internal.FileUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,7 +26,6 @@ import org.osgi.service.jdbc.DataSourceFactory;
 import org.osgi.util.tracker.ServiceTracker;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -150,7 +150,7 @@ public class DataSourceFactoryTest {
           continue;
         }
         try {
-          p.load(new FileInputStream(f));
+          p.load(FileUtils.newBufferedInputStream(f));
         } catch (IOException ex) {
           // ignore
         }

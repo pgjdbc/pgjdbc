@@ -21,11 +21,11 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.URLCoder;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -238,7 +238,7 @@ public class TestUtil {
           continue;
         }
         try {
-          p.load(new FileInputStream(f));
+          p.load(FileUtils.newBufferedInputStream(f));
         } catch (IOException ex) {
           // ignore
         }
