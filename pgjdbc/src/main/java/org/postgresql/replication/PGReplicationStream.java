@@ -14,7 +14,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 
 /**
- * Not tread safe replication stream (though certain methods can be safely called by different
+ * Not thread safe replication stream (though certain methods can be safely called by different
  * threads). After complete streaming should be close, for free resource on backend. Periodical
  * status update work only when use {@link PGReplicationStream#read()} method. It means that
  * process wal record should be fast as possible, because during process wal record lead to
