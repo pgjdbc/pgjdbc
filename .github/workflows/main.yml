@@ -36,7 +36,7 @@ concurrency:
 
 jobs:
   code-style:
-    name: 'Code style'
+    name: Code style
     runs-on: ubuntu-latest
     env:
       ACTIONS_STEP_DEBUG: true
@@ -82,7 +82,7 @@ jobs:
           arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
 
   source-distribution-check:
-    name: 'Source distribution (JDK 21)'
+    name: Source distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
