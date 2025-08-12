@@ -22,15 +22,21 @@ import java.sql.SQLException;
 public class PGbytea {
   private static final int MAX_3_BUFF_SIZE = 2 * 1024 * 1024;
 
-  // Lookup table for hex validation - similar to Netty's approach
-  // Using byte[] instead of int[] as we only need 1 bit per entry
   static final byte[] HEX_LOOKUP = new byte[256];
+
   static {
     // Initialize lookup table for hex characters
-    for (char c = '0'; c <= '9'; c++) HEX_LOOKUP[c] = 1;
-    for (char c = 'a'; c <= 'f'; c++) HEX_LOOKUP[c] = 1;
-    for (char c = 'A'; c <= 'F'; c++) HEX_LOOKUP[c] = 1;
+    for (char c = '0'; c <= '9'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
+    for (char c = 'a'; c <= 'f'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
+    for (char c = 'A'; c <= 'F'; c++) {
+      HEX_LOOKUP[c] = 1;
+    }
   }
+
   /**
    * Lookup table for each of the valid ascii code points (offset by {@code '0'})
    * to the 4 bit numeric value.
@@ -209,7 +215,6 @@ public class PGbytea {
         char c = str.charAt(i);
 
         // Skip whitespace using bitwise operation
-        // Based on Netty's implementation
         if ((c <= ' ' && ((1L << c) & ((1L << ' ') | (1L << '\t') | (1L << '\r') | (1L << '\n'))) != 0)) {
           i++;
           continue;
@@ -232,8 +237,7 @@ public class PGbytea {
           throw new IllegalArgumentException(GT.tr("Invalid bytea hex format character {0}", c2));
         }
 
-        sb.append(c1);
-        sb.append(c2);
+        sb.append(str,i,i + 1);
         i += 2;
       }
 

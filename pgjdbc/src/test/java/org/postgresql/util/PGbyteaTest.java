@@ -11,10 +11,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.core.v3.SqlSerializationContext;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Random;
+import java.util.stream.Stream;
 
 class PGbyteaTest {
 
@@ -57,191 +61,51 @@ class PGbyteaTest {
     return encoded;
   }
 
-  @Test
-  void toPGLiteral_validHexString_lowercase() throws IOException {
-    String input = "\\xcafebabe";
-    String expected = "'\\xcafebabe'::bytea";
+  static Stream<Arguments> validHexStringTestCases() {
+    return Stream.of(
+        Arguments.of("\\xcafebabe", "'\\xcafebabe'::bytea", "lowercase"),
+        Arguments.of("\\xCAFEBABE", "'\\xCAFEBABE'::bytea", "uppercase"),
+        Arguments.of("\\xCaFeBaBe", "'\\xCaFeBaBe'::bytea", "mixed case"),
+        Arguments.of("\\x", "'\\x'::bytea", "empty hex"),
+        Arguments.of("\\xca fe ba be", "'\\xcafebabe'::bytea", "with spaces"),
+        Arguments.of("\\xca\tfe\tba\tbe", "'\\xcafebabe'::bytea", "with tabs"),
+        Arguments.of("\\xca\nfe\nba\nbe", "'\\xcafebabe'::bytea", "with newlines"),
+        Arguments.of("\\xca\rfe\rba\rbe", "'\\xcafebabe'::bytea", "with carriage returns"),
+        Arguments.of("\\x0123456789abcdefABCDEF", "'\\x0123456789abcdefABCDEF'::bytea", "long value"),
+        Arguments.of("\\xcafe ba", "'\\xcafeba'::bytea", "with whitespace at end"),
+        Arguments.of("\\xff", "'\\xff'::bytea", "single byte"),
+        Arguments.of("\\x00", "'\\x00'::bytea", "zero byte")
+    );
+  }
+
+  @ParameterizedTest(name = "toPGLiteral valid hex string: {2}")
+  @MethodSource("validHexStringTestCases")
+  void toPGLiteral_validHexStrings(String input, String expected, String description) throws IOException {
     String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
     assertEquals(expected, result);
   }
 
-  @Test
-  void toPGLiteral_validHexString_uppercase() throws IOException {
-    String input = "\\xCAFEBABE";
-    String expected = "'\\xCAFEBABE'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
+  static Stream<Arguments> invalidHexStringTestCases() {
+    return Stream.of(
+        Arguments.of("cafebabe", "bytea string parameters must be hex format", "no hex prefix"),
+        Arguments.of("\\ycafebabe", "bytea string parameters must be hex format", "wrong prefix"),
+        Arguments.of("\\", "bytea string parameters must be hex format", "too short"),
+        Arguments.of("", "bytea string parameters must be hex format", "empty string"),
+        Arguments.of("\\xcafegabe", "Invalid bytea hex format character g", "invalid hex character"),
+        Arguments.of("\\xcafe@abe", "Invalid bytea hex format character @", "invalid hex character symbol"),
+        Arguments.of("\\xcafebab", "Truncated bytea hex format", "odd number of hex digits"),
+        Arguments.of("\\xcafe b", "Truncated bytea hex format", "truncated after whitespace"),
+        Arguments.of("\\xcafe\u1234abe", "Invalid bytea hex format character \u1234", "high unicode character")
+    );
   }
 
-  @Test
-  void toPGLiteral_validHexString_mixed() throws IOException {
-    String input = "\\xCaFeBaBe";
-    String expected = "'\\xCaFeBaBe'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_empty() throws IOException {
-    String input = "\\x";
-    String expected = "'\\x'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_withWhitespace() throws IOException {
-    String input = "\\xca fe ba be";
-    String expected = "'\\xcafebabe'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_withTabs() throws IOException {
-    String input = "\\xca\tfe\tba\tbe";
-    String expected = "'\\xcafebabe'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_withNewlines() throws IOException {
-    String input = "\\xca\nfe\nba\nbe";
-    String expected = "'\\xcafebabe'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_withCarriageReturns() throws IOException {
-    String input = "\\xca\rfe\rba\rbe";
-    String expected = "'\\xcafebabe'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validHexString_longValue() throws IOException {
-    String input = "\\x0123456789abcdefABCDEF";
-    String expected = "'\\x0123456789abcdefABCDEF'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_invalidString_noHexPrefix() {
-    String input = "cafebabe";
+  @ParameterizedTest(name = "toPGLiteral invalid hex string: {2}")
+  @MethodSource("invalidHexStringTestCases")
+  void toPGLiteral_invalidHexStrings(String input, String expectedMessage, String description) {
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
       PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
     });
-    assertEquals("bytea string parameters must be hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_wrongPrefix() {
-    String input = "\\ycafebabe";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("bytea string parameters must be hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_tooShort() {
-    String input = "\\";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("bytea string parameters must be hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_emptyString() {
-    String input = "";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("bytea string parameters must be hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_invalidHexCharacter() {
-    String input = "\\xcafegabe";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("Invalid bytea hex format character g", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_invalidHexCharacterSymbol() {
-    String input = "\\xcafe@abe";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("Invalid bytea hex format character @", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_oddNumberOfHexDigits() {
-    String input = "\\xcafebab";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("Truncated bytea hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_validHexString_withWhitespaceAtEnd() throws IOException {
-    // This case works because whitespace is skipped and "cafeba" is valid hex
-    String input = "\\xcafe ba";
-    String expected = "'\\xcafeba'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_invalidString_truncatedAfterWhitespace() {
-    // This case fails because after skipping whitespace, there's only one hex character left
-    String input = "\\xcafe b";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("Truncated bytea hex format", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_invalidString_highUnicodeCharacter() {
-    String input = "\\xcafe\u1234abe";
-    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-      PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    });
-    assertEquals("Invalid bytea hex format character \u1234", exception.getMessage());
-  }
-
-  @Test
-  void toPGLiteral_validString_allHexDigits() throws IOException {
-    String input = "\\x0123456789abcdefABCDEF";
-    String expected = "'\\x0123456789abcdefABCDEF'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validString_singleByte() throws IOException {
-    String input = "\\xff";
-    String expected = "'\\xff'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
-  }
-
-  @Test
-  void toPGLiteral_validString_zeroByte() throws IOException {
-    String input = "\\x00";
-    String expected = "'\\x00'::bytea";
-    String result = PGbytea.toPGLiteral(input, SqlSerializationContext.of(true, true));
-    assertEquals(expected, result);
+    assertEquals(expectedMessage, exception.getMessage());
   }
 
   @Test
