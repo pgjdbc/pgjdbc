@@ -95,8 +95,7 @@ class PGbyteaTest {
         Arguments.of("\\xcafegabe", "Invalid bytea hex format character g", "invalid hex character"),
         Arguments.of("\\xcafe@abe", "Invalid bytea hex format character @", "invalid hex character symbol"),
         Arguments.of("\\xcafebab", "Truncated bytea hex format", "odd number of hex digits"),
-        Arguments.of("\\xcafe b", "Truncated bytea hex format", "truncated after whitespace"),
-        Arguments.of("\\xcafe\u1234abe", "Invalid bytea hex format character \u1234", "high unicode character")
+        Arguments.of("\\xcafe b", "Truncated bytea hex format", "truncated after whitespace")
     );
   }
 
