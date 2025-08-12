@@ -484,6 +484,11 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
     }
 
+    if (connection.isIsolationInTransactionMode()) {
+      flags |= QueryExecutor.QUERY_ISOLATION_TRANSACTION_MODE;
+      flags = connection.addIsolationLevelFlags(flags);
+    }
+
     // updateable result sets do not yet support binary updates
     if (concurrency != ResultSet.CONCUR_READ_ONLY) {
       flags |= QueryExecutor.QUERY_NO_BINARY_TRANSFER;
@@ -877,6 +882,11 @@ public class PgStatement implements Statement, BaseStatement {
     }
     if (connection.hintReadOnly()) {
       flags |= QueryExecutor.QUERY_READ_ONLY_HINT;
+    }
+
+    if (connection.isIsolationInTransactionMode()) {
+      flags |= QueryExecutor.QUERY_ISOLATION_TRANSACTION_MODE;
+      flags = connection.addIsolationLevelFlags(flags);
     }
 
     BatchResultHandler handler;
