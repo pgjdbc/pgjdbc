@@ -6,10 +6,10 @@
 package org.postgresql.ssl;
 
 import org.postgresql.util.GT;
+import org.postgresql.util.internal.FileUtils;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -95,7 +95,7 @@ public class SingleCertValidatingFactory extends WrappedFactory {
     try {
       if (sslFactoryArg.startsWith(FILE_PREFIX)) {
         String path = sslFactoryArg.substring(FILE_PREFIX.length());
-        in = new BufferedInputStream(new FileInputStream(path));
+        in = FileUtils.newBufferedInputStream(path);
       } else if (sslFactoryArg.startsWith(CLASSPATH_PREFIX)) {
         String path = sslFactoryArg.substring(CLASSPATH_PREFIX.length());
         ClassLoader classLoader = Thread.currentThread().getContextClassLoader();

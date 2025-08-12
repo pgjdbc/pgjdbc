@@ -16,10 +16,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -284,7 +284,7 @@ public class SingleCertValidatingFactoryTest {
   public static String loadFile(String path) {
     BufferedReader br = null;
     try {
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
+      br = Files.newBufferedReader(Paths.get(path));
       StringBuilder sb = new StringBuilder();
       String line;
       while ((line = br.readLine()) != null) {

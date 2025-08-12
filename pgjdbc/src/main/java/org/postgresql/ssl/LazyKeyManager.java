@@ -8,12 +8,13 @@ package org.postgresql.ssl;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.net.Socket;
 import java.security.AlgorithmParameters;
@@ -154,9 +155,9 @@ public class LazyKeyManager implements X509KeyManager {
         return null;
       }
       Collection<? extends Certificate> certs;
-      FileInputStream certfileStream = null;
+      InputStream certfileStream = null;
       try {
-        certfileStream = new FileInputStream(certfile);
+        certfileStream = FileUtils.newBufferedInputStream(certfile);
         certs = cf.generateCertificates(certfileStream);
       } catch (FileNotFoundException ioex) {
         if (!defaultfile) { // It is not an error if there is no file at the default location

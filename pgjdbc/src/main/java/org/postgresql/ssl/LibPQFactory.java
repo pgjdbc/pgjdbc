@@ -14,14 +14,15 @@ import org.postgresql.util.GT;
 import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.initialization.qual.UnderInitialization;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Console;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -143,9 +144,9 @@ public class LibPQFactory extends WrappedFactory {
         if (sslrootcertfile == null) { // Fall back to default
           sslrootcertfile = defaultdir + "root.crt";
         }
-        FileInputStream fis;
+        InputStream is;
         try {
-          fis = new FileInputStream(sslrootcertfile); // NOSONAR
+          is = FileUtils.newBufferedInputStream(sslrootcertfile); // NOSONAR
         } catch (FileNotFoundException ex) {
           throw new PSQLException(
               GT.tr("Could not open SSL root certificate file {0}.", sslrootcertfile),
@@ -153,9 +154,9 @@ public class LibPQFactory extends WrappedFactory {
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          // Certificate[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{}); //Does
+          // Certificate[] certs = cf.generateCertificates(is).toArray(new Certificate[]{}); //Does
           // not work in java 1.4
-          Object[] certs = cf.generateCertificates(fis).toArray(new Certificate[]{});
+          Object[] certs = cf.generateCertificates(is).toArray(new Certificate[]{});
           ks.load(null, null);
           for (int i = 0; i < certs.length; i++) {
             ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
@@ -172,7 +173,7 @@ public class LibPQFactory extends WrappedFactory {
               PSQLState.CONNECTION_FAILURE, gsex);
         } finally {
           try {
-            fis.close();
+            is.close();
           } catch (IOException e) {
             /* ignore */
           }
