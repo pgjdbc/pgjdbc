@@ -237,7 +237,7 @@ public class PGbytea {
           throw new IllegalArgumentException(GT.tr("Invalid bytea hex format character {0}", c2));
         }
 
-        sb.append(str,i,i + 1);
+        sb.append(str,i,i + 2);
         i += 2;
       }
 
