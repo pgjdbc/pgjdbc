@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
@@ -1523,7 +1524,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   public @Nullable String getProperty(PGProperty property) {
-    return property.getOrDefault(properties);
+    switch (property) {
+      case PG_HOST:
+        return String.join(",",serverNames);
+      case PG_PORT:
+        return Arrays.stream(portNumbers)
+            .mapToObj(Integer::toString)
+            .collect(Collectors.joining(","));
+      case PG_DBNAME:
+        return databaseName;
+      case USER:
+        return user;
+      case PASSWORD:
+        return password;
+      default:
+        return property.getOrDefault(properties);
+    }
   }
 
   public void setProperty(PGProperty property, @Nullable String value) {
