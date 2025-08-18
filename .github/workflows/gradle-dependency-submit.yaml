@@ -25,4 +25,4 @@ jobs:
         distribution: zulu
         java-version: 21
     - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@ac638b010cf58a27ee6c972d7336334ccaf61c96 # v4
+      uses: gradle/actions/dependency-submission@017a9effdb900e5b5b2fddfb590a105619dca3c3 # v4
