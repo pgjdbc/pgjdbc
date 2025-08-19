@@ -11,6 +11,7 @@ import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
 import org.postgresql.jdbc.PreferQueryMode;
+import org.postgresql.jdbcurlresolver.PgServiceConfParser;
 import org.postgresql.util.ExpressionProperties;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
@@ -51,10 +53,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   // Standard properties, defined in the JDBC 2.0 Optional Package spec
   private String[] serverNames = new String[]{"localhost"};
-  private @Nullable String databaseName = "";
+  private boolean serverNamesIsSet = false;
+  private @Nullable String databaseName;
   private @Nullable String user;
   private @Nullable String password;
   private int[] portNumbers = new int[]{0};
+  private boolean portNumbersIsSet = false;
 
   // Map for all other properties
   private Properties properties = new Properties();
@@ -174,6 +178,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public void setServerNames(@Nullable String @Nullable [] serverNames) {
     if (serverNames == null || serverNames.length == 0) {
       this.serverNames = new String[]{"localhost"};
+      this.serverNamesIsSet = false;
     } else {
       serverNames = serverNames.clone();
       for (int i = 0; i < serverNames.length; i++) {
@@ -183,6 +188,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         }
       }
       this.serverNames = serverNames;
+      this.serverNamesIsSet = true;
     }
   }
 
@@ -300,9 +306,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setPortNumbers(int @Nullable [] portNumbers) {
     if (portNumbers == null || portNumbers.length == 0) {
-      portNumbers = new int[]{0};
+      this.portNumbers = new int[]{0};
+      this.portNumbersIsSet = false;
+      return;
     }
+
     this.portNumbers = Arrays.copyOf(portNumbers, portNumbers.length);
+    this.portNumbersIsSet = true;
   }
 
   /**
@@ -851,7 +861,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * @see PGProperty#LOAD_BALANCE_HOSTS
    */
   public boolean getLoadBalanceHosts() {
-    return PGProperty.LOAD_BALANCE_HOSTS.isPresent(properties);
+    return Boolean.parseBoolean(PGProperty.LOAD_BALANCE_HOSTS.getOrDefault(properties));
   }
 
   /**
@@ -1523,30 +1533,48 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   public @Nullable String getProperty(PGProperty property) {
-    return property.getOrDefault(properties);
+    switch (property) {
+      case PG_HOST:
+        return String.join(",",serverNames);
+      case PG_PORT:
+        return Arrays.stream(portNumbers)
+            .mapToObj(Integer::toString)
+            .collect(Collectors.joining(","));
+      case PG_DBNAME:
+        return databaseName;
+      case USER:
+        return user;
+      case PASSWORD:
+        return password;
+      default:
+        return property.getOrDefault(properties);
+    }
   }
 
   public void setProperty(PGProperty property, @Nullable String value) {
-    if (value == null) {
-      // TODO: this is not consistent with PGProperty.PROPERTY.set(prop, null)
-      // PGProperty removes an entry for put(null) call, however here we just ignore null
-      return;
-    }
     switch (property) {
       case PG_HOST:
-        setServerNames(value.split(","));
+        if( value != null ) {
+          setServerNames(value.split(","));
+        } else {
+          setServerNames(null);
+        }
         break;
       case PG_PORT:
-        String[] ps = value.split(",");
-        int[] ports = new int[ps.length];
-        for (int i = 0; i < ps.length; i++) {
-          try {
-            ports[i] = Integer.parseInt(ps[i]);
-          } catch (NumberFormatException e) {
-            ports[i] = 0;
+        if( value != null ) {
+          String[] ps = value.split(",");
+          int[] ports = new int[ps.length];
+          for (int i = 0; i < ps.length; i++) {
+            try {
+              ports[i] = Integer.parseInt(ps[i]);
+            } catch (NumberFormatException e) {
+              ports[i] = 0;
+            }
           }
+          setPortNumbers(ports);
+        } else {
+          setPortNumbers(null);
         }
-        setPortNumbers(ports);
         break;
       case PG_DBNAME:
         setDatabaseName(value);
@@ -1557,8 +1585,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       case PASSWORD:
         setPassword(value);
         break;
+      case SERVICE:
+        if( value!=null ) {
+          loadService(value);
+        }
+        break;
       default:
-        properties.setProperty(property.getName(), value);
+        property.set(properties, value);
     }
   }
 
@@ -1632,7 +1665,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     setServerNames(serverName.split(","));
 
     for (PGProperty property : PGProperty.values()) {
-      setProperty(property, getReferenceProperty(ref, property.getName()));
+      String value = getReferenceProperty(ref, property.getName());
+      if (value != null) {
+        setProperty(property, value);
+      }
     }
   }
 
@@ -1672,6 +1708,60 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     ObjectInputStream ois = new ObjectInputStream(bais);
     readBaseObject(ois);
+  }
+
+  protected void loadService(String serviceName) {
+    Properties result = PgServiceConfParser.getServiceProperties(serviceName);
+    if (result == null) {
+      LOGGER.log(Level.WARNING, "Definition of service [{0}] not found", serviceName);
+
+      // Set into the properties as it may be resolvable in the future.
+      PGProperty.SERVICE.set(properties, serviceName);
+      return;
+    }
+
+    // Set the service properties into the "properties" collection without overwriting existing ones.
+    for(String propertyName : result.stringPropertyNames()) {
+      PGProperty property = PGProperty.forName(propertyName);
+
+      boolean isAlreadySet;
+      if (property == null || property.isPresent(properties)) {
+        // continue if the property is not recognised or already set
+        isAlreadySet = true;
+      } else {
+        switch( property ) {
+          case PG_HOST:
+            isAlreadySet = serverNamesIsSet;
+            break;
+          case PG_PORT:
+            isAlreadySet = portNumbersIsSet;
+            break;
+          case PG_DBNAME:
+            isAlreadySet = databaseName!=null;
+            break;
+          case USER:
+            isAlreadySet = user!=null;
+            break;
+          case PASSWORD:
+            isAlreadySet = password!=null;
+            break;
+          case SERVICE:
+            // Do not recursively load service properties.
+            isAlreadySet = true;
+            break;
+          default:
+            isAlreadySet = false;
+            break;
+        }
+      }
+
+      // If already set, skip the property.
+      if (isAlreadySet) {
+        continue;
+      }
+
+      setProperty(property, result.getProperty(propertyName));
+    }
   }
 
   /**
