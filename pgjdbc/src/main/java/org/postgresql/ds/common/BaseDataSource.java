@@ -1723,36 +1723,34 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     // Set the service properties into the "properties" collection without overwriting existing ones.
     for (String propertyName : result.stringPropertyNames()) {
       PGProperty property = PGProperty.forName(propertyName);
+      if (property == null || property.isPresent(properties)) {
+        continue;
+      }
 
       boolean isAlreadySet;
-      if (property == null || property.isPresent(properties)) {
-        // continue if the property is not recognised or already set
-        isAlreadySet = true;
-      } else {
-        switch ( property ) {
-          case PG_HOST:
-            isAlreadySet = serverNamesIsSet;
-            break;
-          case PG_PORT:
-            isAlreadySet = portNumbersIsSet;
-            break;
-          case PG_DBNAME:
-            isAlreadySet = databaseName != null;
-            break;
-          case USER:
-            isAlreadySet = user != null;
-            break;
-          case PASSWORD:
-            isAlreadySet = password != null;
-            break;
-          case SERVICE:
-            // Do not recursively load service properties.
-            isAlreadySet = true;
-            break;
-          default:
-            isAlreadySet = false;
-            break;
-        }
+      switch ( property ) {
+        case PG_HOST:
+          isAlreadySet = serverNamesIsSet;
+          break;
+        case PG_PORT:
+          isAlreadySet = portNumbersIsSet;
+          break;
+        case PG_DBNAME:
+          isAlreadySet = databaseName != null;
+          break;
+        case USER:
+          isAlreadySet = user != null;
+          break;
+        case PASSWORD:
+          isAlreadySet = password != null;
+          break;
+        case SERVICE:
+          // Do not recursively load service properties.
+          isAlreadySet = true;
+          break;
+        default:
+          isAlreadySet = false;
+          break;
       }
 
       // If already set, skip the property.
