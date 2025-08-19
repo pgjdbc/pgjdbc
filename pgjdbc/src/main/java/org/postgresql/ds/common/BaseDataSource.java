@@ -1554,14 +1554,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public void setProperty(PGProperty property, @Nullable String value) {
     switch (property) {
       case PG_HOST:
-        if( value != null ) {
+        if (value != null) {
           setServerNames(value.split(","));
         } else {
           setServerNames(null);
         }
         break;
       case PG_PORT:
-        if( value != null ) {
+        if (value != null) {
           String[] ps = value.split(",");
           int[] ports = new int[ps.length];
           for (int i = 0; i < ps.length; i++) {
@@ -1586,7 +1586,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         setPassword(value);
         break;
       case SERVICE:
-        if( value!=null ) {
+        if (value != null) {
           loadService(value);
         }
         break;
@@ -1721,7 +1721,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     }
 
     // Set the service properties into the "properties" collection without overwriting existing ones.
-    for(String propertyName : result.stringPropertyNames()) {
+    for (String propertyName : result.stringPropertyNames()) {
       PGProperty property = PGProperty.forName(propertyName);
 
       boolean isAlreadySet;
@@ -1729,7 +1729,7 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
         // continue if the property is not recognised or already set
         isAlreadySet = true;
       } else {
-        switch( property ) {
+        switch ( property ) {
           case PG_HOST:
             isAlreadySet = serverNamesIsSet;
             break;
@@ -1737,13 +1737,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
             isAlreadySet = portNumbersIsSet;
             break;
           case PG_DBNAME:
-            isAlreadySet = databaseName!=null;
+            isAlreadySet = databaseName != null;
             break;
           case USER:
-            isAlreadySet = user!=null;
+            isAlreadySet = user != null;
             break;
           case PASSWORD:
-            isAlreadySet = password!=null;
+            isAlreadySet = password != null;
             break;
           case SERVICE:
             // Do not recursively load service properties.

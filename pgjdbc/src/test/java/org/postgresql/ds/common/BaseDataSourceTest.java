@@ -107,7 +107,6 @@ class BaseDataSourceTest {
             "Property '" + pd.getName() + "' should return the value set: " + value
         );
 
-
         // Is property maintained by initializeFrom?
         newDataSource = new PGSimpleDataSource();
         newDataSource.initializeFrom(dataSource);
