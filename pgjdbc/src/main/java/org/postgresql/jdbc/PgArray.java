@@ -106,6 +106,14 @@ public class PgArray implements Array {
     this.fieldBytes = fieldBytes;
   }
 
+  /**
+   * Returns {@code oid} of the array type
+   * @return array type oid
+   */
+  public int getOid() {
+    return oid;
+  }
+
   private BaseConnection getConnection() {
     return castNonNull(connection);
   }
