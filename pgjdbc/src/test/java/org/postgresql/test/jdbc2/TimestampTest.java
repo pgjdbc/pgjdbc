@@ -619,7 +619,7 @@ public class TimestampTest extends BaseTest4 {
   }
 
   private static final Timestamp TS1WTZ =
-      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "Pacific Standard Time");
+      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "GMT-08:00");
   private static final String TS1WTZ_PGFORMAT = "1950-02-07 15:00:00.1-08";
 
   private static final Timestamp TS2WTZ =
