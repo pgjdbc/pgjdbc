@@ -14,6 +14,11 @@ val pgjdbcRepository by configurations.creating {
 }
 
 dependencies {
+    constraints {
+        testImplementation("org.apache.bcel:bcel:6.10.0") {
+            because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
+        }
+    }
     pgjdbcRepository(projects.postgresql)
 
     testImplementation(projects.postgresql) {
@@ -38,9 +43,6 @@ dependencies {
     testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.8"))
     testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
     testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
-    testRuntimeOnly("org.apache.bcel:bcel:6.10.0") {
-        because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
-    }
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
