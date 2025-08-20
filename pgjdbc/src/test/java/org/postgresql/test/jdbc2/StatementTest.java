@@ -5,18 +5,23 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
@@ -28,6 +33,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -1159,6 +1166,45 @@ class StatementTest {
       assertEquals(PSQLState.SYNTAX_ERROR.getState(), e.getSQLState(), "Query should fail with unterminated " + errorType);
     } finally {
       TestUtil.closeQuietly(ps);
+    }
+  }
+
+  /**
+   * Test that verifies the fix for issue #3530: Timer cancellation when StatementCancelTimerTask.run
+   * throws a runtime error. The test ensures that when cancelIfStillNeeded throws an exception,
+   * the Timer continues to work properly for subsequent query cancellations.
+   */
+  @Test
+  @Timeout(value = 15, unit = TimeUnit.SECONDS)
+  @ExtendWith(MockitoExtension.class)
+  void testCancelTimerTaskHandlesExceptionFromQueryCancel() throws SQLException {
+    PgConnection spyConnection = spy(con.unwrap(PgConnection.class));
+    // Mock the cancel() method to throw a RuntimeException on the first call, then work normally
+    // This simulates an exception occurring within cancelIfStillNeeded -> cancel() flow
+    doThrow(new RuntimeException("Simulated cancel error"))
+        .doCallRealMethod()
+        .when(spyConnection).cancelQuery();
+
+    // Try breaking Timer by throwing a runtime error from cancelQuery
+    try (PgStatement st = spyConnection.createStatement().unwrap(PgStatement.class);) {
+      // Set a short timeout that will trigger cancellation
+      st.setQueryTimeout(1);
+
+      // Execute a query that takes longer than the timeout - this should trigger cancelIfStillNeeded
+      // The exception from cancel() should be caught by StatementCancelTimerTask.run()
+      assertDoesNotThrow(
+          () -> {
+            st.execute("SELECT pg_sleep(5)");
+          }, "Executing pg_sleep(5) with queryTimeout of 1 second typically throws SQLException "
+              + "related to a query timeout, however, we mocked cancel() to throw a "
+              + "RuntimeException, so the query should succeed");
+    }
+
+    // Verify the connection is still workable and ensure the cancellation timer continues to work
+    try (Statement secondStatement = spyConnection.createStatement();) {
+      secondStatement.setQueryTimeout(1);
+      SQLException timeout = assertThrows(SQLException.class, () -> secondStatement.execute("SELECT pg_sleep(5)"));
+      assertEquals(PSQLState.QUERY_CANCELED.getState(), timeout.getSQLState(), "pg_sleep(5) with timeout of 1 second should be cancelled");
     }
   }
 }
