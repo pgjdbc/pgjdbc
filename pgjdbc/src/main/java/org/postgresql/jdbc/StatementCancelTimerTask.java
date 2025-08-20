@@ -33,7 +33,20 @@ class StatementCancelTimerTask extends TimerTask {
   public void run() {
     PgStatement statement = this.statement;
     if (statement != null) {
-      statement.cancelIfStillNeeded(this);
+      try {
+        statement.cancelIfStillNeeded(this);
+      } catch (Throwable ignore) {
+        // java.util.Timer cancels if a task throws an exception
+        // We don't want to cancel the timer, so we ignore the exception
+        // The exception might be something like OutOfMemoryError or StackOverflowError, so
+        // we can't even log the exception as a mere attempt to log the exception might throw a new
+        // StackOverflowError or OutOfMemoryError.
+        // At the same time, if we rethrow the exception, it will cancel the timer, it will cleanup
+        // the list of the timer tasks, so it would affect the application as well
+        //
+        // We can't reliably cancel the query at the database side anyways, so let's pretend that
+        // we tried our best to cancel the query, and let the application decide what to do with it.
+      }
     }
     // Help GC to avoid keeping reference via TimerThread -> TimerTask -> statement -> connection
     this.statement = null;
