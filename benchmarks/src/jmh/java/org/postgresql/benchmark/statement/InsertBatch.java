@@ -49,7 +49,8 @@ import java.util.concurrent.TimeUnit;
 public class InsertBatch {
   private Connection connection;
   private PreparedStatement ps;
-  private PreparedStatement structInsert;
+  private PreparedStatement unnestInsertStructs;
+  private PreparedStatement unnestInsertArrays;
   String[] strings;
 
   @Param({"16", "128", "1024"})
@@ -67,8 +68,6 @@ public class InsertBatch {
       if (p2multi != 1) {
         System.exit(-1);
       }
-    } else if (!(p2multi == 128 || p1nrows == 1024)) {
-      System.exit(-1);
     }
     p2multi = Math.min(p2multi, p1nrows);
 
@@ -85,7 +84,7 @@ public class InsertBatch {
     try {
       s.execute("drop table batch_perf_test");
     } catch (SQLException e) {
-            /* ignore */
+      /* ignore */
     }
     s.execute("create table batch_perf_test(a int4, b varchar(100), c int4)");
     s.close();
@@ -94,8 +93,12 @@ public class InsertBatch {
       sql += ",(?,?,?)";
     }
     ps = connection.prepareStatement(sql);
-    structInsert = connection.prepareStatement(
+    unnestInsertStructs = connection.prepareStatement(
         "insert into batch_perf_test select * from unnest(?::batch_perf_test[])");
+
+    unnestInsertArrays = connection.prepareStatement(
+        "insert into batch_perf_test(a, b, c) select * from unnest(?::int4[], ?::varchar[], "
+                + "?::int4[])");
 
     strings = new String[p1nrows];
     for (int i = 0; i < p1nrows; i++) {
@@ -155,7 +158,7 @@ public class InsertBatch {
   }
 
   @Benchmark
-  public int[] insertStruct() throws SQLException, IOException {
+  public int[] insertUnnestStruct() throws SQLException, IOException {
     CharArrayWriter wr = new CharArrayWriter();
 
     for (int i = 0; i < p1nrows; ) {
@@ -184,11 +187,33 @@ public class InsertBatch {
         wr.append(")\"");
       }
       wr.append('}');
-      structInsert.setString(1, wr.toString());
-      structInsert.addBatch();
+      unnestInsertStructs.setString(1, wr.toString());
+      unnestInsertStructs.addBatch();
     }
 
-    return structInsert.executeBatch();
+    return unnestInsertStructs.executeBatch();
+  }
+
+  @Benchmark
+  public int[] insertUnnestArrays() throws SQLException {
+    PGConnection pgConnection = ((PGConnection) connection);
+
+    int[] aArray = new int[p2multi];
+    String[] bArray = new String[p2multi];
+    int[] cArray = new int[p2multi];
+
+    for (int i = 0; i < p1nrows; ) {
+      for (int k = 0; k < p2multi; k++, i++) {
+        aArray[k] = i;
+        bArray[k] = strings[i];
+        cArray[k] = i;
+      }
+      unnestInsertArrays.setArray(1, pgConnection.createArrayOf("int4", aArray));
+      unnestInsertArrays.setArray(2, pgConnection.createArrayOf("varchar", bArray));
+      unnestInsertArrays.setArray(3, pgConnection.createArrayOf("int4", cArray));
+      unnestInsertArrays.addBatch();
+    }
+    return unnestInsertArrays.executeBatch();
   }
 
   @Benchmark
