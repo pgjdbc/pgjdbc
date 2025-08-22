@@ -34,6 +34,10 @@ main () {
         add_pg_opt "-c track_counts=off"
     fi
 
+    if is_option_disabled "${STANDARD_CONFORMING_STRINGS}"; then
+        add_pg_opt "-c standard_conforming_strings=off"
+    fi
+
     # Customize pg_hba.conf
     local pg_hba="/home/certdir/pg_hba.conf"
     add_pg_opt "-c hba_file=${pg_hba}"
