@@ -68,6 +68,8 @@ public class InsertBatch {
       if (p2multi != 1) {
         System.exit(-1);
       }
+    } else if (!(p2multi == 128 || p1nrows == 1024)) {
+      System.exit(-1);
     }
     p2multi = Math.min(p2multi, p1nrows);
 
