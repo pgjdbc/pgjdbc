@@ -198,7 +198,7 @@ public class InsertBatch {
 
   @Benchmark
   public int[] insertUnnestArrays() throws SQLException {
-    PGConnection pgConnection = ((PGConnection) connection);
+    PGConnection pgConnection = connection.unwrap(PGConnection.class);
 
     int[] aArray = new int[p2multi];
     String[] bArray = new String[p2multi];
