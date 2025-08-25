@@ -13,11 +13,13 @@ import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.Field;
+import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -130,6 +132,35 @@ public class BinaryTest extends BaseTest4 {
       rs.close();
     }
     ps.close();
+  }
+
+  @Test
+  public void testGetMetaDataBeforeExecuteQuery() throws SQLException {
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+      ps = con.prepareStatement("select ?::int8");
+      PgStatement unwrap = ps.unwrap(PgStatement.class);
+      unwrap.setPrepareThreshold(-1);
+      ps.getMetaData();
+      long paramsLong = 1000L;
+      ps.setLong(1, paramsLong);
+      rs = ps.executeQuery();
+      assertTrue(rs.next(), "One row should be returned");
+      byte[] bytes = rs.getBytes(1);
+      ByteBuffer bf = ByteBuffer.wrap(bytes);
+      long longResult = bf.getLong();
+      assertEquals(Field.BINARY_FORMAT, getFormat(rs));
+      assertEquals(paramsLong, longResult);
+    } finally {
+      if (rs != null) {
+        rs.close();
+      }
+      if (ps != null) {
+        ps.close();
+      }
+    }
+
   }
 
   private static int getFormat(ResultSet results) throws SQLException {
