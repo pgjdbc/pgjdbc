@@ -5,8 +5,6 @@
 
 package org.postgresql.core;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.AutoSave;
@@ -146,7 +144,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return database;
   }
 
-  public void setBackendKeyData(int cancelPid, byte[]cancelKey) {
+  public void setBackendKeyData(int cancelPid, byte[] cancelKey) {
     this.cancelPid = cancelPid;
     this.cancelKey = cancelKey;
   }
@@ -191,22 +189,27 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
     // Now we need to construct and send a cancel packet
     try {
+      byte[] cancelKey = this.cancelKey;
+      if (cancelKey == null) {
+        LOGGER.log(Level.FINEST, " FE=> Can't send cancel request since cancelKey is null. It might be the cancel key is not received yet");
+        return;
+      }
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
       }
 
       // Cancel signal is variable since protocol 3.2 so we use cancelKey.length + 12
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, castNonNull(cancelKey).length + 12);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, cancelKey.length + 12);
       if (cancelSignalTimeout > 0) {
         cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
       // send the length including self
-      cancelStream.sendInteger4(castNonNull(castNonNull(cancelKey)).length + 12);
+      cancelStream.sendInteger4(cancelKey.length + 12);
       cancelStream.sendInteger2(1234);
       cancelStream.sendInteger2(5678);
       cancelStream.sendInteger4(cancelPid);
-      cancelStream.send(castNonNull(cancelKey));
+      cancelStream.send(cancelKey);
       cancelStream.flush();
       cancelStream.receiveEOF();
     } catch (IOException e) {
