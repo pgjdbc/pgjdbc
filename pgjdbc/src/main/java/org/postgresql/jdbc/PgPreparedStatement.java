@@ -1201,7 +1201,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // for more info. We send the full query, but just don't
       // execute it.
 
-      int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
+      int flags = QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
       StatementResultHandler handler = new StatementResultHandler();
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
