@@ -44,11 +44,16 @@ public class BaseTest4 {
     UNSPECIFIED, VARCHAR
   }
 
+  public enum TimestamptzAlways {
+   YES, NO
+  }
+
   protected @Nullable Connection con;
   protected @Nullable BinaryMode binaryMode;
   private @Nullable ReWriteBatchedInserts reWriteBatchedInserts;
   protected @Nullable PreferQueryMode preferQueryMode;
   private @Nullable StringType stringType;
+  private @Nullable TimestamptzAlways timestamptzAlways;
 
   protected void updateProperties(Properties props) {
     if (binaryMode == BinaryMode.FORCE) {
@@ -60,6 +65,9 @@ public class BaseTest4 {
     }
     if (stringType != null) {
       PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase(Locale.ROOT));
+    }
+    if (timestamptzAlways  == TimestamptzAlways.YES) {
+      PGProperty.SQL_TIMESTAMPTZ_ALWAYS.set(props, true);
     }
   }
 
@@ -83,6 +91,10 @@ public class BaseTest4 {
   public void setReWriteBatchedInserts(
       ReWriteBatchedInserts reWriteBatchedInserts) {
     this.reWriteBatchedInserts = reWriteBatchedInserts;
+  }
+
+  public void setTimestamptzAlways(TimestamptzAlways timestamptzAlways) {
+    this.timestamptzAlways = timestamptzAlways;
   }
 
   /**
