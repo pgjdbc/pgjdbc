@@ -179,7 +179,7 @@ The workflow performs the following steps:
 
 ### Updating changelog
 
-- run `./release_notes.sh`, edit as desired
+- run `./release_notes.sh`, edit as desired. This has been deprecated. Currently release notes are created manually
 
 ## Dependencies
 
