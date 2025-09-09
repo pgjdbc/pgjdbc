@@ -162,11 +162,11 @@ Prerequisites:
 
 ### Trigger the release procedure
 
-This project defines a [manual release workflow](.github/workflows/release.yaml).
+This project defines a [manual release workflow](.github/workflows/release.yml).
 
 The suggested flow is as follows:
 1. Prepare release notes, commit it to Git.
-2. Open the "release" action at 👉 [Actions tab → release.yaml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yaml).
+2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
 3. Click "run workflow".
 4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
 5. Click "Run workflow"
