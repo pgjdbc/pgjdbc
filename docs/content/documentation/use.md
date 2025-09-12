@@ -191,6 +191,10 @@ or 'statement XXX is not valid' so JDBC driver rolls back and retries
 * **`cleanupSavepoints (`*boolean*`)`** *Default `false`*\
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
 
+* **`convertBooleanToNumeric (`*boolean*`)`** *Default `false`*\
+Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0) when using numeric getters (`getByte`, `getInt`, `getLong`, `getShort`) on ResultSet.
+When enabled, boolean columns containing 't' will return 1, and 'f' will return 0 instead of throwing a conversion exception.
+
 * **`channelBinding (`*String*`)`** *Default `prefer`*\
 This option controls the client's use of channel binding. A setting of `require` means that the connection must employ channel binding, `prefer` means that the client will choose channel binding if available, and `disable` prevents the use of channel binding. The default is `prefer` if PostgreSQL is compiled with SSL support; otherwise the default is `disable`.
 
