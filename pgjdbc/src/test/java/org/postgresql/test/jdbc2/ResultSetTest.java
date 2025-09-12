@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -1440,6 +1441,66 @@ public class ResultSetTest extends BaseTest4 {
     assertEquals(year2, future2.get(1, TimeUnit.MINUTES), "Year was changed in another thread");
     e.shutdown();
     e.awaitTermination(1, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testBooleanToNumericConversionDisabled() throws SQLException {
+    // Test that numeric getters throw exception when conversion is disabled (default)
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT true::boolean AS bool_col")) {
+      assertTrue(rs.next());
+
+      // These should throw PSQLException with "Bad value for type" message
+      assertThrows(PSQLException.class, () -> rs.getByte("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getInt("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getLong("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getShort("bool_col"));
+
+      // getBoolean should still work
+      assertTrue(rs.getBoolean("bool_col"));
+    }
+  }
+
+  @Test
+  public void testBooleanToNumericConversionEnabled() throws SQLException {
+    // Create a connection with boolean-to-numeric conversion enabled
+    Properties props = new Properties();
+    props.setProperty("convertBooleanToNumeric", "true");
+
+    try (Connection conn = TestUtil.openDB(props);
+         Statement stmt = conn.createStatement()) {
+
+      // Test TRUE conversion
+      try (ResultSet rs = stmt.executeQuery("SELECT true::boolean AS bool_col")) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getByte("bool_col"));
+        assertEquals(1, rs.getInt("bool_col"));
+        assertEquals(1L, rs.getLong("bool_col"));
+        assertEquals((short) 1, rs.getShort("bool_col"));
+        assertTrue(rs.getBoolean("bool_col"));
+      }
+
+      // Test FALSE conversion
+      try (ResultSet rs = stmt.executeQuery("SELECT false::boolean AS bool_col")) {
+        assertTrue(rs.next());
+        assertEquals(0, rs.getByte("bool_col"));
+        assertEquals(0, rs.getInt("bool_col"));
+        assertEquals(0L, rs.getLong("bool_col"));
+        assertEquals((short) 0, rs.getShort("bool_col"));
+        assertFalse(rs.getBoolean("bool_col"));
+      }
+
+      // Test text column with 't'/'f' values
+      try (ResultSet rs = stmt.executeQuery("SELECT 't'::text AS text_col")) {
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt("text_col"));
+      }
+
+      try (ResultSet rs = stmt.executeQuery("SELECT 'f'::text AS text_col")) {
+        assertTrue(rs.next());
+        assertEquals(0, rs.getInt("text_col"));
+      }
+    }
   }
 
 }

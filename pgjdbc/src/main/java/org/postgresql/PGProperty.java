@@ -832,6 +832,17 @@ public enum PGProperty {
       "",
       "Factory class to instantiate factories for XML processing"),
 
+  /**
+   * Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0).
+   * When enabled, calling numeric getters (getByte, getInt, getLong, getShort) on boolean columns
+   * will convert 't' to 1 and 'f' to 0 instead of throwing a conversion exception.
+   * Default is false to maintain backward compatibility.
+   */
+  CONVERT_BOOLEAN_TO_NUMERIC(
+      "convertBooleanToNumeric",
+      "false",
+      "Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0)"),
+
   ;
 
   private final String name;

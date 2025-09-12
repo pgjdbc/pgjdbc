@@ -238,4 +238,10 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return true if should be included and passed on to other exceptions
    */
   boolean getLogServerErrorDetail();
+
+  /**
+   * Returns true if boolean values should be converted to numeric types (1/0).
+   * @return true if boolean to numeric conversion is enabled
+   */
+  boolean getConvertBooleanToNumeric();
 }

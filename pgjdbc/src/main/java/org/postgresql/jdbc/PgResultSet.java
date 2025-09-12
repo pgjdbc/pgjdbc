@@ -2492,6 +2492,83 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
   private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
+  // Cache for the boolean conversion property to avoid repeated property lookups
+  private Boolean convertBooleanToNumericCache;
+
+  /**
+   * Helper method to check if boolean-to-numeric conversion should be attempted.
+   * If convertBooleanToNumeric property is enabled and the string value is a PostgreSQL
+   * boolean ('t', 'f', 'true', 'false' etc), converts to appropriate numeric value.
+   *
+   * @param stringValue the string value from the database
+   * @param columnIndex the column index to check if it's a boolean column
+   * @return numeric value (0 or 1) if conversion applied, -1 if no conversion needed
+   */
+  private int tryConvertBooleanToNumeric(String stringValue, int columnIndex) {
+    if (stringValue == null || stringValue.isEmpty()) {
+      return -1;
+    }
+
+    // Cache property lookup for performance
+    if (convertBooleanToNumericCache == null) {
+      convertBooleanToNumericCache = connection.getConvertBooleanToNumeric();
+    }
+
+    // Only attempt conversion if the property is enabled
+    if (!convertBooleanToNumericCache) {
+      return -1;
+    }
+
+    // Safety check for column bounds
+    int col = columnIndex - 1;
+    if (col < 0 || col >= fields.length) {
+      return -1;
+    }
+
+    String trimmed = stringValue.trim();
+    if (trimmed.isEmpty()) {
+      return -1;
+    }
+
+    // Check if the column is actually a boolean type for better accuracy
+    boolean isBooleanColumn = fields[col].getOID() == Oid.BOOL;
+
+    if (isBooleanColumn) {
+      // This is definitely a boolean column, so be more permissive with conversion
+      if (trimmed.length() == 1) {
+        char c = trimmed.charAt(0);
+        if (c == 't' || c == 'T') {
+          return 1;
+        }
+        if (c == 'f' || c == 'F') {
+          return 0;
+        }
+      }
+
+      // Handle full boolean strings for boolean columns
+      if ("true".equalsIgnoreCase(trimmed)) {
+        return 1;
+      }
+      if ("false".equalsIgnoreCase(trimmed)) {
+        return 0;
+      }
+    } else {
+      // Not a boolean column, only convert obvious boolean values to avoid false positives
+      if (trimmed.length() == 1) {
+        char c = trimmed.charAt(0);
+        if (c == 't' || c == 'T') {
+          return 1;
+        }
+        if (c == 'f' || c == 'F') {
+          return 0;
+        }
+      }
+    }
+
+    // Not a recognizable boolean value
+    return -1;
+  }
+
   @Override
   public byte getByte(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getByte columnIndex: {0}", columnIndex);
@@ -2528,6 +2605,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // try the optimal parse
         return Byte.parseByte(s);
       } catch (NumberFormatException e) {
+        // Check if this might be a boolean value that should be converted to numeric
+        int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+        if (booleanValue != -1) {
+          return (byte) booleanValue;
+        }
+
         // didn't work, assume the column is not a byte
         try {
           BigDecimal n = new BigDecimal(s);
@@ -2574,7 +2657,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // Fast path failed, use slower parsing below
       }
     }
-    return toShort(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (short) booleanValue;
+    }
+
+    return toShort(s);
   }
 
   @Pure
@@ -2603,7 +2694,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // Fast path failed, use slower parsing below
       }
     }
-    return toInt(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return booleanValue;
+    }
+
+    return toInt(s);
   }
 
   @Pure
@@ -2632,7 +2731,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // Fast path failed, use slower parsing below
       }
     }
-    return toLong(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return booleanValue;
+    }
+
+    return toLong(s);
   }
 
   /**

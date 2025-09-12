@@ -1114,5 +1114,10 @@ public abstract class AbstractArraysTest<A> {
     public boolean getLogServerErrorDetail() {
       return false;
     }
+
+    @Override
+    public boolean getConvertBooleanToNumeric() {
+      return false;
+    }
   }
 }
