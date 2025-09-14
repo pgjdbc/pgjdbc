@@ -1455,6 +1455,9 @@ public class ResultSetTest extends BaseTest4 {
       assertThrows(PSQLException.class, () -> rs.getInt("bool_col"));
       assertThrows(PSQLException.class, () -> rs.getLong("bool_col"));
       assertThrows(PSQLException.class, () -> rs.getShort("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getFloat("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getDouble("bool_col"));
+      assertThrows(PSQLException.class, () -> rs.getBigDecimal("bool_col"));
 
       // getBoolean should still work
       assertTrue(rs.getBoolean("bool_col"));
@@ -1477,6 +1480,9 @@ public class ResultSetTest extends BaseTest4 {
         assertEquals(1, rs.getInt("bool_col"));
         assertEquals(1L, rs.getLong("bool_col"));
         assertEquals((short) 1, rs.getShort("bool_col"));
+        assertEquals(1.0f, rs.getFloat("bool_col"));
+        assertEquals(1.0, rs.getDouble("bool_col"));
+        assertEquals(new BigDecimal("1"), rs.getBigDecimal("bool_col"));
         assertTrue(rs.getBoolean("bool_col"));
       }
 
@@ -1487,6 +1493,9 @@ public class ResultSetTest extends BaseTest4 {
         assertEquals(0, rs.getInt("bool_col"));
         assertEquals(0L, rs.getLong("bool_col"));
         assertEquals((short) 0, rs.getShort("bool_col"));
+        assertEquals(0.0f, rs.getFloat("bool_col"));
+        assertEquals(0.0, rs.getDouble("bool_col"));
+        assertEquals(new BigDecimal("0"), rs.getBigDecimal("bool_col"));
         assertFalse(rs.getBoolean("bool_col"));
       }
 

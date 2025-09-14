@@ -2814,7 +2814,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return (float) readDoubleValue(value, oid, "float");
     }
 
-    return toFloat(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (float) booleanValue;
+    }
+
+    return toFloat(s);
   }
 
   @Pure
@@ -2835,7 +2843,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return readDoubleValue(value, oid, "double");
     }
 
-    return toDouble(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (double) booleanValue;
+    }
+
+    return toDouble(s);
   }
 
   @Override
@@ -2891,6 +2907,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     String stringValue = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(stringValue, columnIndex);
+    if (booleanValue != -1) {
+      BigDecimal res = BigDecimal.valueOf(booleanValue);
+      return scaleBigDecimal(res, scale);
+    }
+
     if (allowSpecial) {
       if ("NaN".equalsIgnoreCase(stringValue)) {
         return Double.NaN;
