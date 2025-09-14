@@ -37,6 +37,7 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
@@ -2493,7 +2494,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
   // Cache for the boolean conversion property to avoid repeated property lookups
-  private Boolean convertBooleanToNumericCache;
+  private @MonotonicNonNull Boolean convertBooleanToNumericCache;
 
   /**
    * Helper method to check if boolean-to-numeric conversion should be attempted.
@@ -2519,28 +2520,23 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return -1;
     }
 
-    // Safety check for column bounds
-    int col = columnIndex - 1;
-    if (col < 0 || col >= fields.length) {
-      return -1;
-    }
-
     String trimmed = stringValue.trim();
     if (trimmed.isEmpty()) {
       return -1;
     }
 
     // Check if the column is actually a boolean type for better accuracy
+    int col = columnIndex - 1;
     boolean isBooleanColumn = fields[col].getOID() == Oid.BOOL;
 
     if (isBooleanColumn) {
       // This is definitely a boolean column, so be more permissive with conversion
       if (trimmed.length() == 1) {
         char c = trimmed.charAt(0);
-        if (c == 't' || c == 'T') {
+        if (c == 't') {
           return 1;
         }
-        if (c == 'f' || c == 'F') {
+        if (c == 'f') {
           return 0;
         }
       }
@@ -2556,10 +2552,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       // Not a boolean column, only convert obvious boolean values to avoid false positives
       if (trimmed.length() == 1) {
         char c = trimmed.charAt(0);
-        if (c == 't' || c == 'T') {
+        if (c == 't') {
           return 1;
         }
-        if (c == 'f' || c == 'F') {
+        if (c == 'f') {
           return 0;
         }
       }
