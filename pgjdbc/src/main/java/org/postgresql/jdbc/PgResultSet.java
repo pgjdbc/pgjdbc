@@ -2505,7 +2505,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @param columnIndex the column index to check if it's a boolean column
    * @return numeric value (0 or 1) if conversion applied, -1 if no conversion needed
    */
-  private int tryConvertBooleanToNumeric(String stringValue, int columnIndex) {
+  private int tryConvertBooleanToNumeric(@Nullable String stringValue, int columnIndex) {
     if (stringValue == null || stringValue.isEmpty()) {
       return -1;
     }

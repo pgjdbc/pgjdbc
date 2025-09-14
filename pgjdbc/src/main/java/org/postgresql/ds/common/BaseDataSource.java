@@ -991,6 +991,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return convertBooleanToNumeric
+   * @see PGProperty#CONVERT_BOOLEAN_TO_NUMERIC
+   */
+  public boolean getConvertBooleanToNumeric() {
+    return PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(properties);
+  }
+
+  /**
+   * @param convertBooleanToNumeric convertBooleanToNumeric
+   * @see PGProperty#CONVERT_BOOLEAN_TO_NUMERIC
+   */
+  public void setConvertBooleanToNumeric(boolean convertBooleanToNumeric) {
+    PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.set(properties, convertBooleanToNumeric);
+  }
+
+  /**
    * @return current schema
    * @see PGProperty#CURRENT_SCHEMA
    */

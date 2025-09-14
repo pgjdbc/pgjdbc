@@ -192,7 +192,7 @@ or 'statement XXX is not valid' so JDBC driver rolls back and retries
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
 
 * **`convertBooleanToNumeric (`*boolean*`)`** *Default `false`*\
-Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0) when using numeric getters (`getByte`, `getInt`, `getLong`, `getShort`) on ResultSet.
+Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0) when using numeric getters (`getByte`, `getShort`, `getInt`, `getLong`, `getFloat`, `getDouble`, `getBigDecimal`) on ResultSet.
 When enabled, boolean columns containing 't' will return 1, and 'f' will return 0 instead of throwing a conversion exception.
 
 * **`channelBinding (`*String*`)`** *Default `prefer`*\
