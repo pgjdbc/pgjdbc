@@ -1490,15 +1490,15 @@ public class ResultSetTest extends BaseTest4 {
         assertFalse(rs.getBoolean("bool_col"));
       }
 
-      // Test text column with 't'/'f' values
+      // Test text column with 't'/'f' values - should NOT be converted (not boolean column)
       try (ResultSet rs = stmt.executeQuery("SELECT 't'::text AS text_col")) {
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt("text_col"));
+        assertThrows(PSQLException.class, () -> rs.getInt("text_col"));
       }
 
       try (ResultSet rs = stmt.executeQuery("SELECT 'f'::text AS text_col")) {
         assertTrue(rs.next());
-        assertEquals(0, rs.getInt("text_col"));
+        assertThrows(PSQLException.class, () -> rs.getInt("text_col"));
       }
     }
   }

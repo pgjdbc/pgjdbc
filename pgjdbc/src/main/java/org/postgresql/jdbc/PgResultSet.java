@@ -2498,8 +2498,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   /**
    * Helper method to check if boolean-to-numeric conversion should be attempted.
-   * If convertBooleanToNumeric property is enabled and the string value is a PostgreSQL
-   * boolean ('t', 'f', 'true', 'false' etc), converts to appropriate numeric value.
+   * If convertBooleanToNumeric property is enabled and the column is a boolean type,
+   * converts PostgreSQL boolean values ('t' or 'f') to numeric values (1 or 0).
    *
    * @param stringValue the string value from the database
    * @param columnIndex the column index to check if it's a boolean column
@@ -2529,35 +2529,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     int col = columnIndex - 1;
     boolean isBooleanColumn = fields[col].getOID() == Oid.BOOL;
 
-    if (isBooleanColumn) {
-      // This is definitely a boolean column, so be more permissive with conversion
-      if (trimmed.length() == 1) {
-        char c = trimmed.charAt(0);
-        if (c == 't') {
-          return 1;
-        }
-        if (c == 'f') {
-          return 0;
-        }
-      }
-
-      // Handle full boolean strings for boolean columns
-      if ("true".equalsIgnoreCase(trimmed)) {
+    // Only check for boolean values if it's actually a boolean column to avoid false positives
+    if (isBooleanColumn && trimmed.length() == 1) {
+      char c = trimmed.charAt(0);
+      if (c == 't') {
         return 1;
       }
-      if ("false".equalsIgnoreCase(trimmed)) {
+      if (c == 'f') {
         return 0;
-      }
-    } else {
-      // Not a boolean column, only convert obvious boolean values to avoid false positives
-      if (trimmed.length() == 1) {
-        char c = trimmed.charAt(0);
-        if (c == 't') {
-          return 1;
-        }
-        if (c == 'f') {
-          return 0;
-        }
       }
     }
 
