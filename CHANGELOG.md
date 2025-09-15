@@ -4,6 +4,27 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+## [42.7.8] (2025-09-15)
+
+### Added
+* feat: Add configurable boolean-to-numeric conversion for ResultSet getters [PR #3796](https://github.com/pgjdbc/pgjdbc/pull/3796)
+
+### Changed
+* perf: remove QUERY_ONESHOT flag when calling getMetaData [PR #3783](https://github.com/pgjdbc/pgjdbc/pull/3783)
+* perf: use `BufferedInputStream` with `FileInputStream` [PR #3750](https://github.com/pgjdbc/pgjdbc/pull/3750)
+* perf: enable server-prepared statements for DatabaseMetaData
+
+### Fixed
+* fix: avoid NullPointerException when cancelling a query if cancel key is not known yet
+* fix: Change "PST" timezone in TimestampTest to "Pacific Standard Time" [PR #3774](https://github.com/pgjdbc/pgjdbc/pull/3774)
+* fix: traverse the current dimension to get the correct pos in PgArray#calcRemainingDataLength [PR #3746](https://github.com/pgjdbc/pgjdbc/pull/3746)
+* fix: make sure getImportedExportedKeys returns columns in consistent order
+* fix: Add "SELF_REFERENCING_COL_NAME" field to getTables' ResultSetMetaData to fix NullPointerException [PR #3660](https://github.com/pgjdbc/pgjdbc/pull/3660)
+* fix: unable to open replication connection to servers < 12
+* fix: avoid closing statement caused by driver's internal ResultSet#close()
+* fix: return empty metadata for empty catalog names as it was before
+* fix: Incorrect class comparison in PGXmlFactoryFactory validation
+
 ## [42.7.7] (2025-06-10)
 
 ### Security
