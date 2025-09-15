@@ -204,6 +204,8 @@ public class PgConnection implements BaseConnection {
   private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
+  // Convert boolean values to numeric types?
+  private final boolean convertBooleanToNumeric;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -363,6 +365,7 @@ public class PgConnection implements BaseConnection {
     finalizeAction = new PgConnectionCleaningAction(lock, openStackTrace, queryExecutor.getCloseAction());
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+    this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
       typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
@@ -1661,6 +1664,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public boolean getLogServerErrorDetail() {
     return logServerErrorDetail;
+  }
+
+  @Override
+  public boolean getConvertBooleanToNumeric() {
+    return convertBooleanToNumeric;
   }
 
   @Override

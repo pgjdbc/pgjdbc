@@ -181,6 +181,17 @@ public enum PGProperty {
       "The timeout value in seconds used for socket connect operations."),
 
   /**
+   * Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0).
+   * When enabled, calling numeric getters (getByte, getShort, getInt, getLong, getFloat, getDouble, getBigDecimal) on boolean columns
+   * will convert 't' to 1 and 'f' to 0 instead of throwing a conversion exception.
+   * Default is false to maintain backward compatibility.
+   */
+  CONVERT_BOOLEAN_TO_NUMERIC(
+      "convertBooleanToNumeric",
+      "false",
+      "Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0)"),
+
+  /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
    * unqualified object names used in statements over this connection.
    */
