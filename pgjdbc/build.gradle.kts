@@ -106,7 +106,7 @@ dependencies {
     "testImplementation"("org.osgi:org.osgi.service.jdbc") {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
-    shaded("com.ongres.scram:scram-client:3.1")
+    shaded("com.ongres.scram:scram-client:3.2")
 
     implementation("org.checkerframework:checker-qual:3.49.5")
 
