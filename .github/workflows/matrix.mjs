@@ -34,7 +34,7 @@ matrix.addAxis({
 });
 
 // We can't yet use EA here, see https://github.com/oracle-actions/setup-java/issues/65
-const eaJava = '24';
+const eaJava = '25';
 
 // Below versions will be used for testing only
 matrix.addAxis({
