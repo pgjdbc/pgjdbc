@@ -248,6 +248,9 @@ Determine the number of rows fetched in `ResultSet` by one fetch with trip to th
 Limiting the number of rows are fetch with each trip to the database allow avoids unnecessary memory consumption and as a consequence `OutOfMemoryError` .
 The default is zero, meaning that `ResultSet` will fetch all rows at once. Must be > 0.
 
+* **`defaultQueryTimeout (`*int*`)`** *Default `0`*\
+The default timeout value in seconds that the driver will wait for a query to execute.
+
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
 
