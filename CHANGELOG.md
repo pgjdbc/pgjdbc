@@ -4,7 +4,7 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
-## [42.7.8] (2025-09-15)
+## [42.7.8] (2025-09-18)
 
 ### Added
 * feat: Add configurable boolean-to-numeric conversion for ResultSet getters [PR #3796](https://github.com/pgjdbc/pgjdbc/pull/3796)
@@ -187,6 +187,7 @@ The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) 
 * test: Test for +/- infinity double values [PR #3294](https://github.com/pgjdbc/pgjdbc/pull/3294)
 * test: Switch localhost and auth-test around for test-gss [PR #3343](https://github.com/pgjdbc/pgjdbc/pull/3343)
 * fix: remove preDescribe from internalExecuteBatch [PR #2883](https://github.com/pgjdbc/pgjdbc/pull/2883)
+* deps: Update dependency om.ongres.scram:scram-client to 3.2
 
 ### Deprecated
 * test: Deprecate all PostgreSQL versions older than 9.1 [PR #3335](https://github.com/pgjdbc/pgjdbc/pull/3335)
