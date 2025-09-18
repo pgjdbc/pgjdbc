@@ -102,9 +102,9 @@ buildParameters {
             values.addAll("AUTOMATIC", "MANUAL")
             description.set("Publishing type")
         }
-        integer("verificationTimeout") {
+        integer("validationTimeout") {
             defaultValue.set(60)
-            description.set("Timeout (minutes) to wait for Central Portal to verify the publication")
+            description.set("Timeout (minutes) to wait for Central Portal to validate the publication")
         }
     }
     group("signing") {
