@@ -7,5 +7,5 @@ dependencies {
     implementation(project(":jvm"))
     implementation(project(":build-parameters"))
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:2.0.0")
-    implementation("com.gradleup.nmcp:com.gradleup.nmcp.gradle.plugin:1.0.2")
+    implementation("com.gradleup.nmcp:com.gradleup.nmcp.gradle.plugin:1.1.0")
 }
