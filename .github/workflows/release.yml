@@ -109,9 +109,9 @@ jobs:
           properties: |
             release=true
             centralPortalPublishingType=AUTOMATIC
+            centralPortalUsername=${{ secrets.NEXUS_USERNAME }}
+            centralPortalPassword=${{ secrets.NEXUS_PASSWORD }}
         env:
-          CENTRAL_PORTAL_USERNAME: ${{ secrets.NEXUS_USERNAME }}
-          CENTRAL_PORTAL_PASSWORD: ${{ secrets.NEXUS_PASSWORD }}
           SIGNING_PGP_PRIVATE_KEY: ${{ secrets.RELEASE_PGP_PRIVATE_KEY }}
           SIGNING_PGP_PASSPHRASE: ${{ secrets.RELEASE_PGP_PASSPHRASE }}
 
