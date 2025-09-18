@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     implementation(project(":build-parameters"))
-    implementation("com.gradleup.nmcp.aggregation:com.gradleup.nmcp.aggregation.gradle.plugin:0.1.5")
+    implementation("com.gradleup.nmcp.aggregation:com.gradleup.nmcp.aggregation.gradle.plugin:0.2.1")
 }
