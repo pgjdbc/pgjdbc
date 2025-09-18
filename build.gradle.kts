@@ -40,7 +40,7 @@ dependencies {
     // nmcpAggregation declares the list of projects should be published to Central Portal
     // Currently we publish a single project only, however, if we add more, we need to add them here
     // as well.
-    nmcpAggregation(projects.pgjdbc)
+    nmcpAggregation(projects.postgresql)
 }
 
 jacoco {
