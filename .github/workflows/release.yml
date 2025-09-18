@@ -104,7 +104,7 @@ jobs:
       - name: Publish to Central Portal
         uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
         with:
-          arguments: publishAllPublicationsToCentralPortal
+          arguments: publishAggregationToCentralPortal
           # language=properties
           properties: |
             release=true
