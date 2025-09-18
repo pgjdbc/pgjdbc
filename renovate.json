@@ -35,6 +35,12 @@
       ]
     },
     {
+      "groupName": "com.gradleup.nmcp",
+      "matchPackageNames": [
+        "com.gradleup.nmcp{/,}**"
+      ]
+    },
+    {
       "groupName": "pax-exam",
       "matchPackageNames": [
         "org.ops4j.pax.exam{/,}**"
