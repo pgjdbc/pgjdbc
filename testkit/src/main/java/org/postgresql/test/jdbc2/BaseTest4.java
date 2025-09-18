@@ -15,6 +15,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Version;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.internal.Nullness;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.junit.jupiter.api.AfterEach;
@@ -72,7 +73,7 @@ public class BaseTest4 {
     this.binaryMode = binaryMode;
   }
 
-  public StringType getStringType() {
+  public @Nullable StringType getStringType() {
     return stringType;
   }
 
@@ -161,6 +162,7 @@ public class BaseTest4 {
    * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
   public void assumeMinimumServerVersion(String message, Version version) throws SQLException {
+    Connection con = Nullness.castNonNull(this.con, "connection");
     assumeTrue(TestUtil.haveMinimumServerVersion(con, version), message);
   }
 
@@ -168,10 +170,12 @@ public class BaseTest4 {
    * Shorthand for {@code Assume.assumeTrue(TestUtil.haveMinimumServerVersion(conn, version)}.
    */
   public void assumeMinimumServerVersion(Version version) throws SQLException {
+    Connection con = Nullness.castNonNull(this.con, "connection");
     assumeTrue(TestUtil.haveMinimumServerVersion(con, version));
   }
 
   protected void assertBinaryForReceive(int oid, boolean expected, Supplier<String> message) throws SQLException {
+    Connection con = Nullness.castNonNull(this.con, "connection");
     assertEquals(
         expected,
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForReceive(oid),
@@ -179,6 +183,7 @@ public class BaseTest4 {
   }
 
   protected void assertBinaryForSend(int oid, boolean expected, Supplier<String> message) throws SQLException {
+    Connection con = Nullness.castNonNull(this.con, "connection");
     assertEquals(
         expected,
         con.unwrap(BaseConnection.class).getQueryExecutor().useBinaryForSend(oid),
