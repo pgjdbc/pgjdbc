@@ -163,9 +163,8 @@ class Listener extends Thread {
                 // receive notifications immediately:
                 // org.postgresql.PGNotification notifications[] = pgconn.getNotifications(10000);
 
-                if (notifications != null) {
-                    for (int i = 0; i < notifications.length; i++)
-                        System.out.println("Got notification: " + notifications[i].getName());
+                for (int i = 0; i < notifications.length; i++) {
+                    System.out.println("Got notification: " + notifications[i].getName());
                 }
 
                 // wait a while before checking again for new
