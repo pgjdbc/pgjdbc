@@ -126,6 +126,34 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Attach files to the release
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          # https://github.com/release-drafter/release-drafter#action-outputs
+          RELEASE_ID: ${{ steps.publish_release.outputs.id }}
+          VERSION: ${{ steps.release_version.outputs.version }}
+        with:
+          # language=JavaScript
+          script: |
+            const fs = require('fs');
+            const {RELEASE_ID, VERSION} = process.env;
+            // Note: this hard-codes the dependency on nmcp, which is not ideal, as a silent change of nmcp/m2 repo location might break this
+            const releaseFile = await glob.create(`pgjdbc/build/nmcp/m2/org/postgresql/postgresql/${VERSION}/postgresql-${VERSION}.jar`);
+            await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: `postgresql-${VERSION}.jar`,
+                release_id: RELEASE_ID,
+                data: fs.readFileSync(releaseFile)
+            });
+            await github.rest.repos.uploadReleaseAsset({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: `postgresql-${VERSION}.jar.asc`,
+                release_id: RELEASE_ID,
+                data: fs.readFileSync(releaseFile + '.asc')
+            });
+
       - name: Compute the next patch version
         id: next_version
         # language=bash
