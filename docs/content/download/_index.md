@@ -4,7 +4,9 @@ date: 2022-06-20T01:17:28+05:30
 draft: false
 ---
 
-Binary JAR file downloads of the JDBC driver are available here and the current version with Maven Repository. Because Java is platform neutral, it is a simple process of just downloading the appropriate JAR file and dropping it into your classpath. Source versions are also available here for recent driver versions. Latest [SNAPSHOT](https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/) versions. 
+Binary JAR file downloads of the JDBC driver are available here and the current version with Maven Repository. Because Java is platform neutral, it is a simple process of just downloading the appropriate JAR file and dropping it into your classpath. Source versions are also available here for recent driver versions. Latest [SNAPSHOT](https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/) versions.
+
+We sign releases with PGP. **Please verify the signatures before using the driver**. The signing keys are listed at the [security](/security/#release-verification) page.
 
 ## Latest Versions
 
