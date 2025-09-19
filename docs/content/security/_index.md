@@ -1,8 +1,26 @@
 ---
-title: "Security Advisories"
+title: "Security"
 date: 2024-02-21T11:58:00-05:00
 draft: false
 ---
+
+## Release verification
+
+For security purposes, we sign our releases with these PGP keys:
+* Versions before 42.7.8:
+  * Key ID: `davecramer@gmail.com`
+  * Fingerprint: **3750 777B 9C4B 7D23 3B9D 0C40 307A 96FB A029 2109**
+  * Key size: RSA 4096
+* Versions before 42.7.8:
+  * Key ID: `sitnikov.vladimir@gmail.com`
+  * Fingerprint: **1A60 90D3 223D CA95 BFD2 5C0E 38F4 7D3E 410C 47B1**
+  * Key size: RSA 2048
+* Versions since 42.7.8:
+  * Key ID: `pgjdbc-releases@jdbc.postgresql.org`
+  * Fingerprint: **86C0 1449 0973 9E0E E3D1  B545 305F 296E AC47 556B**
+  * Key size: RSA 4096
+
+## Security Advisories
 
 ### SQL Injection via line comment generation
 
