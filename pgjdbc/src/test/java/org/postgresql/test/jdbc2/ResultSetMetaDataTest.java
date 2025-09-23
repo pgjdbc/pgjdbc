@@ -88,6 +88,15 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     TestUtil.createTable(conn, "sizetest",
         "fixedchar char(5), fixedvarchar varchar(5), unfixedvarchar varchar, txt text, bytearr bytea, num64 numeric(6,4), num60 numeric(6,0), num numeric, ip inet");
     TestUtil.createTable(conn, "compositetest", "col rsmd1");
+    // create 2 schemas and 3 tables 1 in public and the other 2 in the schemas
+    TestUtil.createSchema(conn,"schema1");
+    TestUtil.createSchema(conn,"schema2");
+    TestUtil.createTable(conn, "schema1.t1", "i int");
+    TestUtil.createTable(conn, "schema2.t1", "i int");
+    TestUtil.createTable(conn, "t1", "i int");
+    TestUtil.execute(conn, "insert into t1 values (1)");
+    TestUtil.execute(conn, "insert into schema1.t1 values (1)");
+    TestUtil.execute(conn, "insert into schema2.t1 values (1)");
   }
 
   @Override
@@ -104,7 +113,24 @@ public class ResultSetMetaDataTest extends BaseTest4 {
     TestUtil.dropTable(conn, "sizetest");
     TestUtil.dropSequence(conn, "serialtest_a_seq");
     TestUtil.dropSequence(conn, "serialtest_b_seq");
+    TestUtil.dropTable(conn, "t1");
+    TestUtil.dropTable(conn, "schema1.t1");
+    TestUtil.dropTable(conn, "schema2.t1");
+    TestUtil.dropSchema(conn, "schema1");
+    TestUtil.dropSchema(conn, "schema2");
     super.tearDown();
+  }
+
+  @Test
+  public void testGetSchema() throws Exception {
+    try (Statement stmt = conn.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery("select * from t1, schema1.t1, schema2.t1")) {
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertTrue(rsmd.getSchemaName(1).equals("public"));
+        assertTrue(rsmd.getSchemaName(2).equals("schema1"));
+        assertTrue(rsmd.getSchemaName(3).equals("schema2"));
+      }
+    }
   }
 
   @Test
@@ -148,7 +174,7 @@ public class ResultSetMetaDataTest extends BaseTest4 {
 
     assertEquals(2, rsmd.getScale(3));
 
-    assertEquals("", rsmd.getSchemaName(1));
+    assertEquals("public", rsmd.getSchemaName(1));
     assertEquals("", rsmd.getSchemaName(4));
     assertEquals("public", pgrsmd.getBaseSchemaName(1));
     assertEquals("", pgrsmd.getBaseSchemaName(4));
