@@ -1,8 +1,8 @@
 name: Deploy Hugo Docs
 
 on:
-  push:
-    tags: [ '*' ]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
