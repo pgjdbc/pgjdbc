@@ -26,7 +26,7 @@ dependencies {
             attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.SHADOWED))
         }
     }
-    byteBuddyAgent("net.bytebuddy:byte-buddy-agent:1.17.6")
+    byteBuddyAgent("net.bytebuddy:byte-buddy-agent:1.17.7")
     testImplementation(projects.testkit)
     testImplementation(platform("org.mockito:mockito-bom:5.19.0"))
     testImplementation("org.mockito:mockito-core")
