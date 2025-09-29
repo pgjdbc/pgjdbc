@@ -215,6 +215,15 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'query_timeout',
+  title: x => x == '' ? '' : 'query_timeout ' + x,
+  values: [
+    '',
+    '15'
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -223,7 +232,7 @@ matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
-    'adaptive_fetch', 'rewrite_batch_inserts'
+    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout'
 ]);
 
 // We take EA builds from Oracle
@@ -326,6 +335,7 @@ include.forEach(v => {
   v.query_mode = v.query_mode.value;
   v.adaptive_fetch = v.adaptive_fetch.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
+  v.query_timeout = v.query_timeout.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
@@ -390,6 +400,9 @@ include.forEach(v => {
   }
   if (v.rewrite_batch_inserts === 'yes') {
       testJvmArgs.push('-DreWriteBatchedInserts=true');
+  }
+  if (v.query_timeout) {
+      testJvmArgs.push(`-DqueryTimeout=${v.query_timeout}`);
   }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
