@@ -1,6 +1,6 @@
 # Production BaseURL
-#baseURL = "https://pgjdbc.github.io/pgjdbcdocs/"
-baseURL = "https://jdbc.postgresql.org/"
+baseURL = "https://pgjdbc.github.io/pgjdbc/"
+#baseURL = "https://jdbc.postgresql.org/"
 languageCode = "en-us"
 title = "pgJDBC"
 [permalinks]
