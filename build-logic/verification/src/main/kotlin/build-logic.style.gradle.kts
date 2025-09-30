@@ -48,9 +48,6 @@ plugins.withId("java-base") {
     if (buildParameters.enableErrorprone || styleCheckRequested) {
         apply(plugin = "build-logic.errorprone")
     }
-    if (buildParameters.spotbugs) {
-        apply(plugin = "build-logic.spotbugs")
-    }
 }
 
 if (!buildParameters.skipAutostyle || !skipCheckstyle || !buildParameters.skipForbiddenApis || !skipOpenrewrite) {
