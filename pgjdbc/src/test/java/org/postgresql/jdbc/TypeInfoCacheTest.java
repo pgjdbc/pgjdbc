@@ -2,8 +2,8 @@ package org.postgresql.jdbc;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Disabled;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 public class TypeInfoCacheTest {
   @Test
-  @Ignore("This is intended to be run manually")
+  @Disabled("This is intended to be run manually")
   public void generateBaseTypes() throws SQLException {
     try(Connection con = TestUtil.openDB();
         PreparedStatement ps = con.prepareStatement(

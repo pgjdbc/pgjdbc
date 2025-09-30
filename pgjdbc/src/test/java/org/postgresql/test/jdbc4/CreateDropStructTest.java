@@ -4,11 +4,11 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,14 +17,14 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
 
-@RunWith(Parameterized.class)
+@ParameterizedClass
+@MethodSource("data")
 public class CreateDropStructTest extends BaseTest4 {
 
   public CreateDropStructTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -33,12 +33,12 @@ public class CreateDropStructTest extends BaseTest4 {
     return ids;
   }
 
-  @Before
+  @BeforeEach
   public void setup() throws Exception {
     dropStructAndTable();
   }
 
-  @AfterClass
+  @AfterAll
   public static void cleanup() throws Exception {
     dropStructAndTable();
   }

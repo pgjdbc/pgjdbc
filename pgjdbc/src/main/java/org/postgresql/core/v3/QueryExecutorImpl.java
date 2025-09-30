@@ -2297,7 +2297,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String status = receiveCommandStatus();
           if (isFlushCacheOnDeallocate()
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL")
-              || status.startsWith("CREATE ") || status.endsWith("DROP "))) {
+              || status.startsWith("CREATE ") || status.startsWith("DROP "))) {
             deallocateEpoch++;
           }
 
