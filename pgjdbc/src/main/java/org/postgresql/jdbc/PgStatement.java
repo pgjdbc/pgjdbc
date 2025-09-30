@@ -176,6 +176,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
     concurrency = rsConcurrency;
     setFetchSize(c.getDefaultFetchSize());
+    setQueryTimeout(c.getQueryTimeout());
     setPrepareThreshold(c.getPrepareThreshold());
     setAdaptiveFetch(c.getAdaptiveFetch());
     // validation check for allowed values of resultset holdability

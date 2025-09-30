@@ -184,6 +184,13 @@ public class PgConnection implements BaseConnection {
    */
   protected int defaultFetchSize;
 
+  /**
+   * Query timeout for statement.
+   *
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  protected int queryTimeout;
+
   // Default forcebinary option.
   protected boolean forcebinary;
 
@@ -269,6 +276,8 @@ public class PgConnection implements BaseConnection {
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
+
+    setQueryTimeout(PGProperty.QUERY_TIMEOUT.getInt(info));
 
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
     if (prepareThreshold == -1) {
@@ -1270,6 +1279,22 @@ public class PgConnection implements BaseConnection {
   @Override
   public int getDefaultFetchSize() {
     return defaultFetchSize;
+  }
+
+  @Override
+  public void setQueryTimeout(int seconds) throws SQLException {
+    if (seconds < 0) {
+      throw new PSQLException(GT.tr("Query timeout must be a value greater than or equal to 0."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    this.queryTimeout = seconds;
+    LOGGER.log(Level.FINE, "  setQueryTimeout = {0}", seconds);
+  }
+
+  @Override
+  public int getQueryTimeout() {
+    return queryTimeout;
   }
 
   @Override

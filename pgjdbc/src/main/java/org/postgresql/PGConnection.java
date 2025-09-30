@@ -185,6 +185,24 @@ public interface PGConnection {
   int getDefaultFetchSize();
 
   /**
+   * Set the query timeout for statements created from this connection.
+   *
+   * @param seconds new query timeout
+   * @throws SQLException if specified negative <code>seconds</code> parameter
+   * @see Statement#setQueryTimeout(int)
+   */
+  void setQueryTimeout(int seconds) throws SQLException;
+
+  /**
+   * Get the query timeout for statements created from this connection.
+   *
+   * @return current state for query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   * @see Statement#getQueryTimeout()
+   */
+  int getQueryTimeout();
+
+  /**
    * Return the process ID (PID) of the backend server process handling this connection.
    *
    * @return PID of backend server process.

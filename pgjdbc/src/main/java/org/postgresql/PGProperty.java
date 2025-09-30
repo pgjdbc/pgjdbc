@@ -530,6 +530,14 @@ public enum PGProperty {
       new String[]{"3"}),
 
   /**
+   * Parameter for {@link java.sql.Statement#getQueryTimeout()}. A value of {@code 0} means no timeout.
+   */
+  QUERY_TIMEOUT(
+      "queryTimeout",
+      "0",
+      "The timeout value in seconds that the driver will wait for a query to execute."),
+
+  /**
    * Quote returning columns.
    * There are some ORM's that quote everything, including returning columns
    * If we quote them, then we end up sending ""colname"" to the backend
