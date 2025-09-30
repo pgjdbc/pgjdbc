@@ -1,5 +1,5 @@
 # Production BaseURL
-baseURL = "https://pgjdbc.github.io/pgjdbc/"
+baseURL = "https://jdbc.postgres.rocks"
 #baseURL = "https://jdbc.postgresql.org/"
 languageCode = "en-us"
 title = "pgJDBC"
