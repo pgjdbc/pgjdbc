@@ -5,7 +5,7 @@
         <div class="card__subtitle">{{$ver.version}}</div>
         <p class="card__desc">{{$ver.description}}</p>
         <button class="card__btn__left">
-            <a href="{{$ver.url}}" class="card__btn__left__link">Download</a>
+            <a href="https://repo1.maven.org/maven2/org/postgresql/postgresql/{{$ver.version}}/postgresql-{{$ver.version}}.jar" class="card__btn__left__link">Download</a>
         </button>
         <script class="maven" id="coordinates-{{$ind}}" type="application/xml">
             <dependency>

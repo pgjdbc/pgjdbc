@@ -1,5 +1,5 @@
 <ul class="custom-marker">
     {{ range $ind, $ver := $.Site.Data.versions.past }}
-    <li><a href="/download/postgresql-{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}.jar">{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</a></li>
+    <li><a href="https://repo1.maven.org/maven2/org/postgresql/postgresql/{{$ver.version}}/postgresql-{{$ver.version}}.jar">{{$ver.version}}</a></li>
     {{end}}
 </ul>
