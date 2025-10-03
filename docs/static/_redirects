@@ -1,2 +1,0 @@
-/download/postgresql-:version.jar https://repo1.maven.org/maven2/org/postgresql/postgresql/:version/postgresql-:version.jar 302
-/download/postgresql-:version.:suffix.jar https://repo1.maven.org/maven2/org/postgresql/postgresql/:version/postgresql-:version.:suffix.jar 302
