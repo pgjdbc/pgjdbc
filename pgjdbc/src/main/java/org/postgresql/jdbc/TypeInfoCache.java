@@ -507,19 +507,6 @@ public class TypeInfoCache implements TypeInfo {
     return getPgTypeByPgName(elementTypeName).arrayOid;
   }
 
-  /**
-   * Return the oid of the array's base element if it's an array, if not return the provided oid.
-   * This doesn't do any database lookups, so it's only useful for the originally provided type
-   * mappings. This is fine for it's intended uses where we only have intimate knowledge of types
-   * that are already known to the driver.
-   *
-   * @param oid input oid
-   * @return oid of the array's base element or the provided oid (if not array)
-   */
-  protected int convertArrayToBaseOid(int oid) throws SQLException {
-    return getPgTypeByOid(oid).typelem;
-  }
-
   public char getArrayDelimiter(int oid) throws SQLException {
     return getPgTypeByOid(oid).delimiter;
   }
@@ -560,7 +547,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getPrecision(int oid, int typmod) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.INT2:
         return 5;
@@ -625,7 +611,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getScale(int oid, int typmod) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.FLOAT4:
         return 8;
@@ -655,7 +640,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public boolean isCaseSensitive(int oid) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.OID:
       case Oid.INT2:
@@ -680,7 +664,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public boolean isSigned(int oid) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.INT2:
       case Oid.INT4:
@@ -695,7 +678,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getDisplaySize(int oid, int typmod) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.INT2:
         return 6; // -32768 to +32767
@@ -790,7 +772,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getMaximumPrecision(int oid) throws SQLException {
-    oid = convertArrayToBaseOid(oid);
     switch (oid) {
       case Oid.NUMERIC:
         return 1000;
