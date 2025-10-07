@@ -130,8 +130,19 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  private final Map<Integer, PgType> typesByOid;
-  private final Map<String, PgType> typesByPgName;
+  /**
+   * Enables to invalidate the caches if user executes create/drop type SQLs
+   * @see QueryExecutor#getTypeCacheEpoch()
+   */
+  private int typeCacheEpoch;
+  // Connection-specific oid -> PgType cache
+  private final Map<Integer, PgType> typesByOid = new HashMap<>();
+  // Connection-specific name -> PgType cache
+  private final Map<String, PgType> typesByPgName = new HashMap<>();
+  // Global oid -> PgType cache which includes only well-known types
+  private final static Map<Integer, PgType> DEFAULT_TYPES_BY_OID;
+  // Global name -> PgType cache which includes only well-known types
+  private final static Map<String, PgType> DEFAULT_TYPES_BY_PGNAME;
 
   // pgname (String) -> java.sql.Types (Integer)
   // private Map<String, Integer> pgNameToSQLType;
@@ -147,7 +158,7 @@ public class TypeInfoCache implements TypeInfo {
   // private Map<String, Integer> pgNameToOid;
 
   // pgname (String) -> extension pgobject (Class)
-  private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
+  private final Map<String, Class<? extends PGobject>> pgNameToPgObject = new HashMap<>();
 
   // array type oid -> base type array element delimiter
 //   private Map<Integer, Character> arrayOidToDelimiter;
@@ -270,23 +281,24 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("timestamp", "timestamp");
     TYPE_ALIASES.put("timestamp with time zone", "timestamptz");
     TYPE_ALIASES.put("timestamptz", "timestamptz");
+    Map<Integer, PgType> typesByOid = new HashMap<>((int)(BASE_TYPES.length / 0.75f));
+    Map<String, PgType> typesByPgName = new HashMap<>((int)(2 * BASE_TYPES.length / 0.75f));
+    for (PgType type : BASE_TYPES) {
+      typesByOid.put(type.oid, type);
+      // TODO: double-check if we should have fullName or quoted "user"."object_name" or both
+      typesByPgName.put(type.fullName, type);
+      // Allow both lowercase and uppercase lookups
+      typesByPgName.put(type.fullName.toUpperCase(Locale.ROOT), type);
+    }
+    DEFAULT_TYPES_BY_OID = typesByOid;
+    DEFAULT_TYPES_BY_PGNAME = typesByPgName;
+    // TODO: do we need something like DEFAULT_arrayOid?
   }
 
   @SuppressWarnings("method.invocation")
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;
-    int mapSize = (int) Math.round(BASE_TYPES.length * 1.5);
-    typesByOid = new HashMap<>(mapSize);
-    typesByPgName = new HashMap<>(mapSize);
-
-    pgNameToPgObject = new HashMap<>(mapSize);
-
-    try (ResourceLock ignore = lock.obtain()) {
-      for (PgType type : BASE_TYPES) {
-        addType(type);
-      }
-    }
   }
 
   private final ClassValue<AtomicInteger> arrayOid = new ClassValue<AtomicInteger>() {
@@ -350,7 +362,6 @@ public class TypeInfoCache implements TypeInfo {
       }
     }
 
-
     return new PgType(
         new ObjectName(rs.getString("nspname"), rs.getString("typname")),
         rs.getString("fullName"),
@@ -405,25 +416,19 @@ public class TypeInfoCache implements TypeInfo {
     if (pgTypeName.endsWith("[]")) {
       return Types.ARRAY;
     }
-    try (ResourceLock ignore = lock.obtain()) {
-      return getPgTypeByPgName(pgTypeName).sqlType;
-    }
+    return getPgTypeByPgName(pgTypeName).sqlType;
   }
 
   @Override
   public int getJavaArrayType(Class<?> className) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      return arrayOid.get(className).get();
-    }
+    return arrayOid.get(className).get();
   }
 
   public int getSQLType(int oid) throws SQLException {
     if (oid == Oid.UNSPECIFIED) {
       return Types.OTHER;
     }
-    try (ResourceLock ignore = lock.obtain()) {
-      return getPgTypeByOid(oid).sqlType;
-    }
+    return getPgTypeByOid(oid).sqlType;
   }
 
   private PreparedStatement prepareFindPgTypeByPgName(String pgTypeName) throws SQLException {
@@ -437,9 +442,27 @@ public class TypeInfoCache implements TypeInfo {
     return findTypeStatement;
   }
 
+  private void invalidateCacheIfNeeded() {
+    int typeCacheEpoch = this.typeCacheEpoch;
+    int connectionTypeCacheEpoch = conn.getTypeCacheEpoch();
+    if (typeCacheEpoch == connectionTypeCacheEpoch) {
+      // All good
+      return;
+    }
+    // Epoch mismatch, invalidating the caches
+    typesByPgName.clear();
+    typesByOid.clear();
+  }
+
   private PgType getPgTypeByPgName(String pgTypeName) throws SQLException {
+    pgTypeName = getTypeForAlias(pgTypeName);
+    PgType pgType = DEFAULT_TYPES_BY_PGNAME.get(pgTypeName);
+    if (pgType != null) {
+      return pgType;
+    }
     try (ResourceLock ignore = lock.obtain()) {
-      PgType pgType = typesByPgName.get(pgTypeName);
+      invalidateCacheIfNeeded();
+      pgType = typesByPgName.get(pgTypeName);
       if (pgType != null) {
         return pgType;
       }
@@ -455,8 +478,13 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   private PgType getPgTypeByOid(int oid) throws SQLException {
+    PgType pgType = DEFAULT_TYPES_BY_OID.get(oid);
+    if (pgType != null) {
+      return pgType;
+    }
     try (ResourceLock ignore = lock.obtain()) {
-      PgType pgType = typesByOid.get(oid);
+      invalidateCacheIfNeeded();
+      pgType = typesByOid.get(oid);
       if (pgType != null) {
         return pgType;
       }
@@ -476,7 +504,6 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
-    elementTypeName = getTypeForAlias(elementTypeName);
     return getPgTypeByPgName(elementTypeName).arrayOid;
   }
 
@@ -490,9 +517,7 @@ public class TypeInfoCache implements TypeInfo {
    * @return oid of the array's base element or the provided oid (if not array)
    */
   protected int convertArrayToBaseOid(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      return getPgTypeByOid(oid).typelem;
-    }
+    return getPgTypeByOid(oid).typelem;
   }
 
   public char getArrayDelimiter(int oid) throws SQLException {
@@ -500,13 +525,11 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public int getPGArrayElement(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        return Oid.UNSPECIFIED;
-      }
-
-      return getPgTypeByOid(oid).typelem;
+    if (oid == Oid.UNSPECIFIED) {
+      return Oid.UNSPECIFIED;
     }
+
+    return getPgTypeByOid(oid).typelem;
   }
 
   public @Nullable Class<? extends PGobject> getPGobject(String type) {
@@ -516,13 +539,11 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   public String getJavaClass(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      return getPgTypeByOid(oid).javaClass.getName();
-    }
+    return getPgTypeByOid(oid).javaClass.getName();
   }
 
   public @Nullable String getTypeForAlias(@Nullable String alias) {
-    if ( alias == null ) {
+    if (alias == null) {
       return null;
     }
     String type = TYPE_ALIASES.get(alias);

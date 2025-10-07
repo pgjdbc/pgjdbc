@@ -572,6 +572,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 
   /**
+   * Returns the current deallocate epoch.
+   * A new epoch means the prepared statement cache and type cache should be invalidated.
+   * For instance, if user executes {@code DROP TYPE custom_type} SQL, then we should not reuse
+   * the type cache (for instance, oid) for the type. As of now, we can't have fine-grained
+   * notifications from the backend, so we invalidate the full cache.
+   * @return the current deallocate epoch
+   */
+  int getTypeCacheEpoch();
+
+  /**
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();
