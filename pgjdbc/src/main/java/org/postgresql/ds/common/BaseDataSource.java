@@ -576,6 +576,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param seconds default query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  public void setQueryTimeout(int seconds) {
+    PGProperty.QUERY_TIMEOUT.set(properties, seconds);
+  }
+
+  /**
+   * @return default query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  public int getQueryTimeout() {
+    return PGProperty.QUERY_TIMEOUT.getIntNoCheck(properties);
+  }
+
+  /**
    * @param unknownLength unknown length
    * @see PGProperty#UNKNOWN_LENGTH
    */

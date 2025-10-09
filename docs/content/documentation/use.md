@@ -248,6 +248,9 @@ Determine the number of rows fetched in `ResultSet` by one fetch with trip to th
 Limiting the number of rows are fetch with each trip to the database allow avoids unnecessary memory consumption and as a consequence `OutOfMemoryError` .
 The default is zero, meaning that `ResultSet` will fetch all rows at once. Must be > 0.
 
+* **`queryTimeout (`*int*`)`** *Default `0`*\
+The timeout value in seconds that the driver will wait for a query to execute if not explicitly set by [Statement.setQueryTimeout(int)](https://docs.oracle.com/javase/6/docs/api/java/sql/Statement.html#setQueryTimeout%28int%29)). A value of 0 means no timeout.
+
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
 
