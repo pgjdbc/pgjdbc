@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -1026,9 +1027,10 @@ public class ArrayTest extends BaseTest4 {
 
   @Test
   public void testSpecialNumberArray() throws SQLException {
-    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,2,NAN,Infinity,"
+    assumeMinimumServerVersion("v14 introduced special number in numeric array", ServerVersion.v14);
+    Statement stmt = conn.createStatement();
+    ResultSet rs = stmt.executeQuery("SELECT '{1,2,NAN,Infinity,"
         + "-Infinity}'::numeric[]");
-    ResultSet rs = pstmt.executeQuery();
     assertTrue(rs.next());
     Number[] arr = (Number[]) rs.getArray(1).getArray();
     assertEquals(1, arr[0].intValue());
