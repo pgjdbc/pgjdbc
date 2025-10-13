@@ -24,7 +24,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.Array;
-import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -313,12 +312,12 @@ final class ArrayDecoding {
     }
   };
 
-  private static final ArrayDecoder<BigDecimal[]> BIG_DECIMAL_STRING_DECODER = new AbstractObjectStringArrayDecoder<BigDecimal[]>(
-      BigDecimal.class) {
+  private static final ArrayDecoder<Number[]> NUMBER_STRING_DECODER = new AbstractObjectStringArrayDecoder<Number[]>(
+      Number.class) {
 
     @Override
     Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return PgResultSet.toBigDecimal(stringVal);
+      return PgResultSet.toNumber(stringVal);
     }
   };
 
@@ -384,7 +383,7 @@ final class ArrayDecoding {
     OID_TO_DECODER.put(Oid.BIT, BOOLEAN_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.BOOL, BOOLEAN_OBJ_ARRAY);
     OID_TO_DECODER.put(Oid.BYTEA, BYTE_ARRAY_ARRAY);
-    OID_TO_DECODER.put(Oid.NUMERIC, BIG_DECIMAL_STRING_DECODER);
+    OID_TO_DECODER.put(Oid.NUMERIC, NUMBER_STRING_DECODER);
     OID_TO_DECODER.put(Oid.BPCHAR, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.CHAR, STRING_ONLY_DECODER);
     OID_TO_DECODER.put(Oid.JSON, STRING_ONLY_DECODER);

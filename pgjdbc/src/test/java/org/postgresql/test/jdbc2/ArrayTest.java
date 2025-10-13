@@ -114,7 +114,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Number[] decarr = (Number[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -318,7 +318,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Number[] decarr = (Number[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -486,7 +486,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
+    Number[] decarr = (Number[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -1022,6 +1022,20 @@ public class ArrayTest extends BaseTest4 {
             "get columntype should return Types.INTEGER");
       }
     }
+  }
+
+  @Test
+  public void testSpecialNumberArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,2,NAN,Infinity,"
+        + "-Infinity}'::numeric[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Number[] arr = (Number[]) rs.getArray(1).getArray();
+    assertEquals(1, arr[0].intValue());
+    assertEquals(2, arr[1].intValue());
+    assertEquals(Double.NaN, arr[2]);
+    assertEquals(Double.POSITIVE_INFINITY, arr[3]);
+    assertEquals(Double.NEGATIVE_INFINITY, arr[4]);
   }
 
 }
