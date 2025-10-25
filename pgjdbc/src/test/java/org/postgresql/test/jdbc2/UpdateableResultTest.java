@@ -19,8 +19,6 @@ import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.Test;
 
-import org.postgresql.util.ObjectFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
@@ -33,7 +31,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.time.*;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 public class UpdateableResultTest extends BaseTest4 {
@@ -969,4 +971,3 @@ public class UpdateableResultTest extends BaseTest4 {
     st.close();
   }
 }
-
