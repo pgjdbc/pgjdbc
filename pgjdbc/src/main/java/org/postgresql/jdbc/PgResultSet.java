@@ -3334,7 +3334,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     TypeInfo typeInfo = connection.getTypeInfo();
     int oid = field.getOID();
     String pgType = castNonNull(typeInfo.getPGType(oid));
-    int sqlType = typeInfo.getSQLType(pgType);
+    int sqlType = typeInfo.getSQLType(oid);
     field.setSQLType(sqlType);
     field.setPGType(pgType);
   }

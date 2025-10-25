@@ -2738,11 +2738,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     byte[] bSearchable =
               connection.encodeString(Integer.toString(DatabaseMetaData.typeSearchable));
 
-    TypeInfo ti = connection.getTypeInfo();
-    if (ti instanceof TypeInfoCache) {
-      ((TypeInfoCache) ti).cacheSQLTypes();
-    }
-
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[19][];
       String typname = castNonNull(rs.getString(1));
@@ -3075,24 +3070,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         + "CASE WHEN t.typtype='c' then " + Types.STRUCT + " else "
         + Types.DISTINCT
         + " end as \"DATA_TYPE\", pg_catalog.obj_description(t.oid, 'pg_type')  "
-        + "as \"REMARKS\", CASE WHEN t.typtype = 'd' then  (select CASE";
-    TypeInfo typeInfo = connection.getTypeInfo();
-
-    StringBuilder sqlwhen = new StringBuilder();
-    for (Iterator<Integer> i = typeInfo.getPGTypeOidsWithSQLTypes(); i.hasNext(); ) {
-      Integer typOid = i.next();
-      // NB: Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
-      // We must therefore map it to a positive long value before writing it into the query,
-      // or we'll be unable to correctly handle ~ half of the oid space.
-      long longTypOid = typeInfo.intOidToLong(typOid);
-      int sqlType = typeInfo.getSQLType(typOid);
-
-      sqlwhen.append(" when base_type.oid = ").append(longTypOid).append(" then ").append(sqlType);
-    }
-    sql += sqlwhen.toString();
-
-    sql += " else " + Types.OTHER + " end from pg_type base_type where base_type.oid=t.typbasetype) "
-        + "else null end as \"BASE_TYPE\" "
+        + "as \"REMARKS\", 'abcdef' \"BASE_TYPE\""
         + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
 
     StringBuilder toAdd = new StringBuilder();

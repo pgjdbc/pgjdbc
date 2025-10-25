@@ -72,19 +72,30 @@ public class Oid {
   public static final int XML_ARRAY = 143;
   public static final int POINT = 600;
   public static final int POINT_ARRAY = 1017;
+  public static final int HSTORE = 16388;
+  public static final int HSTORE_ARRAY = 16393;
   public static final int BOX = 603;
   public static final int BOX_ARRAY = 1020;
   public static final int JSONB = 3802;
   public static final int JSONB_ARRAY = 3807;
   public static final int JSON = 114;
   public static final int JSON_ARRAY = 199;
-  public static final int REF_CURSOR = 1790;
-  public static final int REF_CURSOR_ARRAY = 2201;
+  public static final int REFCURSOR = 1790;
+  public static final int REFCURSOR_ARRAY = 2201;
+  // backward compatibility
+  public static final int REF_CURSOR = REFCURSOR;
+  // backward compatibility
+  public static final int REF_CURSOR_ARRAY = REFCURSOR_ARRAY;
   public static final int LINE = 628;
+  public static final int LINE_ARRAY = 629;
   public static final int LSEG = 601;
+  public static final int LSEG_ARRAY = 1018;
   public static final int PATH = 602;
+  public static final int PATH_ARRAY = 1019;
   public static final int POLYGON = 604;
+  public static final int POLYGON_ARRAY = 1027;
   public static final int CIRCLE = 718;
+  public static final int CIRCLE_ARRAY = 719;
   public static final int CIDR = 650;
   public static final int INET = 869;
   public static final int MACADDR = 829;
