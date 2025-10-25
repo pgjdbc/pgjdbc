@@ -454,7 +454,7 @@ Whether to include server error details in exceptions and log messages (for exam
 Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
-* **`quoteReturningIdentifiers (`*boolean*`)`** *Default `false`*\
+* **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
 If we quote them, then we end up sending ""colname"" to the backend instead of "colname" which will not be found.
 
