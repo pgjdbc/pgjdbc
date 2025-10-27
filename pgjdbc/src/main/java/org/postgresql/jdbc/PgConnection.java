@@ -1715,7 +1715,8 @@ public class PgConnection implements BaseConnection {
   public @Nullable String getSchema() throws SQLException {
     checkClosed();
     try (Statement stmt = createStatement()) {
-      try (ResultSet rs = stmt.executeQuery("select current_schema()")) {
+      // current_schema() only returns the first schema, SHOW search_path returns all schemas on the search path
+      try (ResultSet rs = stmt.executeQuery("SHOW search_path")) {
         if (!rs.next()) {
           return null; // Is it ever possible?
         }
@@ -1724,6 +1725,11 @@ public class PgConnection implements BaseConnection {
     }
   }
 
+  /**
+   *
+   * @param schema the name of a schema in which to work - this can also be a comma-separated
+   *               list (e.g. "schema1,schema2").
+   */
   @Override
   public void setSchema(@Nullable String schema) throws SQLException {
     checkClosed();
@@ -1731,12 +1737,25 @@ public class PgConnection implements BaseConnection {
       if (schema == null) {
         stmt.executeUpdate("SET SESSION search_path TO DEFAULT");
       } else {
+        // We allow a space after the comma
+        String[] schemas = schema.split(", ?");
         StringBuilder sb = new StringBuilder();
-        sb.append("SET SESSION search_path TO '");
-        Utils.escapeLiteral(sb, schema, getStandardConformingStrings());
-        sb.append("'");
-        stmt.executeUpdate(sb.toString());
-        LOGGER.log(Level.FINE, "  setSchema = {0}", schema);
+        sb.append("SET SESSION search_path TO ");
+        for (int i = 0; i < schemas.length; i++) {
+          sb.append("'");
+          Utils.escapeLiteral(sb, schemas[i], getStandardConformingStrings());
+          sb.append("'");
+          if (i < schemas.length - 1) {
+            // We don't want a trailing comma
+            sb.append(",");
+          }
+        }
+        String sql = sb.toString();
+        stmt.executeUpdate(sql);
+        LOGGER.log(Level.FINE, "  setSchema = {0}",
+            /* We remove the brackets since they did not show up before list support was added,
+            and we want to keep the log output the same */
+            Arrays.toString(schemas).replace("[", "").replace("]", ""));
       }
     }
   }
