@@ -1995,12 +1995,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   /**
    * Sends a single query using the extended query protocol.
    *
-   * sendOneQuery sends a single statement via the extended query protocol.
+   * <p>sendOneQuery sends a single statement via the extended query protocol.
    * Per the FE/BE docs this is essentially the same as how a simple query runs
    * (except that it generates some extra acknowledgement messages, and we
    * can send several queries before doing the Sync)
    *
-   * Parse S_n from "query string with parameter placeholders"; skipped if already done previously
+   * <p>Parse S_n from "query string with parameter placeholders"; skipped if already done previously
    * or if oneshot
    * Bind C_n from S_n plus parameters (or from unnamed statement for oneshot queries)
    * Describe C_n; skipped if caller doesn't want metadata
