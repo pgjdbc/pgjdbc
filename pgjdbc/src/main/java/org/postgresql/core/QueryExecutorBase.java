@@ -48,7 +48,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
-  private TransactionState transactionState = TransactionState.IDLE;
+  private volatile TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
@@ -307,9 +307,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public TransactionState getTransactionState() {
-    try (ResourceLock ignore = lock.obtain()) {
-      return transactionState;
-    }
+    return transactionState;
   }
 
   public void setEncoding(Encoding encoding) throws IOException {
