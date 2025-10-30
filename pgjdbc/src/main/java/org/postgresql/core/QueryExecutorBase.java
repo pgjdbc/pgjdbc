@@ -59,7 +59,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
-  private boolean standardConformingStrings;
+  private volatile boolean standardConformingStrings;
 
   private @Nullable SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<>();
@@ -292,16 +292,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   }
 
   public void setStandardConformingStrings(boolean value) {
-    try (ResourceLock ignore = lock.obtain()) {
-      standardConformingStrings = value;
-    }
+    standardConformingStrings = value;
   }
 
   @Override
   public boolean getStandardConformingStrings() {
-    try (ResourceLock ignore = lock.obtain()) {
-      return standardConformingStrings;
-    }
+    return standardConformingStrings;
   }
 
   @Override
