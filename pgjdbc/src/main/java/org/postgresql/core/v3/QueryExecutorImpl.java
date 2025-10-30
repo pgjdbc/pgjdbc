@@ -1992,19 +1992,38 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // statement name terminator
   }
 
-  // sendOneQuery sends a single statement via the extended query protocol.
-  // Per the FE/BE docs this is essentially the same as how a simple query runs
-  // (except that it generates some extra acknowledgement messages, and we
-  // can send several queries before doing the Sync)
-  //
-  // Parse S_n from "query string with parameter placeholders"; skipped if already done previously
-  // or if oneshot
-  // Bind C_n from S_n plus parameters (or from unnamed statement for oneshot queries)
-  // Describe C_n; skipped if caller doesn't want metadata
-  // Execute C_n with maxRows limit; maxRows = 1 if caller doesn't want results
-  // (above repeats once per call to sendOneQuery)
-  // Sync (sent by caller)
-  //
+  /**
+   * Sends a single query using the extended query protocol.
+   *
+   * sendOneQuery sends a single statement via the extended query protocol.
+   * Per the FE/BE docs this is essentially the same as how a simple query runs
+   * (except that it generates some extra acknowledgement messages, and we
+   * can send several queries before doing the Sync)
+   *
+   * Parse S_n from "query string with parameter placeholders"; skipped if already done previously
+   * or if oneshot
+   * Bind C_n from S_n plus parameters (or from unnamed statement for oneshot queries)
+   * Describe C_n; skipped if caller doesn't want metadata
+   * Execute C_n with maxRows limit; maxRows = 1 if caller doesn't want results
+   * (above repeats once per call to sendOneQuery)
+   * Sync (sent by caller)
+   *
+   * <p>STATE MACHINE POSITION: Building messages for Query Execution State Machine (State #2).
+   * This method constructs the message sequence that will be sent to the server and adds
+   * corresponding entries to pending queues for response tracking.</p>
+   *
+   * <p>EXTENDED QUERY PROTOCOL FLOW:
+   * 1. Parse - Create/reuse prepared statement (adds to pendingParseQueue)
+   * 2. Bind - Bind parameters to statement (adds to pendingBindQueue)
+   * 3. Describe - Request result metadata (adds to pendingDescribePortalQueue)
+   * 4. Execute - Execute bound statement (adds to pendingExecuteQueue)
+   * 5. Sync - Sent by caller after this method returns
+   * 6. ReadyForQuery - Server signals completion (processed in processResults)</p>
+   *
+   * <p>WHAT HAPPENS NEXT: After this method returns, the caller sends Sync and invokes
+   * processResults() which enters the Message Processing State Machine (State #3) to
+   * consume server responses and update pending queues.</p>
+   */
   private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
       int fetchSize, int flags) throws IOException {
     boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
@@ -2039,6 +2058,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     int rows = calculateRowsToFetch(noResults, usePortal, maxRows, fetchSize);
 
+    // STATE: Send Parse message (or skip if already parsed)
+    // NEXT: Server will respond with ParseComplete (or skip if cached)
     sendParse(query, params, oneShot);
 
     boolean queryHasUnknown = query.hasUnresolvedTypes();
@@ -2052,6 +2073,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     if (describeStatement) {
+      // STATE: Send Describe(Statement) to get parameter types
+      // NEXT: Server responds with ParameterDescription
       sendDescribeStatement(query, params, describeOnly);
       if (describeOnly) {
         return;
@@ -2065,6 +2088,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       portal = new Portal(query, portalName);
     }
 
+    // STATE: Send Bind message to bind parameters to statement
+    // NEXT: Server responds with BindComplete
     sendBind(query, params, portal, noBinaryTransfer);
 
     // A statement describe will also output a RowDescription,
@@ -2087,11 +2112,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * hack, but there aren't many good alternatives.
        */
       if (!query.isPortalDescribed() || forceDescribePortal) {
+        // STATE: Send Describe(Portal) to get result metadata
+        // NEXT: Server responds with RowDescription or NoData
         sendDescribePortal(query, portal);
       }
     }
 
+    // STATE: Send Execute message to run the query
+    // NEXT: Server responds with DataRow* followed by CommandComplete or PortalSuspended
     sendExecute(query, portal, rows);
+    // After this method returns, caller sends Sync and processes all responses via processResults()
   }
 
   private int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
