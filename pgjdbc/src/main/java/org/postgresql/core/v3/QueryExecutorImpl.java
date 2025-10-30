@@ -4,6 +4,63 @@
  */
 // Copyright (c) 2004, Open Cloud Limited.
 
+/*
+ * STATE MACHINES IN QueryExecutorImpl
+ * ====================================
+ *
+ * This class implements several interconnected state machines for managing PostgreSQL V3 protocol communication:
+ *
+ * 1. TRANSACTION STATE MACHINE
+ *    Tracks the current transaction state via TransactionState enum:
+ *    - IDLE: No active transaction (server sends 'I' in ReadyForQuery)
+ *    - OPEN: Transaction in progress (server sends 'T' in ReadyForQuery)
+ *    - FAILED: Transaction failed, requires rollback (server sends 'E' in ReadyForQuery)
+ *    Transitions occur in receiveRFQ() based on server's ReadyForQuery response.
+ *
+ * 2. QUERY EXECUTION STATE MACHINE (Extended Query Protocol)
+ *    Manages the lifecycle of prepared statement execution through pending queues:
+ *    - pendingParseQueue: Tracks Parse messages awaiting ParseComplete
+ *    - pendingBindQueue: Tracks Bind messages awaiting BindComplete
+ *    - pendingDescribeStatementQueue: Tracks Describe(Statement) awaiting ParameterDescription
+ *    - pendingDescribePortalQueue: Tracks Describe(Portal) awaiting RowDescription/NoData
+ *    - pendingExecuteQueue: Tracks Execute messages awaiting DataRow /CommandComplete
+  *    Flow: Parse - Bind - Describe - Execute - Sync - ReadyForQuery
+  *
+  * 3. MESSAGE PROCESSING STATE MACHINE
+  *    Core loop in processResults() that processes backend responses:
+  *    - Reads message type character from stream
+  *    - Dispatches to appropriate handler based on message type
+  *    - Updates pending queues as responses arrive
+  *    - Continues until ReadyForQuery (endQuery = true)
+  *
+  * 4. COPY PROTOCOL STATE MACHINE
+  *    Managed by processCopyResults() for COPY operations:
+  *    - CopyInResponse -> CopyData* -> CopyDone -> CommandComplete (COPY FROM STDIN)
+  *    - CopyOutResponse -> CopyData* -> CopyDone -> CommandComplete (COPY TO STDOUT)
+  *    - CopyBothResponse -> bidirectional CopyData (replication protocol)
+  *    Connection is locked during COPY via lock()/unlock() to prevent concurrent access.
+  *
+  * 5. CONNECTION LOCK STATE MACHINE
+  *    Prevents concurrent operations during multi-step protocols:
+  *    - Unlocked: lockedFor == null, connection available
+  *    - Locked: lockedFor != null, held by specific operation (e.g., CopyOperation)
+  *    Methods: lock(), unlock(), waitOnLock(), hasLock()
+  *
+  * 6. AUTOSAVE STATE MACHINE
+  *    When AutoSave is enabled, wraps queries in savepoints:
+  *    - Send SAVEPOINT PGJDBC_AUTOSAVE before query
+  *    - Execute query
+  *    - On success: RELEASE SAVEPOINT (if cleanupSavePoints enabled)
+  *    - On failure: ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE
+  *
+  * 7. DEADLOCK PREVENTION STATE MACHINE
+  *    Prevents client/server deadlock via buffer management:
+  *    - Tracks estimatedReceiveBufferBytes (accumulated response size)
+  *    - When exceeds MAX_BUFFERED_RECV_BYTES (64KB), forces Sync and processes results
+  *    - Resets counter after consuming server responses
+  *    - Ensures server doesn't block on write while client blocks on write
+  */
+
 package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
