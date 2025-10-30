@@ -469,62 +469,76 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
-    if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
-        || getTransactionState() == TransactionState.OPEN)
-        && query != restoreToAutoSave
-        && !"COMMIT".equalsIgnoreCase(query.getNativeSql())
-        && getAutoSave() != AutoSave.NEVER
-        // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
-        // thus no need to set a savepoint before such query
-        && (getAutoSave() == AutoSave.ALWAYS
-        // If CompositeQuery is observed, just assume it might fail and set the savepoint
-        || !(query instanceof SimpleQuery)
-        || ((SimpleQuery) query).getFields() != null)) {
-
-      /*
-      create a different SAVEPOINT the first time so that all subsequent SAVEPOINTS can be released
-      easily. There have been reports of server resources running out if there are too many
-      SAVEPOINTS.
-       */
+    if (shouldCreateAutomaticSavepoint(query, flags)) {
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          QUERY_NO_RESULTS | QUERY_NO_METADATA
-              // PostgreSQL does not support bind, exec, simple, sync message flow,
-              // so we force autosavepoint to use simple if the main query is using simple
-              | QUERY_EXECUTE_AS_SIMPLE);
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
     return false;
   }
 
-  private void releaseSavePoint(boolean autosave) throws SQLException {
-    if ( autosave
-        && getAutoSave() == AutoSave.ALWAYS
-        && getTransactionState() == TransactionState.OPEN) {
-      try {
-        sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
-            QUERY_NO_RESULTS | QUERY_NO_METADATA
-                | QUERY_EXECUTE_AS_SIMPLE);
+  private boolean shouldCreateAutomaticSavepoint(Query query, int flags) {
+    if (!isTransactionActive(flags)) {
+      return false;
+    }
+    if (isSpecialQuery(query)) {
+      return false;
+    }
+    if (getAutoSave() == AutoSave.NEVER) {
+      return false;
+    }
+    return getAutoSave() == AutoSave.ALWAYS || queryMightFail(query);
+  }
 
-      } catch (IOException ex) {
-        throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
-      }
+  private boolean isTransactionActive(int flags) {
+    return (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+        || getTransactionState() == TransactionState.OPEN;
+  }
+
+  private boolean isSpecialQuery(Query query) {
+    return query == restoreToAutoSave
+        || "COMMIT".equalsIgnoreCase(query.getNativeSql());
+  }
+
+  private boolean queryMightFail(Query query) {
+    return !(query instanceof SimpleQuery)
+        || ((SimpleQuery) query).getFields() != null;
+  }
+
+  private void releaseSavePoint(boolean autosave) throws SQLException {
+    if (!shouldReleaseSavepoint(autosave)) {
+      return;
+    }
+    try {
+      sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+    } catch (IOException ex) {
+      throw new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
     }
   }
 
+  private boolean shouldReleaseSavepoint(boolean autosave) {
+    return autosave
+        && getAutoSave() == AutoSave.ALWAYS
+        && getTransactionState() == TransactionState.OPEN;
+  }
+
   private void rollbackIfRequired(boolean autosave, SQLException e) throws SQLException {
-    if (autosave
-        && getTransactionState() == TransactionState.FAILED
-        && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
+    if (shouldRollbackToSavepoint(autosave, e)) {
       try {
-        // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
             1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
-        // That's O(N), sorry
         e.setNextException(e2);
       }
     }
     throw e;
+  }
+
+  private boolean shouldRollbackToSavepoint(boolean autosave, SQLException e) {
+    return autosave
+        && getTransactionState() == TransactionState.FAILED
+        && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e));
   }
 
   // Deadlock avoidance:
@@ -2023,42 +2037,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
     boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
 
-    // Work out how many rows to fetch in this pass.
-
-    int rows;
-    if (noResults) {
-      rows = 1; // We're discarding any results anyway, so limit data transfer to a minimum
-    } else if (!usePortal) {
-      rows = maxRows; // Not using a portal -- fetchSize is irrelevant
-    } else if (maxRows != 0 && fetchSize > maxRows) {
-      // fetchSize > maxRows, use maxRows (nb: fetchSize cannot be 0 if usePortal == true)
-      rows = maxRows;
-    } else {
-      rows = fetchSize; // maxRows > fetchSize
-    }
+    int rows = calculateRowsToFetch(noResults, usePortal, maxRows, fetchSize);
 
     sendParse(query, params, oneShot);
 
-    // Must do this after sendParse to pick up any changes to the
-    // query's state.
-    //
     boolean queryHasUnknown = query.hasUnresolvedTypes();
     boolean paramsHasUnknown = params.hasUnresolvedTypes();
 
-    boolean describeStatement = describeOnly
-        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+    boolean describeStatement = shouldDescribeStatement(describeOnly, oneShot, 
+        queryHasUnknown, paramsHasUnknown, query);
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      int[] queryOIDs = castNonNull(query.getPrepareTypes());
-      int[] paramOIDs = params.getTypeOIDs();
-      for (int i = 0; i < paramOIDs.length; i++) {
-        // Only supply type information when there isn't any
-        // already, don't arbitrarily overwrite user supplied
-        // type information.
-        if (paramOIDs[i] == Oid.UNSPECIFIED) {
-          params.setResolvedType(i + 1, queryOIDs[i]);
-        }
-      }
+      resolveParameterTypes(query, params);
     }
 
     if (describeStatement) {
@@ -2102,6 +2092,35 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     sendExecute(query, portal, rows);
+  }
+
+  private int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
+    if (noResults) {
+      return 1;
+    }
+    if (!usePortal) {
+      return maxRows;
+    }
+    if (maxRows != 0 && fetchSize > maxRows) {
+      return maxRows;
+    }
+    return fetchSize;
+  }
+
+  private boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
+      boolean queryHasUnknown, boolean paramsHasUnknown, SimpleQuery query) {
+    return describeOnly
+        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+  }
+
+  private void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
+    int[] queryOIDs = castNonNull(query.getPrepareTypes());
+    int[] paramOIDs = params.getTypeOIDs();
+    for (int i = 0; i < paramOIDs.length; i++) {
+      if (paramOIDs[i] == Oid.UNSPECIFIED) {
+        params.setResolvedType(i + 1, queryOIDs[i]);
+      }
+    }
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
