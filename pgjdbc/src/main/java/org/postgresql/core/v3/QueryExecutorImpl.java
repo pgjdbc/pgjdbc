@@ -2030,7 +2030,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
     boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
     // extended queries always use a portal
-    // the usePortal flag controls whether or not we use a *named* portal
+    // the usePortal flag controls whether we use a *named* portal
     boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
     boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
@@ -2044,8 +2044,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean queryHasUnknown = query.hasUnresolvedTypes();
     boolean paramsHasUnknown = params.hasUnresolvedTypes();
 
-    boolean describeStatement = shouldDescribeStatement(describeOnly, oneShot, 
-        queryHasUnknown, paramsHasUnknown, query);
+    boolean describeStatement = shouldDescribeStatement(describeOnly, oneShot, queryHasUnknown,
+        paramsHasUnknown, query);
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
       resolveParameterTypes(query, params);
