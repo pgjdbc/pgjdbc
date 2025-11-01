@@ -3521,26 +3521,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
-  public static @PolyNull Number toNumber(@PolyNull String s) throws SQLException {
-    if (s == null) {
-      return null;
-    }
-    try {
-      s = s.trim();
-      return new BigDecimal(s);
-    } catch (NumberFormatException e) {
-      if ("NaN".equalsIgnoreCase(s)) {
-        return Double.NaN;
-      } else if ("Infinity".equalsIgnoreCase(s)) {
-        return Double.POSITIVE_INFINITY;
-      } else if ("-Infinity".equalsIgnoreCase(s)) {
-        return Double.NEGATIVE_INFINITY;
-      }
-      throw new PSQLException(GT.tr("Bad value for type {0} : {1}", "Number", s),
-          PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
-    }
-  }
-
   public static @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
     if (s == null) {
       return null;

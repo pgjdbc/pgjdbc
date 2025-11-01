@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -115,7 +114,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    Number[] decarr = (Number[]) arr.getArray();
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -319,7 +318,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    Number[] decarr = (Number[]) arr.getArray();
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -487,7 +486,7 @@ public class ArrayTest extends BaseTest4 {
 
     arr = rs.getArray(2);
     assertEquals(Types.NUMERIC, arr.getBaseType());
-    Number[] decarr = (Number[]) arr.getArray();
+    BigDecimal[] decarr = (BigDecimal[]) arr.getArray();
     assertEquals(2, decarr.length);
     assertEquals(new BigDecimal("3.1"), decarr[0]);
     assertEquals(new BigDecimal("1.4"), decarr[1]);
@@ -1023,21 +1022,6 @@ public class ArrayTest extends BaseTest4 {
             "get columntype should return Types.INTEGER");
       }
     }
-  }
-
-  @Test
-  public void testSpecialNumberArray() throws SQLException {
-    assumeMinimumServerVersion("v14 introduced special number in numeric array", ServerVersion.v14);
-    Statement stmt = conn.createStatement();
-    ResultSet rs = stmt.executeQuery("SELECT '{1,2,NAN,Infinity,"
-        + "-Infinity}'::numeric[]");
-    assertTrue(rs.next());
-    Number[] arr = (Number[]) rs.getArray(1).getArray();
-    assertEquals(1, arr[0].intValue());
-    assertEquals(2, arr[1].intValue());
-    assertEquals(Double.NaN, arr[2]);
-    assertEquals(Double.POSITIVE_INFINITY, arr[3]);
-    assertEquals(Double.NEGATIVE_INFINITY, arr[4]);
   }
 
 }
