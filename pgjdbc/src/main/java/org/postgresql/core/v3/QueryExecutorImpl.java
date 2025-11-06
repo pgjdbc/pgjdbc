@@ -500,6 +500,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || "COMMIT".equalsIgnoreCase(query.getNativeSql());
   }
 
+  // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
+  // thus no need to set a savepoint before such query
   private boolean queryMightFail(Query query) {
     return !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null;
@@ -526,9 +528,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void rollbackIfRequired(boolean autosave, SQLException e) throws SQLException {
     if (shouldRollbackToSavepoint(autosave, e)) {
       try {
+        // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
             1, 0, QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       } catch (SQLException e2) {
+        // That's O(N), sorry
         e.setNextException(e2);
       }
     }
