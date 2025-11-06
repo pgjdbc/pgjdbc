@@ -4,6 +4,63 @@
  */
 // Copyright (c) 2004, Open Cloud Limited.
 
+/*
+ * STATE MACHINES IN QueryExecutorImpl
+ * ====================================
+ *
+ * This class implements several interconnected state machines for managing PostgreSQL V3 protocol communication:
+ *
+ * 1. TRANSACTION STATE MACHINE
+ *    Tracks the current transaction state via TransactionState enum:
+ *    - IDLE: No active transaction (server sends 'I' in ReadyForQuery)
+ *    - OPEN: Transaction in progress (server sends 'T' in ReadyForQuery)
+ *    - FAILED: Transaction failed, requires rollback (server sends 'E' in ReadyForQuery)
+ *    Transitions occur in receiveRFQ() based on server's ReadyForQuery response.
+ *
+ * 2. QUERY EXECUTION STATE MACHINE (Extended Query Protocol)
+ *    Manages the lifecycle of prepared statement execution through pending queues:
+ *    - pendingParseQueue: Tracks Parse messages awaiting ParseComplete
+ *    - pendingBindQueue: Tracks Bind messages awaiting BindComplete
+ *    - pendingDescribeStatementQueue: Tracks Describe(Statement) awaiting ParameterDescription
+ *    - pendingDescribePortalQueue: Tracks Describe(Portal) awaiting RowDescription/NoData
+ *    - pendingExecuteQueue: Tracks Execute messages awaiting DataRow /CommandComplete
+  *    Flow: Parse - Bind - Describe - Execute - Sync - ReadyForQuery
+  *
+  * 3. MESSAGE PROCESSING STATE MACHINE
+  *    Core loop in processResults() that processes backend responses:
+  *    - Reads message type character from stream
+  *    - Dispatches to appropriate handler based on message type
+  *    - Updates pending queues as responses arrive
+  *    - Continues until ReadyForQuery (endQuery = true)
+  *
+  * 4. COPY PROTOCOL STATE MACHINE
+  *    Managed by processCopyResults() for COPY operations:
+  *    - CopyInResponse -> CopyData* -> CopyDone -> CommandComplete (COPY FROM STDIN)
+  *    - CopyOutResponse -> CopyData* -> CopyDone -> CommandComplete (COPY TO STDOUT)
+  *    - CopyBothResponse -> bidirectional CopyData (replication protocol)
+  *    Connection is locked during COPY via lock()/unlock() to prevent concurrent access.
+  *
+  * 5. CONNECTION LOCK STATE MACHINE
+  *    Prevents concurrent operations during multi-step protocols:
+  *    - Unlocked: lockedFor == null, connection available
+  *    - Locked: lockedFor != null, held by specific operation (e.g., CopyOperation)
+  *    Methods: lock(), unlock(), waitOnLock(), hasLock()
+  *
+  * 6. AUTOSAVE STATE MACHINE
+  *    When AutoSave is enabled, wraps queries in savepoints:
+  *    - Send SAVEPOINT PGJDBC_AUTOSAVE before query
+  *    - Execute query
+  *    - On success: RELEASE SAVEPOINT (if cleanupSavePoints enabled)
+  *    - On failure: ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE
+  *
+  * 7. DEADLOCK PREVENTION STATE MACHINE
+  *    Prevents client/server deadlock via buffer management:
+  *    - Tracks estimatedReceiveBufferBytes (accumulated response size)
+  *    - When exceeds MAX_BUFFERED_RECV_BYTES (64KB), forces Sync and processes results
+  *    - Resets counter after consuming server responses
+  *    - Ensures server doesn't block on write while client blocks on write
+  */
+
 package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
@@ -412,52 +469,64 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
-    if (((flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
-        || getTransactionState() == TransactionState.OPEN)
-        && query != restoreToAutoSave
-        && !"COMMIT".equalsIgnoreCase(query.getNativeSql())
-        && getAutoSave() != AutoSave.NEVER
-        // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
-        // thus no need to set a savepoint before such query
-        && (getAutoSave() == AutoSave.ALWAYS
-        // If CompositeQuery is observed, just assume it might fail and set the savepoint
-        || !(query instanceof SimpleQuery)
-        || ((SimpleQuery) query).getFields() != null)) {
-
-      /*
-      create a different SAVEPOINT the first time so that all subsequent SAVEPOINTS can be released
-      easily. There have been reports of server resources running out if there are too many
-      SAVEPOINTS.
-       */
+    if (shouldCreateAutomaticSavepoint(query, flags)) {
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          QUERY_NO_RESULTS | QUERY_NO_METADATA
-              // PostgreSQL does not support bind, exec, simple, sync message flow,
-              // so we force autosavepoint to use simple if the main query is using simple
-              | QUERY_EXECUTE_AS_SIMPLE);
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
       return true;
     }
     return false;
   }
 
-  private void releaseSavePoint(boolean autosave) throws SQLException {
-    if ( autosave
-        && getAutoSave() == AutoSave.ALWAYS
-        && getTransactionState() == TransactionState.OPEN) {
-      try {
-        sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
-            QUERY_NO_RESULTS | QUERY_NO_METADATA
-                | QUERY_EXECUTE_AS_SIMPLE);
+  private boolean shouldCreateAutomaticSavepoint(Query query, int flags) {
+    if (!isTransactionActive(flags)) {
+      return false;
+    }
+    if (isSpecialQuery(query)) {
+      return false;
+    }
+    if (getAutoSave() == AutoSave.NEVER) {
+      return false;
+    }
+    return getAutoSave() == AutoSave.ALWAYS || queryMightFail(query);
+  }
 
-      } catch (IOException ex) {
-        throw  new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
-      }
+  private boolean isTransactionActive(int flags) {
+    return (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+        || getTransactionState() == TransactionState.OPEN;
+  }
+
+  private boolean isSpecialQuery(Query query) {
+    return query == restoreToAutoSave
+        || "COMMIT".equalsIgnoreCase(query.getNativeSql());
+  }
+
+  // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
+  // thus no need to set a savepoint before such query
+  private boolean queryMightFail(Query query) {
+    return !(query instanceof SimpleQuery)
+        || ((SimpleQuery) query).getFields() != null;
+  }
+
+  private void releaseSavePoint(boolean autosave) throws SQLException {
+    if (!shouldReleaseSavepoint(autosave)) {
+      return;
+    }
+    try {
+      sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+    } catch (IOException ex) {
+      throw new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
     }
   }
 
+  private boolean shouldReleaseSavepoint(boolean autosave) {
+    return autosave
+        && getAutoSave() == AutoSave.ALWAYS
+        && getTransactionState() == TransactionState.OPEN;
+  }
+
   private void rollbackIfRequired(boolean autosave, SQLException e) throws SQLException {
-    if (autosave
-        && getTransactionState() == TransactionState.FAILED
-        && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e))) {
+    if (shouldRollbackToSavepoint(autosave, e)) {
       try {
         // ROLLBACK and AUTOSAVE are executed as simple always to overcome "statement no longer exists S_xx"
         execute(restoreToAutoSave, SimpleQuery.NO_PARAMETERS, new ResultHandlerDelegate(null),
@@ -468,6 +537,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     }
     throw e;
+  }
+
+  private boolean shouldRollbackToSavepoint(boolean autosave, SQLException e) {
+    return autosave
+        && getTransactionState() == TransactionState.FAILED
+        && (getAutoSave() == AutoSave.ALWAYS || willHealOnRetry(e));
   }
 
   // Deadlock avoidance:
@@ -1921,19 +1996,38 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // statement name terminator
   }
 
-  // sendOneQuery sends a single statement via the extended query protocol.
-  // Per the FE/BE docs this is essentially the same as how a simple query runs
-  // (except that it generates some extra acknowledgement messages, and we
-  // can send several queries before doing the Sync)
-  //
-  // Parse S_n from "query string with parameter placeholders"; skipped if already done previously
-  // or if oneshot
-  // Bind C_n from S_n plus parameters (or from unnamed statement for oneshot queries)
-  // Describe C_n; skipped if caller doesn't want metadata
-  // Execute C_n with maxRows limit; maxRows = 1 if caller doesn't want results
-  // (above repeats once per call to sendOneQuery)
-  // Sync (sent by caller)
-  //
+  /**
+   * Sends a single query using the extended query protocol.
+   *
+   * <p>sendOneQuery sends a single statement via the extended query protocol.
+   * Per the FE/BE docs this is essentially the same as how a simple query runs
+   * (except that it generates some extra acknowledgement messages, and we
+   * can send several queries before doing the Sync)
+   *
+   * <p>Parse S_n from "query string with parameter placeholders"; skipped if already done previously
+   * or if oneshot
+   * Bind C_n from S_n plus parameters (or from unnamed statement for oneshot queries)
+   * Describe C_n; skipped if caller doesn't want metadata
+   * Execute C_n with maxRows limit; maxRows = 1 if caller doesn't want results
+   * (above repeats once per call to sendOneQuery)
+   * Sync (sent by caller)
+   *
+   * <p>STATE MACHINE POSITION: Building messages for Query Execution State Machine (State #2).
+   * This method constructs the message sequence that will be sent to the server and adds
+   * corresponding entries to pending queues for response tracking.</p>
+   *
+   * <p>EXTENDED QUERY PROTOCOL FLOW:
+   * 1. Parse - Create/reuse prepared statement (adds to pendingParseQueue)
+   * 2. Bind - Bind parameters to statement (adds to pendingBindQueue)
+   * 3. Describe - Request result metadata (adds to pendingDescribePortalQueue)
+   * 4. Execute - Execute bound statement (adds to pendingExecuteQueue)
+   * 5. Sync - Sent by caller after this method returns
+   * 6. ReadyForQuery - Server signals completion (processed in processResults)</p>
+   *
+   * <p>WHAT HAPPENS NEXT: After this method returns, the caller sends Sync and invokes
+   * processResults() which enters the Message Processing State Machine (State #3) to
+   * consume server responses and update pending queues.</p>
+   */
   private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
       int fetchSize, int flags) throws IOException {
     boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
@@ -1959,52 +2053,32 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
     boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
     // extended queries always use a portal
-    // the usePortal flag controls whether or not we use a *named* portal
+    // the usePortal flag controls whether we use a *named* portal
     boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
     boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
     boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
     boolean forceDescribePortal = (flags & QUERY_FORCE_DESCRIBE_PORTAL) != 0;
 
-    // Work out how many rows to fetch in this pass.
+    int rows = calculateRowsToFetch(noResults, usePortal, maxRows, fetchSize);
 
-    int rows;
-    if (noResults) {
-      rows = 1; // We're discarding any results anyway, so limit data transfer to a minimum
-    } else if (!usePortal) {
-      rows = maxRows; // Not using a portal -- fetchSize is irrelevant
-    } else if (maxRows != 0 && fetchSize > maxRows) {
-      // fetchSize > maxRows, use maxRows (nb: fetchSize cannot be 0 if usePortal == true)
-      rows = maxRows;
-    } else {
-      rows = fetchSize; // maxRows > fetchSize
-    }
-
+    // STATE: Send Parse message (or skip if already parsed)
+    // NEXT: Server will respond with ParseComplete (or skip if cached)
     sendParse(query, params, oneShot);
 
-    // Must do this after sendParse to pick up any changes to the
-    // query's state.
-    //
     boolean queryHasUnknown = query.hasUnresolvedTypes();
     boolean paramsHasUnknown = params.hasUnresolvedTypes();
 
-    boolean describeStatement = describeOnly
-        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+    boolean describeStatement = shouldDescribeStatement(describeOnly, oneShot, queryHasUnknown,
+        paramsHasUnknown, query);
 
     if (!describeStatement && paramsHasUnknown && !queryHasUnknown) {
-      int[] queryOIDs = castNonNull(query.getPrepareTypes());
-      int[] paramOIDs = params.getTypeOIDs();
-      for (int i = 0; i < paramOIDs.length; i++) {
-        // Only supply type information when there isn't any
-        // already, don't arbitrarily overwrite user supplied
-        // type information.
-        if (paramOIDs[i] == Oid.UNSPECIFIED) {
-          params.setResolvedType(i + 1, queryOIDs[i]);
-        }
-      }
+      resolveParameterTypes(query, params);
     }
 
     if (describeStatement) {
+      // STATE: Send Describe(Statement) to get parameter types
+      // NEXT: Server responds with ParameterDescription
       sendDescribeStatement(query, params, describeOnly);
       if (describeOnly) {
         return;
@@ -2018,6 +2092,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       portal = new Portal(query, portalName);
     }
 
+    // STATE: Send Bind message to bind parameters to statement
+    // NEXT: Server responds with BindComplete
     sendBind(query, params, portal, noBinaryTransfer);
 
     // A statement describe will also output a RowDescription,
@@ -2040,11 +2116,45 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * hack, but there aren't many good alternatives.
        */
       if (!query.isPortalDescribed() || forceDescribePortal) {
+        // STATE: Send Describe(Portal) to get result metadata
+        // NEXT: Server responds with RowDescription or NoData
         sendDescribePortal(query, portal);
       }
     }
 
+    // STATE: Send Execute message to run the query
+    // NEXT: Server responds with DataRow* followed by CommandComplete or PortalSuspended
     sendExecute(query, portal, rows);
+    // After this method returns, caller sends Sync and processes all responses via processResults()
+  }
+
+  private int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
+    if (noResults) {
+      return 1;
+    }
+    if (!usePortal) {
+      return maxRows;
+    }
+    if (maxRows != 0 && fetchSize > maxRows) {
+      return maxRows;
+    }
+    return fetchSize;
+  }
+
+  private boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
+      boolean queryHasUnknown, boolean paramsHasUnknown, SimpleQuery query) {
+    return describeOnly
+        || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
+  }
+
+  private void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
+    int[] queryOIDs = castNonNull(query.getPrepareTypes());
+    int[] paramOIDs = params.getTypeOIDs();
+    for (int i = 0; i < paramOIDs.length; i++) {
+      if (paramOIDs[i] == Oid.UNSPECIFIED) {
+        params.setResolvedType(i + 1, queryOIDs[i]);
+      }
+    }
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
