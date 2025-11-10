@@ -44,7 +44,7 @@ dependencies {
 }
 
 jacoco {
-    toolVersion = "0.8.13"
+    toolVersion = "0.8.14"
     providers.gradleProperty("jacoco.version")
         .takeIf { it.isPresent }
         ?.let { toolVersion = it.get() }
