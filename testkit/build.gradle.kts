@@ -10,5 +10,5 @@ dependencies {
     // We want testkit to be compatible with both regular and shadowed variants,
     // so we use compileOnly.
     compileOnly(projects.postgresql)
-    implementation("org.checkerframework:checker-qual:3.51.0")
+    implementation("org.checkerframework:checker-qual:3.52.0")
 }
