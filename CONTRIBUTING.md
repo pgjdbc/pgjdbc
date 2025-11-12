@@ -116,7 +116,7 @@ on a command line (the outputs are located in the relevant:
     ./gradlew check # verify code style, execute tests
     ./gradlew style # update code formatting (for auto-correctable cases) and verify style (e.g. CheckStyle, ErrorProne, tab vs spaces, and so on)
     ./gradlew styleCheck # report code style violations
-    ./gradlew -PenableErrorprone classes # verify code with Error Prone tool
+    ./gradlew -PenableErrorprone  -PenableCheckerframework classes # verify code with Error Prone tool and Checkerframework
 
     ./gradlew test # execute tests
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class

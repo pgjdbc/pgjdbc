@@ -451,6 +451,11 @@ public enum PGProperty {
       false),
 
   /**
+   * Algorithm for the PEM key.
+   */
+  PEM_KEY_ALGORITHM("pemKeyAlgorithm", "RSA", "Algorithm of the PEM key"),
+
+  /**
    * Database name to connect to (may be specified directly in the JDBC URL).
    */
   PG_DBNAME(
