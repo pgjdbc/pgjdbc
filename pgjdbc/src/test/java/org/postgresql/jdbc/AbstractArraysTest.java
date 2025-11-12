@@ -1111,6 +1111,22 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    public boolean isIsolationInTransactionMode() {
+      return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int addIsolationLevelFlags(int flags) {
+      return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setAdaptiveFetch(boolean adaptiveFetch) {
       throw new UnsupportedOperationException();
     }
