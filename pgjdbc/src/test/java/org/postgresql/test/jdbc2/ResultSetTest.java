@@ -53,6 +53,8 @@ import java.util.concurrent.TimeoutException;
  */
 @ParameterizedClass
 @MethodSource("data")
+// TODO: add @Isolated("Uses Locale.setDefault") since the test modifies the Locale.
+//   see https://github.com/junit-team/junit-framework/discussions/5154
 public class ResultSetTest extends BaseTest4 {
 
   public ResultSetTest(BinaryMode binaryMode) {
