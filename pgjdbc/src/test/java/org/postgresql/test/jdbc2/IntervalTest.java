@@ -16,6 +16,7 @@ import org.postgresql.util.PGInterval;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,7 +27,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
+@Isolated("Uses Locale.setDefault")
 class IntervalTest {
   private Connection conn;
 
@@ -108,7 +111,7 @@ class IntervalTest {
     PGInterval interval = new PGInterval("1 year 3 months");
     String coercedStringValue = interval.toString();
 
-    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.0 secs", coercedStringValue);
+    assertEquals("1 years 3 mons", coercedStringValue);
   }
 
   @Test
@@ -382,6 +385,27 @@ class IntervalTest {
     PGInterval pgi = new PGInterval("0.000001 seconds");
 
     assertEquals(0.000001, pgi.getSeconds(), 0.000000001);
+  }
+
+  @Test
+  void randomIntervalsRoundtripTest() throws SQLException {
+    ThreadLocalRandom random = ThreadLocalRandom.current();
+    for (int i = 0; i < 1000000; i++) {
+      // PostgreSQL interval limits are -178000000..178000000 years
+      int years = random.nextInt(-177000000, 177000000);
+      int months = random.nextInt(-10000, 10000);
+      int days = random.nextInt(-10000, 10000);
+      int hours = random.nextInt(-10000, 10000);
+      int minutes = random.nextInt(-10000, 10000);
+      double seconds = random.nextDouble(-100000, 100000);
+      PGInterval original = new PGInterval(years, months, days, hours, minutes, seconds);
+      PGInterval copy = new PGInterval(original.getValue());
+      assertEquals(original, copy,
+          () -> "years: " + years + ", months: " + months + ", days: " + days
+              + ", hours: " + hours + ", minutes: " + minutes + ", seconds: " + seconds
+              + "; Copy: years: " + copy.getYears() + ", months: " + copy.getMonths() + ", days: " + copy.getDays()
+              + ", hours: " + copy.getHours() + ", minutes: " + copy.getMinutes() + ", seconds: " + copy.getSeconds());
+    }
   }
 
   @Test

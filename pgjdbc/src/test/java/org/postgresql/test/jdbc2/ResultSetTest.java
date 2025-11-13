@@ -24,6 +24,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -52,6 +53,7 @@ import java.util.concurrent.TimeoutException;
  */
 @ParameterizedClass
 @MethodSource("data")
+@Isolated("Uses Locale.setDefault")
 public class ResultSetTest extends BaseTest4 {
 
   public ResultSetTest(BinaryMode binaryMode) {
