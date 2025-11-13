@@ -9,8 +9,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -260,19 +258,55 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return null;
     }
-    DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
-    df.applyPattern("0.0#####");
 
-    return String.format(
-      Locale.ROOT,
-      "%d years %d mons %d days %d hours %d mins %s secs",
-      years,
-      months,
-      days,
-      hours,
-      minutes,
-      df.format(getSeconds())
-    );
+    // See https://github.com/pgjdbc/pgjdbc/pull/3866 for the justification
+    // It looks like any attempt to estimate the buffer size causes noticeable slowdown
+    StringBuilder sb = new StringBuilder(64);
+    appendUnit(sb, years, " years");
+    appendUnit(sb, months, " mons");
+    appendUnit(sb, days, " days");
+    appendUnit(sb, hours, " hours");
+    appendUnit(sb, minutes, " mins");
+
+    if (sb.length() == 0 || wholeSeconds != 0 || microSeconds != 0) {
+      if (sb.length() > 0) {
+        sb.append(' ');
+      }
+      if (wholeSeconds < 0 || microSeconds < 0) {
+        // E.g. -0.73 has wholeSeconds==0, so we need to check micros as well
+        sb.append('-');
+      }
+      sb.append(Math.abs(wholeSeconds));
+
+      if (microSeconds != 0) {
+        sb.append('.');
+        int microsStart = sb.length(); // including
+        // Add microseconds
+        sb.append(Math.abs(microSeconds));
+        int microsEnd = sb.length(); // excluding
+        int prefixZeros = 6 - (microsEnd - microsStart);
+        // Remove trailing zeros
+        while (sb.charAt(microsEnd - 1) == '0' && microsEnd > microsStart) {
+          microsEnd--;
+        }
+        sb.setLength(microsEnd);
+        // Add missing leading zeros
+        sb.insert(microsStart, "000000", 0, prefixZeros);
+      }
+
+      sb.append(" secs");
+    }
+    return sb.toString();
+  }
+
+  private static void appendUnit(StringBuilder sb, int value, String unit) {
+    if (value == 0) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append(' ');
+    }
+    sb.append(value).append(unit);
   }
 
   /**
@@ -394,8 +428,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    */
   public void setSeconds(double seconds) {
     isNull = false;
-    wholeSeconds = (int) seconds;
-    microSeconds = (int) Math.round((seconds - wholeSeconds) * MICROS_IN_SECOND);
+
+    double micros = seconds * MICROS_IN_SECOND;
+    if (micros > Long.MAX_VALUE || micros < Long.MIN_VALUE) {
+      throw new IllegalArgumentException("Number of seconds should be within Long.MIN_VALUE/1000000...Long.MAX_VALUE/1000000");
+    }
+    long totalMicros = Math.round(micros);
+    wholeSeconds = (int) (totalMicros / MICROS_IN_SECOND);
+    microSeconds = (int) (totalMicros % MICROS_IN_SECOND);
   }
 
   /**
