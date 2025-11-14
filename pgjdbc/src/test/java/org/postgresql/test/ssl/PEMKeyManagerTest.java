@@ -186,7 +186,7 @@ public class PEMKeyManagerTest {
     PGProperty.PEM_KEY_ALGORITHM.set(props, "RSA");
 
     try (Connection conn = TestUtil.openDB(props)) {
-      boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()");
+      boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
       assertTrue(sslUsed, "SSL should be in use");
     }
   }
