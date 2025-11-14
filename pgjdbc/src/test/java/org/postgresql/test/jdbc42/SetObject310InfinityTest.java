@@ -22,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -64,6 +65,7 @@ public class SetObject310InfinityTest extends BaseTest4 {
   @Test
   public void testTimestamptz() throws SQLException {
     runTestforType(OffsetDateTime.MAX, OffsetDateTime.MIN, "timestamp_without_time_zone_column", null);
+    runTestforType(Instant.MAX, Instant.MIN, "timestamp_without_time_zone_column", null);
   }
 
   @Test
