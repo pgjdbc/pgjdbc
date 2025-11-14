@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.ssl.PEMKeyManager;
 import org.postgresql.test.TestUtil;
 
@@ -177,6 +178,7 @@ public class PEMKeyManagerTest {
 
   @Test
   void TestGoodClientPEM() throws Exception {
+    TestUtil.assumeHaveMinimumServerVersion(ServerVersion.v9_5);
     TestUtil.assumeSslTestsEnabled();
 
     Properties props = new Properties();
