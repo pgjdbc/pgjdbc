@@ -9,8 +9,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
@@ -260,19 +258,56 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return null;
     }
-    DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
-    df.applyPattern("0.0#####");
 
-    return String.format(
-      Locale.ROOT,
-      "%d years %d mons %d days %d hours %d mins %s secs",
-      years,
-      months,
-      days,
-      hours,
-      minutes,
-      df.format(getSeconds())
-    );
+    StringBuilder sb = new StringBuilder(64);
+    if (years != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      sb.append(years).append(" years");
+    }
+    if (months != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      sb.append(months).append(" mons");
+    }
+    if (days != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      sb.append(days).append(" days");
+    }
+    if (hours != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      sb.append(hours).append(" hours");
+    }
+    if (minutes != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      sb.append(minutes).append(" mins");
+    }
+
+    if (sb.length() == 0 || wholeSeconds != 0 || microSeconds != 0) {
+      if (sb.length() > 0) { sb.append(' '); }
+      if (wholeSeconds < 0 || microSeconds < 0) {
+        // E.g. -0.73 has wholeSeconds==0, so we need to check micros as well
+        sb.append('-');
+      }
+      sb.append(Math.abs(wholeSeconds));
+
+      if (microSeconds != 0) {
+        sb.append('.');
+        int microsStart = sb.length(); // including
+        // Add microseconds
+        sb.append(Math.abs(microSeconds));
+        int microsEnd = sb.length(); // excluding
+        int prefixZeros = 6 - (microsEnd - microsStart);
+        // Remove trailing zeros
+        while (sb.charAt(microsEnd - 1) == '0' && microsEnd > microsStart) {
+          microsEnd--;
+        }
+        sb.setLength(microsEnd);
+        // Add missing leading zeros
+        sb.insert(microsStart, "000000", 0, prefixZeros);
+      }
+
+      sb.append(" secs");
+    }
+    return sb.toString();
   }
 
   /**
