@@ -42,8 +42,12 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+import java.util.logging.Level;
 
 public class PgStatement implements Statement, BaseStatement {
+  private static final java.util.logging.Logger LOGGER =
+      java.util.logging.Logger.getLogger(PgStatement.class.getName());
+
   private static final String[] NO_RETURNING_COLUMNS = new String[0];
 
   /**
@@ -457,6 +461,11 @@ public class PgStatement implements Statement, BaseStatement {
     if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
         && !wantsHoldableResultSet()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
+    } else if (fetchSize > 0 && connection.getAutoCommit()) {
+      LOGGER.log(Level.INFO,
+          "Server-side cursor is disabled because autocommit=true. "
+              + "fetchSize={0} will not be applied; entire result set will be loaded into memory.",
+          new Object[]{fetchSize});
     }
 
     if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
