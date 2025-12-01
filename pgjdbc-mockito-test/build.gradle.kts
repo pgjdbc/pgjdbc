@@ -28,7 +28,7 @@ dependencies {
     }
     byteBuddyAgent("net.bytebuddy:byte-buddy-agent:1.18.2")
     testImplementation(projects.testkit)
-    testImplementation(platform("org.mockito:mockito-bom:5.19.0"))
+    testImplementation(platform("org.mockito:mockito-bom:5.20.0"))
     testImplementation("org.mockito:mockito-core")
     testImplementation("org.mockito:mockito-junit-jupiter")
 }
