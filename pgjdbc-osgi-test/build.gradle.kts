@@ -15,7 +15,7 @@ val pgjdbcRepository by configurations.creating {
 
 dependencies {
     constraints {
-        testImplementation("org.apache.bcel:bcel:6.10.0") {
+        testImplementation("org.apache.bcel:bcel:6.11.0") {
             because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
         }
     }
