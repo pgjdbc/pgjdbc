@@ -25,9 +25,11 @@ package org.postgresql.util;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.lang.ref.PhantomReference;
+import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.time.Duration;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ForkJoinPool;
+import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,8 +55,8 @@ public class LazyCleaner {
   }
 
   private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
-  private final long threadTtl;
-  private final ThreadFactory threadFactory;
+  private final String threadName;
+  private final Duration threadTtl;
   private boolean threadRunning;
   private int watchedCount;
   private @Nullable Node<?> first;
@@ -70,16 +72,8 @@ public class LazyCleaner {
   }
 
   public LazyCleaner(Duration threadTtl, final String threadName) {
-    this(threadTtl, runnable -> {
-      Thread thread = new Thread(runnable, threadName);
-      thread.setDaemon(true);
-      return thread;
-    });
-  }
-
-  private LazyCleaner(Duration threadTtl, ThreadFactory threadFactory) {
-    this.threadTtl = threadTtl.toMillis();
-    this.threadFactory = threadFactory;
+    this.threadName = threadName;
+    this.threadTtl = threadTtl;
   }
 
   public <T extends Throwable> Cleanable<T> register(Object obj, CleaningAction<T> action) {
@@ -118,56 +112,114 @@ public class LazyCleaner {
     return node;
   }
 
+  /**
+   * RefQueueBlocker retrieves references from the reference queue without blocking ForkJoinPool
+   * CPU threads.
+   *
+   * @param <T> the type of the objects referenced by the {@link Reference}s in the queue
+   */
+  private static class RefQueueBlocker<T> implements ForkJoinPool.ManagedBlocker {
+    private final ReferenceQueue<T> queue;
+    private final String threadName;
+    private @Nullable Reference<? extends T> ref;
+    private final long blockTimeoutMillis;
+    private final BooleanSupplier isActive;
+
+    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout, BooleanSupplier isActive) {
+      this.queue = queue;
+      this.threadName = threadName;
+      this.blockTimeoutMillis = blockTimeout.toMillis();
+      this.isActive = isActive;
+    }
+
+    @Override
+    public boolean isReleasable() {
+      if (ref != null || !isActive.getAsBoolean()) {
+        return true; // already have a ref from a previous call
+      }
+      // non-blocking check
+      ref = queue.poll();
+      // no need to block if we already have a ref from a previous call
+      return ref != null;
+    }
+
+    @Override
+    public boolean block() throws InterruptedException {
+      if (isReleasable()) {
+        return true;
+      }
+      Thread currentThread = Thread.currentThread();
+      // ForkJoinPool reuses threads, so we set the thread name just for the blocking operation
+      String oldName = currentThread.getName();
+      try {
+        currentThread.setName(threadName);
+        // Perform blocking operation
+        ref = queue.remove(blockTimeoutMillis);
+      } finally {
+        currentThread.setName(oldName);
+      }
+      return false;
+    }
+
+    public @Nullable Reference<? extends T> drainOne() {
+      Reference<? extends T> ref = this.ref;
+      this.ref = null;
+      return ref;
+    }
+  }
+
   private boolean startThread() {
-    Thread thread = threadFactory.newThread(new Runnable() {
-      @Override
-      public void run() {
-        while (true) {
-          try {
-            // Clear setContextClassLoader to avoid leaking the classloader
-            Thread.currentThread().setContextClassLoader(null);
-            Thread.currentThread().setUncaughtExceptionHandler(null);
-            // Node extends PhantomReference, so this cast is safe
-            Node<?> ref = (Node<?>) queue.remove(threadTtl);
-            if (ref == null) {
-              if (checkEmpty()) {
+    // We use ForkJoinPool to work around Thread.inheritedAccessControlContext memory leak
+    // Java creates FJP threads without caller's access control context, thus we reduce
+    // the surface for the leak.
+    ForkJoinPool.commonPool().execute(
+        () -> {
+          RefQueueBlocker<Object> blocker =
+              new RefQueueBlocker<>(queue, threadName, threadTtl, () -> !checkEmpty());
+          boolean interrupted = false;
+          while (!checkEmpty()) {
+            try {
+              ForkJoinPool.managedBlock(blocker);
+            } catch (InterruptedException e) {
+              interrupted = true;
+            }
+
+            if (!interrupted) {
+              Node<?> ref = (Node<?>) blocker.drainOne();
+              if (ref == null) {
+                if (checkEmpty()) {
+                  break;
+                }
+                continue;
+              }
+              try {
+                ref.onClean(true);
+              } catch (Throwable e) {
+                if (e instanceof InterruptedException) {
+                  // This could happen if onClean uses sneaky-throws
+                  LOGGER.log(Level.WARNING, "Unexpected interrupt while executing onClean", e);
+                  interrupted = true;
+                } else {
+                  // Should not happen if cleaners are well-behaved
+                  LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
+                }
+              }
+            }
+            if (interrupted) {
+              interrupted = false;
+              if (LazyCleaner.this.checkEmpty()) {
+                LOGGER.log(
+                    Level.FINE,
+                    "Cleanup queue is empty, and got interrupt, will terminate the cleanup thread"
+                );
                 break;
               }
-              continue;
+              LOGGER.log(Level.FINE, "Ignoring interrupt since the cleanup queue is non-empty");
             }
-            try {
-              ref.onClean(true);
-            } catch (Throwable e) {
-              if (e instanceof InterruptedException) {
-                // This could happen if onClean uses sneaky-throws
-                LOGGER.log(Level.WARNING, "Unexpected interrupt while executing onClean", e);
-                throw e;
-              }
-              // Should not happen if cleaners are well-behaved
-              LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
-            }
-          } catch (InterruptedException e) {
-            if (LazyCleaner.this.checkEmpty()) {
-              LOGGER.log(
-                  Level.FINE,
-                  "Cleanup queue is empty, and got interrupt, will terminate the cleanup thread"
-              );
-              break;
-            }
-            LOGGER.log(Level.FINE, "Ignoring interrupt since the cleanup queue is non-empty");
-          } catch (Throwable e) {
-            // Ignore exceptions from the cleanup action
-            LOGGER.log(Level.WARNING, "Unexpected exception in cleaner thread main loop", e);
           }
         }
-      }
-    });
-    if (thread != null) {
-      thread.start();
-      return true;
-    }
-    LOGGER.log(Level.WARNING, "Unable to create cleanup thread");
-    return false;
+    );
+    return true;
   }
 
   private synchronized boolean remove(Node<?> node) {
