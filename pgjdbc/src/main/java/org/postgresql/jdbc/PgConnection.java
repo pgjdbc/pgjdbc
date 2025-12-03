@@ -43,6 +43,7 @@ import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
+import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGInterval;
@@ -398,7 +399,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+    cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {

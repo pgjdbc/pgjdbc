@@ -46,6 +46,41 @@ java {
     }
 }
 
+// Create a separate source set for Java 11+ specific code (e.g., java.lang.ref.Cleaner)
+val java11 by sourceSets.creating {
+    java {
+        srcDir("src/main/java11")
+    }
+    // Make java11 source set depend on main source set (to access LazyCleaner base class)
+    compileClasspath += sourceSets.main.get().output
+}
+
+if (buildParameters.testJdkVersion >= 11) {
+    // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
+    // So we explicitly prepend the classpath with Java 11 classes
+    tasks.test {
+        classpath = java11.output + classpath
+    }
+}
+
+// Configure the java11 source set to compile with Java 11
+tasks.named<JavaCompile>(java11.compileJavaTaskName) {
+    options.release.set(11)
+    // Ensure main classes are compiled before java11 classes
+    dependsOn(tasks.compileJava)
+}
+
+fun CopySpec.addMultiReleaseContents() {
+    into("META-INF/versions/11") {
+        from(java11.output)
+    }
+}
+
+// Add java11 compiled classes to the main JAR
+tasks.jar {
+    addMultiReleaseContents()
+}
+
 val knows by tasks.existing {
     group = null // Hide the task from `./gradlew tasks` output
     description = "This is a dummy task, unfortunately the author refuses to remove it: https://github.com/johnrengelman/shadow/issues/122"
@@ -109,6 +144,7 @@ dependencies {
     shaded("com.ongres.scram:scram-client:3.2")
 
     implementation("org.checkerframework:checker-qual:3.52.0")
+    java11.implementationConfigurationName("org.checkerframework:checker-qual:3.52.0")
 
     testKitSourcesWithoutAnnotations(projects.testkit)
 
@@ -227,6 +263,7 @@ tasks.configureEach<Jar> {
     manifest {
         attributes["Main-Class"] = "org.postgresql.util.PGJDBCMain"
         attributes["Automatic-Module-Name"] = "org.postgresql.jdbc"
+        attributes["Multi-Release"] = "true"
     }
 }
 
@@ -243,6 +280,7 @@ tasks.shadowJar {
     exclude("META-INF/NOTICE*")
     exclude("LICENSE")
     exclude("NOTICE")
+    addMultiReleaseContents()
     listOf(
             "com.ongres"
     ).forEach {
