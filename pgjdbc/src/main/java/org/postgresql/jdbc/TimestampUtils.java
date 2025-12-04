@@ -135,8 +135,8 @@ public class TimestampUtils {
   private final StringBuilder sbuf = new StringBuilder();
 
   // This calendar is used when user provides calendar in setX(, Calendar) method.
-  // It ensures calendar is Gregorian.
-  private final Calendar calendarWithUserTz = new GregorianCalendar();
+  // It ensures calendar is proleptic Gregorian.
+  private final Calendar calendarWithUserTz = createProlepticGregorianCalendar(TimeZone.getDefault());
 
   private @Nullable Calendar calCache;
   private @Nullable ZoneOffset calCacheZone;
@@ -159,11 +159,11 @@ public class TimestampUtils {
     }
 
     // normally we would use:
-    // calCache = new GregorianCalendar(TimeZone.getTimeZone(offset));
+    // calCache = createProlepticGregorianCalendar(TimeZone.getTimeZone(offset));
     // But this seems to cause issues for some crazy offsets as returned by server for BC dates!
     final String tzid = offset.getTotalSeconds() == 0 ? "UTC" : "GMT".concat(offset.getId());
     final TimeZone syntheticTZ = new SimpleTimeZone(offset.getTotalSeconds() * 1000, tzid);
-    calCache = new GregorianCalendar(syntheticTZ);
+    calCache = createProlepticGregorianCalendar(syntheticTZ);
     calCacheZone = offset;
     return calCache;
   }
@@ -766,7 +766,7 @@ public class TimestampUtils {
         return new Date(PGStatement.DATE_NEGATIVE_INFINITY);
       }
       if ( cal == null ) {
-        cal = Calendar.getInstance();
+        cal = createProlepticGregorianCalendar(TimeZone.getDefault());
       }
 
       ParsedTimestamp pt;
@@ -1782,8 +1782,7 @@ public class TimestampUtils {
   }
 
   /**
-   * Converts the given postgresql seconds to java seconds. Reverse engineered by inserting varying
-   * dates to postgresql and tuning the formula until the java dates matched. See {@link #toPgSecs}
+   * Converts the given postgresql seconds to java seconds. See {@link #toPgSecs}
    * for the reverse operation.
    *
    * @param secs Postgresql seconds.
@@ -1791,19 +1790,9 @@ public class TimestampUtils {
    */
   @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toJavaSecs(long secs) {
-    // postgres epoc to java epoc
+    // postgres epoch to java epoch
     secs += PG_EPOCH_DIFF.getSeconds();
 
-    // Julian/Gregorian calendar cutoff point
-    if (secs < -12219292800L) { // October 4, 1582 -> October 15, 1582
-      secs += 86400 * 10;
-      if (secs < -14825808000L) { // 1500-02-28 -> 1500-03-01
-        int extraLeaps = (int) ((secs + 14825808000L) / 3155760000L);
-        extraLeaps--;
-        extraLeaps -= extraLeaps / 4;
-        secs += extraLeaps * 86400L;
-      }
-    }
     return secs;
   }
 
@@ -1816,19 +1805,8 @@ public class TimestampUtils {
    */
   @SuppressWarnings("JavaDurationGetSecondsToToSeconds")
   private static long toPgSecs(long secs) {
-    // java epoc to postgres epoc
+    // java epoch to postgres epoch
     secs -= PG_EPOCH_DIFF.getSeconds();
-
-    // Julian/Gregorian calendar cutoff point
-    if (secs < -13165977600L) { // October 15, 1582 -> October 4, 1582
-      secs -= 86400 * 10;
-      if (secs < -15773356800L) { // 1500-03-01 -> 1500-02-28
-        int years = (int) ((secs + 15773356800L) / -3155823050L);
-        years++;
-        years -= years / 4;
-        secs += years * 86400L;
-      }
-    }
 
     return secs;
   }
@@ -1887,6 +1865,21 @@ public class TimestampUtils {
 
   private static long floorMod(long x, long y) {
     return x - floorDiv(x, y) * y;
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 
 }

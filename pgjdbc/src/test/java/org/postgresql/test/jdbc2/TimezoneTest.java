@@ -27,6 +27,7 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Properties;
 import java.util.TimeZone;
@@ -76,10 +77,10 @@ public class TimezoneTest {
     TimeZone tzGMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
     TimeZone tzGMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    cUTC = Calendar.getInstance(tzUTC);
-    cGMT03 = Calendar.getInstance(tzGMT03);
-    cGMT05 = Calendar.getInstance(tzGMT05);
-    cGMT13 = Calendar.getInstance(tzGMT13);
+    cUTC = createProlepticGregorianCalendar(tzUTC);
+    cGMT03 = createProlepticGregorianCalendar(tzGMT03);
+    cGMT05 = createProlepticGregorianCalendar(tzGMT05);
+    cGMT13 = createProlepticGregorianCalendar(tzGMT13);
   }
 
   @BeforeEach
@@ -859,9 +860,10 @@ public class TimezoneTest {
     PreparedStatement pstmt =
         con.prepareStatement("SELECT ts, d FROM testtimezone order by seq /*" + timeZone + "*/");
 
-    Calendar expectedTimestamp = Calendar.getInstance();
+    Calendar expectedTimestamp = createProlepticGregorianCalendar(TimeZone.getDefault());
 
     SimpleDateFormat sdf = new SimpleDateFormat(testDateFormat);
+    sdf.setCalendar(expectedTimestamp);
 
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       ResultSet rs = pstmt.executeQuery();
@@ -970,5 +972,19 @@ public class TimezoneTest {
       } while (millis > high);
     }
     return millis;
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }

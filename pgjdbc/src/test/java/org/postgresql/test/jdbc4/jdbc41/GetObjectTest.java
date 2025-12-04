@@ -198,14 +198,9 @@ class GetObjectTest {
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
     try {
       assertTrue(rs.next());
-      Calendar calendar = GregorianCalendar.getInstance();
+      Calendar calendar = createProlepticGregorianCalendar(TimeZone.getDefault());
       calendar.clear();
-      calendar.set(Calendar.YEAR, 2004);
-      calendar.set(Calendar.MONTH, Calendar.OCTOBER);
-      calendar.set(Calendar.DAY_OF_MONTH, 19);
-      calendar.set(Calendar.HOUR_OF_DAY, 10);
-      calendar.set(Calendar.MINUTE, 23);
-      calendar.set(Calendar.SECOND, 54);
+      calendar.set(2004, Calendar.OCTOBER, 19, 10, 23, 54);
       Timestamp expectedNoZone = new Timestamp(calendar.getTimeInMillis());
       assertEquals(expectedNoZone, rs.getObject("timestamp_without_time_zone_column", Timestamp.class));
       assertEquals(expectedNoZone, rs.getObject(1, Timestamp.class));
@@ -224,14 +219,9 @@ class GetObjectTest {
         + ", null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
-      Calendar calendar = GregorianCalendar.getInstance();
+      Calendar calendar = createProlepticGregorianCalendar(TimeZone.getDefault());
       calendar.clear();
-      calendar.set(Calendar.YEAR, 2004);
-      calendar.set(Calendar.MONTH, Calendar.OCTOBER);
-      calendar.set(Calendar.DAY_OF_MONTH, 19);
-      calendar.set(Calendar.HOUR_OF_DAY, 10);
-      calendar.set(Calendar.MINUTE, 23);
-      calendar.set(Calendar.SECOND, 54);
+      calendar.set(2004,  Calendar.OCTOBER, 19, 10, 23, 54);
       java.util.Date expected = new java.util.Date(calendar.getTimeInMillis());
       assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", java.util.Date.class));
       assertEquals(expected, rs.getObject(1, java.util.Date.class));
@@ -261,14 +251,9 @@ class GetObjectTest {
       try {
         assertTrue(rs.next());
 
-        Calendar calendar = GregorianCalendar.getInstance(timeZone);
+        Calendar calendar = createProlepticGregorianCalendar(timeZone);
         calendar.clear();
-        calendar.set(Calendar.YEAR, 2004);
-        calendar.set(Calendar.MONTH, Calendar.OCTOBER);
-        calendar.set(Calendar.DAY_OF_MONTH, 19);
-        calendar.set(Calendar.HOUR_OF_DAY, 10);
-        calendar.set(Calendar.MINUTE, 23);
-        calendar.set(Calendar.SECOND, 54);
+        calendar.set(2004, Calendar.OCTOBER, 19, 10, 23, 54);
         Timestamp expectedWithZone = new Timestamp(calendar.getTimeInMillis());
         assertEquals(expectedWithZone, rs.getObject("timestamp_with_time_zone_column", Timestamp.class));
         assertEquals(expectedWithZone, rs.getObject(1, Timestamp.class));
@@ -292,14 +277,9 @@ class GetObjectTest {
         + ", TIMESTAMP '2004-10-19 10:23:54+02'::timestamp as timestamp_with_time_zone_column, null::timestamp as null_timestamp");
     try {
       assertTrue(rs.next());
-      Calendar calendar = GregorianCalendar.getInstance();
+      Calendar calendar = createProlepticGregorianCalendar(TimeZone.getDefault());
       calendar.clear();
-      calendar.set(Calendar.YEAR, 2004);
-      calendar.set(Calendar.MONTH, Calendar.OCTOBER);
-      calendar.set(Calendar.DAY_OF_MONTH, 19);
-      calendar.set(Calendar.HOUR_OF_DAY, 10);
-      calendar.set(Calendar.MINUTE, 23);
-      calendar.set(Calendar.SECOND, 54);
+      calendar.set(2004,  Calendar.OCTOBER, 19, 10, 23, 54);
       long expected = calendar.getTimeInMillis();
       assertEquals(expected, rs.getObject("timestamp_without_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(1, Calendar.class).getTimeInMillis());
@@ -309,6 +289,29 @@ class GetObjectTest {
       assertEquals(expected, rs.getObject("timestamp_with_time_zone_column", Calendar.class).getTimeInMillis());
       assertEquals(expected, rs.getObject(2, Calendar.class).getTimeInMillis());
       assertNull(rs.getObject(3, Calendar.class));
+    } finally {
+      rs.close();
+    }
+  }
+
+  /**
+   * Test the behavior getObject for timestamp columns using the year 1000.
+   */
+  @Test
+  void getCalendarYear1000() throws SQLException {
+    Statement stmt = conn.createStatement();
+
+    ResultSet rs = stmt.executeQuery("select TIMESTAMP '1000-10-19 10:23:54'::timestamp as timestamp_without_time_zone_column"
+        + ", TIMESTAMP '1000-10-19 10:23:54+02'::timestamp as timestamp_with_time_zone_column, null::timestamp as null_timestamp");
+    try {
+      assertTrue(rs.next());
+      Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+      expectedCal.clear();
+      expectedCal.set(1000, Calendar.OCTOBER, 19, 10, 23, 54);
+
+      assertEquals(expectedCal.getTimeInMillis(), rs.getObject("timestamp_without_time_zone_column", Calendar.class).getTimeInMillis());
+      expectedCal.setTimeZone(TimeZone.getTimeZone("GMT+2:00"));
+      assertEquals(expectedCal.getTimeInMillis(), rs.getObject("timestamp_with_time_zone_column", Calendar.class).getTimeInMillis());
     } finally {
       rs.close();
     }
@@ -325,11 +328,9 @@ class GetObjectTest {
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
     try {
       assertTrue(rs.next());
-      Calendar calendar = GregorianCalendar.getInstance();
+      Calendar calendar = createProlepticGregorianCalendar(TimeZone.getDefault());
       calendar.clear();
-      calendar.set(Calendar.YEAR, 1999);
-      calendar.set(Calendar.MONTH, Calendar.JANUARY);
-      calendar.set(Calendar.DAY_OF_MONTH, 8);
+      calendar.set(1999, Calendar.JANUARY, 8);
       Date expectedNoZone = new Date(calendar.getTimeInMillis());
       assertEquals(expectedNoZone, rs.getObject("date_column", Date.class));
       assertEquals(expectedNoZone, rs.getObject(1, Date.class));
@@ -379,14 +380,9 @@ class GetObjectTest {
     ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"));
     try {
       assertTrue(rs.next());
-      Calendar calendar = GregorianCalendar.getInstance();
+      Calendar calendar = createProlepticGregorianCalendar(TimeZone.getDefault());
       calendar.clear();
-      calendar.set(Calendar.YEAR, 1970);
-      calendar.set(Calendar.MONTH, Calendar.JANUARY);
-      calendar.set(Calendar.DAY_OF_MONTH, 1);
-      calendar.set(Calendar.HOUR, 4);
-      calendar.set(Calendar.MINUTE, 5);
-      calendar.set(Calendar.SECOND, 6);
+      calendar.set(1970,  Calendar.JANUARY, 1, 4, 5, 6);
       Time expectedNoZone = new Time(calendar.getTimeInMillis());
       assertEquals(expectedNoZone, rs.getObject("time_without_time_zone_column", Time.class));
       assertEquals(expectedNoZone, rs.getObject(1, Time.class));
@@ -1037,4 +1033,17 @@ class GetObjectTest {
     testInet(inet + "/128", addr, inet);
   }
 
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
+  }
 }

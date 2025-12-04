@@ -29,6 +29,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Isolated("Uses Locale.setDefault")
@@ -148,7 +149,7 @@ class IntervalTest {
   @Test
   void addRounding() {
     PGInterval pgi = new PGInterval(0, 0, 0, 0, 0, 0.6006);
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     long origTime = cal.getTime().getTime();
     pgi.add(cal);
     long newTime = cal.getTime().getTime();
@@ -208,7 +209,7 @@ class IntervalTest {
   }
 
   private static Calendar getStartCalendar() {
-    Calendar cal = new GregorianCalendar();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.set(Calendar.YEAR, 2005);
     cal.set(Calendar.MONTH, 4);
     cal.set(Calendar.DAY_OF_MONTH, 29);
@@ -284,6 +285,25 @@ class IntervalTest {
     pgi2.add(date);
 
     assertEquals(date2, date);
+  }
+
+  @Test
+  void dateYear1000() throws Exception {
+    final Calendar calYear1000 = createProlepticGregorianCalendar(TimeZone.getDefault());
+    calYear1000.clear();
+    calYear1000.set(1000, Calendar.JANUARY, 1);
+
+    final Calendar calYear2000 = createProlepticGregorianCalendar(TimeZone.getDefault());
+    calYear2000.clear();
+    calYear2000.set(2000, Calendar.JANUARY, 1);
+
+    final Date date = calYear1000.getTime();
+    final Date dateYear2000 = calYear2000.getTime();
+
+    PGInterval pgi = new PGInterval("@ +1000 years");
+    pgi.add(date);
+
+    assertEquals(dateYear2000, date);
   }
 
   @Test
@@ -472,7 +492,26 @@ class IntervalTest {
     assertEquals(1, pgi.getMicroSeconds());
   }
 
-  private static java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+  private static java.sql.Date makeDate(int year, int month, int day) {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    cal.clear();
+    // Note that Calendar.MONTH is zero based
+    cal.set(year, month - 1, day);
+
+    return new java.sql.Date(cal.getTimeInMillis());
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }

@@ -83,6 +83,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -3730,6 +3731,21 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return val;
   }
 
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
+  }
+
   protected void updateValue(@Positive int columnIndex, @Nullable Object value) throws SQLException {
     checkUpdateable();
 
@@ -3976,7 +3992,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (timestampValue == null) {
           return null;
         }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+        Calendar calendar = createProlepticGregorianCalendar(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
       } else {

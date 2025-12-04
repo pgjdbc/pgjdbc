@@ -105,8 +105,8 @@ public class TimezoneCachingTest extends BaseTest4 {
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00");
     TimeZone tz3 = TimeZone.getTimeZone("UTC+2");
     TimeZone tz4 = TimeZone.getTimeZone("UTC+3");
-    Calendar c3 = new GregorianCalendar(tz3);
-    Calendar c4 = new GregorianCalendar(tz4);
+    Calendar c3 = createProlepticGregorianCalendar(tz3);
+    Calendar c4 = createProlepticGregorianCalendar(tz4);
     try {
       stmt = con.createStatement();
       TimeZone.setDefault(tz1);
@@ -254,8 +254,8 @@ public class TimezoneCachingTest extends BaseTest4 {
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00"); // 10 hour difference
     Timestamp ts1 = new Timestamp(2016 - 1900, 0, 31, 3, 0, 0, 0);
     Timestamp ts2 = new Timestamp(2016 - 1900, 0, 31, 13, 0, 0, 0); // 10 hour difference
-    Calendar c1 = new GregorianCalendar(tz1);
-    Calendar c2 = new GregorianCalendar(tz2);
+    Calendar c1 = createProlepticGregorianCalendar(tz1);
+    Calendar c2 = createProlepticGregorianCalendar(tz2);
     try {
       TimeZone.setDefault(tz1);
       pstmt = con.prepareStatement("INSERT INTO testtz VALUES (?,?)");
@@ -316,6 +316,20 @@ public class TimezoneCachingTest extends BaseTest4 {
     } catch (Exception e) {
     }
     return null;
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 
   /* Set up the fixture for this test case: a connection to a database with

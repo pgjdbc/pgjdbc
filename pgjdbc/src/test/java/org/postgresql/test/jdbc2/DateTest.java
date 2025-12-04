@@ -23,6 +23,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -318,7 +320,26 @@ public class DateTest extends BaseTest4 {
     st.close();
   }
 
-  private static java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+  private static java.sql.Date makeDate(int year, int month, int day) {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    cal.clear();
+    // Note that Calendar.MONTH is zero based
+    cal.set(year, month - 1, day);
+
+    return new java.sql.Date(cal.getTimeInMillis());
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }

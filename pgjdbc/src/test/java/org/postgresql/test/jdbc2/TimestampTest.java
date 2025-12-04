@@ -30,6 +30,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
@@ -82,7 +84,7 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testCalendarModification() throws SQLException {
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     Calendar origCal = (Calendar) cal.clone();
     PreparedStatement ps = con.prepareStatement("INSERT INTO " + TSWOTZ_TABLE + " VALUES (?)");
 
@@ -131,10 +133,9 @@ public class TimestampTest extends BaseTest4 {
   }
 
   private void runInfinityTests(String table, long value) throws SQLException {
-    GregorianCalendar cal = new GregorianCalendar();
     // Pick some random timezone that is hopefully different than ours
     // and exists in this JVM.
-    cal.setTimeZone(TimeZone.getTimeZone("Europe/Warsaw"));
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getTimeZone("Europe/Warsaw"));
 
     String strValue;
     if (value == PGStatement.DATE_POSITIVE_INFINITY) {
@@ -218,9 +219,38 @@ public class TimestampTest extends BaseTest4 {
   }
 
   /*
+   * Tests the timestamp methods in ResultSet on timestamp with time zone we insert a known string
+   * value fpr the year 1000 (don't use setTimestamp) then see that we get back the same value from
+   * getTimestamp
+   */
+  @Test
+  public void testGetTimestampYear1000WTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
+    Statement stmt = con.createStatement();
+
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS_YEAR1000_WTZ_PGFORMAT + "'")));
+
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE);
+    assertNotNull(rs);
+
+    assertTrue(rs.next());
+    Timestamp t = rs.getTimestamp(1);
+    assertNotNull(t);
+    // Be aware that Timestamp.toString() formats with the Julian calendar for such old dates
+    assertEquals(TS_YEAR1000_WTZ, t);
+
+    rs.close();
+
+    assertEquals(1, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
+
+    stmt.close();
+  }
+
+  /*
    * Tests the timestamp methods in PreparedStatement on timestamp with time zone we insert a value
    * using setTimestamp then see that we get back the same value from getTimestamp (which we know
-   * works as it was tested independently of setTimestamp
+   * works as it was tested independently of setTimestamp)
    */
   @Test
   public void testSetTimestampWTZ() throws SQLException {
@@ -284,6 +314,34 @@ public class TimestampTest extends BaseTest4 {
     timestampTestWTZ();
 
     assertEquals(20, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
+
+    pstmt.close();
+    stmt.close();
+  }
+
+  /*
+   * Tests the timestamp methods in PreparedStatement on timestamp with time zone we insert the
+   * year 1000 value using setTimestamp then see that we get back the same value from getTimestamp
+   * (which we know works as it was tested independently of setTimestamp)
+   */
+  @Test
+  public void testSetTimestampYear1000WTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
+    Statement stmt = con.createStatement();
+    PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWTZ_TABLE, "?"));
+
+    pstmt.setTimestamp(1, TS_YEAR1000_WTZ);
+    assertEquals(1, pstmt.executeUpdate());
+
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(ODT_YEAR1000, rs.getObject(1, OffsetDateTime.class));
+
+    rs.close();
+
+    assertEquals(1, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
 
     pstmt.close();
     stmt.close();
@@ -609,6 +667,8 @@ public class TimestampTest extends BaseTest4 {
         ts = ts + tz;
         dateFormat = new SimpleDateFormat("y-M-d H:m:s z");
       }
+      dateFormat.setCalendar(createProlepticGregorianCalendar(TimeZone.getDefault()));
+
       java.util.Date date = dateFormat.parse(ts);
       result = new Timestamp(date.getTime());
       result.setNanos(f);
@@ -616,6 +676,20 @@ public class TimestampTest extends BaseTest4 {
       fail(ex.getMessage());
     }
     return result;
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 
   private static final Timestamp TS1WTZ =
@@ -633,6 +707,12 @@ public class TimestampTest extends BaseTest4 {
   private static final Timestamp TS4WTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, "GMT");
   private static final String TS4WTZ_PGFORMAT = "2000-07-07 15:00:00.123456+00";
+
+  private static final Timestamp TS_YEAR1000_WTZ =
+      getTimestamp(1000, 1, 1, 0, 0, 0, 0, "UTC");
+  private static final String TS_YEAR1000_WTZ_PGFORMAT = "1000-01-01 00:00:00.0+00";
+  private static final OffsetDateTime ODT_YEAR1000 =
+      OffsetDateTime.of(1000, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
 
   private static final Timestamp TS1WOTZ =
       getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, null);

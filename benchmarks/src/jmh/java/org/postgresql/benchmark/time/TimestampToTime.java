@@ -41,7 +41,7 @@ public class TimestampToTime {
   TimeZone timeZone;
 
   Timestamp ts = new Timestamp(System.currentTimeMillis());
-  Calendar cachedCalendar = new GregorianCalendar();
+  Calendar cachedCalendar = createProlepticGregorianCalendar(TimeZone.getDefault());
 
   @Setup
   public void init() {
@@ -64,6 +64,21 @@ public class TimestampToTime {
 
   private static boolean isSimpleTimeZone(String id) {
     return id.startsWith("GMT") || id.startsWith("UTC");
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 
   @Benchmark

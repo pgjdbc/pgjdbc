@@ -6,6 +6,7 @@
 package org.postgresql.test.jdbc42;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.ByteConverter;
@@ -14,8 +15,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 class TimestampUtilsTest {
@@ -170,5 +176,135 @@ class TimestampUtilsTest {
     assertEquals(OffsetTime.parse(expectedOutput),
         timestampUtils.toOffsetTime(inputTime),
         "timestampUtils.toOffsetTime(" + inputTime + ")");
+  }
+
+  @Test
+  void getSharedCalendar() {
+    Calendar calendar = timestampUtils.getSharedCalendar(null);
+    assertInstanceOf(GregorianCalendar.class, calendar);
+    GregorianCalendar gregorianCalendar = (GregorianCalendar) calendar;
+    // The returned calendar should be pure (proleptic) Gregorian
+    assertEquals(new Date(Long.MIN_VALUE), gregorianCalendar.getGregorianChange());
+  }
+
+  @Test
+  void toDate() throws SQLException {
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(2025, Calendar.NOVEMBER, 25);
+
+    assertEquals(expectedCal.getTime(), timestampUtils.toDate(createProlepticGregorianCalendar(TimeZone.getDefault()), "2025-11-25"));
+    assertEquals(expectedCal.getTime(), timestampUtils.toDate(null, "2025-11-25 00:00:00"));
+  }
+
+  @Test
+  void toDateYear1000() throws SQLException {
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(1000, Calendar.JANUARY, 1);
+    // Be aware that Date.toString() formats with the Julian calendar for such old dates
+    assertEquals(expectedCal.getTime(), timestampUtils.toDate(createProlepticGregorianCalendar(TimeZone.getDefault()), "1000-01-01"));
+    assertEquals(expectedCal.getTime(), timestampUtils.toDate(null, "1000-01-01 00:00:00"));
+  }
+
+  @Test
+  void toDateBin() throws SQLException {
+    final int days = 10;
+    final byte[] bytes = new byte[4];
+    ByteConverter.int4(bytes, 0, days);
+
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    // Postgres epoch (but in default time zone) + days
+    expectedCal.set(2000, Calendar.JANUARY, 1 + days);
+
+    assertEquals(expectedCal.getTime(), timestampUtils.toDateBin(null, bytes));
+  }
+
+  @Test
+  void toDateBinYear1000() throws SQLException {
+    // java.time is based on ISO-8601, that means the proleptic Gregorian calendar is used
+    final int days = Math.toIntExact(ChronoUnit.DAYS.between(LocalDate.of(2000, 1, 1), LocalDate.of(1000, 1, 1)));
+    final byte[] bytes = new byte[4];
+    ByteConverter.int4(bytes, 0, days);
+
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(1000, Calendar.JANUARY, 1);
+
+    // Be aware that Date.toString() formats with the Julian calendar for such old dates
+    assertEquals(expectedCal.getTime(), timestampUtils.toDateBin(null, bytes));
+  }
+
+  @Test
+  void toTimestamp() throws SQLException {
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(2025, Calendar.NOVEMBER, 25, 16, 34, 45);
+
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestamp(createProlepticGregorianCalendar(TimeZone.getDefault()), "2025-11-25 16:34:45").getTime());
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestamp(null, "2025-11-25 16:34:45").getTime());
+  }
+
+  @Test
+  void toTimestampYear1000() throws SQLException {
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(1000, Calendar.NOVEMBER, 25, 16, 34, 45);
+
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestamp(createProlepticGregorianCalendar(TimeZone.getDefault()), "1000-11-25 16:34:45").getTime());
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestamp(null, "1000-11-25 16:34:45").getTime());
+  }
+
+  @Test
+  void toTimestampBin() throws SQLException {
+    final int days = 10;
+    final int hours = 14;
+    final int minutes = 16;
+    final long daysInMicros = days * 24L * 60L * 60L * 1000_000L;
+    final long hoursInMicros = hours * 60L * 60L * 1000_000L;
+    final long minutesInMicros = minutes * 60L * 1000_000L;
+    final byte[] bytes = new byte[8];
+    ByteConverter.int8(bytes, 0, daysInMicros + hoursInMicros + minutesInMicros);
+
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    // Postgres epoch (but in default time zone) + days
+    expectedCal.set(2000, Calendar.JANUARY, 1 + days, hours, minutes);
+
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestampBin(null, bytes, false).getTime());
+  }
+
+  @Test
+  void toTimestampBinYear1000() throws SQLException {
+    // java.time is based on ISO-8601, that means the proleptic Gregorian calendar is used
+    final int days = Math.toIntExact(ChronoUnit.DAYS.between(LocalDate.of(2000, 1, 1), LocalDate.of(1000, 1, 1)));
+    final int hours = 14;
+    final int minutes = 16;
+    final long daysInMicros = days * 24L * 60L * 60L * 1000_000L;
+    final long hoursInMicros = hours * 60L * 60L * 1000_000L;
+    final long minutesInMicros = minutes * 60L * 1000_000L;
+    final byte[] bytes = new byte[8];
+    ByteConverter.int8(bytes, 0, daysInMicros + hoursInMicros + minutesInMicros);
+
+    Calendar expectedCal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    expectedCal.clear();
+    expectedCal.set(1000, Calendar.JANUARY, 1, hours, minutes);
+
+    assertEquals(expectedCal.getTime().getTime(), timestampUtils.toTimestampBin(null, bytes, false).getTime());
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }

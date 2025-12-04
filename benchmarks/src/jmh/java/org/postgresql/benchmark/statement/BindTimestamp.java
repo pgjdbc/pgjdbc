@@ -32,6 +32,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -45,7 +46,7 @@ public class BindTimestamp {
   private Connection connection;
   private PreparedStatement ps;
   private Timestamp ts = new Timestamp(System.currentTimeMillis());
-  private Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+  private Calendar cal = createProlepticGregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
@@ -80,5 +81,20 @@ public class BindTimestamp {
         .build();
 
     new Runner(opt).run();
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }

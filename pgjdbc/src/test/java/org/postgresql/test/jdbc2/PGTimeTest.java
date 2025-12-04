@@ -23,6 +23,7 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /**
@@ -57,21 +58,21 @@ public class PGTimeTest extends BaseTest4 {
   public void testTimeWithInterval() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.set(1970, Calendar.JANUARY, 1);
 
     final long now = cal.getTimeInMillis();
     verifyTimeWithInterval(new PGTime(now), new PGInterval(0, 0, 0, 1, 2, 3.14), true);
     verifyTimeWithInterval(new PGTime(now), new PGInterval(0, 0, 0, 1, 2, 3.14), false);
 
-    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
+    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
         new PGInterval(0, 0, 0, 1, 2, 3.14), true);
-    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
+    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
         new PGInterval(0, 0, 0, 1, 2, 3.14), false);
 
-    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
         new PGInterval(0, 0, 0, 1, 2, 3.456), true);
-    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
         new PGInterval(0, 0, 0, 1, 2, 3.456), false);
   }
 
@@ -135,20 +136,20 @@ public class PGTimeTest extends BaseTest4 {
    */
   @Test
   public void testTimeInsertAndSelect() throws SQLException {
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.set(1970, Calendar.JANUARY, 1);
 
     final long now = cal.getTimeInMillis();
     verifyInsertAndSelect(new PGTime(now), true);
     verifyInsertAndSelect(new PGTime(now), false);
 
-    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), true);
-    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
+    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))), true);
+    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
         false);
 
-    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
         true);
-    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
         false);
   }
 
@@ -242,5 +243,19 @@ public class PGTimeTest extends BaseTest4 {
       sdf.setTimeZone(time.getCalendar().getTimeZone());
     }
     return sdf;
+  }
+
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian calendar
+   */
+  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
   }
 }
