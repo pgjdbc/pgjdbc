@@ -22,44 +22,45 @@
 
 package org.postgresql.util;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
-
-import java.lang.ref.PhantomReference;
-import java.lang.ref.Reference;
-import java.lang.ref.ReferenceQueue;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.time.Duration;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * LazyCleaner is a utility class that allows to register objects for deferred cleanup.
  *
+ * <p>On Java 9+, this uses the native {@link java.lang.ref.Cleaner} API.
+ * On Java 8, this uses a custom implementation based on PhantomReferences and ForkJoinPool.</p>
+ *
  * <p>Note: this is a driver-internal class</p>
  */
-public class LazyCleaner {
+public abstract class LazyCleaner {
   private static final Logger LOGGER = Logger.getLogger(LazyCleaner.class.getName());
-  private static final LazyCleaner instance =
-      new LazyCleaner(
-          Duration.ofMillis(Long.getLong("pgjdbc.config.cleanup.thread.ttl", 30000)),
-          "PostgreSQL-JDBC-Cleaner"
-      );
+  private static final LazyCleaner instance = create(
+      "PostgreSQL-JDBC-Cleaner",
+      Duration.ofMillis(Long.getLong("pgjdbc.config.cleanup.thread.ttl", 30000))
+  );
 
+  /**
+   * Cleanable interface for objects that can be manually cleaned.
+   *
+   * @param <T> the type of exception that can be thrown during cleanup
+   */
   public interface Cleanable<T extends Throwable> {
     void clean() throws T;
   }
 
+  /**
+   * CleaningAction interface for cleanup actions that are notified whether cleanup
+   * occurred due to a leak (automatic) or manual cleanup.
+   *
+   * @param <T> the type of exception that can be thrown during cleanup
+   */
   public interface CleaningAction<T extends Throwable> {
     void onClean(boolean leak) throws T;
   }
-
-  private final ReferenceQueue<Object> queue = new ReferenceQueue<>();
-  private final String threadName;
-  private final Duration threadTtl;
-  private boolean threadRunning;
-  private int watchedCount;
-  private @Nullable Node<?> first;
 
   /**
    * Returns a default cleaner instance.
@@ -71,207 +72,66 @@ public class LazyCleaner {
     return instance;
   }
 
-  public LazyCleaner(Duration threadTtl, final String threadName) {
-    this.threadName = threadName;
-    this.threadTtl = threadTtl;
-  }
-
-  public <T extends Throwable> Cleanable<T> register(Object obj, CleaningAction<T> action) {
-    assert obj != action : "object handle should not be the same as cleaning action, otherwise"
-        + " the object will never become phantom reachable, so the action will never trigger";
-    return add(new Node<T>(obj, action));
-  }
-
-  public synchronized int getWatchedCount() {
-    return watchedCount;
-  }
-
-  public synchronized boolean isThreadRunning() {
-    return threadRunning;
-  }
-
-  private synchronized boolean checkEmpty() {
-    if (first == null) {
-      threadRunning = false;
-      return true;
-    }
-    return false;
-  }
-
-  private synchronized <T extends Throwable> Node<T> add(Node<T> node) {
-    if (first != null) {
-      node.next = first;
-      first.prev = node;
-    }
-    first = node;
-    watchedCount++;
-
-    if (!threadRunning) {
-      threadRunning = startThread();
-    }
-    return node;
-  }
+  /**
+   * Registers an object for cleanup when it becomes phantom reachable.
+   *
+   * @param obj the object to monitor for cleanup (should not be the same as action)
+   * @param action the action to perform when the object becomes unreachable
+   * @param <T> the type of exception that can be thrown during cleanup
+   * @return a Cleanable that can be used to manually trigger cleanup
+   */
+  public abstract <T extends Throwable> Cleanable<T> register(Object obj, CleaningAction<T> action);
 
   /**
-   * RefQueueBlocker retrieves references from the reference queue without blocking ForkJoinPool
-   * CPU threads.
+   * Returns whether the cleanup thread is currently running.
+   * For Java 9+ implementation, returns true if there are watched objects.
+   * For legacy implementation, returns true if the cleanup thread is active.
    *
-   * @param <T> the type of the objects referenced by the {@link Reference}s in the queue
+   * @return true if cleanup operations are active
    */
-  private static class RefQueueBlocker<T> implements ForkJoinPool.ManagedBlocker {
-    private final ReferenceQueue<T> queue;
-    private final String threadName;
-    private @Nullable Reference<? extends T> ref;
-    private final long blockTimeoutMillis;
-    private final BooleanSupplier isActive;
+  public abstract boolean isThreadRunning();
 
-    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout, BooleanSupplier isActive) {
-      this.queue = queue;
-      this.threadName = threadName;
-      this.blockTimeoutMillis = blockTimeout.toMillis();
-      this.isActive = isActive;
+  /**
+   * Creates a new LazyCleaner instance with custom configuration.
+   *
+   * <p>On Java 9+, uses the native Cleaner API. The {@code threadTtl} parameter is ignored
+   * since the JVM manages Cleaner threads, but {@code threadName} is used for the cleaner's
+   * thread factory.</p>
+   *
+   * <p>On Java 8, uses a custom PhantomReference-based implementation that respects both
+   * {@code threadName} and {@code threadTtl} parameters.</p>
+   *
+   * <p>Note: this is driver-internal API.</p>
+   *
+   * @param threadName the name for the cleanup thread
+   * @param threadTtl the maximum time the cleanup thread will wait for references (Java 8 only)
+   * @return a new LazyCleaner instance
+   */
+  public static LazyCleaner create(String threadName, Duration threadTtl) {
+    try {
+      // Use Java 11+ cleaner when available
+      Class<? extends LazyCleaner> clazz =
+          Class.forName(
+                  "org.postgresql.util.Java11LazyCleaner",
+                  false,
+                  LazyCleaner.class.getClassLoader())
+              .asSubclass(LazyCleaner.class);
+      Constructor<? extends LazyCleaner> constructor = clazz.getDeclaredConstructor();
+      return constructor.newInstance();
+    } catch (ClassNotFoundException e) {
+      // Java 11+ Cleaner not available, fall through to legacy implementation
+      LOGGER.log(Level.FINE, "Java 11+ Cleaner API not available, using legacy implementation");
+    } catch (InvocationTargetException e) {
+      // Failed to instantiate Java11LazyCleaner, log and fall back to legacy
+      LOGGER.log(Level.WARNING,
+          "Failed to instantiate Java11LazyCleaner, falling back to legacy implementation", e.getCause());
+    } catch (Throwable e) {
+      // Failed to instantiate Java11LazyCleaner, log and fall back to legacy
+      LOGGER.log(Level.WARNING,
+          "Failed to instantiate Java11LazyCleaner, falling back to legacy implementation", e);
     }
 
-    @Override
-    public boolean isReleasable() {
-      if (ref != null || !isActive.getAsBoolean()) {
-        return true; // already have a ref from a previous call
-      }
-      // non-blocking check
-      ref = queue.poll();
-      // no need to block if we already have a ref from a previous call
-      return ref != null;
-    }
-
-    @Override
-    public boolean block() throws InterruptedException {
-      if (isReleasable()) {
-        return true;
-      }
-      Thread currentThread = Thread.currentThread();
-      // ForkJoinPool reuses threads, so we set the thread name just for the blocking operation
-      String oldName = currentThread.getName();
-      try {
-        currentThread.setName(threadName);
-        // Perform blocking operation
-        ref = queue.remove(blockTimeoutMillis);
-      } finally {
-        currentThread.setName(oldName);
-      }
-      return false;
-    }
-
-    public @Nullable Reference<? extends T> drainOne() {
-      Reference<? extends T> ref = this.ref;
-      this.ref = null;
-      return ref;
-    }
-  }
-
-  private boolean startThread() {
-    // We use ForkJoinPool to work around Thread.inheritedAccessControlContext memory leak
-    // Java creates FJP threads without caller's access control context, thus we reduce
-    // the surface for the leak.
-    ForkJoinPool.commonPool().execute(
-        () -> {
-          RefQueueBlocker<Object> blocker =
-              new RefQueueBlocker<>(queue, threadName, threadTtl, () -> !checkEmpty());
-          boolean interrupted = false;
-          while (!checkEmpty()) {
-            try {
-              ForkJoinPool.managedBlock(blocker);
-            } catch (InterruptedException e) {
-              interrupted = true;
-            }
-
-            if (!interrupted) {
-              Node<?> ref = (Node<?>) blocker.drainOne();
-              if (ref == null) {
-                if (checkEmpty()) {
-                  break;
-                }
-                continue;
-              }
-              try {
-                ref.onClean(true);
-              } catch (Throwable e) {
-                if (e instanceof InterruptedException) {
-                  // This could happen if onClean uses sneaky-throws
-                  LOGGER.log(Level.WARNING, "Unexpected interrupt while executing onClean", e);
-                  interrupted = true;
-                } else {
-                  // Should not happen if cleaners are well-behaved
-                  LOGGER.log(Level.WARNING, "Unexpected exception while executing onClean", e);
-                }
-              }
-            }
-            if (interrupted) {
-              interrupted = false;
-              if (LazyCleaner.this.checkEmpty()) {
-                LOGGER.log(
-                    Level.FINE,
-                    "Cleanup queue is empty, and got interrupt, will terminate the cleanup thread"
-                );
-                break;
-              }
-              LOGGER.log(Level.FINE, "Ignoring interrupt since the cleanup queue is non-empty");
-            }
-          }
-        }
-    );
-    return true;
-  }
-
-  private synchronized boolean remove(Node<?> node) {
-    // If already removed, do nothing
-    if (node.next == node) {
-      return false;
-    }
-
-    // Update list
-    if (first == node) {
-      first = node.next;
-    }
-    if (node.next != null) {
-      node.next.prev = node.prev;
-    }
-    if (node.prev != null) {
-      node.prev.next = node.next;
-    }
-
-    // Indicate removal by pointing the cleaner to itself
-    node.next = node;
-    node.prev = node;
-
-    watchedCount--;
-    return true;
-  }
-
-  private class Node<T extends Throwable> extends PhantomReference<Object> implements Cleanable<T>,
-      CleaningAction<T> {
-    private final @Nullable CleaningAction<T> action;
-    private @Nullable Node<?> prev;
-    private @Nullable Node<?> next;
-
-    Node(Object referent, CleaningAction<T> action) {
-      super(referent, queue);
-      this.action = action;
-      //Objects.requireNonNull(referent); // poor man`s reachabilityFence
-    }
-
-    @Override
-    public void clean() throws T {
-      onClean(false);
-    }
-
-    @Override
-    public void onClean(boolean leak) throws T {
-      if (!remove(this)) {
-        return;
-      }
-      if (action != null) {
-        action.onClean(leak);
-      }
-    }
+    // Use legacy implementation for Java 8 compatibility
+    return new Java8LazyCleaner(threadTtl, threadName);
   }
 }

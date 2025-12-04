@@ -46,6 +46,31 @@ java {
     }
 }
 
+// Create a separate source set for Java 11+ specific code (e.g., java.lang.ref.Cleaner)
+sourceSets {
+    create("java11") {
+        java {
+            srcDir("src/main/java11")
+        }
+        // Make java11 source set depend on main source set (to access LazyCleaner base class)
+        compileClasspath += sourceSets.main.get().output
+    }
+}
+
+// Configure the java11 source set to compile with Java 11
+tasks.named<JavaCompile>("compileJava11Java") {
+    options.release.set(11)
+    // Ensure main classes are compiled before java11 classes
+    dependsOn(tasks.compileJava)
+}
+
+// Add java11 compiled classes to the main JAR
+tasks.jar {
+    into("META-INF/versions/11") {
+        from(sourceSets["java11"].output)
+    }
+}
+
 val knows by tasks.existing {
     group = null // Hide the task from `./gradlew tasks` output
     description = "This is a dummy task, unfortunately the author refuses to remove it: https://github.com/johnrengelman/shadow/issues/122"
