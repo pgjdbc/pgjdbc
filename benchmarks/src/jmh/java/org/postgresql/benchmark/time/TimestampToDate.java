@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.time;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -23,7 +25,6 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -64,21 +65,6 @@ public class TimestampToDate {
 
   private static boolean isSimpleTimeZone(String id) {
     return id.startsWith("GMT") || id.startsWith("UTC");
-  }
-
-  /**
-   * Create a proleptic Gregorian calendar with the given time zone
-   *
-   * @param tz the time zone to use
-   * @return The proleptic Gregorian calendar
-   */
-  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
-  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
-    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
-    // Make the calendar pure (proleptic) Gregorian
-    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
-
-    return prolepticGregorianCalendar;
   }
 
   @Benchmark

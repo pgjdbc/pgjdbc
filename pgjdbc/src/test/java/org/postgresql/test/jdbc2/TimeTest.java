@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 
@@ -25,7 +26,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /*
@@ -274,17 +274,4 @@ class TimeTest {
     return Time.valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
   }
 
-  /**
-   * Create a proleptic Gregorian calendar with the given time zone
-   *
-   * @param tz the time zone to use
-   * @return The proleptic Gregorian calendar
-   */
-  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
-    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
-    // Make the calendar pure (proleptic) Gregorian
-    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
-
-    return prolepticGregorianCalendar;
-  }
 }

@@ -5,13 +5,14 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Locale;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
@@ -534,21 +535,6 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    */
   private static double nullSafeDoubleGet(@Nullable String value) throws NumberFormatException {
     return value == null ? 0 : Double.parseDouble(value);
-  }
-
-  /**
-   * Create a proleptic Gregorian calendar with the given time zone
-   *
-   * @param tz the time zone to use
-   * @return The proleptic Gregorian calendar
-   */
-  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
-  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
-    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
-    // Make the calendar pure (proleptic) Gregorian
-    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
-
-    return prolepticGregorianCalendar;
   }
 
   /**

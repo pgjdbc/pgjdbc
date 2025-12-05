@@ -1854,6 +1854,23 @@ public class TimestampUtils {
     return TimeZone.getTimeZone(timeZone);
   }
 
+  /**
+   * Create a proleptic Gregorian calendar with the given time zone. This differs from a newly
+   * created (Gregorian)Calendar instance that is typically a hybrid of the Julian and Gregorian
+   * calendar
+   *
+   * @param tz the time zone to use
+   * @return The proleptic Gregorian Calendar instance
+   */
+  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
+  public static Calendar createProlepticGregorianCalendar(TimeZone tz) {
+    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
+    // Make the calendar pure (proleptic) Gregorian
+    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
+
+    return prolepticGregorianCalendar;
+  }
+
   private static long floorDiv(long x, long y) {
     long r = x / y;
     // if the signs are different and modulo not zero, round down
@@ -1865,21 +1882,6 @@ public class TimestampUtils {
 
   private static long floorMod(long x, long y) {
     return x - floorDiv(x, y) * y;
-  }
-
-  /**
-   * Create a proleptic Gregorian calendar with the given time zone
-   *
-   * @param tz the time zone to use
-   * @return The proleptic Gregorian calendar
-   */
-  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
-  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
-    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
-    // Make the calendar pure (proleptic) Gregorian
-    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
-
-    return prolepticGregorianCalendar;
   }
 
 }

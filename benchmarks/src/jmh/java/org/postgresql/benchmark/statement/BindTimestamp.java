@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.statement;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
 import org.postgresql.test.TestUtil;
 
@@ -32,7 +34,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -83,18 +84,4 @@ public class BindTimestamp {
     new Runner(opt).run();
   }
 
-  /**
-   * Create a proleptic Gregorian calendar with the given time zone
-   *
-   * @param tz the time zone to use
-   * @return The proleptic Gregorian calendar
-   */
-  @SuppressWarnings("JavaUtilDate") // Using new Date(long) is not problematic on its own
-  private static Calendar createProlepticGregorianCalendar(TimeZone tz) {
-    GregorianCalendar prolepticGregorianCalendar = new GregorianCalendar(tz);
-    // Make the calendar pure (proleptic) Gregorian
-    prolepticGregorianCalendar.setGregorianChange(new java.util.Date(Long.MIN_VALUE));
-
-    return prolepticGregorianCalendar;
-  }
 }
