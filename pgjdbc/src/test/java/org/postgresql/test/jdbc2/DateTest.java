@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 
@@ -23,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -318,7 +320,13 @@ public class DateTest extends BaseTest4 {
     st.close();
   }
 
-  private static java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+  private static java.sql.Date makeDate(int year, int month, int day) {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    cal.clear();
+    // Note that Calendar.MONTH is zero based
+    cal.set(year, month - 1, day);
+
+    return new java.sql.Date(cal.getTimeInMillis());
   }
+
 }

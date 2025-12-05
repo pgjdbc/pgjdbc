@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.statement;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.postgresql.benchmark.profilers.FlightRecorderProfiler;
 import org.postgresql.test.TestUtil;
 
@@ -45,7 +47,7 @@ public class BindTimestamp {
   private Connection connection;
   private PreparedStatement ps;
   private Timestamp ts = new Timestamp(System.currentTimeMillis());
-  private Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+  private Calendar cal = createProlepticGregorianCalendar(TimeZone.getTimeZone("UTC"));
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
@@ -81,4 +83,5 @@ public class BindTimestamp {
 
     new Runner(opt).run();
   }
+
 }
