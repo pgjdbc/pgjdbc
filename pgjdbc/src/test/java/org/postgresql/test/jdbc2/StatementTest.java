@@ -1067,7 +1067,7 @@ class StatementTest {
     // Create several cleaners, so they can clean leaks concurrently
     List<LazyCleaner> cleaners = new ArrayList<>();
     for (int i = 0; i < 16; i++) {
-      cleaners.add(new LazyCleaner(Duration.ofSeconds(2), "pgjdbc-test-cleaner-" + i));
+      cleaners.add(LazyCleaner.create("pgjdbc-test-cleaner-" + i, Duration.ofSeconds(2)));
     }
 
     for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
