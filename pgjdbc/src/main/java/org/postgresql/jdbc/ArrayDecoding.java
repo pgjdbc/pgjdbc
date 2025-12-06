@@ -322,6 +322,15 @@ final class ArrayDecoding {
     }
   };
 
+  private static final ArrayDecoder<Number[]> NUMBER_STRING_DECODER = new AbstractObjectStringArrayDecoder<Number[]>(
+      Number.class) {
+
+    @Override
+    Object parseValue(String stringVal, BaseConnection connection) throws SQLException {
+      return PgResultSet.toNumber(stringVal);
+    }
+  };
+
   private static final ArrayDecoder<String[]> STRING_ONLY_DECODER = new AbstractObjectStringArrayDecoder<String[]>(
       String.class) {
 
@@ -513,8 +522,10 @@ final class ArrayDecoding {
     final int elementOid = buffer.getInt();
 
     @SuppressWarnings("rawtypes")
-    final ArrayDecoder decoder = getDecoder(elementOid, connection);
-
+    ArrayDecoder decoder = getDecoder(elementOid, connection);
+    if (decoder == BIG_DECIMAL_STRING_DECODER && connection.allowSpecialNumeric()) {
+      decoder = NUMBER_STRING_DECODER;
+    }
     if (!decoder.supportBinary()) {
       throw Driver.notImplemented(PgArray.class, "readBinaryArray(data,oid)");
     }
@@ -732,8 +743,10 @@ final class ArrayDecoding {
   public static Object readStringArray(int index, int count, int oid, PgArrayList list, BaseConnection connection)
       throws SQLException {
 
-    final ArrayDecoder decoder = getDecoder(oid, connection);
-
+    ArrayDecoder decoder = getDecoder(oid, connection);
+    if (decoder == BIG_DECIMAL_STRING_DECODER && connection.allowSpecialNumeric()) {
+      decoder = NUMBER_STRING_DECODER;
+    }
     final int dims = list.dimensionsCount;
 
     if (dims == 0) {
