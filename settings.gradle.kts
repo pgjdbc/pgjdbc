@@ -40,6 +40,7 @@ includeBuild("build-logic")
 
 // Renovate treats names as dependency coordinates when vararg include(...) is used, so we have separate include calls here
 include("benchmarks")
+include("pgjdbc-junit4-test")
 include("pgjdbc-osgi-test")
 if (providers.gradleProperty("jdkTestVersion").orNull?.toInt() != 8) {
     // Mockito requires Java 11+
