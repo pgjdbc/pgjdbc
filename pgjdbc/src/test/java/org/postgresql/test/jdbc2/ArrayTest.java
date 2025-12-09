@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.geometric.PGbox;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PgArray;
@@ -38,6 +39,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Properties;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -1020,6 +1022,41 @@ public class ArrayTest extends BaseTest4 {
             Types.INTEGER,
             ars.getMetaData().getColumnType(1),
             "get columntype should return Types.INTEGER");
+      }
+    }
+  }
+
+  @Test
+  public void testSpecialNumberArray() throws SQLException {
+    assumeMinimumServerVersion("v14 introduced special number in numeric array", ServerVersion.v14);
+    Properties props = new Properties();
+    props.setProperty("allowSpecialNumeric", "true");
+    updateProperties(props);
+    Connection connection = null;
+    Statement stmt = null;
+    ResultSet rs = null;
+    try {
+      connection = TestUtil.openDB(props);
+
+      stmt = connection.createStatement();
+      rs = stmt.executeQuery("SELECT '{1,2,NAN,Infinity,"
+          + "-Infinity}'::numeric[]");
+      assertTrue(rs.next());
+      Number[] arr = (Number[]) rs.getArray(1).getArray();
+      assertEquals(1, arr[0].intValue());
+      assertEquals(2, arr[1].intValue());
+      assertEquals(Double.NaN, arr[2]);
+      assertEquals(Double.POSITIVE_INFINITY, arr[3]);
+      assertEquals(Double.NEGATIVE_INFINITY, arr[4]);
+    } finally {
+      if (rs != null) {
+        rs.close();
+      }
+      if (stmt != null) {
+        stmt.close();
+      }
+      if (connection != null) {
+        connection.close();
       }
     }
   }
