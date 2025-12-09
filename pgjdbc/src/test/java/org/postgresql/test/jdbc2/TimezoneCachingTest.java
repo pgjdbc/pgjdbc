@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.TimestampUtils;
@@ -25,7 +26,6 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Calendar;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 public class TimezoneCachingTest extends BaseTest4 {
@@ -105,8 +105,8 @@ public class TimezoneCachingTest extends BaseTest4 {
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00");
     TimeZone tz3 = TimeZone.getTimeZone("UTC+2");
     TimeZone tz4 = TimeZone.getTimeZone("UTC+3");
-    Calendar c3 = new GregorianCalendar(tz3);
-    Calendar c4 = new GregorianCalendar(tz4);
+    Calendar c3 = createProlepticGregorianCalendar(tz3);
+    Calendar c4 = createProlepticGregorianCalendar(tz4);
     try {
       stmt = con.createStatement();
       TimeZone.setDefault(tz1);
@@ -254,8 +254,8 @@ public class TimezoneCachingTest extends BaseTest4 {
     TimeZone tz2 = TimeZone.getTimeZone("GMT-2:00"); // 10 hour difference
     Timestamp ts1 = new Timestamp(2016 - 1900, 0, 31, 3, 0, 0, 0);
     Timestamp ts2 = new Timestamp(2016 - 1900, 0, 31, 13, 0, 0, 0); // 10 hour difference
-    Calendar c1 = new GregorianCalendar(tz1);
-    Calendar c2 = new GregorianCalendar(tz2);
+    Calendar c1 = createProlepticGregorianCalendar(tz1);
+    Calendar c2 = createProlepticGregorianCalendar(tz2);
     try {
       TimeZone.setDefault(tz1);
       pstmt = con.prepareStatement("INSERT INTO testtz VALUES (?,?)");
