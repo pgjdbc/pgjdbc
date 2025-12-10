@@ -466,6 +466,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
+    switch (getSQLType(i)) {
+      case Types.BINARY:
+      case Types.VARBINARY:
+      case Types.LONGVARBINARY:
+        return new PgByteaBlob(getBytes(i));
+    }
+
     return makeBlob(getLong(i));
   }
 
@@ -505,6 +512,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     byte[] value = getRawValue(i);
     if (value == null) {
       return null;
+    }
+
+    switch (getSQLType(i)) {
+      case Types.CHAR:
+      case Types.VARCHAR:
+      case Types.LONGVARCHAR:
+        return new PgStringClob(getString(i));
     }
 
     return makeClob(getLong(i));
