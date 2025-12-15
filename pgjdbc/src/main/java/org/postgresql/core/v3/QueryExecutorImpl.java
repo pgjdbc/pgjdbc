@@ -1793,12 +1793,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int numBinaryFields = !noBinaryTransfer && query.hasBinaryFields() && fields != null
         ? fields.length : 0;
 
+    int cursorOptions = portal != null ? portal.getCursorOptions() : 0;
+
     encodedSize = 4
         + (encodedPortalName == null ? 0 : encodedPortalName.length) + 1
         + (encodedStatementName == null ? 0 : encodedStatementName.length) + 1
         + 2 + params.getParameterCount() * 2L
         + 2 + encodedSize
-        + 2 + numBinaryFields * 2L;
+        + 2 + numBinaryFields * 2L
+        + (cursorOptions != 0 && protocolVersion.getMinor() >= 3 ? 4 : 0);
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value
@@ -1862,6 +1865,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendInteger2(numBinaryFields); // # of result format codes
     for (int i = 0; fields != null && i < numBinaryFields; i++) {
       pgStream.sendInteger2(fields[i].getFormat());
+    }
+
+    if (cursorOptions != 0 && protocolVersion.getMinor() >= 3) {
+      pgStream.sendInteger4(cursorOptions);
     }
 
     pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
@@ -2054,7 +2061,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean describeOnly = (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) != 0;
     // extended queries always use a portal
     // the usePortal flag controls whether we use a *named* portal
-    boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
+    boolean usePortal = ((flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 
+        || (flags & QueryExecutor.QUERY_HOLDABLE_CURSOR) != 0) && !noResults && !noMeta
         && fetchSize > 0 && !describeOnly;
     boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
     boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
@@ -2090,6 +2098,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (usePortal) {
       String portalName = "C_" + (nextUniqueID++);
       portal = new Portal(query, portalName);
+      if ((flags & QueryExecutor.QUERY_HOLDABLE_CURSOR) != 0) {
+        portal.setCursorOptions(0x0020); // HOLD flag
+      }
     }
 
     // STATE: Send Bind message to bind parameters to statement

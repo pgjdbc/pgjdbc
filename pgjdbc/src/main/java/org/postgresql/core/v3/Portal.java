@@ -52,6 +52,14 @@ class Portal implements ResultCursor {
     this.cleanupRef = cleanupRef;
   }
 
+  int getCursorOptions() {
+    return cursorOptions;
+  }
+
+  void setCursorOptions(int options) {
+    this.cursorOptions = options;
+  }
+
   @Override
   public String toString() {
     return portalName;
@@ -67,4 +75,5 @@ class Portal implements ResultCursor {
   private final String portalName;
   private final byte[] encodedName;
   private @Nullable PhantomReference<?> cleanupRef;
+  private int cursorOptions = 0;
 }
