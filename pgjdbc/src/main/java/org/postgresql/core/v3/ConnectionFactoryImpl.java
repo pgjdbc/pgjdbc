@@ -775,7 +775,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       boolean hasPositive = false;
       boolean hasNegative = false;
       EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
-      
+
       for (String method : requireAuth.split(",")) {
         method = method.trim();
         if (method.startsWith("!")) {
@@ -784,11 +784,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           hasPositive = true;
         }
       }
-      
+
       if (hasPositive && hasNegative) {
         throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
       }
-      
+
       for (String method : requireAuth.split(",")) {
         method = method.trim();
         AuthMethod authMethod;
