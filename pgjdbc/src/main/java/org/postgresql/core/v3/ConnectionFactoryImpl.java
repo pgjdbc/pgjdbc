@@ -730,7 +730,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private enum AuthMethod {
     NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
 
-    static AuthMethod fromString(String method) {
+    static AuthMethod fromString(String method) throws PSQLException {
       switch (method) {
         case "none": return NONE;
         case "password": return PASSWORD;
@@ -738,7 +738,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         case "gss": return GSS;
         case "sspi": return SSPI;
         case "scram-sha-256": return SCRAM_SHA_256;
-        default: return null;
+        default: throw new PSQLException(GT.tr("Invalid authentication method: {0}", method), PSQLState.INVALID_PARAMETER_VALUE);
       }
     }
   }
@@ -794,20 +794,16 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         AuthMethod authMethod;
         if (method.startsWith("!")) {
           authMethod = AuthMethod.fromString(method.substring(1));
-          if (authMethod != null) {
-            if (!seenMethods.add(authMethod)) {
-              throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
-            }
-            rejectedMethods.add(authMethod);
+          if (!seenMethods.add(authMethod)) {
+            throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
           }
+          rejectedMethods.add(authMethod);
         } else {
           authMethod = AuthMethod.fromString(method);
-          if (authMethod != null) {
-            if (!seenMethods.add(authMethod)) {
-              throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
-            }
-            allowedMethods.add(authMethod);
+          if (!seenMethods.add(authMethod)) {
+            throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
           }
+          allowedMethods.add(authMethod);
         }
       }
     }

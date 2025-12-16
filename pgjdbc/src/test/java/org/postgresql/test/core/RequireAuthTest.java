@@ -141,4 +141,17 @@ class RequireAuthTest {
       }
     });
   }
+
+  @Test
+  void testRequireAuthInvalidMethodThrowsException() {
+    Properties props = new Properties();
+    PGProperty.REQUIRE_AUTH.set(props, "invalid,md5");
+
+    // This should throw exception due to invalid authentication method
+    assertThrows(PSQLException.class, () -> {
+      try (Connection conn = TestUtil.openDB(props)) {
+        // Should not reach here
+      }
+    });
+  }
 }
