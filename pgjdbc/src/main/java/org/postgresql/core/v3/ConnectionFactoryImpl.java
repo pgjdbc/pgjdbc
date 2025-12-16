@@ -49,6 +49,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -726,30 +727,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private static final int AUTH_METHOD_NONE = 1;
-  private static final int AUTH_METHOD_PASSWORD = 2;
-  private static final int AUTH_METHOD_MD5 = 4;
-  private static final int AUTH_METHOD_GSS = 8;
-  private static final int AUTH_METHOD_SSPI = 16;
-  private static final int AUTH_METHOD_SCRAM_SHA_256 = 32;
+  private enum AuthMethod {
+    NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
 
-  private static int getAuthMethodBit(String method) {
-    switch (method) {
-      case "none": return AUTH_METHOD_NONE;
-      case "password": return AUTH_METHOD_PASSWORD;
-      case "md5": return AUTH_METHOD_MD5;
-      case "gss": return AUTH_METHOD_GSS;
-      case "sspi": return AUTH_METHOD_SSPI;
-      case "scram-sha-256": return AUTH_METHOD_SCRAM_SHA_256;
-      default: return 0;
+    static AuthMethod fromString(String method) {
+      switch (method) {
+        case "none": return NONE;
+        case "password": return PASSWORD;
+        case "md5": return MD5;
+        case "gss": return GSS;
+        case "sspi": return SSPI;
+        case "scram-sha-256": return SCRAM_SHA_256;
+        default: return null;
+      }
     }
   }
 
-  private static void validateAuthMethod(int methodBit, int allowedMethods, int rejectedMethods) throws PSQLException {
-    if ((rejectedMethods & methodBit) != 0) {
+  private static void validateAuthMethod(AuthMethod method, EnumSet<AuthMethod> allowedMethods, EnumSet<AuthMethod> rejectedMethods) throws PSQLException {
+    if (rejectedMethods.contains(method)) {
       throw new PSQLException(GT.tr("Authentication method is rejected by requireAuth"), PSQLState.CONNECTION_REJECTED);
     }
-    if (allowedMethods != 0 && (allowedMethods & methodBit) == 0) {
+    if (!allowedMethods.isEmpty() && !allowedMethods.contains(method)) {
       throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
     }
   }
@@ -771,15 +769,45 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Parse requireAuth property for authentication method validation
     String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
-    int allowedMethods = 0;
-    int rejectedMethods = 0;
+    EnumSet<AuthMethod> allowedMethods = EnumSet.noneOf(AuthMethod.class);
+    EnumSet<AuthMethod> rejectedMethods = EnumSet.noneOf(AuthMethod.class);
     if (requireAuth != null) {
+      boolean hasPositive = false;
+      boolean hasNegative = false;
+      EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
+      
       for (String method : requireAuth.split(",")) {
         method = method.trim();
         if (method.startsWith("!")) {
-          rejectedMethods |= getAuthMethodBit(method.substring(1));
+          hasNegative = true;
         } else {
-          allowedMethods |= getAuthMethodBit(method);
+          hasPositive = true;
+        }
+      }
+      
+      if (hasPositive && hasNegative) {
+        throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      
+      for (String method : requireAuth.split(",")) {
+        method = method.trim();
+        AuthMethod authMethod;
+        if (method.startsWith("!")) {
+          authMethod = AuthMethod.fromString(method.substring(1));
+          if (authMethod != null) {
+            if (!seenMethods.add(authMethod)) {
+              throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
+            }
+            rejectedMethods.add(authMethod);
+          }
+        } else {
+          authMethod = AuthMethod.fromString(method);
+          if (authMethod != null) {
+            if (!seenMethods.add(authMethod)) {
+              throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
+            }
+            allowedMethods.add(authMethod);
+          }
         }
       }
     }
@@ -849,7 +877,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Process the request.
             switch (areq) {
               case AUTH_REQ_MD5: {
-                validateAuthMethod(AUTH_METHOD_MD5, allowedMethods, rejectedMethods);
+                validateAuthMethod(AuthMethod.MD5, allowedMethods, rejectedMethods);
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                   LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
@@ -879,7 +907,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               }
 
               case AUTH_REQ_PASSWORD: {
-                validateAuthMethod(AUTH_METHOD_PASSWORD, allowedMethods, rejectedMethods);
+                validateAuthMethod(AuthMethod.PASSWORD, allowedMethods, rejectedMethods);
                 LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
@@ -898,7 +926,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
-                validateAuthMethod(areq == AUTH_REQ_GSS ? AUTH_METHOD_GSS : AUTH_METHOD_SSPI, allowedMethods, rejectedMethods);
+                validateAuthMethod(areq == AUTH_REQ_GSS ? AuthMethod.GSS : AuthMethod.SSPI, allowedMethods, rejectedMethods);
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
@@ -982,7 +1010,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                validateAuthMethod(AUTH_METHOD_SCRAM_SHA_256, allowedMethods, rejectedMethods);
+                validateAuthMethod(AuthMethod.SCRAM_SHA_256, allowedMethods, rejectedMethods);
                 scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -1015,10 +1043,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (requireAuth != null) {
                   // this will happen if the authentication method is trust
                   if ( !pgStream.isFinishedAuthenticationRequests()) {
-                    validateAuthMethod(AUTH_METHOD_NONE, allowedMethods, rejectedMethods);
+                    validateAuthMethod(AuthMethod.NONE, allowedMethods, rejectedMethods);
                   }
                   if (pgStream.isGssEncrypted()) {
-                    validateAuthMethod(AUTH_METHOD_GSS, allowedMethods, rejectedMethods);
+                    validateAuthMethod(AuthMethod.GSS, allowedMethods, rejectedMethods);
                   }
                 }
                 /* Cleanup after successful authentication */
