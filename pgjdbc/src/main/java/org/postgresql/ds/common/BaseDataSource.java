@@ -1966,4 +1966,12 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     return getPemKeyAlgorithm();
   }
 
+  public void setRequireAuth(@Nullable String requireAuth) {
+    PGProperty.REQUIRE_AUTH.set(properties, requireAuth);
+  }
+
+  public @Nullable String getRequireAuth() {
+    return PGProperty.REQUIRE_AUTH.getOrDefault(properties);
+  }
+
 }

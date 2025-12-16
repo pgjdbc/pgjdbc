@@ -610,6 +610,20 @@ public enum PGProperty {
           + "(backend >= 9.4)"),
 
   /**
+   * Comma-separated list of acceptable authentication methods.
+   */
+  REQUIRE_AUTH(
+      "requireAuth",
+      null,
+      "Comma-separated list of acceptable authentication methods. "
+      + "Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). "
+      + "Supported: password, md5, gss, sspi, scram-sha-256, none",
+      false,
+      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "none",
+                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!none"}
+  ),
+
+  /**
    * Configure optimization to enable batch insert re-writing.
    */
   REWRITE_BATCHED_INSERTS(

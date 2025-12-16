@@ -572,6 +572,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
+          pgStream.setFinishedAuthenticationRequests();
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -725,6 +726,34 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  private static final int AUTH_METHOD_NONE = 1;
+  private static final int AUTH_METHOD_PASSWORD = 2;
+  private static final int AUTH_METHOD_MD5 = 4;
+  private static final int AUTH_METHOD_GSS = 8;
+  private static final int AUTH_METHOD_SSPI = 16;
+  private static final int AUTH_METHOD_SCRAM_SHA_256 = 32;
+
+  private static int getAuthMethodBit(String method) {
+    switch (method) {
+      case "none": return AUTH_METHOD_NONE;
+      case "password": return AUTH_METHOD_PASSWORD;
+      case "md5": return AUTH_METHOD_MD5;
+      case "gss": return AUTH_METHOD_GSS;
+      case "sspi": return AUTH_METHOD_SSPI;
+      case "scram-sha-256": return AUTH_METHOD_SCRAM_SHA_256;
+      default: return 0;
+    }
+  }
+
+  private static void validateAuthMethod(int methodBit, int allowedMethods, int rejectedMethods) throws PSQLException {
+    if ((rejectedMethods & methodBit) != 0) {
+      throw new PSQLException(GT.tr("Authentication method is rejected by requireAuth"), PSQLState.CONNECTION_REJECTED);
+    }
+    if (allowedMethods != 0 && (allowedMethods & methodBit) == 0) {
+      throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
+    }
+  }
+
   private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
@@ -739,6 +768,21 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     boolean saslHandshakeCompleted = false;
     ChannelBinding channelBinding = ChannelBinding.of(info);
+
+    // Parse requireAuth property for authentication method validation
+    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
+    int allowedMethods = 0;
+    int rejectedMethods = 0;
+    if (requireAuth != null) {
+      for (String method : requireAuth.split(",")) {
+        method = method.trim();
+        if (method.startsWith("!")) {
+          rejectedMethods |= getAuthMethodBit(method.substring(1));
+        } else {
+          allowedMethods |= getAuthMethodBit(method);
+        }
+      }
+    }
 
     try {
       authloop: while (true) {
@@ -805,6 +849,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Process the request.
             switch (areq) {
               case AUTH_REQ_MD5: {
+                validateAuthMethod(AUTH_METHOD_MD5, allowedMethods, rejectedMethods);
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                   LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
@@ -829,11 +874,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 pgStream.sendChar(0);
                 pgStream.flush();
-
+                pgStream.setFinishedAuthenticationRequests();
                 break;
               }
 
               case AUTH_REQ_PASSWORD: {
+                validateAuthMethod(AUTH_METHOD_PASSWORD, allowedMethods, rejectedMethods);
                 LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
@@ -845,12 +891,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 });
                 pgStream.sendChar(0);
                 pgStream.flush();
+                pgStream.setFinishedAuthenticationRequests();
 
                 break;
               }
 
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
+                validateAuthMethod(areq == AUTH_REQ_GSS ? AUTH_METHOD_GSS : AUTH_METHOD_SSPI, allowedMethods, rejectedMethods);
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
@@ -930,9 +978,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 castNonNull(sspiClient).continueSSPI(msgLen - 8);
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_SASL:
+                validateAuthMethod(AUTH_METHOD_SCRAM_SHA_256, allowedMethods, rejectedMethods);
                 scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -958,9 +1008,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
                 saslHandshakeCompleted = true;
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_OK:
+                if (requireAuth != null) {
+                  // this will happen if the authentication method is trust
+                  if ( !pgStream.isFinishedAuthenticationRequests()) {
+                    validateAuthMethod(AUTH_METHOD_NONE, allowedMethods, rejectedMethods);
+                  }
+                  if (pgStream.isGssEncrypted()) {
+                    validateAuthMethod(AUTH_METHOD_GSS, allowedMethods, rejectedMethods);
+                  }
+                }
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
