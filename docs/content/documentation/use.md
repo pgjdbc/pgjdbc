@@ -462,6 +462,11 @@ If we quote them, then we end up sending ""colname"" to the backend instead of "
 Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password 
 value in the connection properties will be used.
 
+* **`requireAuth (`*String*`)`** *Default `null`*\
+Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
+Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
+Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
+
 ### Unix sockets
 
 By adding junixsocket you can obtain a socket factory that works with the driver.

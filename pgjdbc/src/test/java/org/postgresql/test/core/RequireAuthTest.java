@@ -117,13 +117,41 @@ class RequireAuthTest {
   }
 
   @Test
-  void testRequireAuthMixedAllowReject() throws SQLException {
+  void testRequireAuthMixedAllowRejectThrowsException() {
     Properties props = new Properties();
-    PGProperty.REQUIRE_AUTH.set(props, "md5,scram-sha-256,!password");
+    PGProperty.REQUIRE_AUTH.set(props, "md5,!password");
 
-    // This should succeed if server uses md5 or scram-sha-256, fail if password
-    try (Connection conn = TestUtil.openDB(props)) {
-      assertTrue(conn.isValid(5));
-    }
+    // This should throw exception due to mixing positive and negative options
+    assertThrows(PSQLException.class, () -> {
+      try (Connection conn = TestUtil.openDB(props)) {
+        // Should not reach here
+      }
+    });
+  }
+
+  @Test
+  void testRequireAuthDuplicateThrowsException() {
+    Properties props = new Properties();
+    PGProperty.REQUIRE_AUTH.set(props, "md5,password,md5");
+
+    // This should throw exception due to duplicate authentication method
+    assertThrows(PSQLException.class, () -> {
+      try (Connection conn = TestUtil.openDB(props)) {
+        // Should not reach here
+      }
+    });
+  }
+
+  @Test
+  void testRequireAuthInvalidMethodThrowsException() {
+    Properties props = new Properties();
+    PGProperty.REQUIRE_AUTH.set(props, "invalid,md5");
+
+    // This should throw exception due to invalid authentication method
+    assertThrows(PSQLException.class, () -> {
+      try (Connection conn = TestUtil.openDB(props)) {
+        // Should not reach here
+      }
+    });
   }
 }
