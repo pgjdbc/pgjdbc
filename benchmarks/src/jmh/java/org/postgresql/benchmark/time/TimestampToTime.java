@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.time;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -41,7 +43,7 @@ public class TimestampToTime {
   TimeZone timeZone;
 
   Timestamp ts = new Timestamp(System.currentTimeMillis());
-  Calendar cachedCalendar = new GregorianCalendar();
+  Calendar cachedCalendar = createProlepticGregorianCalendar(TimeZone.getDefault());
 
   @Setup
   public void init() {

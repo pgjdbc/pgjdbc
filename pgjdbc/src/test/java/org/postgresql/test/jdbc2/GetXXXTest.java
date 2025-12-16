@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -24,6 +25,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.TimeZone;
 
 /*
 * Test for getObject
@@ -37,7 +39,7 @@ class GetXXXTest {
     TestUtil.createTempTable(con, "test_interval",
         "initial timestamp with time zone, final timestamp with time zone");
     PreparedStatement pstmt = con.prepareStatement("insert into test_interval values (?,?)");
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.add(Calendar.DAY_OF_YEAR, -1);
 
     pstmt.setTimestamp(1, new Timestamp(cal.getTime().getTime()));

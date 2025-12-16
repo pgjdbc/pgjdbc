@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 
@@ -60,11 +61,9 @@ class TimeTest {
   void getTimeZone() throws Exception {
     final Time midnight = new Time(0, 0, 0);
     Statement stmt = con.createStatement();
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"));
 
-    cal.setTimeZone(TimeZone.getTimeZone("GMT"));
-
-    int localOffset = Calendar.getInstance().getTimeZone().getOffset(midnight.getTime());
+    int localOffset = TimeZone.getDefault().getOffset(midnight.getTime());
 
     // set the time to midnight to make this easy
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("testtime", "'00:00:00','00:00:00'")));
@@ -251,7 +250,7 @@ class TimeTest {
       t = rs.getTime(1);
       assertNotNull(t);
       Time tmpTime = Time.valueOf("5:1:2");
-      int localOffset = Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
+      int localOffset = TimeZone.getDefault().getOffset(tmpTime.getTime());
       int timeOffset = 3 * 60 * 60 * 1000;
       tmpTime.setTime(tmpTime.getTime() + timeOffset + localOffset);
       assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
@@ -260,7 +259,7 @@ class TimeTest {
       t = rs.getTime(1);
       assertNotNull(t);
       tmpTime = Time.valueOf("23:59:59");
-      localOffset = Calendar.getInstance().getTimeZone().getOffset(tmpTime.getTime());
+      localOffset = TimeZone.getDefault().getOffset(tmpTime.getTime());
       timeOffset = -11 * 60 * 60 * 1000;
       tmpTime.setTime(tmpTime.getTime() + timeOffset + localOffset);
       assertEquals(makeTime(tmpTime.getHours(), tmpTime.getMinutes(), tmpTime.getSeconds()), t);
@@ -274,4 +273,5 @@ class TimeTest {
   private static Time makeTime(int h, int m, int s) {
     return Time.valueOf(TestUtil.fix(h, 2) + ":" + TestUtil.fix(m, 2) + ":" + TestUtil.fix(s, 2));
   }
+
 }
