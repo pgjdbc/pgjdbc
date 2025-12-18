@@ -803,7 +803,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     ChannelBinding channelBinding = ChannelBinding.of(info);
 
     // Parse requireAuth property for authentication method validation
-    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
+    String requireAuth = castNonNull(PGProperty.REQUIRE_AUTH.getOrDefault(info));
 
     try {
       authloop: while (true) {
