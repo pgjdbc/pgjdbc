@@ -747,34 +747,29 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return EnumSet.noneOf(AuthMethod.class);
       }
 
-      EnumSet<AuthMethod> allowedMethods = EnumSet.noneOf(AuthMethod.class);
+      EnumSet<AuthMethod> allowedMethods;
       EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
       String[] methods = requireAuth.split(",");
       boolean isDisallowMode = methods.length > 0 && methods[0].trim().startsWith("!");
 
-      if (isDisallowMode) {
-        allowedMethods = EnumSet.allOf(AuthMethod.class);
-        for (String method : methods) {
-          method = method.trim();
-          if (!method.startsWith("!")) {
-            throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
-          }
-          AuthMethod authMethod = fromString(method.substring(1));
-          if (!seenMethods.add(authMethod)) {
-            throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
-          }
-          allowedMethods.remove(authMethod);
+      allowedMethods = isDisallowMode ? EnumSet.allOf(AuthMethod.class) : EnumSet.noneOf(AuthMethod.class);
+
+      for (String method : methods) {
+        method = method.trim();
+        boolean isNegative = method.startsWith("!");
+
+        if (isNegative != isDisallowMode) {
+          throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
         }
-      } else {
-        for (String method : methods) {
-          method = method.trim();
-          if (method.startsWith("!")) {
-            throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
-          }
-          AuthMethod authMethod = fromString(method);
-          if (!seenMethods.add(authMethod)) {
-            throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
-          }
+
+        AuthMethod authMethod = fromString(isNegative ? method.substring(1) : method);
+        if (!seenMethods.add(authMethod)) {
+          throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+
+        if (isDisallowMode) {
+          allowedMethods.remove(authMethod);
+        } else {
           allowedMethods.add(authMethod);
         }
       }
