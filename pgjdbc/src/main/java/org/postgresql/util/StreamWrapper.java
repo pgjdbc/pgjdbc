@@ -75,7 +75,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null; // The stream is opened on demand
         TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
         this.tempFileHolder = tempFileHolder;
-        cleaner = LazyCleaner.getInstance().register(leakHandle, tempFileHolder);
+        cleaner = LazyCleanerImpl.getInstance().register(leakHandle, tempFileHolder);
       } else {
         this.rawData = rawData;
         this.stream = null;

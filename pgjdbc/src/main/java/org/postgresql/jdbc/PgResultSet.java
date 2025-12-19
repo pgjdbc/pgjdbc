@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
@@ -3996,7 +3997,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (timestampValue == null) {
           return null;
         }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+        Calendar calendar = createProlepticGregorianCalendar(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
       } else {

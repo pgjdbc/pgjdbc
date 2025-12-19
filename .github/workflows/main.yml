@@ -79,7 +79,7 @@ jobs:
         with:
           read-only: false
           job-id: checker-jdk21
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes :postgresql:compileJava11
 
   source-distribution-check:
     name: Source distribution

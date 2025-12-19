@@ -21,6 +21,7 @@ import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
+import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
@@ -1067,7 +1068,7 @@ class StatementTest {
     // Create several cleaners, so they can clean leaks concurrently
     List<LazyCleaner> cleaners = new ArrayList<>();
     for (int i = 0; i < 16; i++) {
-      cleaners.add(new LazyCleaner(Duration.ofSeconds(2), "pgjdbc-test-cleaner-" + i));
+      cleaners.add(new LazyCleanerImpl("pgjdbc-test-cleaner-" + i, Duration.ofSeconds(2)));
     }
 
     for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {
