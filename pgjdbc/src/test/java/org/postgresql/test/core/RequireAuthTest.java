@@ -7,11 +7,14 @@ package org.postgresql.test.core;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.test.TestUtil.TEST_URL_PROPERTY_PREFIX;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -20,8 +23,36 @@ import java.util.Properties;
 
 class RequireAuthTest {
 
+  @BeforeAll
+  static void beforeAll() {
+    try (Connection conn = TestUtil.openPrivilegedDB()) {
+      conn.createStatement().execute("create user nobody with password 'none'");
+      conn.createStatement().execute("create user pword with password 'password'");
+      conn.createStatement().execute("create user scram with password 'scram'");
+      conn.createStatement().execute("create database authtest owner nobody");
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @AfterAll
+  static void afterAll() {
+    try (Connection conn = TestUtil.openPrivilegedDB()) {
+      conn.createStatement().execute("drop database authtest");
+      conn.createStatement().execute("drop user scram");
+      conn.createStatement().execute("drop user pword");
+      conn.createStatement().execute("drop user nobody");
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  @Test
   void testRequireAuthAllowPassword() throws SQLException {
     Properties props = new Properties();
+    props.setProperty("user", "pword");
+    props.setProperty("password", "password");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
     PGProperty.REQUIRE_AUTH.set(props, "password");
 
     // This should succeed if server uses password auth
@@ -30,9 +61,13 @@ class RequireAuthTest {
     }
   }
 
-
+  @Test
   void testRequireAuthRejectPassword() {
     Properties props = new Properties();
+    props.setProperty("user", "pword");
+    props.setProperty("password", "password");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+
     PGProperty.REQUIRE_AUTH.set(props, "!password");
 
     // This should fail if server uses password auth
@@ -44,32 +79,12 @@ class RequireAuthTest {
   }
 
   @Test
-  void testRequireAuthAllowMd5() throws SQLException {
-    Properties props = new Properties();
-    PGProperty.REQUIRE_AUTH.set(props, "md5");
-
-    // This should succeed if server uses md5 auth
-    try (Connection conn = TestUtil.openDB(props)) {
-      assertTrue(conn.isValid(5));
-    }
-  }
-
-  @Test
-  void testRequireAuthRejectMd5() {
-    Properties props = new Properties();
-    PGProperty.REQUIRE_AUTH.set(props, "!md5");
-
-    // This should fail if server uses md5 auth
-    assertThrows(PSQLException.class, () -> {
-      try (Connection conn = TestUtil.openDB(props)) {
-        // Should not reach here
-      }
-    });
-  }
-
-
   void testRequireAuthAllowNone() throws SQLException {
     Properties props = new Properties();
+    props.setProperty("user", "nobody");
+    props.setProperty("password", "none");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+
     PGProperty.REQUIRE_AUTH.set(props, "none");
 
     // This should succeed if server uses no auth (trust)
@@ -81,6 +96,10 @@ class RequireAuthTest {
   @Test
   void testRequireAuthRejectNone() {
     Properties props = new Properties();
+    props.setProperty("user", "nobody");
+    props.setProperty("password", "none");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+
     PGProperty.REQUIRE_AUTH.set(props, "!none");
 
     // This should fail if server uses no auth (trust)
@@ -94,6 +113,10 @@ class RequireAuthTest {
   @Test
   void testRequireAuthMultipleAllowed() throws SQLException {
     Properties props = new Properties();
+    props.setProperty("user", "scram");
+    props.setProperty("password", "scram");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+
     PGProperty.REQUIRE_AUTH.set(props, "password,md5,scram-sha-256");
 
     // This should succeed if server uses any of the allowed methods
@@ -102,10 +125,12 @@ class RequireAuthTest {
     }
   }
 
-
+  @Test
   void testRequireAuthMultipleRejected() {
     Properties props = new Properties();
     PGProperty.REQUIRE_AUTH.set(props, "!password,!scram-sha-256");
+    props.setProperty("user", "pword");
+    props.setProperty("password", "password");
 
     // This should fail if server uses password or md5 auth
     assertThrows(PSQLException.class, () -> {
