@@ -776,7 +776,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return allowedMethods;
     }
 
-    static void isAllowed(String requireAuth, AuthMethod authMethod) throws PSQLException {
+    static void isAllowed(@Nullable String requireAuth, AuthMethod authMethod) throws PSQLException {
       if (requireAuth == null) {
         return;
       }
@@ -803,7 +803,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     ChannelBinding channelBinding = ChannelBinding.of(info);
 
     // Parse requireAuth property for authentication method validation
-    String requireAuth = castNonNull(PGProperty.REQUIRE_AUTH.getOrDefault(info));
+    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
 
     try {
       authloop: while (true) {

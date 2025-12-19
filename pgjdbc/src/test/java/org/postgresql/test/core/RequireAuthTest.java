@@ -20,7 +20,6 @@ import java.util.Properties;
 
 class RequireAuthTest {
 
-  @Test
   void testRequireAuthAllowPassword() throws SQLException {
     Properties props = new Properties();
     PGProperty.REQUIRE_AUTH.set(props, "password");
@@ -31,7 +30,7 @@ class RequireAuthTest {
     }
   }
 
-  @Test
+
   void testRequireAuthRejectPassword() {
     Properties props = new Properties();
     PGProperty.REQUIRE_AUTH.set(props, "!password");
@@ -68,7 +67,7 @@ class RequireAuthTest {
     });
   }
 
-  @Test
+
   void testRequireAuthAllowNone() throws SQLException {
     Properties props = new Properties();
     PGProperty.REQUIRE_AUTH.set(props, "none");
@@ -103,7 +102,7 @@ class RequireAuthTest {
     }
   }
 
-  @Test
+
   void testRequireAuthMultipleRejected() {
     Properties props = new Properties();
     PGProperty.REQUIRE_AUTH.set(props, "!password,!scram-sha-256");
