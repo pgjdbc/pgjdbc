@@ -27,11 +27,11 @@ class RequireAuthTest {
   @BeforeAll
   static void beforeAll() {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
-      TestUtil.executeQuery(conn, "create user nobody with password 'none'");
-      TestUtil.executeQuery(conn, "create user pword with password 'password'");
-      TestUtil.executeQuery(conn, "create user scram with password 'scram'");
-      TestUtil.executeQuery(conn, "create user md51 with password 'pword'");
-      TestUtil.executeQuery(conn, "create database authtest owner nobody");
+      TestUtil.execute(conn, "create user nobody with password 'none'");
+      TestUtil.execute(conn, "create user pword with password 'password'");
+      TestUtil.execute(conn, "create user scram with password 'scram'");
+      TestUtil.execute(conn, "create user md51 with password 'pword'");
+      TestUtil.execute(conn, "create database authtest owner nobody");
       hasScram = TestUtil.queryForString(conn, "show password_encryption").equals("scram-sha-256");
     } catch (SQLException e) {
       throw new RuntimeException(e);
@@ -41,11 +41,11 @@ class RequireAuthTest {
   @AfterAll
   static void afterAll() {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
-      TestUtil.executeQuery(conn, "drop database authtest");
-      TestUtil.executeQuery(conn, "drop user md51");
-      TestUtil.executeQuery(conn, "drop user scram");
-      TestUtil.executeQuery(conn, "drop user pword");
-      TestUtil.executeQuery(conn, "drop user nobody");
+      TestUtil.execute(conn, "drop database authtest");
+      TestUtil.execute(conn, "drop user md51");
+      TestUtil.execute(conn, "drop user scram");
+      TestUtil.execute(conn, "drop user pword");
+      TestUtil.execute(conn, "drop user nobody");
     } catch (SQLException e) {
       throw new RuntimeException(e);
     }
