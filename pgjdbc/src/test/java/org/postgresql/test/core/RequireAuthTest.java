@@ -150,6 +150,7 @@ class RequireAuthTest {
     PGProperty.REQUIRE_AUTH.set(props, "!password,!scram-sha-256");
     props.setProperty("user", "pword");
     props.setProperty("password", "password");
+    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
 
     // This should fail if server uses password or md5 auth
     assertThrows(PSQLException.class, () -> {
