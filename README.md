@@ -28,7 +28,7 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [org.postgresql:postgresql][mvn-search].
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
+[![Maven Central](https://img.shields.io/maven-central/v/org.postgresql/postgresql)](https://central.sonatype.com/artifact/org.postgresql/postgresql)
 
 ```xml
 <!-- Add the following dependency to your pom.xml, -->
@@ -41,7 +41,7 @@ You can search on The Central Repository with GroupId and ArtifactId [org.postgr
 </dependency>
 ```
 
-[mvn-search]: https://search.maven.org/artifact/org.postgresql/postgresql "Search on Maven Central"
+[mvn-search]: https://central.sonatype.com/artifact/org.postgresql/postgresql "Search on Maven Central"
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to OSS Sonatype Snapshot Repository, so you can test current development version (test some bugfix) by enabling the repository and using the latest [SNAPSHOT](https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/) version.
