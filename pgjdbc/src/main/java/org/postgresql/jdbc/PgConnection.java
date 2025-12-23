@@ -229,6 +229,7 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  private final boolean allowSpecialNumeric;
   /* this is actually the database we are connected to */
   private @Nullable String catalog;
 
@@ -399,6 +400,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
+    allowSpecialNumeric = PGProperty.ALLOW_SPECIAL_NUMERIC.getBoolean(info);
     cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
   }
 
@@ -1695,6 +1697,11 @@ public class PgConnection implements BaseConnection {
   @Override
   public boolean getConvertBooleanToNumeric() {
     return convertBooleanToNumeric;
+  }
+
+  @Override
+  public boolean allowSpecialNumeric() {
+    return allowSpecialNumeric;
   }
 
   @Override
