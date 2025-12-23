@@ -353,15 +353,15 @@ public class PGXAConnection extends PGPooledConnection implements XAConnection, 
     try {
       String s = RecoveredXid.xidToString(xid);
 
-      Statement stmt = conn.createStatement();
-      try {
+      try (Statement stmt = conn.createStatement()) {
         stmt.executeUpdate("PREPARE TRANSACTION '" + s + "'");
-      } finally {
-        stmt.close();
       }
       conn.setAutoCommit(localAutoCommitMode);
-
-      return XA_OK;
+      if (conn.isReadOnly()) {
+        return XA_RDONLY;
+      } else {
+        return XA_OK;
+      }
     } catch (SQLException ex) {
       throw new PGXAException(GT.tr("Error preparing transaction. prepare xid={0}", xid), ex, mapSQLStateToXAErrorCode(ex));
     }
