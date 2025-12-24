@@ -25,7 +25,7 @@ class RequireAuthTest {
   private static boolean hasScram = true;
 
   @BeforeAll
-  static void beforeAll() {
+  static void beforeAll() throws SQLException {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
       TestUtil.execute(conn, "create user nobody with password 'none'");
       TestUtil.execute(conn, "create user pword with password 'password'");
@@ -33,21 +33,17 @@ class RequireAuthTest {
       TestUtil.execute(conn, "create user md51 with password 'pword'");
       TestUtil.execute(conn, "create database authtest owner nobody");
       hasScram = TestUtil.queryForString(conn, "show password_encryption").equals("scram-sha-256");
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
     }
   }
 
   @AfterAll
-  static void afterAll() {
+  static void afterAll() throws SQLException {
     try (Connection conn = TestUtil.openPrivilegedDB()) {
       TestUtil.execute(conn, "drop database authtest");
       TestUtil.execute(conn, "drop user md51");
       TestUtil.execute(conn, "drop user scram");
       TestUtil.execute(conn, "drop user pword");
       TestUtil.execute(conn, "drop user nobody");
-    } catch (SQLException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -56,7 +52,7 @@ class RequireAuthTest {
     Properties props = new Properties();
     props.setProperty("user", "pword");
     props.setProperty("password", "password");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
     PGProperty.REQUIRE_AUTH.set(props, "password");
 
     // This should succeed if server uses password auth
@@ -70,7 +66,7 @@ class RequireAuthTest {
     Properties props = new Properties();
     props.setProperty("user", "pword");
     props.setProperty("password", "password");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
 
     PGProperty.REQUIRE_AUTH.set(props, "!password");
 
@@ -87,7 +83,7 @@ class RequireAuthTest {
     Properties props = new Properties();
     props.setProperty("user", "nobody");
     props.setProperty("password", "none");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
 
     PGProperty.REQUIRE_AUTH.set(props, "none");
 
@@ -102,7 +98,7 @@ class RequireAuthTest {
     Properties props = new Properties();
     props.setProperty("user", "nobody");
     props.setProperty("password", "none");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
 
     PGProperty.REQUIRE_AUTH.set(props, "!none");
 
@@ -119,7 +115,7 @@ class RequireAuthTest {
     Properties props = new Properties();
     props.setProperty("user", hasScram ? "scram" : "md51");
     props.setProperty("password", hasScram ? "scram" : "pword");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
 
     PGProperty.REQUIRE_AUTH.set(props, hasScram ? "scram-sha-256" : "md5");
 
@@ -132,10 +128,9 @@ class RequireAuthTest {
   @Test
   void testRequireAuthMultipleAllowed() throws SQLException {
     Properties props = new Properties();
-    props.setProperty("user", hasScram ? "scram" : "md51");
+    props.setProperty("user", hasScram ? "scram" : "md5");
     props.setProperty("password", hasScram ? "scram" : "pword");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
-
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
     PGProperty.REQUIRE_AUTH.set(props, "password,md5,scram-sha-256");
 
     // This should succeed if server uses any of the allowed methods
@@ -150,8 +145,7 @@ class RequireAuthTest {
     PGProperty.REQUIRE_AUTH.set(props, "!password,!scram-sha-256");
     props.setProperty("user", "pword");
     props.setProperty("password", "password");
-    props.setProperty(TEST_URL_PROPERTY_PREFIX + PGProperty.PG_DBNAME.getName(), "authtest");
-
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
     // This should fail if server uses password or md5 auth
     assertThrows(PSQLException.class, () -> {
       try (Connection conn = TestUtil.openDB(props)) {
