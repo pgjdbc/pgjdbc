@@ -742,7 +742,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
     }
 
-    static EnumSet<AuthMethod> parseRequireAuth(String requireAuth) throws PSQLException {
+    static EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
       if (requireAuth == null) {
         return EnumSet.noneOf(AuthMethod.class);
       }
