@@ -7,7 +7,6 @@ package org.postgresql.test.core;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.postgresql.test.TestUtil.TEST_URL_PROPERTY_PREFIX;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
@@ -128,7 +127,7 @@ class RequireAuthTest {
   @Test
   void testRequireAuthMultipleAllowed() throws SQLException {
     Properties props = new Properties();
-    props.setProperty("user", hasScram ? "scram" : "md5");
+    props.setProperty("user", hasScram ? "scram" : "md51");
     props.setProperty("password", hasScram ? "scram" : "pword");
     TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
     PGProperty.REQUIRE_AUTH.set(props, "password,md5,scram-sha-256");
