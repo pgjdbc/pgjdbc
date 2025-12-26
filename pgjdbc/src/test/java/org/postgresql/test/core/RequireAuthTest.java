@@ -91,6 +91,22 @@ class RequireAuthTest {
       assertTrue(conn.isValid(5));
     }
   }
+  @Test
+  void testRequireAuthFailNone() throws SQLException {
+    Properties props = new Properties();
+    props.setProperty("user", "pword");
+    props.setProperty("password", "none");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "authtest");
+
+    PGProperty.REQUIRE_AUTH.set(props, "none");
+
+    // This should fail if server uses no auth (trust)
+    assertThrows(PSQLException.class, () -> {
+      try (Connection conn = TestUtil.openDB(props)) {
+        // Should not reach here
+      }
+    });
+  }
 
   @Test
   void testRequireAuthRejectNone() {
