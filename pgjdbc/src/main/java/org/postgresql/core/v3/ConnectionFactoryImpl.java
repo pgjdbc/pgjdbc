@@ -49,6 +49,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -572,6 +573,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
+          pgStream.setFinishedAuthenticationRequests();
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -725,6 +727,65 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  private enum AuthMethod {
+    NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
+
+    static AuthMethod fromString(String method) throws PSQLException {
+      switch (method) {
+        case "none": return NONE;
+        case "password": return PASSWORD;
+        case "md5": return MD5;
+        case "gss": return GSS;
+        case "sspi": return SSPI;
+        case "scram-sha-256": return SCRAM_SHA_256;
+        default: throw new PSQLException(GT.tr("Invalid authentication method: {0}", method), PSQLState.INVALID_PARAMETER_VALUE);
+      }
+    }
+
+    static EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
+      if (requireAuth == null) {
+        return EnumSet.noneOf(AuthMethod.class);
+      }
+
+      EnumSet<AuthMethod> allowedMethods;
+      EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
+      String[] methods = requireAuth.split(",");
+      boolean isDisallowMode = methods.length > 0 && methods[0].trim().startsWith("!");
+
+      allowedMethods = isDisallowMode ? EnumSet.allOf(AuthMethod.class) : EnumSet.noneOf(AuthMethod.class);
+
+      for (String method : methods) {
+        method = method.trim();
+        boolean isNegative = method.startsWith("!");
+
+        if (isNegative != isDisallowMode) {
+          throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+
+        AuthMethod authMethod = fromString(isNegative ? method.substring(1) : method);
+        if (!seenMethods.add(authMethod)) {
+          throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
+        }
+
+        if (isDisallowMode) {
+          allowedMethods.remove(authMethod);
+        } else {
+          allowedMethods.add(authMethod);
+        }
+      }
+      return allowedMethods;
+    }
+
+    static void checkAuth(EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
+      if (allowedMethods.isEmpty()) {
+        return;
+      }
+      if (!allowedMethods.contains(authMethod)) {
+        throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
+      }
+    }
+  }
+
   private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
@@ -739,6 +800,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     boolean saslHandshakeCompleted = false;
     ChannelBinding channelBinding = ChannelBinding.of(info);
+
+    // Parse requireAuth property for authentication method validation
+    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
+    EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
       authloop: while (true) {
@@ -805,6 +870,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Process the request.
             switch (areq) {
               case AUTH_REQ_MD5: {
+                AuthMethod.checkAuth(authMethods, AuthMethod.MD5);
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                   LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
@@ -829,11 +895,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 pgStream.sendChar(0);
                 pgStream.flush();
-
+                pgStream.setFinishedAuthenticationRequests();
                 break;
               }
 
               case AUTH_REQ_PASSWORD: {
+                AuthMethod.checkAuth(authMethods, AuthMethod.PASSWORD);
                 LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
@@ -845,12 +912,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 });
                 pgStream.sendChar(0);
                 pgStream.flush();
+                pgStream.setFinishedAuthenticationRequests();
 
                 break;
               }
 
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
+                AuthMethod.checkAuth(authMethods, areq == AUTH_REQ_GSS ? AuthMethod.GSS : AuthMethod.SSPI);
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
@@ -930,9 +999,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 castNonNull(sspiClient).continueSSPI(msgLen - 8);
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_SASL:
+                AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
                 scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -958,9 +1029,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
                 saslHandshakeCompleted = true;
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_OK:
+                if (requireAuth != null) {
+                  // this will happen if the authentication method is trust
+                  if ( !pgStream.isFinishedAuthenticationRequests()) {
+                    AuthMethod.checkAuth(authMethods, AuthMethod.NONE);
+                  }
+                  if (pgStream.isGssEncrypted()) {
+                    AuthMethod.checkAuth(authMethods, AuthMethod.GSS);
+                  }
+                }
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
