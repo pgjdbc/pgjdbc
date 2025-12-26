@@ -91,6 +91,7 @@ class RequireAuthTest {
       assertTrue(conn.isValid(5));
     }
   }
+
   @Test
   void testRequireAuthFailNone() throws SQLException {
     Properties props = new Properties();
