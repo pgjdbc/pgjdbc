@@ -46,7 +46,7 @@ jobs:
       with:
         fetch-depth: 50
     - name: 'Set up JDK 21'
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       with:
         distribution: zulu
         java-version: 21
@@ -67,7 +67,7 @@ jobs:
         with:
           fetch-depth: 50
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: zulu
           java-version: 21
@@ -92,7 +92,7 @@ jobs:
         working-directory: docker/postgres-server
         run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 21'
-        uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           distribution: zulu
           java-version: 21
@@ -167,7 +167,7 @@ jobs:
         docker compose up -d
         docker compose logs
     - name: Set up Java 21 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       with:
         # The latest one will be the default, so we use Java 21 for launching Gradle
         # oracle-actions/setup-java below requires Java 21, so we must install Java 21 before calling oracle-actions/setup-java
@@ -190,7 +190,7 @@ jobs:
     - name: Set up Java 21 ${{ matrix.java_distribution }} as default
       # oracle-actions/setup-java above installs EA java by default, so we need to reinstall Java 21 as the default
       if: ${{ matrix.oracle_java_website != '' }}
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       with:
         java-version: 21
         distribution: ${{ matrix.java_distribution }}
