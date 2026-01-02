@@ -728,8 +728,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-
-
   private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
