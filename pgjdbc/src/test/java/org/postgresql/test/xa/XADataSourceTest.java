@@ -5,6 +5,8 @@
 
 package org.postgresql.test.xa;
 
+import static javax.transaction.xa.XAException.XA_RDONLY;
+import static javax.transaction.xa.XAResource.XA_OK;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -214,7 +216,18 @@ public class XADataSourceTest {
     xaRes.start(xid, XAResource.TMNOFLAGS);
     conn.createStatement().executeQuery("SELECT * FROM testxa1");
     xaRes.end(xid, XAResource.TMSUCCESS);
-    xaRes.prepare(xid);
+    assertEquals(XA_OK, xaRes.prepare(xid));
+    xaRes.commit(xid, false);
+  }
+
+  @Test
+  void twoPhasePrepareReadOnly() throws Exception {
+    Xid xid = new CustomXid(1);
+    conn.setReadOnly(true);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    conn.createStatement().executeQuery("SELECT * FROM testxa1");
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    assertEquals(XA_RDONLY, xaRes.prepare(xid));
     xaRes.commit(xid, false);
   }
 
