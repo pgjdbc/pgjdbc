@@ -9,6 +9,7 @@ package org.postgresql.core.v3;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.AuthMethod;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
@@ -727,64 +728,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private enum AuthMethod {
-    NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
 
-    static AuthMethod fromString(String method) throws PSQLException {
-      switch (method) {
-        case "none": return NONE;
-        case "password": return PASSWORD;
-        case "md5": return MD5;
-        case "gss": return GSS;
-        case "sspi": return SSPI;
-        case "scram-sha-256": return SCRAM_SHA_256;
-        default: throw new PSQLException(GT.tr("Invalid authentication method: {0}", method), PSQLState.INVALID_PARAMETER_VALUE);
-      }
-    }
-
-    static EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
-      if (requireAuth == null) {
-        return EnumSet.noneOf(AuthMethod.class);
-      }
-
-      EnumSet<AuthMethod> allowedMethods;
-      EnumSet<AuthMethod> seenMethods = EnumSet.noneOf(AuthMethod.class);
-      String[] methods = requireAuth.split(",");
-      boolean isDisallowMode = methods.length > 0 && methods[0].trim().startsWith("!");
-
-      allowedMethods = isDisallowMode ? EnumSet.allOf(AuthMethod.class) : EnumSet.noneOf(AuthMethod.class);
-
-      for (String method : methods) {
-        method = method.trim();
-        boolean isNegative = method.startsWith("!");
-
-        if (isNegative != isDisallowMode) {
-          throw new PSQLException(GT.tr("requireAuth cannot mix positive and negative authentication methods"), PSQLState.INVALID_PARAMETER_VALUE);
-        }
-
-        AuthMethod authMethod = fromString(isNegative ? method.substring(1) : method);
-        if (!seenMethods.add(authMethod)) {
-          throw new PSQLException(GT.tr("requireAuth contains duplicate authentication method"), PSQLState.INVALID_PARAMETER_VALUE);
-        }
-
-        if (isDisallowMode) {
-          allowedMethods.remove(authMethod);
-        } else {
-          allowedMethods.add(authMethod);
-        }
-      }
-      return allowedMethods;
-    }
-
-    static void checkAuth(EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
-      if (allowedMethods.isEmpty()) {
-        return;
-      }
-      if (!allowedMethods.contains(authMethod)) {
-        throw new PSQLException(GT.tr("Authentication method is not allowed by requireAuth"), PSQLState.CONNECTION_REJECTED);
-      }
-    }
-  }
 
   private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
