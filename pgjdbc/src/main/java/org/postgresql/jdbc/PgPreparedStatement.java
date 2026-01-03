@@ -713,7 +713,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Blob) {
           setBlob(parameterIndex, (Blob) in);
         } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, Long.MAX_VALUE);
+          long oid = createBlob((InputStream) in, Long.MAX_VALUE);
           setLong(parameterIndex, oid);
         } else {
           throw new PSQLException(
@@ -1251,12 +1251,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setString(i, x.toString(), oid);
   }
 
-  protected long createBlob(int i, InputStream inputStream,
+  protected long createBlob(InputStream inputStream,
       @NonNegative long length) throws SQLException {
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
-    LargeObject lob = lom.open(oid);
-    try (OutputStream outputStream = lob.getOutputStream()) {
+    try (LargeObject lob = lom.open(oid);
+         OutputStream outputStream = lob.getOutputStream()) {
       // The actual buffer size does not matter much, see benchmarks
       // https://github.com/pgjdbc/pgjdbc/pull/3044#issuecomment-1838057929
       // BlobOutputStream would gradually increase the buffer, so it will level the number of
@@ -1294,7 +1294,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         // See https://github.com/pgjdbc/pgjdbc/issues/3134
         maxLength = Long.MAX_VALUE;
       }
-      long oid = createBlob(i, inStream, maxLength);
+      long oid = createBlob(inStream, maxLength);
       setLong(i, oid);
     } catch (IOException e) {
       throw new PSQLException(GT.tr("Unexpected error when closing Blob binary stream"),
@@ -1704,7 +1704,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    long oid = createBlob(parameterIndex, inputStream, length);
+    long oid = createBlob(inputStream, length);
     setLong(parameterIndex, oid);
   }
 
@@ -1718,7 +1718,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    long oid = createBlob(parameterIndex, inputStream, Long.MAX_VALUE);
+    long oid = createBlob(inputStream, Long.MAX_VALUE);
     setLong(parameterIndex, oid);
   }
 
