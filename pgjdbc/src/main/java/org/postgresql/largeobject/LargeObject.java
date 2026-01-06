@@ -8,6 +8,7 @@ package org.postgresql.largeobject;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.fastpath.FastpathArg;
+import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.ByteStreamWriter;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -61,6 +62,7 @@ public class LargeObject
   public static final int SEEK_END = 2;
 
   private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
+  private final ResourceLock lock = new ResourceLock();
 
   private final Fastpath fp; // Fastpath API to use
   private final long oid; // OID of this object
@@ -126,17 +128,6 @@ public class LargeObject
     return new LargeObject(fp, oid, mode);
   }
 
-  /*
-   * Release large object resources during garbage cleanup.
-   *
-   * This code used to call close() however that was problematic because the scope of the fd is a
-   * transaction, thus if commit or rollback was called before garbage collection ran then the call
-   * to close would error out with an invalid large object handle. So this method now does nothing
-   * and lets the server handle cleanup when it ends the transaction.
-   *
-   * protected void finalize() throws SQLException { }
-   */
-
   /**
    * @return the OID of this LargeObject
    * @deprecated As of 8.3, replaced by {@link #getLongOID()}
@@ -160,27 +151,29 @@ public class LargeObject
    */
   @Override
   public void close() throws SQLException {
-    if (!closed) {
-      // flush any open output streams
-      if (os != null) {
-        try {
-          // we can't call os.close() otherwise we go into an infinite loop!
-          os.flush();
-        } catch (IOException ioe) {
-          throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
-        } finally {
-          os = null;
+    try (ResourceLock ignore = lock.obtain()) {
+      if (!closed) {
+        // flush any open output streams
+        if (os != null) {
+          try {
+            // we can't call os.close() otherwise we go into an infinite loop!
+            os.flush();
+          } catch (IOException ioe) {
+            throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
+          } finally {
+            os = null;
+          }
         }
-      }
 
-      // finally close
-      FastpathArg[] args = new FastpathArg[1];
-      args[0] = new FastpathArg(fd);
-      fp.fastpath("lo_close", args); // true here as we dont care!!
-      closed = true;
-      BaseConnection conn = this.conn;
-      if (this.commitOnClose && conn != null) {
-        conn.commit();
+        // finally close
+        FastpathArg[] args = new FastpathArg[1];
+        args[0] = new FastpathArg(fd);
+        fp.fastpath("lo_close", args); // true here as we dont care!!
+        closed = true;
+        BaseConnection conn = this.conn;
+        if (this.commitOnClose && conn != null) {
+          conn.commit();
+        }
       }
     }
   }
