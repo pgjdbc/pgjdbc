@@ -23,7 +23,12 @@ public enum ProtocolVersion {
   /**
    * Protocol version 3.2
    */
-  v3_2(3, 2);
+  v3_2(3, 2),
+
+  /**
+   * Protocol version 3.3 (supports cursor options in Bind message)
+   */
+  v3_3(3, 3);
 
   private final int major;
   private final int minor;
