@@ -207,9 +207,9 @@ public class V3PGReplicationStream implements PGReplicationStream {
       LogSequenceNumber applied, boolean replyRequired) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);
 
-    long now = System.nanoTime() / NANOS_PER_MILLISECOND;
+    long now = System.currentTimeMillis();
     long systemClock = TimeUnit.MICROSECONDS.convert((now - POSTGRES_EPOCH_2000_01_01),
-        TimeUnit.MICROSECONDS);
+        TimeUnit.MILLISECONDS);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       @SuppressWarnings("JavaUtilDate")
