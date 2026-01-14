@@ -39,6 +39,7 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.util.ClassUtils;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
@@ -805,7 +806,7 @@ public class PgConnection implements BaseConnection {
   @Deprecated
   public void addDataType(String type, String name) {
     try {
-      addDataType(type, Class.forName(name).asSubclass(PGobject.class));
+      addDataType(type, ClassUtils.forName(name, PGobject.class, getClass().getClassLoader()));
     } catch (Exception e) {
       throw new RuntimeException("Cannot register new type " + type, e);
     }
@@ -852,7 +853,7 @@ public class PgConnection implements BaseConnection {
         Class<?> klass;
 
         try {
-          klass = Class.forName(className);
+          klass = ClassUtils.forName(className, PGobject.class, getClass().getClassLoader());
         } catch (ClassNotFoundException cnfe) {
           throw new PSQLException(
               GT.tr("Unable to load the class {0} responsible for the datatype {1}",
@@ -1984,18 +1985,13 @@ public class PgConnection implements BaseConnection {
     } else if ("LEGACY_INSECURE".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = LegacyInsecurePGXmlFactoryFactory.INSTANCE;
     } else {
-      Class<?> clazz;
+      Class<? extends PGXmlFactoryFactory> clazz;
       try {
-        clazz = Class.forName(xmlFactoryFactoryClass);
+        clazz = ClassUtils.forName(xmlFactoryFactoryClass, PGXmlFactoryFactory.class, getClass().getClassLoader());
       } catch (ClassNotFoundException ex) {
         throw new PSQLException(
             GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
             PSQLState.INVALID_PARAMETER_VALUE, ex);
-      }
-      if (!PGXmlFactoryFactory.class.isAssignableFrom(clazz)) {
-        throw new PSQLException(
-            GT.tr("Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}", xmlFactoryFactoryClass),
-            PSQLState.INVALID_PARAMETER_VALUE);
       }
       try {
         xmlFactoryFactory = clazz.asSubclass(PGXmlFactoryFactory.class)
