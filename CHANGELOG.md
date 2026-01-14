@@ -4,6 +4,26 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+## [42.7.9] (2026-01-14)
+
+### Added
+* feat: query timeout property [PR #3705](https://github.com/pgjdbc/pgjdbc/pull/3705)
+* feat: Add PEMKeyManager to handle PEM based certs and keys [PR #3700](https://github.com/pgjdbc/pgjdbc/pull/3700)
+
+### Changed
+* perf: optimize PGInterval.getValue() by replacing String.format with StringBuilder
+* doc: update property quoteReturningIdentifiers default value [PR #3847](https://github.com/pgjdbc/pgjdbc/pull/3847)
+
+### Fixed
+* fix: incorrect pg_stat_replication.reply_time calculation [PR #3906](https://github.com/pgjdbc/pgjdbc/pull/3906)
+* fix: close temporary lob descriptors that are used internally in PreparedStatement#setBlob
+* fix: PGXAConnection.prepare(Xid) should return XA_RDONLY if the connection is read only [PR #3897](https://github.com/pgjdbc/pgjdbc/pull/3897)
+* fix: make all Calendar instances proleptic Gregorian [PR #3837](https://github.com/pgjdbc/pgjdbc/pull/3887)
+* fix: avoid memory leaks caused by Thread.inheritedAccessControlContext
+* fix: Issue #3784 pgjdbc can't decode numeric arrays containing special numbers like NaN [PR #3838](https://github.com/pgjdbc/pgjdbc/pull/3838)
+* fix: use ssl_is_used() to check for ssl connection [PR #3867](https://github.com/pgjdbc/pgjdbc/pull/3867)
+* fix: the classloader is nullable [PR #3907](https://github.com/pgjdbc/pgjdbc/pull/3907)
+
 ## [42.7.8] (2025-09-18)
 
 ### Added
