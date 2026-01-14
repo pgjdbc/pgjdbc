@@ -5,6 +5,8 @@
 
 package org.postgresql.util;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /**
  * Utility class for safe class loading operations.
  */
@@ -25,7 +27,7 @@ public final class ClassUtils {
    * @return the loaded class as a subclass of the expected type
    * @throws ClassNotFoundException if the class cannot be found
    */
-  public static <T> Class<? extends T> forName(String className, Class<T> expectedClass, ClassLoader classLoader) 
+  public static <T> Class<? extends T> forName(String className, Class<T> expectedClass, @Nullable ClassLoader classLoader)
       throws ClassNotFoundException {
     return Class.forName(className, false, classLoader).asSubclass(expectedClass);
   }
