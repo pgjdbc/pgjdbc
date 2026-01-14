@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 * perf: optimize PGInterval.getValue() by replacing String.format with StringBuilder
 * doc: update property quoteReturningIdentifiers default value [PR #3847](https://github.com/pgjdbc/pgjdbc/pull/3847)
+* security: Use a static method forName to load all user supplied classes. Use the Class.forName 3 parameter method and do not initilize it unless it is a subclass of the expected class
 
 ### Fixed
 * fix: incorrect pg_stat_replication.reply_time calculation [PR #3906](https://github.com/pgjdbc/pgjdbc/pull/3906)
