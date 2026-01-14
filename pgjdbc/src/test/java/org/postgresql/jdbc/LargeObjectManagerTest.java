@@ -168,4 +168,80 @@ class LargeObjectManagerTest {
       lom.delete(loId);
     }
   }
+
+  @Test
+  void closedLargeObjectThrowsException() throws Exception {
+    try (PgConnection con = (PgConnection) TestUtil.openDB()) {
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
+      con.setAutoCommit(false);
+
+      LargeObjectManager lom = con.getLargeObjectAPI();
+      long loId = lom.createLO();
+      LargeObject lo = lom.open(loId, LargeObjectManager.WRITE);
+
+      // Close the large object
+      lo.close();
+
+      // Now try to use methods on the closed object - they should all throw PSQLException
+      try {
+        lo.read(10);
+        fail("Expected PSQLException when calling read() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.write(new byte[]{1, 2, 3});
+        fail("Expected PSQLException when calling write() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.seek(0);
+        fail("Expected PSQLException when calling seek() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.tell();
+        fail("Expected PSQLException when calling tell() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.size();
+        fail("Expected PSQLException when calling size() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.truncate(0);
+        fail("Expected PSQLException when calling truncate() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.getInputStream();
+        fail("Expected PSQLException when calling getInputStream() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      try {
+        lo.getOutputStream();
+        fail("Expected PSQLException when calling getOutputStream() on closed LargeObject");
+      } catch (PSQLException e) {
+        assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), e.getSQLState());
+      }
+
+      // Clean up
+      lom.delete(loId);
+      con.commit();
+    }
+  }
 }
