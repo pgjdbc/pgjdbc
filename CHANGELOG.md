@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * fix: close temporary lob descriptors that are used internally in PreparedStatement#setBlob
 * fix: PGXAConnection.prepare(Xid) should return XA_RDONLY if the connection is read only [PR #3897](https://github.com/pgjdbc/pgjdbc/pull/3897)
 * fix: make all Calendar instances proleptic Gregorian [PR #3837](https://github.com/pgjdbc/pgjdbc/pull/3887)
-* fix: avoid memory leaks caused by Thread.inheritedAccessControlContext
+  fix: avoid memory leaks in Java <= 21 caused by Thread.inheritedAccessControlContext [PR #3886](https://github.com/pgjdbc/pgjdbc/pull/3886)
 * fix: Issue #3784 pgjdbc can't decode numeric arrays containing special numbers like NaN [PR #3838](https://github.com/pgjdbc/pgjdbc/pull/3838)
 * fix: use ssl_is_used() to check for ssl connection [PR #3867](https://github.com/pgjdbc/pgjdbc/pull/3867)
 * fix: the classloader is nullable [PR #3907](https://github.com/pgjdbc/pgjdbc/pull/3907)
