@@ -52,6 +52,11 @@ main () {
         pg_opts="${pg_opts} -c max_prepared_transactions=64"
     fi
 
+    if is_pg_version_at_least "10"; then
+        # PostgreSQL 10+ supports scram
+        echo "host    authtest        scram           all            scram-sha-256" >> "${pg_hba}"
+    fi
+
     if ! is_pg_version_at_least "12"; then
       # PostgreSQL <= 11 supports clientcert=0|1 only
       sed -i -e "s/clientcert=verify-full/clientcert=1/" "${pg_hba}"
