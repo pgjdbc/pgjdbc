@@ -302,7 +302,7 @@ jobs:
 
     # Install built-in JDK
     - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_distribution }}'
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       if: ${{ matrix.jdk_distribution != 'jdkfile' }}
       with:
         distribution: ${{ matrix.jdk_distribution }}
@@ -315,7 +315,7 @@ jobs:
         jdk_url="${{ matrix.jdk_url }}"
         wget -nv -O "${{ runner.temp }}/java_package.tar.gz" "${jdk_url}"
     - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_url }}'
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       if: ${{ matrix.jdk_distribution == 'jdkfile' }}
       with:
         distribution: ${{ matrix.jdk_distribution }}
@@ -361,7 +361,7 @@ jobs:
         properties: |
           includeTestTags=${{ matrix.junit_include_tags }}
     - name: 'Upload code coverage'
-      uses: codecov/codecov-action@96b38e9e60ee60a8c3911f4612407bba2f9195fb
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
 
@@ -377,7 +377,7 @@ jobs:
       working-directory: docker/postgres-head
       run: docker compose up -d && docker compose logs
     - name: Set up JDK
-      uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4
+      uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
       with:
         distribution: zulu
         java-version: 17
@@ -412,6 +412,6 @@ jobs:
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !replication
     - name: 'Upload code coverage'
-      uses: codecov/codecov-action@96b38e9e60ee60a8c3911f4612407bba2f9195fb
+      uses: codecov/codecov-action@671740ac38dd9b0130fbe1cec585b89eea48d3de
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
