@@ -740,6 +740,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         doSubprotocolBegin();
       }
       try {
+        // Process any pending responses from simple queries (e.g., RELEASE SAVEPOINT
+        // from cleanupSavepoints). These responses would otherwise be misinterpreted
+        // by receiveFastpathResult(). See https://github.com/pgjdbc/pgjdbc/issues/3910
+        if (!pendingExecuteQueue.isEmpty()) {
+          processResults(new ResultHandlerBase(), 0);
+        }
         sendFastpathCall(fnid, (SimpleParameterList) parameters);
         return receiveFastpathResult();
       } catch (IOException ioe) {
