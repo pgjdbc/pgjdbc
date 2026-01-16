@@ -116,7 +116,7 @@ This value is an optional argument to the constructor of the sslfactory class pr
 * **`sslmode (`*String*`)`** *Default `prefer`*\
 possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/ssl/#configuring-the-client) for details.
 
-* **`sslNegotiation (`*String*`)`** *Default `postgres` *\
+* **`sslNegotiation (`*String*`)`** *Default `postgres`*\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
 
 * **`sslcert (`*String*`)`** *Default `defaultdir/postgresql.crt`*\
@@ -285,7 +285,7 @@ If `stringtype` is set to `unspecified` , parameters will be sent to the server 
 This is useful if you have an existing application that uses `setString()` to set parameters that are actually some other type, such as integers, 
 and you are unable to change the application to use an appropriate method such as `setInt()` .
 
-* **`ApplicationName (`*String*`)`** *`Default PostgreSQL JDBC Driver`*\
+* **`ApplicationName (`*String*`)`** *Default `PostgreSQL JDBC Driver`*\
 Specifies the name of the application that is using the connection. 
 This allows a database administrator to see what applications are connected to the server and what resources they are using through views like pg_stat_activity.
 
@@ -397,7 +397,7 @@ Controls how long in seconds the knowledge about a host state is cached in JVM w
 In default mode (`disabled`) hosts are connected in the given order. If enabled hosts are chosen randomly from the set 
 of suitable candidates.
 
-* **`socketFactory (`*String*`)`** *Default `null`\
+* **`socketFactory (`*String*`)`** *Default `null`*\
 The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend
 `javax.net.SocketFactory` and be available to the driver's classloader. This class must have a zero-argument constructor,
