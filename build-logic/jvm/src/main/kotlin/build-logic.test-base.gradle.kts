@@ -46,7 +46,8 @@ tasks.configureEach<Test> {
     }
     for (p in listOf("test.url.PGHOST", "test.url.PGPORT", "test.url.PGDBNAME", "user", "password",
         "privilegedUser", "privilegedPassword",
-        "simpleProtocolOnly", "enable_ssl_tests")) {
+        "simpleProtocolOnly", "enable_ssl_tests",
+        "autosave", "cleanupSavepoints")) {
         passProperty(p)
     }
 }
