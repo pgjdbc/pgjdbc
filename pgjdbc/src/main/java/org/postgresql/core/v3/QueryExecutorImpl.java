@@ -478,13 +478,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean shouldCreateAutomaticSavepoint(Query query, int flags) {
+    if (getAutoSave() == AutoSave.NEVER) {
+      return false;
+    }
     if (!isTransactionActive(flags)) {
       return false;
     }
     if (isSpecialQuery(query)) {
-      return false;
-    }
-    if (getAutoSave() == AutoSave.NEVER) {
       return false;
     }
     return getAutoSave() == AutoSave.ALWAYS || queryMightFail(query);
@@ -496,8 +496,25 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private boolean isSpecialQuery(Query query) {
-    return query == restoreToAutoSave
-        || "COMMIT".equalsIgnoreCase(query.getNativeSql());
+    if (query == restoreToAutoSave) {
+      return true;
+    }
+    String sql = query.getNativeSql();
+    // SET TRANSACTION ISOLATION LEVEL and SET SESSION CHARACTERISTICS cannot be called in subtransaction
+    // SAVEPOINT commands cannot use autosave because:
+    // - SAVEPOINT: releasing the autosave would destroy the user's savepoint (created after autosave)
+    // - RELEASE SAVEPOINT: same issue, plus the released savepoint might no longer exist
+    // - ROLLBACK TO SAVEPOINT: destroys savepoints created after the target, including autosave
+    return "COMMIT".equalsIgnoreCase(sql)
+        || startsWithIgnoreCase(sql, "SET TRANSACTION")
+        || startsWithIgnoreCase(sql, "SET SESSION CHARACTERISTICS")
+        || startsWithIgnoreCase(sql, "SAVEPOINT")
+        || startsWithIgnoreCase(sql, "RELEASE")
+        || startsWithIgnoreCase(sql, "ROLLBACK TO SAVEPOINT");
+  }
+
+  private static boolean startsWithIgnoreCase(String str, String prefix) {
+    return str.regionMatches(true, 0, prefix, 0, prefix.length());
   }
 
   // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
@@ -1051,6 +1068,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       byte[] buf = sql.getBytes(StandardCharsets.UTF_8);
 
       try {
+        // Process any pending responses from simple queries (e.g., RELEASE SAVEPOINT
+        // from cleanupSavepoints). These responses would otherwise be misinterpreted
+        // by processCopyResults(). See https://github.com/pgjdbc/pgjdbc/issues/3910
+        if (!pendingExecuteQueue.isEmpty()) {
+          processResults(new ResultHandlerBase(), 0);
+        }
         LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
         pgStream.sendChar(PgMessageType.QUERY_REQUEST);

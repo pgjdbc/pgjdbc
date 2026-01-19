@@ -190,6 +190,25 @@ matrix.addAxis({
 });
 
 matrix.addAxis({
+  name: 'autosave',
+  title: x => x.value === 'never' ? '' : 'autosave ' + x.value,
+  values: [
+    {value: 'always', weight: 5},
+    {value: 'never', weight: 30},
+    {value: 'conservative', weight: 5},
+  ]
+});
+
+matrix.addAxis({
+  name: 'cleanupSavepoints',
+  title: x => x.value === 'true' ? 'cleanupSavepoints' : '',
+  values: [
+    {value: 'true', weight: 5},
+    {value: 'false', weight: 5},
+  ]
+});
+
+matrix.addAxis({
   name: 'check_anorm_sbt',
   values: [
     // See https://github.com/pgjdbc/pgjdbc/issues/2537
@@ -233,7 +252,8 @@ matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
-    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout'
+    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
+    'autosave', 'cleanupSavepoints'
 ]);
 
 // We take EA builds from Oracle
@@ -252,6 +272,8 @@ matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === e
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest']})
+// cleanupSavepoints is not relevant when autosave=never
+matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
 
 // The most rare features should be generated the first
 // For instance, we have a lot of PostgreSQL versions, so we generate the minimal the first
@@ -292,6 +314,8 @@ for (let ssl of matrix.axisByName.ssl.values) {
 for (let replication of matrix.axisByName.replication.values) {
   matrix.generateRow({replication: replication});
 }
+// Ensure at least one job with autosave=always
+matrix.generateRow({autosave: {value: 'always'}});
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
@@ -337,6 +361,8 @@ include.forEach(v => {
   v.adaptive_fetch = v.adaptive_fetch.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
   v.query_timeout = v.query_timeout.value;
+  v.autosave = v.autosave.value;
+  v.cleanupSavepoints = v.cleanupSavepoints.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
@@ -404,6 +430,12 @@ include.forEach(v => {
   }
   if (v.query_timeout) {
       testJvmArgs.push(`-DqueryTimeout=${v.query_timeout}`);
+  }
+  if (v.autosave !== 'never') {
+      testJvmArgs.push(`-Dautosave=${v.autosave}`);
+  }
+  if (v.cleanupSavepoints === 'true') {
+      testJvmArgs.push('-DcleanupSavepoints=true');
   }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');

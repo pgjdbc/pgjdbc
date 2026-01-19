@@ -38,11 +38,20 @@ class LargeObjectManagerTest {
    * It is possible for PostgreSQL to send a ParameterStatus message after an ErrorResponse
    * Receiving such a message should not lead to an invalid connection state
    * See https://github.com/pgjdbc/pgjdbc/issues/2237
+   *
+   * Note: This test is skipped when autosave is enabled because with autosave, a savepoint
+   * is created before the SET statement. When a subsequent error occurs, PostgreSQL doesn't
+   * send ParameterStatus to reset the parameter because it expects the client might
+   * ROLLBACK TO SAVEPOINT to recover. This is expected autosave behavior - protecting
+   * previous successful statements from being rolled back.
    */
   @Test
   void openWithErrorAndSubsequentParameterStatusMessageShouldLeaveConnectionInUsableStateAndUpdateParameterStatus() throws Exception {
     try (PgConnection con = (PgConnection) TestUtil.openDB()) {
       assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
+      assumeTrue(con.getAutosave() == AutoSave.NEVER,
+          "Test requires autosave=never because autosave creates savepoints that prevent "
+              + "PostgreSQL from sending ParameterStatus on error");
       con.setAutoCommit(false);
       String originalApplicationName = con.getParameterStatus("application_name");
       try (Statement statement = con.createStatement()) {
