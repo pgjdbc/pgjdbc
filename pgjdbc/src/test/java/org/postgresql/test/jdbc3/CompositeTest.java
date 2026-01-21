@@ -43,6 +43,8 @@ class CompositeTest {
     conn = TestUtil.openDB();
     TestUtil.createSchema(conn, "\"Composites\"");
     TestUtil.createCompositeType(conn, "simplecompositetest", "i int, d decimal, u uuid");
+    TestUtil.createCompositeType(conn, "\"Composites\".\"SimpleComposite\"",
+        "i int, d decimal, u uuid");
     TestUtil.createCompositeType(conn, "nestedcompositetest", "t text, s simplecompositetest");
     TestUtil.createCompositeType(conn, "\"Composites\".\"ComplexCompositeTest\"",
         "l bigint[], n nestedcompositetest[], s simplecompositetest");
@@ -59,6 +61,7 @@ class CompositeTest {
     TestUtil.dropType(conn, "\"Composites\".\"ComplexCompositeTest\"");
     TestUtil.dropType(conn, "nestedcompositetest");
     TestUtil.dropType(conn, "simplecompositetest");
+    TestUtil.dropType(conn, "\"Composites\".\"SimpleComposite\"");
     TestUtil.dropSchema(conn, "\"Composites\"");
     TestUtil.closeDB(conn);
   }
@@ -71,6 +74,18 @@ class CompositeTest {
     PGobject pgo = (PGobject) rs.getObject(1);
     assertEquals("simplecompositetest", pgo.getType());
     assertEquals("(1,2.2,)", pgo.getValue());
+  }
+
+  @Test
+  void testAddType() throws SQLException {
+    PGConnection pgconn = conn.unwrap(PGConnection.class);
+    pgconn.addDataType("\"Composites\".\"SimpleComposite\"", SimpleComposite.class);
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '(1,2.2,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11)'::\"Composites\".\"SimpleComposite\"");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object simpleComposite = rs.getObject(1);
+    assertEquals(SimpleComposite.class, simpleComposite.getClass());
+    assertEquals("(1,2.2,a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11)", ((SimpleComposite)simpleComposite).getValue());
   }
 
   @Test
