@@ -1484,7 +1484,7 @@ public class TimestampUtils {
       }
 
       secs = (long) time;
-      nanos = (int) ((time - secs) * 1000000);
+      nanos = (int) ((time - secs) * 1000000 + 0.5);
     } else {
       long time = ByteConverter.int8(bytes, 0);
 
