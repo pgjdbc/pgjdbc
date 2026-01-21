@@ -22,9 +22,13 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.AfterParameterizedClassInvocation;
+import org.junit.jupiter.params.BeforeParameterizedClassInvocation;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -50,13 +54,9 @@ import java.util.Set;
  */
 @ParameterizedClass
 @MethodSource("data")
-public class DatabaseMetaDataTest {
-  private Connection con;
-
-  private final BinaryMode binaryMode;
-
+public class DatabaseMetaDataTest extends BaseTest4 {
   public DatabaseMetaDataTest(BinaryMode binaryMode) {
-    this.binaryMode = binaryMode;
+    setBinaryMode(binaryMode);
   }
 
   public static Iterable<Object[]> data() {
@@ -67,138 +67,133 @@ public class DatabaseMetaDataTest {
     return ids;
   }
 
-  @BeforeEach
-  void setUp() throws Exception {
-    if (binaryMode == BinaryMode.FORCE) {
-      final Properties props = new Properties();
-      PGProperty.PREPARE_THRESHOLD.set(props, -1);
-      con = TestUtil.openDB(props);
-    } else {
-      con = TestUtil.openDB();
-    }
-    TestUtil.createTable(con, "bestrowid", "id int4 primary key");
-    TestUtil.createTable(con, "metadatatest",
-        "id int4, name text, updated timestamptz, colour text, quest text");
-    TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
-    TestUtil.dropSequence(con, "sercoltest_b_seq");
-    TestUtil.dropSequence(con, "sercoltest_c_seq");
-    TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
-    TestUtil.createTable(con, "\"a\\\"", "a int4");
-    TestUtil.createTable(con, "\"a'\"", "a int4");
-    TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
-    TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
-    TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
-    TestUtil.dropType(con, "custom");
-    TestUtil.dropType(con, "_custom");
-    TestUtil.createCompositeType(con, "custom", "i int", false);
-    TestUtil.createCompositeType(con, "_custom", "f float", false);
+  @BeforeParameterizedClassInvocation()
+  static void createTables(BinaryMode binaryMode) throws Exception {
+    try (Connection con = TestUtil.openDB();) {
+      TestUtil.createTable(con, "bestrowid", "id int4 primary key");
+      TestUtil.createTable(con, "metadatatest",
+          "id int4, name text, updated timestamptz, colour text, quest text");
+      TestUtil.createTable(con, "precision_test", "implicit_precision numeric");
+      TestUtil.dropSequence(con, "sercoltest_b_seq");
+      TestUtil.dropSequence(con, "sercoltest_c_seq");
+      TestUtil.createTable(con, "sercoltest", "a int, b serial, c bigserial");
+      TestUtil.createTable(con, "\"a\\\"", "a int4");
+      TestUtil.createTable(con, "\"a'\"", "a int4");
+      TestUtil.createTable(con, "arraytable", "a numeric(5,2)[], b varchar(100)[]");
+      TestUtil.createTable(con, "intarraytable", "a int4[], b int4[][]");
+      TestUtil.createView(con, "viewtest", "SELECT id, quest FROM metadatatest");
+      TestUtil.dropType(con, "custom");
+      TestUtil.dropType(con, "_custom");
+      TestUtil.createCompositeType(con, "custom", "i int", false);
+      TestUtil.createCompositeType(con, "_custom", "f float", false);
 
-    // create a table and multiple comments on it
-    TestUtil.createTable(con, "duplicate", "x text");
-    TestUtil.execute(con, "comment on table duplicate is 'duplicate table'");
-    TestUtil.execute(con, "create or replace function bar() returns integer language sql as $$ select 1 $$");
-    TestUtil.execute(con, "comment on function bar() is 'bar function'");
-    try (Connection conPriv = TestUtil.openPrivilegedDB()) {
-      TestUtil.execute(conPriv, "update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc");
-    }
+      // create a table and multiple comments on it
+      TestUtil.createTable(con, "duplicate", "x text");
+      TestUtil.execute(con, "comment on table duplicate is 'duplicate table'");
+      TestUtil.execute(con, "create or replace function bar() returns integer language sql as $$ select 1 $$");
+      TestUtil.execute(con, "comment on function bar() is 'bar function'");
+      try (Connection conPriv = TestUtil.openPrivilegedDB()) {
+        TestUtil.execute(conPriv, "update pg_description set objoid = 'duplicate'::regclass where objoid = 'bar'::regproc");
+      }
 
-    // 8.2 does not support arrays of composite types
-    TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
-        + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c3 custom[], c4 _custom[]" : ""));
+      // 8.2 does not support arrays of composite types
+      TestUtil.createTable(con, "customtable", "c1 custom, c2 _custom"
+          + (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3) ? ", c3 custom[], c4 _custom[]" : ""));
 
-    Statement stmt = con.createStatement();
-    // we add the following comments to ensure the joins to the comments
-    // are done correctly. This ensures we correctly test that case.
-    stmt.execute("comment on table metadatatest is 'this is a table comment'");
-    stmt.execute("comment on column metadatatest.id is 'this is a column comment'");
+      Statement stmt = con.createStatement();
+      // we add the following comments to ensure the joins to the comments
+      // are done correctly. This ensures we correctly test that case.
+      stmt.execute("comment on table metadatatest is 'this is a table comment'");
+      stmt.execute("comment on column metadatatest.id is 'this is a column comment'");
 
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
-      // RETURNS TABLE requires PostgreSQL 8.4+
       stmt.execute(
-          "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
-    }
+          "CREATE OR REPLACE FUNCTION f1(int, varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION f2(a int, b varchar) RETURNS int AS 'SELECT 1;' LANGUAGE SQL");
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION f3(IN a int, INOUT b varchar, OUT c timestamptz) AS $f$ BEGIN b := 'a'; c := now(); return; END; $f$ LANGUAGE plpgsql");
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION f4(int) RETURNS metadatatest AS 'SELECT 1, ''a''::text, now(), ''c''::text, ''q''::text' LANGUAGE SQL");
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4)) {
+        // RETURNS TABLE requires PostgreSQL 8.4+
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION f5() RETURNS TABLE (i int) LANGUAGE sql AS 'SELECT 1'");
+      }
 
-    // create a custom `&` operator, which caused failure with `&` usage in getIndexInfo()
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION f6(numeric, integer) returns integer as 'BEGIN return $1::integer & $2;END;' language plpgsql immutable;");
-    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
-    stmt.execute("CREATE OPERATOR & (LEFTARG = numeric, RIGHTARG = integer, PROCEDURE = f6)");
+      // create a custom `&` operator, which caused failure with `&` usage in getIndexInfo()
+      stmt.execute(
+          "CREATE OR REPLACE FUNCTION f6(numeric, integer) returns integer as 'BEGIN return $1::integer & $2;END;' language plpgsql immutable;");
+      stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+      stmt.execute("CREATE OPERATOR & (LEFTARG = numeric, RIGHTARG = integer, PROCEDURE = f6)");
 
-    TestUtil.createDomain(con, "nndom", "int not null");
-    TestUtil.createDomain(con, "varbit2", "varbit(3)");
-    TestUtil.createDomain(con, "float83", "numeric(8,3)");
+      TestUtil.createDomain(con, "nndom", "int not null");
+      TestUtil.createDomain(con, "varbit2", "varbit(3)");
+      TestUtil.createDomain(con, "float83", "numeric(8,3)");
 
-    TestUtil.createTable(con, "domaintable", "id nndom, v varbit2, f float83");
-    stmt.close();
+      TestUtil.createTable(con, "domaintable", "id nndom, v varbit2, f float83");
+      stmt.close();
 
-    if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
-      String tableName = "pk_include_column";
-      String indexName = tableName + "_pkey";
-      TestUtil.createTable(con, tableName, "a INT, b INT, c INT, d INT");
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+        String tableName = "pk_include_column";
+        String indexName = tableName + "_pkey";
+        TestUtil.createTable(con, tableName, "a INT, b INT, c INT, d INT");
 
-      String createIndexStmt = "CREATE UNIQUE INDEX IF NOT EXISTS " + indexName
-          + " ON " + tableName + " (b,d) INCLUDE (a)";
-      TestUtil.execute(con, createIndexStmt);
+        String createIndexStmt = "CREATE UNIQUE INDEX IF NOT EXISTS " + indexName
+            + " ON " + tableName + " (b,d) INCLUDE (a)";
+        TestUtil.execute(con, createIndexStmt);
 
-      String addPrimaryKeyStmt = "ALTER TABLE " + tableName + " ADD PRIMARY KEY USING INDEX " + indexName;
-      TestUtil.execute(con, addPrimaryKeyStmt);
-    }
+        String addPrimaryKeyStmt = "ALTER TABLE " + tableName + " ADD PRIMARY KEY USING INDEX " + indexName;
+        TestUtil.execute(con, addPrimaryKeyStmt);
+      }
 
-    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v12) ) {
-      TestUtil.createTable(con, "employee", "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, hours_per_week decimal(3,2), rate_per_hour decimal(3,2), gross_pay decimal GENERATED ALWAYS AS (hours_per_week * rate_per_hour) STORED");
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v12)) {
+        TestUtil.createTable(con, "employee", "id int GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY, hours_per_week decimal(3,2), rate_per_hour decimal(3,2), gross_pay decimal GENERATED ALWAYS AS (hours_per_week * rate_per_hour) STORED");
+      }
     }
   }
 
-  @AfterEach
-  void tearDown() throws Exception {
+  @AfterAll
+  static void dropTables() throws Exception {
     // Drop function first because it depends on the
     // metadatatest table's type
-    Statement stmt = con.createStatement();
-    stmt.execute("DROP FUNCTION f4(int)");
-    TestUtil.execute(con, "drop function bar()");
-    TestUtil.dropTable(con, "duplicate");
-    TestUtil.dropTable(con, "bestrowid");
-    TestUtil.dropView(con, "viewtest");
-    TestUtil.dropTable(con, "metadatatest");
-    TestUtil.dropTable(con, "sercoltest");
-    TestUtil.dropSequence(con, "sercoltest_b_seq");
-    TestUtil.dropSequence(con, "sercoltest_c_seq");
-    TestUtil.dropTable(con, "precision_test");
-    TestUtil.dropTable(con, "\"a\\\"");
-    TestUtil.dropTable(con, "\"a'\"");
-    TestUtil.dropTable(con, "arraytable");
-    TestUtil.dropTable(con, "intarraytable");
-    TestUtil.dropTable(con, "customtable");
-    TestUtil.dropType(con, "custom");
-    TestUtil.dropType(con, "_custom");
+    try(Connection con = TestUtil.openDB();) {
+      Statement stmt = con.createStatement();
+      stmt.execute("DROP FUNCTION f4(int)");
+      TestUtil.execute(con, "drop function bar()");
+      TestUtil.dropTable(con, "duplicate");
+      TestUtil.dropTable(con, "bestrowid");
+      TestUtil.dropView(con, "viewtest");
+      TestUtil.dropTable(con, "metadatatest");
+      TestUtil.dropTable(con, "sercoltest");
+      TestUtil.dropSequence(con, "sercoltest_b_seq");
+      TestUtil.dropSequence(con, "sercoltest_c_seq");
+      TestUtil.dropTable(con, "precision_test");
+      TestUtil.dropTable(con, "\"a\\\"");
+      TestUtil.dropTable(con, "\"a'\"");
+      TestUtil.dropTable(con, "arraytable");
+      TestUtil.dropTable(con, "intarraytable");
+      TestUtil.dropTable(con, "customtable");
+      TestUtil.dropType(con, "custom");
+      TestUtil.dropType(con, "_custom");
 
-    stmt.execute("DROP FUNCTION f1(int, varchar)");
-    stmt.execute("DROP FUNCTION f2(int, varchar)");
-    stmt.execute("DROP FUNCTION f3(int, varchar)");
-    stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
-    stmt.execute("DROP FUNCTION f6(numeric, integer)");
-    TestUtil.dropTable(con, "domaintable");
-    TestUtil.dropDomain(con, "nndom");
-    TestUtil.dropDomain(con, "varbit2");
-    TestUtil.dropDomain(con, "float83");
+      stmt.execute("DROP FUNCTION f1(int, varchar)");
+      stmt.execute("DROP FUNCTION f2(int, varchar)");
+      stmt.execute("DROP FUNCTION f3(int, varchar)");
+      stmt.execute("DROP OPERATOR IF EXISTS & (numeric, integer)");
+      stmt.execute("DROP FUNCTION f6(numeric, integer)");
+      TestUtil.dropTable(con, "domaintable");
+      TestUtil.dropDomain(con, "nndom");
+      TestUtil.dropDomain(con, "varbit2");
+      TestUtil.dropDomain(con, "float83");
 
-    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v11) ) {
-      TestUtil.dropTable(con, "pk_include_column");
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v11)) {
+        TestUtil.dropTable(con, "pk_include_column");
+      }
+
+      if (TestUtil.haveMinimumServerVersion(con, ServerVersion.v12)) {
+        TestUtil.dropTable(con, "employee");
+      }
     }
-
-    if ( TestUtil.haveMinimumServerVersion(con, ServerVersion.v12) ) {
-      TestUtil.dropTable(con, "employee");
-    }
-
-    TestUtil.closeDB(con);
   }
 
   @Test

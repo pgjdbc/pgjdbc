@@ -197,6 +197,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
+  private int typeCacheEpoch;
 
   /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
@@ -238,6 +239,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
+  }
+
+  @Override
+  public int getTypeCacheEpoch() {
+    return typeCacheEpoch;
   }
 
   /**
@@ -2437,6 +2443,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (isFlushCacheOnDeallocate()
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
+          }
+          if (status.startsWith("CREATE ") || status.startsWith("DROP ")) {
+            deallocateEpoch++;
+            typeCacheEpoch++;
           }
 
           doneAfterRowDescNoData = false;

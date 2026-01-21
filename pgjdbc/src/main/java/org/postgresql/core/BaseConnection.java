@@ -216,6 +216,15 @@ public interface BaseConnection extends PGConnection, Connection {
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 
   /**
+   * Returns the current type cache epoch.
+   * @return the current type cache epoch
+   * @see QueryExecutor#getTypeCacheEpoch()
+   */
+  default int getTypeCacheEpoch() {
+    return 0;
+  }
+
+  /**
    * Indicates if statements to backend should be hinted as read only.
    *
    * @return Indication if hints to backend (such as when transaction begins)
