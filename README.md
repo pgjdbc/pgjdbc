@@ -166,6 +166,50 @@ In addition to the standard connection parameters the driver supports a number o
 | pgjdbc.config.cleanup.thread.ttl | long | 30000 |  The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration (in milliseconds) the cleanup thread will keep running if there is nothing to clean up. |
 
 ## Contributing
+
+Contributors can use the following commands to build and test the project.  
+As PRs are automatically tested by GitHub Actions, it's recommended to run the tests locally before submitting a PR.
+
+### Start the test database
+
+CI uses ready to use Docker images to start the test database. 
+The driver ensure compatibility with PostgreSQL 8.4 and higher, so you can use the following command to start a test database for a specific version.
+
+```shell
+# Versions can be 8.4, 9.0, 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 10, 11, 12, 13, 14, 15 or latest
+PGV=15 docker/bin/postgres-server 
+```
+
+If your contribution is version specific, you can use the same version used by CI to test your changes.  
+In your tests you can use the following [assumption](pgjdbc/src/test/java/org/postgresql/test/TestUtil.java) to skip the tests if the version is not compatible with your changes.
+```java
+class PgDriverTest {
+    @Test
+    void testMyCodeSinceVersion15() {
+        Assume.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v15));
+        // test your code
+    }
+}
+```
+
+### Validate the code style and run the tests
+
+CI uses strict conventions to validate the code style, you can use the following command to test your code changes against these conventions.
+>Due to CI workflow, maintainers will strongly appreciate if you can run the following commands before submitting a PR
+
+```shell
+#fix code style
+./gradlew style
+```
+
+At the end you can test your changes against the test database using the following command.
+
+```shell
+./gradlew test
+```
+
+### Guidelines
+
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
 
 ----------------------------------------------------
