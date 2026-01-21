@@ -787,7 +787,8 @@ public class XADataSourceTest {
 
   /**
    * When using deferred constraints a constraint violation can occur on prepare. This has to be
-   * mapped to the correct XA Error Code
+   * mapped to the correct XA Error Code. As a consequence, the transaction is rolled back.
+   * A subsequent rollback invocation should return XAER_NOTA.
    */
   @Test
   void mappingOfConstraintViolations() throws Exception {
@@ -803,6 +804,14 @@ public class XADataSourceTest {
       fail("Prepare is expected to fail as an integrity violation occurred");
     } catch (XAException xae) {
       assertEquals(XAException.XA_RBINTEGRITY, xae.errorCode, "Prepare call with deferred constraints violations expects XA_RBINTEGRITY");
+
+      try {
+        xaRes.rollback(xid);
+
+        fail("Rollback is expected to fail as the transaction should have been already rolled back during prepare");
+      } catch (XAException xaex) {
+        assertEquals(XAException.XAER_NOTA, xaex.errorCode, "Rollback call on the already rolled back xid " + xid + " expects XAER_NOTA");
+      }
     }
   }
 
