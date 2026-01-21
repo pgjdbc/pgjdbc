@@ -89,7 +89,7 @@ jobs:
         with:
           fetch-depth: 50
       - name: Start PostgreSQL
-        working-directory: docker/postgres-server
+        working-directory: ${{ matrix.pg_version == 'HEAD' && 'docker/postgres-head' || 'docker/postgres-server' }}
         run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 21'
         uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
@@ -125,6 +125,7 @@ jobs:
     env:
       MATRIX_JOBS: 5
       GITHUB_PR_NUMBER: ${{ github.event.number }}
+      GITHUB_REF: ${{ github.ref }}
       RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:
     - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -150,7 +151,7 @@ jobs:
       with:
         fetch-depth: 50
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
-      working-directory: docker/postgres-server
+      working-directory: ${{ matrix.pg_version == 'HEAD' && 'docker/postgres-head' || 'docker/postgres-server' }}
       env:
         PGV: ${{ matrix.pg_version }}
         TZ: ${{ matrix.server_tz }}
@@ -271,7 +272,7 @@ jobs:
 
     - name: Cleanup Docker
       if: ${{ always() }}
-      working-directory: docker/postgres-server
+      working-directory: ${{ matrix.pg_version == 'HEAD' && 'docker/postgres-head' || 'docker/postgres-server' }}
       run: |
         docker compose ps
         docker compose down -v --rmi local
