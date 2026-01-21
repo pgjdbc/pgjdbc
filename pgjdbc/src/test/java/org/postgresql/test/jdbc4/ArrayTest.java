@@ -127,7 +127,7 @@ public class ArrayTest extends BaseTest4 {
   public void testCreateArrayOfBytes() throws SQLException {
 
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::bytea[]");
-    final byte[][] in = new byte[][]{{0x01, (byte) 0xFF, (byte) 0x12}, {}, {(byte) 0xAC, (byte) 0xE4}, null};
+    final byte[][] in = new byte[][]{{0x01, (byte) 0xFF}, {(byte) 0x12, (byte) 0x00}, {(byte) 0xAC, (byte) 0xE4}, null};
     final Array createdArray = conn.createArrayOf("bytea", in);
 
     byte[][] inCopy = (byte[][]) createdArray.getArray();
