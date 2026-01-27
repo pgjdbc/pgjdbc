@@ -406,6 +406,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Date> DATE_DECODER = new AbstractObjectFieldDecoder<Date>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Date parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] dateVal = new byte[length];
       bytes.get(dateVal);
@@ -413,6 +414,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Date parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toDate(null, stringVal.getBytes());
     }
@@ -426,6 +428,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Time> TIME_DECODER = new AbstractObjectFieldDecoder<Time>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Time parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] timeVal = new byte[length];
       bytes.get(timeVal);
@@ -433,6 +436,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Time parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTime(null, stringVal.getBytes());
     }
@@ -446,6 +450,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Timestamp> TIMESTAMP_DECODER = new AbstractObjectFieldDecoder<Timestamp>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       byte[] timestampVal = new byte[length];
       bytes.get(timestampVal);
@@ -453,6 +458,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTimestamp(null, stringVal.getBytes());
     }
@@ -466,6 +472,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Timestamp> TIMESTAMPZ_DECODER = new AbstractObjectFieldDecoder<Timestamp>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       byte[] timestampVal = new byte[length];
       bytes.get(timestampVal);
@@ -473,6 +480,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return TIMESTAMP_DECODER.parseValue(stringVal, connection);
     }

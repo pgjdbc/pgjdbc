@@ -291,7 +291,6 @@ public class TypeInfoCache implements TypeInfo {
         + "           AND NOT a.attisdropped AND t.OID = ?;";
   }
 
-  private int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
   private static int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
     Integer type = null;
     boolean isArray = rs.getBoolean("is_array");
