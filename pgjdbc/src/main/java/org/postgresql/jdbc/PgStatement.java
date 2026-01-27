@@ -26,6 +26,7 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.lock.qual.GuardedBy;
+import org.checkerframework.checker.lock.qual.Holding;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 
@@ -71,6 +72,7 @@ public class PgStatement implements Statement, BaseStatement {
    * cancelTask was created. Note: the field must be set/get/compareAndSet via
    * {@link #CANCEL_TIMER_UPDATER} as per {@link AtomicReferenceFieldUpdater} javadoc.
    */
+  @SuppressWarnings("unused")
   private volatile @Nullable TimerTask cancelTimerTask;
 
   @SuppressWarnings("RedundantCast")
@@ -174,6 +176,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
     concurrency = rsConcurrency;
     setFetchSize(c.getDefaultFetchSize());
+    setQueryTimeout(c.getQueryTimeout());
     setPrepareThreshold(c.getPrepareThreshold());
     setAdaptiveFetch(c.getAdaptiveFetch());
     // validation check for allowed values of resultset holdability
@@ -271,17 +274,16 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Holding("lock")
   protected ResultSet getSingleResultSet() throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      checkClosed();
-      ResultWrapper result = castNonNull(this.result);
-      if (result.getNext() != null) {
-        throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
-            PSQLState.TOO_MANY_RESULTS);
-      }
-
-      return castNonNull(result.getResultSet(), "result.getResultSet()");
+    checkClosed();
+    ResultWrapper result = castNonNull(this.result);
+    if (result.getNext() != null) {
+      throw new PSQLException(GT.tr("Multiple ResultSets were returned by the query."),
+          PSQLState.TOO_MANY_RESULTS);
     }
+
+    return castNonNull(result.getResultSet(), "result.getResultSet()");
   }
 
   @Override
@@ -445,6 +447,7 @@ public class PgStatement implements Statement, BaseStatement {
     }
   }
 
+  @Holding("lock")
   private void executeInternal(CachedQuery cachedQuery,
       @Nullable ParameterList queryParameters, int flags)
       throws SQLException {
@@ -502,16 +505,22 @@ public class PgStatement implements Statement, BaseStatement {
       StatementResultHandler handler2 = new StatementResultHandler();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
           flags2);
+      // We should not create temporary ResultSet when processing "describe row" command;
+      // however, it is the way PgPreparedStatement#getMetaData() works now
       ResultWrapper result2 = handler2.getResults();
       if (result2 != null) {
+        // Note: if the user requested "statement.closeOnCompletion()" then we should not
+        // let the driver's internal resultset to close the user statement
+        // At best we should stop creating the intermediate ResultSet objects
+        boolean prevCloseOnCompletion = closeOnCompletion;
+        closeOnCompletion = false;
         castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
+        closeOnCompletion = prevCloseOnCompletion;
       }
     }
 
     StatementResultHandler handler = new StatementResultHandler();
-    try (ResourceLock ignore = lock.obtain()) {
-      result = null;
-    }
+    result = null;
     try {
       startTimer();
       connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler, maxrows,
@@ -519,19 +528,17 @@ public class PgStatement implements Statement, BaseStatement {
     } finally {
       killTimerTask();
     }
-    try (ResourceLock ignore = lock.obtain()) {
-      checkClosed();
+    checkClosed();
 
-      ResultWrapper currentResult = handler.getResults();
-      result = firstUnclosedResult = currentResult;
+    ResultWrapper currentResult = handler.getResults();
+    result = firstUnclosedResult = currentResult;
 
-      if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
-        generatedKeys = currentResult;
-        result = castNonNull(currentResult, "handler.getResults()").getNext();
+    if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
+      generatedKeys = currentResult;
+      result = castNonNull(currentResult, "handler.getResults()").getNext();
 
-        if (wantsGeneratedKeysOnce) {
-          wantsGeneratedKeysOnce = false;
-        }
+      if (wantsGeneratedKeysOnce) {
+        wantsGeneratedKeysOnce = false;
       }
     }
   }
@@ -632,7 +639,7 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * <p>Either initializes new warning wrapper, or adds warning onto the chain.</p>
+   * Either initializes new warning wrapper, or adds warning onto the chain.
    *
    * <p>Although warnings are expected to be added sequentially, the warnings chain may be cleared
    * concurrently at any time via {@link #clearWarnings()}, therefore it is possible that a warning
@@ -675,7 +682,8 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
-   * <p>Clears the warning chain.</p>
+   * Clears the warning chain.
+   *
    * <p>Note that while it is safe to clear warnings while the query is executing, warnings that are
    * added between calls to {@link #getWarnings()} and #clearWarnings() may be missed.
    * Therefore you should hold a reference to the tail of the previous warning chain
@@ -831,10 +839,6 @@ public class PgStatement implements Statement, BaseStatement {
 
     int flags;
 
-    // Force a Describe before any execution? We need to do this if we're going
-    // to send anything dependent on the Describe results, e.g. binary parameters.
-    boolean preDescribe = false;
-
     if (wantsGeneratedKeysAlways) {
       /*
        * This batch will return generated keys, tell the executor to expect result rows. We also
@@ -859,27 +863,9 @@ public class PgStatement implements Statement, BaseStatement {
       flags |= QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
     }
 
-    boolean sameQueryAhead = queries.length > 1 && queries[0] == queries[1];
-
-    if (!sameQueryAhead
-        // If executing the same query twice in a batch, make sure the statement
-        // is server-prepared. In other words, "oneshot" only if the query is one in the batch
-        // or the queries are different
-        || isOneShotQuery(null)) {
+    if (isOneShotQuery(null)) {
       flags |= QueryExecutor.QUERY_ONESHOT;
     } else {
-      // If a batch requests generated keys and isn't already described,
-      // force a Describe of the query before proceeding. That way we can
-      // determine the appropriate size of each batch by estimating the
-      // maximum data returned. Without that, we don't know how many queries
-      // we'll be able to queue up before we risk a deadlock.
-      // (see v3.QueryExecutorImpl's MAX_BUFFERED_RECV_BYTES)
-
-      // SameQueryAhead is just a quick way to issue pre-describe for batch execution
-      // TODO: It should be reworked into "pre-describe if query has unknown parameter
-      // types and same query is ahead".
-      preDescribe = (wantsGeneratedKeysAlways || sameQueryAhead)
-          && !queries[0].isStatementDescribed();
       /*
        * It's also necessary to force a Describe on the first execution of the new statement, even
        * though we already described it, to work around bug #267.
@@ -896,27 +882,6 @@ public class PgStatement implements Statement, BaseStatement {
 
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
-
-    if ((preDescribe || forceBinaryTransfers)
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
-      // Do a client-server round trip, parsing and describing the query so we
-      // can determine its result types for use in binary parameters, batch sizing,
-      // etc.
-      int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      StatementResultHandler handler2 = new StatementResultHandler();
-      try {
-        connection.getQueryExecutor().execute(queries[0], parameterLists[0], handler2, 0, 0, flags2);
-      } catch (SQLException e) {
-        // Unable to parse the first statement -> throw BatchUpdateException
-        handler.handleError(e);
-        handler.handleCompletion();
-        // Will not reach here (see above)
-      }
-      ResultWrapper result2 = handler2.getResults();
-      if (result2 != null) {
-        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
-      }
-    }
 
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
@@ -1042,7 +1007,8 @@ public class PgStatement implements Statement, BaseStatement {
         return;
       }
       cancel();
-    } catch (SQLException e) {
+    } catch (SQLException ignored) {
+      // We can't do much if the cancel fails
     }
   }
 
@@ -1152,8 +1118,11 @@ public class PgStatement implements Statement, BaseStatement {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return executeLargeUpdate(sql);
     }
-
-    return executeLargeUpdate(sql, (String[]) null);
+    if (autoGeneratedKeys == Statement.RETURN_GENERATED_KEYS) {
+      return executeLargeUpdate(sql, (String[]) null);
+    }
+    throw new PSQLException(GT.tr("Invalid value for autoGeneratedKeys {0}", autoGeneratedKeys),
+        PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   @Override
@@ -1290,8 +1259,11 @@ public class PgStatement implements Statement, BaseStatement {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return executeUpdate(sql);
     }
-
-    return executeUpdate(sql, (String[]) null);
+    if (autoGeneratedKeys == Statement.RETURN_GENERATED_KEYS) {
+      return executeUpdate(sql, (String[]) null);
+    }
+    throw new PSQLException(GT.tr("Invalid value for autoGeneratedKeys {0}", autoGeneratedKeys),
+        PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   @Override
@@ -1324,7 +1296,11 @@ public class PgStatement implements Statement, BaseStatement {
     if (autoGeneratedKeys == Statement.NO_GENERATED_KEYS) {
       return execute(sql);
     }
-    return execute(sql, (String[]) null);
+    if (autoGeneratedKeys == Statement.RETURN_GENERATED_KEYS) {
+      return execute(sql, (String[]) null);
+    }
+    throw new PSQLException(GT.tr("Invalid value for autoGeneratedKeys {0}", autoGeneratedKeys),
+        PSQLState.INVALID_PARAMETER_VALUE);
   }
 
   @Override

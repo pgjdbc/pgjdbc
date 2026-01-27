@@ -31,7 +31,7 @@ class PKCS12KeyTest {
     TestUtil.assumeSslTestsEnabled();
 
     Properties props = new Properties();
-    props.put(TestUtil.DATABASE_PROP, "hostssldb");
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "hostssldb");
     PGProperty.SSL_MODE.set(props, "prefer");
     PGProperty.SSL_KEY.set(props, TestUtil.getSslTestCertPath("goodclient.p12"));
 

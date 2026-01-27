@@ -5,18 +5,22 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.xml.NullErrorHandler;
+import org.postgresql.xml.PGXmlFactoryFactory;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 import java.io.StringWriter;
 import java.io.Writer;
@@ -28,6 +32,11 @@ import java.sql.SQLXML;
 import java.sql.Statement;
 import java.util.Properties;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import javax.xml.transform.Source;
@@ -36,13 +45,13 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXSource;
+import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.stax.StAXSource;
 import javax.xml.transform.stream.StreamResult;
 
 public class PgSQLXMLTest extends BaseTest4 {
 
   @Override
-  @Before
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTempTable(con, "xmltab", "x xml");
@@ -84,6 +93,52 @@ public class PgSQLXMLTest extends BaseTest4 {
     }
   }
 
+  @Test
+  public void testCustomXxe() throws Exception {
+    Properties props = new Properties();
+    props.setProperty(PGProperty.XML_FACTORY_FACTORY.getName(), CustomXmlFactoryFactory.class.getName());
+    try (Connection conn = TestUtil.openDB(props)) {
+      BaseConnection baseConn = conn.unwrap(BaseConnection.class);
+      PgSQLXML xml = new PgSQLXML(baseConn, XXE_EXAMPLE);
+      xml.getSource(null);
+    }
+  }
+
+  public static class CustomXmlFactoryFactory implements PGXmlFactoryFactory {
+
+    @Override
+    public DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
+      DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+      builder.setErrorHandler(NullErrorHandler.INSTANCE);
+      return builder;
+    }
+
+    @Override
+    public TransformerFactory newTransformerFactory() {
+      return TransformerFactory.newInstance();
+    }
+
+    @Override
+    public SAXTransformerFactory newSAXTransformerFactory() {
+      return (SAXTransformerFactory) SAXTransformerFactory.newInstance();
+    }
+
+    @Override
+    public XMLInputFactory newXMLInputFactory() {
+      return XMLInputFactory.newInstance();
+    }
+
+    @Override
+    public XMLOutputFactory newXMLOutputFactory() {
+      return XMLOutputFactory.newInstance();
+    }
+
+    @Override
+    public XMLReader createXMLReader() throws SAXException {
+      return XMLReaderFactory.createXMLReader();
+    }
+  }
+
   private static String sourceToString(Source source) throws TransformerException {
     StringWriter sw = new StringWriter();
     Transformer transformer = TransformerFactory.newInstance().newTransformer();
@@ -91,15 +146,15 @@ public class PgSQLXMLTest extends BaseTest4 {
     return sw.toString();
   }
 
-  private <T extends Source> void testGetSourceXxe(Class<T> clazz) {
+  private static <T extends Source> void testGetSourceXxe(Class<T> clazz) {
     SQLException ex = assertThrows(SQLException.class, () -> {
       PgSQLXML xml = new PgSQLXML(null, XXE_EXAMPLE);
       xml.getSource(clazz);
     });
     String message = ex.getCause().getMessage();
     assertTrue(
-        "Expected to get a <<DOCTYPE disallowed>> SAXParseException. Actual message is " + message,
-        message.contains("DOCTYPE"));
+        message.contains("DOCTYPE"),
+        () -> "Expected to get a <<DOCTYPE disallowed>> SAXParseException. Actual message is " + message);
   }
 
   @Test
@@ -121,8 +176,8 @@ public class PgSQLXMLTest extends BaseTest4 {
     });
     String message = ex.getCause().getMessage();
     assertTrue(
-        "Expected to get a <<DOCTYPE disallowed>> TransformerException. Actual message is " + message,
-        message.contains("DOCTYPE"));
+        message.contains("DOCTYPE"),
+        () -> "Expected to get a <<DOCTYPE disallowed>> TransformerException. Actual message is " + message);
   }
 
   @Test

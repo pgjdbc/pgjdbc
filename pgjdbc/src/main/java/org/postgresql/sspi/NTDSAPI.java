@@ -18,7 +18,7 @@ interface NTDSAPI extends StdCallLibrary {
   NTDSAPI instance = (NTDSAPI) Native.loadLibrary("NTDSAPI", NTDSAPI.class);
 
   /**
-   * <p>Wrap DsMakeSpn</p>
+   * Wrap DsMakeSpn
    *
    * <p>To get the String result, call
    *

@@ -7,13 +7,13 @@ package org.postgresql.test.core;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -40,7 +40,7 @@ class LogServerMessagePropertyTest {
    */
   private static String testViolatePrimaryKey(Properties props, boolean batch) throws SQLException {
     Connection conn = TestUtil.openDB(props);
-    Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_1));
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_1));
     try {
       TestUtil.execute(conn, CREATE_TABLE_SQL);
       if (batch) {

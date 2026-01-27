@@ -62,6 +62,12 @@ tasks.configureEach<JavaCompile> {
                 }
             }
         )
+        compilerArgs.add("-parameters")
+        if (buildParameters.jdkBuildVersion >= 21 && buildParameters.targetJavaVersion < 11) {
+            // We know target Java 8 is deprecated with Java 21, so silence the warning
+            // otherwise the build fails due to -Werror below
+            compilerArgs.add("-Xlint:-options")
+        }
         if (!buildParameters.enableCheckerframework) {
             compilerArgs.add("-Xlint:deprecation")
         } else {
@@ -69,10 +75,8 @@ tasks.configureEach<JavaCompile> {
             compilerArgs.add("-Xmaxerrs")
             compilerArgs.add("1")
         }
-        if (JavaVersion.current().isJava9Compatible) {
-            // See https://bugs.openjdk.org/browse/JDK-8032211
-            // Don't issue deprecation warnings on import statements is resolved in Java 9+
-            //compilerArgs.add("-Werror")
+        if (buildParameters.failOnJavacWarning && !name.contains("Test")) {
+            compilerArgs.add("-Werror")
         }
     }
 }

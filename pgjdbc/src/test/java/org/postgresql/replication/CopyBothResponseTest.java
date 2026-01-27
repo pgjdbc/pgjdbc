@@ -153,7 +153,7 @@ class CopyBothResponseTest {
     );
   }
 
-  private void sendStandByUpdate(CopyDual copyDual, LogSequenceNumber received,
+  private static void sendStandByUpdate(CopyDual copyDual, LogSequenceNumber received,
       LogSequenceNumber flushed, LogSequenceNumber applied, boolean replyRequired)
       throws SQLException {
     ByteBuffer response = ByteBuffer.allocate(1 + 8 + 8 + 8 + 8 + 1);

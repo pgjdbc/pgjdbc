@@ -4,19 +4,12 @@ configuration: Release
 
 clone_depth: 1
 environment:
-  JAVA_HOME: 'C:\Program Files\Java\jdk17'
+  JAVA_HOME: 'C:\Program Files\Java\jdk21'
   matrix:
-  - pg: 9.6.11-1
-    PlatformToolset: v120
-matrix:
-  allow_failures:
-    - pg: master
-  exclude:
-    - platform: x86
-      pg: 11.1-1
-      PlatformToolset: v140
-    - platform: x86
-      pg: master
+  - pg: 16
+  # AppVeyor takes ~20 min for running the tests, so testing two PG versions results in slow PR feedback
+  # It might be worth uncommenting if the tests get faster somehow
+  # - pg: 11
 
 skip_commits:
   files:
@@ -48,22 +41,47 @@ install:
 
 before_build:
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
-- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_level=logical"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_wal_senders=3"
-- ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_keep_segments=10"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "wal_sender_timeout=5s"
 - ps: Add-Content -PATH "$env:pgroot\data\postgresql.conf" "max_replication_slots=10"
-- ps: Add-Content -PATH "$env:pgroot\data\pg_hba.conf" "host    replication     all             127.0.0.1/32            trust"
-- net start postgresql%x64%-%pgversion%
+- ps: |
+    Copy-Item -Path .\certdir\server\pg_hba.conf -Destination "$env:pgroot\data\pg_hba.conf" -Force
+    (Get-Content -Raw "$env:pgroot\data\pg_hba.conf") -replace '(?m)^local\b', '#local' | Set-Content "$env:pgroot\data\pg_hba.conf"
+    # PostgreSQL 11 can't start if ssl=off and pg_hba.conf includes hostssl, so we comment it out as we don't configure ssl yet
+    (Get-Content -Raw "$env:pgroot\data\pg_hba.conf") -replace '(?m)^hostssl\b', '#hostssl' | Set-Content "$env:pgroot\data\pg_hba.conf"
+    Write-Host "Here's the contents of pg_hba.conf:"
+    Get-Content "$env:pgroot\data\pg_hba.conf" | Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' }
+- ps: |
+    net start "postgresql$env:x64-$env:pgversion"
+    if ($LASTEXITCODE -ne 0) {
+      Select-String -Path "$env:pgroot\data\postgresql.conf" -Pattern "log_directory|logging_collector"
+      $pgLogDir = "$env:pgroot\data\log"
+      if (-not (Test-Path $pgLogDir)) {
+        Write-Host "Log directory does not exist: $pgLogDir"
+      } else {
+        $latestLog = Get-ChildItem -Path $pgLogDir -File |
+                     Sort-Object LastWriteTime -Descending |
+                     Select-Object -First 1
+        if ($latestLog) {
+          Write-Host "=== Showing latest PostgreSQL log: $($latestLog.Name) ==="
+          Get-Content -Path $latestLog.FullName -Tail 100
+        } else {
+          Write-Host "No PostgreSQL log files found."
+        }
+      }
+      throw "PostgreSQL did not start, so there's no reason to continue with the tests"
+    }
 - path %pgroot%\bin;%PATH%
 - mkdir %APPDATA%\postgresql
 - echo *:*:*:postgres:Password12!> %APPDATA%\postgresql\pgpass.conf
 - createuser -U postgres test
 - psql -U postgres -c "alter user test with password 'test'" postgres
 - psql -U postgres -c "alter user test with replication" postgres
+- psql -U postgres -c "CREATE EXTENSION sslinfo" postgres
 - createuser -U postgres testsspi
 - createdb -U postgres -O test test
 - createdb -U postgres -O test test_2
+- psql -U postgres -c "CREATE EXTENSION hstore" test
 - del %APPDATA%\postgresql\pgpass.conf
 
 build_script:
@@ -72,7 +90,7 @@ build_script:
 test_script:
   - echo redirect escape ^> foo.bar
   - echo privilegedPassword=Password12!>c:\projects\pgjdbc\build.local.properties
-  - gradlew test
+  - gradlew test -PskipReplicationTests
 
 cache:
   - C:\Users\appveyor\.m2

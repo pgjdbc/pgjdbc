@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc4;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.test.util.StrangeProxyServer;
@@ -33,12 +34,13 @@ public class ConnectionValidTimeoutTest {
   }
 
   @MethodSource("data")
-  @ParameterizedTest(name = "networkTimeoutMillis={0}, validationTimeoutSeconds={1}, expectedMaxValidationTimeMillis={2}")
+  @ParameterizedTest
   @Timeout(30)
   void isValidRespectsSmallerTimeout(int networkTimeoutMillis, int validationTimeoutSeconds, int expectedMaxValidationTimeMillis) throws Exception {
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       final Properties props = new Properties();
-      props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(proxyServer.getServerPort()));
       try (Connection conn = TestUtil.openDB(props)) {
         assertTrue(conn.isValid(validationTimeoutSeconds), "Connection through proxy should be valid");
 

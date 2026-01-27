@@ -7,11 +7,12 @@ PostgreSQL JDBC Driver (PgJDBC for short) allows Java programs to connect to a P
 ### Status
 [![GitHub CI](https://github.com/pgjdbc/pgjdbc/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/pgjdbc/pgjdbc/actions/workflows/main.yml)
 [![Build status](https://ci.appveyor.com/api/projects/status/d8ucmegnmourohwu/branch/master?svg=true)](https://ci.appveyor.com/project/davecramer/pgjdbc/branch/master)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/pgjdbc/pgjdbc/badge)](https://scorecard.dev/viewer/?uri=github.com/pgjdbc/pgjdbc)
 [![codecov.io](http://codecov.io/github/pgjdbc/pgjdbc/coverage.svg?branch=master)](http://codecov.io/github/pgjdbc/pgjdbc?branch=master)
 [![License](https://img.shields.io/badge/License-BSD--2--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
 [![Join the chat at https://gitter.im/pgjdbc/pgjdbc](https://badges.gitter.im/pgjdbc/pgjdbc.svg)](https://gitter.im/pgjdbc/pgjdbc?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
+[![Maven Central](https://img.shields.io/maven-central/v/org.postgresql/postgresql)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
 [![Javadocs](http://javadoc.io/badge/org.postgresql/postgresql.svg)](http://javadoc.io/doc/org.postgresql/postgresql)
 
 ## Supported PostgreSQL and Java versions
@@ -27,7 +28,7 @@ Most people do not need to compile PgJDBC. You can download the precompiled driv
 ### Maven Central
 You can search on The Central Repository with GroupId and ArtifactId [org.postgresql:postgresql][mvn-search].
 
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.postgresql/postgresql)
+[![Maven Central](https://img.shields.io/maven-central/v/org.postgresql/postgresql)](https://central.sonatype.com/artifact/org.postgresql/postgresql)
 
 ```xml
 <!-- Add the following dependency to your pom.xml, -->
@@ -40,7 +41,7 @@ You can search on The Central Repository with GroupId and ArtifactId [org.postgr
 </dependency>
 ```
 
-[mvn-search]: https://search.maven.org/artifact/org.postgresql/postgresql "Search on Maven Central"
+[mvn-search]: https://central.sonatype.com/artifact/org.postgresql/postgresql "Search on Maven Central"
 
 #### Development snapshots
 Snapshot builds (builds from `master` branch) are also deployed to OSS Sonatype Snapshot Repository, so you can test current development version (test some bugfix) by enabling the repository and using the latest [SNAPSHOT](https://oss.sonatype.org/content/repositories/snapshots/org/postgresql/postgresql/) version.
@@ -120,6 +121,7 @@ In addition to the standard connection parameters the driver supports a number o
 | preparedStatementCacheQueries | Integer |           256           | Specifies the maximum number of entries in per-connection cache of prepared statements. A value of 0 disables the cache.                                                                                                                                                                                                                     |
 | preparedStatementCacheSizeMiB | Integer |            5            | Specifies the maximum size (in megabytes) of a per-connection prepared statement cache. A value of 0 disables the cache.                                                                                                                                                                                                                     |
 | defaultRowFetchSize           | Integer |            0            | Positive number of rows that should be fetched from the database when more rows are needed for ResultSet by each fetch iteration                                                                                                                                                                                                             |
+| queryTimeout                  | Integer |            0            | The timeout value in seconds that the driver will wait for a query to execute if not explicitly set by [Statement.setQueryTimeout(int)](https://docs.oracle.com/javase/6/docs/api/java/sql/Statement.html#setQueryTimeout%28int%29)). A value of 0 means no timeout.                                                                         |
 | loginTimeout                  | Integer |            0            | Specify how long in seconds max(2147484) to wait for establishment of a database connection.                                                                                                                                                                                                                                                 |
 | connectTimeout                | Integer |           10            | The timeout value in seconds max(2147484) used for socket connect operations.                                                                                                                                                                                                                                                                |
 | socketTimeout                 | Integer |            0            | The timeout value in seconds max(2147484) used for socket read operations.                                                                                                                                                                                                                                                                   |

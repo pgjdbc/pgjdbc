@@ -41,8 +41,7 @@ If you find a regression in a minor patch update, please report an issue.
 
 Bug reports are not isolated only to code, errors in documentation as well as the website source
 code located in the **docs** directory also qualify. You are welcome to report issues and send a
-pull request on these as well. [skip ci] can be added to the commit message to prevent Travis-CI from building a
-pull request that only changes the documentation.
+pull request on these as well.
 
 For enhancements request keep reading the *Ideas, enhancements and new features* section.
 
@@ -77,7 +76,7 @@ Here are a few important things you should know about contributing code:
 In order to build the source code for PgJDBC you will need the following tools:
 
   - A Git client
-  - A JDK for the JDBC version you'd like to build (Java 17 for pgjdbc 42.7.1, Java 8 for older pgjdbc releases)
+  - A JDK for the JDBC version you'd like to build (Java 21 for pgjdbc 42.7.1, Java 8 for older pgjdbc releases)
   - A running PostgreSQL instance (optional for unit/integration tests)
 
 We use [Gradle's Toolchains for JVM projects](https://docs.gradle.org/current/userguide/toolchains.html)
@@ -85,7 +84,7 @@ to separate JDK version used for building and running tests.
 This means Gradle will automatically find the required JDK version or download it for you.
 
 You could control JDK versions with the following Gradle properties:
-* `jdkBuildVersion`. Defaults to 17. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for building $projectName. If the value is 0, then the current Java is used.
+* `jdkBuildVersion`. Defaults to 21. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for building $projectName. If the value is 0, then the current Java is used.
 * `jdkBuildVendor`. [JDK vendor](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:vendors) to use building
 * `jdkBuildImplementation`. Vendor-specific [virtual machine implementation](https://docs.gradle.org/8.4/userguide/toolchains.html#selecting_toolchains_by_virtual_machine_implementation) to use building
 * `jdkTestVersion`. Defaults to `jdkBuildVersion`. [JDK version](https://docs.gradle.org/8.4/userguide/toolchains.html#sec:consuming) to use for testing.
@@ -115,13 +114,15 @@ on a command line (the outputs are located in the relevant:
     ./gradlew javadoc # build javadoc
 
     ./gradlew check # verify code style, execute tests
-    ./gradlew style # update code formatting (for auto-correctable cases) and verify style
+    ./gradlew style # update code formatting (for auto-correctable cases) and verify style (e.g. CheckStyle, ErrorProne, tab vs spaces, and so on)
     ./gradlew styleCheck # report code style violations
+    ./gradlew -PenableErrorprone  -PenableCheckerframework classes # verify code with Error Prone tool and Checkerframework
 
     ./gradlew test # execute tests
     ./gradlew test --tests org.postgresql.test.ssl.SslTest # execute test by class
     ./gradlew test -PincludeTestTags=!org.postgresql.test.SlowTests # skip slow tests
     ./gradlew test -PjdkTestVersion=21 --tests org.postgresql.test.ssl.SslTest # execute test with Java 21
+    ./gradlew sourceDistributionTest # prepare source distribution.tar.gz, unpack it, and execute tests with Maven to verify the source distribution
 
     ./gradlew parameters # list most build parameters like jdkTestVersion above
 
@@ -149,39 +150,36 @@ Updating translations can be accomplished with the following command:
 
     ./gradlew generateGettextSources && git add pgjdbc && git commit -m "Translations updated"
 
-## Releasing a snapshot version
-
-[Stage Vote Release Plugin](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin)
-is used for releasing artifacts.
+## Release steps
 
 ## Releasing a new version
 
 Prerequisites:
-- Java 17
+- Java 21
 - a PostgreSQL instance for running tests; it must have a user named `test` as well as a database named `test`
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)
 
-### Manual release procedure
+### Trigger the release procedure
 
-See details in [Stage Vote Release readme](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin#making-a-release-candidate)
+This project defines a [manual release workflow](.github/workflows/release.yml).
 
-Prepare release candidate:
+The suggested flow is as follows:
+1. Prepare release notes, commit it to Git.
+2. Open the "release" action at 👉 [Actions tab → release.yml](https://github.com/pgjdbc/pgjdbc/actions/workflows/release.yml).
+3. Click "run workflow".
+4. Set "Release version number" if you want to bump the version before the release. Note: if the current version already exists, then the release workflow would abort.
+5. Click "Run workflow"
 
-    ./gradlew prepareVote -Prc=1 -Pgh
+The workflow performs the following steps:
 
-It will create a release candidate tag, push the artifacts to Maven Central and print the announcement draft.
-The staged repository will become open for smoke testing access at https://oss.sonatype.org/content/repositories/orgpostgresql-1082/
-
-If staged artifacts look fine, release it
-
-    ./gradlew publishDist -Prc=1 -Pgh
-
-Then update version, and readme as required.
+1. It updates the version in `gradle.properties` if the current version in Git differs from the one in the manual workflow call.
+2. It builds and pushes artifacts to Central Portal.
+3. It updates the version to the next patch version.
 
 ### Updating changelog
 
-- run `./release_notes.sh`, edit as desired
+- run `./release_notes.sh`, edit as desired. This has been deprecated. Currently release notes are created manually
 
 ## Dependencies
 
@@ -252,15 +250,15 @@ You also need to test your changes with older JDKs. PgJDBC must support JDK8
 
 You can get old JDK versions from the [Oracle Java Archive](http://www.oracle.com/technetwork/java/archive-139210.html).
 
-If you have Docker, you can use `docker-compose` to launch test database (see [docker](docker)):
+If you have Docker, you can use `docker compose` to launch test database (see [docker](docker)):
 
     cd docker/postgres-server
 
     # Launch the most recent PostgreSQL database with SSL, XA, and SCRAM
-    docker-compose down && docker-compose up
+    docker compose down && docker compose up
 
     # Launch PostgreSQL 9.6, with XA, without SSL
-    docker-compose down && SSL=no XA=yes docker-compose up
+    docker compose down && SSL=no XA=yes docker compose up
 
 Alternatively, to run the test server with Docker in the foreground:
 

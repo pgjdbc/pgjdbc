@@ -10,6 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
@@ -42,7 +43,9 @@ class LogicalReplicationStatusTest {
   void setUp() throws Exception {
     //statistic available only for privileged user
     sqlConnection = TestUtil.openPrivilegedDB();
-    secondSqlConnection = TestUtil.openPrivilegedDB("test_2");
+    secondSqlConnection = TestUtil.openPrivilegedDB(props -> {
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_DBNAME, "test_2");
+    });
     //DriverManager.setLogWriter(new PrintWriter(System.out));
     replicationConnection = TestUtil.openReplicationConnection();
     TestUtil.createTable(sqlConnection, "test_logic_table",
@@ -403,7 +406,7 @@ class LogicalReplicationStatusTest {
     );
   }
 
-  private void insertPreviousChanges(Connection sqlConnection) throws SQLException {
+  private static void insertPreviousChanges(Connection sqlConnection) throws SQLException {
     try (Statement st = sqlConnection.createStatement()) {
       st.execute("insert into test_logic_table(name) values('previous changes')");
     }
@@ -477,7 +480,7 @@ class LogicalReplicationStatusTest {
         ? "replay_lsn" : "replay_location"));
   }
 
-  private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
+  private static List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
     List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {
@@ -496,7 +499,7 @@ class LogicalReplicationStatusTest {
     return result;
   }
 
-  private String toString(ByteBuffer buffer) {
+  private static String toString(ByteBuffer buffer) {
     int offset = buffer.arrayOffset();
     byte[] source = buffer.array();
     int length = source.length - offset;

@@ -5,18 +5,21 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGResultSetMetaData;
 import org.postgresql.PGStatement;
 import org.postgresql.core.Field;
+import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -34,8 +37,9 @@ public class BinaryTest extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Assume.assumeTrue("Server-prepared statements are not supported in 'simple protocol only'",
-        preferQueryMode != PreferQueryMode.SIMPLE);
+    assumeTrue(
+        preferQueryMode != PreferQueryMode.SIMPLE,
+        "Server-prepared statements are not supported in 'simple protocol only'");
     statement = con.prepareStatement("select 1");
 
     ((PGStatement) statement).setPrepareThreshold(5);
@@ -123,14 +127,43 @@ public class BinaryTest extends BaseTest4 {
     for (int i = 0; i < 10; i++) {
       ps.setInt(1, 42 + i);
       ResultSet rs = ps.executeQuery();
-      assertEquals("One row should be returned", true, rs.next());
+      assertTrue(rs.next(), "One row should be returned");
       assertEquals(42 + i, rs.getInt(1));
       rs.close();
     }
     ps.close();
   }
 
-  private int getFormat(ResultSet results) throws SQLException {
+  @Test
+  public void testGetMetaDataBeforeExecuteQuery() throws SQLException {
+    PreparedStatement ps = null;
+    ResultSet rs = null;
+    try {
+      ps = con.prepareStatement("select ?::int8");
+      PgStatement unwrap = ps.unwrap(PgStatement.class);
+      unwrap.setPrepareThreshold(-1);
+      ps.getMetaData();
+      long paramsLong = 1000L;
+      ps.setLong(1, paramsLong);
+      rs = ps.executeQuery();
+      assertTrue(rs.next(), "One row should be returned");
+      byte[] bytes = rs.getBytes(1);
+      ByteBuffer bf = ByteBuffer.wrap(bytes);
+      long longResult = bf.getLong();
+      assertEquals(Field.BINARY_FORMAT, getFormat(rs));
+      assertEquals(paramsLong, longResult);
+    } finally {
+      if (rs != null) {
+        rs.close();
+      }
+      if (ps != null) {
+        ps.close();
+      }
+    }
+
+  }
+
+  private static int getFormat(ResultSet results) throws SQLException {
     return ((PGResultSetMetaData) results.getMetaData()).getFormat(1);
   }
 }

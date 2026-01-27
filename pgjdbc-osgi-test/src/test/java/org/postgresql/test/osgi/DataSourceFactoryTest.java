@@ -10,6 +10,7 @@ import static org.ops4j.pax.exam.CoreOptions.options;
 import static org.postgresql.test.osgi.DefaultPgjdbcOsgiOptions.defaultPgjdbcOsgiOptions;
 
 import org.postgresql.PGProperty;
+import org.postgresql.util.internal.FileUtils;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -25,7 +26,6 @@ import org.osgi.service.jdbc.DataSourceFactory;
 import org.osgi.util.tracker.ServiceTracker;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.Driver;
@@ -105,7 +105,7 @@ public class DataSourceFactoryTest {
     testConnection(con);
   }
 
-  private void testConnection(Connection con) throws SQLException {
+  private static void testConnection(Connection con) throws SQLException {
     Statement st = con.createStatement();
     ResultSet rs = st.executeQuery("select 2+2*2");
     rs.next();
@@ -113,31 +113,24 @@ public class DataSourceFactoryTest {
     con.close();
   }
 
-  private String getUrl() {
+  private static String getUrl() {
     Properties p = loadPropertyFiles("build.properties");
 
     return "jdbc:postgresql://"
-        + p.get("server") + ":"
-        + p.get("port") + "/"
-        + p.get("database")
+        + p.get("test.url.PGHOST") + ":"
+        + p.get("test.url.PGPORT") + "/"
+        + p.get("test.url.PGDBNAME")
         ;
   }
 
-  private Properties getProperties() {
+  private static Properties getProperties() {
     Properties p = loadPropertyFiles("build.properties");
-    if ("0".equals(p.getProperty("protocolVersion"))) {
-      p.remove("protocolVersion");
-    }
     p.putAll(System.getProperties());
     Properties p2 = new Properties();
     for (Map.Entry<Object, Object> entry : p.entrySet()) {
       if (PGProperty.forName((String) entry.getKey()) != null) {
         p2.put(entry.getKey(), entry.getValue());
       }
-    }
-    String user = (String) p.get("username");
-    if (user != null) {
-      PGProperty.USER.set(p2, user);
     }
     return p2;
   }
@@ -157,7 +150,7 @@ public class DataSourceFactoryTest {
           continue;
         }
         try {
-          p.load(new FileInputStream(f));
+          p.load(FileUtils.newBufferedInputStream(f));
         } catch (IOException ex) {
           // ignore
         }

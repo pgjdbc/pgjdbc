@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
@@ -112,20 +111,15 @@ class ScramTest {
   void invalidPasswords(String password, String expectedMessage) throws SQLException {
     // We are testing invalid passwords so that correct one does not matter
     createRole("anything_goes_here");
+    SQLException e = assertThrows(
+        SQLException.class,
+        () -> DriverManager.getConnection(TestUtil.getURL(), ROLE_NAME, password),
+        "SCRAM connection attempt with invalid password should fail");
 
-    Properties props = new Properties();
-    PGProperty.USER.set(props, ROLE_NAME);
-    if (password != null) {
-      PGProperty.PASSWORD.set(props, password);
-    }
-    try (Connection conn = DriverManager.getConnection(TestUtil.getURL(), props)) {
-      fail("SCRAM connection attempt with invalid password should fail");
-    } catch (SQLException e) {
-      assertEquals(expectedMessage, e.getMessage());
-    }
+    assertEquals(expectedMessage, e.getMessage());
   }
 
-  private void createRole(String passwd) throws SQLException {
+  private static void createRole(String passwd) throws SQLException {
     try (Statement stmt = con.createStatement()) {
       stmt.execute("SET password_encryption='scram-sha-256'");
       stmt.execute("DROP ROLE IF EXISTS " + ROLE_NAME);

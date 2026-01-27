@@ -11,6 +11,8 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.SetupQueryRunner;
@@ -91,11 +93,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactoryImpl.class.getName());
   private static final int AUTH_REQ_OK = 0;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB4 = 1;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_KRB5 = 2;
   private static final int AUTH_REQ_PASSWORD = 3;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_CRYPT = 4;
   private static final int AUTH_REQ_MD5 = 5;
+  @SuppressWarnings("unused")
   private static final int AUTH_REQ_SCM = 6;
   private static final int AUTH_REQ_GSS = 7;
   private static final int AUTH_REQ_GSS_CONTINUE = 8;
@@ -106,7 +112,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
-  private ISSPIClient createSSPI(PGStream pgStream,
+  private static ISSPIClient createSSPI(PGStream pgStream,
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
@@ -207,7 +213,22 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       }
 
       List<StartupParam> paramList = getParametersForStartup(user, database, info);
-      sendStartupPacket(newStream, paramList);
+      String protocolVersion = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
+      int protocolMajor = 3;
+      int protocolMinor = 0;
+
+      if (protocolVersion != null) {
+        int decimal = protocolVersion.indexOf('.');
+        if (decimal == -1) {
+          protocolMinor = Integer.parseInt(protocolVersion);
+          protocolMinor = 0;
+        } else {
+          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
+          protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+        }
+      }
+
+      sendStartupPacket(newStream, ProtocolVersion.fromMajorMinor(protocolMajor,protocolMinor), paramList);
 
       // Do authentication (until AuthenticationOk).
       doAuthentication(newStream, hostSpec.getHost(), user, info);
@@ -380,7 +401,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         PSQLState.CONNECTION_UNABLE_TO_CONNECT);
   }
 
-  private List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
+  private static List<StartupParam> getParametersForStartup(String user, String database, Properties info) {
     List<StartupParam> paramList = new ArrayList<>();
     paramList.add(new StartupParam("user", user));
     paramList.add(new StartupParam("database", database));
@@ -390,18 +411,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
 
-    if (assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum()) {
-      // User is explicitly telling us this is a 9.0+ server so set properties here:
-      paramList.add(new StartupParam("extra_float_digits", "3"));
-      String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-      if (appName != null) {
-        paramList.add(new StartupParam("application_name", appName));
-      }
-    } else {
-      // User has not explicitly told us that this is a 9.0+ server so stick to old default:
-      paramList.add(new StartupParam("extra_float_digits", "2"));
+    // assumeMinServerVersion implies a minimum, not an exact version, so we will set the decimal
+    // digits in runInitialQueries when we know the exact version, if needed.
+
+    // application name is important to set as early as possible for connection logging, we set it immediately
+    // if we can assume the minimum version supports doing so
+    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
+    if ( appName != null && assumeVersion.getVersionNum() >= ServerVersion.v9_0.getVersionNum() ) {
+      paramList.add(new StartupParam("application_name", appName));
     }
 
+    // probably no need to make sure the assumeVersion is 9.4 or greater. The user really wants replication.
     String replication = PGProperty.REPLICATION.getOrDefault(info);
     if (replication != null && assumeVersion.getVersionNum() >= ServerVersion.v9_4.getVersionNum()) {
       paramList.add(new StartupParam("replication", replication));
@@ -416,7 +436,6 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (options != null) {
       paramList.add(new StartupParam("options", options));
     }
-
     return paramList;
   }
 
@@ -463,8 +482,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return start + tz.substring(4);
   }
 
-  private PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
-                                    int connectTimeout)
+  private static PGStream enableGSSEncrypted(PGStream pgStream, GSSEncMode gssEncMode, String host, Properties info,
+      int connectTimeout)
       throws IOException, PSQLException {
 
     if ( gssEncMode == GSSEncMode.DISABLE ) {
@@ -549,6 +568,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                 PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), false, // TODO: fix this
                 PGProperty.JAAS_LOGIN.getBoolean(info),
+                PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(info),
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
@@ -568,7 +588,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
+  private static PGStream enableSSL(PGStream pgStream, SslMode sslMode, Properties info,
       int connectTimeout)
       throws IOException, PSQLException {
     if (sslMode == SslMode.DISABLE) {
@@ -644,8 +664,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private void sendStartupPacket(PGStream pgStream, List<StartupParam> params)
-      throws IOException {
+  private static void sendStartupPacket(PGStream pgStream, ProtocolVersion protocolVersion, List<StartupParam> params)
+      throws SQLException, IOException {
     if (LOGGER.isLoggable(Level.FINEST)) {
       StringBuilder details = new StringBuilder();
       for (int i = 0; i < params.size(); i++) {
@@ -670,18 +690,42 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Send the startup message.
     pgStream.sendInteger4(length);
-    pgStream.sendInteger2(3); // protocol major
-    pgStream.sendInteger2(0); // protocol minor
+    pgStream.sendInteger2(protocolVersion.getMajor()); // protocol major
+    pgStream.sendInteger2(protocolVersion.getMinor()); // protocol minor
     for (byte[] encodedParam : encodedParams) {
       pgStream.send(encodedParam);
       pgStream.sendChar(0);
     }
 
     pgStream.sendChar(0);
+    pgStream.setProtocolVersion(protocolVersion);
     pgStream.flush();
   }
 
-  private void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
+  private static String getAuthenticationMethodName(int authReq) {
+    switch (authReq) {
+      case AUTH_REQ_OK:
+        return "none";
+      case AUTH_REQ_PASSWORD:
+        return "password";
+      case AUTH_REQ_MD5:
+        return "md5";
+      case AUTH_REQ_GSS:
+        return "gss";
+      case AUTH_REQ_SSPI:
+        return "sspi";
+      case AUTH_REQ_SASL:
+        return "sasl";
+      case AUTH_REQ_SASL_CONTINUE:
+        return "sasl-continue";
+      case AUTH_REQ_SASL_FINAL:
+        return "sasl-final";
+      default:
+        return String.valueOf(authReq);
+    }
+  }
+
+  private static void doAuthentication(PGStream pgStream, String host, String user, Properties info) throws IOException, SQLException {
     // Now get the response from the backend, either an error message
     // or an authentication request
 
@@ -690,13 +734,36 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+    // TODO: figure out how to deal with new protocols
+    int protocol = 3 << 16;
+
+    boolean saslHandshakeCompleted = false;
+    ChannelBinding channelBinding = ChannelBinding.of(info);
 
     try {
       authloop: while (true) {
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
-          case 'E':
+          case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
+            // read the length and ignore it.
+            pgStream.receiveInteger4();
+            protocol = pgStream.receiveInteger4();
+            int numOptionsNotRecognized = pgStream.receiveInteger4();
+            if (numOptionsNotRecognized > 0) {
+              // do not connect and throw an error
+              String errorMessage = "Protocol error, received invalid options: ";
+              for (int i = 0; i < numOptionsNotRecognized; i++) {
+                errorMessage  += i > 0 ? "" : "," + pgStream.receiveString();
+              }
+              LOGGER.log(Level.FINEST, errorMessage);
+              throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
+            }
+            int major = protocol >> 16 & 0xff;
+            int minor = protocol & 0xff;
+            pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
+            break;
+          case PgMessageType.ERROR_RESPONSE:
             // An error occurred, so pass the error message to the
             // user.
             //
@@ -710,13 +777,30 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
             throw new PSQLException(errorMsg, PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
 
-          case 'R':
+          case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
             // Get the message length
             int msgLen = pgStream.receiveInteger4();
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
+
+            if (channelBinding == ChannelBinding.REQUIRE) {
+              if (areq == AUTH_REQ_OK) {
+                if (!saslHandshakeCompleted) {
+                  throw new PSQLException(
+                      GT.tr("Channel binding is required, but server skipped authentication. "
+                          + "Channel binding is only supported with SCRAM authentication over encrypted connections."),
+                      PSQLState.CONNECTION_REJECTED);
+                }
+              } else if (areq != AUTH_REQ_SASL && areq != AUTH_REQ_SASL_CONTINUE && areq != AUTH_REQ_SASL_FINAL) {
+                throw new PSQLException(
+                      GT.tr("Channel binding is required, but server requested ''{0}'' authentication. "
+                          + "Channel binding is only supported with SCRAM authentication over encrypted connections.",
+                          getAuthenticationMethodName(areq)),
+                      PSQLState.CONNECTION_REJECTED);
+              }
+            }
 
             // Process the request.
             switch (areq) {
@@ -737,7 +821,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
 
                 try {
-                  pgStream.sendChar('p');
+                  pgStream.sendChar(PgMessageType.PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + digest.length + 1);
                   pgStream.send(digest);
                 } finally {
@@ -754,7 +838,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
                 AuthenticationPluginManager.withEncodedPassword(AuthenticationRequestType.CLEARTEXT_PASSWORD, info, encodedPassword -> {
-                  pgStream.sendChar('p');
+                  pgStream.sendChar(PgMessageType.PASSWORD_REQUEST);
                   pgStream.sendInteger4(4 + encodedPassword.length + 1);
                   pgStream.send(encodedPassword);
                   return void.class;
@@ -834,6 +918,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                         PGProperty.JAAS_APPLICATION_NAME.getOrDefault(info),
                         PGProperty.KERBEROS_SERVER_NAME.getOrDefault(info), usespnego,
                         PGProperty.JAAS_LOGIN.getBoolean(info),
+                        PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(info),
                         PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
                     return void.class;
                   });
@@ -848,7 +933,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                scramAuthenticator = AuthenticationPluginManager.withPassword(AuthenticationRequestType.SASL, info, password -> {
+                scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
                         GT.tr(
@@ -861,7 +946,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new ScramAuthenticator(password, pgStream, info);
+                  return new ScramAuthenticator(password, pgStream, channelBinding);
                 });
                 scramAuthenticator.handleAuthenticationSASL();
                 break;
@@ -872,6 +957,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
+                saslHandshakeCompleted = true;
                 break;
 
               case AUTH_REQ_OK:
@@ -901,42 +987,55 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (RuntimeException ex) {
           LOGGER.log(Level.FINE, "Unexpected error during SSPI context disposal", ex);
         }
+      }
+    }
+  }
 
+  private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
+      throws SQLException {
+
+    // The version we assumed the server would be prior to connecting, to determine what we have already sent
+    Version assumeVersion = ServerVersion.from(PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info));
+    // The actual version we connected to
+    final int dbVersion = queryExecutor.getServerVersionNum();
+    StringBuilder sb = new StringBuilder();
+
+    if (dbVersion < ServerVersion.v12.getVersionNum()) {
+      if (dbVersion < ServerVersion.v9_0.getVersionNum()) {
+        // server version < 9 so 8.x or less
+        sb.append("SET extra_float_digits = 2");
+      } else {
+        // server version < 12 so 9.0 - 11.x
+        sb.append("SET extra_float_digits = 3");
       }
     }
 
-  }
-
-  private void runInitialQueries(QueryExecutor queryExecutor, Properties info)
-      throws SQLException {
-    String assumeMinServerVersion = PGProperty.ASSUME_MIN_SERVER_VERSION.getOrDefault(info);
-    if (Utils.parseServerVersionStr(assumeMinServerVersion) >= ServerVersion.v9_0.getVersionNum()) {
-      // We already sent the parameter values in the StartupMessage so skip this
+    // Only need to send the application name if it's defined and wasn't already sent as a
+    // startup parameter
+    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
+    if (appName != null && assumeVersion.getVersionNum() < ServerVersion.v9_0.getVersionNum()
+        && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
+      if (sb.length() != 0) {
+        sb.append(';');
+      }
+      sb.append("SET application_name = '");
+      Utils.escapeLiteral(sb, appName,
+          queryExecutor.getStandardConformingStrings());
+      sb.append("'");
+    }
+    if (sb.length() == 0) {
+      // All the necessary parameters were set in the startup packet
+      return;
+    }
+    if (PGProperty.REPLICATION.getOrDefault(info) != null) {
+      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow 'set ...' commands,"
+          + " so skipping the following initial queries: ({0})."
+          + " Consider configuring assumeMinServerVersion property so the driver"
+          + " propagates the needed parameters in the startup packet", sb);
       return;
     }
 
-    final int dbVersion = queryExecutor.getServerVersionNum();
-
-    if (PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info) && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      SetupQueryRunner.run(queryExecutor, "BEGIN", false);
-    }
-
-    if (dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      SetupQueryRunner.run(queryExecutor, "SET extra_float_digits = 3", false);
-    }
-
-    String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-    if (appName != null && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      StringBuilder sql = new StringBuilder();
-      sql.append("SET application_name = '");
-      Utils.escapeLiteral(sql, appName, queryExecutor.getStandardConformingStrings());
-      sql.append("'");
-      SetupQueryRunner.run(queryExecutor, sql.toString(), false);
-    }
-
-    if (PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(info) && dbVersion >= ServerVersion.v9_0.getVersionNum()) {
-      SetupQueryRunner.run(queryExecutor, "COMMIT", false);
-    }
+    SetupQueryRunner.run(queryExecutor, sb.toString(), false);
   }
 
   /**
@@ -969,7 +1068,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * @see <a href="https://www.postgresql.org/message-id/flat/CAF3%2BxM%2B8-ztOkaV9gHiJ3wfgENTq97QcjXQt%2BrbFQ6F7oNzt9A%40mail.gmail.com">in_hot_standby patch thread v14</a>
    *
    */
-  private boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
+  private static boolean isPrimary(QueryExecutor queryExecutor) throws SQLException, IOException {
     String inHotStandby = queryExecutor.getParameterStatus(IN_HOT_STANDBY);
     if ("on".equalsIgnoreCase(inHotStandby)) {
       return false;

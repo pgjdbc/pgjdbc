@@ -14,12 +14,11 @@ import org.postgresql.replication.fluent.physical.ChainedPhysicalStreamBuilder;
  */
 public interface ChainedStreamBuilder {
   /**
-   * <p>Create logical replication stream that decode raw wal logs by output plugin to logical form.
+   * Create logical replication stream that decode raw wal logs by output plugin to logical form.
    * Default about logical decoding you can see by following link
    * <a href="http://www.postgresql.org/docs/current/static/logicaldecoding-explanation.html">
    *     Logical Decoding Concepts
    * </a>.
-   * </p>
    *
    * <p>Example usage:</p>
    * <pre>
@@ -48,7 +47,7 @@ public interface ChainedStreamBuilder {
   ChainedLogicalStreamBuilder logical();
 
   /**
-   * <p>Create physical replication stream for process wal logs in binary form.</p>
+   * Create physical replication stream for process wal logs in binary form.
    *
    * <p>Example usage:</p>
    * <pre>
@@ -62,6 +61,11 @@ public interface ChainedStreamBuilder {
    *            .replicationStream()
    *            .physical()
    *            .withStartPosition(lsn)
+   *            .withSlotName("test_decoding")
+   *            .withSlotOption("include-xids", false)
+   *            .withSlotOption("skip-empty-xacts", true)
+   *            .withStatusInterval(5, TimeUnit.SECONDS)
+   *            .withAutomaticFlush(true)
    *            .start();
    *
    *    while (true) {

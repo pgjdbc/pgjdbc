@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.Driver;
@@ -37,6 +38,7 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.EnsuresNonNull;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.checker.nullness.qual.PolyNull;
 import org.checkerframework.checker.nullness.qual.RequiresNonNull;
@@ -596,7 +598,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       }
     }
 
-    return getTimestampUtils().toDate(cal, castNonNull(value));
+    return getTimestampUtils().toDate(cal, value);
   }
 
   @Override
@@ -731,7 +733,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP )  {
 
         OffsetDateTime offsetDateTime = getTimestampUtils().toOffsetDateTime(value);
-        if ( offsetDateTime != OffsetDateTime.MAX && offsetDateTime != OffsetDateTime.MIN ) {
+        if (!offsetDateTime.equals(OffsetDateTime.MAX) && !offsetDateTime.equals(OffsetDateTime.MIN)) {
           return offsetDateTime.withOffsetSameInstant(ZoneOffset.UTC);
         } else {
           return offsetDateTime;
@@ -2212,7 +2214,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
-      Tuple rowBuffer, HashMap<String, Object> updateValues) throws SQLException {
+      Tuple rowBuffer, Map<String, Object> updateValues) throws SQLException {
     for (Map.Entry<String, Object> entry : updateValues.entrySet()) {
       int columnIndex = findColumn(entry.getKey()) - 1;
       Object valueObject = entry.getValue();
@@ -2403,6 +2405,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   protected void closeInternally() throws SQLException {
     // release resources held (memory for tuples)
     rows = null;
+    thisRow = null;
+    rowBuffer = null;
     JdbcBlackHole.close(deleteStatement);
     deleteStatement = null;
     if (cursor != null) {
@@ -2501,8 +2505,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
-   * <p>Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
-   * object as a <code>boolean</code> in the Java programming language.</p>
+   * Retrieves the value of the designated column in the current row of this <code>ResultSet</code>
+   * object as a <code>boolean</code> in the Java programming language.
    *
    * <p>If the designated column has a Character datatype and is one of the following values: "1",
    * "true", "t", "yes", "y" or "on", a value of <code>true</code> is returned. If the designated
@@ -2548,6 +2552,57 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   private static final BigInteger BYTEMAX = new BigInteger(Byte.toString(Byte.MAX_VALUE));
   private static final BigInteger BYTEMIN = new BigInteger(Byte.toString(Byte.MIN_VALUE));
 
+  // Cache for the boolean conversion property to avoid repeated property lookups
+  private @MonotonicNonNull Boolean convertBooleanToNumericCache;
+
+  /**
+   * Helper method to check if boolean-to-numeric conversion should be attempted.
+   * If convertBooleanToNumeric property is enabled and the column is a boolean type,
+   * converts PostgreSQL boolean values ('t' or 'f') to numeric values (1 or 0).
+   *
+   * @param stringValue the string value from the database
+   * @param columnIndex the column index to check if it's a boolean column
+   * @return numeric value (0 or 1) if conversion applied, -1 if no conversion needed
+   */
+  private int tryConvertBooleanToNumeric(@Nullable String stringValue, int columnIndex) {
+    if (stringValue == null || stringValue.isEmpty()) {
+      return -1;
+    }
+
+    // Cache property lookup for performance
+    if (convertBooleanToNumericCache == null) {
+      convertBooleanToNumericCache = connection.getConvertBooleanToNumeric();
+    }
+
+    // Only attempt conversion if the property is enabled
+    if (!convertBooleanToNumericCache) {
+      return -1;
+    }
+
+    String trimmed = stringValue.trim();
+    if (trimmed.isEmpty()) {
+      return -1;
+    }
+
+    // Check if the column is actually a boolean type for better accuracy
+    int col = columnIndex - 1;
+    boolean isBooleanColumn = fields[col].getOID() == Oid.BOOL;
+
+    // Only check for boolean values if it's actually a boolean column to avoid false positives
+    if (isBooleanColumn && trimmed.length() == 1) {
+      char c = trimmed.charAt(0);
+      if (c == 't') {
+        return 1;
+      }
+      if (c == 'f') {
+        return 0;
+      }
+    }
+
+    // Not a recognizable boolean value
+    return -1;
+  }
+
   @Override
   public byte getByte(@Positive int columnIndex) throws SQLException {
     connection.getLogger().log(Level.FINEST, "  getByte columnIndex: {0}", columnIndex);
@@ -2569,6 +2624,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (byte) NumberParser.getFastLong(value, Byte.MIN_VALUE, Byte.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
 
@@ -2583,6 +2639,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // try the optimal parse
         return Byte.parseByte(s);
       } catch (NumberFormatException e) {
+        // Check if this might be a boolean value that should be converted to numeric
+        int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+        if (booleanValue != -1) {
+          return (byte) booleanValue;
+        }
+
         // didn't work, assume the column is not a byte
         try {
           BigDecimal n = new BigDecimal(s);
@@ -2626,9 +2688,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (short) NumberParser.getFastLong(value, Short.MIN_VALUE, Short.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
-    return toShort(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (short) booleanValue;
+    }
+
+    return toShort(s);
   }
 
   @Pure
@@ -2654,9 +2725,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return (int) NumberParser.getFastLong(value, Integer.MIN_VALUE, Integer.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
-    return toInt(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return booleanValue;
+    }
+
+    return toInt(s);
   }
 
   @Pure
@@ -2685,9 +2765,18 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       try {
         return NumberParser.getFastLong(value, Long.MIN_VALUE, Long.MAX_VALUE);
       } catch (NumberFormatException ignored) {
+        // Fast path failed, use slower parsing below
       }
     }
-    return toLong(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return booleanValue;
+    }
+
+    return toLong(s);
   }
 
   /**
@@ -2695,6 +2784,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * The exact stack trace does not matter because the exception is always caught and is not visible
    * to users.
    */
+  @SuppressWarnings("StaticAssignmentOfThrowable")
   private static final NumberFormatException FAST_NUMBER_FAILED = new NumberFormatException() {
 
     // Override fillInStackTrace to prevent memory leak via Throwable.backtrace hidden field
@@ -2717,7 +2807,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @throws NumberFormatException If the number is invalid or the out of range for fast parsing.
    *         The value must then be parsed by {@link #toBigDecimal(String, int)}.
    */
-  private BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
+  private static BigDecimal getFastBigDecimal(byte[] bytes) throws NumberFormatException {
     if (bytes.length == 0) {
       throw FAST_NUMBER_FAILED;
     }
@@ -2786,7 +2876,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return (float) readDoubleValue(value, oid, "float");
     }
 
-    return toFloat(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (float) booleanValue;
+    }
+
+    return toFloat(s);
   }
 
   @Pure
@@ -2807,7 +2905,15 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return readDoubleValue(value, oid, "double");
     }
 
-    return toDouble(getFixedString(columnIndex));
+    String s = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(s, columnIndex);
+    if (booleanValue != -1) {
+      return (double) booleanValue;
+    }
+
+    return toDouble(s);
   }
 
   @Override
@@ -2858,10 +2964,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         res = scaleBigDecimal(res, scale);
         return res;
       } catch (NumberFormatException ignore) {
+        // Fast conversion to BigDecimal failed, try slower approach below
       }
     }
 
     String stringValue = getFixedString(columnIndex);
+
+    // Check if this might be a boolean value that should be converted to numeric
+    int booleanValue = tryConvertBooleanToNumeric(stringValue, columnIndex);
+    if (booleanValue != -1) {
+      BigDecimal res = BigDecimal.valueOf(booleanValue);
+      return scaleBigDecimal(res, scale);
+    }
+
     if (allowSpecial) {
       if ("NaN".equalsIgnoreCase(stringValue)) {
         return Double.NaN;
@@ -3216,7 +3331,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
-   * <p>This is used to fix get*() methods on Money fields. It should only be used by those methods!</p>
+   * This is used to fix get*() methods on Money fields. It should only be used by those methods!
    *
    * <p>It converts ($##.##) to -##.## and $##.## to ##.##</p>
    *
@@ -3229,7 +3344,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return trimMoney(stringValue);
   }
 
-  private @PolyNull String trimMoney(@PolyNull String s) {
+  private static @PolyNull String trimMoney(@PolyNull String s) {
     if (s == null) {
       return null;
     }
@@ -3470,7 +3585,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
   }
 
-  public @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
+  public static @PolyNull BigDecimal toBigDecimal(@PolyNull String s, int scale) throws SQLException {
     if (s == null) {
       return null;
     }
@@ -3478,7 +3593,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return scaleBigDecimal(val, scale);
   }
 
-  private BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
+  private static BigDecimal scaleBigDecimal(BigDecimal val, int scale) throws PSQLException {
     if (scale == -1) {
       return val;
     }
@@ -3574,7 +3689,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return The value as double.
    * @throws PSQLException If the field type is not supported numeric type.
    */
-  private double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
+  private static double readDoubleValue(byte[] bytes, int oid, String targetType) throws PSQLException {
     // currently implemented binary encoded fields
     switch (oid) {
       case Oid.INT2:
@@ -3595,13 +3710,13 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         Oid.toString(oid), targetType), PSQLState.DATA_TYPE_MISMATCH);
   }
 
-  private static final float LONG_MAX_FLOAT = StrictMath.nextDown(Long.MAX_VALUE);
-  private static final float LONG_MIN_FLOAT = StrictMath.nextUp(Long.MIN_VALUE);
+  private static final float LONG_MAX_FLOAT = StrictMath.nextDown((float) Long.MAX_VALUE);
+  private static final float LONG_MIN_FLOAT = StrictMath.nextUp((float) Long.MIN_VALUE);
   private static final double LONG_MAX_DOUBLE = StrictMath.nextDown((double) Long.MAX_VALUE);
   private static final double LONG_MIN_DOUBLE = StrictMath.nextUp((double) Long.MIN_VALUE);
 
   /**
-   * <p>Converts any numeric binary field to long value.</p>
+   * Converts any numeric binary field to long value.
    *
    * <p>This method is used by getByte,getShort,getInt and getLong. It must support a subset of the
    * following java types that use Binary encoding. (fields that use text encoding use a different
@@ -3620,7 +3735,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    *         range.
    */
   @Pure
-  private long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
+  private static long readLongValue(byte[] bytes, int oid, long minVal, long maxVal, String targetType)
       throws PSQLException {
     long val;
     // currently implemented binary encoded fields
@@ -3927,7 +4042,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         if (timestampValue == null) {
           return null;
         }
-        Calendar calendar = Calendar.getInstance(getDefaultCalendar().getTimeZone());
+        Calendar calendar = createProlepticGregorianCalendar(getDefaultCalendar().getTimeZone());
         calendar.setTimeInMillis(timestampValue.getTime());
         return type.cast(calendar);
       } else {
@@ -3948,13 +4063,22 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);
       }
+    } else if (type == byte[].class) {
+      if (sqlType == Types.BINARY || sqlType == Types.VARBINARY || sqlType == Types.LONGVARBINARY) {
+        return type.cast(getBytes(columnIndex));
+      } else {
+        throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
     } else if (type == java.util.Date.class) {
       if (sqlType == Types.TIMESTAMP) {
         Timestamp timestamp = getTimestamp(columnIndex);
         if (timestamp == null) {
           return null;
         }
-        return type.cast(new java.util.Date(timestamp.getTime()));
+        @SuppressWarnings("JavaUtilDate")
+        java.util.Date res = new java.util.Date(timestamp.getTime());
+        return type.cast(res);
       } else {
         throw new PSQLException(GT.tr("conversion to {0} from {1} not supported", type, getPGType(columnIndex)),
                 PSQLState.INVALID_PARAMETER_VALUE);

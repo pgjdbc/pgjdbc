@@ -9,12 +9,12 @@ import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.util.OSUtil;
 import org.postgresql.util.PGPropertyUtil;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -72,7 +72,7 @@ public class PgServiceConfParser {
   }
 
   // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  private static InputStream openInputStream(String resourceName) throws IOException {
 
     try {
       URL url = new URL(resourceName);
@@ -80,7 +80,7 @@ public class PgServiceConfParser {
     } catch ( MalformedURLException ex ) {
       // try file
       File file = new File(resourceName);
-      return new FileInputStream(file);
+      return FileUtils.newBufferedInputStream(file);
     }
   }
 
@@ -182,6 +182,7 @@ public class PgServiceConfParser {
   #   Line: "[service ONE]"
   #   --> these are unique service names
   */
+  @SuppressWarnings("RedundantControlFlow")
   private @Nullable Properties parseInputStream(InputStream inputStream) throws IOException {
     // build set of allowed keys
     Set<String> allowedServiceKeys = Arrays.stream(PGProperty.values())
@@ -223,6 +224,8 @@ public class PgServiceConfParser {
           }
         } else if (!isFound) {
           // skip further processing until section is found
+          // TODO: avoid continue here to resolve https://errorprone.info/bugpattern/RedundantControlFlow
+          //noinspection UnnecessaryContinue
           continue;
         } else if (indexOfEqualSign > 1) {
           // get key and value

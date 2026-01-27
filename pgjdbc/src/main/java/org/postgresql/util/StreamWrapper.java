@@ -64,6 +64,7 @@ public final class StreamWrapper implements Closeable {
           try {
             tempFile.toFile().delete();
           } catch (Throwable ignore) {
+            // If the temporary file can't be deleted, we can't do much about it
           }
           throw e;
         }
@@ -74,7 +75,7 @@ public final class StreamWrapper implements Closeable {
         this.stream = null; // The stream is opened on demand
         TempFileHolder tempFileHolder = new TempFileHolder(tempFile);
         this.tempFileHolder = tempFileHolder;
-        cleaner = LazyCleaner.getInstance().register(leakHandle, tempFileHolder);
+        cleaner = LazyCleanerImpl.getInstance().register(leakHandle, tempFileHolder);
       } else {
         this.rawData = rawData;
         this.stream = null;

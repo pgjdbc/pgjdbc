@@ -5,12 +5,14 @@
 
 package org.postgresql.test.jdbc42;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
@@ -51,7 +53,7 @@ public class PreparedStatementTest extends BaseTest4 {
     BigDecimal d = rs.getBigDecimal(1);
     pstmt.close();
 
-    Assert.assertEquals(new BigDecimal("3.2"), d);
+    assertEquals(new BigDecimal("3.2"), d);
   }
 
   @Test
@@ -107,12 +109,12 @@ public class PreparedStatementTest extends BaseTest4 {
     pstmt.executeUpdate();
 
     ResultSet rs = con.createStatement().executeQuery("select tt from timetable order by id asc");
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     LocalTime localTime = (LocalTime) rs.getObject(1, LocalTime.class);
-    Assert.assertEquals(LocalTime.MAX, localTime);
+    assertEquals(LocalTime.MAX, localTime);
 
-    Assert.assertTrue(rs.next());
+    assertTrue(rs.next());
     localTime = (LocalTime) rs.getObject(1, LocalTime.class);
-    Assert.assertEquals(LocalTime.MIN, localTime);
+    assertEquals(LocalTime.MIN, localTime);
   }
 }

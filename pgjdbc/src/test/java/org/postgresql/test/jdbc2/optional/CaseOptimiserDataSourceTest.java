@@ -12,6 +12,7 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -82,7 +83,7 @@ public class CaseOptimiserDataSourceTest {
     return bds.getConnection();
   }
 
-  protected void initializeDataSource() {
+  protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
       bds = new SimpleDataSource();
       setupDataSource(bds);
@@ -90,7 +91,7 @@ public class CaseOptimiserDataSourceTest {
     }
   }
 
-  public static void setupDataSource(BaseDataSource bds) {
+  public static void setupDataSource(BaseDataSource bds) throws PSQLException {
     bds.setServerName(TestUtil.getServer());
     bds.setPortNumber(TestUtil.getPort());
     bds.setDatabaseName(TestUtil.getDatabase());

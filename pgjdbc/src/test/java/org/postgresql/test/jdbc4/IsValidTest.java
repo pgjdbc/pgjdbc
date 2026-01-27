@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -23,7 +23,7 @@ public class IsValidTest extends BaseTest4 {
   @Test
   public void testIsValidShouldNotModifyTransactionStateOutsideTransaction() throws SQLException {
     TransactionState initialTransactionState = TestUtil.getTransactionState(con);
-    assertTrue("Connection should be valid", con.isValid(0));
+    assertTrue(con.isValid(0), "Connection should be valid");
     TestUtil.assertTransactionState("Transaction state should not be modified by non-transactional Connection.isValid(...)", con, initialTransactionState);
   }
 
@@ -32,7 +32,7 @@ public class IsValidTest extends BaseTest4 {
     con.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
     con.setAutoCommit(false);
     TransactionState transactionState = TestUtil.getTransactionState(con);
-    assertTrue("Connection should be valid", con.isValid(0));
+    assertTrue(con.isValid(0), "Connection should be valid");
     TestUtil.assertTransactionState("Transaction state should not be modified by Connection.isValid(...) within an empty transaction", con, transactionState);
   }
 
@@ -42,16 +42,16 @@ public class IsValidTest extends BaseTest4 {
     con.setAutoCommit(false);
     TestUtil.executeQuery(con, "SELECT 1");
     TransactionState transactionState = TestUtil.getTransactionState(con);
-    assertTrue("Connection should be valid", con.isValid(0));
+    assertTrue(con.isValid(0), "Connection should be valid");
     TestUtil.assertTransactionState("Transaction state should not be modified by Connection.isValid(...) within a non-empty transaction", con, transactionState);
   }
 
   @Test
   public void testIsValidRemoteClose() throws SQLException, InterruptedException {
-    Assume.assumeTrue("Unable to use pg_terminate_backend(...) before version 8.4", TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4));
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4), "Unable to use pg_terminate_backend(...) before version 8.4");
 
     boolean wasTerminated = TestUtil.terminateBackend(con);
-    assertTrue("The backend should be terminated", wasTerminated);
+    assertTrue(wasTerminated, "The backend should be terminated");
 
     // Keeps checking for up to 5-seconds that the connection is marked invalid
     for (int i = 0; i < 500; i++) {
@@ -61,6 +61,6 @@ public class IsValidTest extends BaseTest4 {
       // Wait a bit to give the connection a chance to gracefully handle the termination
       Thread.sleep(10);
     }
-    assertFalse("The terminated connection should not be valid", con.isValid(0));
+    assertFalse(con.isValid(0), "The terminated connection should not be valid");
   }
 }

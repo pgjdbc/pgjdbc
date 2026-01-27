@@ -27,7 +27,7 @@ public class PGobject implements Serializable, Cloneable {
   }
 
   /**
-   * <p>This method sets the type of this object.</p>
+   * This method sets the type of this object.
    *
    * <p>It should not be extended by subclasses, hence it is final</p>
    *
@@ -98,6 +98,7 @@ public class PGobject implements Serializable, Cloneable {
   /**
    * This must be overridden to allow the object to be cloned.
    */
+  @Override
   public Object clone() throws CloneNotSupportedException {
     return super.clone();
   }

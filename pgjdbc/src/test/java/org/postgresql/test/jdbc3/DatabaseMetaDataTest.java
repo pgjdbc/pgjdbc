@@ -42,10 +42,18 @@ class DatabaseMetaDataTest {
   }
 
   @Test
-  void getColumnsForDomain() throws Exception {
+  void getColumnsForDomain_whenCatalogArgPercentSign_expectNoResults() throws Exception {
     DatabaseMetaData dbmd = conn.getMetaData();
 
     ResultSet rs = dbmd.getColumns("%", "%", "domtab", "%");
+    assertFalse(rs.next());
+  }
+
+  @Test
+  void getColumnsForDomain() throws Exception {
+    DatabaseMetaData dbmd = conn.getMetaData();
+
+    ResultSet rs = dbmd.getColumns(null, "%", "domtab", "%");
     assertTrue(rs.next());
     assertEquals("a", rs.getString("COLUMN_NAME"));
     assertEquals(Types.DISTINCT, rs.getInt("DATA_TYPE"));

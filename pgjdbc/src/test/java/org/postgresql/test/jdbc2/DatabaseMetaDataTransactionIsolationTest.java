@@ -39,7 +39,7 @@ class DatabaseMetaDataTransactionIsolationTest {
     // Restore to defaults
     con.setAutoCommit(true);
     try (Statement st = con.createStatement()) {
-      st.execute("alter database test set default_transaction_isolation to DEFAULT");
+      st.execute("alter database " + TestUtil.getDatabase() + " set default_transaction_isolation to DEFAULT");
     }
   }
 
@@ -68,7 +68,7 @@ class DatabaseMetaDataTransactionIsolationTest {
   void alterDatabaseDefaultTransactionIsolation(String isolationLevel) throws SQLException {
     try (Statement st = con.createStatement()) {
       st.execute(
-          "alter database test set default_transaction_isolation to '" + isolationLevel + "'");
+          "alter database " + TestUtil.getDatabase() + " set default_transaction_isolation to '" + isolationLevel + "'");
     }
 
     assertIsolationEquals(

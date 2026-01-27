@@ -7,7 +7,7 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.junit.MatcherAssume.assumeThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
@@ -144,7 +144,7 @@ class PhysicalReplicationTest {
             .start();
 
     boolean isActive = isActiveOnView();
-    assumeThat(isActive, equalTo(true));
+    assumeTrue(isActive, "isActive");
 
     stream.close();
 
@@ -261,7 +261,7 @@ class PhysicalReplicationTest {
     return result;
   }
 
-  private byte[] toByteArray(ByteBuffer buffer) {
+  private static byte[] toByteArray(ByteBuffer buffer) {
     int offset = buffer.arrayOffset();
     byte[] source = buffer.array();
     return Arrays.copyOfRange(source, offset, source.length);

@@ -16,13 +16,13 @@ import java.text.ParsePosition;
 public enum ServerVersion implements Version {
 
   INVALID("0.0.0"),
-  @Deprecated
+  // @Deprecated
   v8_2("8.2.0"),
-  @Deprecated
+  // @Deprecated
   v8_3("8.3.0"),
-  @Deprecated
+  // @Deprecated
   v8_4("8.4.0"),
-  @Deprecated
+  // @Deprecated
   v9_0("9.0.0"),
   v9_1("9.1.0"),
   v9_2("9.2.0"),
@@ -57,9 +57,14 @@ public enum ServerVersion implements Version {
     return version;
   }
 
+  @Override
+  public int getMajorVersionNumber() {
+    return version / 10000;
+  }
+
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number into a
-   * {@link Version}.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number into a
+   * {@link Version}.
    *
    * <p>If the specified version cannot be parsed, the {@link Version#getVersionNum()} will return 0.</p>
    *
@@ -72,6 +77,11 @@ public enum ServerVersion implements Version {
       @Override
       public int getVersionNum() {
         return versionNum;
+      }
+
+      @Override
+      public int getMajorVersionNumber() {
+        return versionNum / 10000;
       }
 
       @Override
@@ -95,7 +105,7 @@ public enum ServerVersion implements Version {
   }
 
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number.
    *
    * <p>Returns 0 if the version could not be parsed.</p>
    *

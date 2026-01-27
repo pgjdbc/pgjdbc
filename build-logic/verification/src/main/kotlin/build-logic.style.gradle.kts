@@ -41,11 +41,12 @@ plugins.withId("java-base") {
     if (buildParameters.enableCheckerframework) {
         apply(plugin = "build-logic.checkerframework")
     }
-    if (buildParameters.enableErrorprone) {
-        apply(plugin = "build-logic.errorprone")
+    // Enable errorprone when executing ./gradlew style, ./gradlew :style, etc
+    val styleCheckRequested = gradle.startParameter.taskNames.any {
+        it == "style" || it == "styleCheck" || it == ":style" || it == ":styleCheck"
     }
-    if (buildParameters.spotbugs) {
-        apply(plugin = "build-logic.spotbugs")
+    if (buildParameters.enableErrorprone || styleCheckRequested) {
+        apply(plugin = "build-logic.errorprone")
     }
 }
 

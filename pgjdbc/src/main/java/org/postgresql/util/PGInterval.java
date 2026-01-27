@@ -5,16 +5,17 @@
 
 package org.postgresql.util;
 
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
+import java.util.TimeZone;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
@@ -52,7 +53,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     setValue(value);
   }
 
-  private int lookAhead(String value, int position, String find) {
+  private static int lookAhead(String value, int position, String find) {
     char [] tokens = find.toCharArray();
     int found = -1;
 
@@ -165,6 +166,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
       String valueToken = null;
 
       value = value.replace('+', ' ').replace('@', ' ');
+      value = value.toLowerCase(Locale.ROOT);
       final StringTokenizer st = new StringTokenizer(value);
       for (int i = 1; st.hasMoreTokens(); i++) {
         String token = st.nextToken();
@@ -259,19 +261,55 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return null;
     }
-    DecimalFormat df = (DecimalFormat) NumberFormat.getInstance(Locale.US);
-    df.applyPattern("0.0#####");
 
-    return String.format(
-      Locale.ROOT,
-      "%d years %d mons %d days %d hours %d mins %s secs",
-      years,
-      months,
-      days,
-      hours,
-      minutes,
-      df.format(getSeconds())
-    );
+    // See https://github.com/pgjdbc/pgjdbc/pull/3866 for the justification
+    // It looks like any attempt to estimate the buffer size causes noticeable slowdown
+    StringBuilder sb = new StringBuilder(64);
+    appendUnit(sb, years, " years");
+    appendUnit(sb, months, " mons");
+    appendUnit(sb, days, " days");
+    appendUnit(sb, hours, " hours");
+    appendUnit(sb, minutes, " mins");
+
+    if (sb.length() == 0 || wholeSeconds != 0 || microSeconds != 0) {
+      if (sb.length() > 0) {
+        sb.append(' ');
+      }
+      if (wholeSeconds < 0 || microSeconds < 0) {
+        // E.g. -0.73 has wholeSeconds==0, so we need to check micros as well
+        sb.append('-');
+      }
+      sb.append(Math.abs(wholeSeconds));
+
+      if (microSeconds != 0) {
+        sb.append('.');
+        int microsStart = sb.length(); // including
+        // Add microseconds
+        sb.append(Math.abs(microSeconds));
+        int microsEnd = sb.length(); // excluding
+        int prefixZeros = 6 - (microsEnd - microsStart);
+        // Remove trailing zeros
+        while (sb.charAt(microsEnd - 1) == '0' && microsEnd > microsStart) {
+          microsEnd--;
+        }
+        sb.setLength(microsEnd);
+        // Add missing leading zeros
+        sb.insert(microsStart, "000000", 0, prefixZeros);
+      }
+
+      sb.append(" secs");
+    }
+    return sb.toString();
+  }
+
+  private static void appendUnit(StringBuilder sb, int value, String unit) {
+    if (value == 0) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append(' ');
+    }
+    sb.append(value).append(unit);
   }
 
   /**
@@ -393,8 +431,14 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    */
   public void setSeconds(double seconds) {
     isNull = false;
-    wholeSeconds = (int) seconds;
-    microSeconds = (int) Math.round((seconds - wholeSeconds) * MICROS_IN_SECOND);
+
+    double micros = seconds * MICROS_IN_SECOND;
+    if (micros > Long.MAX_VALUE || micros < Long.MIN_VALUE) {
+      throw new IllegalArgumentException("Number of seconds should be within Long.MIN_VALUE/1000000...Long.MAX_VALUE/1000000");
+    }
+    long totalMicros = Math.round(micros);
+    wholeSeconds = (int) (totalMicros / MICROS_IN_SECOND);
+    microSeconds = (int) (totalMicros % MICROS_IN_SECOND);
   }
 
   /**
@@ -422,11 +466,12 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
    *
    * @param date Date instance to add to
    */
+  @SuppressWarnings("JavaUtilDate")
   public void add(Date date) {
     if (isNull) {
       return;
     }
-    final Calendar cal = Calendar.getInstance();
+    final Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.setTime(date);
     add(cal);
     date.setTime(cal.getTime().getTime());

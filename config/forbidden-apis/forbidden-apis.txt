@@ -13,3 +13,7 @@ java.lang.Object#notify()
 
 @defaultMessage Use ResourceLock.newCondition() and lockCondition.signalAll() instead of Object.notifyAll()
 java.lang.Object#notifyAll()
+
+@defaultMessage Use FileUtils.newBufferedInputStream()
+java.io.FileInputStream#<init>(java.io.File)
+java.io.FileInputStream#<init>(java.lang.String)

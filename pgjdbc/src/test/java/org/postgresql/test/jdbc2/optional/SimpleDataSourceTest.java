@@ -5,10 +5,13 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.postgresql.ds.PGSimpleDataSource;
 import org.postgresql.jdbc2.optional.SimpleDataSource;
+import org.postgresql.util.PSQLException;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Performs the basic tests defined in the superclass. Just adds the configuration logic.
@@ -21,17 +24,20 @@ public class SimpleDataSourceTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource.
    */
   @Override
-  protected void initializeDataSource() {
+  protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
       bds = new SimpleDataSource();
       setupDataSource(bds);
     }
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testTypoPostgresUrl() {
     PGSimpleDataSource ds = new PGSimpleDataSource();
-    // this should fail because the protocol is wrong.
-    ds.setUrl("jdbc:postgres://localhost:5432/test");
+    String url = "jdbc:postgres://localhost:5432/test";
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> ds.setUrl(url),
+        () -> "protocols is wrong when calling ds.setUrl(\"" + url + "\")");
   }
 }

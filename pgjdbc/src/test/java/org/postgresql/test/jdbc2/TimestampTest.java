@@ -5,11 +5,12 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.BaseConnection;
@@ -17,9 +18,9 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -30,10 +31,11 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.text.SimpleDateFormat;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 /*
@@ -41,7 +43,8 @@ import java.util.TimeZone;
  * TODO: refactor to a property-based testing or parameterized testing somehow so adding new times
  *  don't require to add constants and setters/getters. JUnit 5 would probably help here.
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass
+@MethodSource("data")
 public class TimestampTest extends BaseTest4 {
 
   public TimestampTest(BinaryMode binaryMode) {
@@ -50,7 +53,6 @@ public class TimestampTest extends BaseTest4 {
 
   private TimeZone currentTZ;
 
-  @Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -82,7 +84,7 @@ public class TimestampTest extends BaseTest4 {
    */
   @Test
   public void testCalendarModification() throws SQLException {
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     Calendar origCal = (Calendar) cal.clone();
     PreparedStatement ps = con.prepareStatement("INSERT INTO " + TSWOTZ_TABLE + " VALUES (?)");
 
@@ -131,10 +133,9 @@ public class TimestampTest extends BaseTest4 {
   }
 
   private void runInfinityTests(String table, long value) throws SQLException {
-    GregorianCalendar cal = new GregorianCalendar();
     // Pick some random timezone that is hopefully different than ours
     // and exists in this JVM.
-    cal.setTimeZone(TimeZone.getTimeZone("Europe/Warsaw"));
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getTimeZone("Europe/Warsaw"));
 
     String strValue;
     if (value == PGStatement.DATE_POSITIVE_INFINITY) {
@@ -187,14 +188,10 @@ public class TimestampTest extends BaseTest4 {
 
     // Insert the three timestamp values in raw pg format
     for (int i = 0; i < 3; i++) {
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS2WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS3WTZ_PGFORMAT + "'")));
-      assertEquals(1,
-          stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS1WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS2WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS3WTZ_PGFORMAT + "'")));
+      assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS4WTZ_PGFORMAT + "'")));
     }
     assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE,
         "'" + tsu.toString(null, new Timestamp(tmpDate1.getTime())) + "'")));
@@ -222,9 +219,38 @@ public class TimestampTest extends BaseTest4 {
   }
 
   /*
+   * Tests the timestamp methods in ResultSet on timestamp with time zone we insert a known string
+   * value fpr the year 1000 (don't use setTimestamp) then see that we get back the same value from
+   * getTimestamp
+   */
+  @Test
+  public void testGetTimestampYear1000WTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
+    Statement stmt = con.createStatement();
+
+    assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL(TSWTZ_TABLE, "'" + TS_YEAR1000_WTZ_PGFORMAT + "'")));
+
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE);
+    assertNotNull(rs);
+
+    assertTrue(rs.next());
+    Timestamp t = rs.getTimestamp(1);
+    assertNotNull(t);
+    // Be aware that Timestamp.toString() formats with the Julian calendar for such old dates
+    assertEquals(TS_YEAR1000_WTZ, t);
+
+    rs.close();
+
+    assertEquals(1, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
+
+    stmt.close();
+  }
+
+  /*
    * Tests the timestamp methods in PreparedStatement on timestamp with time zone we insert a value
    * using setTimestamp then see that we get back the same value from getTimestamp (which we know
-   * works as it was tested independently of setTimestamp
+   * works as it was tested independently of setTimestamp)
    */
   @Test
   public void testSetTimestampWTZ() throws SQLException {
@@ -288,6 +314,34 @@ public class TimestampTest extends BaseTest4 {
     timestampTestWTZ();
 
     assertEquals(20, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
+
+    pstmt.close();
+    stmt.close();
+  }
+
+  /*
+   * Tests the timestamp methods in PreparedStatement on timestamp with time zone we insert the
+   * year 1000 value using setTimestamp then see that we get back the same value from getTimestamp
+   * (which we know works as it was tested independently of setTimestamp)
+   */
+  @Test
+  public void testSetTimestampYear1000WTZ() throws SQLException {
+    assumeTrue(TestUtil.haveIntegerDateTimes(con));
+
+    Statement stmt = con.createStatement();
+    PreparedStatement pstmt = con.prepareStatement(TestUtil.insertSQL(TSWTZ_TABLE, "?"));
+
+    pstmt.setTimestamp(1, TS_YEAR1000_WTZ);
+    assertEquals(1, pstmt.executeUpdate());
+
+    ResultSet rs = stmt.executeQuery("select ts from " + TSWTZ_TABLE);
+    assertNotNull(rs);
+    assertTrue(rs.next());
+    assertEquals(ODT_YEAR1000, rs.getObject(1, OffsetDateTime.class));
+
+    rs.close();
+
+    assertEquals(1, stmt.executeUpdate("DELETE FROM " + TSWTZ_TABLE));
 
     pstmt.close();
     stmt.close();
@@ -361,8 +415,8 @@ public class TimestampTest extends BaseTest4 {
     // With java.sql.Date, java.sql.Time
     for (java.util.Date date : TEST_DATE_TIMES) {
       pstmt.setObject(1, date, Types.TIMESTAMP);
-      assertEquals("insert into TSWOTZ_TABLE via setObject(1, " + date
-          + ", Types.TIMESTAMP) -> expecting one row inserted", 1, pstmt.executeUpdate());
+      assertEquals(1, pstmt.executeUpdate(), "insert into TSWOTZ_TABLE via setObject(1, " + date
+          + ", Types.TIMESTAMP) -> expecting one row inserted");
     }
 
     // Fall through helper
@@ -563,7 +617,7 @@ public class TimestampTest extends BaseTest4 {
       assertTrue(rs.next());
       t = rs.getTimestamp(1);
       assertNotNull(t);
-      assertEquals("rs.getTimestamp(1).getTime()", expected.getTime(), t.getTime());
+      assertEquals(expected.getTime(), t.getTime(), "rs.getTimestamp(1).getTime()");
     }
 
     assertTrue(!rs.next()); // end of table. Fail if more entries exist.
@@ -588,10 +642,10 @@ public class TimestampTest extends BaseTest4 {
     Integer tNanos = t.getNanos();
     Integer tzNanos = tz.getNanos();
 
-    assertEquals("Time should be microsecond-accurate", desiredNanos, tNanos);
-    assertEquals("Time with time zone should be microsecond-accurate", desiredNanos, tzNanos);
-    assertEquals("Unix epoch timestamp and Time should match", ts, t);
-    assertEquals("Unix epoch timestamp with time zone and time with time zone should match", tstz, tz);
+    assertEquals(desiredNanos, tNanos, "Time should be microsecond-accurate");
+    assertEquals(desiredNanos, tzNanos, "Time with time zone should be microsecond-accurate");
+    assertEquals(ts, t, "Unix epoch timestamp and Time should match");
+    assertEquals(tstz, tz, "Unix epoch timestamp with time zone and time with time zone should match");
   }
 
   private static Timestamp getTimestamp(int y, int m, int d, int h, int mn, int se, int f,
@@ -613,6 +667,8 @@ public class TimestampTest extends BaseTest4 {
         ts = ts + tz;
         dateFormat = new SimpleDateFormat("y-M-d H:m:s z");
       }
+      dateFormat.setCalendar(createProlepticGregorianCalendar(TimeZone.getDefault()));
+
       java.util.Date date = dateFormat.parse(ts);
       result = new Timestamp(date.getTime());
       result.setNanos(f);
@@ -623,7 +679,7 @@ public class TimestampTest extends BaseTest4 {
   }
 
   private static final Timestamp TS1WTZ =
-      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "PST");
+      getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, "GMT-08:00");
   private static final String TS1WTZ_PGFORMAT = "1950-02-07 15:00:00.1-08";
 
   private static final Timestamp TS2WTZ =
@@ -637,6 +693,12 @@ public class TimestampTest extends BaseTest4 {
   private static final Timestamp TS4WTZ =
       getTimestamp(2000, 7, 7, 15, 0, 0, 123456000, "GMT");
   private static final String TS4WTZ_PGFORMAT = "2000-07-07 15:00:00.123456+00";
+
+  private static final Timestamp TS_YEAR1000_WTZ =
+      getTimestamp(1000, 1, 1, 0, 0, 0, 0, "UTC");
+  private static final String TS_YEAR1000_WTZ_PGFORMAT = "1000-01-01 00:00:00.0+00";
+  private static final OffsetDateTime ODT_YEAR1000 =
+      OffsetDateTime.of(1000, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
 
   private static final Timestamp TS1WOTZ =
       getTimestamp(1950, 2, 7, 15, 0, 0, 100000000, null);

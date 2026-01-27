@@ -137,6 +137,7 @@ public class Oid {
         // OID are unsigned 32bit integers, so Integer.parseInt is not enough
         return (int) Long.parseLong(oid);
       } catch (NumberFormatException ex) {
+        // Throw exception below if parsing fails
       }
     }
     throw new PSQLException(GT.tr("oid type {0} not known and not a number", oid),

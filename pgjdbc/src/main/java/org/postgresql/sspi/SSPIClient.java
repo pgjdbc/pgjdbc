@@ -9,6 +9,7 @@ package org.postgresql.sspi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -31,8 +32,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
- * talking to a Windows server.</p>
+ * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows client and
+ * talking to a Windows server.
  *
  * <p>SSPI is not supported on a non-Windows client.</p>
  *
@@ -70,7 +71,7 @@ public class SSPIClient implements ISSPIClient {
   }
 
   /**
-   * <p>Instantiate an SSPIClient for authentication of a connection.</p>
+   * Instantiate an SSPIClient for authentication of a connection.
    *
    * <p>SSPIClient is not re-usable across connections.</p>
    *
@@ -254,7 +255,7 @@ public class SSPIClient implements ISSPIClient {
      * 'password' message containing the required data; the server knows we're doing SSPI
      * negotiation and will deal with it appropriately.
      */
-    pgStream.sendChar('p');
+    pgStream.sendChar(PgMessageType.SASL_RESPONSE);
     pgStream.sendInteger4(4 + outToken.length);
     pgStream.send(outToken);
     pgStream.flush();

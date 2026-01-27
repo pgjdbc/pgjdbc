@@ -6,8 +6,6 @@ dependencies {
     implementation(project(":basics"))
     implementation(project(":jvm"))
     implementation(project(":build-parameters"))
-    implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:1.90")
-    implementation("com.github.vlsi.stage-vote-release:com.github.vlsi.stage-vote-release.gradle.plugin:1.90") {
-        exclude("xerces")
-    }
+    implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:2.0.0")
+    implementation("com.gradleup.nmcp:com.gradleup.nmcp.gradle.plugin:1.3.0")
 }

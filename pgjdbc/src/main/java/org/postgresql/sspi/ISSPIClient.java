@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 /**
- * <p>Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows
- * client and talking to a Windows server.</p>
+ * Use Waffle-JNI to support SSPI authentication when PgJDBC is running on a Windows
+ * client and talking to a Windows server.
  *
  * <p>SSPI is not supported on a non-Windows client.</p>
  */

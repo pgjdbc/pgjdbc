@@ -7,8 +7,8 @@ package org.postgresql.replication;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.junit.MatcherAssume.assumeThat;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
@@ -91,6 +91,7 @@ class LogicalReplicationTest {
               .logical()
               .withSlotName("notExistSlotName")
               .withStartPosition(lsn)
+              .withAutomaticFlush(true)
               .start();
 
       fail("For logical decoding replication slot name it required parameter "
@@ -251,9 +252,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
@@ -275,7 +276,7 @@ class LogicalReplicationTest {
             .start();
 
     boolean isActive = isActiveOnView();
-    assumeThat(isActive, equalTo(true));
+    assumeTrue(isActive, "isActive");
 
     stream.close();
 
@@ -305,7 +306,7 @@ class LogicalReplicationTest {
             .start();
 
     boolean isActive = isActiveOnView();
-    assumeThat(isActive, equalTo(true));
+    assumeTrue(isActive, "isActive");
 
     replConnection.close();
 
@@ -324,9 +325,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
@@ -379,9 +380,9 @@ class LogicalReplicationTest {
   }
 
   /**
-   * <p>Bug in postgreSQL that should be fixed in 10 version after code review patch <a
+   * Bug in postgreSQL that should be fixed in 10 version after code review patch <a
    * href="http://www.postgresql.org/message-id/CAFgjRd3hdYOa33m69TbeOfNNer2BZbwa8FFjt2V5VFzTBvUU3w@mail.gmail.com">
-   * Stopping logical replication protocol</a>.</p>
+   * Stopping logical replication protocol</a>.
    *
    * <p>If you try to run it test on version before 10 they fail with time out, because postgresql
    * wait new changes and until waiting messages from client ignores.</p>
@@ -891,7 +892,7 @@ class LogicalReplicationTest {
     return result;
   }
 
-  private String group(List<String> messages) {
+  private static String group(List<String> messages) {
     StringBuilder builder = new StringBuilder();
     boolean isFirst = true;
     for (String str : messages) {
@@ -907,7 +908,7 @@ class LogicalReplicationTest {
     return builder.toString();
   }
 
-  private List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
+  private static List<String> receiveMessage(PGReplicationStream stream, int count) throws SQLException {
     List<String> result = new ArrayList<>(count);
     for (int index = 0; index < count; index++) {
       result.add(toString(stream.read()));
@@ -916,7 +917,7 @@ class LogicalReplicationTest {
     return result;
   }
 
-  private List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
+  private static List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
       throws Exception {
     List<String> result = new ArrayList<>(3);
     for (int index = 0; index < count; index++) {

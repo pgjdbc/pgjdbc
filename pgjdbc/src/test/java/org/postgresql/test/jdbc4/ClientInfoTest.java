@@ -5,16 +5,16 @@
 
 package org.postgresql.test.jdbc4;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
@@ -57,10 +57,14 @@ public class ClientInfoTest extends BaseTest4 {
     Statement s = con.createStatement();
     s.execute("set application_name='" + appName + "'");
     s.close();
-    assertEquals("application_name was set to " + appName + ", and it should be visible via "
-        + "con.getClientInfo", appName, con.getClientInfo("ApplicationName"));
-    assertEquals("application_name was set to " + appName + ", and it should be visible via "
-        + "con.getClientInfo", appName, con.getClientInfo().get("ApplicationName"));
+    assertEquals(
+        appName,
+        con.getClientInfo("ApplicationName"),
+        () -> "set application_name='...' should be visible via con.getClientInfo(\"ApplicationName\")");
+    assertEquals(
+        appName,
+        con.getClientInfo().get("ApplicationName"),
+        () -> "set application_name='...' should be visible via con.getClientInfo().get(\"ApplicationName\")");
   }
 
   @Test

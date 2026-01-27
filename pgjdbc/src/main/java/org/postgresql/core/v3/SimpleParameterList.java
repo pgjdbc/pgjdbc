@@ -182,8 +182,8 @@ class SimpleParameterList implements V3ParameterList {
   }
 
   /**
-   * <p>Escapes a given text value as a literal, wraps it in single quotes, casts it to the
-   * to the given data type, and finally wraps the whole thing in parentheses.</p>
+   * Escapes a given text value as a literal, wraps it in single quotes, casts it to the
+   * to the given data type, and finally wraps the whole thing in parentheses.
    *
    * <p>For example, "123" and "int4" becomes "('123'::int)"</p>
    *
@@ -239,6 +239,11 @@ class SimpleParameterList implements V3ParameterList {
 
   @Override
   public String toString(@Positive int index, boolean standardConformingStrings) {
+    return toString(index, SqlSerializationContext.of(standardConformingStrings, true));
+  }
+
+  @Override
+  public String toString(@Positive int index, SqlSerializationContext context) {
     --index;
     Object paramValue = paramValues[index];
     if (paramValue == null) {
@@ -250,7 +255,7 @@ class SimpleParameterList implements V3ParameterList {
     String type;
     if (paramTypes[index] == Oid.BYTEA) {
       try {
-        return PGbytea.toPGLiteral(paramValue);
+        return PGbytea.toPGLiteral(paramValue, context);
       } catch (Throwable e) {
         Throwable cause = e;
         if (!(cause instanceof IOException)) {
@@ -392,7 +397,7 @@ class SimpleParameterList implements V3ParameterList {
           type = null;
       }
     }
-    return quoteAndCast(textValue, type, standardConformingStrings);
+    return quoteAndCast(textValue, type, context.getStandardConformingStrings());
   }
 
   @Override

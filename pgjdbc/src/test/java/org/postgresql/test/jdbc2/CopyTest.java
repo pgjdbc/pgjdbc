@@ -54,7 +54,7 @@ class CopyTest {
           "\t4\t444.40\n"};
   private final int dataRows = origData.length;
 
-  private byte[] getData(String[] origData) {
+  private static byte[] getData(String[] origData) {
     ByteArrayOutputStream buf = new ByteArrayOutputStream();
     PrintStream ps = new PrintStream(buf);
     for (String anOrigData : origData) {
@@ -488,7 +488,7 @@ class CopyTest {
     }
   }
 
-  private void acceptIOCause(SQLException e) throws SQLException {
+  private static void acceptIOCause(SQLException e) throws SQLException {
     if (e.getSQLState().equals(PSQLState.CONNECTION_FAILURE.getState())
         || e.getSQLState().equals(PSQLState.CONNECTION_DOES_NOT_EXIST.getState())) {
       // The test expects network exception, so CONNECTION_FAILURE looks good

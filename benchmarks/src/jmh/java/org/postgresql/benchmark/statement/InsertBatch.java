@@ -8,7 +8,7 @@ package org.postgresql.benchmark.statement;
 import org.postgresql.PGConnection;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -32,8 +32,8 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.io.CharArrayWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -49,7 +49,8 @@ import java.util.concurrent.TimeUnit;
 public class InsertBatch {
   private Connection connection;
   private PreparedStatement ps;
-  private PreparedStatement structInsert;
+  private PreparedStatement unnestInsertStructs;
+  private PreparedStatement unnestInsertArrays;
   String[] strings;
 
   @Param({"16", "128", "1024"})
@@ -72,20 +73,20 @@ public class InsertBatch {
     }
     p2multi = Math.min(p2multi, p1nrows);
 
-    Properties props = ConnectionUtil.getProperties();
+    Properties props = new Properties();
 
     if (bp.getBenchmark().contains("insertBatchWithRewrite")) {
       // PGProperty.REWRITE_BATCHED_INSERTS is not used for easier use with previous pgjdbc versions
       props.put("reWriteBatchedInserts", "true");
     }
 
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB(props);
     Statement s = connection.createStatement();
 
     try {
       s.execute("drop table batch_perf_test");
     } catch (SQLException e) {
-            /* ignore */
+      /* ignore */
     }
     s.execute("create table batch_perf_test(a int4, b varchar(100), c int4)");
     s.close();
@@ -94,8 +95,12 @@ public class InsertBatch {
       sql += ",(?,?,?)";
     }
     ps = connection.prepareStatement(sql);
-    structInsert = connection.prepareStatement(
+    unnestInsertStructs = connection.prepareStatement(
         "insert into batch_perf_test select * from unnest(?::batch_perf_test[])");
+
+    unnestInsertArrays = connection.prepareStatement(
+        "insert into batch_perf_test(a, b, c) select * from unnest(?::int4[], ?::varchar[], "
+                + "?::int4[])");
 
     strings = new String[p1nrows];
     for (int i = 0; i < p1nrows; i++) {
@@ -113,6 +118,7 @@ public class InsertBatch {
   }
 
   @Benchmark
+  @SuppressWarnings("IncrementInForLoopAndHeader")
   public int[] insertBatch() throws SQLException {
     if (p2multi > 1) {
       // Multi values(),(),() case
@@ -154,7 +160,7 @@ public class InsertBatch {
   }
 
   @Benchmark
-  public int[] insertStruct() throws SQLException, IOException {
+  public int[] insertUnnestStruct() throws SQLException, IOException {
     CharArrayWriter wr = new CharArrayWriter();
 
     for (int i = 0; i < p1nrows; ) {
@@ -183,11 +189,33 @@ public class InsertBatch {
         wr.append(")\"");
       }
       wr.append('}');
-      structInsert.setString(1, wr.toString());
-      structInsert.addBatch();
+      unnestInsertStructs.setString(1, wr.toString());
+      unnestInsertStructs.addBatch();
     }
 
-    return structInsert.executeBatch();
+    return unnestInsertStructs.executeBatch();
+  }
+
+  @Benchmark
+  public int[] insertUnnestArrays() throws SQLException {
+    PGConnection pgConnection = connection.unwrap(PGConnection.class);
+
+    int[] aArray = new int[p2multi];
+    String[] bArray = new String[p2multi];
+    int[] cArray = new int[p2multi];
+
+    for (int i = 0; i < p1nrows; ) {
+      for (int k = 0; k < p2multi; k++, i++) {
+        aArray[k] = i;
+        bArray[k] = strings[i];
+        cArray[k] = i;
+      }
+      unnestInsertArrays.setArray(1, pgConnection.createArrayOf("int4", aArray));
+      unnestInsertArrays.setArray(2, pgConnection.createArrayOf("varchar", bArray));
+      unnestInsertArrays.setArray(3, pgConnection.createArrayOf("int4", cArray));
+      unnestInsertArrays.addBatch();
+    }
+    return unnestInsertArrays.executeBatch();
   }
 
   @Benchmark
@@ -215,7 +243,7 @@ public class InsertBatch {
         wr.append(Integer.toString(i));
         wr.append('\n');
       }
-      byte[] bytes = wr.toString().getBytes("UTF-8");
+      byte[] bytes = wr.toString().getBytes(StandardCharsets.UTF_8);
       copyIn.writeToCopy(bytes, 0, bytes.length);
       b.consume(copyIn.endCopy());
     }

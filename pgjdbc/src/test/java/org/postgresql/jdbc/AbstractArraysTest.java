@@ -21,6 +21,7 @@ import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.FieldMetadata.Key;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
+import org.postgresql.test.annotations.tags.Arrays;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGobject;
 import org.postgresql.xml.PGXmlFactoryFactory;
@@ -48,6 +49,7 @@ import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
+@Arrays
 public abstract class AbstractArraysTest<A> {
 
   private static final BaseConnection ENCODING_CONNECTION = new EncodingConnection(Encoding.getJVMEncoding("utf-8"));
@@ -1005,6 +1007,22 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    public void setQueryTimeout(int seconds) throws SQLException {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getQueryTimeout() {
+      throw new UnsupportedOperationException();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public int getBackendPID() {
       throw new UnsupportedOperationException();
     }
@@ -1110,6 +1128,11 @@ public abstract class AbstractArraysTest<A> {
      */
     @Override
     public boolean getLogServerErrorDetail() {
+      return false;
+    }
+
+    @Override
+    public boolean getConvertBooleanToNumeric() {
       return false;
     }
   }

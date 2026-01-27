@@ -5,11 +5,12 @@
 
 package org.postgresql.test.jdbc4;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
@@ -67,7 +68,7 @@ public class BinaryStreamTest extends BaseTest4 {
       try {
         rs.next();
         byte[] actualData = rs.getBytes(1);
-        Assert.assertArrayEquals("Sent and received data are not the same", data, actualData);
+        assertArrayEquals(data, actualData, "Sent and received data are not the same");
       } finally {
         rs.close();
       }

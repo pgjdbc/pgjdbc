@@ -7,12 +7,12 @@ package org.postgresql.jdbcurlresolver;
 
 import org.postgresql.PGEnvironment;
 import org.postgresql.util.OSUtil;
+import org.postgresql.util.internal.FileUtils;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -88,20 +88,19 @@ public class PgPassParser {
   }
 
   // open URL or File
-  private InputStream openInputStream(String resourceName) throws IOException {
+  private static InputStream openInputStream(String resourceName) throws IOException {
 
     try {
       URL url = new URL(resourceName);
       return url.openStream();
     } catch ( MalformedURLException ex ) {
       // try file
-      File file = new File(resourceName);
-      return new FileInputStream(file);
+      return FileUtils.newBufferedInputStream(resourceName);
     }
   }
 
   // choose resource where to search for service description
-  private @Nullable String findPgPasswordResourceName() {
+  private static @Nullable String findPgPasswordResourceName() {
     // default file name
     String pgPassFileDefaultName = PGEnvironment.PGPASSFILE.getDefaultValue();
 
@@ -197,7 +196,7 @@ public class PgPassParser {
   }
 
   //
-  private String extractPassword(String line) {
+  private static String extractPassword(String line) {
     StringBuilder sb = new StringBuilder();
     // take all characters up to separator (which is colon)
     // remove escaping colon and backslash ("\\ -> \" ; "\: -> :")
@@ -219,7 +218,7 @@ public class PgPassParser {
   }
 
   //
-  private @Nullable String checkForPattern(String line, String value) {
+  private static @Nullable String checkForPattern(String line, String value) {
     String result = null;
     if (line.startsWith("*:")) {
       // any value match

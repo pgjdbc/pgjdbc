@@ -8,9 +8,6 @@ package org.postgresql.osgi;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.ds.common.BaseDataSource;
-import org.postgresql.jdbc2.optional.ConnectionPool;
-import org.postgresql.jdbc2.optional.PoolingDataSource;
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -58,7 +55,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   }
 
   @SuppressWarnings("deprecation")
-  private void configureBaseDataSource(BaseDataSource ds, Properties props) throws SQLException {
+  private static void configureBaseDataSource(BaseDataSource ds, Properties props) throws SQLException {
     if (props.containsKey(JDBC_URL)) {
       ds.setUrl(castNonNull(props.getProperty(JDBC_URL)));
     }
@@ -93,8 +90,9 @@ public class PGDataSourceFactory implements DataSourceFactory {
   }
 
   @SuppressWarnings("deprecation")
-  private DataSource createPoolingDataSource(Properties props) throws SQLException {
-    PoolingDataSource dataSource = new PoolingDataSource();
+  private static DataSource createPoolingDataSource(Properties props) throws SQLException {
+    org.postgresql.jdbc2.optional.PoolingDataSource dataSource =
+        new org.postgresql.jdbc2.optional.PoolingDataSource();
     if (props.containsKey(JDBC_INITIAL_POOL_SIZE)) {
       String initialPoolSize = castNonNull(props.getProperty(JDBC_INITIAL_POOL_SIZE));
       dataSource.setInitialConnections(Integer.parseInt(initialPoolSize));
@@ -111,14 +109,16 @@ public class PGDataSourceFactory implements DataSourceFactory {
   }
 
   @SuppressWarnings("deprecation")
-  private DataSource createSimpleDataSource(Properties props) throws SQLException {
-    SimpleDataSource dataSource = new SimpleDataSource();
+  private static DataSource createSimpleDataSource(Properties props) throws SQLException {
+    org.postgresql.jdbc2.optional.SimpleDataSource dataSource =
+        new org.postgresql.jdbc2.optional.SimpleDataSource();
     configureBaseDataSource(dataSource, props);
     return dataSource;
   }
 
   /**
-   * Will create and return either a {@link SimpleDataSource} or a {@link PoolingDataSource}
+   * Will create and return either a {@link org.postgresql.jdbc2.optional.SimpleDataSource} or
+   * a {@link org.postgresql.jdbc2.optional.PoolingDataSource}
    * depending on the presence in the supplied properties of any pool-related property (eg.: {@code
    * JDBC_INITIAL_POOL_SIZE} or {@code JDBC_MAX_POOL_SIZE}).
    */
@@ -141,7 +141,7 @@ public class PGDataSourceFactory implements DataSourceFactory {
   public ConnectionPoolDataSource createConnectionPoolDataSource(Properties props)
       throws SQLException {
     props = new SingleUseProperties(props);
-    ConnectionPool dataSource = new ConnectionPool();
+    org.postgresql.jdbc2.optional.ConnectionPool dataSource = new org.postgresql.jdbc2.optional.ConnectionPool();
     configureBaseDataSource(dataSource, props);
     return dataSource;
   }

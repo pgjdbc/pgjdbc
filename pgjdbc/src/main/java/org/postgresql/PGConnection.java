@@ -53,7 +53,7 @@ public interface PGConnection {
 
   /**
    * This method returns any notifications that have been received since the last call to this
-   * method. Returns null if there have been no notifications.
+   * method. Returns an empty array if there have been no notifications.
    *
    * @return notifications that have been received
    * @throws SQLException if something wrong happens
@@ -63,8 +63,8 @@ public interface PGConnection {
 
   /**
    * This method returns any notifications that have been received since the last call to this
-   * method. Returns null if there have been no notifications. A timeout can be specified so the
-   * driver waits for notifications.
+   * method. Returns an empty array if there have been no notifications. A timeout can be specified
+   * so the driver waits for notifications.
    *
    * @param timeoutMillis when 0, blocks forever. when &gt; 0, blocks up to the specified number of millis
    *        or until at least one notification has been received. If more than one notification is
@@ -96,15 +96,15 @@ public interface PGConnection {
   /**
    * This returns the Fastpath API for the current connection.
    *
+   * <p>
+   * Note: This API is somewhat obsolete, as one may achieve similar performance
+   * and greater functionality by setting up a prepared statement to define
+   * the function call. Then, executing the statement with binary transmission of parameters
+   * and results substitutes for a fast-path function call.
    * @return Fastpath API for the current connection
    * @throws SQLException if something wrong happens
    * @since 7.3
-   * @deprecated This API is somewhat obsolete, as one may achieve similar performance
-   *         and greater functionality by setting up a prepared statement to define
-   *         the function call. Then, executing the statement with binary transmission of parameters
-   *         and results substitutes for a fast-path function call.
    */
-  @Deprecated
   Fastpath getFastpathAPI() throws SQLException;
 
   /**
@@ -122,7 +122,7 @@ public interface PGConnection {
   void addDataType(String type, String className);
 
   /**
-   * <p>This allows client code to add a handler for one of org.postgresql's more unique data types.</p>
+   * This allows client code to add a handler for one of org.postgresql's more unique data types.
    *
    * <p><b>NOTE:</b> This is not part of JDBC, but an extension.</p>
    *
@@ -185,6 +185,24 @@ public interface PGConnection {
   int getDefaultFetchSize();
 
   /**
+   * Set the query timeout for statements created from this connection.
+   *
+   * @param seconds new query timeout
+   * @throws SQLException if specified negative <code>seconds</code> parameter
+   * @see Statement#setQueryTimeout(int)
+   */
+  void setQueryTimeout(int seconds) throws SQLException;
+
+  /**
+   * Get the query timeout for statements created from this connection.
+   *
+   * @return current state for query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   * @see Statement#getQueryTimeout()
+   */
+  int getQueryTimeout();
+
+  /**
    * Return the process ID (PID) of the backend server process handling this connection.
    *
    * @return PID of backend server process.
@@ -220,10 +238,11 @@ public interface PGConnection {
   String escapeLiteral(String literal) throws SQLException;
 
   /**
-   * <p>Returns the query mode for this connection.</p>
+   * Returns the query mode for this connection.
    *
    * <p>When running in simple query mode, certain features are not available: callable statements,
    * partial result set fetch, bytea type, etc.</p>
+   *
    * <p>The list of supported features is subject to change.</p>
    *
    * @return the preferred query mode
@@ -294,7 +313,7 @@ public interface PGConnection {
   }
 
   /**
-   * <p>Returns the current values of all parameters reported by the server.</p>
+   * Returns the current values of all parameters reported by the server.
    *
    * <p>PostgreSQL reports values for a subset of parameters (GUCs) to the client
    * at connect-time, then sends update messages whenever the values change

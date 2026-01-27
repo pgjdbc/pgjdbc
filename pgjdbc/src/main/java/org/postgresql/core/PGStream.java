@@ -39,8 +39,8 @@ import java.sql.SQLException;
 import javax.net.SocketFactory;
 
 /**
- * <p>Wrapper around the raw connection to the server that implements some basic primitives
- * (reading/writing formatted data, doing string encoding, etc).</p>
+ * Wrapper around the raw connection to the server that implements some basic primitives
+ * (reading/writing formatted data, doing string encoding, etc).
  *
  * <p>In general, instances of PGStream are not threadsafe; the caller must ensure that only one thread
  * at a time is accessing a particular PGStream instance.</p>
@@ -52,6 +52,7 @@ public class PGStream implements Closeable, Flushable {
   private Socket connection;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
+  private @Nullable ProtocolVersion protocolVersion;
 
   public boolean isGssEncrypted() {
     return gssEncrypted;
@@ -61,7 +62,7 @@ public class PGStream implements Closeable, Flushable {
 
   public void setSecContext(GSSContext secContext) throws GSSException {
     MessageProp messageProp =  new MessageProp(0, true);
-    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput.getWrapped(), secContext, messageProp ), 8192);
+    pgInput = new VisibleBufferedInputStream(new GSSInputStream(pgInput, secContext, messageProp ), 8192);
     // See https://www.postgresql.org/docs/current/protocol-flow.html#PROTOCOL-FLOW-GSSAPI
     // Note that the server will only accept encrypted packets from the client which are less than
     // 16kB; gss_wrap_size_limit() should be used by the client to determine the size of
@@ -338,7 +339,7 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * <p>Get a Writer instance that encodes directly onto the underlying stream.</p>
+   * Get a Writer instance that encodes directly onto the underlying stream.
    *
    * <p>The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
    * called when switching between use of the Writer and use of the PGStream write methods, but it
@@ -803,6 +804,14 @@ public class PGStream implements Closeable, Flushable {
    */
   public void clearResultBufferCount() {
     resultBufferByteCount = 0;
+  }
+
+  public @Nullable ProtocolVersion getProtocolVersion() {
+    return protocolVersion;
+  }
+
+  public void setProtocolVersion(ProtocolVersion protocolVersion) {
+    this.protocolVersion = protocolVersion;
   }
 
   /**

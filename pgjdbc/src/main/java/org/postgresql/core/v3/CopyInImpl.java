@@ -14,7 +14,7 @@ import org.postgresql.util.PSQLState;
 import java.sql.SQLException;
 
 /**
- * <p>COPY FROM STDIN operation.</p>
+ * COPY FROM STDIN operation.
  *
  * <p>Anticipated flow:
  *

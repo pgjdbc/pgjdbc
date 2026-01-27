@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -16,6 +17,9 @@ import org.postgresql.util.PGInterval;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -24,9 +28,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.TimeZone;
+import java.util.concurrent.ThreadLocalRandom;
 
+@Isolated("Uses Locale.setDefault")
 class IntervalTest {
   private Connection conn;
 
@@ -108,7 +114,23 @@ class IntervalTest {
     PGInterval interval = new PGInterval("1 year 3 months");
     String coercedStringValue = interval.toString();
 
-    assertEquals("1 years 3 mons 0 days 0 hours 0 mins 0.0 secs", coercedStringValue);
+    assertEquals("1 years 3 mons", coercedStringValue);
+  }
+
+  @Test
+  void checkCapitalization() throws Exception {
+    PGInterval pgi = new PGInterval("1 year 3 months 4 days 5 hours 6 minutes");
+    PGInterval yCapital = new PGInterval("1 Year 3 months 4 days 5 hours 6 minutes");
+    PGInterval mCapital = new PGInterval("1 year 3 Months 4 days 5 hours 6 minutes");
+    PGInterval dCapital = new PGInterval("1 year 3 months 4 Days 5 hours 6 minutes");
+    PGInterval hCapital = new PGInterval("1 year 3 months 4 days 5 Hours 6 minutes");
+    PGInterval minCapital = new PGInterval("1 year 3 months 4 days 5 hours 6 Minutes");
+
+    assertEquals(pgi, yCapital);
+    assertEquals(pgi, mCapital);
+    assertEquals(pgi, dCapital);
+    assertEquals(pgi, hCapital);
+    assertEquals(pgi, minCapital);
   }
 
   @Test
@@ -127,7 +149,7 @@ class IntervalTest {
   @Test
   void addRounding() {
     PGInterval pgi = new PGInterval(0, 0, 0, 0, 0, 0.6006);
-    Calendar cal = Calendar.getInstance();
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     long origTime = cal.getTime().getTime();
     pgi.add(cal);
     long newTime = cal.getTime().getTime();
@@ -186,8 +208,8 @@ class IntervalTest {
     assertEquals(0, pgi.getSeconds(), 0);
   }
 
-  private Calendar getStartCalendar() {
-    Calendar cal = new GregorianCalendar();
+  private static Calendar getStartCalendar() {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
     cal.set(Calendar.YEAR, 2005);
     cal.set(Calendar.MONTH, 4);
     cal.set(Calendar.DAY_OF_MONTH, 29);
@@ -263,6 +285,25 @@ class IntervalTest {
     pgi2.add(date);
 
     assertEquals(date2, date);
+  }
+
+  @Test
+  void dateYear1000() throws Exception {
+    final Calendar calYear1000 = createProlepticGregorianCalendar(TimeZone.getDefault());
+    calYear1000.clear();
+    calYear1000.set(1000, Calendar.JANUARY, 1);
+
+    final Calendar calYear2000 = createProlepticGregorianCalendar(TimeZone.getDefault());
+    calYear2000.clear();
+    calYear2000.set(2000, Calendar.JANUARY, 1);
+
+    final Date date = calYear1000.getTime();
+    final Date dateYear2000 = calYear2000.getTime();
+
+    PGInterval pgi = new PGInterval("@ +1000 years");
+    pgi.add(date);
+
+    assertEquals(dateYear2000, date);
   }
 
   @Test
@@ -369,13 +410,95 @@ class IntervalTest {
   }
 
   @Test
+  void randomIntervalsRoundtripTest() throws SQLException {
+    ThreadLocalRandom random = ThreadLocalRandom.current();
+    for (int i = 0; i < 1000000; i++) {
+      // PostgreSQL interval limits are -178000000..178000000 years
+      int years = random.nextInt(-177000000, 177000000);
+      int months = random.nextInt(-10000, 10000);
+      int days = random.nextInt(-10000, 10000);
+      int hours = random.nextInt(-10000, 10000);
+      int minutes = random.nextInt(-10000, 10000);
+      double seconds = random.nextDouble(-100000, 100000);
+      try {
+        assertIntervalGetValue(years, months, days, hours, minutes, seconds);
+      } catch (AssertionError e) {
+        throw e;
+      } catch (Throwable t) {
+        throw new AssertionError(
+            "Failed to test interval " + years + " years " + months + " months " + days + " days "
+                + hours + " hours " + minutes + " minutes " + seconds + " seconds",
+            t);
+      }
+    }
+  }
+
+  @ParameterizedTest
+  @ValueSource(
+      doubles = {
+          1.9999998,
+          1.9999997,
+          1.9999996,
+          1.9999995,
+          1.9999994
+      }
+  )
+  void edgeCaseSecondsTest(double seconds) throws SQLException {
+    assertIntervalGetValue(0, 0, 0, 0, 0, seconds);
+    assertIntervalGetValue(0, 0, 0, 0, 0, -seconds);
+  }
+
+  private static void assertIntervalGetValue(int years, int months, int days, int hours, int minutes, double seconds) throws SQLException {
+    PGInterval original = new PGInterval(years, months, days, hours, minutes, seconds);
+    assertPGIntervalSeconds(original, seconds);
+    PGInterval copy = new PGInterval(original.getValue());
+    assertEquals(original, copy,
+        () -> "years: " + years + ", months: " + months + ", days: " + days
+            + ", hours: " + hours + ", minutes: " + minutes + ", seconds: " + seconds
+            + "; Copy: years: " + copy.getYears() + ", months: " + copy.getMonths() + ", days: " + copy.getDays()
+            + ", hours: " + copy.getHours() + ", minutes: " + copy.getMinutes() + ", seconds: " + copy.getSeconds());
+  }
+
+  private static void assertPGIntervalSeconds(PGInterval original, double seconds) {
+    assertEquals(original.getSeconds(), seconds, 0.00000051, () -> "PGInterval(seconds= " + seconds + ").getSeconds()");
+  }
+
+  @Test
+  void secondEdgeCasesTest() {
+    for (int prefix = 0; prefix < 6; prefix++) {
+      for (int suffix = 0; suffix < 6 - prefix; suffix++) {
+        for (int wholeSeconds = 0; wholeSeconds < 2; wholeSeconds++) {
+          for (int sign = -1; sign <= 1; sign += 2) {
+            String microsPart = "123456".substring(0, 6 - prefix - suffix);
+            int micros = Integer.parseInt(microsPart + "000000".substring(0, suffix));
+            double seconds = (wholeSeconds + micros / 1_000_000.0) * sign;
+            PGInterval interval = new PGInterval(0, 0, 0, 0, 0, seconds);
+            assertPGIntervalSeconds(interval, seconds);
+            String result = interval.getValue();
+
+            String expectedValue =
+                (sign == -1 ? "-" : "") + wholeSeconds + "." + "000000".substring(0, prefix) + microsPart + " secs";
+            assertEquals(expectedValue, result, () -> "Input seconds: " + seconds);
+          }
+        }
+      }
+    }
+  }
+
+  @Test
   void microSecondsAreRoundedToNearest() throws SQLException {
     PGInterval pgi = new PGInterval("0.0000007 seconds");
 
     assertEquals(1, pgi.getMicroSeconds());
   }
 
-  private java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+  private static java.sql.Date makeDate(int year, int month, int day) {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    cal.clear();
+    // Note that Calendar.MONTH is zero based
+    cal.set(year, month - 1, day);
+
+    return new java.sql.Date(cal.getTimeInMillis());
   }
+
 }

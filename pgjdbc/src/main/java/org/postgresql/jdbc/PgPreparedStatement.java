@@ -75,7 +75,9 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 import java.util.TimeZone;
 import java.util.UUID;
 
@@ -124,7 +126,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         PSQLState.WRONG_OBJECT_TYPE);
   }
 
-  /*
+  /**
    * A Prepared SQL query is executed and its ResultSet is returned
    *
    * @return a ResultSet that contains the data produced by the * query - never null
@@ -635,12 +637,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Date tmpd;
           if (in instanceof java.util.Date) {
-            tmpd = new Date(((java.util.Date) in).getTime());
+            // TODO: should we convert it to LocalDate instead?
+            @SuppressWarnings("JavaUtilDate")
+            Date res = new Date(((java.util.Date) in).getTime());
+            tmpd = res;
           } else if (in instanceof LocalDate) {
             setDate(parameterIndex, (LocalDate) in);
             break;
           } else {
-            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString().getBytes());
+            tmpd = getTimestampUtils().toDate(getDefaultCalendar(), in.toString());
           }
           setDate(parameterIndex, tmpd);
         }
@@ -651,7 +656,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Time tmpt;
           if (in instanceof java.util.Date) {
-            tmpt = new Time(((java.util.Date) in).getTime());
+            // TODO: should we convert it to OffsetTime instead?
+            @SuppressWarnings("JavaUtilDate")
+            Time res = new Time(((java.util.Date) in).getTime());
+            tmpt = res;
           } else if (in instanceof LocalTime) {
             setTime(parameterIndex, (LocalTime) in);
             break;
@@ -659,7 +667,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
             setTime(parameterIndex, (OffsetTime) in);
             break;
           } else {
-            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString().getBytes());
+            tmpt = getTimestampUtils().toTime(getDefaultCalendar(), in.toString());
           }
           setTime(parameterIndex, tmpt);
         }
@@ -672,12 +680,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         } else {
           Timestamp tmpts;
           if (in instanceof java.util.Date) {
-            tmpts = new Timestamp(((java.util.Date) in).getTime());
+            // TODO: should we convert it to LocalDateTime instead?
+            @SuppressWarnings("JavaUtilDate")
+            Timestamp res = new Timestamp(((java.util.Date) in).getTime());
+            tmpts = res;
           } else if (in instanceof LocalDateTime) {
             setTimestamp(parameterIndex, (LocalDateTime) in);
             break;
           } else {
-            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes());
+            Charset connectionCharset = Charset.forName(connection.getEncoding().name());
+            tmpts = getTimestampUtils().toTimestamp(getDefaultCalendar(), in.toString().getBytes(connectionCharset));
           }
           setTimestamp(parameterIndex, tmpts);
         }
@@ -707,7 +719,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         if (in instanceof Blob) {
           setBlob(parameterIndex, (Blob) in);
         } else if (in instanceof InputStream) {
-          long oid = createBlob(parameterIndex, (InputStream) in, Long.MAX_VALUE);
+          long oid = createBlob((InputStream) in, Long.MAX_VALUE);
           setLong(parameterIndex, oid);
         } else {
           throw new PSQLException(
@@ -757,7 +769,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     }
   }
 
-  private Class<?> getArrayType(Class<?> type) {
+  private static Class<?> getArrayType(Class<?> type) {
     Class<?> subType = type.getComponentType();
     while (subType != null) {
       type = subType;
@@ -804,7 +816,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).intValue();
       }
       if (in instanceof java.util.Date) {
-        return (int) ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return (int) time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1 : 0;
@@ -830,7 +844,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).shortValue();
       }
       if (in instanceof java.util.Date) {
-        return (short) ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return (short) time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? (short) 1 : (short) 0;
@@ -856,7 +872,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).longValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1L : 0L;
@@ -882,7 +900,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).floatValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1f : 0f;
@@ -908,7 +928,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         return ((Number) in).doubleValue();
       }
       if (in instanceof java.util.Date) {
-        return ((java.util.Date) in).getTime();
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        return time;
       }
       if (in instanceof Boolean) {
         return (Boolean) in ? 1d : 0d;
@@ -940,7 +962,9 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       } else if (in instanceof Double || in instanceof Float) {
         rc = BigDecimal.valueOf(((Number) in).doubleValue());
       } else if (in instanceof java.util.Date) {
-        rc = BigDecimal.valueOf(((java.util.Date) in).getTime());
+        @SuppressWarnings("JavaUtilDate")
+        long time = ((java.util.Date) in).getTime();
+        rc = BigDecimal.valueOf(time);
       } else if (in instanceof Boolean) {
         rc = (Boolean) in ? BigDecimal.ONE : BigDecimal.ZERO;
       } else if (in instanceof Clob) {
@@ -1086,7 +1110,25 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return super.toString();
     }
 
-    return preparedQuery.query.toString(preparedParameters);
+    List<Query> batchStatements = this.batchStatements;
+    if (batchStatements == null || batchStatements.isEmpty()) {
+      return preparedQuery.query.toString(preparedParameters);
+    }
+    List<@Nullable ParameterList> batchParameters = this.batchParameters;
+    StringJoiner sj = new StringJoiner(";\n");
+    if (batchStatements.size() == 1 && batchParameters != null) {
+      // For rewritebatchinserts=true case, we have a single batch statement and multiple parameter rows
+      Query query = batchStatements.get(0);
+      for (ParameterList batchParameter : batchParameters) {
+        sj.add(query.toString(batchParameter));
+      }
+    } else {
+      for (int i = 0; i < batchStatements.size(); i++) {
+        Query statement = batchStatements.get(i);
+        sj.add(statement.toString(batchParameters == null ? null : batchParameters.get(i)));
+      }
+    }
+    return sj.toString();
   }
 
   /**
@@ -1167,7 +1209,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       // for more info. We send the full query, but just don't
       // execute it.
 
-      int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
+      int flags = QueryExecutor.QUERY_DESCRIBE_ONLY
           | QueryExecutor.QUERY_SUPPRESS_BEGIN;
       StatementResultHandler handler = new StatementResultHandler();
       connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
@@ -1217,12 +1259,12 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     setString(i, x.toString(), oid);
   }
 
-  protected long createBlob(int i, InputStream inputStream,
+  protected long createBlob(InputStream inputStream,
       @NonNegative long length) throws SQLException {
     LargeObjectManager lom = connection.getLargeObjectAPI();
     long oid = lom.createLO();
-    LargeObject lob = lom.open(oid);
-    try (OutputStream outputStream = lob.getOutputStream()) {
+    try (LargeObject lob = lom.open(oid);
+         OutputStream outputStream = lob.getOutputStream()) {
       // The actual buffer size does not matter much, see benchmarks
       // https://github.com/pgjdbc/pgjdbc/pull/3044#issuecomment-1838057929
       // BlobOutputStream would gradually increase the buffer, so it will level the number of
@@ -1252,8 +1294,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    InputStream inStream = x.getBinaryStream();
-    try {
+    try (InputStream inStream = x.getBinaryStream(); ) {
       long maxLength = x.length();
       if (maxLength < 0) {
         // Hibernate used to create blob instances that report -1 length, so we ignore the length
@@ -1261,17 +1302,15 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
         // See https://github.com/pgjdbc/pgjdbc/issues/3134
         maxLength = Long.MAX_VALUE;
       }
-      long oid = createBlob(i, inStream, maxLength);
+      long oid = createBlob(inStream, maxLength);
       setLong(i, oid);
-    } finally {
-      try {
-        inStream.close();
-      } catch (Exception e) {
-      }
+    } catch (IOException e) {
+      throw new PSQLException(GT.tr("Unexpected error when closing Blob binary stream"),
+          PSQLState.UNEXPECTED_ERROR, e);
     }
   }
 
-  private String readerToString(Reader value, int maxLength) throws SQLException {
+  private static String readerToString(Reader value, int maxLength) throws SQLException {
     try {
       int bufferSize = Math.min(maxLength, 1024);
       StringBuilder v = new StringBuilder(bufferSize);
@@ -1673,7 +1712,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
           PSQLState.INVALID_PARAMETER_VALUE);
     }
 
-    long oid = createBlob(parameterIndex, inputStream, length);
+    long oid = createBlob(inputStream, length);
     setLong(parameterIndex, oid);
   }
 
@@ -1687,7 +1726,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    long oid = createBlob(parameterIndex, inputStream, Long.MAX_VALUE);
+    long oid = createBlob(inputStream, Long.MAX_VALUE);
     setLong(parameterIndex, oid);
   }
 

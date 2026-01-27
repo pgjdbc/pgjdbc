@@ -116,7 +116,7 @@ This value is an optional argument to the constructor of the sslfactory class pr
 * **`sslmode (`*String*`)`** *Default `prefer`*\
 possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/ssl/#configuring-the-client) for details.
 
-* **`sslNegotiation (`*String*`)`** *Default `postgres` *\
+* **`sslNegotiation (`*String*`)`** *Default `postgres`*\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.
 
 * **`sslcert (`*String*`)`** *Default `defaultdir/postgresql.crt`*\
@@ -191,6 +191,10 @@ or 'statement XXX is not valid' so JDBC driver rolls back and retries
 * **`cleanupSavepoints (`*boolean*`)`** *Default `false`*\
 Determines if the SAVEPOINT created in autosave mode is released prior to the statement. This is done to avoid running out of shared buffers on the server in the case where 1000's of queries are performed.
 
+* **`convertBooleanToNumeric (`*boolean*`)`** *Default `false`*\
+Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0) when using numeric getters (`getByte`, `getShort`, `getInt`, `getLong`, `getFloat`, `getDouble`, `getBigDecimal`) on ResultSet.
+When enabled, boolean columns containing 't' will return 1, and 'f' will return 0 instead of throwing a conversion exception.
+
 * **`channelBinding (`*String*`)`** *Default `prefer`*\
 This option controls the client's use of channel binding. A setting of `require` means that the connection must employ channel binding, `prefer` means that the client will choose channel binding if available, and `disable` prevents the use of channel binding. The default is `prefer` if PostgreSQL is compiled with SSL support; otherwise the default is `disable`.
 
@@ -244,6 +248,9 @@ Determine the number of rows fetched in `ResultSet` by one fetch with trip to th
 Limiting the number of rows are fetch with each trip to the database allow avoids unnecessary memory consumption and as a consequence `OutOfMemoryError` .
 The default is zero, meaning that `ResultSet` will fetch all rows at once. Must be > 0.
 
+* **`queryTimeout (`*int*`)`** *Default `0`*\
+The timeout value in seconds that the driver will wait for a query to execute if not explicitly set by [Statement.setQueryTimeout(int)](https://docs.oracle.com/javase/6/docs/api/java/sql/Statement.html#setQueryTimeout%28int%29)). A value of 0 means no timeout.
+
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
 
@@ -278,7 +285,7 @@ If `stringtype` is set to `unspecified` , parameters will be sent to the server 
 This is useful if you have an existing application that uses `setString()` to set parameters that are actually some other type, such as integers, 
 and you are unable to change the application to use an appropriate method such as `setInt()` .
 
-* **`ApplicationName (`*String*`)`** *`Default PostgreSQL JDBC Driver`*\
+* **`ApplicationName (`*String*`)`** *Default `PostgreSQL JDBC Driver`*\
 Specifies the name of the application that is using the connection. 
 This allows a database administrator to see what applications are connected to the server and what resources they are using through views like pg_stat_activity.
 
@@ -293,6 +300,11 @@ Specifies whether to perform a JAAS login before authenticating with GSSAPI.
 If set to `true` (the default), the driver will attempt to obtain GSS credentials using the configured JAAS login module(s) (e.g. `Krb5LoginModule` ) before authenticating. 
 To skip the JAAS login, for example if the native GSS implementation is being used to obtain credentials, set this to `false` .
 
+* **`gssUseDefaultCreds (`*boolean*`)`** *Default `false`*\
+Specifies whether to use the default system GSS credentials, rather than using JAAS.
+If set to `false` (the default), the driver will attempt to use GSS credentials matching `user`@DEFAULT_REALM.  If true, the
+driver will use the default system GSS credentials.  This is useful in cases where the default credentials are named differently,
+or CCACHE sources like KCM are used, which JAAS does not support on all platforms.
 * **`gssEncMode (`*String*`)`** *Default `allow`*\
 PostgreSQL® 12 and later now allow GSSAPI encrypted connections. This parameter controls whether to enforce using GSSAPI encryption or not. The options are `disable` , `allow` , `prefer` and `require`
   * `disable` is obvious and disables any attempt to connect using GSS encrypted mode
@@ -361,7 +373,9 @@ The default is to sanitise the columns (off).
 
 * **`assumeMinServerVersion (`*String*`)`** *Default `null`*\
 Assume that the server is at least the given version, thus enabling to some optimization at connection time instead of
-trying to be version blind.
+trying to be version blind. 
+  * This allows the application name to be sent on startup instead of as a separate post-connection query.  In addition 
+to optimizing the initial connection, this allows the application name to be logged on the server earlier in the connection process.
 
 * **`currentSchema (`*String*`)`** *Default `null`*\
 Specify the schema (or several schema separated by commas) to be set in the search-path. 
@@ -383,7 +397,7 @@ Controls how long in seconds the knowledge about a host state is cached in JVM w
 In default mode (`disabled`) hosts are connected in the given order. If enabled hosts are chosen randomly from the set 
 of suitable candidates.
 
-* **`socketFactory (`*String*`)`** *Default `null`\
+* **`socketFactory (`*String*`)`** *Default `null`*\
 The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend
 `javax.net.SocketFactory` and be available to the driver's classloader. This class must have a zero-argument constructor,
@@ -440,7 +454,7 @@ Whether to include server error details in exceptions and log messages (for exam
 Setting to `false` will only include minimal, not sensitive messages.
 By default, this is set to `true`, server error details are propagated. This may include sensitive details such as query parameters.
 
-* **`quoteReturningIdentifiers (`*boolean*`)`** *Default `false`*\
+* **`quoteReturningIdentifiers (`*boolean*`)`** *Default `true`*\
 Quote returning columns. There are some ORM's that quote everything, including returning columns
 If we quote them, then we end up sending ""colname"" to the backend instead of "colname" which will not be found.
 

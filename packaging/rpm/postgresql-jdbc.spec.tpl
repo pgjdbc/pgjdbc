@@ -61,16 +61,14 @@ BuildArch:	noarch
 ExclusiveArch:  %{java_arches} noarch
 BuildRequires:	java-devel >= 1.8
 BuildRequires:	maven-local
-BuildRequires:	maven-plugin-bundle
-BuildRequires:	classloader-leak-test-framework
+BuildRequires:	maven-bundle-plugin
 
-BuildRequires:	mvn(com.ongres.scram:client)
+BuildRequires:	mvn(com.ongres.scram:scram-client)
 BuildRequires:	mvn(org.apache.maven.plugins:maven-clean-plugin)
 BuildRequires:	mvn(org.apache.maven.surefire:surefire-junit-platform)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-api)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-engine)
 BuildRequires:	mvn(org.junit.jupiter:junit-jupiter-params)
-BuildRequires:	mvn(org.junit.vintage:junit-vintage-engine)
 
 %if %runselftest
 BuildRequires:	postgresql-contrib
@@ -138,15 +136,14 @@ rm src/test/java/org/postgresql/test/jdbc2/DriverTest.java \
 PGTESTS_LOCALE=C.UTF-8
 
 cat <<EOF > build.local.properties
-server=localhost
-port=$PGTESTS_PORT
-database=test
-username=test
+test.url.PGHOST=localhost
+test.url.PGPORT=$PGTESTS_PORT
+test.url.PGDBNAME=test
+user=test
 password=test
 privilegedUser=$PGTESTS_ADMIN
 privilegedPassword=$PGTESTS_ADMINPASS
 preparethreshold=5
-protocolVersion=0
 EOF
 
 # Start the local PG cluster.

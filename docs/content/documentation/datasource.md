@@ -80,8 +80,8 @@ your application server or check out the excellent [jakarta commons DBCP](http:/
 
 |Pooling|Implementation Class|
 |---|---|
-|No|`org.postgresql.ds. PGSimpleDataSource|
-|Yes|`org.postgresql.ds. PGPoolingDataSource|
+|No|`org.postgresql.ds.PGSimpleDataSource`|
+|Yes|`org.postgresql.ds.PGPoolingDataSource`|
 
 Both implementations use the same configuration scheme. JDBC requires that a `DataSource` be configured via JavaBean properties,
 shown in [Table 11.3, “`DataSource` Configuration Properties”](/documentation/datasource/#table113-datasource-configuration-properties),

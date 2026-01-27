@@ -21,6 +21,7 @@ import static org.postgresql.hostchooser.HostRequirement.secondary;
 import static org.postgresql.hostchooser.HostStatus.Primary;
 import static org.postgresql.hostchooser.HostStatus.Secondary;
 import static org.postgresql.test.TestUtil.closeDB;
+import static org.postgresql.test.TestUtil.openDB;
 
 import org.postgresql.PGProperty;
 import org.postgresql.hostchooser.GlobalHostStatusTracker;
@@ -97,8 +98,10 @@ public class MultiHostsConnectionTest {
     TestUtil.initDriver();
 
     Properties props = userAndPassword();
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, getSecondaryServer1());
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(getSecondaryPort1()));
 
-    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer1(), getSecondaryPort1()), props);
+    return openDB(props);
   }
 
   private static Properties userAndPassword() {
@@ -121,7 +124,9 @@ public class MultiHostsConnectionTest {
     TestUtil.initDriver();
 
     Properties props = userAndPassword();
-    return DriverManager.getConnection(TestUtil.getURL(getSecondaryServer2(), getSecondaryPort2()), props);
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, getSecondaryServer2());
+    TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(getSecondaryPort2()));
+    return openDB(props);
   }
 
   private static String getSecondaryServer2() {

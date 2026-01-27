@@ -16,16 +16,17 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
-    id("java-test-fixtures")
     id("build-logic.java-published-library")
     id("build-logic.test-junit5")
     id("build-logic.java-comment-preprocessor")
+    id("build-logic.without-type-annotations")
     id("biz.aQute.bnd.builder") apply false
-    id("com.github.johnrengelman.shadow")
+    id("com.gradleup.shadow")
     id("com.github.lburgazzoli.karaf")
     id("com.github.vlsi.gettext")
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.ide")
+    id("com.github.vlsi.stage-vote-release") apply false
 }
 
 buildscript {
@@ -45,6 +46,41 @@ java {
     }
 }
 
+// Create a separate source set for Java 11+ specific code (e.g., java.lang.ref.Cleaner)
+val java11 by sourceSets.creating {
+    java {
+        srcDir("src/main/java11")
+    }
+    // Make java11 source set depend on main source set (to access LazyCleaner base class)
+    compileClasspath += sourceSets.main.get().output
+}
+
+if (buildParameters.testJdkVersion >= 11) {
+    // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
+    // So we explicitly prepend the classpath with Java 11 classes
+    tasks.test {
+        classpath = java11.output + classpath
+    }
+}
+
+// Configure the java11 source set to compile with Java 11
+tasks.named<JavaCompile>(java11.compileJavaTaskName) {
+    options.release.set(11)
+    // Ensure main classes are compiled before java11 classes
+    dependsOn(tasks.compileJava)
+}
+
+fun CopySpec.addMultiReleaseContents() {
+    into("META-INF/versions/11") {
+        from(java11.output)
+    }
+}
+
+// Add java11 compiled classes to the main JAR
+tasks.jar {
+    addMultiReleaseContents()
+}
+
 val knows by tasks.existing {
     group = null // Hide the task from `./gradlew tasks` output
     description = "This is a dummy task, unfortunately the author refuses to remove it: https://github.com/johnrengelman/shadow/issues/122"
@@ -54,6 +90,21 @@ val shaded by configurations.creating
 
 val karafFeatures by configurations.creating {
     isTransitive = false
+}
+
+val testKitSourcesWithoutAnnotations by configurations.dependencyScope("testKitSourcesWithoutAnnotations") {
+    description = "Declares dependencies on sources-without-annotations"
+}
+
+val testKitSourcesWithoutAnnotationsResolved by configurations.resolvable("testKitSourcesWithoutAnnotationsResolved") {
+    description = "Resolves sources-without-annotations dependencies"
+    extendsFrom(testKitSourcesWithoutAnnotations)
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    attributes {
+        attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category.DOCUMENTATION))
+        attribute(DocsType.DOCS_TYPE_ATTRIBUTE, objects.named("sources-without-annotations"))
+    }
 }
 
 configurations {
@@ -74,6 +125,12 @@ dependencies {
         api("com.github.waffle:waffle-jna:1.9.1")
         api("org.osgi:org.osgi.core:6.0.0")
         api("org.osgi:org.osgi.service.jdbc:1.0.0")
+        testCompileOnly("junit:junit") {
+            because("We use JUnit 5 for testing, so we do not like to have JUnit 4 on the classpath")
+            version {
+                rejectAll()
+            }
+        }
     }
 
     "sspiImplementation"("com.github.waffle:waffle-jna")
@@ -84,16 +141,14 @@ dependencies {
     "testImplementation"("org.osgi:org.osgi.service.jdbc") {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
-    shaded("com.ongres.scram:scram-client:3.1")
+    shaded("com.ongres.scram:scram-client:3.2")
 
-    implementation("org.checkerframework:checker-qual:3.42.0")
-    testImplementation("se.jiderhamn:classloader-leak-test-framework:1.1.2")
-    testFixturesImplementation("junit:junit:4.13.2")
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
-    testFixturesImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.2") {
-        because("We use BeforeEachMethodAdapter to add parameters to beforeeach and aftereach methods")
-    }
-    testFixturesImplementation("org.checkerframework:checker-qual:3.42.0")
+    implementation("org.checkerframework:checker-qual:3.52.0")
+    java11.implementationConfigurationName("org.checkerframework:checker-qual:3.52.0")
+
+    testKitSourcesWithoutAnnotations(projects.testkit)
+
+    testImplementation(projects.testkit)
 }
 
 val skipReplicationTests by props()
@@ -208,6 +263,7 @@ tasks.configureEach<Jar> {
     manifest {
         attributes["Main-Class"] = "org.postgresql.util.PGJDBCMain"
         attributes["Automatic-Module-Name"] = "org.postgresql.jdbc"
+        attributes["Multi-Release"] = "true"
     }
 }
 
@@ -224,6 +280,7 @@ tasks.shadowJar {
     exclude("META-INF/NOTICE*")
     exclude("LICENSE")
     exclude("NOTICE")
+    addMultiReleaseContents()
     listOf(
             "com.ongres"
     ).forEach {
@@ -278,47 +335,11 @@ karaf {
     }
 }
 
-// <editor-fold defaultstate="collapsed" desc="Trim checkerframework annotations from the source code">
-val withoutAnnotations = layout.buildDirectory.dir("without-annotations").get().asFile
-
-val sourceWithoutCheckerAnnotations by configurations.creating {
-    isCanBeResolved = false
-    isCanBeConsumed = true
-}
-
-val hiddenAnnotation = Regex(
-    "@(?:Nullable|NonNull|PolyNull|MonotonicNonNull|RequiresNonNull|EnsuresNonNull|" +
-            "Regex|" +
-            "Pure|" +
-            "KeyFor|" +
-            "Positive|NonNegative|IntRange|" +
-            "GuardedBy|UnderInitialization|" +
-            "DefaultQualifier)(?:\\([^)]*\\))?")
-val hiddenImports = Regex("import org.checkerframework")
-
-val removeTypeAnnotations by tasks.registering(Sync::class) {
-    destinationDir = withoutAnnotations
-    inputs.property("regexpsUpdatedOn", "2020-08-25")
-    from(projectDir) {
-        filteringCharset = `java.nio.charset`.StandardCharsets.UTF_8.name()
-        filter { x: String ->
-            x.replace(hiddenAnnotation, "/* $0 */")
-                .replace(hiddenImports, "// $0")
-        }
-        include("src/**")
-    }
-}
-
-(artifacts) {
-    sourceWithoutCheckerAnnotations(withoutAnnotations) {
-        builtBy(removeTypeAnnotations)
-    }
-}
-// </editor-fold>
-
 // <editor-fold defaultstate="collapsed" desc="Source distribution for building pgjdbc with minimal features">
 val sourceDistribution by tasks.registering(Tar::class) {
-    dependsOn(removeTypeAnnotations)
+    dependsOn(tasks.removeTypeAnnotations)
+    dependsOn(testKitSourcesWithoutAnnotationsResolved)
+    val withoutAnnotations = tasks.removeTypeAnnotations.get().destinationDir
     group = LifecycleBasePlugin.BUILD_GROUP
     description = "Source distribution for building pgjdbc with minimal features"
     archiveClassifier.set("jdbc-src")
@@ -383,7 +404,11 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
         }
-        from("$withoutAnnotations/src/testFixtures")
+        from(testKitSourcesWithoutAnnotationsResolved.elements.map { set ->
+            set.map {
+                fileTree("$it/src/main")
+            }
+        })
     }
     into("certdir") {
         from("$rootDir/certdir") {
@@ -398,6 +423,29 @@ val sourceDistribution by tasks.registering(Tar::class) {
             }
         }
     }
+}
+
+val extractedSourceDistributionDir = layout.buildDirectory.dir("extracted-source-distribution")
+
+val extractSourceDistribution by tasks.registering(Sync::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Extracts source distribution into build/extracted-source-distribution for manual analysis"
+    from(tarTree(sourceDistribution.map { it.archiveFile.get() }))
+    into(extractedSourceDistributionDir.map { it.asFile })
+    eachFile {
+        // Strip the first directory which is postgresql-version-jdbc-src
+        path = path.substringAfter('/')
+    }
+}
+
+val sourceDistributionTest by tasks.registering(Exec::class) {
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    description = "Executes Maven build against source distribution"
+    dependsOn(extractSourceDistribution)
+    workingDir(extractedSourceDistributionDir)
+    executable = "mvn"
+    args("--batch-mode", "--fail-at-end", "--show-version")
+    args("verify")
 }
 // </editor-fold>
 

@@ -24,7 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.ConnectionEvent;
@@ -41,7 +41,7 @@ import javax.sql.StatementEventListener;
  * @see org.postgresql.ds.PGConnectionPoolDataSource
  */
 public class PGPooledConnection implements PooledConnection {
-  private final List<ConnectionEventListener> listeners = new LinkedList<>();
+  private final List<ConnectionEventListener> listeners = new ArrayList<>();
   private @Nullable Connection con;
   private @Nullable ConnectionHandler last;
   private final boolean autoCommit;
@@ -95,6 +95,7 @@ public class PGPooledConnection implements PooledConnection {
           try {
             con.rollback();
           } catch (SQLException ignored) {
+            // TODO: should we rethrow it?
           }
         }
       }
@@ -145,6 +146,7 @@ public class PGPooledConnection implements PooledConnection {
             try {
               con.rollback();
             } catch (SQLException ignored) {
+              // TODO: should we rethrow it?
             }
           }
           con.clearWarnings();
@@ -379,16 +381,17 @@ public class PGPooledConnection implements PooledConnection {
       // No close event fired here: see JDBC 2.0 Optional Package spec section 6.3
     }
 
+    @SuppressWarnings("UnusedMethod")
     public boolean isClosed() {
       return con == null;
     }
   }
 
   /**
-   * <p>Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
+   * Instead of declaring classes implementing Statement, PreparedStatement, and CallableStatement,
    * which would have to be updated for every JDK rev, use a dynamic proxy to handle all calls
    * through the Statement interfaces. This is the part that requires JDK 1.3 or higher, though JDK
-   * 1.2 could be supported with a 3rd-party proxy package.</p>
+   * 1.2 could be supported with a 3rd-party proxy package.
    *
    * <p>The StatementHandler is required in order to return the proper Connection proxy for the
    * getConnection method.</p>

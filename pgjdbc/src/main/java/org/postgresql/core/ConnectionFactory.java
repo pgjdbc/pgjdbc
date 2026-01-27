@@ -31,7 +31,7 @@ public abstract class ConnectionFactory {
   private static final Logger LOGGER = Logger.getLogger(ConnectionFactory.class.getName());
 
   /**
-   * <p>Establishes and initializes a new connection.</p>
+   * Establishes and initializes a new connection.
    *
    * <p>If the "protocolVersion" property is specified, only that protocol version is tried. Otherwise,
    * all protocols are tried in order, falling back to older protocols as necessary.</p>
@@ -49,7 +49,10 @@ public abstract class ConnectionFactory {
       Properties info) throws SQLException {
     String protoName = PGProperty.PROTOCOL_VERSION.getOrDefault(info);
 
-    if (protoName == null || protoName.isEmpty() || "3".equals(protoName)) {
+    if (protoName != null && !protoName.isEmpty()
+        && (protoName.equalsIgnoreCase("3")
+          || protoName.equalsIgnoreCase("3.0")
+          || protoName.equalsIgnoreCase("3.2"))) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
       QueryExecutor queryExecutor = connectionFactory.openConnectionImpl(
           hostSpecs, info);

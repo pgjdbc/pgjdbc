@@ -7,6 +7,7 @@ package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
@@ -18,7 +19,6 @@ import org.postgresql.test.util.StrangeOutputStream;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -38,11 +38,20 @@ class LargeObjectManagerTest {
    * It is possible for PostgreSQL to send a ParameterStatus message after an ErrorResponse
    * Receiving such a message should not lead to an invalid connection state
    * See https://github.com/pgjdbc/pgjdbc/issues/2237
+   *
+   * Note: This test is skipped when autosave is enabled because with autosave, a savepoint
+   * is created before the SET statement. When a subsequent error occurs, PostgreSQL doesn't
+   * send ParameterStatus to reset the parameter because it expects the client might
+   * ROLLBACK TO SAVEPOINT to recover. This is expected autosave behavior - protecting
+   * previous successful statements from being rolled back.
    */
   @Test
   void openWithErrorAndSubsequentParameterStatusMessageShouldLeaveConnectionInUsableStateAndUpdateParameterStatus() throws Exception {
     try (PgConnection con = (PgConnection) TestUtil.openDB()) {
-      Assumptions.assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
+      assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_0));
+      assumeTrue(con.getAutosave() == AutoSave.NEVER,
+          "Test requires autosave=never because autosave creates savepoints that prevent "
+              + "PostgreSQL from sending ParameterStatus on error");
       con.setAutoCommit(false);
       String originalApplicationName = con.getParameterStatus("application_name");
       try (Statement statement = con.createStatement()) {
@@ -133,7 +142,7 @@ class LargeObjectManagerTest {
       // Do not use try-with-resources to avoid closing the large object
       InputStream is = lo.getInputStream();
       {
-        try (StrangeInputStream fs = new StrangeInputStream(is, rnd.nextLong())) {
+        try (StrangeInputStream fs = new StrangeInputStream(rnd.nextLong(), is)) {
           while (true) {
             int bufferIndex = rnd.nextInt(buffers.length);
             byte[] buf = buffers[bufferIndex];

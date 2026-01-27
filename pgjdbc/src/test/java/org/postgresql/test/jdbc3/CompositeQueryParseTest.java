@@ -197,7 +197,7 @@ class CompositeQueryParseTest {
         reparse("select 1;/* noop */;select 2", true, false, true));
   }
 
-  private String reparse(String query, boolean standardConformingStrings, boolean withParameters,
+  private static String reparse(String query, boolean standardConformingStrings, boolean withParameters,
       boolean splitStatements) {
     try {
       return toString(
@@ -207,7 +207,7 @@ class CompositeQueryParseTest {
     }
   }
 
-  private String toString(List<NativeQuery> queries) {
+  private static String toString(List<NativeQuery> queries) {
     StringBuilder sb = new StringBuilder();
     for (NativeQuery query : queries) {
       if (sb.length() != 0) {

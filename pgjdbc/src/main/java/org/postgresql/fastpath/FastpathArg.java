@@ -10,6 +10,7 @@ import org.postgresql.util.ByteStreamWriter;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 // Not a very clean mapping to the new QueryExecutor/ParameterList
@@ -20,13 +21,7 @@ import java.sql.SQLException;
 /**
  * Each fastpath call requires an array of arguments, the number and type dependent on the function
  * being called.
- *
- * @deprecated This API is somewhat obsolete, as one may achieve similar performance
- *         and greater functionality by setting up a prepared statement to define
- *         the function call. Then, executing the statement with binary transmission of parameters
- *         and results substitutes for a fast-path function call.
  */
-@Deprecated
 public class FastpathArg {
   /**
    * Encoded byte value of argument.
@@ -111,7 +106,9 @@ public class FastpathArg {
    * @param s String to store
    */
   public FastpathArg(String s) {
-    this(s.getBytes());
+    // Default charset is for backward compatibility
+    // It looks like we should use database connection encoding
+    this(s.getBytes(Charset.defaultCharset()));
   }
 
   public static FastpathArg of(ByteStreamWriter writer) {

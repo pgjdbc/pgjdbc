@@ -152,7 +152,7 @@ public class Utils {
   }
 
   /**
-   * <p>Attempt to parse the server version string into an XXYYZZ form version number.</p>
+   * Attempt to parse the server version string into an XXYYZZ form version number.
    *
    * <p>Returns 0 if the version could not be parsed.</p>
    *
@@ -167,9 +167,7 @@ public class Utils {
    *
    * @param serverVersion server version in a XXYYZZ form
    * @return server version in number form
-   * @deprecated use specific {@link Version} instance
    */
-  @Deprecated
   public static int parseServerVersionStr(@Nullable String serverVersion) throws NumberFormatException {
     return ServerVersion.parseServerVersionStr(serverVersion);
   }

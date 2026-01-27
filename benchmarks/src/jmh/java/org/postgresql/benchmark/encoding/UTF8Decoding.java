@@ -5,6 +5,8 @@
 
 package org.postgresql.benchmark.encoding;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import org.postgresql.core.Encoding;
 
 import org.openjdk.jmh.annotations.Benchmark;
@@ -29,7 +31,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.util.concurrent.TimeUnit;
 
@@ -52,7 +53,6 @@ public class UTF8Decoding {
   private CharsetDecoder decoder;
   private Encoding encoding;
   private CharBuffer buf;
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   @Setup
   public void setup() {

@@ -6,6 +6,7 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.v3.SqlSerializationContext;
 import org.postgresql.util.ByteStreamWriter;
 
 import org.checkerframework.checker.index.qual.NonNegative;
@@ -16,9 +17,9 @@ import java.io.InputStream;
 import java.sql.SQLException;
 
 /**
- * <p>Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
+ * Abstraction of a list of parameters to be substituted into a Query. The protocol-specific details
  * of how to efficiently store and stream the parameters is hidden behind implementations of this
- * interface.</p>
+ * interface.
  *
  * <p>In general, instances of ParameterList are associated with a particular Query object (the one
  * that created them) and shouldn't be used against another Query.</p>
@@ -189,13 +190,25 @@ public interface ParameterList {
 
   /**
    * Return a human-readable representation of a particular parameter in this ParameterList. If the
-   * parameter is not bound, returns "?".
+   * parameter is not bound or is of type bytea sourced from an InputStream, returns "?".
+   * This method will NOT consume InputStreams, instead "?" will be returned.
    *
    * @param index the 1-based parameter index to bind.
    * @param standardConformingStrings true if \ is not an escape character in strings literals
    * @return a string representation of the parameter.
    */
   String toString(@Positive int index, boolean standardConformingStrings);
+
+  /**
+   * Return the string literal representation of a particular parameter in this ParameterList. If the
+   * parameter is not bound, returns "?".
+   * This method will consume all InputStreams to produce the result.
+   *
+   * @param index the 1-based parameter index to bind.
+   * @param context specifies configuration for converting the parameters to string
+   * @return a string representation of the parameter.
+   */
+  String toString(@Positive int index, SqlSerializationContext context);
 
   /**
    * Use this operation to append more parameters to the current list.

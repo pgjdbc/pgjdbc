@@ -17,6 +17,7 @@ import org.postgresql.core.CachedQuery;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.Oid;
+import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ReplicationProtocol;
@@ -38,10 +39,12 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.util.ClassUtils;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.LazyCleaner;
+import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.LruCache;
 import org.postgresql.util.PGBinaryObject;
 import org.postgresql.util.PGInterval;
@@ -121,6 +124,7 @@ public class PgConnection implements BaseConnection {
           MethodHandles.lookup().findVirtual(securityManagerClass, "checkPermission",
               MethodType.methodType(void.class, Permission.class));
     } catch (NoSuchMethodException | IllegalAccessException | ClassNotFoundException ignore) {
+      // Ignore if the security manager is not available
     }
     SYSTEM_GET_SECURITY_MANAGER = systemGetSecurityManagerHandle;
     SECURITY_MANAGER_CHECK_PERMISSION = securityManagerCheckPermission;
@@ -182,6 +186,13 @@ public class PgConnection implements BaseConnection {
    */
   protected int defaultFetchSize;
 
+  /**
+   * Query timeout for statement.
+   *
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  protected int queryTimeout;
+
   // Default forcebinary option.
   protected boolean forcebinary;
 
@@ -202,6 +213,8 @@ public class PgConnection implements BaseConnection {
   private final boolean logServerErrorDetail;
   // Bind String to UNSPECIFIED or VARCHAR?
   private final boolean bindStringAsVarchar;
+  // Convert boolean values to numeric types?
+  private final boolean convertBooleanToNumeric;
 
   // Current warnings; there might be more on queryExecutor too.
   private @Nullable SQLWarning firstWarning;
@@ -217,6 +230,8 @@ public class PgConnection implements BaseConnection {
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
   private final LazyCleaner.Cleanable<IOException> cleanable;
+  /* this is actually the database we are connected to */
+  private @Nullable String catalog;
 
   final CachedQuery borrowQuery(String sql) throws SQLException {
     return queryExecutor.borrowQuery(sql);
@@ -263,6 +278,8 @@ public class PgConnection implements BaseConnection {
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
     setDefaultFetchSize(PGProperty.DEFAULT_ROW_FETCH_SIZE.getInt(info));
+
+    setQueryTimeout(PGProperty.QUERY_TIMEOUT.getInt(info));
 
     setPrepareThreshold(PGProperty.PREPARE_THRESHOLD.getInt(info));
     if (prepareThreshold == -1) {
@@ -359,6 +376,7 @@ public class PgConnection implements BaseConnection {
     finalizeAction = new PgConnectionCleaningAction(lock, openStackTrace, queryExecutor.getCloseAction());
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+    this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
 
     if (haveMinimumServerVersion(ServerVersion.v8_3)) {
       typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
@@ -382,7 +400,7 @@ public class PgConnection implements BaseConnection {
     replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleanable = LazyCleaner.getInstance().register(leakHandle, finalizeAction);
+    cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
@@ -502,7 +520,7 @@ public class PgConnection implements BaseConnection {
     return oids;
   }
 
-  private String oidsToString(Set<Integer> oids) {
+  private static String oidsToString(Set<Integer> oids) {
     StringBuilder sb = new StringBuilder();
     for (Integer oid : oids) {
       sb.append(Oid.toString(oid));
@@ -656,9 +674,9 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * <p>In SQL, a result table can be retrieved through a cursor that is named. The current row of a
+   * In SQL, a result table can be retrieved through a cursor that is named. The current row of a
    * result can be updated or deleted using a positioned update/delete statement that references the
-   * cursor name.</p>
+   * cursor name.
    *
    * <p>We do not support positioned update/delete, so this is a no-op.</p>
    *
@@ -682,8 +700,8 @@ public class PgConnection implements BaseConnection {
   }
 
   /**
-   * <p>We are required to bring back certain information by the DatabaseMetaData class. These
-   * functions do that.</p>
+   * We are required to bring back certain information by the DatabaseMetaData class. These
+   * functions do that.
    *
    * <p>Method getURL() brings back the URL (good job we saved it)</p>
    *
@@ -705,7 +723,6 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
-  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   public Fastpath getFastpathAPI() throws SQLException {
     checkClosed();
     if (fastpath == null) {
@@ -715,7 +732,6 @@ public class PgConnection implements BaseConnection {
   }
 
   // This holds a reference to the Fastpath API if already open
-  @SuppressWarnings("deprecation") // support for deprecated Fastpath API
   private @Nullable Fastpath fastpath;
 
   @Override
@@ -730,14 +746,14 @@ public class PgConnection implements BaseConnection {
   // This holds a reference to the LargeObject API if already open
   private @Nullable LargeObjectManager largeobject;
 
-  /*
+  /**
    * This method is used internally to return an object based around org.postgresql's more unique
    * data types.
    *
    * <p>It uses an internal HashMap to get the handling class. If the type is not supported, then an
    * instance of org.postgresql.util.PGobject is returned.
    *
-   * You can use the getValue() or setValue() methods to handle the returned object. Custom objects
+   * <p>You can use the getValue() or setValue() methods to handle the returned object. Custom objects
    * can have their own methods.
    *
    * @return PGobject for this type, and set to value
@@ -808,9 +824,10 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  @Deprecated
   public void addDataType(String type, String name) {
     try {
-      addDataType(type, Class.forName(name).asSubclass(PGobject.class));
+      addDataType(type, ClassUtils.forName(name, PGobject.class, getClass().getClassLoader()));
     } catch (Exception e) {
       throw new RuntimeException("Cannot register new type " + type, e);
     }
@@ -857,7 +874,7 @@ public class PgConnection implements BaseConnection {
         Class<?> klass;
 
         try {
-          klass = Class.forName(className);
+          klass = ClassUtils.forName(className, PGobject.class, getClass().getClassLoader());
         } catch (ClassNotFoundException cnfe) {
           throw new PSQLException(
               GT.tr("Unable to load the class {0} responsible for the datatype {1}",
@@ -1133,7 +1150,16 @@ public class PgConnection implements BaseConnection {
   @Override
   public String getCatalog() throws SQLException {
     checkClosed();
-    return queryExecutor.getDatabase();
+    String catalog = this.catalog;
+    if (catalog == null) {
+      try (Statement stmt = createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            ResultSet rs = stmt.executeQuery("select current_catalog")) {
+        if (rs.next()) {
+          this.catalog = catalog = rs.getString(1);
+        }
+      }
+    }
+    return castNonNull(catalog);
   }
 
   public boolean getHideUnprivilegedObjects() {
@@ -1279,6 +1305,22 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public void setQueryTimeout(int seconds) throws SQLException {
+    if (seconds < 0) {
+      throw new PSQLException(GT.tr("Query timeout must be a value greater than or equal to 0."),
+          PSQLState.INVALID_PARAMETER_VALUE);
+    }
+
+    this.queryTimeout = seconds;
+    LOGGER.log(Level.FINE, "  setQueryTimeout = {0}", seconds);
+  }
+
+  @Override
+  public int getQueryTimeout() {
+    return queryTimeout;
+  }
+
+  @Override
   public void setPrepareThreshold(int newThreshold) {
     this.prepareThreshold = newThreshold;
     LOGGER.log(Level.FINE, "  setPrepareThreshold = {0}", newThreshold);
@@ -1302,7 +1344,7 @@ public class PgConnection implements BaseConnection {
     return LOGGER;
   }
 
-  public int getProtocolVersion() {
+  public ProtocolVersion getProtocolVersion() {
     return queryExecutor.getProtocolVersion();
   }
 
@@ -1561,7 +1603,7 @@ public class PgConnection implements BaseConnection {
           }
         } else {
           try (Statement checkConnectionQuery = createStatement()) {
-            ((PgStatement)checkConnectionQuery).execute("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
+            ((PgStatement)checkConnectionQuery).executeWithFlags("", QueryExecutor.QUERY_EXECUTE_AS_SIMPLE);
           }
         }
         return true;
@@ -1674,6 +1716,11 @@ public class PgConnection implements BaseConnection {
   }
 
   @Override
+  public boolean getConvertBooleanToNumeric() {
+    return convertBooleanToNumeric;
+  }
+
+  @Override
   public boolean isWrapperFor(Class<?> iface) throws SQLException {
     checkClosed();
     return iface.isAssignableFrom(getClass());
@@ -1734,7 +1781,7 @@ public class PgConnection implements BaseConnection {
       return;
     }
 
-    SQL_PERMISSION_ABORT.checkGuard(this);
+    checkPermission(SQL_PERMISSION_ABORT);
 
     AbortCommand command = new AbortCommand();
     executor.execute(command);
@@ -1760,7 +1807,7 @@ public class PgConnection implements BaseConnection {
     }
   }
 
-  private void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
+  private static void checkPermission(SQLPermission sqlPermissionNetworkTimeout) {
     if (SYSTEM_GET_SECURITY_MANAGER != null && SECURITY_MANAGER_CHECK_PERMISSION != null) {
       try {
         Object securityManager = SYSTEM_GET_SECURITY_MANAGER.invoke();
@@ -1960,18 +2007,13 @@ public class PgConnection implements BaseConnection {
     } else if ("LEGACY_INSECURE".equals(xmlFactoryFactoryClass)) {
       xmlFactoryFactory = LegacyInsecurePGXmlFactoryFactory.INSTANCE;
     } else {
-      Class<?> clazz;
+      Class<? extends PGXmlFactoryFactory> clazz;
       try {
-        clazz = Class.forName(xmlFactoryFactoryClass);
+        clazz = ClassUtils.forName(xmlFactoryFactoryClass, PGXmlFactoryFactory.class, getClass().getClassLoader());
       } catch (ClassNotFoundException ex) {
         throw new PSQLException(
             GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),
             PSQLState.INVALID_PARAMETER_VALUE, ex);
-      }
-      if (!clazz.isAssignableFrom(PGXmlFactoryFactory.class)) {
-        throw new PSQLException(
-            GT.tr("Connection property xmlFactoryFactory must implement PGXmlFactoryFactory: {0}", xmlFactoryFactoryClass),
-            PSQLState.INVALID_PARAMETER_VALUE);
       }
       try {
         xmlFactoryFactory = clazz.asSubclass(PGXmlFactoryFactory.class)

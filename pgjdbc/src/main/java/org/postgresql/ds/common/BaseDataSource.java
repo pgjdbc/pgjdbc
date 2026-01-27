@@ -71,8 +71,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
       Class.forName("org.postgresql.Driver");
     } catch (ClassNotFoundException e) {
       throw new IllegalStateException(
-        "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
-        e);
+          "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
+          e);
     }
   }
 
@@ -576,6 +576,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @param seconds default query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  public void setQueryTimeout(int seconds) {
+    PGProperty.QUERY_TIMEOUT.set(properties, seconds);
+  }
+
+  /**
+   * @return default query timeout
+   * @see PGProperty#QUERY_TIMEOUT
+   */
+  public int getQueryTimeout() {
+    return PGProperty.QUERY_TIMEOUT.getIntNoCheck(properties);
+  }
+
+  /**
    * @param unknownLength unknown length
    * @see PGProperty#UNKNOWN_LENGTH
    */
@@ -991,6 +1007,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return convertBooleanToNumeric
+   * @see PGProperty#CONVERT_BOOLEAN_TO_NUMERIC
+   */
+  public boolean getConvertBooleanToNumeric() {
+    return PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(properties);
+  }
+
+  /**
+   * @param convertBooleanToNumeric convertBooleanToNumeric
+   * @see PGProperty#CONVERT_BOOLEAN_TO_NUMERIC
+   */
+  public void setConvertBooleanToNumeric(boolean convertBooleanToNumeric) {
+    PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.set(properties, convertBooleanToNumeric);
+  }
+
+  /**
    * @return current schema
    * @see PGProperty#CURRENT_SCHEMA
    */
@@ -1092,7 +1124,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    * parameters in a transaction
    * @return whether to group startup parameters or not
    * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   public boolean getGroupStartupParameters() {
     return PGProperty.GROUP_STARTUP_PARAMETERS.getBoolean(properties);
   }
@@ -1101,7 +1135,9 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    *
    * @param groupStartupParameters whether to group startup Parameters in a transaction or not
    * @see PGProperty#GROUP_STARTUP_PARAMETERS
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   public void setGroupStartupParameters(boolean groupStartupParameters) {
     PGProperty.GROUP_STARTUP_PARAMETERS.set(properties, groupStartupParameters);
   }
@@ -1136,6 +1172,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
    */
   public void setJaasLogin(boolean doLogin) {
     PGProperty.JAAS_LOGIN.set(properties, doLogin);
+  }
+
+  /**
+   * @return true if using default GSS credentials
+   * @see PGProperty#GSS_USE_DEFAULT_CREDS
+   */
+  public boolean getGssUseDefaultCreds() {
+    return PGProperty.GSS_USE_DEFAULT_CREDS.getBoolean(properties);
+  }
+
+  /**
+   * @param gssUseDefaultCreds true if using default GSS credentials
+   * @see PGProperty#GSS_USE_DEFAULT_CREDS
+   */
+  public void setGssUseDefaultCreds(boolean gssUseDefaultCreds) {
+    PGProperty.GSS_USE_DEFAULT_CREDS.set(properties, gssUseDefaultCreds);
   }
 
   /**
@@ -1781,6 +1833,14 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
   }
 
+  public @Nullable String getPemKeyAlgorithm() {
+    return PGProperty.PEM_KEY_ALGORITHM.getOrDefault(properties);
+  }
+
+  public void setPemKeyAlgorithm(String algorithm) {
+    PGProperty.PEM_KEY_ALGORITHM.set(properties, algorithm);
+  }
+
   /*
    * Alias methods below, these are to help with ease-of-use with other database tools / frameworks
    * which expect normal java bean getters / setters to exist for the property names.
@@ -1897,4 +1957,13 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   public boolean isReWriteBatchedInserts() {
     return getReWriteBatchedInserts();
   }
+
+  public void setPemKeyAlgo(String algorithm) {
+    setPemKeyAlgorithm(algorithm);
+  }
+
+  public @Nullable String getPemKeyAlgo() {
+    return getPemKeyAlgorithm();
+  }
+
 }

@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f200828b2b
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
@@ -17,6 +17,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     libxslt-dev \
     llvm \
     locales \
+    pkg-config \
     python3-dev \
     tcl-dev \
     xsltproc \

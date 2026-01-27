@@ -356,10 +356,7 @@ public class Parser {
         nextInd = Parser.parseLineComment(aChars, nextInd);
       } else if (nextChar == '/') {
         nextInd = Parser.parseBlockComment(aChars, nextInd);
-      } else if (Character.isWhitespace(nextChar)) {
-        // Skip whitespace
-        continue;
-      } else {
+      } else if (!Character.isWhitespace(nextChar)) {
         break;
       }
     }
@@ -420,7 +417,7 @@ public class Parser {
   }
 
   /**
-   * <p>Find the end of the single-quoted string starting at the given offset.</p>
+   * Find the end of the single-quoted string starting at the given offset.
    *
    * <p>Note: for {@code 'single '' quote in string'}, this method currently returns the offset of
    * first {@code '} character after the initial one. The caller must call the method a second time
@@ -467,10 +464,10 @@ public class Parser {
   }
 
   /**
-   * <p>Find the end of the double-quoted string starting at the given offset.</p>
+   * Find the end of the double-quoted string starting at the given offset.
    *
    * <p>Note: for {@code "double "" quote in string"}, this method currently
-   * returns the offset of first {@code &quot;} character after the initial one. The caller must
+   * returns the offset of first {@code "} character after the initial one. The caller must
    * call the method a second time for the second part of the quoted string.</p>
    *
    * @param query  query
@@ -914,6 +911,8 @@ public class Parser {
   }
 
   /**
+   * Returns if the given character is a valid character for an operator in the backend's
+   * parser.
    * @param c character
    * @return true if the given character is a valid character for an operator in the backend's
    *     parser
@@ -957,6 +956,7 @@ public class Parser {
   }
 
   /**
+   * Returns true if the character terminates an identifier.
    * @param c character
    * @return true if the character terminates an identifier
    */
@@ -1030,13 +1030,12 @@ public class Parser {
    * @param jdbcSql              sql text with JDBC escapes
    * @param stdStrings           if backslash in single quotes should be regular character or escape one
    * @param serverVersion        server version
-   * @param protocolVersion      protocol version
    * @param escapeSyntaxCallMode mode specifying whether JDBC escape call syntax is transformed into a CALL/SELECT statement
    * @return SQL in appropriate for given server format
    * @throws SQLException if given SQL is malformed
    */
   public static JdbcCallParseInfo modifyJdbcCall(String jdbcSql, boolean stdStrings,
-      int serverVersion, int protocolVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
+      int serverVersion, EscapeSyntaxCallMode escapeSyntaxCallMode) throws SQLException {
     // Mini-parser for JDBC function-call syntax (only)
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
@@ -1259,7 +1258,7 @@ public class Parser {
   }
 
   /**
-   * <p>Filter the SQL string of Java SQL Escape clauses.</p>
+   * Filter the SQL string of Java SQL Escape clauses.
    *
    * <p>Currently implemented Escape clauses are those mentioned in 11.3 in the specification.
    * Basically we look through the sql string for {d xxx}, {t xxx}, {ts xxx}, {oj xxx} or {fn xxx}
@@ -1313,6 +1312,7 @@ public class Parser {
    * @return the position we stopped processing at
    * @throws SQLException if given SQL is wrong
    */
+  @SuppressWarnings("LabelledBreakTarget")
   private static int parseSql(char[] sql, int i, StringBuilder newsql, boolean stopOnComma,
       boolean stdStrings) throws SQLException {
     SqlParseState state = SqlParseState.IN_SQLCODE;
@@ -1509,6 +1509,7 @@ public class Parser {
   private static final char[] SINGLE_QUOTE = {'\''};
 
   // Static variables for parsing SQL when replaceProcessing is true.
+  @SuppressWarnings("ImmutableEnumChecker")
   private enum SqlParseState {
     IN_SQLCODE,
     ESC_DATE("d", SINGLE_QUOTE, "DATE "),

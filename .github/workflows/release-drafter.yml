@@ -8,44 +8,69 @@ on:
       - 'release/**'
   # pull_request_target allows PR from forks to access secrets, so please NEVER add pull_request_target
 
+# Declare default permissions as read-only.
+permissions: read-all
+
 jobs:
   update_release_draft:
     # Skip release drafts in forks
     if: github.repository_owner == 'pgjdbc'
     name: Update Release Draft
     runs-on: ubuntu-latest
+    permissions:
+      # write permission is required to create a github release
+      contents: write
     env:
       # Publish pre-release files to a draft release
       PUBLISH_SNAPSHOT: true
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "master"
+      - name: Get the current version
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        id: current_version
+        with:
+          # language=javascript
+          script: |
+            const response = await github.rest.repos.getContent({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              path: 'gradle.properties',
+              ref: context.sha
+            });
+            const content = Buffer.from(response.data.content, 'base64').toString();
+            const version = content.match(/^pgjdbc\.version=(.+)$/m)[1];
+            console.log(`Version is ${version}`);
+            return version;
       - name: Update release body draft
-        uses: release-drafter/release-drafter@v6
+        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
         id: prepare_release
         # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
         with:
         #   config-name: my-config.yml
            disable-autolabeler: true
+           publish: false
+           latest: ${{ github.ref_name == github.event.repository.default_branch }}
+           version: ${{ steps.current_version.outputs.result }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout sources
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Set up JDK 17
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4
         with:
           java-version: 17
           distribution: liberica
       - name: Build
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: burrunan/gradle-cache-action@v1
+        uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
         with:
           job-id: jdk17
           arguments: --scan --no-parallel --no-daemon :postgresql:osgiJar
       - name: Attach files to release
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         env:
           # https://github.com/release-drafter/release-drafter#action-outputs
           RELEASE_ID: ${{ steps.prepare_release.outputs.id }}

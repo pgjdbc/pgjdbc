@@ -62,7 +62,7 @@ public class SharedTimer {
           Thread.currentThread().setContextClassLoader(null);
 
           this.timer = timer = new Timer("PostgreSQL-JDBC-SharedTimer-" + index, true);
-          this.timerCleanup = LazyCleaner.getInstance().register(refCount, new TimerCleanup(timer));
+          this.timerCleanup = LazyCleanerImpl.getInstance().register(refCount, new TimerCleanup(timer));
         } finally {
           Thread.currentThread().setContextClassLoader(prevContextCL);
         }

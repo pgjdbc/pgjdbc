@@ -43,7 +43,9 @@ public class FlightRecorderProfiler implements ExternalProfiler {
     long duration =
         getDurationSeconds(params.getWarmup()) + getDurationSeconds(params.getMeasurement());
     List<String> opts = new ArrayList<>();
-    opts.add("-XX:+UnlockCommercialFeatures");
+    if (System.getProperty("java.version").startsWith("1.8")) {
+      opts.add("-XX:+UnlockCommercialFeatures");
+    }
     opts.add("-XX:+FlightRecorder");
     if (!System.getProperty("java.version").startsWith("1.7")) {
       // DebugNonSafepoints requires java 1.8u40+

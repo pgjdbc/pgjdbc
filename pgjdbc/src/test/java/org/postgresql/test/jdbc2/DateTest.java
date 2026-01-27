@@ -5,18 +5,18 @@
 
 package org.postgresql.test.jdbc2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -24,6 +24,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -31,12 +32,12 @@ import java.util.TimeZone;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-/*
+/**
  * Some simple tests based on problems reported by users. Hopefully these will help prevent previous
  * problems from re-occurring ;-)
- *
  */
-@RunWith(Parameterized.class)
+@ParameterizedClass
+@MethodSource("data")
 public class DateTest extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
@@ -50,7 +51,6 @@ public class DateTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
-  @Parameterized.Parameters(name = "type = {0}, zoneId = {1}, binary = {2}")
   public static Iterable<Object[]> data() {
     final List<Object[]> data = new ArrayList<>();
     for (String type : Arrays.asList("date", "timestamp", "timestamptz")) {
@@ -68,26 +68,25 @@ public class DateTest extends BaseTest4 {
     return data;
   }
 
-  @Before
+  @Override
   public void setUp() throws Exception {
     super.setUp();
     TestUtil.createTable(con, "test", "dt ".concat(type));
   }
 
-  @After
+  @Override
   public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
     TestUtil.dropTable(con, "test");
     super.tearDown();
   }
 
-  /*
+  /**
    * Tests the time methods in ResultSet
    */
   @Test
   public void testGetDate() throws SQLException {
-    assumeTrue("TODO: Test fails on some server versions with local time zones (not GMT based)",
-        false == Objects.equals(type, "timestamptz") || zoneId.startsWith("GMT"));
+    assumeTrue(!Objects.equals(type, "timestamptz") || zoneId.startsWith("GMT"), "TODO: Test fails on some server versions with local time zones (not GMT based)");
     try (Statement stmt = con.createStatement()) {
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'1950-02-07'")));
       assertEquals(1, stmt.executeUpdate(TestUtil.insertSQL("test", "'1970-06-02'")));
@@ -118,7 +117,7 @@ public class DateTest extends BaseTest4 {
     }
   }
 
-  /*
+  /**
    * Tests the time methods in PreparedStatement
    */
   @Test
@@ -199,7 +198,7 @@ public class DateTest extends BaseTest4 {
     }
   }
 
-  /*
+  /**
    * Helper for the date tests. It tests what should be in the db
    */
   private void dateTest() throws SQLException {
@@ -315,13 +314,19 @@ public class DateTest extends BaseTest4 {
     assertNotNull(d);
     assertEquals(makeDate(0, 12, 31), d);
 
-    assertTrue(!rs.next());
+    assertFalse(rs.next());
 
     rs.close();
     st.close();
   }
 
-  private java.sql.Date makeDate(int y, int m, int d) {
-    return new java.sql.Date(y - 1900, m - 1, d);
+  private static java.sql.Date makeDate(int year, int month, int day) {
+    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    cal.clear();
+    // Note that Calendar.MONTH is zero based
+    cal.set(year, month - 1, day);
+
+    return new java.sql.Date(cal.getTimeInMillis());
   }
+
 }

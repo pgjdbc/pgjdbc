@@ -8,6 +8,7 @@ package org.postgresql.test.ssl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -15,10 +16,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -38,26 +39,18 @@ public class SingleCertValidatingFactoryTest {
   private static final String goodServerCertPath = "../certdir/goodroot.crt";
   private static final String badServerCertPath = "../certdir/badroot.crt";
 
-  private String getGoodServerCert() {
+  private static String getGoodServerCert() {
     return loadFile(goodServerCertPath);
   }
 
-  private String getBadServerCert() {
+  private static String getBadServerCert() {
     return loadFile(badServerCertPath);
-  }
-
-  protected @Nullable String getUsername() {
-    return System.getProperty("username");
-  }
-
-  protected @Nullable String getPassword() {
-    return System.getProperty("password");
   }
 
   /**
    * Tests whether a given throwable or one of it's root causes matches of a given class.
    */
-  private boolean matchesExpected(@Nullable Throwable t,
+  private static boolean matchesExpected(@Nullable Throwable t,
       Class<? extends Throwable> expectedThrowable)
       throws SQLException {
     if (t == null || expectedThrowable == null) {
@@ -69,7 +62,7 @@ public class SingleCertValidatingFactoryTest {
     return matchesExpected(t.getCause(), expectedThrowable);
   }
 
-  protected void testConnect(Properties info, boolean sslExpected) throws SQLException {
+  protected static void testConnect(Properties info, boolean sslExpected) throws SQLException {
     testConnect(info, sslExpected, null);
   }
 
@@ -77,9 +70,9 @@ public class SingleCertValidatingFactoryTest {
    * Connects to the database with the given connection properties and then verifies that connection
    * is using SSL.
    */
-  protected void testConnect(Properties info, boolean sslExpected,
+  protected static void testConnect(Properties info, boolean sslExpected,
       @Nullable Class<? extends Throwable> expectedThrowable) throws SQLException {
-    info.setProperty(TestUtil.DATABASE_PROP, "hostdb");
+    TestUtil.setTestUrlProperty(info, PGProperty.PG_DBNAME, "hostdb");
     try (Connection conn = TestUtil.openDB(info)) {
       Statement stmt = conn.createStatement();
       // Basic SELECT test:
@@ -118,7 +111,7 @@ public class SingleCertValidatingFactoryTest {
    * it. This connection attempt should *fail* as the client should reject the server.
    */
   @Test
-  void connectSSLWithValidationNoCert() throws SQLException {
+  public void connectSSLWithValidationNoCert() throws SQLException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.DefaultJavaSSLFactory");
@@ -126,9 +119,9 @@ public class SingleCertValidatingFactoryTest {
   }
 
   /**
-   * <p>Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
+   * Connect using SSL and attempt to validate the server's certificate against the wrong pre shared
    * certificate. This test uses a pre generated certificate that will *not* match the test
-   * PostgreSQL server (the certificate is for properssl.example.com).</p>
+   * PostgreSQL server (the certificate is for properssl.example.com).
    *
    * <p>This connection uses a custom SSLSocketFactory using a custom trust manager that validates the
    * remote server's certificate against the pre shared certificate.</p>
@@ -137,7 +130,7 @@ public class SingleCertValidatingFactoryTest {
    * certificate does not match.</p>
    */
   @Test
-  void connectSSLWithValidationWrongCert() throws SQLException, IOException {
+  public void connectSSLWithValidationWrongCert() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -146,7 +139,7 @@ public class SingleCertValidatingFactoryTest {
   }
 
   @Test
-  void fileCertInvalid() throws SQLException, IOException {
+  public void fileCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -155,7 +148,7 @@ public class SingleCertValidatingFactoryTest {
   }
 
   @Test
-  void stringCertInvalid() throws SQLException, IOException {
+  public void stringCertInvalid() throws SQLException, IOException {
     Properties info = new Properties();
     info.setProperty("ssl", "true");
     info.setProperty("sslfactory", "org.postgresql.ssl.SingleCertValidatingFactory");
@@ -215,8 +208,8 @@ public class SingleCertValidatingFactoryTest {
   }
 
   /**
-   * <p>Connect using SSL and attempt to validate the server's certificate against the proper pre
-   * shared certificate. The certificate is specified as an environment variable.</p>
+   * Connect using SSL and attempt to validate the server's certificate against the proper pre
+   * shared certificate. The certificate is specified as an environment variable.
    *
    * <p>Note: To execute this test successfully you need to set the value of the environment variable
    * DATASOURCE_SSL_CERT prior to running the test.</p>
@@ -244,7 +237,7 @@ public class SingleCertValidatingFactoryTest {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  void connectSSLWithValidationMissingSysProp() throws SQLException, IOException {
+  public void connectSSLWithValidationMissingSysProp() throws SQLException, IOException {
     // System property name we're using for the SSL cert. This can be anything.
     String sysPropName = "org.postgresql.jdbc.test.sslcert";
 
@@ -267,7 +260,7 @@ public class SingleCertValidatingFactoryTest {
    * having it set. This tests whether the proper exception is thrown.
    */
   @Test
-  void connectSSLWithValidationMissingEnvVar() throws SQLException, IOException {
+  public void connectSSLWithValidationMissingEnvVar() throws SQLException, IOException {
     // Use an environment variable that does *not* exist:
     String envVarName = "MISSING_DATASOURCE_SSL_CERT";
     if (System.getenv(envVarName) != null) {
@@ -291,7 +284,7 @@ public class SingleCertValidatingFactoryTest {
   public static String loadFile(String path) {
     BufferedReader br = null;
     try {
-      br = new BufferedReader(new InputStreamReader(new FileInputStream(path)));
+      br = Files.newBufferedReader(Paths.get(path));
       StringBuilder sb = new StringBuilder();
       String line;
       while ((line = br.readLine()) != null) {

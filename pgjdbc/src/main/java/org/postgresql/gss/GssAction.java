@@ -6,6 +6,7 @@
 package org.postgresql.gss;
 
 import org.postgresql.core.PGStream;
+import org.postgresql.core.PgMessageType;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -38,17 +39,20 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
   private final String kerberosServerName;
   private final String user;
   private final boolean useSpnego;
+  private final boolean gssUseDefaultCreds;
   private final @Nullable Subject subject;
   private final boolean logServerErrorDetail;
 
   GssAction(PGStream pgStream, @Nullable Subject subject, String host, String user,
-      String kerberosServerName, boolean useSpnego, boolean logServerErrorDetail) {
+      String kerberosServerName, boolean useSpnego, boolean gssUseDefaultCreds,
+      boolean logServerErrorDetail) {
     this.pgStream = pgStream;
     this.subject = subject;
     this.host = host;
     this.user = user;
     this.kerberosServerName = kerberosServerName;
     this.useSpnego = useSpnego;
+    this.gssUseDefaultCreds = gssUseDefaultCreds;
     this.logServerErrorDetail = logServerErrorDetail;
   }
 
@@ -101,9 +105,13 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           }
         }
 
-        GSSName clientName = manager.createName(principalName, GSSName.NT_USER_NAME);
-        clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
-            GSSCredential.INITIATE_ONLY);
+        if (gssUseDefaultCreds) {
+          clientCreds = manager.createCredential(GSSCredential.INITIATE_ONLY);
+        } else {
+          GSSName clientName = manager.createName(principalName, GSSName.NT_USER_NAME);
+          clientCreds = manager.createCredential(clientName, 8 * 3600, desiredMechs,
+              GSSCredential.INITIATE_ONLY);
+        }
       } else {
         desiredMechs[0] = new Oid("1.2.840.113554.1.2.2");
         clientCreds = gssCredential;
@@ -126,7 +134,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
         if (outToken != null) {
           LOGGER.log(Level.FINEST, " FE=> Password(GSS Authentication Token)");
 
-          pgStream.sendChar('p');
+          pgStream.sendChar(PgMessageType.GSS_TOKEN_REQUEST);
           pgStream.sendInteger4(4 + outToken.length);
           pgStream.send(outToken);
           pgStream.flush();
@@ -136,7 +144,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           int response = pgStream.receiveChar();
           // Error
           switch (response) {
-            case 'E':
+            case PgMessageType.ERROR_RESPONSE:
               int elen = pgStream.receiveInteger4();
               ServerErrorMessage errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -144,10 +152,11 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               LOGGER.log(Level.FINEST, " <=BE ErrorMessage({0})", errorMsg);
 
               return new PSQLException(errorMsg, logServerErrorDetail);
-            case 'R':
+            case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               int len = pgStream.receiveInteger4();
-              int type = pgStream.receiveInteger4();
+              @SuppressWarnings("unused")
+              int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
               // should check type = 8
               inToken = pgStream.receive(len - 8);
               break;

@@ -24,8 +24,11 @@ package org.postgresql.util;
 
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.postgresql.core.JavaVersion;
 
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LazyCleanerTest {
   @Test
@@ -40,7 +44,7 @@ public class LazyCleanerTest {
     List<Object> list = new ArrayList<>(Arrays.asList(
         new Object(), new Object(), new Object()));
 
-    LazyCleaner t = new LazyCleaner(ofSeconds(5), "Cleaner");
+    LazyCleanerImpl t = new LazyCleanerImpl("Cleaner", ofSeconds(5));
 
     String[] collected = new String[list.size()];
     List<LazyCleaner.Cleanable<RuntimeException>> cleaners = new ArrayList<>();
@@ -60,42 +64,32 @@ public class LazyCleanerTest {
           )
       );
     }
-    assertEquals(
-        list.size(),
-        t.getWatchedCount(),
-        "All objects are strongly-reachable, so getWatchedCount should reflect it"
-    );
 
-    assertTrue(t.isThreadRunning(),
-        "cleanup thread should be running, and it should wait for the leaks");
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      assertTrue(t.isThreadRunning(),
+          "cleanup thread should be running, and it should wait for the leaks");
+    }
 
     cleaners.get(1).clean();
-
-    assertEquals(
-        list.size() - 1,
-        t.getWatchedCount(),
-        "One object has been released properly, so getWatchedCount should reflect it"
-    );
 
     list.set(0, null);
     System.gc();
     System.gc();
 
-    Await.until(
-        "One object was released, and another one has leaked, so getWatchedCount should reflect it",
-        ofSeconds(5),
-        () -> t.getWatchedCount() == list.size() - 2
-    );
-
     list.clear();
     System.gc();
     System.gc();
 
-    Await.until(
-        "The cleanup thread should detect leaks and terminate within 5-10 seconds after GC",
-        ofSeconds(10),
-        () -> !t.isThreadRunning()
-    );
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      Await.until(
+          "The cleanup thread should detect leaks and terminate within 5-10 seconds after GC",
+          ofSeconds(10),
+          () -> !t.isThreadRunning()
+      );
+    } else {
+      // Allow some room for Java's Cleaner to clean the refs
+      Thread.sleep(1000);
+    }
 
     assertEquals(
         Arrays.asList("LEAK", "NO LEAK", "LEAK").toString(),
@@ -105,46 +99,106 @@ public class LazyCleanerTest {
   }
 
   @Test
-  void getThread() throws InterruptedException {
+  void cleanupCompletesAfterManualClean() throws InterruptedException {
     String threadName = UUID.randomUUID().toString();
-    LazyCleaner t = new LazyCleaner(ofSeconds(5), threadName);
+    LazyCleanerImpl t = new LazyCleanerImpl(threadName, ofSeconds(5));
+
+    AtomicBoolean cleaned = new AtomicBoolean();
     List<Object> list = new ArrayList<>();
     list.add(new Object());
-    LazyCleaner.Cleanable<IllegalStateException> cleanable =
+
+    LazyCleaner.Cleanable<RuntimeException> cleanable =
         t.register(
             list.get(0),
-            leak -> {
-              throw new IllegalStateException("test exception from CleaningAction");
-            }
+            leak -> cleaned.set(true)
         );
-    assertTrue(t.isThreadRunning(),
-        "cleanup thread should be running, and it should wait for the leaks");
-    Thread thread = getThreadByName(threadName);
-    thread.interrupt();
-    Await.until(
-        "The cleanup thread should ignore the interrupt since there's one object to monitor",
-        ofSeconds(10),
-        () -> !thread.isInterrupted()
-    );
-    assertThrows(
-        IllegalStateException.class,
-        cleanable::clean,
-        "Exception from cleanable.clean() should be rethrown"
-    );
-    thread.interrupt();
-    Await.until(
-        "The cleanup thread should exit shortly after interrupt as there's no leaks to monitor",
-        ofSeconds(1),
-        () -> !t.isThreadRunning()
-    );
+
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      assertTrue(t.isThreadRunning(),
+          "cleanup thread should be running when there are objects to monitor");
+    }
+
+    // Manually clean the object
+    cleanable.clean();
+
+    // Verify it was cleaned
+    assertTrue(cleaned.get(), "Object should be cleaned after manual clean");
+
+    // Clear the reference and verify cleanup thread eventually stops
+    list.clear();
+    System.gc();
+    System.gc();
+
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      Await.until(
+          "Cleanup thread should stop when no objects remain",
+          ofSeconds(10),
+          () -> !t.isThreadRunning()
+      );
+    }
   }
 
-  public static Thread getThreadByName(String threadName) {
-    for (Thread t : Thread.getAllStackTraces().keySet()) {
-      if (t.getName().equals(threadName)) {
-        return t;
-      }
+  @Test
+  void exceptionsDuringCleanupAreHandled() throws InterruptedException {
+    LazyCleanerImpl t = new LazyCleanerImpl("test-cleaner", ofSeconds(5));
+
+    java.util.concurrent.atomic.AtomicInteger cleanupCount = new java.util.concurrent.atomic.AtomicInteger(0);
+    List<Object> list = new ArrayList<>();
+
+    // Register object that throws during cleanup
+    list.add(new Object());
+    t.register(
+        list.get(0),
+        leak -> {
+          cleanupCount.incrementAndGet();
+          throw new IllegalStateException("test exception from CleaningAction");
+        }
+    );
+
+    // Register another object that should still be cleaned
+    list.add(new Object());
+    AtomicBoolean secondCleaned = new AtomicBoolean(false);
+    t.register(
+        list.get(1),
+        leak -> secondCleaned.set(true)
+    );
+
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      assertTrue(t.isThreadRunning(),
+          "cleanup thread should be running when there are objects to monitor");
     }
-    throw new IllegalStateException("Cleanup thread  " + threadName + " not found");
+
+    // Trigger cleanup
+    list.clear();
+    System.gc();
+    System.gc();
+
+    Await.until(
+        "Both cleanups should complete despite exception",
+        ofSeconds(10),
+        () -> cleanupCount.get() == 1 && secondCleaned.get()
+    );
+
+    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+      Await.until(
+          "Cleanup thread should stop after all objects are cleaned",
+          ofSeconds(10),
+          () -> !t.isThreadRunning()
+      );
+    }
+  }
+
+  @Test
+  void exceptionOnCleanRethrowsToCaller() {
+    LazyCleanerImpl t = new LazyCleanerImpl("test-cleaner", ofSeconds(5));
+    Object obj = new Object();
+    RuntimeException expectedException = new RuntimeException("test exception");
+
+    LazyCleaner.Cleanable<RuntimeException> cleanable = t.register(obj, leak -> {
+      throw expectedException;
+    });
+
+    RuntimeException thrownException = assertThrows(RuntimeException.class, cleanable::clean);
+    assertSame(expectedException, thrownException, "Expected same exception instance to be thrown");
   }
 }

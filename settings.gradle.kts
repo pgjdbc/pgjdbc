@@ -5,24 +5,24 @@
 
 pluginManagement {
     plugins {
-        id("biz.aQute.bnd.builder") version "7.0.0"
-        id("com.github.burrunan.s3-build-cache") version "1.8.2"
-        id("com.github.johnrengelman.shadow") version "8.1.1"
+        id("biz.aQute.bnd.builder") version "7.1.0"
+        id("com.github.burrunan.s3-build-cache") version "1.9.4"
+        id("com.gradleup.shadow") version "8.3.9"
         id("com.github.lburgazzoli.karaf") version "0.5.6"
-        id("com.github.vlsi.crlf") version "1.90"
-        id("com.github.vlsi.gettext") version "1.90"
-        id("com.github.vlsi.gradle-extensions") version "1.90"
-        id("com.github.vlsi.license-gather") version "1.90"
-        id("com.github.vlsi.ide") version "1.90"
-        id("com.github.vlsi.stage-vote-release") version "1.90"
+        id("com.github.vlsi.crlf") version "2.0.0"
+        id("com.github.vlsi.gettext") version "2.0.0"
+        id("com.github.vlsi.gradle-extensions") version "2.0.0"
+        id("com.github.vlsi.license-gather") version "2.0.0"
+        id("com.github.vlsi.ide") version "2.0.0"
+        id("com.github.vlsi.stage-vote-release") version "2.0.0"
         id("org.nosphere.gradle.github.actions") version "1.4.0"
-        id("me.champeau.jmh") version "0.7.2"
-        kotlin("jvm") version "2.0.0"
+        id("me.champeau.jmh") version "0.7.3"
+        kotlin("jvm") version "2.2.21"
     }
 }
 
 plugins {
-    `gradle-enterprise`
+    id("com.gradle.develocity") version "4.2.2"
     id("com.github.burrunan.s3-build-cache")
 }
 
@@ -34,12 +34,20 @@ if (JavaVersion.current() < JavaVersion.VERSION_17) {
 // Note: it cannot be inferred from the directory name as developer might clone pgjdbc to pgjdbc_tmp (or whatever) folder
 rootProject.name = "pgjdbc"
 
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 includeBuild("build-logic")
 
 // Renovate treats names as dependency coordinates when vararg include(...) is used, so we have separate include calls here
 include("benchmarks")
+include("pgjdbc-junit4-test")
 include("pgjdbc-osgi-test")
+if (providers.gradleProperty("jdkTestVersion").orNull?.toInt() != 8) {
+    // Mockito requires Java 11+
+    include("pgjdbc-mockito-test")
+}
 include("postgresql")
+include("testkit")
 
 project(":postgresql").projectDir = file("pgjdbc")
 
@@ -57,12 +65,15 @@ fun property(name: String) =
 
 val isCiServer = System.getenv().containsKey("CI")
 
-if (isCiServer) {
-    gradleEnterprise {
-        buildScan {
-            termsOfServiceUrl = "https://gradle.com/terms-of-service"
-            termsOfServiceAgree = "yes"
+develocity {
+    buildScan {
+        if (isCiServer) {
+            termsOfUseUrl = "https://gradle.com/help/legal-terms-of-use"
+            termsOfUseAgree = "yes"
             tag("CI")
+        } else {
+            // Dot not publish build scans from the local builds unless user executes with --scan
+            publishing.onlyIf { false }
         }
     }
 }

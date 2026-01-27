@@ -55,7 +55,12 @@ class SimpleQuery implements Query {
 
   @Override
   public String toString(@Nullable ParameterList parameters) {
-    return nativeQuery.toString(parameters);
+    return toString(parameters, DefaultSqlSerializationContext.STDSTR_IDEMPOTENT);
+  }
+
+  @Override
+  public String toString(@Nullable ParameterList parameters, SqlSerializationContext context) {
+    return nativeQuery.toString(parameters, context);
   }
 
   @Override
@@ -74,8 +79,8 @@ class SimpleQuery implements Query {
   }
 
   /**
-   * <p>Return maximum size in bytes that each result row from this query may return. Mainly used for
-   * batches that return results.</p>
+   * Return maximum size in bytes that each result row from this query may return. Mainly used for
+   * batches that return results.
    *
    * <p>Results are cached until/unless the query is re-described.</p>
    *

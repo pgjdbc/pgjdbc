@@ -5,10 +5,11 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.postgresql.test.TestUtil;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -104,7 +105,7 @@ public class OuterJoinSyntaxTest extends BaseTest4 {
     try {
       final ResultSet rs = st.executeQuery(theQuery);
       try {
-        Assert.assertEquals("SQL " + theQuery, TestUtil.join(TestUtil.resultSetToLines(rs)), TestUtil.join(expectedResult));
+        assertEquals(TestUtil.join(TestUtil.resultSetToLines(rs)), TestUtil.join(expectedResult), "SQL " + theQuery);
       } finally {
         TestUtil.closeQuietly(rs);
       }

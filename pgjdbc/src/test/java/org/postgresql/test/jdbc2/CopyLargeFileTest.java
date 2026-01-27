@@ -12,13 +12,13 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
+import org.postgresql.util.internal.FileUtils;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -63,7 +63,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
+  private static void insertData(PreparedStatement stmt, String textId, String name) throws SQLException {
     stmt.setString(1, textId);
     stmt.setString(2, name);
     stmt.executeUpdate();
@@ -95,7 +95,7 @@ class CopyLargeFileTest {
     }
     InputStream in = null;
     try {
-      in = new StrangeInputStream(new FileInputStream("target/buffer.txt"), seed);
+      in = new StrangeInputStream(seed, FileUtils.newBufferedInputStream("target/buffer.txt"));
       long size = copyAPI.copyIn(
           "COPY pgjdbc_issue366_test_data(data_text_id, glossary_text_id, value) FROM STDIN", in);
       assertEquals(BufferGenerator.ROW_COUNT, size);
@@ -115,7 +115,7 @@ class CopyLargeFileTest {
     }
   }
 
-  private void cleanupTable(Connection conn) throws Exception {
+  private static void cleanupTable(Connection conn) throws Exception {
     CallableStatement stmt = null;
     try {
       stmt = conn.prepareCall("TRUNCATE pgjdbc_issue366_test_data;");

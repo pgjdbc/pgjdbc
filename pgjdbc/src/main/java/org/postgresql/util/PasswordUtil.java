@@ -66,10 +66,10 @@ public class PasswordUtil {
       byte[] serverKey = ScramFunctions.serverKey(scramSha256, saltedPassword);
 
       return scramSha256.getName()
-        + "$" + iterations
-        + ":" + Base64.getEncoder().encodeToString(salt)
-        + "$" + Base64.getEncoder().encodeToString(storedKey)
-        + ":" + Base64.getEncoder().encodeToString(serverKey);
+          + "$" + iterations
+          + ":" + Base64.getEncoder().encodeToString(salt)
+          + "$" + Base64.getEncoder().encodeToString(storedKey)
+          + ":" + Base64.getEncoder().encodeToString(serverKey);
     } finally {
       Arrays.fill(password, (char) 0);
     }
@@ -137,7 +137,9 @@ public class PasswordUtil {
       Arrays.fill(password, (char) 0);
       if (passwordBytes != null) {
         if (passwordBytes.hasArray()) {
-          Arrays.fill(passwordBytes.array(), (byte) 0);
+          @SuppressWarnings("ByteBufferBackingArray")
+          byte[] array = passwordBytes.array();
+          Arrays.fill(array, (byte) 0);
         } else {
           int limit = passwordBytes.limit();
           for (int i = 0; i < limit; i++) {
@@ -169,10 +171,10 @@ public class PasswordUtil {
     Objects.requireNonNull(password, "password");
     Objects.requireNonNull(encryptionType, "encryptionType");
     switch (encryptionType) {
-      case "on":
-      case "off":
       case "md5":
         return encodeMd5(user, password);
+      case "on":
+      case "off":
       case "scram-sha-256":
         return encodeScramSha256(password);
     }

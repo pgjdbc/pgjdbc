@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.Driver;
 import org.postgresql.PGProperty;
@@ -20,11 +21,11 @@ import org.postgresql.jdbc.PgStatement;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
+import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -54,9 +55,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-/*
-* Test for getObject
-*/
 class StatementTest {
   private Connection con;
 
@@ -83,15 +81,6 @@ class StatementTest {
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_loop()");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
-  }
-
-  private void assumeLongTest() {
-    // Run the test:
-    //   Travis: in PG_VERSION=HEAD
-    //   Other: always
-    if ("true".equals(System.getenv("TRAVIS"))) {
-      Assumptions.assumeTrue("HEAD".equals(System.getenv("PG_VERSION")));
-    }
   }
 
   @Test
@@ -536,8 +525,8 @@ class StatementTest {
   }
 
   /**
-   * <p>Demonstrates a safe approach to concurrently reading the latest
-   * warnings while periodically clearing them.</p>
+   * Demonstrates a safe approach to concurrently reading the latest
+   * warnings while periodically clearing them.
    *
    * <p>One drawback of this approach is that it requires the reader to make it to the end of the
    * warning chain before clearing it, so long as your warning processing step is not very slow,
@@ -739,7 +728,6 @@ class StatementTest {
    */
   @Test
   void shortQueryTimeout() throws SQLException {
-    assumeLongTest();
 
     long deadLine = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
     Statement stmt = con.createStatement();
@@ -827,38 +815,29 @@ class StatementTest {
   void multipleCancels() throws Exception {
     SharedTimer sharedTimer = Driver.getSharedTimer();
 
-    Connection connA = null;
-    Connection connB = null;
-    Statement stmtA = null;
-    Statement stmtB = null;
-    ResultSet rsA = null;
-    ResultSet rsB = null;
-    try {
+    try (Connection connA = TestUtil.openDB();
+         Connection connB = TestUtil.openDB();
+         Statement stmtA = connA.createStatement();
+         Statement stmtB = connB.createStatement();
+    ) {
       assertEquals(0, sharedTimer.getRefCount());
-      connA = TestUtil.openDB();
-      connB = TestUtil.openDB();
-      stmtA = connA.createStatement();
-      stmtB = connB.createStatement();
       stmtA.setQueryTimeout(1);
       stmtB.setQueryTimeout(1);
-      try {
-        rsA = stmtA.executeQuery("SELECT pg_sleep(2)");
+      try (ResultSet rsA = stmtA.executeQuery("SELECT pg_sleep(2)")) {
+        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
       } catch (SQLException e) {
-        // ignore the expected timeout
+        assertEquals(
+            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
+            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
       }
       assertEquals(1, sharedTimer.getRefCount());
-      try {
-        rsB = stmtB.executeQuery("SELECT pg_sleep(2)");
+      try (ResultSet rsB = stmtB.executeQuery("SELECT pg_sleep(2)");) {
+        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
       } catch (SQLException e) {
-        // ignore the expected timeout
+        assertEquals(
+            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
+            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
       }
-    } finally {
-      TestUtil.closeQuietly(rsA);
-      TestUtil.closeQuietly(rsB);
-      TestUtil.closeQuietly(stmtA);
-      TestUtil.closeQuietly(stmtB);
-      TestUtil.closeQuietly(connA);
-      TestUtil.closeQuietly(connB);
     }
     assertEquals(0, sharedTimer.getRefCount());
   }
@@ -872,7 +851,8 @@ class StatementTest {
 
     try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(), TestUtil.getPort())) {
       Properties props = new Properties();
-      props.setProperty(TestUtil.SERVER_HOST_PORT_PROP, String.format("%s:%s", "localhost", proxyServer.getServerPort()));
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT, String.valueOf(proxyServer.getServerPort()));
       PGProperty.CANCEL_SIGNAL_TIMEOUT.set(props, 1);
 
       try (Connection conn = TestUtil.openDB(props); Statement stmt = conn.createStatement()) {
@@ -891,16 +871,18 @@ class StatementTest {
     executor.shutdownNow();
   }
 
-  @Test
-  @Timeout(10)
-  void closeInProgressStatement() throws Exception {
+  /*
+  We are going to use this test to test version 3.2 since the only change in 3.2 is the width of the
+  cancel key. We need a test that does a cancel. We call this below once without changing the
+  protocol version and once with protocol version 3.2
+   */
+  private void closePrivateInProgressStatement() throws Exception {
     ExecutorService executor = Executors.newSingleThreadExecutor();
-    final Connection outerLockCon = TestUtil.openDB();
-    outerLockCon.setAutoCommit(false);
-    //Acquire an exclusive lock so we can block the notice generating statement
-    outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
+    try (Connection outerLockCon = TestUtil.openDB()) {
+      outerLockCon.setAutoCommit(false);
+      //Acquire an exclusive lock so we can block the notice generating statement
+      outerLockCon.createStatement().execute("LOCK TABLE test_lock IN ACCESS EXCLUSIVE MODE;");
 
-    try {
       con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
       con.createStatement()
           .execute("CREATE OR REPLACE FUNCTION notify_then_sleep() RETURNS VOID AS "
@@ -946,8 +928,24 @@ class StatementTest {
       assertNotEquals(0, cancels, "At least one QUERY_CANCELED state is expected");
     } finally {
       executor.shutdown();
-      TestUtil.closeQuietly(outerLockCon);
     }
+  }
+
+  @Test
+  @Timeout(10)
+  void closeInProgressStatement() throws Exception {
+    closePrivateInProgressStatement();
+  }
+
+  @Test
+  @Timeout(10)
+  void closeInProgressStatementProtocol32() throws Exception {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v11));
+    Properties props = new Properties();
+    con.close();
+    PGProperty.PROTOCOL_VERSION.set(props, "3.2");
+    con = TestUtil.openDB(props);
+    closePrivateInProgressStatement();
   }
 
   @Test
@@ -1070,7 +1068,7 @@ class StatementTest {
     // Create several cleaners, so they can clean leaks concurrently
     List<LazyCleaner> cleaners = new ArrayList<>();
     for (int i = 0; i < 16; i++) {
-      cleaners.add(new LazyCleaner(Duration.ofSeconds(2), "pgjdbc-test-cleaner-" + i));
+      cleaners.add(new LazyCleanerImpl("pgjdbc-test-cleaner-" + i, Duration.ofSeconds(2)));
     }
 
     for (int q = 0; System.nanoTime() < deadline || leaks.get() < 10000; q++) {

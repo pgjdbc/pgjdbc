@@ -13,6 +13,7 @@ import java.util.Arrays;
  * Cache key for a query that have some returning columns.
  * {@code columnNames} should contain non-quoted column names.
  * The parser will quote them automatically.
+ *
  * <p>There's a special case of {@code columnNames == new String[]{"*"}} that means all columns
  * should be returned. {@link Parser} is aware of that and does not quote {@code *}</p>
  */
@@ -38,9 +39,9 @@ class QueryWithReturningColumnsKey extends BaseQueryKey {
     }
     size = (int) super.getSize();
     if (columnNames != null) {
-      size += 16L; // array itself
+      size += 16; // array itself
       for (String columnName: columnNames) {
-        size += columnName.length() * 2L; // 2 bytes per char, revise with Java 9's compact strings
+        size += columnName.length() * 2; // 2 bytes per char, revise with Java 9's compact strings
       }
     }
     this.size = size;

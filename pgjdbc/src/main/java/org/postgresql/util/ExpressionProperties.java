@@ -19,6 +19,7 @@ public class ExpressionProperties extends Properties {
 
   private static final @Regex(1) Pattern EXPRESSION = Pattern.compile("\\$\\{([^}]+)\\}");
 
+  @SuppressWarnings("HidingField")
   private final Properties[] defaults;
 
   /**
@@ -31,8 +32,8 @@ public class ExpressionProperties extends Properties {
   }
 
   /**
-   * <p>Returns property value with all {@code ${propKey}} like references replaced with the value of
-   * the relevant property with recursive resolution.</p>
+   * Returns property value with all {@code ${propKey}} like references replaced with the value of
+   * the relevant property with recursive resolution.
    *
    * <p>The method returns <code>null</code> if the property is not found.</p>
    *

@@ -49,7 +49,7 @@ public class GSSOutputStream extends PgBufferedOutputStream {
 
   private void writeWrapped(byte[] b, int off, int len) throws IOException {
     try {
-      byte[] token = gssContext.wrap(buf, off, len, messageProp);
+      byte[] token = gssContext.wrap(b, off, len, messageProp);
       pgOut.writeInt4(token.length);
       pgOut.write(token, 0, token.length);
     } catch (GSSException ex) {

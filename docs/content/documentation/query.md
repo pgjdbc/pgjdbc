@@ -42,7 +42,7 @@ st.close();
 
 ## Getting results based on a cursor
 
-By default the driver collects all the results for the query at once. This can be inconvenient for large data sets so 
+By default, the driver collects all the results for the query at once. This can be inconvenient for large data sets so 
 the JDBC driver provides a means of basing a `ResultSet` on a database cursor and only fetching a small number of rows.
 
 A small number of rows are cached on the client side of the connection and when exhausted the next block of rows is 

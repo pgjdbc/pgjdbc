@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * <p>Array is used collect one column of query result data.</p>
+ * Array is used collect one column of query result data.
  *
  * <p>Read a field of type Array into either a natively-typed Java array object or a ResultSet.
  * Accessor methods provide the ability to capture array slices.</p>
@@ -279,7 +279,7 @@ public class PgArray implements Array {
     return pos;
   }
 
-  private int calcRemainingDataLength(byte[] fieldBytes,
+  private static int calcRemainingDataLength(byte[] fieldBytes,
       int[] dims, int pos, int elementOid, int thisDimension) {
     if (thisDimension == dims.length - 1) {
       for (int i = 0; i < dims[thisDimension]; i++) {
@@ -291,7 +291,9 @@ public class PgArray implements Array {
         pos += len;
       }
     } else {
-      pos = calcRemainingDataLength(fieldBytes, dims, elementOid, pos, thisDimension + 1);
+      for (int i = 0; i < dims[thisDimension]; i++) {
+        pos = calcRemainingDataLength(fieldBytes, dims, pos, elementOid, thisDimension + 1);
+      }
     }
     return pos;
   }

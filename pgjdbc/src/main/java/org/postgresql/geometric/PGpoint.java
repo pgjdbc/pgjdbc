@@ -20,7 +20,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 
 /**
- * <p>It maps to the point datatype in org.postgresql.</p>
+ * It maps to the point datatype in org.postgresql.
  *
  * <p>This implements a version of java.awt.Point, except it uses double to represent the coordinates.</p>
  */

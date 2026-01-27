@@ -50,6 +50,7 @@ import java.util.Map;
  */
 final class ArrayEncoding {
 
+  @SuppressWarnings("ExtendsObject")
   interface ArrayEncoder<A extends Object> {
 
     /**
@@ -124,6 +125,7 @@ final class ArrayEncoding {
    * @param <A>
    *          Base array type supported.
    */
+  @SuppressWarnings("ExtendsObject")
   private abstract static class AbstractArrayEncoder<A extends Object>
       implements ArrayEncoder<A> {
 
@@ -353,6 +355,7 @@ final class ArrayEncoding {
    * @param <A>
    *          The primitive array to support.
    */
+  @SuppressWarnings("ExtendsObject")
   private abstract static class FixedSizePrimitiveArrayEncoder<A extends Object>
       extends AbstractArrayEncoder<A> {
 
@@ -1116,7 +1119,7 @@ final class ArrayEncoding {
    *           if <i>array</i> is not a supported type.
    * @see ArrayEncoding.ArrayEncoder#supportBinaryRepresentation(int)
    */
-  @SuppressWarnings({"unchecked", "rawtypes"})
+  @SuppressWarnings({"unchecked", "rawtypes", "ExtendsObject"})
   public static <A extends Object> ArrayEncoder<A> getArrayEncoder(A array) throws PSQLException {
     final Class<?> arrayClazz = array.getClass();
     Class<?> subClazz = arrayClazz.getComponentType();
@@ -1165,6 +1168,7 @@ final class ArrayEncoding {
    * Wraps an {@link AbstractArrayEncoder} implementation and provides optimized
    * support for 2 dimensions.
    */
+  @SuppressWarnings("ExtendsObject")
   private static final class TwoDimensionPrimitiveArrayEncoder<A extends Object> implements ArrayEncoder<A[]> {
     private final AbstractArrayEncoder<A> support;
 

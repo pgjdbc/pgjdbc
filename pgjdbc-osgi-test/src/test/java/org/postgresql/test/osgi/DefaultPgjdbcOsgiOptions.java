@@ -28,6 +28,14 @@ public class DefaultPgjdbcOsgiOptions {
         // This is a repository where osgi container would cache resolved maven artifacts
         systemProperty("org.ops4j.pax.url.mvn.localRepository")
             .value(System.getProperty("pgjdbc.org.ops4j.pax.url.mvn.localRepository")),
+        // asm is used by org.apache.aries.spifly
+        mavenBundle("org.ow2.asm", "asm").versionAsInProject(),
+        mavenBundle("org.ow2.asm", "asm-analysis").versionAsInProject(),
+        mavenBundle("org.ow2.asm", "asm-commons").versionAsInProject(),
+        mavenBundle("org.ow2.asm", "asm-tree").versionAsInProject(),
+        mavenBundle("org.ow2.asm", "asm-util").versionAsInProject(),
+        // spifly requires for osgi.extender=osgi.serviceloader.registrar
+        mavenBundle("org.apache.aries.spifly", "org.apache.aries.spifly.dynamic.bundle").versionAsInProject(),
         mavenBundle("org.postgresql", "postgresql").versionAsInProject(),
         systemProperty("logback.configurationFile")
             .value(System.getProperty("logback.configurationFile")),

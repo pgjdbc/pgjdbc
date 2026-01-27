@@ -79,7 +79,7 @@ public enum PGProperty {
    */
   ASSUME_MIN_SERVER_VERSION(
       "assumeMinServerVersion",
-      "9.1",
+      null,
       "Assume the server is at least that version"),
 
   /**
@@ -170,8 +170,8 @@ public enum PGProperty {
       new String[]{"true", "false"}),
 
   /**
-   * <p>The timeout value used for socket connect operations. If connecting to the server takes longer
-   * than this value, the connection is broken.</p>
+   * The timeout value used for socket connect operations. If connecting to the server takes longer
+   * than this value, the connection is broken.
    *
    * <p>The timeout is specified in seconds and a value of zero means that it is disabled.</p>
    */
@@ -179,6 +179,17 @@ public enum PGProperty {
       "connectTimeout",
       "10",
       "The timeout value in seconds used for socket connect operations."),
+
+  /**
+   * Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0).
+   * When enabled, calling numeric getters (getByte, getShort, getInt, getLong, getFloat, getDouble, getBigDecimal) on boolean columns
+   * will convert 't' to 1 and 'f' to 0 instead of throwing a conversion exception.
+   * Default is false to maintain backward compatibility.
+   */
+  CONVERT_BOOLEAN_TO_NUMERIC(
+      "convertBooleanToNumeric",
+      "false",
+      "Enable automatic conversion of PostgreSQL boolean values ('t'/'f') to numeric types (1/0)"),
 
   /**
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
@@ -244,7 +255,9 @@ public enum PGProperty {
    * reaches the same connection that is being initialized. All of the startup parameters will be wrapped
    * in a transaction
    * Note this is off by default as pgbouncer in statement mode
+   * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @Deprecated
   GROUP_STARTUP_PARAMETERS(
       "groupStartupParameters",
       "false",
@@ -276,15 +289,28 @@ public enum PGProperty {
       new String[]{"auto", "sspi", "gssapi"}),
 
   /**
-   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
    * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
-   * timeout mechanism This timeout will be set before the request and reset after </p>
+   * timeout mechanism This timeout will be set before the request and reset after
    */
   GSS_RESPONSE_TIMEOUT(
       "gssResponseTimeout",
       "5000",
       "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
 
+  /**
+   * Flag to enable/disable the obtaining the default GSS credentials from a pre-existing ccache,
+   * rather than using JAAS.  This also allows GSS to work in environments where the default
+   * kerberos principal a user has is not user@DEFAULT_REALM, but some other user (this is valid,
+   * and often the case in more advanced Kerberos setups).  Finally, this also means that if
+   * the "native" GSS implementation is used (i.e. the local system GSS libraries), all means of
+   * fetching the default credential are supported.  Currently, JAAS is pure java on Linux, and
+   * does not support the use of KCM (and only supports file-based ccaches and keytabs).
+   */
+  GSS_USE_DEFAULT_CREDS(
+      "gssUseDefaultCreds",
+      "false",
+      "Use the default GSS credentials the process already has, rather than a JAAS login"),
 
   /**
    * Enable mode to filter out the names of database objects for which the current user has no privileges
@@ -333,8 +359,8 @@ public enum PGProperty {
       "If disabled hosts are connected in the given order. If enabled hosts are chosen randomly from the set of suitable candidates"),
 
   /**
-   * <p>If this is set then the client side will bind to this address. This is useful if you need
-   * to choose which interface to connect to.</p>
+   * If this is set then the client side will bind to this address. This is useful if you need
+   * to choose which interface to connect to.
    */
   LOCAL_SOCKET_ADDRESS(
       "localSocketAddress",
@@ -425,6 +451,11 @@ public enum PGProperty {
       false),
 
   /**
+   * Algorithm for the PEM key.
+   */
+  PEM_KEY_ALGORITHM("pemKeyAlgorithm", "RSA", "Algorithm of the PEM key"),
+
+  /**
    * Database name to connect to (may be specified directly in the JDBC URL).
    */
   PG_DBNAME(
@@ -451,9 +482,9 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
-   * <p>Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
+   * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
-   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.</p>
+   * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
    *
    * <p>This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)</p>
    */
@@ -498,10 +529,18 @@ public enum PGProperty {
    */
   PROTOCOL_VERSION(
       "protocolVersion",
-      null,
+      "3",
       "Force use of a particular protocol version when connecting, currently only version 3 is supported.",
       false,
       new String[]{"3"}),
+
+  /**
+   * Parameter for {@link java.sql.Statement#getQueryTimeout()}. A value of {@code 0} means no timeout.
+   */
+  QUERY_TIMEOUT(
+      "queryTimeout",
+      "0",
+      "The timeout value in seconds that the driver will wait for a query to execute."),
 
   /**
    * Quote returning columns.
@@ -547,12 +586,13 @@ public enum PGProperty {
       "Socket read buffer size"),
 
   /**
-   * <p>Connection parameter passed in the startup message. This parameter accepts two values; "true"
+   * Connection parameter passed in the startup message. This parameter accepts two values; "true"
    * and "database". Passing "true" tells the backend to go into walsender mode, wherein a small set
    * of replication commands can be issued instead of SQL statements. Only the simple query protocol
    * can be used in walsender mode. Passing "database" as the value instructs walsender to connect
    * to the database specified in the dbname parameter, which will allow the connection to be used
-   * for logical replication from that database.</p>
+   * for logical replication from that database.
+   *
    * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with
    * parameter &gt;= 9.4 (backend &gt;= 9.4)</p>
    */
@@ -650,9 +690,7 @@ public enum PGProperty {
 
   /**
    * The String argument to give to the constructor of the SSL Factory.
-   * @deprecated use {@code ..Factory(Properties)} constructor.
    */
-  @Deprecated
   SSL_FACTORY_ARG(
       "sslfactoryarg",
       null,
@@ -724,8 +762,8 @@ public enum PGProperty {
       "A class, implementing javax.security.auth.callback.CallbackHandler that can handle PasswordCallback for the ssl password."),
 
   /**
-   * <p>After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
-   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after </p>
+   * After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
+   * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after
    */
   SSL_RESPONSE_TIMEOUT(
       "sslResponseTimeout",
@@ -824,6 +862,7 @@ public enum PGProperty {
   private final @Nullable String defaultValue;
   private final boolean required;
   private final String description;
+  @SuppressWarnings("ImmutableEnumChecker")
   private final String @Nullable [] choices;
 
   PGProperty(String name, @Nullable String defaultValue, String description) {

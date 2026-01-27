@@ -20,8 +20,9 @@ public interface PGStatement {
   // -infinity / infinity representation in Java
   long DATE_POSITIVE_INFINITY = 9223372036825200000L;
   long DATE_NEGATIVE_INFINITY = -9223372036832400000L;
-  long DATE_POSITIVE_SMALLER_INFINITY = 185543533774800000L;
-  long DATE_NEGATIVE_SMALLER_INFINITY = -185543533774800000L;
+  // Days (2^31) in ms that can be stored minus the difference between the postgres and java epoch
+  long DATE_POSITIVE_SMALLER_INFINITY = 185541640502400000L;
+  long DATE_NEGATIVE_SMALLER_INFINITY = -185541640502400000L;
 
   /**
    * Returns the Last inserted/updated oid.
@@ -55,7 +56,7 @@ public interface PGStatement {
   boolean isUseServerPrepare();
 
   /**
-   * <p>Sets the reuse threshold for using server-prepared statements.</p>
+   * Sets the reuse threshold for using server-prepared statements.
    *
    * <p>If <code>threshold</code> is a non-zero value N, the Nth and subsequent reuses of a
    * PreparedStatement will use server-side prepare.</p>

@@ -14,22 +14,29 @@ val pgjdbcRepository by configurations.creating {
 }
 
 dependencies {
-    pgjdbcRepository(project(":postgresql"))
+    pgjdbcRepository(projects.postgresql)
 
-    testImplementation(project(":postgresql"))
+    testImplementation(projects.postgresql) {
+        attributes {
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling.SHADOWED))
+        }
+    }
+    testImplementation(projects.testkit)
 
     testImplementation("junit:junit:4.13.2")
     testImplementation("javax:javaee-api:8.0.1")
     testImplementation("org.osgi:org.osgi.service.jdbc:1.0.0")
-    testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.13.5")
+    testImplementation("org.ops4j.pax.exam:pax-exam-container-native:4.14.0")
     // pax-exam is not yet compatible with junit5
     // see https://github.com/ops4j/org.ops4j.pax.exam2/issues/886
-    testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.13.5")
-    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.13.5")
-    testImplementation("org.ops4j.pax.url:pax-url-aether:2.6.14")
+    testImplementation("org.ops4j.pax.exam:pax-exam-junit4:4.14.0")
+    testImplementation("org.ops4j.pax.exam:pax-exam-link-mvn:4.14.0")
+    testImplementation("org.ops4j.pax.url:pax-url-aether:3.0.1")
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
-    testImplementation("ch.qos.logback:logback-core:1.2.13")
-    testImplementation("ch.qos.logback:logback-classic:1.2.13")
+    testImplementation("ch.qos.logback:logback-core:1.5.21")
+    testImplementation("ch.qos.logback:logback-classic:1.5.21")
+    testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.8"))
+    testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
 }
 
 // <editor-fold defaultstate="collapsed" desc="Pass dependency versions to pax-exam container">
@@ -72,6 +79,9 @@ tasks.test {
     dependsOn(generateDependenciesProperties)
     dependsOn(cleanCachedPgjdbc)
     dependsOn(pgjdbcRepository)
+    onlyIf("Looks like pax.url does not support Java 8, see https://github.com/ops4j/org.ops4j.pax.url/issues/453") {
+        buildParameters.testJdkVersion > 8
+    }
     systemProperty("logback.configurationFile", file("src/test/resources/logback-test.xml"))
     // Regular systemProperty can't be used here as we need lazy evaluation of pgjdbcRepository
     jvmArgumentProviders.add(CommandLineArgumentProvider {

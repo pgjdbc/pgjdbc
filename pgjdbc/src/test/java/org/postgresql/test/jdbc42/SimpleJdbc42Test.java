@@ -5,11 +5,11 @@
 
 package org.postgresql.test.jdbc42;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Most basic test to check that the right package is compiled.

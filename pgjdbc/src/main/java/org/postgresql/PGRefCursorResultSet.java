@@ -7,14 +7,13 @@ package org.postgresql;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.ResultSet;
+
 /**
  * A ref cursor based result set.
- *
- * @deprecated As of 8.0, this interface is only present for backwards- compatibility purposes. New
- *             code should call getString() on the ResultSet that contains the refcursor to obtain
- *             the underlying cursor name.
+ * Note: as of 8.0, this interface is only present for backwards- compatibility purposes. New
+ * code should call {@link ResultSet#getString} to obtain the underlying cursor name.
  */
-@Deprecated
 public interface PGRefCursorResultSet {
 
   /**

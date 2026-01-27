@@ -6,9 +6,9 @@
 package org.postgresql.jdbc;
 
 /**
- * <p>Specifies whether a SELECT/CALL statement is used for the underlying SQL for JDBC escape call syntax: 'select' means to
+ * Specifies whether a SELECT/CALL statement is used for the underlying SQL for JDBC escape call syntax: 'select' means to
  * always use SELECT, 'callIfNoReturn' means to use CALL if there is no return parameter (otherwise use SELECT), and 'call' means
- * to always use CALL.</p>
+ * to always use CALL.
  *
  * @see org.postgresql.PGProperty#ESCAPE_SYNTAX_CALL_MODE
  */

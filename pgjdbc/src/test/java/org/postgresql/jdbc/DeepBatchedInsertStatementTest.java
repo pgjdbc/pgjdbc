@@ -5,7 +5,7 @@
 
 package org.postgresql.jdbc;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
@@ -15,7 +15,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
 import java.sql.Date;
@@ -275,7 +275,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
    * @return BatchedQueryDecorator[] queries after conversion
    * @throws Exception fault raised when the field cannot be accessed
    */
-  private BatchedQuery[] transformBQD(PgPreparedStatement ps) throws Exception {
+  private static BatchedQuery[] transformBQD(PgPreparedStatement ps) throws Exception {
     // We store collections that get replace on the statement
     ArrayList<Query> batchStatements = ps.batchStatements;
     ArrayList<ParameterList> batchParameters = ps.batchParameters;
@@ -293,7 +293,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
    * @param bqds the converted queries
    * @return the total batch size
    */
-  private int getBatchSize(BatchedQuery[] bqds) {
+  private static int getBatchSize(BatchedQuery[] bqds) {
     int total = 0;
     for (BatchedQuery bqd : bqds) {
       total += bqd.getBatchSize();
@@ -309,7 +309,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
    *     when encoded
    * @throws Exception fault raised if access to field not possible
    */
-  private byte[] getEncodedStatementName(BatchedQuery bqd)
+  private static byte[] getEncodedStatementName(BatchedQuery bqd)
       throws Exception {
     Class<?> clazz = Class.forName("org.postgresql.core.v3.SimpleQuery");
     Method mESN = clazz.getDeclaredMethod("getEncodedStatementName");

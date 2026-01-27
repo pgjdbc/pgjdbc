@@ -6,13 +6,15 @@
 
 package org.postgresql.core;
 
+import org.postgresql.core.v3.SqlSerializationContext;
+
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Map;
 
 /**
- * <p>Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
- * to execute the query efficiently.</p>
+ * Abstraction of a generic Query, hiding the details of any protocol-version-specific data needed
+ * to execute the query efficiently.
  *
  * <p>Query objects should be explicitly closed when no longer needed; if resources are allocated on
  * the server for this query, their cleanup is triggered by closing the Query.</p>
@@ -21,7 +23,7 @@ import java.util.Map;
  */
 public interface Query {
   /**
-   * <p>Create a ParameterList suitable for storing parameters associated with this Query.</p>
+   * Create a ParameterList suitable for storing parameters associated with this Query.
    *
    * <p>If this query has no parameters, a ParameterList will be returned, but it may be a shared
    * immutable object. If this query does have parameters, the returned ParameterList is a new list,
@@ -32,14 +34,29 @@ public interface Query {
   ParameterList createParameterList();
 
   /**
-   * Stringize this query to a human-readable form, substituting particular parameter values for
+   * Returns string representation of the query, substituting particular parameter values for
+   * parameter placeholders.
+   *
+   * <p>Note: the method replaces the values on a best-effort basis as it might omit the replacements
+   * for parameters that can't be processed several times. For instance, {@link java.io.InputStream}
+   * can be processed only once.
+   *
+   * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
+   *        or {@code null} to leave the parameter placeholders unsubstituted.
+   * @return string representation of this query
+   */
+  String toString(@Nullable ParameterList parameters);
+
+  /**
+   * Returns string representation of the query, substituting particular parameter values for
    * parameter placeholders.
    *
    * @param parameters a ParameterList returned by this Query's {@link #createParameterList} method,
-   *        or <code>null</code> to leave the parameter placeholders unsubstituted.
-   * @return a human-readable representation of this query
+   *        or {@code null} to leave the parameter placeholders unsubstituted.
+   * @param context specifies configuration for converting the parameters to string
+   * @return string representation of this query
    */
-  String toString(@Nullable ParameterList parameters);
+  String toString(@Nullable ParameterList parameters, SqlSerializationContext context);
 
   /**
    * Returns SQL in native for database format.
@@ -54,8 +71,8 @@ public interface Query {
   @Nullable SqlCommand getSqlCommand();
 
   /**
-   * <p>Close this query and free any server-side resources associated with it. The resources may not
-   * be immediately deallocated, but closing a Query may make the deallocation more prompt.</p>
+   * Close this query and free any server-side resources associated with it. The resources may not
+   * be immediately deallocated, but closing a Query may make the deallocation more prompt.
    *
    * <p>A closed Query should not be executed.</p>
    */

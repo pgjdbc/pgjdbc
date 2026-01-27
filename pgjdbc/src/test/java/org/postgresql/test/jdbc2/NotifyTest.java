@@ -40,6 +40,14 @@ class NotifyTest {
 
   @Test
   @Timeout(60)
+  void testNoNotifications() throws SQLException {
+    PGNotification[] notifications = conn.unwrap(PGConnection.class).getNotifications();
+    assertNotNull(notifications);
+    assertEquals(0, notifications.length);
+  }
+
+  @Test
+  @Timeout(60)
   void testNotify() throws SQLException {
     Statement stmt = conn.createStatement();
     stmt.executeUpdate("LISTEN mynotification");

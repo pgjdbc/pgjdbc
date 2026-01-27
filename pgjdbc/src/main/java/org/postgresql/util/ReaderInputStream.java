@@ -16,8 +16,8 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.StandardCharsets;
 
 /**
- * <p>ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
- * converts it to a UTF-8 byte stream (InputStream) as output.</p>
+ * ReaderInputStream accepts a UTF-16 char stream (Reader) as input and
+ * converts it to a UTF-8 byte stream (InputStream) as output.
  *
  * <p>This is the inverse of java.io.InputStreamReader which converts a
  * binary stream to a character stream.</p>
@@ -99,7 +99,7 @@ public class ReaderInputStream extends InputStream {
     bbuf.flip();
   }
 
-  private void checkEncodeResult(CoderResult result) throws CharacterCodingException {
+  private static void checkEncodeResult(CoderResult result) throws CharacterCodingException {
     if (result.isError()) {
       result.throwException();
     }

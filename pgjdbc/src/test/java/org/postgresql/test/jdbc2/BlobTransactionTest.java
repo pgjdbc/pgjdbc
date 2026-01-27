@@ -95,7 +95,7 @@ class BlobTransactionTest {
     }
   }
 
-  private byte[] randomData() {
+  private static byte[] randomData() {
     byte[] data = new byte[64 * 1024 * 8];
     for (int i = 0; i < data.length; i++) {
       data[i] = (byte) (Math.random() * 256);
@@ -103,7 +103,7 @@ class BlobTransactionTest {
     return data;
   }
 
-  private byte[] readInputStream(InputStream is) throws IOException {
+  private static byte[] readInputStream(InputStream is) throws IOException {
     byte[] result = new byte[1024];
     int readPos = 0;
     int d;

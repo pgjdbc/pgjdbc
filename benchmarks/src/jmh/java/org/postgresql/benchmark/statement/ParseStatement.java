@@ -5,7 +5,7 @@
 
 package org.postgresql.benchmark.statement;
 
-import org.postgresql.util.ConnectionUtil;
+import org.postgresql.test.TestUtil;
 
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -28,7 +28,6 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -64,10 +63,10 @@ public class ParseStatement {
 
   @Setup(Level.Trial)
   public void setUp() throws SQLException {
-    Properties props = ConnectionUtil.getProperties();
+    Properties props = new Properties();
     props.put("autosave", autoSave);
 
-    connection = DriverManager.getConnection(ConnectionUtil.getURL(), props);
+    connection = TestUtil.openDB(props);
 
     // Start transaction
     Statement st = connection.createStatement();

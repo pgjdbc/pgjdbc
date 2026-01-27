@@ -17,6 +17,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.checkerframework.checker.lock.qual.Holding;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -41,12 +42,13 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private final String database;
   private final int cancelSignalTimeout;
 
+  protected ProtocolVersion protocolVersion;
   private int cancelPid;
-  private int cancelKey;
+  private byte @Nullable[] cancelKey;
   protected final QueryExecutorCloseAction closeAction;
   private @MonotonicNonNull String serverVersion;
   private int serverVersionNum;
-  private TransactionState transactionState = TransactionState.IDLE;
+  private volatile TransactionState transactionState = TransactionState.IDLE;
   private final boolean reWriteBatchedInserts;
   private final boolean columnSanitiserDisabled;
   private final EscapeSyntaxCallMode escapeSyntaxCallMode;
@@ -57,7 +59,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
-  private boolean standardConformingStrings;
+  private volatile boolean standardConformingStrings;
 
   private @Nullable SQLWarning warnings;
   private final ArrayList<PGNotification> notifications = new ArrayList<>();
@@ -75,6 +77,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
+    this.protocolVersion = pgStream.getProtocolVersion();
     this.user = PGProperty.USER.getOrDefault(info);
     this.database = PGProperty.PG_DBNAME.getOrDefault(info);
     this.cancelSignalTimeout = cancelSignalTimeout;
@@ -141,7 +144,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return database;
   }
 
-  public void setBackendKeyData(int cancelPid, int cancelKey) {
+  public void setBackendKeyData(int cancelPid, byte[] cancelKey) {
     this.cancelPid = cancelPid;
     this.cancelKey = cancelKey;
   }
@@ -186,21 +189,27 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
     // Now we need to construct and send a cancel packet
     try {
+      byte[] cancelKey = this.cancelKey;
+      if (cancelKey == null) {
+        LOGGER.log(Level.FINEST, " FE=> Can't send cancel request since cancelKey is null. It might be the cancel key is not received yet");
+        return;
+      }
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, " FE=> CancelRequest(pid={0},ckey={1})", new Object[]{cancelPid, cancelKey});
       }
 
-      // Cancel signal is 16 bytes only, so we use 16 as the max send buffer size
+      // Cancel signal is variable since protocol 3.2 so we use cancelKey.length + 12
       cancelStream =
-          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, 16);
+          new PGStream(pgStream.getSocketFactory(), pgStream.getHostSpec(), cancelSignalTimeout, cancelKey.length + 12);
       if (cancelSignalTimeout > 0) {
         cancelStream.setNetworkTimeout(cancelSignalTimeout);
       }
-      cancelStream.sendInteger4(16);
+      // send the length including self
+      cancelStream.sendInteger4(cancelKey.length + 12);
       cancelStream.sendInteger2(1234);
       cancelStream.sendInteger2(5678);
       cancelStream.sendInteger4(cancelPid);
-      cancelStream.sendInteger4(cancelKey);
+      cancelStream.send(cancelKey);
       cancelStream.flush();
       cancelStream.receiveEOF();
     } catch (IOException e) {
@@ -265,7 +274,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     if (serverVersionNum != 0) {
       return serverVersionNum;
     }
-    return serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
+    serverVersionNum = Utils.parseServerVersionStr(getServerVersion());
+    return serverVersionNum;
   }
 
   public void setServerVersion(String serverVersion) {
@@ -276,23 +286,18 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.serverVersionNum = serverVersionNum;
   }
 
+  @Holding("lock")
   public void setTransactionState(TransactionState state) {
-    try (ResourceLock ignore = lock.obtain()) {
-      transactionState = state;
-    }
+    transactionState = state;
   }
 
   public void setStandardConformingStrings(boolean value) {
-    try (ResourceLock ignore = lock.obtain()) {
-      standardConformingStrings = value;
-    }
+    standardConformingStrings = value;
   }
 
   @Override
   public boolean getStandardConformingStrings() {
-    try (ResourceLock ignore = lock.obtain()) {
-      return standardConformingStrings;
-    }
+    return standardConformingStrings;
   }
 
   @Override
@@ -302,9 +307,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   @Override
   public TransactionState getTransactionState() {
-    try (ResourceLock ignore = lock.obtain()) {
-      return transactionState;
-    }
+    return transactionState;
   }
 
   public void setEncoding(Encoding encoding) throws IOException {
@@ -396,6 +399,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     return preferQueryMode;
   }
 
+  @Override
   public void setPreferQueryMode(PreferQueryMode mode) {
     preferQueryMode = mode;
   }
