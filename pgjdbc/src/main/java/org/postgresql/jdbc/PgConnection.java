@@ -512,7 +512,9 @@ public class PgConnection implements BaseConnection {
             oids.add(oidV);
             continue;
           }
-        } catch (SQLException ignored) { }
+        } catch (SQLException ignored) {
+          LOGGER.log(Level.FINEST, ignored.getMessage(), ignored);
+        }
         throw e;
       }
       oids.add(oidV);
