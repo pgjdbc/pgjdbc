@@ -61,6 +61,7 @@ import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Date;
+import java.sql.JDBCType;
 import java.sql.NClob;
 import java.sql.PreparedStatement;
 import java.sql.Ref;
@@ -72,6 +73,7 @@ import java.sql.SQLType;
 import java.sql.SQLWarning;
 import java.sql.SQLXML;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -81,6 +83,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZoneOffset;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -90,6 +93,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.StringTokenizer;
 import java.util.TimeZone;
 import java.util.UUID;
@@ -135,6 +139,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   // are we on the insert row (for JDBC2 updatable resultsets)?
 
   private @Nullable Tuple rowBuffer; // updateable rowbuffer
+  private final CurrentRow currentRowContext; // Context for nested row access (e.g., structs)
 
   protected int fetchSize; // Current fetch size (might be 0).
   protected int lastUsedFetchSize; // Fetch size used during last fetch
@@ -183,6 +188,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     this.resultsettype = rsType;
     this.resultsetconcurrency = rsConcurrency;
     this.adaptiveFetch = adaptiveFetch;
+    this.currentRowContext = new CurrentRow();
 
     // Constructor doesn't have fetch size and can't be sure if fetch size was used so initial value would be the number of rows
     this.lastUsedFetchSize = tuples.size();
@@ -200,10 +206,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return getURL(findColumn(columnName));
   }
 
-  @RequiresNonNull({"thisRow"})
+  @RequiresNonNull({"currentRow"})
   protected @Nullable Object internalGetObject(@Positive int columnIndex, Field field) throws SQLException {
-    castNonNull(thisRow, "thisRow");
-    switch (getSQLType(columnIndex)) {
+    int sqlType = getSQLType(columnIndex);
+    switch (sqlType) {
       case Types.BOOLEAN:
       case Types.BIT:
         if (field.getOID() == Oid.BOOL) {
@@ -216,6 +222,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           // If we have 1 byte, it's a bit(1) and return a boolean to preserve the backwards
           // compatibility. If the value is null, it doesn't really matter
           byte[] data = getRawValue(columnIndex);
+          if (isBinary(columnIndex) && data != null && data.length == 5) {
+            return data[4] != 0;
+          }
           if (data == null || data.length == 1) {
             return getBoolean(columnIndex);
           }
@@ -260,7 +269,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         return getClob(columnIndex);
       case Types.BLOB:
         return getBlob(columnIndex);
-
+      case Types.STRUCT:
+        return getStruct(columnIndex, getPGType(columnIndex));
       default:
         String type = getPGType(columnIndex);
 
@@ -275,7 +285,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           }
           return getUUID(castNonNull(getString(columnIndex)));
         }
-
         // Specialized support for ref cursors is neater.
         if ("refcursor".equals(type)) {
           // Fetch all results.
@@ -311,7 +320,6 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           }
           return HStoreConverter.fromString(castNonNull(getString(columnIndex)));
         }
-
         // Caller determines what to do (JDBC3 overrides in this case)
         return null;
     }
@@ -417,11 +425,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return getArray(findColumn(colName));
   }
 
-  protected Array makeArray(int oid, byte[] value) throws SQLException {
+  protected Array makeArray(int oid, byte @Nullable [] value) throws SQLException {
     return new PgArray(connection, oid, value);
   }
 
-  protected Array makeArray(int oid, String value) throws SQLException {
+  protected Array makeArray(int oid, @Nullable String value) throws SQLException {
     return new PgArray(connection, oid, value);
   }
 
@@ -433,11 +441,21 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    int oid = fields[i - 1].getOID();
+    int type = getSQLType(i);
+    if (type != Types.ARRAY) {
+      throw new PSQLException(
+          GT.tr("Cannot convert the column of type {0} to Array.",
+              JDBCType.valueOf(type).getName()),
+          PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    Field[] contextFields = currentRowContext.fields();
+    Field field = contextFields != null ? contextFields[i - 1] : fields[i - 1];
+    int oid = field.getOID();
     if (isBinary(i)) {
       return makeArray(oid, value);
     }
-    return makeArray(oid, castNonNull(getFixedString(i)));
+    return makeArray(oid, getString(i));
   }
 
   @Override
@@ -468,6 +486,53 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     return makeBlob(getLong(i));
+  }
+
+  private @Nullable Struct getStruct(int i, String typeName) throws SQLException {
+    checkClosed();
+    byte[] value = getRawValue(i);
+    if (value == null) {
+      return null;
+    }
+
+    PgStructDescriptor descriptor = castNonNull(connection.getTypeInfo().getPgStructDescriptor(typeName));
+    PgAttribute[] pgAttributes = descriptor.pgAttributes();
+
+    int len = pgAttributes.length;
+    Field[] newFields = new Field[len];
+
+    boolean isBinary = isBinary(i);
+
+    Tuple structRow;
+    if (isBinary) {
+      structRow = PgCompositeTypeUtil.fromBytes(value, len);
+    } else {
+      try {
+        structRow = PgCompositeTypeUtil.fromString(connection.getEncoding().decode(value), len);
+      } catch (IOException ioe) {
+        throw new PSQLException(
+            GT.tr("Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+            PSQLState.DATA_ERROR, ioe);
+      }
+    }
+
+    @Nullable Object[] attributes = new Object[len];
+
+    // Populate all fields before switching context
+    for (int j = 0; j < len; j++) {
+      PgAttribute attr = pgAttributes[j];
+      newFields[j] = new Field(attr.name(), attr.oid());
+      newFields[j].setFormat(isBinary ? Field.BINARY_FORMAT : Field.TEXT_FORMAT);
+    }
+
+    // Now switch context and read the values
+    try (CurrentRow.CurrentRowLock lock = currentRowContext.switchTo(newFields, structRow)) {
+      for (int j = 0; j < len; j++) {
+        attributes[j] = getObject(j + 1);
+      }
+    }
+
+    return new PgStruct(descriptor, attributes, connection);
   }
 
   @Override
@@ -1027,7 +1092,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     if (currentRow - 1 < 0) {
       currentRow = -1;
-      thisRow = null;
+      thisRow =  null;
       rowBuffer = null;
       return false;
     } else {
@@ -1546,7 +1611,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
       if (rs.next()) {
         // we know that the row is updatable as it was tested above.
-        if ( rs.thisRow == null ) {
+        if (rs.thisRow == null) {
           rowBuffer = null;
         } else {
           rowBuffer = castNonNull(rs.thisRow).updateableCopy();
@@ -2398,8 +2463,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     // varchar in binary is same as text, other binary fields are converted to their text format
-    if (isBinary(columnIndex) && getSQLType(columnIndex) != Types.VARCHAR) {
-      Field field = fields[columnIndex - 1];
+    int sqlType = getSQLType(columnIndex);
+    if (isBinary(columnIndex)
+        // prevent recursive calls
+        && sqlType != Types.VARCHAR && sqlType != Types.LONGVARCHAR && sqlType != Types.CHAR) {
+      Field[] contextFields = currentRowContext.fields();
+      Field field = contextFields != null ? contextFields[columnIndex - 1] : fields[columnIndex - 1];
       TimestampUtils ts = getTimestampUtils();
       // internalGetObject is used in getObject(int), so we can't easily alter the returned type
       // Currently, internalGetObject delegates to getTime(), getTimestamp(), so it has issues
@@ -2695,6 +2764,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       int oid = fields[col].getOID();
       if (oid == Oid.INT8) {
         return ByteConverter.int8(value, 0);
+      } else if (oid == Oid.OID) {
+        int oidV = ByteConverter.int4(value, 0);
+        return connection.getTypeInfo().intOidToLong(oidV);
       }
       return readLongValue(value, oid, Long.MIN_VALUE, Long.MAX_VALUE, "long");
     }
@@ -2874,7 +2946,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (isBinary(columnIndex)) {
       int sqlType = getSQLType(columnIndex);
       if (sqlType != Types.NUMERIC && sqlType != Types.DECIMAL) {
-        Object obj = internalGetObject(columnIndex, fields[columnIndex - 1]);
+        Field[] contextFields = currentRowContext.fields();
+        Field field = contextFields != null ? contextFields[columnIndex - 1] : fields[columnIndex - 1];
+        Object obj = internalGetObject(columnIndex, field);
         if (obj == null) {
           return null;
         }
@@ -2950,7 +3024,9 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       // If the data is already binary then just return it
       return value;
     }
-    if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
+    Field[] contextFields = currentRowContext.fields();
+    Field field = contextFields != null ? contextFields[columnIndex - 1] : fields[columnIndex - 1];
+    if (field.getOID() == Oid.BYTEA) {
       return trimBytes(columnIndex, PGbytea.toBytes(value));
     } else {
       return trimBytes(columnIndex, value);
@@ -3174,12 +3250,35 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       return null;
     }
 
-    field = fields[columnIndex - 1];
+    // Use fields from context if in nested context (e.g., reading struct fields)
+    Field[] currentFields = currentRowContext.fields();
+    field = currentFields != null ? currentFields[columnIndex - 1] : fields[columnIndex - 1];
 
     // some fields can be null, mainly from those returned by MetaData methods
     if (field == null) {
       wasNullFlag = true;
       return null;
+    }
+
+    // If we're in a nested context (reading struct fields), use internalGetObject
+    // which will properly route composite types to getStruct
+    if (currentFields != null) {
+      Object result = internalGetObject(columnIndex, field);
+      if (result != null) {
+        return result;
+      }
+      // Fallback to connection.getObject for types not handled by internalGetObject
+      if (isBinary(columnIndex)) {
+        return connection.getObject(connection.getTypeInfo().getPGType(field.getOID()), null, value);
+      }
+      try {
+        String stringValue = connection.getEncoding().decode(value);
+        return connection.getObject(connection.getTypeInfo().getPGType(field.getOID()), stringValue, null);
+      } catch (IOException ioe) {
+        throw new PSQLException(
+            GT.tr("Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database."),
+            PSQLState.DATA_ERROR, ioe);
+      }
     }
 
     Object result = internalGetObject(columnIndex, field);
@@ -3315,14 +3414,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   @Pure
   protected String getPGType(@Positive int column) throws SQLException {
-    Field field = fields[column - 1];
+    Field[] contextFields = currentRowContext.fields();
+    Field field = contextFields != null ? contextFields[column - 1] : fields[column - 1];
     initSqlType(field);
     return field.getPGType();
   }
 
   @Pure
   protected int getSQLType(@Positive int column) throws SQLException {
-    Field field = fields[column - 1];
+    Field[] contextFields = currentRowContext.fields();
+    Field field = contextFields != null ? contextFields[column - 1] : fields[column - 1];
     initSqlType(field);
     return field.getSQLType();
   }
@@ -3376,6 +3477,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   @Pure
   protected void checkColumnIndex(@Positive int column) throws SQLException {
+    Field[] contextFields = currentRowContext.fields();
+    Field[] fields = contextFields != null ? contextFields : this.fields;
     if (column < 1 || column > fields.length) {
       throw new PSQLException(
           GT.tr("The column index is out of range: {0}, number of columns: {1}.",
@@ -3392,16 +3495,21 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return raw value or null
    * @throws SQLException If state or column is invalid.
    */
-  @EnsuresNonNull("thisRow")
+  @EnsuresNonNull("currentRow")
   protected byte @Nullable [] getRawValue(@Positive int column) throws SQLException {
     checkClosed();
-    if (thisRow == null) {
+
+    // Check if we're in a nested context (e.g., reading struct fields)
+    Optional<Tuple> contextRow = currentRowContext.row();
+    Tuple row = contextRow.isPresent() ? contextRow.get() : thisRow;
+
+    if (row == null) {
       throw new PSQLException(
           GT.tr("ResultSet not positioned properly, perhaps you need to call next."),
           PSQLState.INVALID_CURSOR_STATE);
     }
     checkColumnIndex(column);
-    byte[] bytes = thisRow.get(column - 1);
+    byte[] bytes = row.get(column - 1);
     wasNullFlag = bytes == null;
     return bytes;
   }
@@ -3414,6 +3522,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    */
   @Pure
   protected boolean isBinary(@Positive int column) {
+    Field []fields = currentRowContext.fields() != null ? currentRowContext.fields() : this.fields;
     return fields[column - 1].getFormat() == Field.BINARY_FORMAT;
   }
 
@@ -3682,6 +3791,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       case Oid.INT4:
         val = ByteConverter.int4(bytes, 0);
         break;
+      case Oid.OID:
       case Oid.INT8:
         val = ByteConverter.int8(bytes, 0);
         break;
@@ -4445,9 +4555,82 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
    * @return PgResultSet
    */
   protected PgResultSet upperCaseFieldLabels() {
-    for (Field field: fields ) {
+    for (Field field: fields) {
       field.upperCaseLabel();
     }
     return this;
+  }
+
+  /**
+   * A wrapper that contains the current row and its fields.
+   * It is useful if we want the ResultSet to switch parsing a new row on top of the current one.
+   */
+  protected static final class CurrentRow {
+    private final ResourceLock lock = new ResourceLock();
+
+    private final ArrayDeque<Field[]> fieldsStack = new ArrayDeque<>();
+    private final ArrayDeque<Tuple> rowStack = new ArrayDeque<>();
+
+    /**
+     * Switch to a new row.<br>
+     * <b>Note: make sure to call {@link #consume()} after you are done.</b>
+     * @param fields  the fields of the new row
+     * @param row     the data of new row
+     */
+    CurrentRowLock switchTo(final Field[] fields, final Tuple row) {
+      // need to lock here to ensure that threads that might be consuming the result set don't read from this new row
+      ResourceLock lockResource = lock.obtain();
+      this.fieldsStack.push(fields);
+      this.rowStack.push(row);
+      return new CurrentRowLock(this, lockResource);
+    }
+
+    /**
+     * Consumes the row at the top of the stack.
+     */
+    void consume() {
+      if (!fieldsStack.isEmpty() && !rowStack.isEmpty()) {
+        fieldsStack.pop();
+        rowStack.pop();
+      }
+    }
+
+    Field[] fields() {
+      try (ResourceLock l = lock.obtain()) {
+        if (fieldsStack.isEmpty()) {
+          return null;
+        }
+        return fieldsStack.peek();
+      }
+    }
+
+    Optional<Tuple> row() {
+      try (ResourceLock l = lock.obtain()) {
+        if (rowStack.isEmpty()) {
+          return Optional.empty();
+        }
+        return Optional.of(rowStack.peek());
+      }
+    }
+
+    // Util class that can be used to consume current row in try-with-resources.
+    private static final class CurrentRowLock implements AutoCloseable {
+      private final CurrentRow currentRow;
+      private final ResourceLock lockResource;
+
+      CurrentRowLock(CurrentRow currentRow, ResourceLock lockResource) {
+        this.currentRow = currentRow;
+        this.lockResource = lockResource;
+      }
+
+      @Override
+      public void close() {
+        try {
+          currentRow.consume();
+        } finally {
+          lockResource.close();
+        }
+      }
+    }
   }
 }
