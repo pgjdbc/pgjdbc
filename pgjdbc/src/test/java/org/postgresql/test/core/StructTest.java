@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.jupiter.api.AfterAll;
@@ -31,6 +32,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Properties;
 
+@DisabledIfServerVersionBelow("10.0")
 public class StructTest extends BaseTest4 {
 
   @BeforeAll
