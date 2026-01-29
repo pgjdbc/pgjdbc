@@ -130,7 +130,7 @@ public final class PgCompositeTypeUtil {
     int i;
     for (i = 0; i < nColumns && buffer.hasRemaining(); i++) {
       ensureRemainingBuffer(buffer, 4, String.format("Failed to read OID for column at position %d", i));
-      int oid = buffer.getInt(); // ignore type
+      buffer.getInt(); // ignore type
       ensureRemainingBuffer(buffer, 4, String.format("Failed to read length for column at position %d", i));
       int len = buffer.getInt();
       if (len == -1) {
