@@ -115,7 +115,7 @@ public class PgStruct implements Struct {
     sb.append("(");
     for (int i = 0; i < pgAttributes.length; i++) {
       Object attribute = attributes[i];
-      if (attribute == null || attributes.toString() == null) {
+      if (attribute == null) {
         if (i < pgAttributes.length - 1) {
           sb.append(",");
         }

@@ -416,7 +416,7 @@ final class ArrayDecoding {
     @Override
     @SuppressWarnings("deprecation")
     public Date parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toDate(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toDate(null, stringVal);
     }
 
     @Override
@@ -439,7 +439,7 @@ final class ArrayDecoding {
     @Override
     @SuppressWarnings("deprecation")
     public Time parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTime(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTime(null, stringVal);
     }
 
     @Override
@@ -461,7 +461,7 @@ final class ArrayDecoding {
     @Override
     @SuppressWarnings("deprecation")
     public Timestamp parseValue(String stringVal, BaseConnection connection) throws SQLException {
-      return connection.getTimestampUtils().toTimestamp(null, stringVal.getBytes());
+      return connection.getTimestampUtils().toTimestamp(null, stringVal);
     }
 
     @Override
@@ -469,6 +469,9 @@ final class ArrayDecoding {
       return Timestamp.class;
     }
   };
+
+  /*
+  This is currently not being used
 
   private static final FieldDecoder<Timestamp> TIMESTAMPZ_DECODER = new AbstractObjectFieldDecoder<Timestamp>() {
 
@@ -490,6 +493,7 @@ final class ArrayDecoding {
       return Timestamp.class;
     }
   };
+*/
 
   /**
    * Maps from base type oid to {@link FieldDecoder} capable of processing
@@ -597,7 +601,7 @@ final class ArrayDecoding {
       return buildStruct(descriptor, row, connection, false);
     }
 
-    private Struct buildStruct(PgStructDescriptor descriptor, Tuple row, BaseConnection connection, boolean isBinary) throws SQLException {
+    private static Struct buildStruct(PgStructDescriptor descriptor, Tuple row, BaseConnection connection, boolean isBinary) throws SQLException {
       final PgAttribute[] fields = descriptor.pgAttributes();
       final @Nullable Object[] attributes = new Object[fields.length];
       for (int i = 0; i < attributes.length; i++) {
