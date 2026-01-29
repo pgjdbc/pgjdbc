@@ -33,6 +33,7 @@ public class PgStruct implements Struct {
   // Record value as string
   private @Nullable String fieldString;
 
+  @SuppressWarnings("deprecation")
   public PgStruct(PgStructDescriptor descriptor, @Nullable Object[] attributes, BaseConnection connection) {
     this.sqlTypeName = descriptor.sqlTypeName();
     this.descriptor = descriptor;

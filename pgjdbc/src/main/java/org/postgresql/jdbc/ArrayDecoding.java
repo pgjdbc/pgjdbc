@@ -29,6 +29,7 @@ import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLException;
@@ -178,7 +179,7 @@ final class ArrayDecoding {
 
   }
 
-  private static final FieldDecoder<Long> LONG_OBJ = new AbstractObjectFieldDecoder<Long>() {
+  private static final FieldDecoder<Long> LONG_OBJ_ARRAY = new AbstractObjectFieldDecoder<Long>() {
 
     @Override
     public @NonNull Long parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
@@ -196,7 +197,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Long> INT4_UNSIGNED_OBJ = new AbstractObjectFieldDecoder<Long>() {
+  private static final FieldDecoder<Long> INT4_UNSIGNED_OBJ_ARRAY = new AbstractObjectFieldDecoder<Long>() {
 
     @Override
     public Long parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -214,7 +215,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Integer> INTEGER_OBJ = new AbstractObjectFieldDecoder<Integer>() {
+  private static final FieldDecoder<Integer> INTEGER_OBJ_ARRAY = new AbstractObjectFieldDecoder<Integer>() {
 
     @Override
     public Integer parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -232,7 +233,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Short> SHORT_OBJ = new AbstractObjectFieldDecoder<Short>() {
+  private static final FieldDecoder<Short> SHORT_OBJ_ARRAY = new AbstractObjectFieldDecoder<Short>() {
 
     @Override
     public Short parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -250,7 +251,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Double> DOUBLE_OBJ = new AbstractObjectFieldDecoder<Double>() {
+  private static final FieldDecoder<Double> DOUBLE_OBJ_ARRAY = new AbstractObjectFieldDecoder<Double>() {
 
     @Override
     public Double parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -268,7 +269,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Float> FLOAT_OBJ = new AbstractObjectFieldDecoder<Float>() {
+  private static final FieldDecoder<Float> FLOAT_OBJ_ARRAY = new AbstractObjectFieldDecoder<Float>() {
 
     @Override
     public Float parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -286,7 +287,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<Boolean> BOOLEAN_OBJ = new AbstractObjectFieldDecoder<Boolean>() {
+  private static final FieldDecoder<Boolean> BOOLEAN_OBJ_ARRAY = new AbstractObjectFieldDecoder<Boolean>() {
 
     @Override
     public Boolean parseValue(int length, ByteBuffer bytes, BaseConnection connection) {
@@ -304,7 +305,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<String> STRING = new AbstractObjectFieldDecoder<String>() {
+  private static final FieldDecoder<String> STRING_ARRAY = new AbstractObjectFieldDecoder<String>() {
 
     @Override
     public String parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
@@ -345,13 +346,13 @@ final class ArrayDecoding {
       length -= 1;
 
       // 42.2.x decodes jsonb array element as String rather than PGobject
-      return STRING.parseValue(length, bytes, connection);
+      return STRING_ARRAY.parseValue(length, bytes, connection);
     }
 
     @Override
     public String parseValue(String stringVal, BaseConnection connection) throws SQLException {
       // 42.2.x decodes jsonb array element as String rather than PGobject
-      return STRING.parseValue(stringVal, connection);
+      return STRING_ARRAY.parseValue(stringVal, connection);
     }
 
     @Override
@@ -360,7 +361,7 @@ final class ArrayDecoding {
     }
   };
 
-  private static final FieldDecoder<byte[]> BYTE_ARRAY = new AbstractObjectFieldDecoder<byte[]>() {
+  private static final FieldDecoder<byte[]> BYTE_ARRAY_ARRAY = new AbstractObjectFieldDecoder<byte[]>() {
 
     /**
      * {@inheritDoc}
@@ -406,6 +407,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Date> DATE_DECODER = new AbstractObjectFieldDecoder<Date>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Date parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] dateVal = new byte[length];
       bytes.get(dateVal);
@@ -413,6 +415,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Date parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toDate(null, stringVal.getBytes());
     }
@@ -426,6 +429,8 @@ final class ArrayDecoding {
   private static final FieldDecoder<Time> TIME_DECODER = new AbstractObjectFieldDecoder<Time>() {
 
     @Override
+    @SuppressWarnings("deprecation")
+
     public Time parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       final byte[] timeVal = new byte[length];
       bytes.get(timeVal);
@@ -433,6 +438,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Time parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTime(null, stringVal.getBytes());
     }
@@ -446,6 +452,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Timestamp> TIMESTAMP_DECODER = new AbstractObjectFieldDecoder<Timestamp>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       byte[] timestampVal = new byte[length];
       bytes.get(timestampVal);
@@ -453,6 +460,7 @@ final class ArrayDecoding {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(String stringVal, BaseConnection connection) throws SQLException {
       return connection.getTimestampUtils().toTimestamp(null, stringVal.getBytes());
     }
@@ -466,6 +474,7 @@ final class ArrayDecoding {
   private static final FieldDecoder<Timestamp> TIMESTAMPZ_DECODER = new AbstractObjectFieldDecoder<Timestamp>() {
 
     @Override
+    @SuppressWarnings("deprecation")
     public Timestamp parseValue(int length, ByteBuffer bytes, BaseConnection connection) throws SQLException {
       byte[] timestampVal = new byte[length];
       bytes.get(timestampVal);
@@ -492,28 +501,29 @@ final class ArrayDecoding {
       (int) (22 / .75) + 1);
 
   static {
-    OID_TO_DECODER.put(Oid.OID, INT4_UNSIGNED_OBJ);
-    OID_TO_DECODER.put(Oid.INT8, LONG_OBJ);
-    OID_TO_DECODER.put(Oid.INT4, INTEGER_OBJ);
-    OID_TO_DECODER.put(Oid.INT2, SHORT_OBJ);
-    OID_TO_DECODER.put(Oid.MONEY, DOUBLE_OBJ);
-    OID_TO_DECODER.put(Oid.FLOAT8, DOUBLE_OBJ);
-    OID_TO_DECODER.put(Oid.FLOAT4, FLOAT_OBJ);
-    OID_TO_DECODER.put(Oid.TEXT, STRING);
-    OID_TO_DECODER.put(Oid.VARCHAR, STRING);
+    OID_TO_DECODER.put(Oid.OID, INT4_UNSIGNED_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.INT8, LONG_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.INT4, INTEGER_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.INT2, SHORT_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.MONEY, DOUBLE_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.FLOAT8, DOUBLE_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.FLOAT4, FLOAT_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.TEXT, STRING_ARRAY);
+    OID_TO_DECODER.put(Oid.VARCHAR, STRING_ARRAY);
+    // 42.2.x decodes jsonb array as String rather than PGobject
     OID_TO_DECODER.put(Oid.JSONB, JSONB_DECODER);
-    OID_TO_DECODER.put(Oid.BIT, BOOLEAN_OBJ);
-    OID_TO_DECODER.put(Oid.BOOL, BOOLEAN_OBJ);
-    OID_TO_DECODER.put(Oid.BYTEA, BYTE_ARRAY);
+    OID_TO_DECODER.put(Oid.BIT, BOOLEAN_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.BOOL, BOOLEAN_OBJ_ARRAY);
+    OID_TO_DECODER.put(Oid.BYTEA, BYTE_ARRAY_ARRAY);
     OID_TO_DECODER.put(Oid.NUMERIC, BIG_DECIMAL_STRING_DECODER);
-    OID_TO_DECODER.put(Oid.BPCHAR, STRING);
-    OID_TO_DECODER.put(Oid.CHAR, STRING);
-    OID_TO_DECODER.put(Oid.JSON, STRING);
+    OID_TO_DECODER.put(Oid.BPCHAR, STRING_ARRAY);
+    OID_TO_DECODER.put(Oid.CHAR, STRING_ARRAY);
+    OID_TO_DECODER.put(Oid.JSON, STRING_ARRAY);
     OID_TO_DECODER.put(Oid.DATE, DATE_DECODER);
     OID_TO_DECODER.put(Oid.TIME, TIME_DECODER);
     OID_TO_DECODER.put(Oid.TIMETZ, TIME_DECODER);
     OID_TO_DECODER.put(Oid.TIMESTAMP, TIMESTAMP_DECODER);
-    OID_TO_DECODER.put(Oid.TIMESTAMPTZ, TIMESTAMPZ_DECODER);
+    OID_TO_DECODER.put(Oid.TIMESTAMPTZ, TIMESTAMP_DECODER);
   }
 
   @SuppressWarnings("rawtypes")
@@ -683,7 +693,7 @@ final class ArrayDecoding {
     // 42.2.x should return enums as strings
     int type = connection.getTypeInfo().getSQLType(typeName);
     if (type == Types.CHAR || type == Types.VARCHAR) {
-      return (FieldDecoder<A>) STRING;
+      return (FieldDecoder<A>) STRING_ARRAY;
     } else if (type == Types.STRUCT) {
       return (FieldDecoder<A>) new StructTypeDecoder(typeName);
     }
@@ -854,11 +864,10 @@ final class ArrayDecoding {
         // number of dimensions
         {
           for (int t = i + 1; t < chars.length; t++) {
-            if (Character.isWhitespace(chars[t])) {
-              continue;
-            } else if (chars[t] == '{') {
+            char c = chars[t];
+            if (c == '{') {
               curArray.dimensionsCount++;
-            } else {
+            } else if (!Character.isWhitespace(c)) {
               break;
             }
           }

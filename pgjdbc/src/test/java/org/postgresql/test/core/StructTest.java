@@ -14,9 +14,10 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -33,7 +34,7 @@ import java.util.Properties;
 
 public class StructTest extends BaseTest4 {
 
-  @BeforeClass
+  @BeforeAll
   public static void beforeAll() throws SQLException {
     Properties props = new Properties();
     try (Connection con = TestUtil.openDB(props)) {
@@ -76,7 +77,7 @@ public class StructTest extends BaseTest4 {
     }
   }
 
-  @AfterClass
+  @AfterAll
   public static void afterAll() throws SQLException {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "nested_structs_array");
@@ -92,11 +93,6 @@ public class StructTest extends BaseTest4 {
   @Override
   protected void updateProperties(Properties props) {
     binaryMode = BinaryMode.FORCE;
-    forceBinary(props);
-  }
-
-  @Override
-  protected void forceBinary(Properties props) {
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
     PGProperty.BINARY_TRANSFER_ENABLE.set(props, "item_2d");
   }
