@@ -752,7 +752,6 @@ public enum PGProperty {
       null,
       "The password for the client's ssl key (ignored if sslpasswordcallback is set)"),
 
-
   /**
    * The classname instantiating {@link javax.security.auth.callback.CallbackHandler} to use.
    */
