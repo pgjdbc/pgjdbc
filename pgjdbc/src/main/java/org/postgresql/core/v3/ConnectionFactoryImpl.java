@@ -223,8 +223,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           protocolMajor = Integer.parseInt(protocolVersion);
           protocolMinor = 0;
         } else {
-          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
           protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
         }
       }
 
