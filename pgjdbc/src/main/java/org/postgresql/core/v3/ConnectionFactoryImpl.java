@@ -220,6 +220,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       if (protocolVersion != null) {
         int decimal = protocolVersion.indexOf('.');
         if (decimal == -1) {
+          protocolMajor = Integer.parseInt(protocolVersion);
           protocolMinor = 0;
         } else {
           protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
