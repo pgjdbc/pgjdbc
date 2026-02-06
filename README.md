@@ -71,13 +71,19 @@ jdbc:postgresql://host/
 jdbc:postgresql://host:port/database
 jdbc:postgresql://host:port/
 jdbc:postgresql://?service=myservice
+jdbc:postgresql://user@host1,host2/database?port=5555
+jdbc:postgresql://user:password@host1:port1,host2:port2/database?service=myservice&defaultRowFetchSize=100
+jdbc:postgresql://:password@:port
 ```
 The general format for a JDBC URL for connecting to a PostgreSQL server is as follows, with items in square brackets ([ ]) being optional:
 ```
-jdbc:postgresql:[//host[:port]/][database][?property1=value1[&property2=value2]...]
+jdbc:postgresql://[[user][:password]@][host1[:port1][,host2[:port2]][,...]][/database][?property1=value1[&property2=value2][&...]]
+jdbc:postgresql:[database]
 ```
 where:
  * **jdbc:postgresql:** (Required) is known as the sub-protocol and is constant.
+ * **user** (Optional) is the user to connect. Defaults to `operating system username`.
+ * **password** (Optional) is the password to connect. No default value.
  * **host** (Optional) is the server address to connect. This could be a DNS or IP address, or it could be *localhost* or *127.0.0.1* for the local computer. To specify an IPv6 address your must enclose the host parameter with square brackets (jdbc:postgresql://[::1]:5740/accounting). Defaults to `localhost`.
  * **port** (Optional) is the port number listening on the host. Defaults to `5432`.
  * **database** (Optional) is the database name. Defaults to the same name as the *user name* used in the connection.
@@ -88,15 +94,19 @@ PgJDBC uses java.util.logging for logging.
 To configure log levels and control log output destination (e.g. file or console), configure your java.util.logging properties accordingly for the org.postgresql logger.
 Note that the most detailed log levels, "`FINEST`", may include sensitive information such as connection details, query SQL, or command parameters.
 
-#### Connection Properties
+### Connection Properties
 In addition to the standard connection parameters the driver supports a number of additional properties which can be used to specify additional driver behaviour specific to PostgreSQL™. These properties may be specified in either the connection URL or an additional Properties object parameter to DriverManager.getConnection.
 
 | Property                      | Type |         Default         | Description                                                                                                                                                                                                                                                                                                                                     |
 |-------------------------------| -- |:-----------------------:|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| user                          | String |          null           | The database user on whose behalf the connection is being made.                                                                                                                                                                                                                                                                               |
+| user                          | String | `operating system username` | The database user on whose behalf the connection is being made.                                                                                                                                                                                                                                                                           |
 | password                      | String |          null           | The database user's password.                                                                                                                                                                                                                                                                                                                 |
+| host                          | String |        localhost        | The server address to connect.                                                                                                                                                                                                                                                                                                                |
+| port                          | String |          5432           | The server port to connect.                                                                                                                                                                                                                                                                                                                   |
+| dbname                        | String |          user           | The database to connect.                                                                                                                                                                                                                                                                                                                      |
 | options                       | String |          null           | Specify 'options' connection initialization parameter.                                                                                                                                                                                                                                                                                        |
-| service                       | String |          null           | Specify 'service' name described in pg_service.conf file. References: [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html) and [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html). 'service' file can provide all properties including 'hostname=', 'port=' and 'dbname='. |
+| service                       | String |          null           | Specify 'service' name described in pg_service.conf file. References: [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html) and [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html). 'service' file can provide all properties including 'hostname=', 'port=' and 'dbname=' except reference to another service. |
+| passfile                      | String | `$HOME/.pgpass` <br /> `%APPDATA%\postgresql\pgpass.conf` | The file can contain passwords to be used if the connection requires a password (and no password has been specified otherwise) [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html).                                                                                              |
 | ssl                           | Boolean |          false          | Control use of SSL (true value causes SSL to be required)                                                                                                                                                                                                                                                                                    |
 | sslfactory                    | String | org.postgresql.ssl.LibPQFactory | Provide a SSLSocketFactory class when using SSL.                                                                                                                                                                                                                                                                                      |
 | sslfactoryarg (deprecated)    | String |          null           | Argument forwarded to constructor of SSLSocketFactory class.                                                                                                                                                                                                                                                                                  |
@@ -160,10 +170,71 @@ In addition to the standard connection parameters the driver supports a number o
 | stringtype                    | String |          null           | Specify the type to use when binding `PreparedStatement` parameters set via `setString()`                                                                                                                                                                                                                                                     |
 | channelBinding                 | String |   prefer    | This option controls the client's use of channel binding. `require` means that the connection must employ channel binding, `prefer` means that the client will choose channel binding if available, and `disable` prevents the use of channel binding.                                                                                                   |
 
-#### System Properties
-| Property                      | Type |         Default         | Description                                                                                                                                                                                                                                                                                                                                     |
-|-------------------------------| -- |:-----------------------:|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------    |
-| pgjdbc.config.cleanup.thread.ttl | long | 30000 |  The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration (in milliseconds) the cleanup thread will keep running if there is nothing to clean up. |
+#### Java System Properties
+Some of the properties could be passed using Java System Properties as follows. Example: 
+```bash
+java -Dorg.postgresql.pguser=myuser ...
+```
+The following table contains a list of supported Java System Properties:
+
+| Property                         | Type | Default | Maps to  | Description                                                                                                                                           |
+|----------------------------------|------|---------|----------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| org.postgresql.pguser            |      |         | user     | same as the user connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgpassword        |      |         | password | same as the password connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).              |
+| org.postgresql.pghost            |      |         | host     | same as the host connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgport            |      |         | port     | same as the port connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| org.postgresql.pgdatabase        |      |         | dbname   | same as the dbname connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                |
+| org.postgresql.pgservice         |      |         | service  | same as the service connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).               |
+| org.postgresql.pgpassfile        |      |         | passfile | same as the passfile connection parameter. [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html).                            |
+| org.postgresql.pgservicefile     |      |         |          | name of the per-user connection service file. [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html).            |
+| org.postgresql.pgsysconfdir      |      |         |          | sets the directory containing the pg_service.conf file. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html). |
+| pgjdbc.config.cleanup.thread.ttl | long | 30000   |          | The driver has an internal cleanup thread which monitors and cleans up unclosed connections. This property sets the duration (in milliseconds) the cleanup thread will keep running if there is nothing to clean up. |
+
+#### Operating System Environment variables
+Some of the properties could be passed using Operating System Environment variables as follows. Example:
+```bash
+PGUSER=myuser java ...
+```
+The following table contains a list of supported Operating System Environment variables:
+
+| Variable      | Maps to                      | Description                                                                                                                                           |
+|---------------|------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| PGUSER        | user                         | same as the user connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGPASSWORD    | password                     | same as the password connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).              |
+| PGHOST        | host                         | same as the host connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGPORT        | port                         | same as the port connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                  |
+| PGDATABASE    | dbname                       | same as the dbname connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).                |
+| PGSERVICE     | service                      | same as the service connection parameter. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html).               |
+| PGPASSFILE    | passfile                     | same as the passfile connection parameter. [The Password File](https://www.postgresql.org/docs/current/libpq-pgpass.html).                            |
+| PGSERVICEFILE | org.postgresql.pgservicefile | name of the per-user connection service file. [The Connection Service File](https://www.postgresql.org/docs/current/libpq-pgservice.html).            |
+| PGSYSCONFDIR  | org.postgresql.pgsysconfdir  | sets the directory containing the pg_service.conf file. See also: [Environment Variables](https://www.postgresql.org/docs/current/libpq-envars.html). |
+
+#### Properties override rules
+There are multiple sources for connection properties. If same property is specified in multiple sources then highest priority source is used. Priority list is here:
+
+1) URL arguments (values after `?` mark)
+2) URL values (values before `?` mark)
+3) Properties given to `DriverManager.getConnection()`
+4) values provided by `service` (from resource `.pg_service.conf`)
+5) values in Java System Properties
+6) values in Operating System environment
+7) values from driverconfig file(s) (`org/postgresql/driverconfig.properties`)
+8) global defaults (`dbname`, `host`, `pgpass`, `port`, `user`)
+
+#### .pg_service.conf file override rules
+File `.pg_service.conf` can be specified in many ways. Priority list is here:
+
+1) Java System Property: `-Dorg.postgresql.pgservicefile=file1`
+2) Operating System environment variable: `PGSERVICEFILE=file2`
+3) default location: `$HOME/.pg_service.conf` or `%APPDATA%\postgresql\.pg_service.conf`
+4) Operating System environment variable: `PGSYSCONFDIR=dir1`. Lookup for file `dir1/pg_service.conf`
+
+#### .pgpass file override rules
+File `.pgpass` can be specified in many ways. Priority list is here:
+
+1) Java System Property: `-Dorg.postgresql.pgpassfile=file1`
+2) Operating System environment variable: `PGPASSFILE=file2`
+3) default location: `$HOME/.pgpass` or `%APPDATA%\postgresql\pgpass.conf`
 
 ## Contributing
 For information on how to contribute to the project see the [Contributing Guidelines](CONTRIBUTING.md)
