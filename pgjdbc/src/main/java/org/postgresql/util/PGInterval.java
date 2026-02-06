@@ -5,8 +5,6 @@
 
 package org.postgresql.util;
 
-import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.Serializable;
@@ -15,7 +13,6 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.Locale;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 
 /**
  * This implements a class that handles the PostgreSQL interval type.
@@ -471,7 +468,7 @@ public class PGInterval extends PGobject implements Serializable, Cloneable {
     if (isNull) {
       return;
     }
-    final Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    final Calendar cal = Calendar.getInstance();
     cal.setTime(date);
     add(cal);
     date.setTime(cal.getTime().getTime());

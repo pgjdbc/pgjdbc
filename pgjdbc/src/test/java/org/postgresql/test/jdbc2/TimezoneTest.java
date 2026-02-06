@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
@@ -77,10 +76,10 @@ public class TimezoneTest {
     TimeZone tzGMT05 = TimeZone.getTimeZone("GMT-05"); // -0500 always
     TimeZone tzGMT13 = TimeZone.getTimeZone("GMT+13"); // +1000 always
 
-    cUTC = createProlepticGregorianCalendar(tzUTC);
-    cGMT03 = createProlepticGregorianCalendar(tzGMT03);
-    cGMT05 = createProlepticGregorianCalendar(tzGMT05);
-    cGMT13 = createProlepticGregorianCalendar(tzGMT13);
+    cUTC = Calendar.getInstance(tzUTC);
+    cGMT03 = Calendar.getInstance(tzGMT03);
+    cGMT05 = Calendar.getInstance(tzGMT05);
+    cGMT13 = Calendar.getInstance(tzGMT13);
   }
 
   @BeforeEach
@@ -860,10 +859,9 @@ public class TimezoneTest {
     PreparedStatement pstmt =
         con.prepareStatement("SELECT ts, d FROM testtimezone order by seq /*" + timeZone + "*/");
 
-    Calendar expectedTimestamp = createProlepticGregorianCalendar(TimeZone.getDefault());
+    Calendar expectedTimestamp = Calendar.getInstance();
 
     SimpleDateFormat sdf = new SimpleDateFormat(testDateFormat);
-    sdf.setCalendar(expectedTimestamp);
 
     for (int i = 0; i < PREPARE_THRESHOLD; i++) {
       ResultSet rs = pstmt.executeQuery();
@@ -973,5 +971,4 @@ public class TimezoneTest {
     }
     return millis;
   }
-
 }

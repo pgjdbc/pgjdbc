@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -58,21 +57,21 @@ public class PGTimeTest extends BaseTest4 {
   public void testTimeWithInterval() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
-    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    Calendar cal = Calendar.getInstance();
     cal.set(1970, Calendar.JANUARY, 1);
 
     final long now = cal.getTimeInMillis();
     verifyTimeWithInterval(new PGTime(now), new PGInterval(0, 0, 0, 1, 2, 3.14), true);
     verifyTimeWithInterval(new PGTime(now), new PGInterval(0, 0, 0, 1, 2, 3.14), false);
 
-    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
+    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
         new PGInterval(0, 0, 0, 1, 2, 3.14), true);
-    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
+    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
         new PGInterval(0, 0, 0, 1, 2, 3.14), false);
 
-    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
         new PGInterval(0, 0, 0, 1, 2, 3.456), true);
-    verifyTimeWithInterval(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyTimeWithInterval(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
         new PGInterval(0, 0, 0, 1, 2, 3.456), false);
   }
 
@@ -136,20 +135,20 @@ public class PGTimeTest extends BaseTest4 {
    */
   @Test
   public void testTimeInsertAndSelect() throws SQLException {
-    Calendar cal = createProlepticGregorianCalendar(TimeZone.getDefault());
+    Calendar cal = Calendar.getInstance();
     cal.set(1970, Calendar.JANUARY, 1);
 
     final long now = cal.getTimeInMillis();
     verifyInsertAndSelect(new PGTime(now), true);
     verifyInsertAndSelect(new PGTime(now), false);
 
-    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))), true);
-    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
+    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))), true);
+    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
         false);
 
-    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
         true);
-    verifyInsertAndSelect(new PGTime(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))),
+    verifyInsertAndSelect(new PGTime(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))),
         false);
   }
 
@@ -244,5 +243,4 @@ public class PGTimeTest extends BaseTest4 {
     }
     return sdf;
   }
-
 }
