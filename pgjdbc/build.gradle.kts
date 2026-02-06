@@ -81,11 +81,6 @@ tasks.jar {
     addMultiReleaseContents()
 }
 
-val knows by tasks.existing {
-    group = null // Hide the task from `./gradlew tasks` output
-    description = "This is a dummy task, unfortunately the author refuses to remove it: https://github.com/johnrengelman/shadow/issues/122"
-}
-
 val shaded by configurations.creating
 
 val karafFeatures by configurations.creating {
@@ -269,6 +264,7 @@ tasks.configureEach<Jar> {
 
 tasks.shadowJar {
     configurations = listOf(shaded)
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     exclude("META-INF/maven/**")
     // ignore module-info.class not used in shaded dependency
     exclude("META-INF/versions/9/module-info.class")
