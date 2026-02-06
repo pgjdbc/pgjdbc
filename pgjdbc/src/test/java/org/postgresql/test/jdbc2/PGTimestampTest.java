@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.postgresql.jdbc.TimestampUtils.createProlepticGregorianCalendar;
 
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
@@ -26,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
@@ -66,13 +66,13 @@ class PGTimestampTest {
     verifyTimestampWithInterval(timestamp, interval, false);
 
     timestamp = new PGTimestamp(System.currentTimeMillis(),
-        createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT")));
+        Calendar.getInstance(TimeZone.getTimeZone("GMT")));
     interval = new PGInterval(0, 0, 0, 1, 2, 3.14);
     verifyTimestampWithInterval(timestamp, interval, true);
     verifyTimestampWithInterval(timestamp, interval, false);
 
     timestamp = new PGTimestamp(System.currentTimeMillis(),
-        createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00")));
+        Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00")));
     interval = new PGInterval(-3, -2, -1, 1, 2, 3.14);
     verifyTimestampWithInterval(timestamp, interval, true);
     verifyTimestampWithInterval(timestamp, interval, false);
@@ -139,15 +139,15 @@ class PGTimestampTest {
     verifyInsertAndSelect(new PGTimestamp(now), true);
     verifyInsertAndSelect(new PGTimestamp(now), false);
 
-    verifyInsertAndSelect(new PGTimestamp(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
+    verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
         true);
-    verifyInsertAndSelect(new PGTimestamp(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT"))),
+    verifyInsertAndSelect(new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT"))),
         false);
 
     verifyInsertAndSelect(
-        new PGTimestamp(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))), true);
+        new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), true);
     verifyInsertAndSelect(
-        new PGTimestamp(now, createProlepticGregorianCalendar(TimeZone.getTimeZone("GMT+01:00"))), false);
+        new PGTimestamp(now, Calendar.getInstance(TimeZone.getTimeZone("GMT+01:00"))), false);
   }
 
   /**
@@ -242,5 +242,4 @@ class PGTimestampTest {
     }
     return sdf;
   }
-
 }
