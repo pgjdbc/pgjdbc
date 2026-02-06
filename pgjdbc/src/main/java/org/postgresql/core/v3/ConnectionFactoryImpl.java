@@ -220,11 +220,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       if (protocolVersion != null) {
         int decimal = protocolVersion.indexOf('.');
         if (decimal == -1) {
-          protocolMinor = Integer.parseInt(protocolVersion);
+          protocolMajor = Integer.parseInt(protocolVersion);
           protocolMinor = 0;
         } else {
-          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
           protocolMajor = Integer.parseInt(protocolVersion.substring(0,decimal));
+          protocolMinor = Integer.parseInt(protocolVersion.substring(decimal + 1));
         }
       }
 
@@ -754,7 +754,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               // do not connect and throw an error
               String errorMessage = "Protocol error, received invalid options: ";
               for (int i = 0; i < numOptionsNotRecognized; i++) {
-                errorMessage  += i > 0 ? "" : "," + pgStream.receiveString();
+                errorMessage  += (i > 0 ? "," : "") + pgStream.receiveString();
               }
               LOGGER.log(Level.FINEST, errorMessage);
               throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
