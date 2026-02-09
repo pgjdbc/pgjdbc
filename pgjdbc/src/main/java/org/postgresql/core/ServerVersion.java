@@ -38,7 +38,9 @@ public enum ServerVersion implements Version {
   v15("15"),
   v16("16"),
   v17("17"),
-  v18("18")
+  v18("18"),
+  v19("19"),
+  v20("20")
   ;
 
   private final int version;

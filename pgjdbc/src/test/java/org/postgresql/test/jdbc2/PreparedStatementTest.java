@@ -468,6 +468,10 @@ public class PreparedStatementTest extends BaseTest4 {
 
   @Test
   public void testSingleQuotes() throws SQLException {
+    // This test is only relevant for PostgreSQL 18 and below
+    // as of 4576208 in postgres non-standard strings now throw an error.
+    assumeMinimumServerVersion(ServerVersion.v18);
+
     String[] testStrings = new String[]{
       "bare ? question mark",
       "quoted \\' single quote",
