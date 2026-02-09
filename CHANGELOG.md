@@ -4,6 +4,25 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+## [42.7.10] (2026-02-09)
+
+### Changed
+* chore: Migrate to Shadow 9 [PR 3931](https://github.com/pgjdbc/pgjdbc/pull/3931)
+* style: fix empty line before javadoc for checkstyle compliance [PR #3925](https://github.com/pgjdbc/pgjdbc/pull/3925)
+* style: fix lambda argument indentation for checkstyle compliance [PR #3922](https://github.com/pgjdbc/pgjdbc/pull/3922)
+* test: add autosave=always|never|conservative and cleanupSavepoints=true|false to the randomized CI jobs [PR #3917](https://github.com/pgjdbc/pgjdbc/pull/3917)
+
+### Fixed
+* fix: non-standard strings failing test for version 19 [PR #3934](https://github.com/pgjdbc/pgjdbc/pull/3934)
+* fix: small issues in ConnectionFactoryImpl [PR #3929](https://github.com/pgjdbc/pgjdbc/pull/3929)
+* fix: process pending responses before fastpath to avoid protocol errors [PR # 3913](https://github.com/pgjdbc/pgjdbc/pull/3913)
+* doc: use.md, fix typos [PR #3911](https://github.com/pgjdbc/pgjdbc/pull/3911)
+* doc: datasource.md, fix minor formatting issue [PR #3912](https://github.com/pgjdbc/pgjdbc/pull/3912)
+* doc: add the new PGP signing key to the official documentation [PR #3912](https://github.com/pgjdbc/pgjdbc/pull/3813)
+
+### Reverted
+* Revert "fix: make all Calendar instances proleptic Gregorian (#3837) (#3887)" [PR #3932](https://github.com/pgjdbc/pgjdbc/pull/3932)
+
 ## [42.7.9] (2026-01-14)
 
 ### Added
