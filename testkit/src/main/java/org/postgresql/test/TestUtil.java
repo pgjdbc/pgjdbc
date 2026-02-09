@@ -785,6 +785,24 @@ public class TestUtil {
     }
   }
 
+  public static boolean isServerVersionLessThan( Connection con, Version version )
+    throws SQLException {
+    if (version == null) {
+      return false;
+    }
+    if (con instanceof PgConnection) {
+      return ((PgConnection) con).isServerVersionLessThan(version);
+    }
+    return false;
+  }
+
+  public static void assumeServerVersionLessThan(Version version)
+    throws SQLException {
+    try (Connection conn = openPrivilegedDB()) {
+      assumeTrue(TestUtil.isServerVersionLessThan(conn, version));
+    }
+  }
+
   public static boolean haveMinimumJVMVersion(String version) {
     String jvm = java.lang.System.getProperty("java.version");
     return jvm.compareTo(version) >= 0;

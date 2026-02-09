@@ -117,6 +117,28 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean haveMinimumServerVersion(Version ver);
 
   /**
+   * Check if the server version not greater than ver.
+   *
+   * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
+   * is 90012.</p>
+   *
+   * @param ver the server version to check
+   * @return true if the server version is at least "ver".
+   */
+  boolean isServerVersionLessThan(Version ver);
+
+  /**
+   * Check if the server version is not greater than ver
+   *
+   * <p>The input version is of the form xxyyzz, matching a PostgreSQL version like xx.yy.zz. So 9.0.12
+   * is 90012.</p>
+   *
+   * @param ver the server version to check, of the form xxyyzz eg 90401
+   * @return true if the server version is at least "ver".
+   */
+  boolean isServerVersionLessThan(int ver);
+
+  /**
    * Encode a string using the database's client_encoding (usually UTF8, but can vary on older
    * server versions). This is used when constructing synthetic resultsets (for example, in metadata
    * methods).

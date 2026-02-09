@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.postgresql.test.TestUtil.assumeServerVersionLessThan;
 
 import org.postgresql.PGStatement;
 import org.postgresql.core.ServerVersion;
@@ -470,7 +471,7 @@ public class PreparedStatementTest extends BaseTest4 {
   public void testSingleQuotes() throws SQLException {
     // This test is only relevant for PostgreSQL 18 and below
     // as of 4576208 in postgres non-standard strings now throw an error.
-    assumeMinimumServerVersion(ServerVersion.v18);
+    assumeServerVersionLessThan(ServerVersion.v19);
 
     String[] testStrings = new String[]{
       "bare ? question mark",

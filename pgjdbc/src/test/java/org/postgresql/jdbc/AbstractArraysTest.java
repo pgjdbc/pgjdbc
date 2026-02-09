@@ -358,6 +358,17 @@ public abstract class AbstractArraysTest<A> {
       throw new UnsupportedOperationException();
     }
 
+
+    @Override
+    public boolean isServerVersionLessThan(Version ver) {
+      return false;
+    }
+
+    @Override
+    public boolean isServerVersionLessThan(int ver) {
+      return false;
+    }
+
     /**
      * {@inheritDoc}
      */

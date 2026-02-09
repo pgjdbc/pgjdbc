@@ -1193,6 +1193,16 @@ public class PgConnection implements BaseConnection {
     return haveMinimumServerVersion(ver.getVersionNum());
   }
 
+  @Override
+  public boolean isServerVersionLessThan(int ver) {
+    return queryExecutor.getServerVersionNum() < ver;
+  }
+
+  @Override
+  public boolean isServerVersionLessThan(Version ver) {
+    return isServerVersionLessThan(ver.getVersionNum());
+  }
+
   @Pure
   @Override
   public Encoding getEncoding() {
