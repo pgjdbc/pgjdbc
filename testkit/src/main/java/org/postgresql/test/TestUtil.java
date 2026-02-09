@@ -786,7 +786,7 @@ public class TestUtil {
   }
 
   public static boolean isServerVersionLessThan( Connection con, Version version )
-    throws SQLException {
+      throws SQLException {
     if (version == null) {
       return false;
     }
@@ -797,7 +797,7 @@ public class TestUtil {
   }
 
   public static void assumeServerVersionLessThan(Version version)
-    throws SQLException {
+      throws SQLException {
     try (Connection conn = openPrivilegedDB()) {
       assumeTrue(TestUtil.isServerVersionLessThan(conn, version));
     }
