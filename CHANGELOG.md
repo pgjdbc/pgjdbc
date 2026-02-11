@@ -4,7 +4,7 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
-## [42.7.10] (2026-02-09)
+## [42.7.10] (2026-02-11)
 
 ### Changed
 * chore: Migrate to Shadow 9 [PR 3931](https://github.com/pgjdbc/pgjdbc/pull/3931)
