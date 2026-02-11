@@ -42,7 +42,7 @@ jobs:
             console.log(`Version is ${version}`);
             return version;
       - name: Update release body draft
-        uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6
+        uses: release-drafter/release-drafter@267d2e0268deae5d44f3ba5029dd4d6e85f9d52d # v6
         id: prepare_release
         # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
         with:
