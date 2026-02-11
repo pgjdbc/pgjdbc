@@ -48,6 +48,13 @@ import javax.sql.XADataSource;
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
 public class DataSourceFactoryTest {
+  private static final String PROPERTY_PGHOST = "PGHOST";
+  private static final String PROPERTY_PGHOST_TEST = "test.url.PGHOST";
+  private static final String PROPERTY_PGPORT = "PGPORT";
+  private static final String PROPERTY_PGPORT_TEST = "test.url.PGPORT";
+  private static final String PROPERTY_PGDBNAME = "PGDBNAME";
+  private static final String PROPERTY_PGDBNAME_TEST = "test.url.PGDBNAME";
+
   @Inject
   private BundleContext bundleContext;
 
@@ -117,9 +124,9 @@ public class DataSourceFactoryTest {
     Properties p = loadPropertyFiles("build.properties");
 
     return "jdbc:postgresql://"
-        + p.get("test.url.PGHOST") + ":"
-        + p.get("test.url.PGPORT") + "/"
-        + p.get("test.url.PGDBNAME")
+        + p.get(PROPERTY_PGHOST_TEST) + ":"
+        + p.get(PROPERTY_PGPORT_TEST) + "/"
+        + p.get(PROPERTY_PGDBNAME_TEST)
         ;
   }
 
@@ -128,7 +135,13 @@ public class DataSourceFactoryTest {
     p.putAll(System.getProperties());
     Properties p2 = new Properties();
     for (Map.Entry<Object, Object> entry : p.entrySet()) {
-      if (PGProperty.forName((String) entry.getKey()) != null) {
+      if (entry.getKey().equals(PROPERTY_PGHOST_TEST)) {
+        p2.put(PROPERTY_PGHOST, entry.getValue());
+      } else if (entry.getKey().equals(PROPERTY_PGPORT_TEST)) {
+        p2.put(PROPERTY_PGPORT, entry.getValue());
+      } else if (entry.getKey().equals(PROPERTY_PGDBNAME_TEST)) {
+        p2.put(PROPERTY_PGDBNAME, entry.getValue());
+      } else if (PGProperty.forName((String) entry.getKey()) != null) {
         p2.put(entry.getKey(), entry.getValue());
       }
     }
