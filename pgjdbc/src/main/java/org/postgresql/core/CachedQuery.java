@@ -41,6 +41,11 @@ public class CachedQuery implements CanEstimateSize {
     if (newValue > 0) { // if overflows, just ignore the update
       executeCount = newValue;
     }
+     else if(executeCount != 0){ //if overflows, comes to here.
+            //We set the executeCount to MAX_VALUE to make it having higher counts than others,
+            //otherwise this statement may be replaced by other statement in the cache pool. 
+      executeCount = Integer.MAX_VALUE;
+    }
   }
 
   /**
