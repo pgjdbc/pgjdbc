@@ -65,7 +65,14 @@ public enum PGProperty {
       "allowEncodingChanges",
       "false",
       "Allow for changes in client_encoding"),
-
+  /**
+   * Enable handling of special numeric values (e.g., NaN, Infinity) in NUMERIC arrays.
+   */
+  ALLOW_SPECIAL_NUMERIC(
+      "allowSpecialNumeric",
+      "false",
+      "Enable handling of special numeric values (e.g., NaN, Infinity) in NUMERIC arrays."
+  ),
   /**
    * The application name (require server version &gt;= 9.0).
    */
