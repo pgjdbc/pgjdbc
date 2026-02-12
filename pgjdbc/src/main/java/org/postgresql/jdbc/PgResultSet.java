@@ -2119,14 +2119,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         case Types.TIME:
           rowBuffer.set(columnIndex, connection
               .encodeString(
-                  getTimestampUtils().toString(
-                      getDefaultCalendar(), (Time) valueObject)));
+                  valueObject instanceof OffsetTime
+                      ? getTimestampUtils().toString((OffsetTime) valueObject)
+                      : getTimestampUtils().toString(getDefaultCalendar(), (Time) valueObject)));
           break;
 
         case Types.TIMESTAMP:
           rowBuffer.set(columnIndex, connection.encodeString(
-              getTimestampUtils().toString(
-                  getDefaultCalendar(), (Timestamp) valueObject)));
+              valueObject instanceof OffsetDateTime
+                  ? getTimestampUtils().toString((OffsetDateTime) valueObject)
+                  : getTimestampUtils().toString(getDefaultCalendar(), (Timestamp) valueObject)));
           break;
 
         case Types.NULL:

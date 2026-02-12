@@ -31,6 +31,11 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.OffsetTime;
+import java.time.ZoneOffset;
 import java.util.TimeZone;
 
 public class UpdateableResultTest extends BaseTest4 {
@@ -55,6 +60,8 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
     TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
+    TestUtil.createTable(con, "ttztable", "id int not null primary key, ttz timetz default null, "
+        + "tstz timestamptz default null");
     TestUtil.execute(con, "insert into booltable (id) values (1)");
     TestUtil.execute(con, "insert into uniquekeys(id, id2, dt) values (1, 2, now())");
 
@@ -67,6 +74,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.execute(con, "insert into unique_null_constraint values (1, 'dave')");
     TestUtil.execute(con, "insert into unique_null_constraint values (null, 'unknown')");
     TestUtil.execute(con, "insert into primaryunique values (1, 'dave', now())");
+    TestUtil.execute(con, "insert into ttztable values (1, CURRENT_TIME, CURRENT_TIMESTAMP)");
 
   }
 
@@ -84,6 +92,7 @@ public class UpdateableResultTest extends BaseTest4 {
     TestUtil.dropTable(con, "uniquekeys");
     TestUtil.dropTable(con, "partialunique");
     TestUtil.dropTable(con, "primaryunique");
+    TestUtil.dropTable(con, "ttztable");
     super.tearDown();
   }
 
@@ -776,7 +785,8 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateString("name1", "bob");
       fail("Should have failed since unique column u1 is nullable");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table unique_null_constraint.", ex.getMessage());
+      assertEquals("No eligible primary or unique key found for table unique_null_constraint.",
+          ex.getMessage());
     }
     rs.close();
     st.close();
@@ -891,6 +901,71 @@ public class UpdateableResultTest extends BaseTest4 {
       fail("Should have failed since no UK/PK are in the select statement");
     } catch (SQLException ex) {
       assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
+    }
+    rs.close();
+    st.close();
+  }
+
+  @Test
+  public void testOffestTimeUpdate() throws SQLException {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT * from ttztable");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+
+    OffsetTime timetz = rs.getObject(2, OffsetTime.class);
+    if (timetz == null) {
+      fail("Must be not null");
+    }
+
+    OffsetTime offsetTime = OffsetTime.of(LocalTime.now(), ZoneOffset.of("-08:00"));
+    rs.updateObject(2, offsetTime);
+
+    try {
+      rs.updateRow();
+    } catch (SQLException ex) {
+      fail("Can not update row with OffsetTime object");
+    }
+
+    OffsetTime updated = rs.getObject(2, OffsetTime.class);
+    assertEquals("-08:00", updated.getOffset().toString());
+
+    rs.close();
+    st.close();
+
+    //select again
+    st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    rs = st.executeQuery("SELECT * from ttztable");
+    assertTrue(rs.next());
+
+    OffsetTime fromDbAgain = rs.getObject(2, OffsetTime.class);
+    assertEquals("-08:00", fromDbAgain.getOffset().toString());
+  }
+
+  @Test
+  public void testOffestDateTimeUpdate() throws SQLException {
+    Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+        ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = st.executeQuery("SELECT * from ttztable");
+    assertTrue(rs.next());
+    assertTrue(rs.first());
+
+    OffsetDateTime tstz = rs.getObject(3, OffsetDateTime.class);
+    if (tstz == null) {
+      fail("Must be not null");
+    }
+
+    OffsetDateTime offset = OffsetDateTime.of(LocalDateTime.now(),
+        ZoneOffset.of("+05:00"));
+
+    rs.updateObject(3, offset);
+
+    try {
+      rs.updateRow();
+    } catch (SQLException ex) {
+      fail("Can not update row with OffsetDateTime object");
     }
     rs.close();
     st.close();
