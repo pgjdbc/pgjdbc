@@ -9,16 +9,13 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.ResourceLock;
-import org.postgresql.jdbcurlresolver.PgPassParser;
-import org.postgresql.jdbcurlresolver.PgServiceConfParser;
+import org.postgresql.jdbcurlresolver.JdbcUrlResolver;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
-import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
-import org.postgresql.util.URLCoder;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -139,13 +136,6 @@ public class Driver implements java.sql.Driver {
 
   private Properties loadDefaultProperties() throws IOException {
     Properties merged = new Properties();
-
-    try {
-      PGProperty.USER.set(merged, System.getProperty("user.name"));
-    } catch (SecurityException se) {
-      // We're just trying to set a default, so if we can't
-      // it's not a big deal.
-    }
 
     // If we are loaded by the bootstrap classloader, getClassLoader()
     // may return null. In that case, try to fall back to the system
@@ -533,177 +523,17 @@ public class Driver implements java.sql.Driver {
    * @return Properties with elements added from the url
    */
   public static @Nullable Properties parseURL(String url, @Nullable Properties defaults) {
-    // priority 1 - URL values
-    Properties priority1Url = new Properties();
-    // priority 2 - Properties given as argument to DriverManager.getConnection()
-    // argument "defaults" EXCLUDING defaults
-    // priority 3 - Values retrieved by "service"
-    Properties priority3Service = new Properties();
-    // priority 4 - Properties loaded by Driver.loadDefaultProperties() (user, org/postgresql/driverconfig.properties)
-    // argument "defaults" INCLUDING defaults
-    // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
-
-    String urlServer = url;
-    String urlArgs = "";
-
-    int qPos = url.indexOf('?');
-    if (qPos != -1) {
-      urlServer = url.substring(0, qPos);
-      urlArgs = url.substring(qPos + 1);
-    }
-
-    if (!urlServer.startsWith("jdbc:postgresql:")) {
-      LOGGER.log(Level.FINE, "JDBC URL must start with \"jdbc:postgresql:\" but was: {0}", url);
-      return null;
-    }
-    urlServer = urlServer.substring("jdbc:postgresql:".length());
-
-    if ("//".equals(urlServer) || "///".equals(urlServer)) {
-      urlServer = "";
-    } else if (urlServer.startsWith("//")) {
-      urlServer = urlServer.substring(2);
-      long slashCount = urlServer.chars().filter(ch -> ch == '/').count();
-      if (slashCount > 1) {
-        LOGGER.log(Level.WARNING, "JDBC URL contains too many / characters: {0}", url);
-        return null;
-      }
-      int slash = urlServer.indexOf('/');
-      if (slash == -1) {
-        LOGGER.log(Level.WARNING, "JDBC URL must contain a / at the end of the host or port: {0}", url);
-        return null;
-      }
-      if (!urlServer.endsWith("/")) {
-        String value = urlDecode(urlServer.substring(slash + 1));
-        if (value == null) {
-          return null;
-        }
-        PGProperty.PG_DBNAME.set(priority1Url, value);
-      }
-      urlServer = urlServer.substring(0, slash);
-
-      String[] addresses = urlServer.split(",");
-      StringBuilder hosts = new StringBuilder();
-      StringBuilder ports = new StringBuilder();
-      for (String address : addresses) {
-        int portIdx = address.lastIndexOf(':');
-        if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-          String portStr = address.substring(portIdx + 1);
-          ports.append(portStr);
-          CharSequence hostStr = address.subSequence(0, portIdx);
-          if (hostStr.length() == 0) {
-            hosts.append(PGProperty.PG_HOST.getDefaultValue());
-          } else {
-            hosts.append(hostStr);
-          }
-        } else {
-          ports.append(PGProperty.PG_PORT.getDefaultValue());
-          hosts.append(address);
-        }
-        ports.append(',');
-        hosts.append(',');
-      }
-      ports.setLength(ports.length() - 1);
-      hosts.setLength(hosts.length() - 1);
-      PGProperty.PG_HOST.set(priority1Url, hosts.toString());
-      PGProperty.PG_PORT.set(priority1Url, ports.toString());
-    } else if (urlServer.startsWith("/")) {
-      return null;
-    } else {
-      String value = urlDecode(urlServer);
-      if (value == null) {
-        return null;
-      }
-      priority1Url.setProperty(PGProperty.PG_DBNAME.getName(), value);
-    }
-
-    // parse the args part of the url
-    String[] args = urlArgs.split("&");
-    String serviceName = null;
-    for (String token : args) {
-      if (token.isEmpty()) {
-        continue;
-      }
-      int pos = token.indexOf('=');
-      if (pos == -1) {
-        priority1Url.setProperty(token, "");
-      } else {
-        String pName = PGPropertyUtil.translatePGServiceToPGProperty(token.substring(0, pos));
-        String pValue = urlDecode(token.substring(pos + 1));
-        if (pValue == null) {
-          return null;
-        }
-        if (PGProperty.SERVICE.getName().equals(pName)) {
-          serviceName = pValue;
-        } else {
-          priority1Url.setProperty(pName, pValue);
-        }
-      }
-    }
-
-    // load pg_service.conf
-    if (serviceName != null) {
-      LOGGER.log(Level.FINE, "Processing option [?service={0}]", serviceName);
-      Properties result = PgServiceConfParser.getServiceProperties(serviceName);
-      if (result == null) {
-        LOGGER.log(Level.WARNING, "Definition of service [{0}] not found", serviceName);
-        return null;
-      }
-      priority3Service.putAll(result);
-    }
-
-    // combine result based on order of priority
-    Properties result = new Properties();
-    result.putAll(priority1Url);
-    if (defaults != null) {
-      // priority 2 - forEach() returns all entries EXCEPT defaults
-      defaults.forEach(result::putIfAbsent);
-    }
-    priority3Service.forEach(result::putIfAbsent);
-    if (defaults != null) {
-      // priority 4 - stringPropertyNames() returns all entries INCLUDING defaults
-      defaults.stringPropertyNames().forEach(s -> result.putIfAbsent(s, castNonNull(defaults.getProperty(s))));
-    }
-    // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
-    result.putIfAbsent(PGProperty.PG_PORT.getName(), castNonNull(PGProperty.PG_PORT.getDefaultValue()));
-    result.putIfAbsent(PGProperty.PG_HOST.getName(), castNonNull(PGProperty.PG_HOST.getDefaultValue()));
-    if (PGProperty.USER.getOrDefault(result) != null) {
-      result.putIfAbsent(PGProperty.PG_DBNAME.getName(), castNonNull(PGProperty.USER.getOrDefault(result)));
-    }
-
-    // consistency check
-    if (!PGPropertyUtil.propertiesConsistencyCheck(result)) {
-      return null;
-    }
-
-    // try to load .pgpass if password is missing
-    if (PGProperty.PASSWORD.getOrDefault(result) == null) {
-      String password = PgPassParser.getPassword(
-          PGProperty.PG_HOST.getOrDefault(result), PGProperty.PG_PORT.getOrDefault(result), PGProperty.PG_DBNAME.getOrDefault(result), PGProperty.USER.getOrDefault(result)
-      );
-      if (password != null && !password.isEmpty()) {
-        PGProperty.PASSWORD.set(result, password);
-      }
-    }
-    //
-    return result;
-  }
-
-  // decode url, on failure log and return null
-  private static @Nullable String urlDecode(String url) {
-    try {
-      return URLCoder.decode(url);
-    } catch (IllegalArgumentException e) {
-      LOGGER.log(Level.FINE, "Url [{0}] parsing failed with error [{1}]", new Object[]{url, e.getMessage()});
-    }
-    return null;
+    // resolve url (including "?service=" syntax and pgpass file)
+    JdbcUrlResolver resolver = new JdbcUrlResolver(url, defaults);
+    return resolver.getResult();
   }
 
   /**
    * @return the address portion of the URL
    */
   private static HostSpec[] hostSpecs(Properties props) {
-    String[] hosts = castNonNull(PGProperty.PG_HOST.getOrDefault(props)).split(",");
-    String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
+    String[] hosts = castNonNull(PGProperty.HOST.getOrDefault(props)).split(",");
+    String[] ports = castNonNull(PGProperty.PORT.getOrDefault(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
     HostSpec[] hostSpecs = new HostSpec[hosts.length];
     for (int i = 0; i < hostSpecs.length; i++) {

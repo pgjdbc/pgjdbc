@@ -217,6 +217,15 @@ public enum PGProperty {
       "Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache."),
 
   /**
+   * Database name to connect to (may be specified directly in the JDBC URL).
+   */
+  DBNAME(
+      "dbname",
+      null,
+      "Database name to connect to (may be specified directly in the JDBC URL)",
+      true),
+
+  /**
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
    * that need fetch all rows at once
    */
@@ -320,6 +329,15 @@ public enum PGProperty {
       "hideUnprivilegedObjects",
       "false",
       "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
+
+  /**
+   * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
+   */
+  HOST(
+      "host",
+      "localhost",
+      "Hostname of the PostgreSQL server (may be specified directly in the JDBC URL)",
+      false),
 
   HOST_RECHECK_SECONDS(
       "hostRecheckSeconds",
@@ -442,6 +460,16 @@ public enum PGProperty {
       "Specify 'options' connection initialization parameter."),
 
   /**
+   * Specifies the name of the file used to store passwords.
+   * Defaults to ~/.pgpass, or %APPDATA%\postgresql\pgpass.conf on Microsoft Windows.
+   * (No error is reported if this file does not exist.).
+   */
+  PASSFILE(
+      "passfile",
+      null,
+      "File used to store passwords (may be specified directly in the JDBC URL)"),
+
+  /**
    * Password to use when authenticating.
    */
   PASSWORD(
@@ -457,7 +485,9 @@ public enum PGProperty {
 
   /**
    * Database name to connect to (may be specified directly in the JDBC URL).
+   * @deprecated Use property DBNAME instead
    */
+  @Deprecated
   PG_DBNAME(
       "PGDBNAME",
       null,
@@ -466,7 +496,9 @@ public enum PGProperty {
 
   /**
    * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
+   * @deprecated Use property HOST instead
    */
+  @Deprecated
   PG_HOST(
       "PGHOST",
       "localhost",
@@ -475,9 +507,19 @@ public enum PGProperty {
 
   /**
    * Port of the PostgreSQL server (may be specified directly in the JDBC URL).
+   * @deprecated Use property PORT instead
    */
+  @Deprecated
   PG_PORT(
       "PGPORT",
+      "5432",
+      "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
+
+  /**
+   * Port of the PostgreSQL server (may be specified directly in the JDBC URL).
+   */
+  PORT(
+      "port",
       "5432",
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
@@ -1110,5 +1152,24 @@ public enum PGProperty {
       return (String) o;
     }
     return null;
+  }
+
+  /**
+   * Return valid properties. Not existing properties are not returned.
+   *
+   * @param properties properties bundle
+   * @return properties bundle with valid properties
+   */
+  public static Properties removeNonExistingProperties(Properties properties) {
+    Properties props = new Properties();
+    properties.stringPropertyNames().stream()
+        .filter(name -> PGProperty.forName(name) != null)
+        .forEach(name -> {
+          String value = properties.getProperty(name);
+          if (value != null) {
+            props.setProperty(name, value);
+          }
+        });
+    return props;
   }
 }
