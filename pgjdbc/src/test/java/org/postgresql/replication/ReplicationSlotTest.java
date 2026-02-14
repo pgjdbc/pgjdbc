@@ -19,7 +19,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
@@ -34,7 +34,7 @@ import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
 
 @Replication
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class ReplicationSlotTest {
   private Connection sqlConnection;
   private Connection replConnection;
