@@ -2636,7 +2636,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             // identify that "update" did not return any results
             executeRequest.query.setFields(null);
 
-            pendingDescribePortalQueue.removeFirst();
+            if (!pendingDescribePortalQueue.isEmpty()) {
+              pendingDescribePortalQueue.removeFirst();
+            } else {
+              LOGGER.log(Level.WARNING, " <=BE ReadyForQuery with no corresponding pending Describe portal message");
+            }
             if (!pendingExecuteQueue.isEmpty()) {
               if (getTransactionState() == TransactionState.IDLE) {
                 handler.secureProgress();
