@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
@@ -23,7 +23,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 @Replication
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class ReplicationConnectionTest {
   private Connection replConnection;
 

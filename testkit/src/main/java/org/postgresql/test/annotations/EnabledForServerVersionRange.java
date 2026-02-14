@@ -5,7 +5,7 @@
 
 package org.postgresql.test.annotations;
 
-import org.postgresql.test.impl.ServerVersionGreaterCondition;
+import org.postgresql.test.impl.EnabledForServerVersionRangeCondition;
 
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -15,16 +15,30 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Disables test if the current server version is greater than specified version.
+ * Disables test if the current server version does not match the required range
  * @see org.junit.jupiter.api.Disabled
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-@ExtendWith(ServerVersionGreaterCondition.class)
-public @interface DisabledIfServerVersionGreater {
+@ExtendWith(EnabledForServerVersionRangeCondition.class)
+public @interface EnabledForServerVersionRange {
   /**
-   * @return not null sever version in form x.y.z like 9.4, 9.5.3, etc.
-   * @see org.postgresql.core.ServerVersion
+   * Less than
    */
-  String value();
+  String lt() default "";
+
+  /**
+   * Less than or equal
+   */
+  String lte() default "";
+
+  /**
+   * Greater than or equal
+   */
+  String gte() default "";
+
+  /**
+   * Greater than
+   */
+  String gt() default "";
 }

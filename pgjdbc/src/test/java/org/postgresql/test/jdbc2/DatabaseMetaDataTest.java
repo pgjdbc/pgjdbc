@@ -19,7 +19,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.jdbc2.BaseTest4.BinaryMode;
 
 import org.junit.jupiter.api.AfterEach;
@@ -1363,7 +1363,7 @@ public class DatabaseMetaDataTest {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("9.2")
+  @EnabledForServerVersionRange(gte = "9.2")
   void escaping() throws SQLException {
     DatabaseMetaData dbmd = con.getMetaData();
     ResultSet rs = dbmd.getTables(null, null, "a'", new String[]{"TABLE"});

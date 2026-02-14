@@ -13,7 +13,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
@@ -29,7 +29,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 
 @Replication
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class PhysicalReplicationTest {
 
   private static final String SLOT_NAME = "pgjdbc_physical_replication_slot";

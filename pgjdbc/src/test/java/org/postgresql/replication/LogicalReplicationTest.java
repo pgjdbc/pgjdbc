@@ -14,7 +14,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -42,7 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Replication
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
 
@@ -261,7 +261,7 @@ class LogicalReplicationTest {
    */
   @Test
   @Timeout(1)
-  @DisabledIfServerVersionBelow("11.1")
+  @EnabledForServerVersionRange(gte = "11.1")
   void afterCloseReplicationStreamDBSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -334,7 +334,7 @@ class LogicalReplicationTest {
    */
   @Test
   @Timeout(10)
-  @DisabledIfServerVersionBelow("12.1")
+  @EnabledForServerVersionRange(gte = "12.1")
   void duringSendBigTransactionConnectionCloseSlotStatusNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 
@@ -389,7 +389,7 @@ class LogicalReplicationTest {
    */
   @Test
   @Timeout(60)
-  @DisabledIfServerVersionBelow("11.1")
+  @EnabledForServerVersionRange(gte = "11.1")
   void duringSendBigTransactionReplicationStreamCloseNotActive() throws Exception {
     PGConnection pgConnection = (PGConnection) replConnection;
 

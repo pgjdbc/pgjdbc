@@ -14,7 +14,7 @@ import org.postgresql.copy.CopyManager;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.annotations.tags.Replication;
 
 import org.hamcrest.CoreMatchers;
@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * CopyBothResponse use since 9.1 PostgreSQL version for replication protocol.
  */
 @Replication
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class CopyBothResponseTest {
   private Connection sqlConnection;
   private Connection replConnection;
