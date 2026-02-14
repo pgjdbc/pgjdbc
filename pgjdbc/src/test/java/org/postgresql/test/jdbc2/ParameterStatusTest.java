@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
@@ -89,7 +89,7 @@ public class ParameterStatusTest extends BaseTest4 {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("9.0")
+  @EnabledForServerVersionRange(gte = "9.0")
   public void expectedApplicationNameWithMinVersion() throws Exception {
     Properties properties = new Properties();
     properties.put("assumeMinServerVersion", "9.0");
@@ -102,7 +102,7 @@ public class ParameterStatusTest extends BaseTest4 {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("9.0")
+  @EnabledForServerVersionRange(gte = "9.0")
   public void expectedApplicationNameWithNullMinVersion() throws Exception {
     Properties properties = new Properties();
     properties.remove("assumeMinServerVersion");

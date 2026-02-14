@@ -23,7 +23,7 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.jdbc.PgStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionGreater;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.util.BrokenInputStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
@@ -467,7 +467,7 @@ public class PreparedStatementTest extends BaseTest4 {
 
   }
 
-  @DisabledIfServerVersionGreater("19")
+  @EnabledForServerVersionRange(lt = "19")
   @Test
   public void testSingleQuotes() throws SQLException {
     // This test is only relevant for PostgreSQL 18 and below

@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.core.Utils;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.util.PasswordUtil;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -132,7 +132,7 @@ class PasswordUtilTest {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void encodePasswordWithServersPasswordEncryption() throws SQLException {
     String encryptionType;
     try (Connection conn = TestUtil.openPrivilegedDB()) {
@@ -142,7 +142,7 @@ class PasswordUtilTest {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void alterUserPasswordSupportsNullEncoding() throws SQLException {
     testUserPassword(null);
   }
@@ -153,25 +153,25 @@ class PasswordUtilTest {
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void encryptionTypeValueOfOn() throws SQLException {
     testUserPassword("on");
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void encryptionTypeValueOfOff() throws SQLException {
     testUserPassword("off");
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void scramSha256() throws SQLException {
     testUserPassword("scram-sha-256");
   }
 
   @Test
-  @DisabledIfServerVersionBelow("10.0")
+  @EnabledForServerVersionRange(gte = "10.0")
   void customScramParams() throws SQLException {
     String username = "test_password_" + randomSuffix();
     String password = "t0pSecret" + randomSuffix();

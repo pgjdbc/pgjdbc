@@ -10,7 +10,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 class ConnectionValidTest {
   private Connection connection;
 

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
-import org.postgresql.test.annotations.DisabledIfServerVersionBelow;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.util.StrangeProxyServer;
 
 import org.junit.jupiter.api.Timeout;
@@ -21,7 +21,7 @@ import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Properties;
 
-@DisabledIfServerVersionBelow("9.4")
+@EnabledForServerVersionRange(gte = "9.4")
 public class ConnectionValidTimeoutTest {
 
   public static Iterable<Object[]> data() {
