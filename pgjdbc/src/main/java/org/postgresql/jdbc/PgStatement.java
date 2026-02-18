@@ -610,24 +610,13 @@ public class PgStatement implements Statement, BaseStatement {
     setQueryTimeoutMs(seconds * 1000L);
   }
 
-  /**
-   * The queryTimeout limit is the number of milliseconds the driver will wait for a Statement to
-   * execute. If the limit is exceeded, a SQLException is thrown.
-   *
-   * @return the current query timeout limit in milliseconds; 0 = unlimited
-   * @throws SQLException if a database access error occurs
-   */
+  @Override
   public long getQueryTimeoutMs() throws SQLException {
     checkClosed();
     return timeout;
   }
 
-  /**
-   * Sets the queryTimeout limit.
-   *
-   * @param millis - the new query timeout limit in milliseconds
-   * @throws SQLException if a database access error occurs
-   */
+  @Override
   public void setQueryTimeoutMs(long millis) throws SQLException {
     checkClosed();
 
