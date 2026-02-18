@@ -209,6 +209,7 @@ jobs:
     - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3
       name: Test
       env:
+        VM_IP: $(npx -y public-ip-cli -4)
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         _JAVA_OPTIONS: ${{ matrix.extraJvmArgs }}
