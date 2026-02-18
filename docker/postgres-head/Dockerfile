@@ -9,6 +9,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     dumb-init \
     flex \
     git \
+    libicu-dev \
     libperl-dev \
     libreadline-dev \
     libssl-dev \

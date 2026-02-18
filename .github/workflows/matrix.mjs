@@ -73,6 +73,12 @@ matrix.addAxis({
   ]
 });
 
+const addHeadPgVersion = (process.env.GITHUB_REF || '').startsWith('refs/heads/');
+
+if (addHeadPgVersion) {
+  matrix.axisByName.pg_version.values.push('HEAD')
+}
+
 matrix.addAxis({
   name: 'tz',
   title: x => 'client_tz ' + x,
@@ -259,6 +265,8 @@ matrix.setNamePattern([
 // We take EA builds from Oracle
 matrix.imply({java_version: eaJava}, {java_distribution: {value: 'oracle'}})
 matrix.exclude({ssl: {value: 'yes'}, pg_version: lessThan('9.3')});
+// TODO: configure SSL via docker/postgres-head Dockerfile
+matrix.exclude({ssl: {value: 'yes'}, pg_version: 'HEAD'});
 // matrix.exclude(row => row.ssl.value === 'yes' && isLessThan(row.pg_version, '9.3'));
 matrix.exclude({scram: {value: 'yes'}, pg_version: lessThan('10')});
 matrix.exclude({replication: {value: 'yes'}, pg_version: lessThan('9.6')});
@@ -286,6 +294,9 @@ matrix.generateRow({java_version: eaJava});
 // Ensure we have a job with the minimal and maximal PostgreSQL versions
 matrix.generateRow({pg_version: matrix.axisByName.pg_version.values[0]});
 matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]});
+if (addHeadPgVersion) {
+  matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-2)[0]});
+}
 //Ensure at least one job with "simple" query_mode exists
 matrix.generateRow({query_mode: {value: 'simple'}});
 // Ensure there will be at least one job with minimal supported Java
