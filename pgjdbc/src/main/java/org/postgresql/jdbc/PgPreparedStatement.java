@@ -784,7 +784,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     } else {
       if (oid == Oid.UNSPECIFIED) {
         Class<?> arrayType = getArrayType(in.getClass());
-        oid = typeInfo.getJavaArrayType(arrayType.getName());
+        oid = typeInfo.getJavaArrayType(arrayType);
         if (oid == Oid.UNSPECIFIED) {
           throw new SQLFeatureNotSupportedException();
         }
@@ -1228,15 +1228,16 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       return;
     }
 
-    // This only works for Array implementations that return a valid array
-    // literal from Array.toString(), such as the implementation we return
-    // from ResultSet.getArray(). Eventually we need a proper implementation
-    // here that works for any Array implementation.
-    String typename = x.getBaseTypeName();
-    int oid = connection.getTypeInfo().getPGArrayType(typename);
-    if (oid == Oid.UNSPECIFIED) {
-      throw new PSQLException(GT.tr("Unknown type {0}.", typename),
-          PSQLState.INVALID_PARAMETER_TYPE);
+    int oid;
+    if (x instanceof PgArray) {
+      oid = ((PgArray) x).getOid();
+    } else {
+      String typename = x.getBaseTypeName();
+      oid = connection.getTypeInfo().getPGArrayType(typename);
+      if (oid == Oid.UNSPECIFIED) {
+        throw new PSQLException(GT.tr("Unknown type {0}.", typename),
+            PSQLState.INVALID_PARAMETER_TYPE);
+      }
     }
 
     if (x instanceof PgArray) {
@@ -1248,6 +1249,10 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
       }
     }
 
+    // This only works for Array implementations that return a valid array
+    // literal from Array.toString(), such as the implementation we return
+    // from ResultSet.getArray(). Eventually we need a proper implementation
+    // here that works for any Array implementation.
     setString(i, x.toString(), oid);
   }
 

@@ -263,6 +263,11 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
   }
 
+  @Override
+  public int getTypeCacheEpoch() {
+    return queryExecutor.getTypeCacheEpoch();
+  }
+
   //
   // Ctor.
   //
@@ -377,11 +382,6 @@ public class PgConnection implements BaseConnection {
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
     this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
     this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
-
-    if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-      typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-      typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
-    }
 
     this.clientInfo = new Properties();
     if (haveMinimumServerVersion(ServerVersion.v9_0)) {
@@ -832,18 +832,6 @@ public class PgConnection implements BaseConnection {
 
   // This initialises the objectTypes hash map
   private void initObjectTypes(Properties info) throws SQLException {
-    // Add in the types that come packaged with the driver.
-    // These can be overridden later if desired.
-    addDataType("box", PGbox.class);
-    addDataType("circle", PGcircle.class);
-    addDataType("line", PGline.class);
-    addDataType("lseg", PGlseg.class);
-    addDataType("path", PGpath.class);
-    addDataType("point", PGpoint.class);
-    addDataType("polygon", PGpolygon.class);
-    addDataType("money", PGmoney.class);
-    addDataType("interval", PGInterval.class);
-
     Enumeration<?> e = info.propertyNames();
     while (e.hasMoreElements()) {
       String propertyName = (String) e.nextElement();

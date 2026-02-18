@@ -37,6 +37,7 @@ tasks.configureEach<Test> {
     passProperty("java.awt.headless")
     passProperty("user.language", "TR")
     passProperty("user.country", "tr")
+    passProperty("java.util.logging.config.file", "/Users/vlsi/Documents/code/pgjdbc/logging.properties")
     val props = System.getProperties()
     @Suppress("UNCHECKED_CAST")
     for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
