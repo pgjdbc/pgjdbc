@@ -1040,6 +1040,7 @@ public class Parser {
     // TODO: Merge with escape processing (and parameter parsing?) so we only parse each query once.
     // RE: frequently used statements are cached (see {@link org.postgresql.jdbc.PgConnection#borrowQuery}), so this "merge" is not that important.
     String sql = jdbcSql;
+    char[] sqlCharArray = jdbcSql.toCharArray();
     boolean isFunction = false;
     boolean outParamBeforeFunc = false;
 
@@ -1054,6 +1055,27 @@ public class Parser {
 
     while (i < len && !syntaxError) {
       char ch = jdbcSql.charAt(i);
+
+      if (ch == '/') { // possibly /* */ style comment
+        int prevI = i;
+        i = Parser.parseBlockComment(sqlCharArray, i);
+        if (i > prevI) {
+          ++i; // found comment block, advance index to skip closing comment char /
+        }
+        if (i < len) {
+          ch = jdbcSql.charAt(i);
+        }
+      }
+      if (ch == '-') { // possibly -- style comment
+        i = Parser.parseLineComment(sqlCharArray, i);
+        if (i < len) {
+          ch = jdbcSql.charAt(i);
+        }
+
+        if (i == len - 1) {
+          i++; // end of line comment
+        }
+      }
 
       switch (state) {
         case 1:  // Looking for { at start of query
@@ -1156,10 +1178,12 @@ public class Parser {
           }
           break;
 
-        case 8:  // At trailing end of query, eating whitespace
-          if (Character.isWhitespace(ch)) {
+        case 8:  // At trailing end of query, eating closing block comment or whitespace
+          if (ch == '/' || Character.isWhitespace(ch)) {
             ++i;
-          } else {
+          } else if (ch == '-' && jdbcSql.charAt(i + 1) == '-') {
+            i = len; // found start of the line comment, ignoring rest of the query
+          } else if (i < len - 1) {
             syntaxError = true;
           }
           break;
