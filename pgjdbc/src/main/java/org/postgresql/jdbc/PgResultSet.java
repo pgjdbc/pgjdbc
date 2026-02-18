@@ -1880,6 +1880,14 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     @Nullable String[] s = quotelessTableName(castNonNull(tableName));
     String quotelessTableName = castNonNull(s[0]);
     @Nullable String quotelessSchemaName = s[1];
+    
+    if (quotelessSchemaName == null || quotelessSchemaName.isEmpty()) {
+        // Note: When a query with an unqualified table name is fired, only primary keys of the connection's schema must be inspected.
+        // Otherwise, if you have multiple schemas with the same table and primary key names but different primary key columns, a result 
+        // set may be wrongly classified as updatable.
+        quotelessSchemaName = connection.getSchema();
+    }
+    
     ResultSet rs = ((PgDatabaseMetaData) connection.getMetaData()).getPrimaryUniqueKeys("",
         quotelessSchemaName, quotelessTableName);
 
