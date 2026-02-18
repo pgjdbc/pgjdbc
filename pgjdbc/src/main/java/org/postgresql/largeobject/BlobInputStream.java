@@ -5,6 +5,8 @@
 
 package org.postgresql.largeobject;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.jdbc.ResourceLock;
 import org.postgresql.util.GT;
 
@@ -13,11 +15,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is an implementation of an InputStream from a large object.
  */
 public class BlobInputStream extends InputStream {
+  private static final Logger LOGGER = Logger.getLogger(BlobInputStream.class.getName());
   static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
   static final int INITIAL_BUFFER_SIZE = 64 * 1024;
 
@@ -30,7 +35,7 @@ public class BlobInputStream extends InputStream {
   /**
    * The absolute position.
    */
-  private long absolutePosition;
+  private long absolutePosition = -1;
 
   /**
    * Buffer used to improve performance.
@@ -56,12 +61,12 @@ public class BlobInputStream extends InputStream {
   /**
    * The mark position.
    */
-  private long markPosition;
+  private long markPosition = -1;
 
   /**
    * The limit.
    */
-  private final long limit;
+  private long limit;
 
   /**
    * @param lo LargeObject to read from
@@ -76,7 +81,7 @@ public class BlobInputStream extends InputStream {
    */
 
   public BlobInputStream(LargeObject lo, int bsize) {
-    this(lo, bsize, Long.MAX_VALUE);
+    this(lo, bsize, -1);
   }
 
   /**
@@ -90,8 +95,9 @@ public class BlobInputStream extends InputStream {
     // The very first read multiplies the last buffer size by two, so we divide by two to get
     // the first read to be exactly the initial buffer size
     this.lastBufferSize = INITIAL_BUFFER_SIZE / 2;
-    // Treat -1 as no limit for backward compatibility
-    this.limit = limit == -1 ? Long.MAX_VALUE : limit;
+
+    // Limit and position must not be accessed until initialized by getLo()
+    this.limit = limit;
   }
 
   /**
@@ -288,7 +294,12 @@ public class BlobInputStream extends InputStream {
   @Override
   public void mark(int readlimit) {
     try (ResourceLock ignore = lock.obtain()) {
-      markPosition = absolutePosition;
+      try {
+        getLo();
+        markPosition = absolutePosition;
+      } catch (IOException e) {
+        LOGGER.log(Level.SEVERE, "Failed to set mark position", e);
+      }
     }
   }
 
@@ -304,13 +315,13 @@ public class BlobInputStream extends InputStream {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
       long loId = lo.getLongOID();
+      buffer = null;
       try {
         if (markPosition <= Integer.MAX_VALUE) {
           lo.seek((int) markPosition);
         } else {
           lo.seek64(markPosition, LargeObject.SEEK_SET);
         }
-        buffer = null;
         absolutePosition = markPosition;
       } catch (SQLException e) {
         throw new IOException(
@@ -335,10 +346,88 @@ public class BlobInputStream extends InputStream {
     return true;
   }
 
+  /**
+   * Skips over and discards {@code n} bytes of data from this input stream.
+   *
+   * <p>Due to the "sparse" implementation of Large Objects, this class allows skipping
+   * past the "end" of the stream. Subsequent reads will continue to return {@code -1}.
+   *
+   * @param n the number of bytes to be skipped.
+   * @return the actual number of bytes skipped which might be zero.
+   * @throws IOException  if an underlying driver error occurs.
+   *     In particular, this will throw if attempting to skip beyond the maximum length
+   *     of a large object, which by default is 4,398,046,509,056 bytes.
+   * @see java.io.InputStream#skip(long)
+   * @see <a href="https://www.postgresql.org/docs/14/lo-implementation.html">
+   *   Large Objects: Implementation Features</a>
+   */
+  @Override
+  public long skip(long n) throws IOException {
+    if (n <= 0) {
+      // The spec does allow for skipping backwards, but let's not.
+      return 0;
+    }
+
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = getLo();
+      long loId = lo.getLongOID();
+
+      long targetPosition = absolutePosition + n;
+      if (targetPosition > limit || targetPosition < 0) {
+        targetPosition = limit;
+      }
+      long currentPosition = absolutePosition;
+      long skipped = targetPosition - currentPosition;
+
+      if (buffer != null && buffer.length - bufferPosition > skipped) {
+        bufferPosition += (int) skipped;
+      } else {
+        buffer = null;
+        try {
+          if (targetPosition <= Integer.MAX_VALUE) {
+            lo.seek((int) targetPosition, LargeObject.SEEK_SET);
+          } else {
+            lo.seek64(targetPosition, LargeObject.SEEK_SET);
+          }
+        } catch (SQLException e) {
+          throw new IOException(
+              GT.tr("Can not skip stream for large object {0} by {1} (currently @{2})",
+                  loId, n, currentPosition),
+              e);
+        }
+      }
+      absolutePosition = targetPosition;
+      return skipped;
+    }
+  }
+
   private LargeObject getLo() throws IOException {
-    if (lo == null) {
+    if (this.lo == null) {
       throw new IOException("BlobOutputStream is closed");
     }
+    LargeObject lo = castNonNull(this.lo);
+    assert lock.isLocked();
+
+    if (absolutePosition < 0) {
+      // Defer initialization until here so it can throw a checked exception
+      try {
+        // initialise current position for mark/reset
+        this.absolutePosition = lo.tell64();
+      } catch (SQLException e1) {
+        try {
+          // the tell64 function does not exist before PostgreSQL 9.3
+          this.absolutePosition = lo.tell();
+        } catch (SQLException e2) {
+          IOException e3 = new IOException("Failed to initialize BlobInputStream position", e1);
+          e3.addSuppressed(e2);
+          throw e3;
+        }
+      }
+
+      limit = limit == -1 ? Long.MAX_VALUE : limit + absolutePosition;
+      markPosition = absolutePosition;
+    }
+
     return lo;
   }
 }
