@@ -59,9 +59,9 @@ retrieved by repositioning the cursor.
 > * The `Connection` must not be in autocommit mode. The backend closes cursors at the end of transactions, so in 
 > autocommit mode the backend will have closed the cursor before anything can be fetched from it.
 >
-> * The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY`. This is the default,
-> so no code will need to be rewritten to take advantage of this, but it also means that you cannot scroll backwards or 
-> otherwise jump around in the `ResultSet`.
+> * The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY` and a 
+> `ResultSet.CLOSE_CURSORS_AT_COMMIT` holdability. These are the defaults, so no code will need to be rewritten to take 
+> advantage of this, but it also means that you cannot scroll backwards or otherwise jump around in the `ResultSet`.
 >
 > * The query given must be a single statement, not multiple statements strung together with semicolons.
 
