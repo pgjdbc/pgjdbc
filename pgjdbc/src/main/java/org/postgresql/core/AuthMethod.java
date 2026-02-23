@@ -62,7 +62,7 @@ public enum AuthMethod {
         allowedMethods.add(authMethod);
       }
     }
-    return allowedMethods.isEmpty()?null:allowedMethods;
+    return allowedMethods.isEmpty() ? null : allowedMethods;
   }
 
   public static void checkAuth(@Nullable EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
