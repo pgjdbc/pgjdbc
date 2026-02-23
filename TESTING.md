@@ -193,6 +193,49 @@ See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test
 - databases `certdb`, `hostdb`, `hostnossldb`, `hostssldb`, and `hostsslcertdb` need to be created
 
 
+## 9 - SCRAM authentication tests
+
+Some tests (e.g., `ScramTest`) require PostgreSQL to be configured to use SCRAM-SHA-256 authentication for the `testscram` user. Without this setup, the tests will silently pass instead of exercising SCRAM authentication, or fail with unexpected results.
+
+### Requirements
+
+- PostgreSQL 10 or later (SCRAM-SHA-256 support was introduced in PostgreSQL 10)
+- `pg_hba.conf` must include an entry that forces SCRAM authentication for the `testscram` user:
+
+```
+host    all    testscram    all    scram-sha-256
+```
+
+- The `testscram` user must exist in the database with a password set after SCRAM is enabled
+
+### Using Docker
+
+When using the provided Docker setup, start the server with SCRAM enabled (the default for PostgreSQL 13+):
+
+```sh
+docker/bin/postgres-server
+```
+
+To explicitly enable SCRAM on an older version:
+
+```sh
+PGV=12 SCRAM=yes docker/bin/postgres-server
+```
+
+To disable SCRAM for testing purposes:
+
+```sh
+PGV=12 SCRAM=no docker/bin/postgres-server
+```
+
+### Manual setup
+
+If you are not using Docker, ensure your `pg_hba.conf` includes the `scram-sha-256` entry for the `testscram` user and restart the PostgreSQL server. Then reconnect and set the password for the user so it is stored using the SCRAM verifier:
+
+```sql
+ALTER USER testscram WITH PASSWORD 'your_password';
+```
+
 ## 10 - Credits and Feedback
 
 The parts of this document describing the PostgreSQL test suite
