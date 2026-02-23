@@ -745,7 +745,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     // Parse requireAuth property for authentication method validation
     String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
-    EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
+    @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
       authloop: while (true) {
@@ -977,7 +977,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_OK:
                 if (requireAuth != null) {
                   // this will happen if the authentication method is trust
-                  if ( !pgStream.isFinishedAuthenticationRequests()) {
+                  if (!pgStream.isFinishedAuthenticationRequests()) {
                     AuthMethod.checkAuth(authMethods, AuthMethod.NONE);
                   }
                   if (pgStream.isGssEncrypted()) {

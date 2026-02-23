@@ -31,9 +31,9 @@ public enum AuthMethod {
     }
   }
 
-  public static EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
+  public static @Nullable EnumSet<AuthMethod> parseRequireAuth(@Nullable String requireAuth) throws PSQLException {
     if (requireAuth == null) {
-      return EnumSet.noneOf(AuthMethod.class);
+      return null;
     }
 
     EnumSet<AuthMethod> allowedMethods;
@@ -62,11 +62,11 @@ public enum AuthMethod {
         allowedMethods.add(authMethod);
       }
     }
-    return allowedMethods;
+    return allowedMethods.isEmpty()?null:allowedMethods;
   }
 
-  public static void checkAuth(EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
-    if (allowedMethods.isEmpty()) {
+  public static void checkAuth(@Nullable EnumSet<AuthMethod> allowedMethods, AuthMethod authMethod) throws PSQLException {
+    if (allowedMethods == null) {
       return;
     }
     if (!allowedMethods.contains(authMethod)) {
