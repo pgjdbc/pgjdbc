@@ -21,7 +21,7 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 class RequireAuthTest {
-  private static boolean hasScram = true;
+  private static boolean hasScram;
 
   @BeforeAll
   static void beforeAll() throws SQLException {
