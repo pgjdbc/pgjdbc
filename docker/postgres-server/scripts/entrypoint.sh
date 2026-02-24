@@ -52,6 +52,10 @@ main () {
         pg_opts="${pg_opts} -c max_prepared_transactions=64"
     fi
 
+    if is_pg_version_less_than "10"; then
+        add_pg_opt "-c max_locks_per_transaction=256"
+    fi
+
     if is_pg_version_at_least "10"; then
         # PostgreSQL 10+ supports scram
         echo "host    authtest        scram           all            scram-sha-256" >> "${pg_hba}"
