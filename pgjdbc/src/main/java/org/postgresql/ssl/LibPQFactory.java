@@ -99,6 +99,28 @@ public class LibPQFactory extends WrappedFactory {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }
 
+  private void initPk8OrPem(
+      @UnderInitialization(WrappedFactory.class)LibPQFactory this,
+      String sslkeyfile, String defaultdir, Properties info) throws PSQLException {
+    try {
+      String sslcertfile = getCertFilePath(defaultdir, info);
+      String algorithm = castNonNull(PGProperty.PEM_KEY_ALGORITHM.getOrDefault(info));
+      PEMKeyManager pem = new PEMKeyManager(sslkeyfile, sslcertfile, algorithm);
+      // Like libpq, try PEM first then fall back to PK8/DER at runtime.
+      // We can't rely on file extensions (.key is ambiguous) or content sniffing
+      // (PEM allows leading non-matching lines before -----BEGIN).
+      LazyKeyManager pk8 = new LazyKeyManager(
+          ("".equals(sslcertfile) ? null : sslcertfile),
+          ("".equals(sslkeyfile) ? null : sslkeyfile),
+          getCallbackHandler(info), defaultfile);
+      km = new Pk8OrPemKeyManager(pem, pk8);
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Could not initialize key manager."),
+          PSQLState.CONNECTION_FAILURE, ex);
+    }
+  }
+
   private void initPEM(
       @UnderInitialization(WrappedFactory.class)LibPQFactory this,
       String sslKeyFile, String defaultdir, Properties info) throws PSQLException {
@@ -138,10 +160,10 @@ public class LibPQFactory extends WrappedFactory {
 
       if (sslkeyfile.endsWith(".p12") || sslkeyfile.endsWith(".pfx")) {
         initP12(sslkeyfile, info);
-      } else if (sslkeyfile.endsWith(".key") || sslkeyfile.endsWith(".pem")) {
+      } else if (sslkeyfile.endsWith(".pem")) {
         initPEM(sslkeyfile, defaultdir, info);
       } else {
-        initPk8(sslkeyfile, defaultdir, info);
+        initPk8OrPem(sslkeyfile, defaultdir, info);
       }
 
       TrustManager[] tm;
@@ -232,6 +254,9 @@ public class LibPQFactory extends WrappedFactory {
       }
       if (km instanceof PEMKeyManager) {
         ((PEMKeyManager) km).throwKeyManagerException();
+      }
+      if (km instanceof Pk8OrPemKeyManager) {
+        ((Pk8OrPemKeyManager) km).throwKeyManagerException();
       }
     }
   }
