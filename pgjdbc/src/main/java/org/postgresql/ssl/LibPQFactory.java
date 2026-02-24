@@ -162,6 +162,8 @@ public class LibPQFactory extends WrappedFactory {
         initP12(sslkeyfile, info);
       } else if (sslkeyfile.endsWith(".pem")) {
         initPEM(sslkeyfile, defaultdir, info);
+      } else if (sslkeyfile.endsWith(".der")) {
+        initPk8(sslkeyfile, defaultdir, info);
       } else {
         initPk8OrPem(sslkeyfile, defaultdir, info);
       }

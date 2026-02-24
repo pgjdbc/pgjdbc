@@ -86,9 +86,12 @@ The location of the client certificate, the PKCS-12 client key and root certific
 and `/defaultdir/root.crt` respectively where defaultdir is `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` 
 on windows.
 
-As of version 42.2.9 PKCS-12 is also supported. In this archive format the client key and the client certificate are in 
-one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension 
+As of version 42.2.9 PKCS-12 is also supported. In this archive format the client key and the client certificate are in
+one file, which needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension
 must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16). (In this case the `sslcert` parameter is ignored.)
+
+The key format is determined by the file extension: ".p12"/".pfx" for PKCS-12, ".pem" for PEM, ".der" for DER/PKCS-8.
+For other extensions (including ".key"), the driver auto-detects the format by trying PEM first, then falling back to DER/PKCS-8, similar to how libpq handles key format detection.
 
 > **NOTE**
 >

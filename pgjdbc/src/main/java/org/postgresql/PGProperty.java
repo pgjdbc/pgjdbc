@@ -707,11 +707,18 @@ public enum PGProperty {
   /**
    * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code $HOME/.postgresql} (*nix)
    * or {@code %APPDATA%\postgresql} (windows).
+   *
+   * <p>The key format is determined by the file extension:
+   * {@code .p12}/{@code .pfx} for PKCS-12,
+   * {@code .pem} for PEM,
+   * {@code .der} for DER/PKCS-8.
+   * For other extensions (including {@code .key}), the driver auto-detects the format
+   * by trying PEM first, then falling back to DER/PKCS-8.</p>
    */
   SSL_KEY(
       "sslkey",
       null,
-      "The location of the client's PKCS#8 SSL key"),
+      "The location of the client's SSL key"),
 
   /**
    * Parameter governing the use of SSL. The allowed values are {@code disable}, {@code allow},
