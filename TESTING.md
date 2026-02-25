@@ -195,7 +195,7 @@ See [BlobTest.java](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test
 
 ## 9 - SCRAM authentication tests
 
-Some tests (e.g., `ScramTest`) require PostgreSQL to be configured to use SCRAM-SHA-256 authentication for the `testscram` user. Without this setup, the tests will silently pass instead of exercising SCRAM authentication, or fail with unexpected results.
+Some tests (e.g., `ScramTest`) require PostgreSQL to be configured to use SCRAM-SHA-256 authentication for the `testscram` user. Without this setup, the tests will skip instead of exercising SCRAM authentication, or fail with unexpected results.
 
 ### Requirements
 
