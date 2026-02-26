@@ -372,6 +372,76 @@ class ConnectionTest {
   }
 
   /*
+   * Tests for session and transaction read only behavior with "session" read only mode.
+   */
+  @Test
+  public void testTransactionIsolationMode_transaction() throws Exception {
+    final Properties props = new Properties();
+    PGProperty.TRANSACTION_ISOLATION_MODE.set(props, "transaction");
+    con = TestUtil.openDB(props);
+    Connection con2 = TestUtil.openDB(props);
+    Statement st;
+
+    con.setAutoCommit(false);
+    assertFalse(con.getAutoCommit());
+
+    con2.setAutoCommit(false);
+    assertFalse(con2.getAutoCommit());
+
+    // Read default isolation level to compare with later
+    ResultSet query = con.createStatement()
+        .executeQuery("show default_transaction_isolation");
+    assertTrue(query.next());
+    String defaultSessionIsolation = query.getString(1);
+    con.commit();
+
+    // Test that isolation level is set to SERIALIZABLE on connection object
+    con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con.getTransactionIsolation());
+
+    // Test that isolation level has not changed on database level
+    ResultSet isolation1 = con.createStatement()
+        .executeQuery("show default_transaction_isolation");
+    assertTrue(isolation1.next());
+    assertEquals(defaultSessionIsolation, isolation1.getString(1));
+
+    // Test that isolation level is set to SERIALIZABLE on connection object
+    con2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+    assertEquals(Connection.TRANSACTION_SERIALIZABLE, con2.getTransactionIsolation());
+
+    // Test that isolation level has not changed on database level
+    ResultSet isolation2 = con2.createStatement()
+        .executeQuery("show default_transaction_isolation");
+    assertTrue(isolation2.next());
+    assertEquals(defaultSessionIsolation, isolation2.getString(1));
+
+    // Prepare test data
+    st = con.createStatement();
+    st.executeUpdate("insert into test_a (imagename,image,id) values ('comttest',1234,5678)");
+    con.commit();
+
+    con.prepareStatement("update test_a set image = 9876 where id = 5678").executeUpdate();
+
+    // Read concurrently to trigger SERIALIZABLE isolation
+    con2.prepareCall("select * from test_a where id = 5678").executeQuery();
+
+    // Commit first transaction in first connection
+    con.commit();
+
+    try {
+      // Try to update already updated row, should fail
+      con2.prepareStatement("update test_a set image = 1111 where id = 5678").executeUpdate();
+
+      fail("commit should fail due to serialization failure");
+    } catch (SQLException e) {
+      assertStringContains(e.getMessage(), "could not serialize access");
+    }
+    con2.rollback();
+
+    TestUtil.closeDB(con2);
+  }
+
+  /*
    * Simple test to see if isClosed works.
    */
   @Test

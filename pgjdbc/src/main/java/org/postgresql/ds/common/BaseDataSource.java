@@ -1055,6 +1055,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return The behavior when transaction isolation level is set
+   * @see PGProperty#TRANSACTION_ISOLATION_MODE
+   */
+  public String getTransactionIsolationMode() {
+    return castNonNull(PGProperty.TRANSACTION_ISOLATION_MODE.get(properties));
+  }
+
+  /**
+   * @param mode The behavior when transaction isolation level is set
+   * @see PGProperty#TRANSACTION_ISOLATION_MODE
+   */
+  public void setTransactionIsolationMode(/* @Nullable */ String mode) {
+    PGProperty.TRANSACTION_ISOLATION_MODE.set(properties, mode);
+  }
+
+  /**
    * @return The behavior when set read only
    * @see PGProperty#READ_ONLY_MODE
    */

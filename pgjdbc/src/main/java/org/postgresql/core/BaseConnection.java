@@ -225,6 +225,23 @@ public interface BaseConnection extends PGConnection, Connection {
   boolean hintReadOnly();
 
   /**
+   * Indicates if transaction isolation level should be set during transaction creation
+   *
+   * @see PGProperty#TRANSACTION_ISOLATION_MODE
+   */
+  boolean isIsolationInTransactionMode();
+
+
+  /**
+   * Adds flags that indicate transaction isolation level
+   *
+   * @see QueryExecutor#QUERY_ISOLATION_LEVEL_HIGH
+   * @see QueryExecutor#QUERY_ISOLATION_LEVEL_LOW
+   */
+  int addIsolationLevelFlags(int flags) throws SQLException;
+
+
+  /**
    * Retrieve the factory to instantiate XML processing factories.
    *
    * @return The factory to use to instantiate XML processing factories
