@@ -52,7 +52,8 @@ public abstract class ConnectionFactory {
     if (protoName != null && !protoName.isEmpty()
         && (protoName.equalsIgnoreCase("3")
           || protoName.equalsIgnoreCase("3.0")
-          || protoName.equalsIgnoreCase("3.2"))) {
+          || protoName.equalsIgnoreCase("3.2")
+          || protoName.equalsIgnoreCase("3.3"))) {
       ConnectionFactory connectionFactory = new ConnectionFactoryImpl();
       QueryExecutor queryExecutor = connectionFactory.openConnectionImpl(
           hostSpecs, info);
