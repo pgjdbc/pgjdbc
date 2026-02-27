@@ -1287,6 +1287,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return if connection allows special numeric decode.
+   * @see PGProperty#ALLOW_SPECIAL_NUMERIC
+   */
+  public boolean getAllowSpecialNumeric() {
+    return PGProperty.ALLOW_SPECIAL_NUMERIC.getBoolean(properties);
+  }
+
+  /**
+   * @param allow if connection allows special numeric decode.
+   * @see PGProperty#ALLOW_SPECIAL_NUMERIC
+   */
+  public void setAllowSpecialNumeric(boolean allow) {
+    PGProperty.ALLOW_SPECIAL_NUMERIC.set(properties, allow);
+  }
+
+  /**
    * @return socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
