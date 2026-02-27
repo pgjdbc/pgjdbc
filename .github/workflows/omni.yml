@@ -13,7 +13,7 @@ on:
         required: false
         default: "*"
       matrix_pg_version:
-        description: PostgreSQL Server Version (8.4, 9.0, 9.1, ...)
+        description: PostgreSQL Server Version (9.4, 10, ...)
         required: false
         default: "*"
       matrix_query_mode:
@@ -89,6 +89,10 @@ jobs:
             '11',
             '12',
             '13',
+            '14',
+            '15',
+            '16',
+            '17',
             // TODO: Determine the latest and greatest server version automatically so we don't need to periodically update this
         ];
 
