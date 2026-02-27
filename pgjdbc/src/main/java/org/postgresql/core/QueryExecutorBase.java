@@ -427,6 +427,13 @@ public abstract class QueryExecutorBase implements QueryExecutor {
       return false;
     }
 
+    // "cache lookup failed for function"
+    if (PSQLState.INTERNAL_ERROR.getState().equals(e.getSQLState())
+        && e.getMessage() != null
+        && e.getMessage().startsWith("cache lookup failed for ")) {
+      return true;
+    }
+
     if (!(e instanceof PSQLException)) {
       return false;
     }
