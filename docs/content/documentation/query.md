@@ -190,7 +190,13 @@ This is closely aligned with tables B-4 and B-5 of the JDBC 4.2 specification.
 
 > **Note**
 >
-> `ZonedDateTime` , `Instant` and `OffsetTime / TIME WITH TIME ZONE` are not supported. Also note that all `OffsetDateTime` instances will have be in UTC (have offset 0). This is because the backend stores them as UTC.
+> `ZonedDateTime` , `Instant` and `OffsetTime / TIME WITH TIME ZONE` are not supported.
+> Also note that all `OffsetDateTime` instances returned by `getObject(..., OffsetDateTime.class)`
+> will be in UTC (have offset 0). This is because PostgreSQL internally stores `TIMESTAMP WITH TIME ZONE`
+> values as UTC instants — the original timezone offset is not preserved.
+> The session timezone (`SET TIMEZONE` / `TimeZone` connection property) does not affect
+> the offset of the returned `OffsetDateTime`. If you need the value in a specific timezone,
+> convert it yourself using `offsetDateTime.atZoneSameInstant(ZoneId.of("Asia/Colombo"))`.
 
 **Example 5.2. Reading Java 8 Date and Time values using JDBC**
 
