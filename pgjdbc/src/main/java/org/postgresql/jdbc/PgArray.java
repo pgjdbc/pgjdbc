@@ -12,11 +12,13 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
+import org.postgresql.core.Provider;
 import org.postgresql.core.Tuple;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -24,10 +26,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Array;
 import java.sql.ResultSet;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Array is used collect one column of query result data.
@@ -72,6 +76,8 @@ public class PgArray implements Array {
   protected byte @Nullable [] fieldBytes;
 
   private final ResourceLock lock = new ResourceLock();
+
+  private @Nullable TimestampUtils timestampUtils;
 
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
@@ -143,11 +149,6 @@ public class PgArray implements Array {
   public @Nullable Object getArrayImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
 
-    // for now maps aren't supported.
-    if (map != null && !map.isEmpty()) {
-      throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
-    }
-
     // array index is out of range
     if (index < 1) {
       throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
@@ -155,6 +156,11 @@ public class PgArray implements Array {
     }
 
     if (fieldBytes != null) {
+      // for now maps aren't supported.
+      if (map != null && !map.isEmpty()) {
+        throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+      }
+
       return readBinaryArray(fieldBytes, (int) index, count);
     }
 
@@ -176,7 +182,7 @@ public class PgArray implements Array {
           PSQLState.DATA_ERROR);
     }
 
-    return buildArray(arrayList, (int) index, count);
+    return buildArray(arrayList, (int) index, count, map);
   }
 
   private Object readBinaryArray(byte[] fieldBytes, int index, int count) throws SQLException {
@@ -312,14 +318,42 @@ public class PgArray implements Array {
     }
   }
 
+  private TimestampUtils getTimestampUtils() {
+    try (ResourceLock ignore = lock.obtain()) {
+      if (timestampUtils == null) {
+        final BaseConnection connection = getConnection();
+        timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
+      }
+      return timestampUtils;
+    }
+  }
+
   /**
    * Convert {@link ArrayList} to array.
    *
    * @param input list to be converted into array
    */
-  private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
+  private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count, @Nullable Map<String, Class<?>> map) throws SQLException {
     final BaseConnection connection = getConnection();
-    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+    Object array = ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+
+    if (map != null) {
+      @Nullable Object @Nullable [] arr = (@Nullable Object @Nullable []) array;
+      if (arr != null) {
+        for (int ii = 0; ii < arr.length; ii++) {
+          @Nullable Object obj = arr[ii];
+          if (obj instanceof PGobject) {
+            PGobject pgobj = (PGobject) obj;
+            Class<?> type = map.get(pgobj.getType());
+            if (type != null && SQLData.class.isAssignableFrom(type)) {
+              arr[ii] =  new SQLDataReader().read(pgobj.getValue(), type, connection, getTimestampUtils());
+            }
+          }
+        }
+      }
+    }
+
+    return array;
   }
 
   @Override
