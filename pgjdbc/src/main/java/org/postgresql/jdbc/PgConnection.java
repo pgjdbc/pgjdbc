@@ -882,6 +882,10 @@ public class PgConnection implements BaseConnection {
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
     }
+    
+    // Close all open statements
+    closeOpenStatements();
+    
     openStackTrace = null;
     try {
       cleanable.clean();
@@ -889,6 +893,25 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),
           PSQLState.UNKNOWN_STATE, e);
+    }
+  }
+
+  /**
+   * Close all open statements.
+   */
+  private void closeOpenStatements() {
+    try (ResourceLock ignore = lock.obtain()) {
+      for (java.lang.ref.WeakReference<PgStatement> ref : openStatements) {
+        PgStatement stmt = ref.get();
+        if (stmt != null) {
+          try {
+            stmt.close();
+          } catch (SQLException e) {
+            // Ignore errors during cleanup
+          }
+        }
+      }
+      openStatements.clear();
     }
   }
 
