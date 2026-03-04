@@ -230,6 +230,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.holdablePortalEnabled = PGProperty.HOLDABLE_PORTAL.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
@@ -1801,7 +1802,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         + 2 + params.getParameterCount() * 2L
         + 2 + encodedSize
         + 2 + numBinaryFields * 2L
-        + (cursorOptions != 0 && protocolVersion.getMinor() >= 3 ? 4 : 0);
+        + (holdablePortalEnabled && cursorOptions != 0 ? 4 : 0);
 
     // backend's MaxAllocSize is the largest message that can
     // be received from a client. If we have a bigger value
@@ -1867,7 +1868,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger2(fields[i].getFormat());
     }
 
-    if (cursorOptions != 0 && protocolVersion.getMinor() >= 3) {
+    // Send cursor options if _pq_.holdable_portal protocol option is enabled
+    if (holdablePortalEnabled && cursorOptions != 0) {
       pgStream.sendInteger4(cursorOptions);
     }
 
@@ -3203,6 +3205,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
+  private final boolean holdablePortalEnabled;
 
   /**
    * The estimated server response size since we last consumed the input stream from the server, in

@@ -83,10 +83,12 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -198,6 +200,9 @@ public class PgConnection implements BaseConnection {
    * Oids for which binary transfer should be disabled.
    */
   private final Set<? extends Integer> binaryDisabledOids;
+
+  // Track open statements to close non-holdable result sets on commit
+  private final List<java.lang.ref.WeakReference<PgStatement>> openStatements = new ArrayList<>();
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId;
@@ -1016,6 +1021,39 @@ public class PgConnection implements BaseConnection {
 
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(commitQuery);
+      closeNonHoldableResultSets();
+    }
+  }
+
+  /**
+   * Close all non-holdable result sets after commit.
+   */
+  private void closeNonHoldableResultSets() {
+    lock.lock();
+    try {
+      openStatements.removeIf(ref -> {
+        PgStatement stmt = ref.get();
+        if (stmt == null) {
+          return true; // Remove dead reference
+        }
+        try {
+          stmt.closeNonHoldableResultSets();
+        } catch (SQLException e) {
+          // Ignore errors during cleanup
+        }
+        return false;
+      });
+    } finally {
+      lock.unlock();
+    }
+  }
+
+  /**
+   * Register a statement for tracking.
+   */
+  void registerStatement(PgStatement stmt) {
+    try (ResourceLock ignore = lock.obtain()){
+      openStatements.add(new java.lang.ref.WeakReference<>(stmt));
     }
   }
 
@@ -1441,21 +1479,27 @@ public class PgConnection implements BaseConnection {
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgStatement stmt = new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgPreparedStatement stmt = new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgCallableStatement stmt = new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override

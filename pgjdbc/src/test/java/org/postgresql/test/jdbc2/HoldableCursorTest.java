@@ -45,7 +45,7 @@ public class HoldableCursorTest extends BaseTest4 {
     // Insert test data
     con.close();
     Properties props = new Properties();
-    PGProperty.PROTOCOL_VERSION.set(props,"3.3");
+    PGProperty.HOLDABLE_PORTAL.set(props, "true");
     con = TestUtil.openDB(props);
     PreparedStatement insert = con.prepareStatement("INSERT INTO test_holdable VALUES (?, ?)");
     for (int i = 1; i <= 100; i++) {
@@ -97,6 +97,11 @@ public class HoldableCursorTest extends BaseTest4 {
 
   @Test
   public void testNonHoldableCursorClosesOnCommit() throws Exception {
+    // Use a fresh connection without holdable portal option
+    con.close();
+    con = TestUtil.openDB();
+    con.setAutoCommit(false);
+    
     // Insert test data
     PreparedStatement insert = con.prepareStatement("INSERT INTO test_holdable VALUES (?, ?)");
     for (int i = 1; i <= 50; i++) {
@@ -125,10 +130,15 @@ public class HoldableCursorTest extends BaseTest4 {
     // COMMIT - cursor should close
     con.commit();
 
-    // Attempting to fetch should fail or return false
-    boolean hasMore = rs.next();
-    // After commit, non-holdable cursor is closed
-    assertTrue(!hasMore || rs.isClosed());
+    // Attempting to fetch should fail with exception since result set is closed
+    try {
+      rs.next();
+      // If we get here, check if closed
+      assertTrue(rs.isClosed(), "ResultSet should be closed after commit");
+    } catch (SQLException e) {
+      // Expected: ResultSet is closed
+      assertTrue(e.getMessage().contains("closed"), "Expected 'closed' error, got: " + e.getMessage());
+    }
 
     rs.close();
     stmt.close();

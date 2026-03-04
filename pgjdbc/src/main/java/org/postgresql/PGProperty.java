@@ -299,6 +299,15 @@ public enum PGProperty {
       "Time in milliseconds we wait for a response from the server after requesting a GSS upgrade"),
 
   /**
+   * Enable support for holdable portals via the _pq_.holdable_portal protocol option.
+   * When enabled, the driver can create portals that survive transaction commits.
+   */
+  HOLDABLE_PORTAL(
+      "holdablePortal",
+      "false",
+      "Enable holdable portal support via protocol option"),
+
+  /**
    * Flag to enable/disable the obtaining the default GSS credentials from a pre-existing ccache,
    * rather than using JAAS.  This also allows GSS to work in environments where the default
    * kerberos principal a user has is not user@DEFAULT_REALM, but some other user (this is valid,
