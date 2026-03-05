@@ -19,6 +19,11 @@ is_pg_version_at_least () {
     [[ "${min_pg_major}" == "$(printf "${min_pg_major}\n${PG_MAJOR}\n" | sort -V | head -n1)" ]]
 }
 
+is_pg_version_less_than () {
+    local max_pg_major="${1}"
+    [[ "${PG_MAJOR}" == "$(printf "${max_pg_major}\n${PG_MAJOR}\n" | sort -V | head -n1)" ]]
+}
+
 is_option_enabled () {
     local value="${1:-}"
     [[ "${value}" == "true" ]] || [[ "${value}" == "on" ]] || [[ "${value}" == "yes" ]]

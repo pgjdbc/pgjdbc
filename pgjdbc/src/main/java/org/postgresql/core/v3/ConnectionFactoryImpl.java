@@ -9,6 +9,7 @@ package org.postgresql.core.v3;
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.PGProperty;
+import org.postgresql.core.AuthMethod;
 import org.postgresql.core.ConnectionFactory;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
@@ -49,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -572,6 +574,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info));
             return void.class;
           });
+          pgStream.setFinishedAuthenticationRequests();
           return pgStream;
         } catch (PSQLException ex) {
           // allow the connection to proceed
@@ -740,6 +743,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     boolean saslHandshakeCompleted = false;
     ChannelBinding channelBinding = ChannelBinding.of(info);
 
+    // Parse requireAuth property for authentication method validation
+    String requireAuth = PGProperty.REQUIRE_AUTH.getOrDefault(info);
+    @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
+
     try {
       authloop: while (true) {
         int beresp = pgStream.receiveChar();
@@ -805,6 +812,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // Process the request.
             switch (areq) {
               case AUTH_REQ_MD5: {
+                AuthMethod.checkAuth(authMethods, AuthMethod.MD5);
                 byte[] md5Salt = pgStream.receive(4);
                 if (LOGGER.isLoggable(Level.FINEST)) {
                   LOGGER.log(Level.FINEST, " <=BE AuthenticationReqMD5(salt={0})", Utils.toHexString(md5Salt));
@@ -829,11 +837,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 pgStream.sendChar(0);
                 pgStream.flush();
-
+                pgStream.setFinishedAuthenticationRequests();
                 break;
               }
 
               case AUTH_REQ_PASSWORD: {
+                AuthMethod.checkAuth(authMethods, AuthMethod.PASSWORD);
                 LOGGER.log(Level.FINEST, "<=BE AuthenticationReqPassword");
                 LOGGER.log(Level.FINEST, " FE=> Password(password=<not shown>)");
 
@@ -845,12 +854,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 });
                 pgStream.sendChar(0);
                 pgStream.flush();
+                pgStream.setFinishedAuthenticationRequests();
 
                 break;
               }
 
               case AUTH_REQ_GSS:
               case AUTH_REQ_SSPI:
+                AuthMethod.checkAuth(authMethods, areq == AUTH_REQ_GSS ? AuthMethod.GSS : AuthMethod.SSPI);
                 /*
                  * Use GSSAPI if requested on all platforms, via JSSE.
                  *
@@ -930,9 +941,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                  * Only called for SSPI, as GSS is handled by an inner loop in MakeGSS.
                  */
                 castNonNull(sspiClient).continueSSPI(msgLen - 8);
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_SASL:
+                AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
                 scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -958,9 +971,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL_FINAL:
                 castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
                 saslHandshakeCompleted = true;
+                pgStream.setFinishedAuthenticationRequests();
                 break;
 
               case AUTH_REQ_OK:
+                if (requireAuth != null) {
+                  // this will happen if the authentication method is trust
+                  if (!pgStream.isFinishedAuthenticationRequests()) {
+                    AuthMethod.checkAuth(authMethods, AuthMethod.NONE);
+                  }
+                  if (pgStream.isGssEncrypted()) {
+                    AuthMethod.checkAuth(authMethods, AuthMethod.GSS);
+                  }
+                }
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
                 break authloop; // We're done.
