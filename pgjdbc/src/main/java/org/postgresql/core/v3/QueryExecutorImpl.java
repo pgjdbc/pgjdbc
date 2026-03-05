@@ -219,6 +219,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private final AdaptiveFetchCache adaptiveFetchCache;
 
+  private boolean inExtendedProtocol;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -1671,11 +1673,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private void sendSync() throws IOException {
+    sendSync(true);
+  }
+
+  private void sendSync(boolean flush) throws IOException {
+    inExtendedProtocol = false;
     LOGGER.log(Level.FINEST, " FE=> Sync");
 
     pgStream.sendChar(PgMessageType.SYNC_REQUEST); // Sync
     pgStream.sendInteger4(4); // Length
-    pgStream.flush();
+    if (flush) {
+      pgStream.flush();
+    }
     // Below "add queues" are likely not required at all
     pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
     pendingDescribePortalQueue.add(sync);
@@ -1688,6 +1697,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (query.isPreparedFor(typeOIDs, deallocateEpoch)) {
       return;
     }
+
+    inExtendedProtocol = true;
 
     // Clean up any existing statement, as we can't use it.
     query.unprepare();
@@ -1758,13 +1769,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     pendingParseQueue.add(query);
+    inExtendedProtocol = true;
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
       boolean noBinaryTransfer) throws IOException {
-    //
-    // Send Bind.
-    //
+    inExtendedProtocol = true;
 
     String statementName = query.getStatementName();
     byte[] encodedStatementName = query.getEncodedStatementName();
@@ -1913,9 +1923,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
-    //
-    // Send Describe.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(portal={0})", portal);
 
@@ -1938,7 +1946,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params,
       boolean describeOnly) throws IOException {
-    // Send Statement Describe
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", query.getStatementName());
 
@@ -1966,9 +1974,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit)
       throws IOException {
-    //
-    // Send Execute.
-    //
+    inExtendedProtocol = true;
+
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " FE=> Execute(portal={0},limit={1})", new Object[]{portal, limit});
     }
@@ -1989,9 +1996,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendClosePortal(String portalName) throws IOException {
-    //
-    // Send Close.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> ClosePortal({0})", portalName);
 
@@ -2009,9 +2014,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendCloseStatement(String statementName) throws IOException {
-    //
-    // Send Close.
-    //
+    inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> CloseStatement({0})", statementName);
 
@@ -2187,6 +2190,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+    if (inExtendedProtocol) {
+      // A sync message is required when switching from extended protocol to a simple query protocol
+      // See https://github.com/pgjdbc/pgjdbc/issues/3107
+      sendSync(false);
+    }
+
     String nativeSql = query.toString(
         params,
         SqlSerializationContext.of(getStandardConformingStrings(), false));
