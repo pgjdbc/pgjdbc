@@ -31,6 +31,8 @@ import javax.security.auth.x500.X500Principal;
 
 public abstract class BaseX509KeyManager implements X509KeyManager {
 
+  private static final int ROOT_UID = 0;
+
   protected @Nullable PSQLException error;
 
   /**
@@ -107,9 +109,11 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
   }
 
   /**
-   * Validates that the private key file has secure permissions (owner-only readable).
-   * On POSIX systems, ensures no group or other permissions are set.
-   * On Windows systems, checks ACLs to ensure only the owner and trusted system accounts have access.
+   * Validates that the private key file has secure permissions, matching libpq behavior.
+   * On POSIX systems, root-owned files are allowed group-read access (up to 0640), since
+   * it's common for root to own certs and grant read access via group membership. Files
+   * owned by anyone else must be 0600 or stricter.
+   * On Windows, ACLs are checked to ensure only the owner and trusted system accounts have access.
    *
    * @param keyPath the path to the private key file
    * @throws PSQLException if the file has insecure permissions
@@ -131,7 +135,9 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
   }
 
   /**
-   * Validates POSIX file permissions of key.
+   * Validates POSIX file permissions of key, matching libpq behavior.
+   * Root-owned files (uid 0) allow GROUP_READ (up to 0640).
+   * Non-root-owned files require 0600 or less (no group or other permissions).
    *
    * @param keyPath the path to the private key file
    * @return true if validation succeeded (permissions are secure), false if POSIX is not supported
@@ -140,19 +146,13 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
   private static boolean validatePosixPermissions(Path keyPath) throws PSQLException {
     try {
       Set<PosixFilePermission> permissions = Files.getPosixFilePermissions(keyPath);
+      boolean isOwnedByRoot = isFileOwnedByRoot(keyPath);
 
-      boolean hasGroupPerms = permissions.contains(PosixFilePermission.GROUP_READ)
-                              || permissions.contains(PosixFilePermission.GROUP_WRITE)
-                              || permissions.contains(PosixFilePermission.GROUP_EXECUTE);
-
-      boolean hasOtherPerms = permissions.contains(PosixFilePermission.OTHERS_READ)
-                              || permissions.contains(PosixFilePermission.OTHERS_WRITE)
-                              || permissions.contains(PosixFilePermission.OTHERS_EXECUTE);
-
-      if (hasGroupPerms || hasOtherPerms) {
+      if (hasInsecurePosixPermissions(permissions, isOwnedByRoot)) {
         throw new PSQLException(
-                GT.tr("Private key file \"{0}\" has insecure permissions. "
-                      + "Permissions for group and other must be revoked. "
+                GT.tr("private key file \"{0}\" has group or world access; "
+                      + "file must have permissions u=rw (0600) or less if owned by the current user, "
+                      + "or permissions u=rw,g=r (0640) or less if owned by root. "
                       + "Current permissions: {1}",
                       keyPath.toString(),
                       PosixFilePermissions.toString(permissions)),
@@ -166,6 +166,43 @@ public abstract class BaseX509KeyManager implements X509KeyManager {
               GT.tr("Could not read permissions for private key file \"{0}\"", keyPath.toString()),
               PSQLState.CONNECTION_FAILURE, e);
     }
+  }
+
+  /**
+   * Checks whether the file is owned by root (uid 0).
+   * Falls back to false if the unix:uid attribute is not available.
+   */
+  private static boolean isFileOwnedByRoot(Path keyPath) throws IOException {
+    try {
+      Object uid = Files.getAttribute(keyPath, "unix:uid");
+      return Integer.valueOf(ROOT_UID).equals(uid);
+    } catch (UnsupportedOperationException | IllegalArgumentException e) {
+      // unix:uid not available
+      return false;
+    }
+  }
+
+  /**
+   * Determines whether the given POSIX permissions are insecure for a private key file.
+   * Matches libpq behavior: root-owned files allow GROUP_READ (0640),
+   * while non-root-owned files reject all group and other permissions (0600).
+   */
+  private static boolean hasInsecurePosixPermissions(
+      Set<PosixFilePermission> permissions, boolean isOwnedByRoot) {
+    boolean hasOtherPerms = permissions.contains(PosixFilePermission.OTHERS_READ)
+                            || permissions.contains(PosixFilePermission.OTHERS_WRITE)
+                            || permissions.contains(PosixFilePermission.OTHERS_EXECUTE);
+
+    if (isOwnedByRoot) {
+      boolean hasGroupWriteOrExecute = permissions.contains(PosixFilePermission.GROUP_WRITE)
+                                       || permissions.contains(PosixFilePermission.GROUP_EXECUTE);
+      return hasGroupWriteOrExecute || hasOtherPerms;
+    }
+
+    boolean hasGroupPerms = permissions.contains(PosixFilePermission.GROUP_READ)
+                            || permissions.contains(PosixFilePermission.GROUP_WRITE)
+                            || permissions.contains(PosixFilePermission.GROUP_EXECUTE);
+    return hasGroupPerms || hasOtherPerms;
   }
 
   /**
