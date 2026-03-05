@@ -438,6 +438,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     if (options != null) {
       paramList.add(new StartupParam("options", options));
     }
+
+    // Add _pq_.holdable_portal protocol option if enabled
+    if (PGProperty.HOLDABLE_PORTAL.getBoolean(info)) {
+      paramList.add(new StartupParam("_pq_.holdable_portal", "true"));
+    }
+
     return paramList;
   }
 

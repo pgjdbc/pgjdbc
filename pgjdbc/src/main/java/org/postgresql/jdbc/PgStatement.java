@@ -222,6 +222,24 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   /**
+   * Close all non-holdable result sets.
+   * Called by connection on commit.
+   */
+  void closeNonHoldableResultSets() throws SQLException {
+    synchronized (this) {
+      if (!wantsHoldableResultSet() && firstUnclosedResult != null) {
+        ResultWrapper result = firstUnclosedResult;
+        while (result != null) {
+          if (result.getResultSet() != null) {
+            result.getResultSet().close();
+          }
+          result = result.getNext();
+        }
+      }
+    }
+  }
+
+  /**
    * ResultHandler implementations for updates, queries, and either-or.
    */
   public class StatementResultHandler extends ResultHandlerBase {
@@ -454,9 +472,11 @@ public class PgStatement implements Statement, BaseStatement {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
-    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
-        && !wantsHoldableResultSet()) {
+    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
+      if (wantsHoldableResultSet()) {
+        flags |= QueryExecutor.QUERY_HOLDABLE_CURSOR;
+      }
     }
 
     if (wantsGeneratedKeysOnce || wantsGeneratedKeysAlways) {
