@@ -1052,8 +1052,7 @@ public class PgConnection implements BaseConnection {
    * Close all non-holdable result sets after commit.
    */
   private void closeNonHoldableResultSets() {
-    lock.lock();
-    try {
+    try (ResourceLock ignore = lock.obtain()) {
       openStatements.removeIf(ref -> {
         PgStatement stmt = ref.get();
         if (stmt == null) {
@@ -1066,8 +1065,6 @@ public class PgConnection implements BaseConnection {
         }
         return false;
       });
-    } finally {
-      lock.unlock();
     }
   }
 
