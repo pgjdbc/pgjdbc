@@ -5,18 +5,24 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.ssl.BaseX509KeyManager;
 import org.postgresql.ssl.PEMKeyManager;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -191,5 +197,72 @@ public class PEMKeyManagerTest {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()");
       assertTrue(sslUsed, "SSL should be in use");
     }
+  }
+
+  @Test
+  void testPermissionsOwnerOnly(@TempDir Path tempDir) throws Exception {
+    Assumptions.assumeTrue(
+        tempDir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+        "POSIX file permissions not supported");
+
+    Path keyFile = tempDir.resolve("test.key");
+    Files.createFile(keyFile);
+    Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE);
+    Files.setPosixFilePermissions(keyFile, perms);
+
+    assertDoesNotThrow(() -> BaseX509KeyManager.validateKeyFilePermissions(keyFile),
+        "File with 0600 permissions should pass validation");
+  }
+
+  @Test
+  void testPermissionsGroupReadNonRootFails(@TempDir Path tempDir) throws Exception {
+    Assumptions.assumeTrue(
+        tempDir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+        "POSIX file permissions not supported");
+
+    Path keyFile = tempDir.resolve("test.key");
+    Files.createFile(keyFile);
+    Set<PosixFilePermission> perms = EnumSet.of(
+        PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.GROUP_READ);
+    Files.setPosixFilePermissions(keyFile, perms);
+
+    // Non-root owned file with GROUP_READ should fail
+    assertThrows(PSQLException.class,
+        () -> BaseX509KeyManager.validateKeyFilePermissions(keyFile),
+        "File with GROUP_READ and non-root owner should fail validation");
+  }
+
+  @Test
+  void testPermissionsOthersReadFails(@TempDir Path tempDir) throws Exception {
+    Assumptions.assumeTrue(
+        tempDir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+        "POSIX file permissions not supported");
+
+    Path keyFile = tempDir.resolve("test.key");
+    Files.createFile(keyFile);
+    Set<PosixFilePermission> perms = EnumSet.of(
+        PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OTHERS_READ);
+    Files.setPosixFilePermissions(keyFile, perms);
+
+    assertThrows(PSQLException.class,
+        () -> BaseX509KeyManager.validateKeyFilePermissions(keyFile),
+        "File with OTHERS_READ should fail validation");
+  }
+
+  @Test
+  void testPermissionsOwnerReadOnly(@TempDir Path tempDir) throws Exception {
+    Assumptions.assumeTrue(
+        tempDir.getFileSystem().supportedFileAttributeViews().contains("posix"),
+        "POSIX file permissions not supported");
+
+    Path keyFile = tempDir.resolve("test.key");
+    Files.createFile(keyFile);
+    Set<PosixFilePermission> perms = EnumSet.of(PosixFilePermission.OWNER_READ);
+    Files.setPosixFilePermissions(keyFile, perms);
+
+    assertDoesNotThrow(() -> BaseX509KeyManager.validateKeyFilePermissions(keyFile),
+        "File with 0400 permissions should pass validation");
   }
 }
