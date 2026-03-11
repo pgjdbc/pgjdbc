@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
+import org.postgresql.util.PGobject;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
@@ -20,6 +21,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.sql.Array;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -70,6 +72,28 @@ public class JsonbTest extends BaseTest4 {
     assertEquals(2, rs.getInt(1));
     rs.close();
     stmt.close();
+  }
+
+  @Test
+  public void testJsonbResultType() throws SQLException {
+    try (ResultSet rs = con.createStatement().executeQuery("SELECT '[1,2,3]'::jsonb")) {
+      ResultSetMetaData rsmd = rs.getMetaData();
+      assertEquals("jsonb", rsmd.getColumnTypeName(1));
+      assertEquals(PGobject.class.getName(), rsmd.getColumnClassName(1));
+      assertTrue(rs.next());
+      assertEquals("[1, 2, 3]", rs.getString(1));
+    }
+  }
+
+  @Test
+  public void testJsonResultType() throws SQLException {
+    try (ResultSet rs = con.createStatement().executeQuery("SELECT '[1,2,3]'::json")) {
+      ResultSetMetaData rsmd = rs.getMetaData();
+      assertEquals("json", rsmd.getColumnTypeName(1));
+      assertEquals(PGobject.class.getName(), rsmd.getColumnClassName(1));
+      assertTrue(rs.next());
+      assertEquals("[1,2,3]", rs.getString(1));
+    }
   }
 
   @Test
