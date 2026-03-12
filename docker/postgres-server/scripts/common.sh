@@ -21,7 +21,7 @@ is_pg_version_at_least () {
 
 is_pg_version_less_than () {
     local max_pg_major="${1}"
-    [[ "${PG_MAJOR}" == "$(printf "${max_pg_major}\n${PG_MAJOR}\n" | sort -V | head -n1)" ]]
+    [[ "${PG_MAJOR}" != "${max_pg_major}" ]] && [[ "${PG_MAJOR}" == "$(printf "${max_pg_major}\n${PG_MAJOR}\n" | sort -V | head -n1)" ]]
 }
 
 is_option_enabled () {
