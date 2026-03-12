@@ -40,6 +40,12 @@ create_replica () {
     "
     pg_basebackup -D "${replica_data_dir}" -S "${replication_slot_name}" -X stream -P -Fp -R
 
+    if is_pg_version_less_than "10"; then
+      cat <<EOF >>"${replica_data_dir}/postgresql.conf"
+max_locks_per_transaction=256
+EOF
+    fi
+
     cat <<EOF >>"${replica_data_dir}/postgresql.conf"
 port = ${port}
 max_prepared_transactions = 64
