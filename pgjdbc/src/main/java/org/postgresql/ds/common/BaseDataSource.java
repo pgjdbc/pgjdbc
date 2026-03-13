@@ -1444,7 +1444,8 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
               String.format("Invalid argument: number of port %s entries must equal number of serverNames %s",
                   Arrays.toString(portNumbers), Arrays.toString(serverNames)));
         }
-        if (portNumbers.length >= i && portNumbers[i] != 0) {
+        // if it is not specified it will be zero
+        if (portNumbers[i] != 0) {
           url.append(":").append(portNumbers[i]);
         }
 
