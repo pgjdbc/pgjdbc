@@ -12,6 +12,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Proxy server that allows for pretending that traffic did not arrive at the
@@ -24,6 +26,7 @@ public class StrangeProxyServer implements Closeable {
   private final ServerSocket serverSock;
   private volatile boolean keepRunning = true;
   private volatile long minAcceptedAt;
+  private final List<Socket> clientSockets = new CopyOnWriteArrayList<>();
 
   public StrangeProxyServer(String destHost, int destPort) throws IOException {
     this.serverSock = new ServerSocket(0);
@@ -32,8 +35,10 @@ public class StrangeProxyServer implements Closeable {
       while (keepRunning) {
         try {
           Socket sourceSock = serverSock.accept();
+          clientSockets.add(sourceSock);
           final long acceptedAt = System.currentTimeMillis();
           Socket destSock = new Socket(destHost, destPort);
+          clientSockets.add(destSock);
           doAsync(() -> transferOneByOne(acceptedAt, sourceSock, destSock));
           doAsync(() -> transferOneByOne(acceptedAt, destSock, sourceSock));
         } catch (SocketTimeoutException ignore) {
@@ -64,6 +69,21 @@ public class StrangeProxyServer implements Closeable {
 
   public void stopForwardingAllClients() {
     this.minAcceptedAt = Long.MAX_VALUE;
+  }
+
+  /**
+   * Closes all tracked client and destination sockets, causing an immediate
+   * IOException on any in-progress reads or writes.
+   */
+  public void closeAllClients() {
+    for (Socket socket : clientSockets) {
+      try {
+        socket.close();
+      } catch (IOException ignore) {
+        // ignore
+      }
+    }
+    clientSockets.clear();
   }
 
   private static void doAsync(Runnable task) {

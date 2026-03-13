@@ -8,22 +8,29 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
+import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.copy.CopyOut;
+import org.postgresql.copy.PGCopyInputStream;
 import org.postgresql.copy.PGCopyOutputStream;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.ByteBufferByteStreamWriter;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,11 +40,15 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.Locale;
+import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author kato@iki.fi
@@ -499,4 +510,195 @@ class CopyTest {
     }
   }
 
+  /**
+   * Tests that Connection.isValid() does not hang after a network failure
+   * during a COPY operation using PGCopyOutputStream.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3957">Issue 3957</a>
+   */
+  @Test
+  @Timeout(value = 15, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void isValidShouldNotHangAfterCopyStreamNetworkFailure() throws Exception {
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(),
+        TestUtil.getPort())) {
+      Properties props = new Properties();
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+          String.valueOf(proxyServer.getServerPort()));
+      try (Connection proxyCon = TestUtil.openDB(props)) {
+        TestUtil.createTempTable(proxyCon, "copytest_stream", "data text");
+
+        String copySql = "COPY copytest_stream (data) FROM STDIN WITH (FORMAT CSV)";
+
+        // Start COPY via PGCopyOutputStream then break the network
+        assertThrows(IOException.class, () -> {
+          try (PGCopyOutputStream copyOut =
+                   new PGCopyOutputStream(proxyCon.unwrap(PgConnection.class), copySql)) {
+            // Write some data to ensure COPY is active
+            for (int i = 0; i < 10; i++) {
+              copyOut.write(("row" + i + "\n").getBytes(StandardCharsets.UTF_8));
+              copyOut.flush();
+            }
+            // Close the sockets to trigger an immediate IOException
+            proxyServer.closeAllClients();
+            // Continue writing until the broken connection is detected
+            for (int i = 0; i < 100_000; i++) {
+              copyOut.write(("more-data-" + i + "\n").getBytes(StandardCharsets.UTF_8));
+              copyOut.flush();
+            }
+          }
+        }, "Expected IOException from broken connection during COPY");
+
+        assertTimeout(Duration.ofSeconds(10), () -> {
+          // This is the actual bug: isValid() should return false promptly,
+          // not hang indefinitely waiting for the COPY lock to be released.
+          assertFalse(proxyCon.isValid(5),
+              "isValid should return false for a broken connection, not hang");
+        }, "Test timed out — isValid(5) or connection close hung due to unreleased COPY lock");
+      }
+    }
+  }
+
+  /**
+   * Tests that the COPY lock is released after a network failure during
+   * CopyIn.writeToCopy(), so subsequent operations do not hang.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3957">Issue 3957</a>
+   */
+  @Test
+  @Timeout(value = 15, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void isValidShouldNotHangAfterWriteToCopyNetworkFailure() throws Exception {
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(),
+        TestUtil.getPort())) {
+      Properties props = new Properties();
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+          String.valueOf(proxyServer.getServerPort()));
+      try (Connection proxyCon = TestUtil.openDB(props)) {
+        TestUtil.createTempTable(proxyCon, "copytest_write", "data text");
+
+        CopyManager manager = proxyCon.unwrap(PGConnection.class).getCopyAPI();
+        CopyIn copyIn = manager.copyIn("COPY copytest_write (data) FROM STDIN WITH (FORMAT CSV)");
+
+        // Write some data to ensure COPY is active
+        byte[] row = "somedata\n".getBytes(StandardCharsets.UTF_8);
+        for (int i = 0; i < 10; i++) {
+          copyIn.writeToCopy(row, 0, row.length);
+          copyIn.flushCopy();
+        }
+
+        // Close the sockets to trigger an immediate IOException
+        proxyServer.closeAllClients();
+
+        // writeToCopy or flushCopy should fail with an IOException
+        assertThrows(SQLException.class, () -> {
+          for (int i = 0; i < 100_000; i++) {
+            copyIn.writeToCopy(row, 0, row.length);
+            copyIn.flushCopy();
+          }
+        }, "Expected SQLException from broken connection during writeToCopy");
+
+        assertTimeout(Duration.ofSeconds(5), () -> {
+          assertFalse(proxyCon.isValid(3),
+              "isValid should return false for a broken connection, not hang");
+        }, "isValid() hung — COPY lock was not released after writeToCopy failure");
+      }
+    }
+  }
+
+  /**
+   * Tests that the COPY lock is released after a network failure during
+   * CopyOut.readFromCopy(), so subsequent operations do not hang.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3957">Issue 3957</a>
+   */
+  @Test
+  @Timeout(value = 15, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void isValidShouldNotHangAfterReadFromCopyNetworkFailure() throws Exception {
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(),
+        TestUtil.getPort())) {
+      Properties props = new Properties();
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+          String.valueOf(proxyServer.getServerPort()));
+      try (Connection proxyCon = TestUtil.openDB(props)) {
+        // Insert enough data so the COPY TO STDOUT will have rows to read
+        try (Statement stmt = proxyCon.createStatement()) {
+          stmt.execute("CREATE TEMP TABLE copytest_read (data text)");
+          stmt.execute(
+              "INSERT INTO copytest_read SELECT 'row' || g FROM generate_series(1, 10000) g");
+        }
+
+        CopyManager manager = proxyCon.unwrap(PGConnection.class).getCopyAPI();
+        CopyOut copyOut = manager.copyOut("COPY copytest_read TO STDOUT");
+
+        // Read a few rows to ensure COPY is active
+        for (int i = 0; i < 5; i++) {
+          assertNotNull(copyOut.readFromCopy(), "Expected data row from COPY TO STDOUT");
+        }
+
+        // Close the sockets to trigger an immediate IOException on next read
+        proxyServer.closeAllClients();
+
+        assertThrows(SQLException.class, () -> {
+          //noinspection StatementWithEmptyBody
+          while (copyOut.readFromCopy() != null) {
+            // drain until failure
+          }
+        }, "Expected SQLException from broken connection during readFromCopy");
+
+        assertTimeout(Duration.ofSeconds(5), () -> {
+          assertFalse(proxyCon.isValid(3),
+              "isValid should return false for a broken connection, not hang");
+        }, "isValid() hung — COPY lock was not released after readFromCopy failure");
+      }
+    }
+  }
+
+  /**
+   * Tests that the COPY lock is released after a network failure during
+   * PGCopyInputStream.read(), so subsequent operations do not hang.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3957">Issue 3957</a>
+   */
+  @Test
+  @Timeout(value = 15, unit = TimeUnit.SECONDS, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+  void isValidShouldNotHangAfterCopyInputStreamNetworkFailure() throws Exception {
+    try (StrangeProxyServer proxyServer = new StrangeProxyServer(TestUtil.getServer(),
+        TestUtil.getPort())) {
+      Properties props = new Properties();
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_HOST, "localhost");
+      TestUtil.setTestUrlProperty(props, PGProperty.PG_PORT,
+          String.valueOf(proxyServer.getServerPort()));
+      try (Connection proxyCon = TestUtil.openDB(props)) {
+        try (Statement stmt = proxyCon.createStatement()) {
+          stmt.execute("CREATE TEMP TABLE copytest_instream (data text)");
+          stmt.execute(
+              "INSERT INTO copytest_instream SELECT 'row' || g FROM generate_series(1, 10000) g");
+        }
+
+        CopyManager manager = proxyCon.unwrap(PGConnection.class).getCopyAPI();
+
+        assertThrows(IOException.class, () -> {
+          try (PGCopyInputStream copyIn = new PGCopyInputStream(
+              manager.copyOut("COPY copytest_instream TO STDOUT"))) {
+            byte[] buf = new byte[1024];
+            int bytesRead = 0;
+            // Read a bit of data, then break the connection
+            while (copyIn.read(buf) >= 0) {
+              bytesRead += buf.length;
+              if (bytesRead > 4096) {
+                proxyServer.closeAllClients();
+              }
+            }
+          }
+        }, "Expected IOException from broken connection during PGCopyInputStream.read()");
+
+        assertTimeout(Duration.ofSeconds(5), () -> {
+          assertFalse(proxyCon.isValid(3),
+              "isValid should return false for a broken connection, not hang");
+        }, "isValid() hung — COPY lock was not released after CopyInputStream failure");
+      }
+    }
+  }
 }

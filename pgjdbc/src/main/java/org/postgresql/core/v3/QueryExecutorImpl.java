@@ -1215,6 +1215,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       } catch (IOException ioe) {
         throw new PSQLException(GT.tr("Database connection failed when ending copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
+      } finally {
+        // Release the lock if still held, otherwise future operations
+        // will hang indefinitely in waitOnLock()
+        if (hasLock(op)) {
+          unlock(op);
+        }
       }
     }
   }
@@ -1244,6 +1250,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(data, off, siz);
       } catch (IOException ioe) {
+        if (hasLock(op)) {
+          unlock(op);
+        }
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1274,6 +1283,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pgStream.sendInteger4(siz + 4);
         pgStream.send(from);
       } catch (IOException ioe) {
+        if (hasLock(op)) {
+          unlock(op);
+        }
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1290,6 +1302,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         pgStream.flush();
       } catch (IOException ioe) {
+        if (hasLock(op)) {
+          unlock(op);
+        }
         throw new PSQLException(GT.tr("Database connection failed when writing to copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
@@ -1314,6 +1329,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         processCopyResults(op, block); // expect a call to handleCopydata() to store the data
       } catch (IOException ioe) {
+        // Release the lock if still held after a connection failure,
+        // otherwise future operations will hang indefinitely in waitOnLock()
+        if (hasLock(op)) {
+          unlock(op);
+        }
         throw new PSQLException(GT.tr("Database connection failed when reading from copy"),
             PSQLState.CONNECTION_FAILURE, ioe);
       }
