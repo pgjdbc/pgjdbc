@@ -417,7 +417,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         try {
           handler = sendQueryPreamble(handler, flags);
-          autosave = sendAutomaticSavepoint(query, flags);
+          //if it's an isolation level query then it should be the first thing set after a BEGIN not autosave
+          if (!possibleIsolationLevelQuery(query)) {
+            autosave = sendAutomaticSavepoint(query, flags);
+          }
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
               handler, null, adaptiveFetch);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
@@ -688,6 +691,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         rollbackIfRequired(autosave, e);
       }
     }
+  }
+
+  private boolean possibleIsolationLevelQuery(Query query) {
+    return query.getNativeSql().toLowerCase(Locale.ROOT).contains("isolation");
   }
 
   private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
