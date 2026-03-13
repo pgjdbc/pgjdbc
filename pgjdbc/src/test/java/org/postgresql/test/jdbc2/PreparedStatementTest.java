@@ -49,7 +49,9 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -1771,5 +1773,97 @@ public class PreparedStatementTest extends BaseTest4 {
     } catch (SQLException ex) {
       // ignore
     }
+  }
+
+  @Test
+  public void testBatchSelect() throws SQLException {
+    PreparedStatement pstmt = null;
+    PreparedStatement batchSelect = null;
+    ResultSet rs = null;
+    try {
+      pstmt = con.prepareStatement("INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);"
+              + "INSERT INTO inttable (a) VALUES (?);");
+      ((PgStatement) pstmt).setPrepareThreshold(0);
+      for (int i = 0; i < 4; i++) {
+        pstmt.setInt(i + 1, i + 1);
+      }
+      pstmt.execute();
+      batchSelect =  con.prepareStatement("select * from inttable where a = ?;"
+          + "select * from inttable where a = ?;"
+          + "select * from inttable where a = ?;");
+      for (int i = 0; i < 3; i++) {
+        batchSelect.setInt(i + 1, i + 1);
+      }
+
+      List<Integer> results = new ArrayList<>();
+      boolean hasResults = batchSelect.execute();
+      while (hasResults) {
+        rs = batchSelect.getResultSet();
+        while (rs.next()) {
+          results.add(rs.getInt(1));
+        }
+        hasResults = batchSelect.getMoreResults();
+      }
+      assertEquals(Arrays.asList(1, 2, 3), results);
+    } catch (SQLException e) {
+      throw new RuntimeException(e);
+    } finally {
+      TestUtil.closeQuietly(rs);
+      TestUtil.closeQuietly(pstmt);
+      TestUtil.closeQuietly(batchSelect);
+    }
+  }
+
+  @Test
+  public void testBatchSelectWithPrepareThreshold1() throws SQLException {
+    assumeBinaryModeRegular();
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support prepared statement requests");
+
+    PreparedStatement pstmt =  con.prepareStatement("select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;");
+    ((PgStatement) pstmt).setPrepareThreshold(1);
+    for (int i = 0; i < 3; i++) {
+      pstmt.setInt(i + 1, i + 1);
+    }
+    pstmt.execute();
+    pstmt.close();
+    assumeFalse(con.unwrap(PgConnection.class).getQueryExecutor().isReWriteBatchedInsertsEnabled(),"Test assertions below support only non-rewritten insert statements");
+    assertTrue(((PGStatement) pstmt).isUseServerPrepare(), "prepareThreshold=1, so the statement should be server-prepared");
+    assertEquals(1, getNumberOfServerPreparedStatements("select * from inttable where a = $1"));
+  }
+
+  @Test
+  public void testBatchSelectWithDifferentParams() throws SQLException {
+    ResultSet rs;
+    PreparedStatement stmt = con.prepareStatement("INSERT INTO inttable (a) VALUES (?);"
+        + "INSERT INTO inttable (a) VALUES (?);"
+        + "INSERT INTO inttable (a) VALUES (?);"
+        + "INSERT INTO inttable (a) VALUES (?);");
+    ((PgStatement) stmt).setPrepareThreshold(0);
+    for (int i = 0; i < 4; i++) {
+      stmt.setInt(i + 1, i + 1);
+    }
+    stmt.execute();
+    PreparedStatement pstmt =  con.prepareStatement("select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;"
+        + "select * from inttable where a = ?;");
+    ((PgStatement) pstmt).setPrepareThreshold(1);
+    pstmt.setInt(1, 1);
+    pstmt.setDouble(2, 2.0);
+    pstmt.setFloat(3, 3.0F);
+    List<Integer> results = new ArrayList<>();
+    boolean hasResults = pstmt.execute();
+    while (hasResults) {
+      rs = pstmt.getResultSet();
+      while (rs.next()) {
+        results.add(rs.getInt(1));
+      }
+      hasResults = pstmt.getMoreResults();
+    }
+    assertEquals(Arrays.asList(1, 2, 3), results);
+    pstmt.close();
   }
 }
