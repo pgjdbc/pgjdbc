@@ -235,14 +235,14 @@ public class V3PGReplicationStream implements PGReplicationStream {
 
   private boolean processKeepAliveMessage(ByteBuffer buffer) {
     lastServerLSN = LogSequenceNumber.valueOf(buffer.getLong());
-    if (lastServerLSN.asLong() > lastReceiveLSN.asLong()) {
+    if (lastServerLSN.compareTo(lastReceiveLSN) > 0) {
       lastReceiveLSN = lastServerLSN;
     }
     // if the client has confirmed flush of last XLogData msg and KeepAlive shows ServerLSN is still
     // advancing, we can safely advance FlushLSN to ServerLSN
-    if (automaticFlush && explicitlyFlushedLSN.asLong() >= startOfLastMessageLSN.asLong()
-        && lastServerLSN.asLong() > explicitlyFlushedLSN.asLong()
-        && lastServerLSN.asLong() > lastFlushedLSN.asLong()) {
+    if (automaticFlush && explicitlyFlushedLSN.compareTo(startOfLastMessageLSN) >= 0
+        && lastServerLSN.compareTo(explicitlyFlushedLSN) > 0
+        && lastServerLSN.compareTo(lastFlushedLSN) > 0) {
       lastFlushedLSN = lastServerLSN;
     }
 
