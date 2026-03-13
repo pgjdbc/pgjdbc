@@ -441,10 +441,15 @@ class LogicalReplicationStatusTest {
     // now insert something into other DB (without replication) to generate WAL
     insertPreviousChanges(secondSqlConnection);
 
-    TimeUnit.SECONDS.sleep(1);
-
-    // read KeepAlive messages - lastServerLSN will have advanced and we can safely confirm it
-    stream.readPending();
+    long start = System.nanoTime();
+    long maxWait = TimeUnit.SECONDS.toNanos(10);
+    while (System.nanoTime() - start < maxWait) {
+      stream.readPending();
+      if (stream.getLastReceiveLSN().compareTo(confirmedClientFlushLSN) > 0) {
+        break;
+      }
+      TimeUnit.MILLISECONDS.sleep(100);
+    }
 
     LogSequenceNumber lastFlushedLSN = stream.getLastFlushedLSN();
     LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();

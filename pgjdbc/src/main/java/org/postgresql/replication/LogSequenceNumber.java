@@ -100,7 +100,7 @@ public final class LogSequenceNumber implements Comparable<LogSequenceNumber> {
 
   @Override
   public int hashCode() {
-    return (int) (value ^ (value >>> 32));
+    return Long.hashCode(value);
   }
 
   @Override
@@ -110,11 +110,7 @@ public final class LogSequenceNumber implements Comparable<LogSequenceNumber> {
 
   @Override
   public int compareTo(LogSequenceNumber o) {
-    if (value == o.value) {
-      return 0;
-    }
-    //Unsigned comparison
-    return value + Long.MIN_VALUE < o.value + Long.MIN_VALUE ? -1 : 1;
+    return Long.compareUnsigned(value, o.value);
   }
 
 }
