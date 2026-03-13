@@ -34,6 +34,7 @@ import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 /**
  * TestCase to test the internal functionality of org.postgresql.jdbc2.Connection and it's
@@ -544,6 +545,26 @@ class ConnectionTest {
     assertTrue(newStream.getSocket().getKeepAlive());
 
     TestUtil.closeDB(con);
+  }
+
+  @Test
+  public void testGetBinaryDisabledOidWithName() throws  Exception {
+    try (Connection con = TestUtil.openDB()) {
+      Properties properties = new Properties();
+      PGProperty.BINARY_TRANSFER_DISABLE.set(properties, "text");
+      Set<?> oids = con.unwrap(PgConnection.class).getBinaryDisabledOids(properties);
+      assertTrue("Should contain the oid for text (25)", oids.contains(25));
+    }
+  }
+
+  @Test
+  public void testGetBinaryEnabledOidWithName() throws  Exception {
+    try (Connection con = TestUtil.openDB()) {
+      Properties properties = new Properties();
+      PGProperty.BINARY_TRANSFER_ENABLE.set(properties, "text");
+      Set<?> oids = con.unwrap(PgConnection.class).getBinaryEnabledOids(properties);
+      assertTrue("Should contain the oid for text (25)", oids.contains(25));
+    }
   }
 
   private static void assertStringContains(String orig, String toContain) {
