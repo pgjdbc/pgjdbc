@@ -177,8 +177,16 @@ public class LazyCleanerImpl implements LazyCleaner {
     // the surface for the leak.
     ForkJoinPool.commonPool().execute(
         () -> {
-          // Clear setContextClassLoader to avoid leaking the classloader
-          Thread.currentThread().setContextClassLoader(null);
+          // ForkJoinPool does not inherit contextClassLoader from the submitting thread,
+          // however custom thread factories might, so we try nullifying it to avoid
+          // classloader leaks. InnocuousForkJoinWorkerThread forbids setContextClassLoader,
+          // so we catch SecurityException to avoid crashing the cleanup thread.
+          // See https://github.com/pgjdbc/pgjdbc/issues/3953
+          try {
+            Thread.currentThread().setContextClassLoader(null);
+          } catch (SecurityException ignore) {
+            // InnocuousForkJoinWorkerThread or a SecurityManager forbids setContextClassLoader
+          }
           RefQueueBlocker<Object> blocker =
               new RefQueueBlocker<>(queue, threadName, threadTtl, this::checkEmpty);
           while (!checkEmpty()) {
