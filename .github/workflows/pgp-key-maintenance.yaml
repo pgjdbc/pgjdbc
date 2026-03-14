@@ -8,7 +8,7 @@ permissions: read-all
 jobs:
   pgp-key-maintenance:
     name: PGP key maintenance
-    uses: vlsi/provision-release-pgp-key/.github/workflows/pgp-key-maintenance.yaml@47caa11d98dd9e897523af1f16532bf6152e8444 # v1
+    uses: vlsi/provision-release-pgp-key/.github/workflows/pgp-key-maintenance.yaml@7c6e3c4eb82ecdd18d1959f3f1a41af9ea0aac0e # v1.0.0
     secrets:
       RELEASE_PGP_SECRET_UPDATE_TOKEN: ${{ secrets.RELEASE_PGP_SECRET_UPDATE_TOKEN }}
       RELEASE_PGP_PRIVATE_KEY: ${{ secrets.RELEASE_PGP_PRIVATE_KEY }}
