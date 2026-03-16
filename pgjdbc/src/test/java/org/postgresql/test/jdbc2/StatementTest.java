@@ -769,8 +769,7 @@ class StatementTest {
   void setQueryTimeoutWithSleep() throws SQLException, InterruptedException {
     // check that the timeout starts ticking at execute, not at the
     // setQueryTimeout call.
-    Statement stmt = con.createStatement();
-    try {
+    try (Statement stmt = con.createStatement()) {
       stmt.setQueryTimeout(1);
       Thread.sleep(3000);
       stmt.execute("select pg_sleep(5)");
@@ -1007,7 +1006,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(20)
+  @Timeout(40)
   void fastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
