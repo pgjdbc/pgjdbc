@@ -26,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -560,6 +561,42 @@ class ConnectionTest {
     }
     if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
       assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(newStream.getSocket()));
+    }
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  void socketSettings() throws Exception {
+    Properties properties = new Properties();
+    PGProperty.TCP_KEEP_ALIVE.set(properties, true);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      PGProperty.TCP_KEEP_COUNT.set(properties, 80);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      PGProperty.TCP_KEEP_IDLE.set(properties, 900);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      PGProperty.TCP_KEEP_INTERVAL.set(properties, 1000);
+    }
+
+    con = TestUtil.openDB(properties);
+    QueryExecutor queryExecutor = ((PgConnection) con).getQueryExecutor();
+
+    Field f = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
+    f.setAccessible(true);
+    PGStream pgStream = (PGStream) f.get(queryExecutor);
+
+    Socket socket = pgStream.getSocket();
+    assertTrue(socket.getKeepAlive());
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(socket));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(socket));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(socket));
     }
 
     TestUtil.closeDB(con);
