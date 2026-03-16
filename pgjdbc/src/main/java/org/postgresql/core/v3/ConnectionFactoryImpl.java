@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -136,10 +137,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
    * so an SSL failure (e.g. timeout during SSL negotiation) should fall back to plaintext.
    */
   private PGStream tryConnectWithoutSsl(Properties info, SocketFactory socketFactory,
-      HostSpec hostSpec, GSSEncMode gssEncMode, Exception originalException)
+      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
+      Exception originalException)
       throws SQLException, IOException {
     try {
-      PGStream stream = tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
+      PGStream stream =
+          tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode, connectTimeoutMs, startNanos);
       LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
           hostSpec);
       return stream;
@@ -153,10 +156,29 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
+  /**
+   * Computes the remaining connect timeout in milliseconds.
+   * Uses {@link System#nanoTime()} for monotonic elapsed-time measurement.
+   *
+   * @param connectTimeoutMs the original connect timeout in milliseconds, or 0 for no timeout
+   * @param startNanos the {@link System#nanoTime()} value when the connection attempt began
+   * @return remaining time in millis, or 0 if no timeout was set. If the deadline has passed,
+   *         returns 1 (minimum positive timeout) so the attempt fails quickly.
+   */
+  private static int remainingConnectTimeout(int connectTimeoutMs, long startNanos) {
+    if (connectTimeoutMs == 0) {
+      return 0;
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    long elapsedMs = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+    long remaining = connectTimeoutMs - elapsedMs;
+    return remaining <= 0 ? 1 : (int) Math.min(remaining, Integer.MAX_VALUE);
+  }
+
   private PGStream tryConnect(Properties info, SocketFactory socketFactory, HostSpec hostSpec,
-      SslMode sslMode, GSSEncMode gssEncMode)
+      SslMode sslMode, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos)
       throws SQLException, IOException {
-    int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
+    int connectTimeout = remainingConnectTimeout(connectTimeoutMs, startNanos);
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
     SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
@@ -271,6 +293,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
 
+    int connectTimeoutMs = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
+    long startNanos = System.nanoTime();
+
     HostRequirement targetServerType;
     String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.getOrDefault(info));
     try {
@@ -312,18 +337,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode);
+          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode, connectTimeoutMs, startNanos);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, e);
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
             // Try using SSL
             Throwable ex = null;
             try {
               newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode);
+                  tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, connectTimeoutMs, startNanos);
               LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
                   hostSpec);
             } catch (SQLException ee) {
@@ -344,7 +369,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           }
         } catch (SocketTimeoutException e) {
           if (sslMode == SslMode.PREFER) {
-            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, e);
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }

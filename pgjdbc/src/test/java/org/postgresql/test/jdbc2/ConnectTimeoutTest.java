@@ -70,7 +70,10 @@ class ConnectTimeoutTest {
           e.getCause(),
           () -> "Unexpected " + e + " with cause " + e.getCause());
       // check that it was not a default system timeout, an approximate value is used
-      assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation);
+      assertTrue(Math.abs(interval - connectTimeoutMillis) < maxDeviation,
+          () -> "Connection timeout should be ~" + connectTimeoutMillis + " ms, but was "
+              + interval + " ms (deviation " + Math.abs(interval - connectTimeoutMillis)
+              + " ms exceeds maximum allowed " + maxDeviation + " ms)");
       return;
     }
     fail("SQLException expected");
