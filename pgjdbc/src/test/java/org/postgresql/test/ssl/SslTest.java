@@ -229,6 +229,12 @@ public class SslTest {
                       // TODO: support gss tests in /certdir/pg_hba.conf
                       continue;
                     }
+                    if (gssEncMode != GSSEncMode.DISABLE
+                        && Boolean.getBoolean("skipGssEncryption")) {
+                      // GSSENCRequest before SSL causes authentication timeout
+                      // on certain platforms (e.g. PostgreSQL for Windows)
+                      continue;
+                    }
                     for (Role role : Role.VALUES) {
                       if (clientCertificate != ClientCertificate.EMPTY && role != Role.CLIENT_CERT_ROLE) {
                         // Skip client certificates (good, bad) for the other roles (md5, scram)
@@ -302,11 +308,30 @@ public class SslTest {
     return value != null && value.contains(substring);
   }
 
+  /**
+   * Asserts that the error is either an auth failure (28000) or a connection failure (08001).
+   * PostgreSQL on Windows may reset the connection instead of sending a FATAL auth error
+   * when pg_hba.conf rejects the connection.
+   */
+  private static void assertAuthOrConnectFailure(SQLException e, String caseName) {
+    String sqlState = e.getSQLState();
+    assertTrue(
+        PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(sqlState)
+            || PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(sqlState),
+        () -> caseName + " ==> expected 28000 or 08001 but was: " + sqlState);
+  }
+
   private static void assertClientCertRequired(@Nullable SQLException e, String caseName) {
     if (e == null) {
       fail(caseName + " should result in failure of client validation");
     }
-    assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> CONNECTION_FAILURE is expected");
+    String sqlState = e.getSQLState();
+    // The server may either send a FATAL auth error (28000) or reset the connection (08001)
+    // when client certificate verification fails. The latter is observed on Windows.
+    assertTrue(
+        PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(sqlState)
+            || PSQLState.CONNECTION_UNABLE_TO_CONNECT.getState().equals(sqlState),
+        caseName + " ==> expected 28000 or 08001 but was: " + sqlState);
   }
 
   private void checkErrorCodes(@Nullable SQLException e) {
@@ -334,7 +359,7 @@ public class SslTest {
       if (e == null) {
         fail(caseName + " should result in connection failure");
       }
-      assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
+      assertAuthOrConnectFailure(e, caseName);
       return;
     }
 
@@ -344,7 +369,7 @@ public class SslTest {
       if (e == null) {
         fail(caseName + " should result in connection failure");
       }
-      assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
+      assertAuthOrConnectFailure(e, caseName);
       return;
     }
 
@@ -410,7 +435,7 @@ public class SslTest {
           if (e == null) {
             fail(caseName + " ==> connection should fail");
           }
-          assertEquals(PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState(), e.getSQLState(), caseName + " ==> INVALID_AUTHORIZATION_SPECIFICATION is expected");
+          assertAuthOrConnectFailure(e, caseName);
         } catch (AssertionError er) {
           for (AssertionError error : errors) {
             er.addSuppressed(error);
@@ -628,6 +653,9 @@ public class SslTest {
     SocketException brokenPipe = findCause(e, SocketException.class);
     if (brokenPipe != null) {
       if (contains(brokenPipe.getMessage(), "Broken pipe")) {
+        return true;
+      }
+      if (contains(brokenPipe.getMessage(), "Connection reset")) {
         return true;
       }
       if (contains(brokenPipe.getMessage(), "Invalid argument")) {

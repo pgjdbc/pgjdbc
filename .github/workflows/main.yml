@@ -7,14 +7,12 @@ on:
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
-      - 'appveyor.xml'
   pull_request:
     branches:
       - '**'
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
-      - 'appveyor.xml'
   workflow_dispatch:
     inputs:
       matrix_rng_seed:
@@ -25,7 +23,7 @@ permissions:
   contents: read
 
 # https://help.github.com/en/actions/automating-your-workflow-with-github-actions/software-installed-on-github-hosted-runners
-# GitHub Actions does not support Docker, PostgreSQL server on Windows, macOS :(
+# GitHub Actions does not support Docker on Windows/macOS, so we use ikalnytskyi/action-setup-postgres there
 
 concurrency:
   # On master/release, we don't want any jobs cancelled so the sha is used to name the group
@@ -106,6 +104,8 @@ jobs:
           arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease -Psigning.pgp.enabled=OFF
       - name: Verify source distribution
         working-directory: pgjdbc/build/distributions
+        shell: bash
+        # language=bash
         run: |
           tar xzf postgresql-1.0-jdbc-src.tar.gz
           cd postgresql-1.0-jdbc-src
@@ -131,6 +131,8 @@ jobs:
       with:
         fetch-depth: 50
     - id: set-matrix
+      shell: bash
+      # language=bash
       run: |
         node .github/workflows/matrix.mjs
 
@@ -150,6 +152,7 @@ jobs:
       with:
         fetch-depth: 50
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }}
+      if: ${{ runner.os == 'Linux' }}
       working-directory: docker/postgres-server
       env:
         PGV: ${{ matrix.pg_version }}
@@ -159,6 +162,7 @@ jobs:
         SCRAM: ${{ matrix.scram }}
         CREATE_REPLICAS: ${{ matrix.replication }}
       # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
+      # language=bash
       run: |
         echo 'Starting PostgreSQL via docker compose down; PGV=${{ matrix.pg_version }} TZ=${{ matrix.server_tz }} XA=${{ matrix.xa }} SSL=${{ matrix.ssl }} SCRAM=${{ matrix.scram }} CREATE_REPLICAS=${{ matrix.replication }} docker compose up'
 
@@ -166,6 +170,79 @@ jobs:
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
         docker compose up -d
         docker compose logs
+    - name: Start PostgreSQL PGV=${{ matrix.pg_version }}
+      if: ${{ runner.os != 'Linux' }}
+      uses: ikalnytskyi/action-setup-postgres@v7
+      with:
+        username: postgres
+        password: postgres
+        database: postgres
+        postgres-version: ${{ matrix.pg_version }}
+      id: postgres
+    - name: Configure PostgreSQL SSL=${{ matrix.ssl }} REPLICATION=${{ matrix.replication }}
+      if: ${{ runner.os != 'Linux' }}
+      shell: bash
+      # language=bash
+      run: |
+        PGDATA="$RUNNER_TEMP/pgdata"
+        PG_HBA="$PGDATA/pg_hba.conf"
+
+        # Use the same pg_hba.conf as the Docker-based setup.
+        # Remove 'local' lines (no unix sockets on Windows) and
+        # add scram entry for PG 10+ auth tests.
+        cp certdir/server/pg_hba.conf "$PG_HBA"
+        sed '/^local/d' "$PG_HBA" > "$PG_HBA.tmp"
+        mv "$PG_HBA.tmp" "$PG_HBA"
+        echo "host    authtest        scram           all            scram-sha-256" >> "$PG_HBA"
+
+        if [ "$SSL" = "yes" ]; then
+          # Copy SSL certificates from the repo into PGDATA
+          cp certdir/server/server.crt "$PGDATA/"
+          cp certdir/server/server.key "$PGDATA/"
+          cp certdir/server/root.crt "$PGDATA/"
+          chmod 600 "$PGDATA/server.key"
+          psql -c "ALTER SYSTEM SET ssl = 'on'"
+          psql -c "ALTER SYSTEM SET ssl_cert_file = 'server.crt'"
+          psql -c "ALTER SYSTEM SET ssl_key_file = 'server.key'"
+          psql -c "ALTER SYSTEM SET ssl_ca_file = 'root.crt'"
+        else
+          # Comment out hostssl lines when SSL is disabled, same as Docker entrypoint
+          sed 's/^hostssl/#hostssl/' "$PG_HBA" > "$PG_HBA.tmp"
+          mv "$PG_HBA.tmp" "$PG_HBA"
+        fi
+
+        if [ "$REPLICATION" = "yes" ]; then
+          psql -c "ALTER SYSTEM SET wal_level = 'logical'"
+        fi
+
+        psql -c "ALTER SYSTEM SET password_encryption = 'md5'"
+        # Performance tuning to match the Docker-based setup
+        psql -c "ALTER SYSTEM SET fsync = 'off'"
+        psql -c "ALTER SYSTEM SET synchronous_commit = 'off'"
+        psql -c "ALTER SYSTEM SET full_page_writes = 'off'"
+        # Logging
+        psql -c "ALTER SYSTEM SET logging_collector = 'on'"
+        psql -c "ALTER SYSTEM SET log_directory = 'log'"
+        psql -c "ALTER SYSTEM SET log_connections = 'on'"
+        psql -c "ALTER SYSTEM SET log_disconnections = 'on'"
+        pg_ctl restart -D "$PGDATA" -w
+
+        # Create test user and databases
+        psql -c "CREATE USER test WITH PASSWORD 'test'"
+        psql -c "CREATE DATABASE test OWNER test"
+        psql -c "CREATE DATABASE test_2 OWNER test"
+        if [ "$SSL" = "yes" ]; then
+          for db in hostdb hostssldb hostnossldb certdb hostsslcertdb; do
+            psql -c "CREATE DATABASE $db OWNER test"
+            psql -c "CREATE EXTENSION sslinfo" -d "$db"
+          done
+        fi
+        psql -c "CREATE EXTENSION hstore" -d test
+        psql -c "CREATE EXTENSION sslinfo" -d test
+      env:
+        PGSERVICE: ${{ steps.postgres.outputs.service-name }}
+        SSL: ${{ matrix.ssl }}
+        REPLICATION: ${{ matrix.replication }}
     - name: Set up Java 21 and ${{ matrix.non_ea_java_version }}, ${{ matrix.java_distribution }}, ${{ runner.arch }}
       uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
       with:
@@ -197,6 +274,8 @@ jobs:
         # Architecture is explicit to workaround https://github.com/actions/setup-java/issues/559
         architecture: ${{ runner.arch == 'ARM64' && 'aarch64' || 'x64' }}
     - name: Prepare local properties
+      shell: bash
+      # language=bash
       run: |
         # See https://github.com/actions/runner/issues/409
         cat <<EOF >ssltest.local.properties
@@ -205,6 +284,12 @@ jobs:
         cat <<EOF >build.local.properties
         preferQueryMode=${{ matrix.query_mode }}
         EOF
+        if [ "$RUNNER_OS" != "Linux" ]; then
+          cat <<EOF >>build.local.properties
+        privilegedUser=postgres
+        privilegedPassword=postgres
+        EOF
+        fi
 
     - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1
       name: Test
@@ -227,6 +312,7 @@ jobs:
 
     - name: 'Install krb5 for GSS tests'
       if: ${{ matrix.gss == 'yes' }}
+      # language=bash
       run: |
         sudo apt -y update
         sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
@@ -234,6 +320,7 @@ jobs:
         sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql
     - name: 'Update hosts for GSS tests'
       if: ${{ matrix.gss == 'yes' }}
+      # language=bash
       run: |
         sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com localhost > /etc/hosts"
         cat /etc/hosts
@@ -250,8 +337,54 @@ jobs:
       with:
         name: pgjdbc-heapdump
         path: pgjdbc/*.hprof
+    - name: Collect PostgreSQL server logs (Linux)
+      if: ${{ failure() && runner.os == 'Linux' }}
+      shell: bash
+      # language=bash
+      run: |
+        docker compose -f docker/postgres-server/docker-compose.yml logs --no-color > "$RUNNER_TEMP/pg-server-logs.txt" 2>&1 || true
+    - name: Collect PostgreSQL server logs (Windows)
+      if: ${{ failure() && runner.os != 'Linux' }}
+      shell: bash
+      # language=bash
+      run: |
+        PG_DATADIR="$RUNNER_TEMP/pgdata"
+        LOG_FILE="$RUNNER_TEMP/pg-server-logs.txt"
+        echo "=== pg_hba.conf ===" > "$LOG_FILE"
+        cat "$PG_DATADIR/pg_hba.conf" >> "$LOG_FILE" 2>/dev/null || true
+        echo "" >> "$LOG_FILE"
+        echo "=== postgresql.conf (non-default) ===" >> "$LOG_FILE"
+        grep -v '^#' "$PG_DATADIR/postgresql.conf" 2>/dev/null | grep -v '^$' >> "$LOG_FILE" || true
+        echo "" >> "$LOG_FILE"
+        echo "=== postgresql.auto.conf ===" >> "$LOG_FILE"
+        cat "$PG_DATADIR/postgresql.auto.conf" >> "$LOG_FILE" 2>/dev/null || true
+        echo "" >> "$LOG_FILE"
+        echo "=== PostgreSQL logs ===" >> "$LOG_FILE"
+        if [ -d "$PG_DATADIR/log" ]; then
+          cat "$PG_DATADIR/log"/* >> "$LOG_FILE" 2>/dev/null || true
+        else
+          echo "No log directory at $PG_DATADIR/log" >> "$LOG_FILE"
+          ls -la "$PG_DATADIR/" >> "$LOG_FILE" 2>/dev/null || true
+        fi
+    - name: Sanitize artifact name
+      if: ${{ failure() }}
+      id: artifact_name
+      shell: bash
+      # language=bash
+      run: |
+        name="pg-server-logs-${{ matrix.name }}"
+        # Remove characters illegal in GitHub artifact names: " : < > | * ? \r \n \ /
+        name="${name//[\":<>|*?\\\/]/}"
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+    - name: Upload PostgreSQL server logs
+      if: ${{ failure() }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      with:
+        name: ${{ steps.artifact_name.outputs.name }}
+        path: ${{ runner.temp }}/pg-server-logs.txt
     - name: Test GSS
       if: ${{ matrix.gss == 'yes' }}
+      # language=bash
       run: |
         cd test-gss
         ./gradlew assemble
@@ -262,6 +395,7 @@ jobs:
         KRB5_KDC_PROFILE: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/kdc.conf
     - name: Test anorm-sbt
       if: ${{ matrix.check_anorm_sbt == 'yes' }}
+      # language=bash
       run: |
         # mkdir -p $HOME/.sbt/launchers/0.13.12
         # curl -L -o $HOME/.sbt/launchers/0.13.12/sbt-launch.jar http://dl.bintray.com/typesafe/ivy-releases/org.scala-sbt/sbt-launch/0.13.12/sbt-launch.jar
@@ -270,8 +404,9 @@ jobs:
         sbt test
 
     - name: Cleanup Docker
-      if: ${{ always() }}
+      if: ${{ always() && runner.os == 'Linux' }}
       working-directory: docker/postgres-server
+      # language=bash
       run: |
         docker compose ps
         docker compose down -v --rmi local
