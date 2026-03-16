@@ -46,6 +46,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -126,6 +127,29 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       // This caught quite a lot of exceptions, but until Java 7 there is no ReflectiveOperationException
       throw new IllegalStateException("Unable to load org.postgresql.sspi.SSPIClient."
           + " Please check that SSPIClient is included in your pgjdbc distribution.", e);
+    }
+  }
+
+  /**
+   * Attempts a non-SSL connection after an SSL connection attempt failed.
+   * Used when sslMode is PREFER: SSL is preferred but not required,
+   * so an SSL failure (e.g. timeout during SSL negotiation) should fall back to plaintext.
+   */
+  private PGStream tryConnectWithoutSsl(Properties info, SocketFactory socketFactory,
+      HostSpec hostSpec, GSSEncMode gssEncMode, Exception originalException)
+      throws SQLException, IOException {
+    try {
+      PGStream stream = tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
+      LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
+          hostSpec);
+      return stream;
+    } catch (SQLException | IOException e) {
+      log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", e);
+      originalException.addSuppressed(e);
+      if (originalException instanceof SQLException) {
+        throw (SQLException) originalException;
+      }
+      throw (IOException) originalException;
     }
   }
 
@@ -292,25 +316,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            // Try non-SSL connection to cover case like "non-ssl only db"
-            // Note: PREFER allows loss of encryption, so no significant harm is made
-            Throwable ex = null;
-            try {
-              newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
-              LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
-                  hostSpec);
-            } catch (SQLException | IOException ee) {
-              ex = ee;
-            }
-
-            if (ex != null) {
-              log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
-              // non-SSL failed as well, so re-throw original exception
-              // Add non-SSL exception as suppressed
-              e.addSuppressed(ex);
-              throw e;
-            }
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, e);
           } else if (sslMode == SslMode.ALLOW
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
             // Try using SSL
@@ -333,6 +339,12 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               throw e;
             }
 
+          } else {
+            throw e;
+          }
+        } catch (SocketTimeoutException e) {
+          if (sslMode == SslMode.PREFER) {
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, e);
           } else {
             throw e;
           }
