@@ -237,7 +237,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       return newStream;
     } catch (Exception e) {
-      closeStream(newStream);
+      closeStream(newStream, e);
       throw e;
     }
   }
@@ -376,7 +376,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             "Connection to {0} refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.",
             hostSpec), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
       } catch (IOException ioe) {
-        closeStream(newStream);
+        closeStream(newStream, ioe);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {
@@ -387,7 +387,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throw new PSQLException(GT.tr("The connection attempt failed."),
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
-        closeStream(newStream);
+        closeStream(newStream, se);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {

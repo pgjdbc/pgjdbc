@@ -18,8 +18,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Handles protocol-specific connection setup.
@@ -27,9 +25,6 @@ import java.util.logging.Logger;
  * @author Oliver Jowett (oliver@opencloud.com)
  */
 public abstract class ConnectionFactory {
-
-  private static final Logger LOGGER = Logger.getLogger(ConnectionFactory.class.getName());
-
   /**
    * Establishes and initializes a new connection.
    *
@@ -86,12 +81,12 @@ public abstract class ConnectionFactory {
    *
    * @param newStream The stream to close.
    */
-  protected void closeStream(@Nullable PGStream newStream) {
+  protected void closeStream(@Nullable PGStream newStream, Throwable baseThrowable) {
     if (newStream != null) {
       try {
         newStream.close();
       } catch (IOException e) {
-        LOGGER.log(Level.WARNING, "Failed to closed stream with error: {0}", e);
+        e.addSuppressed(baseThrowable);
       }
     }
   }
