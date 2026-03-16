@@ -17,10 +17,14 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,6 +47,7 @@ import java.util.TimeZone;
  */
 @ParameterizedClass
 @MethodSource("data")
+@Isolated("Uses TimeZone.setDefault")
 public class TimestampTest extends BaseTest4 {
 
   public TimestampTest(BinaryMode binaryMode) {
@@ -59,20 +64,35 @@ public class TimestampTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
+      TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
+      TestUtil.createTable(con, DATE_TABLE, "ts date");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, TSWTZ_TABLE);
+      TestUtil.dropTable(con, TSWOTZ_TABLE);
+      TestUtil.dropTable(con, DATE_TABLE);
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, TSWTZ_TABLE, "ts timestamp with time zone");
-    TestUtil.createTable(con, TSWOTZ_TABLE, "ts timestamp without time zone");
-    TestUtil.createTable(con, DATE_TABLE, "ts date");
+    TestUtil.execute(con, "TRUNCATE " + TSWTZ_TABLE);
+    TestUtil.execute(con, "TRUNCATE " + TSWOTZ_TABLE);
+    TestUtil.execute(con, "TRUNCATE " + DATE_TABLE);
     currentTZ = TimeZone.getDefault();
   }
 
   @Override
   public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, TSWTZ_TABLE);
-    TestUtil.dropTable(con, TSWOTZ_TABLE);
-    TestUtil.dropTable(con, DATE_TABLE);
     TimeZone.setDefault(currentTZ);
     super.tearDown();
   }

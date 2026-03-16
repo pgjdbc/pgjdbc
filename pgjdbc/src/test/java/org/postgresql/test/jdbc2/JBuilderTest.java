@@ -9,8 +9,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -23,22 +23,18 @@ import java.sql.Statement;
 */
 class JBuilderTest {
 
-  // Set up the fixture for this testcase: the tables for this test.
-  @BeforeEach
-  void setUp() throws Exception {
-    Connection con = TestUtil.openDB();
-
-    TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
-
-    TestUtil.closeDB(con);
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
+    }
   }
 
-  // Tear down the fixture for this test case.
-  @AfterEach
-  void tearDown() throws Exception {
-    Connection con = TestUtil.openDB();
-    TestUtil.dropTable(con, "test_c");
-    TestUtil.closeDB(con);
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "test_c");
+    }
   }
 
   /*

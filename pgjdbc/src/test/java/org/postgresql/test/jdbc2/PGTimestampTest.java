@@ -14,7 +14,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGTimestamp;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -40,15 +42,28 @@ class PGTimestampTest {
 
   private Connection con;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, TEST_TABLE, "ts timestamp, tz timestamp with time zone");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, TEST_TABLE);
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
-    TestUtil.createTable(con, TEST_TABLE, "ts timestamp, tz timestamp with time zone");
+    TestUtil.execute(con, "TRUNCATE " + TEST_TABLE);
   }
 
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.dropTable(con, TEST_TABLE);
     TestUtil.closeDB(con);
   }
 

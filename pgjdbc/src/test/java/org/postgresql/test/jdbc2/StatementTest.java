@@ -25,7 +25,9 @@ import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -58,6 +60,20 @@ import java.util.concurrent.atomic.AtomicReference;
 class StatementTest {
   private Connection con;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "test_lock", "name text");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "test_lock");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
@@ -65,11 +81,8 @@ class StatementTest {
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
-    TestUtil.createTable(con, "test_lock", "name text");
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
-    stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
-    stmt.close();
+    TestUtil.execute(con, TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
+    TestUtil.execute(con, TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
   }
 
   @AfterEach
@@ -77,7 +90,6 @@ class StatementTest {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
-    TestUtil.dropTable(con, "test_lock");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_loop()");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();

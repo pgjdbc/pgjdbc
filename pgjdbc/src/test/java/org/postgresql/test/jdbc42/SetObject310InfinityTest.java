@@ -14,10 +14,13 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,21 +47,28 @@ public class SetObject310InfinityTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testsetobj310inf", "timestamp_without_time_zone_column timestamp without time zone,"
+              + "timestamp_with_time_zone_column timestamp with time zone,"
+              + "date_column date"
+      );
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testsetobj310inf");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4), "PostgreSQL 8.3 does not support 'infinity' for 'date'");
-    super.setUp();
-    TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
-            + "timestamp_with_time_zone_column timestamp with time zone,"
-            + "date_column date"
-    );
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "table1");
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE testsetobj310inf");
   }
 
   @Test
@@ -89,7 +99,7 @@ public class SetObject310InfinityTest extends BaseTest4 {
   }
 
   private void insert(Object data, String columnName, Integer type) throws SQLException {
-    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
+    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testsetobj310inf", columnName, "?"));
     try {
       if (type != null) {
         ps.setObject(1, data, type);
@@ -105,7 +115,7 @@ public class SetObject310InfinityTest extends BaseTest4 {
   private String readString(String columnName) throws SQLException {
     Statement st = con.createStatement();
     try {
-      ResultSet rs = st.executeQuery(TestUtil.selectSQL("table1", columnName));
+      ResultSet rs = st.executeQuery(TestUtil.selectSQL("testsetobj310inf", columnName));
       try {
         assertNotNull(rs);
         assertTrue(rs.next());
@@ -121,7 +131,7 @@ public class SetObject310InfinityTest extends BaseTest4 {
   private void delete() throws SQLException {
     Statement st = con.createStatement();
     try {
-      st.execute("DELETE FROM table1");
+      st.execute("DELETE FROM testsetobj310inf");
     } finally {
       st.close();
     }

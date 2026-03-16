@@ -10,23 +10,26 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.nio.ByteBuffer;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.Random;
 
 public class BinaryStreamTest extends BaseTest4 {
 
-  private ByteBuffer testData;
+  private static ByteBuffer testData;
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "images", "img bytea");
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "images", "img bytea");
+    }
 
     Random random = new Random(31459);
     testData = ByteBuffer.allocate(200 * 1024);
@@ -35,10 +38,12 @@ public class BinaryStreamTest extends BaseTest4 {
     }
   }
 
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "images");
-    super.tearDown();
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "images");
+    }
+    testData = null;
   }
 
   private void insertStreamKownLength(byte[] data) throws Exception {

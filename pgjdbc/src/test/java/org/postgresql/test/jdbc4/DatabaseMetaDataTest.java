@@ -17,7 +17,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,31 +37,43 @@ class DatabaseMetaDataTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropSequence(conn, "sercoltest_a_seq");
+      TestUtil.createTable(conn, "sercoltest", "a serial, b int");
+      TestUtil.createSchema(conn, "hasfunctions");
+      TestUtil.createSchema(conn, "nofunctions");
+      TestUtil.createSchema(conn, "hasprocedures");
+      TestUtil.createSchema(conn, "noprocedures");
+      TestUtil.execute(conn, "create function hasfunctions.addfunction (integer, integer) "
+          + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE");
+      if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
+        TestUtil.execute(conn, "create procedure hasprocedures.addprocedure() "
+            + "LANGUAGE plpgsql AS $$ BEGIN SELECT 1; END; $$");
+      }
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropSequence(conn, "sercoltest_a_seq");
+      TestUtil.dropTable(conn, "sercoltest");
+      TestUtil.dropSchema(conn, "hasfunctions");
+      TestUtil.dropSchema(conn, "nofunctions");
+      TestUtil.dropSchema(conn, "hasprocedures");
+      TestUtil.dropSchema(conn, "noprocedures");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.dropSequence(conn, "sercoltest_a_seq");
-    TestUtil.createTable(conn, "sercoltest", "a serial, b int");
-    TestUtil.createSchema(conn, "hasfunctions");
-    TestUtil.createSchema(conn, "nofunctions");
-    TestUtil.createSchema(conn, "hasprocedures");
-    TestUtil.createSchema(conn, "noprocedures");
-    TestUtil.execute(conn, "create function hasfunctions.addfunction (integer, integer) "
-        + "RETURNS integer AS 'select $1 + $2;' LANGUAGE SQL IMMUTABLE");
-    if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11)) {
-      TestUtil.execute(conn, "create procedure hasprocedures.addprocedure() "
-          + "LANGUAGE plpgsql AS $$ BEGIN SELECT 1; END; $$");
-    }
   }
 
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.dropSequence(conn, "sercoltest_a_seq");
-    TestUtil.dropTable(conn, "sercoltest");
-    TestUtil.dropSchema(conn, "hasfunctions");
-    TestUtil.dropSchema(conn, "nofunctions");
-    TestUtil.dropSchema(conn, "hasprocedures");
-    TestUtil.dropSchema(conn, "noprocedures");
     TestUtil.closeDB(conn);
   }
 

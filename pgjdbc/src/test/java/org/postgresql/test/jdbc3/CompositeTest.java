@@ -16,6 +16,7 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,34 +33,42 @@ class CompositeTest {
   private Connection conn;
 
   @BeforeAll
-  static void beforeClass() throws Exception {
-    try (Connection conn = TestUtil.openDB();) {
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
       assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "uuid requires PostgreSQL 8.3+");
+      TestUtil.createSchema(conn, "\"Composites\"");
+      TestUtil.createCompositeType(conn, "simplecompositetest", "i int, d decimal, u uuid");
+      TestUtil.createCompositeType(conn, "nestedcompositetest", "t text, s simplecompositetest");
+      TestUtil.createCompositeType(conn, "\"Composites\".\"ComplexCompositeTest\"",
+          "l bigint[], n nestedcompositetest[], s simplecompositetest");
+      TestUtil.createTable(conn, "compositetabletest",
+          "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
+      TestUtil.createTable(conn, "\"Composites\".\"Table\"",
+          "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "\"Composites\".\"Table\"");
+      TestUtil.dropTable(conn, "compositetabletest");
+      TestUtil.dropType(conn, "\"Composites\".\"ComplexCompositeTest\"");
+      TestUtil.dropType(conn, "nestedcompositetest");
+      TestUtil.dropType(conn, "simplecompositetest");
+      TestUtil.dropSchema(conn, "\"Composites\"");
     }
   }
 
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createSchema(conn, "\"Composites\"");
-    TestUtil.createCompositeType(conn, "simplecompositetest", "i int, d decimal, u uuid");
-    TestUtil.createCompositeType(conn, "nestedcompositetest", "t text, s simplecompositetest");
-    TestUtil.createCompositeType(conn, "\"Composites\".\"ComplexCompositeTest\"",
-        "l bigint[], n nestedcompositetest[], s simplecompositetest");
-    TestUtil.createTable(conn, "compositetabletest",
-        "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
-    TestUtil.createTable(conn, "\"Composites\".\"Table\"",
-        "s simplecompositetest, cc \"Composites\".\"ComplexCompositeTest\"[]");
+    TestUtil.execute(conn, "TRUNCATE compositetabletest CASCADE");
+    TestUtil.execute(conn, "TRUNCATE \"Composites\".\"Table\" CASCADE");
   }
 
   @AfterEach
   void tearDown() throws SQLException {
-    TestUtil.dropTable(conn, "\"Composites\".\"Table\"");
-    TestUtil.dropTable(conn, "compositetabletest");
-    TestUtil.dropType(conn, "\"Composites\".\"ComplexCompositeTest\"");
-    TestUtil.dropType(conn, "nestedcompositetest");
-    TestUtil.dropType(conn, "simplecompositetest");
-    TestUtil.dropSchema(conn, "\"Composites\"");
     TestUtil.closeDB(conn);
   }
 

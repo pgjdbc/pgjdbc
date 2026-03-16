@@ -21,6 +21,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.xa.PGXADataSource;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,6 +62,18 @@ public class XADataSourceTest {
   static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeTrue(isPreparedTransactionEnabled(con), "max_prepared_transactions should be non-zero for XA tests");
+      TestUtil.createTable(con, "testxa1", "foo int");
+      TestUtil.createTable(con, "testxa2", "foo int primary key");
+      TestUtil.createTable(con, "testxa3", "foo int references testxa2(foo) deferrable");
+    }
+  }
+
+  @AfterAll
+  static void afterClass() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testxa3");
+      TestUtil.dropTable(con, "testxa2");
+      TestUtil.dropTable(con, "testxa1");
     }
   }
 
@@ -76,9 +89,9 @@ public class XADataSourceTest {
     connIsSuper = rs.getBoolean(1); // One col is guaranteed
     st.close();
 
-    TestUtil.createTable(dbConn, "testxa1", "foo int");
-    TestUtil.createTable(dbConn, "testxa2", "foo int primary key");
-    TestUtil.createTable(dbConn, "testxa3", "foo int references testxa2(foo) deferrable");
+    TestUtil.execute(dbConn, "TRUNCATE testxa3 CASCADE");
+    TestUtil.execute(dbConn, "TRUNCATE testxa2 CASCADE");
+    TestUtil.execute(dbConn, "TRUNCATE testxa1 CASCADE");
 
     clearAllPrepared();
 
@@ -105,9 +118,6 @@ public class XADataSourceTest {
     }
 
     clearAllPrepared();
-    TestUtil.dropTable(dbConn, "testxa3");
-    TestUtil.dropTable(dbConn, "testxa2");
-    TestUtil.dropTable(dbConn, "testxa1");
     TestUtil.closeDB(dbConn);
 
   }

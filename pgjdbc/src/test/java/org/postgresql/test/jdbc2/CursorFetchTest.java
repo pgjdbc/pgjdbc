@@ -12,10 +12,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -43,10 +46,24 @@ public class CursorFetchTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "test_fetch", "value integer");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "test_fetch");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "test_fetch", "value integer");
+    TestUtil.execute(con, "TRUNCATE test_fetch");
     con.setAutoCommit(false);
   }
 
@@ -57,7 +74,6 @@ public class CursorFetchTest extends BaseTest4 {
     }
 
     con.setAutoCommit(true);
-    TestUtil.dropTable(con, "test_fetch");
     super.tearDown();
   }
 

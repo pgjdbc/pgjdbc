@@ -13,7 +13,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGInterval;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.Isolated;
@@ -35,18 +37,31 @@ import java.util.concurrent.ThreadLocalRandom;
 class IntervalTest {
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testinterval", "v interval");
+      TestUtil.createTable(conn, "testdate", "v date");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testinterval");
+      TestUtil.dropTable(conn, "testdate");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "testinterval", "v interval");
-    TestUtil.createTable(conn, "testdate", "v date");
+    TestUtil.execute(conn, "TRUNCATE testinterval");
+    TestUtil.execute(conn, "TRUNCATE testdate");
   }
 
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.dropTable(conn, "testinterval");
-    TestUtil.dropTable(conn, "testdate");
-
     TestUtil.closeDB(conn);
   }
 

@@ -13,10 +13,14 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.lang.reflect.Field;
 import java.sql.BatchUpdateException;
+import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +32,7 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
+@Isolated("Uses TimeZone.setDefault")
 public class TimezoneCachingTest extends BaseTest4 {
 
   /**
@@ -318,6 +323,20 @@ public class TimezoneCachingTest extends BaseTest4 {
     return null;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testtz", "col1 INTEGER, col2 TIMESTAMP");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testtz");
+    }
+  }
+
   /* Set up the fixture for this test case: a connection to a database with
   a table for this test. */
   public void setUp() throws Exception {
@@ -325,15 +344,7 @@ public class TimezoneCachingTest extends BaseTest4 {
     TimestampUtils timestampUtils = ((BaseConnection) con).getTimestampUtils();
     assumeFalse(timestampUtils.hasFastDefaultTimeZone(), "If connection has fast access to TimeZone.getDefault,"
         + " then no cache is needed");
-    /* Drop the test table if it already exists for some reason. It is
-    not an error if it doesn't exist. */
-    TestUtil.createTable(con, "testtz", "col1 INTEGER, col2 TIMESTAMP");
-  }
-
-  // Tear down the fixture for this test case.
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testtz");
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE testtz");
   }
 
 }

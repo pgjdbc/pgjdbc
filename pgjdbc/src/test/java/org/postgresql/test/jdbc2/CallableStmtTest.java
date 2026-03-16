@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -38,71 +39,71 @@ public class CallableStmtTest extends BaseTest4 {
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
+      TestUtil.createTable(con, "int_table", "id int");
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getString (varchar) "
+                + "RETURNS varchar AS ' DECLARE inString alias for $1; begin "
+                + "return ''bob''; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getDouble (float) "
+                + "RETURNS float AS ' DECLARE inString alias for $1; begin "
+                + "return 42.42; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getVoid (float) "
+                + "RETURNS void AS ' DECLARE inString alias for $1; begin "
+                + " return; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int "
+                + " AS 'DECLARE inString alias for $1; begin "
+                + "return 42; end;' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 "
+                + " AS 'DECLARE inString alias for $1; begin "
+                + "return 42; end;' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) "
+                + "RETURNS numeric AS ' DECLARE inString alias for $1; "
+                + "begin return 42; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() "
+                + "RETURNS numeric AS '  "
+                + "begin return 42; end; ' LANGUAGE plpgsql;");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as "
+                + "'SELECT ''{1,2}''::int[];' LANGUAGE sql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as "
+                + "'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
+        stmt.execute(
+            "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as "
+                + "'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
+      }
+    }
+  }
+
+  @AfterAll
+  public static void afterClass() throws Exception {
+    try (Connection con = TestUtil.openDB();
+         Statement stmt = con.createStatement()) {
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getString (varchar);");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getDouble (float);");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getVoid(float);");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getInt (int);");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getShort(int2)");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getNumeric (numeric);");
+      stmt.execute("drop FUNCTION IF EXISTS testspg__getNumericWithoutArg ();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__getarray();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__raisenotice();");
+      stmt.execute("DROP FUNCTION IF EXISTS testspg__insertInt(int);");
+      TestUtil.dropTable(con, "int_table");
     }
   }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "int_table", "id int");
-    Statement stmt = con.createStatement();
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getString (varchar) "
-        + "RETURNS varchar AS ' DECLARE inString alias for $1; begin "
-        + "return ''bob''; end; ' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getDouble (float) "
-        + "RETURNS float AS ' DECLARE inString alias for $1; begin "
-        + "return 42.42; end; ' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getVoid (float) "
-        + "RETURNS void AS ' DECLARE inString alias for $1; begin "
-        + " return; end; ' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getInt (int) RETURNS int "
-        + " AS 'DECLARE inString alias for $1; begin "
-        + "return 42; end;' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getShort (int2) RETURNS int2 "
-        + " AS 'DECLARE inString alias for $1; begin "
-        + "return 42; end;' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getNumeric (numeric) "
-        + "RETURNS numeric AS ' DECLARE inString alias for $1; "
-        + "begin return 42; end; ' LANGUAGE plpgsql;");
-
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getNumericWithoutArg() "
-        + "RETURNS numeric AS '  "
-        + "begin return 42; end; ' LANGUAGE plpgsql;");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__getarray() RETURNS int[] as "
-        + "'SELECT ''{1,2}''::int[];' LANGUAGE sql");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__raisenotice() RETURNS int as "
-        + "'BEGIN RAISE NOTICE ''hello'';  RAISE NOTICE ''goodbye''; RETURN 1; END;' LANGUAGE plpgsql");
-    stmt.execute(
-        "CREATE OR REPLACE FUNCTION testspg__insertInt(int) RETURNS int as "
-        + "'BEGIN INSERT INTO int_table(id) VALUES ($1); RETURN 1; END;' LANGUAGE plpgsql");
-    stmt.close();
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    Statement stmt = con.createStatement();
-    TestUtil.dropTable(con, "int_table");
-    stmt.execute("drop FUNCTION testspg__getString (varchar);");
-    stmt.execute("drop FUNCTION testspg__getDouble (float);");
-    stmt.execute("drop FUNCTION testspg__getVoid(float);");
-    stmt.execute("drop FUNCTION testspg__getInt (int);");
-    stmt.execute("drop FUNCTION testspg__getShort(int2)");
-    stmt.execute("drop FUNCTION testspg__getNumeric (numeric);");
-
-    stmt.execute("drop FUNCTION testspg__getNumericWithoutArg ();");
-    stmt.execute("DROP FUNCTION testspg__getarray();");
-    stmt.execute("DROP FUNCTION testspg__raisenotice();");
-    stmt.execute("DROP FUNCTION testspg__insertInt(int);");
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE int_table");
   }
 
   final String func = "{ ? = call ";

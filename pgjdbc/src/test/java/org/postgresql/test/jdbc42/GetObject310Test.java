@@ -18,10 +18,14 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,6 +51,7 @@ import java.util.stream.Stream;
 
 @ParameterizedClass
 @MethodSource("data")
+@Isolated("Uses TimeZone.setDefault")
 public class GetObject310Test extends BaseTest4 {
 
   private static final TimeZone saveTZ = TimeZone.getDefault();
@@ -70,21 +75,34 @@ public class GetObject310Test extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testgetobj310", "timestamp_without_time_zone_column timestamp without time zone,"
+              + "timestamp_with_time_zone_column timestamp with time zone,"
+              + "date_column date,"
+              + "time_without_time_zone_column time without time zone,"
+              + "time_with_time_zone_column time with time zone"
+      );
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testgetobj310");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
-            + "timestamp_with_time_zone_column timestamp with time zone,"
-            + "date_column date,"
-            + "time_without_time_zone_column time without time zone,"
-            + "time_with_time_zone_column time with time zone"
-    );
+    TestUtil.execute(con, "TRUNCATE testgetobj310");
   }
 
   @Override
   public void tearDown() throws SQLException {
     TimeZone.setDefault(saveTZ);
-    TestUtil.dropTable(con, "table1");
     super.tearDown();
   }
 
@@ -144,15 +162,15 @@ public class GetObject310Test extends BaseTest4 {
   public void localDate(ZoneId zoneId, String date) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     try (Statement stmt = con.createStatement() ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "DATE '" + date + "'"));
+      stmt.executeUpdate("DELETE FROM testgetobj310");
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "date_column", "DATE '" + date + "'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column")) ) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "date_column")) ) {
         assertTrue(rs.next());
         LocalDate localDate = LocalDate.parse(date);
         assertEquals(localDate, rs.getObject("date_column", LocalDate.class));
         assertEquals(localDate, rs.getObject(1, LocalDate.class));
       }
-      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 
@@ -169,9 +187,10 @@ public class GetObject310Test extends BaseTest4 {
 
     for (String time : timesToTest) {
       try (Statement stmt = con.createStatement() ) {
-        stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "time with time zone '" + time + "'"));
+        stmt.executeUpdate("DELETE FROM testgetobj310");
+        stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "time_with_time_zone_column", "time with time zone '" + time + "'"));
 
-        try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column")) ) {
+        try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "time_with_time_zone_column")) ) {
           assertTrue(rs.next());
           OffsetTime offsetTime = OffsetTime.parse(time);
           assertEquals(offsetTime, rs.getObject("time_with_time_zone_column", OffsetTime.class));
@@ -186,7 +205,6 @@ public class GetObject310Test extends BaseTest4 {
           assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalTime.class);
           assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalDateTime.class);
         }
-        stmt.executeUpdate("DELETE FROM table1");
       }
     }
   }
@@ -197,9 +215,9 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTime() throws SQLException {
     try (Statement stmt = con.createStatement() ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '04:05:06.123456'"));
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "time_without_time_zone_column", "TIME '04:05:06.123456'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "time_without_time_zone_column"))) {
         assertTrue(rs.next());
         LocalTime localTime = LocalTime.of(4, 5, 6, 123456000);
         assertEquals(localTime, rs.getObject("time_without_time_zone_column", LocalTime.class));
@@ -220,9 +238,9 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTimeMax() throws SQLException {
     try (Statement stmt = con.createStatement() ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '24:00'"));
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "time_without_time_zone_column", "TIME '24:00'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "time_without_time_zone_column"))) {
         assertTrue(rs.next());
         LocalTime localTime = LocalTime.MAX;
         assertEquals(localTime, rs.getObject("time_without_time_zone_column", LocalTime.class));
@@ -237,9 +255,9 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTimeNull() throws SQLException {
     try (Statement stmt = con.createStatement() ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "NULL"));
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "time_without_time_zone_column", "NULL"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "time_without_time_zone_column"))) {
         assertTrue(rs.next());
         assertNull(rs.getObject("time_without_time_zone_column", LocalTime.class));
         assertNull(rs.getObject(1, LocalTime.class));
@@ -253,9 +271,9 @@ public class GetObject310Test extends BaseTest4 {
   @Test
   public void testGetLocalTimeInvalidType() throws SQLException {
     try (Statement stmt = con.createStatement() ) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "time_with_time_zone_column", "TIME '04:05:06.123456-08:00'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_with_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "time_with_time_zone_column"))) {
         assertTrue(rs.next());
         assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalTime.class);
         assertDataTypeMismatch(rs, "time_with_time_zone_column", LocalDateTime.class);
@@ -320,9 +338,10 @@ public class GetObject310Test extends BaseTest4 {
   public void localTimestamps(ZoneId zoneId, String timestamp) throws SQLException {
     TimeZone.setDefault(TimeZone.getTimeZone(zoneId));
     try (Statement stmt = con.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_without_time_zone_column", "TIMESTAMP '" + timestamp + "'"));
+      stmt.executeUpdate("DELETE FROM testgetobj310");
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "timestamp_without_time_zone_column", "TIMESTAMP '" + timestamp + "'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "timestamp_without_time_zone_column"))) {
         assertTrue(rs.next());
         LocalDateTime localDateTime = LocalDateTime.parse(timestamp);
         assertEquals(localDateTime, rs.getObject("timestamp_without_time_zone_column", LocalDateTime.class));
@@ -336,7 +355,6 @@ public class GetObject310Test extends BaseTest4 {
         // TODO: this should also not work, but that's an open discussion (see https://github.com/pgjdbc/pgjdbc/pull/2467):
         // assertDataTypeMismatch(rs, "timestamp_without_time_zone_column", OffsetDateTime.class);
       }
-      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 
@@ -353,9 +371,10 @@ public class GetObject310Test extends BaseTest4 {
 
   private void runGetOffsetDateTime(ZoneOffset offset) throws SQLException {
     try (Statement stmt = con.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
+      stmt.executeUpdate("DELETE FROM testgetobj310");
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj310", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54.123456" + offset.toString() + "'"));
 
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_with_time_zone_column"))) {
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj310", "timestamp_with_time_zone_column"))) {
         assertTrue(rs.next());
         LocalDateTime localDateTime = LocalDateTime.of(2004, 10, 19, 10, 23, 54, 123456000);
 
@@ -366,7 +385,6 @@ public class GetObject310Test extends BaseTest4 {
         assertDataTypeMismatch(rs, "timestamp_with_time_zone_column", LocalTime.class);
         assertDataTypeMismatch(rs, "timestamp_with_time_zone_column", LocalDateTime.class);
       }
-      stmt.executeUpdate("DELETE FROM table1");
     }
   }
 

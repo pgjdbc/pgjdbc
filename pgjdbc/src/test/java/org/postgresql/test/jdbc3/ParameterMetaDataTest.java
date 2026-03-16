@@ -13,10 +13,13 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -41,18 +44,25 @@ public class ParameterMetaDataTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "parametertest",
+          "a int4, b float8, c text, d point, e timestamp with time zone");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "parametertest");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "simple protocol only does not support describe statement requests");
-    TestUtil.createTable(con, "parametertest",
-        "a int4, b float8, c text, d point, e timestamp with time zone");
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "parametertest");
-    super.tearDown();
   }
 
   @Test

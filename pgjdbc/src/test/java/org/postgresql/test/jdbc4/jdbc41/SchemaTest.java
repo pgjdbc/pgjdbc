@@ -17,7 +17,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,47 +34,65 @@ import java.util.Properties;
 
 class SchemaTest {
   private Connection conn;
-  private boolean dropUserSchema;
+  private static boolean dropUserSchema;
+
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      Statement stmt = conn.createStatement();
+      try {
+        stmt.execute("CREATE SCHEMA " + TestUtil.getUser());
+        dropUserSchema = true;
+      } catch (SQLException e) {
+        /* assume schema existed */
+      }
+      stmt.execute("CREATE SCHEMA schema1");
+      stmt.execute("CREATE SCHEMA schema2");
+      stmt.execute("CREATE SCHEMA \"schema 3\"");
+      stmt.execute("CREATE SCHEMA \"schema \"\"4\"");
+      stmt.execute("CREATE SCHEMA \"schema '5\"");
+      stmt.execute("CREATE SCHEMA \"schema ,6\"");
+      stmt.execute("CREATE SCHEMA \"UpperCase\"");
+      TestUtil.createTable(conn, "schema1.table1", "id integer");
+      TestUtil.createTable(conn, "schema2.table2", "id integer");
+      TestUtil.createTable(conn, "\"UpperCase\".table3", "id integer");
+      TestUtil.createTable(conn, "schema1.sptest", "id integer");
+      TestUtil.createTable(conn, "schema2.sptest", "id varchar");
+      stmt.close();
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      Statement stmt = conn.createStatement();
+      if (dropUserSchema) {
+        stmt.execute("DROP SCHEMA " + TestUtil.getUser() + " CASCADE");
+      }
+      stmt.execute("DROP SCHEMA schema1 CASCADE");
+      stmt.execute("DROP SCHEMA schema2 CASCADE");
+      stmt.execute("DROP SCHEMA \"schema 3\" CASCADE");
+      stmt.execute("DROP SCHEMA \"schema \"\"4\" CASCADE");
+      stmt.execute("DROP SCHEMA \"schema '5\" CASCADE");
+      stmt.execute("DROP SCHEMA \"schema ,6\"");
+      stmt.execute("DROP SCHEMA \"UpperCase\" CASCADE");
+      stmt.close();
+    }
+  }
 
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    Statement stmt = conn.createStatement();
-    try {
-      stmt.execute("CREATE SCHEMA " + TestUtil.getUser());
-      dropUserSchema = true;
-    } catch (SQLException e) {
-      /* assume schema existed */
-    }
-    stmt.execute("CREATE SCHEMA schema1");
-    stmt.execute("CREATE SCHEMA schema2");
-    stmt.execute("CREATE SCHEMA \"schema 3\"");
-    stmt.execute("CREATE SCHEMA \"schema \"\"4\"");
-    stmt.execute("CREATE SCHEMA \"schema '5\"");
-    stmt.execute("CREATE SCHEMA \"schema ,6\"");
-    stmt.execute("CREATE SCHEMA \"UpperCase\"");
-    TestUtil.createTable(conn, "schema1.table1", "id integer");
-    TestUtil.createTable(conn, "schema2.table2", "id integer");
-    TestUtil.createTable(conn, "\"UpperCase\".table3", "id integer");
-    TestUtil.createTable(conn, "schema1.sptest", "id integer");
-    TestUtil.createTable(conn, "schema2.sptest", "id varchar");
   }
 
   @AfterEach
   void tearDown() throws SQLException {
     conn.setAutoCommit(true);
     conn.setSchema(null);
-    Statement stmt = conn.createStatement();
-    if (dropUserSchema) {
-      stmt.execute("DROP SCHEMA " + TestUtil.getUser() + " CASCADE");
-    }
-    stmt.execute("DROP SCHEMA schema1 CASCADE");
-    stmt.execute("DROP SCHEMA schema2 CASCADE");
-    stmt.execute("DROP SCHEMA \"schema 3\" CASCADE");
-    stmt.execute("DROP SCHEMA \"schema \"\"4\" CASCADE");
-    stmt.execute("DROP SCHEMA \"schema '5\" CASCADE");
-    stmt.execute("DROP SCHEMA \"schema ,6\"");
-    stmt.execute("DROP SCHEMA \"UpperCase\" CASCADE");
+    // Clean up objects created by individual test methods
+    TestUtil.execute(conn, "DROP FUNCTION IF EXISTS schema2.check_fun()");
+    TestUtil.execute(conn, "DROP FUNCTION IF EXISTS schema2.check_fun(text)");
+    TestUtil.execute(conn, "DROP TABLE IF EXISTS schema1.check_table");
     TestUtil.closeDB(conn);
   }
 
@@ -158,8 +178,7 @@ class SchemaTest {
   void schemaInProperties() throws Exception {
     Properties properties = new Properties();
     properties.setProperty("currentSchema", "schema1");
-    Connection conn = TestUtil.openDB(properties);
-    try {
+    try (Connection conn = TestUtil.openDB(properties)) {
       assertEquals("schema1", conn.getSchema());
 
       Statement stmt = conn.createStatement();
@@ -171,8 +190,6 @@ class SchemaTest {
       } catch (SQLException e) {
         // expected
       }
-    } finally {
-      TestUtil.closeDB(conn);
     }
   }
 

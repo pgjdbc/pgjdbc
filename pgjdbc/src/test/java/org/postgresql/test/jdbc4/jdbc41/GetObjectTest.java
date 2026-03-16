@@ -24,7 +24,9 @@ import org.postgresql.util.PGInterval;
 import org.postgresql.util.PGmoney;
 import org.postgresql.util.PGobject;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -62,51 +64,64 @@ class GetObjectTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testgetobj41", "varchar_column varchar(16), "
+              + "char_column char(10), "
+              + "boolean_column boolean,"
+              + "smallint_column smallint,"
+              + "integer_column integer,"
+              + "bigint_column bigint,"
+              + "decimal_column decimal,"
+              + "numeric_column numeric,"
+              // smallserial requires 9.2 or later
+              + (((BaseConnection) conn).haveMinimumServerVersion(ServerVersion.v9_2) ? "smallserial_column smallserial," : "")
+              + "serial_column serial,"
+              + "bigserial_column bigserial,"
+              + "real_column real,"
+              + "double_column double precision,"
+              + "timestamp_without_time_zone_column timestamp without time zone,"
+              + "timestamp_with_time_zone_column timestamp with time zone,"
+              + "date_column date,"
+              + "time_without_time_zone_column time without time zone,"
+              + "time_with_time_zone_column time with time zone,"
+              + "bytea_column bytea,"
+              + "lob_column oid,"
+              + "array_column text[],"
+              + "point_column point,"
+              + "line_column line,"
+              + "lseg_column lseg,"
+              + "box_column box,"
+              + "path_column path,"
+              + "polygon_column polygon,"
+              + "circle_column circle,"
+              + "money_column money,"
+              + "interval_column interval,"
+              + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? "uuid_column uuid," : "")
+              + "inet_column inet,"
+              + "cidr_column cidr,"
+              + "macaddr_column macaddr"
+              + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ",xml_column xml" : "")
+      );
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testgetobj41");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "table1", "varchar_column varchar(16), "
-            + "char_column char(10), "
-            + "boolean_column boolean,"
-            + "smallint_column smallint,"
-            + "integer_column integer,"
-            + "bigint_column bigint,"
-            + "decimal_column decimal,"
-            + "numeric_column numeric,"
-            // smallserial requires 9.2 or later
-            + (((BaseConnection) conn).haveMinimumServerVersion(ServerVersion.v9_2) ? "smallserial_column smallserial," : "")
-            + "serial_column serial,"
-            + "bigserial_column bigserial,"
-            + "real_column real,"
-            + "double_column double precision,"
-            + "timestamp_without_time_zone_column timestamp without time zone,"
-            + "timestamp_with_time_zone_column timestamp with time zone,"
-            + "date_column date,"
-            + "time_without_time_zone_column time without time zone,"
-            + "time_with_time_zone_column time with time zone,"
-            + "bytea_column bytea,"
-            + "lob_column oid,"
-            + "array_column text[],"
-            + "point_column point,"
-            + "line_column line,"
-            + "lseg_column lseg,"
-            + "box_column box,"
-            + "path_column path,"
-            + "polygon_column polygon,"
-            + "circle_column circle,"
-            + "money_column money,"
-            + "interval_column interval,"
-            + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? "uuid_column uuid," : "")
-            + "inet_column inet,"
-            + "cidr_column cidr,"
-            + "macaddr_column macaddr"
-            + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ",xml_column xml" : "")
-    );
+    TestUtil.execute(conn, "TRUNCATE testgetobj41");
   }
 
   @AfterEach
   void tearDown() throws SQLException {
-    TestUtil.dropTable(conn, "table1");
     TestUtil.closeDB(conn);
   }
 
@@ -116,9 +131,9 @@ class GetObjectTest {
   @Test
   void getString() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "varchar_column,char_column", "'varchar_value','char_value'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "varchar_column,char_column", "'varchar_value','char_value'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "varchar_column, char_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "varchar_column, char_column"));
     try {
       assertTrue(rs.next());
       assertEquals("varchar_value", rs.getObject("varchar_column", String.class));
@@ -139,7 +154,7 @@ class GetObjectTest {
     conn.setAutoCommit(false);
     try {
       char[] data = new char[]{'d', 'e', 'a', 'd', 'b', 'e', 'e', 'f'};
-      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
+      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testgetobj41", "lob_column", "?"));
       try {
         insertPS.setObject(1, new SerialClob(data), Types.CLOB);
         insertPS.executeUpdate();
@@ -147,7 +162,7 @@ class GetObjectTest {
         insertPS.close();
       }
 
-      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "lob_column"));
+      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "lob_column"));
       try {
         assertTrue(rs.next());
         Clob blob = rs.getObject("lob_column", Clob.class);
@@ -173,9 +188,9 @@ class GetObjectTest {
   @Test
   void getBigDecimal() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "decimal_column,numeric_column", "0.1,0.1"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "decimal_column,numeric_column", "0.1,0.1"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "decimal_column, numeric_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "decimal_column, numeric_column"));
     try {
       assertTrue(rs.next());
       assertEquals(new BigDecimal("0.1"), rs.getObject("decimal_column", BigDecimal.class));
@@ -193,9 +208,9 @@ class GetObjectTest {
   @Test
   void getTimestamp() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_without_time_zone_column", "TIMESTAMP '2004-10-19 10:23:54'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "timestamp_without_time_zone_column", "TIMESTAMP '2004-10-19 10:23:54'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "timestamp_without_time_zone_column"));
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -255,9 +270,9 @@ class GetObjectTest {
   private void runGetTimestampWithTimeZone(TimeZone timeZone, String zoneString) throws SQLException {
     Statement stmt = conn.createStatement();
     try {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54" + zoneString + "'"));
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "timestamp_with_time_zone_column", "TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54" + zoneString + "'"));
 
-      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_with_time_zone_column"));
+      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "timestamp_with_time_zone_column"));
       try {
         assertTrue(rs.next());
 
@@ -275,7 +290,7 @@ class GetObjectTest {
       } finally {
         rs.close();
       }
-      stmt.executeUpdate("DELETE FROM table1");
+      stmt.executeUpdate("DELETE FROM testgetobj41");
     } finally {
       stmt.close();
     }
@@ -320,9 +335,9 @@ class GetObjectTest {
   @Test
   void getDate() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "DATE '1999-01-08'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "date_column", "DATE '1999-01-08'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "date_column"));
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -341,9 +356,9 @@ class GetObjectTest {
   @Test
   void getNullDate() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "date_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "date_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "date_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "date_column"));
     try {
       assertTrue(rs.next());
       Date date = rs.getObject(1, Date.class);
@@ -356,9 +371,9 @@ class GetObjectTest {
   @Test
   void getNullTimestamp() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "timestamp_without_time_zone_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "timestamp_without_time_zone_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "timestamp_without_time_zone_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "timestamp_without_time_zone_column"));
     try {
       assertTrue(rs.next());
       java.util.Date ts = rs.getObject(1, java.util.Date.class);
@@ -374,9 +389,9 @@ class GetObjectTest {
   @Test
   void getTime() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "time_without_time_zone_column", "TIME '04:05:06'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "time_without_time_zone_column", "TIME '04:05:06'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "time_without_time_zone_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "time_without_time_zone_column"));
     try {
       assertTrue(rs.next());
       Calendar calendar = GregorianCalendar.getInstance();
@@ -401,9 +416,9 @@ class GetObjectTest {
   @Test
   void getShort() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "smallint_column", "1"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "smallint_column", "1"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "smallint_column"));
     try {
       assertTrue(rs.next());
       assertEquals(Short.valueOf((short) 1), rs.getObject("smallint_column", Short.class));
@@ -419,9 +434,9 @@ class GetObjectTest {
   @Test
   void getShortNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "smallint_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "smallint_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "smallint_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("smallint_column", Short.class));
@@ -437,9 +452,9 @@ class GetObjectTest {
   @Test
   void getInteger() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "smallint_column, integer_column", "1, 2"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "smallint_column, integer_column", "1, 2"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column, integer_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "smallint_column, integer_column"));
     try {
       assertTrue(rs.next());
       assertEquals(Integer.valueOf(1), rs.getObject("smallint_column", Integer.class));
@@ -457,9 +472,9 @@ class GetObjectTest {
   @Test
   void getIntegerNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "smallint_column, integer_column", "NULL, NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "smallint_column, integer_column", "NULL, NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallint_column, integer_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "smallint_column, integer_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("smallint_column", Integer.class));
@@ -477,9 +492,9 @@ class GetObjectTest {
   @Test
   void getBigInteger() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "bigint_column", "2147483648"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "bigint_column", "2147483648"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "bigint_column"));
     try {
       assertTrue(rs.next());
       assertEquals(BigInteger.valueOf(2147483648L), rs.getObject("bigint_column", BigInteger.class));
@@ -495,9 +510,9 @@ class GetObjectTest {
   @Test
   void getLong() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "bigint_column", "2147483648"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "bigint_column", "2147483648"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "bigint_column"));
     try {
       assertTrue(rs.next());
       assertEquals(Long.valueOf(2147483648L), rs.getObject("bigint_column", Long.class));
@@ -513,9 +528,9 @@ class GetObjectTest {
   @Test
   void getLongNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "bigint_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "bigint_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bigint_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "bigint_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("bigint_column", Long.class));
@@ -531,9 +546,9 @@ class GetObjectTest {
   @Test
   void getDouble() throws SQLException {
     try (Statement stmt = conn.createStatement()) {
-      stmt.executeUpdate(TestUtil.insertSQL("table1", "double_column", "1.0"));
-      stmt.executeUpdate("insert into table1 (double_column) values ('-infinity'), ('+infinity')");
-      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column", "true", "order by double_column asc"))) {
+      stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "double_column", "1.0"));
+      stmt.executeUpdate("insert into testgetobj41 (double_column) values ('-infinity'), ('+infinity')");
+      try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "double_column", "true", "order by double_column asc"))) {
         assertTrue(rs.next());
         assertEquals(Double.NEGATIVE_INFINITY, rs.getObject(1, Double.class));
         assertTrue(rs.next());
@@ -551,9 +566,9 @@ class GetObjectTest {
   @Test
   void getDoubleNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "double_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "double_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "double_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "double_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("double_column", Double.class));
@@ -569,9 +584,9 @@ class GetObjectTest {
   @Test
   void getFloat() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "real_column", "1.0"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "real_column", "1.0"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "real_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "real_column"));
     try {
       assertTrue(rs.next());
       assertEquals(Float.valueOf(1.0f), rs.getObject("real_column", Float.class));
@@ -587,9 +602,9 @@ class GetObjectTest {
   @Test
   void getFloatNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "real_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "real_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "real_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "real_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("real_column", Float.class));
@@ -609,9 +624,9 @@ class GetObjectTest {
       return;
     }
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "smallserial_column, serial_column", "1, 2"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "smallserial_column, serial_column", "1, 2"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "smallserial_column, serial_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "smallserial_column, serial_column"));
     try {
       assertTrue(rs.next());
       assertEquals(Integer.valueOf(1), rs.getObject("smallserial_column", Integer.class));
@@ -629,9 +644,9 @@ class GetObjectTest {
   @Test
   void getBoolean() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "boolean_column", "TRUE"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "boolean_column", "TRUE"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "boolean_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "boolean_column"));
     try {
       assertTrue(rs.next());
       assertTrue(rs.getObject("boolean_column", Boolean.class));
@@ -647,9 +662,9 @@ class GetObjectTest {
   @Test
   void getBooleanNull() throws SQLException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "boolean_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "boolean_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "boolean_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "boolean_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("boolean_column", Boolean.class));
@@ -668,7 +683,7 @@ class GetObjectTest {
     conn.setAutoCommit(false);
     try {
       byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
-      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "lob_column", "?"));
+      PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testgetobj41", "lob_column", "?"));
       try {
         insertPS.setObject(1, new SerialBlob(data), Types.BLOB);
         insertPS.executeUpdate();
@@ -676,7 +691,7 @@ class GetObjectTest {
         insertPS.close();
       }
 
-      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "lob_column"));
+      ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "lob_column"));
       try {
         assertTrue(rs.next());
         Blob blob = rs.getObject("lob_column", Blob.class);
@@ -702,13 +717,13 @@ class GetObjectTest {
   @Test
   void getBytea() throws SQLException {
     byte[] data = new byte[]{(byte) 0xDE, (byte) 0xAD, (byte) 0xBE, (byte) 0xEF};
-    try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("table1", "bytea_column", "?"))) {
+    try (PreparedStatement insertPS = conn.prepareStatement(TestUtil.insertSQL("testgetobj41", "bytea_column", "?"))) {
       insertPS.setBytes(1, data);
       insertPS.executeUpdate();
     }
 
     Statement stmt = conn.createStatement();
-    try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "bytea_column"))) {
+    try (ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "bytea_column"))) {
       assertTrue(rs.next());
       byte[] bytea = rs.getObject("bytea_column", byte[].class);
       assertArrayEquals(data, bytea, "bytea by label");
@@ -725,9 +740,9 @@ class GetObjectTest {
   void getArray() throws SQLException {
     Statement stmt = conn.createStatement();
     String[] data = new String[]{"java", "jdbc"};
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "array_column", "'{\"java\", \"jdbc\"}'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "array_column", "'{\"java\", \"jdbc\"}'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "array_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "array_column"));
     try {
       assertTrue(rs.next());
       Array array = rs.getObject("array_column", Array.class);
@@ -753,9 +768,9 @@ class GetObjectTest {
     }
     Statement stmt = conn.createStatement();
     String content = "<book><title>Manual</title></book>";
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "xml_column", "XMLPARSE (DOCUMENT '<?xml version=\"1.0\"?><book><title>Manual</title></book>')"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "xml_column", "XMLPARSE (DOCUMENT '<?xml version=\"1.0\"?><book><title>Manual</title></book>')"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "xml_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "xml_column"));
     try {
       assertTrue(rs.next());
       SQLXML sqlXml = rs.getObject("xml_column", SQLXML.class);
@@ -780,9 +795,9 @@ class GetObjectTest {
   void getMoney() throws SQLException {
     Statement stmt = conn.createStatement();
     String expected = "12.34";
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "money_column", "'12.34'::float8::numeric::money"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "money_column", "'12.34'::float8::numeric::money"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "money_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "money_column"));
     try {
       assertTrue(rs.next());
       PGmoney money = rs.getObject("money_column", PGmoney.class);
@@ -802,9 +817,9 @@ class GetObjectTest {
   void getPoint() throws SQLException {
     Statement stmt = conn.createStatement();
     PGpoint expected = new PGpoint(1.0d, 2.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "point_column", "point '(1, 2)'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "point_column", "point '(1, 2)'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "point_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "point_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("point_column", PGpoint.class));
@@ -826,9 +841,9 @@ class GetObjectTest {
 
     Statement stmt = conn.createStatement();
     PGline expected = new PGline(1.0d, 2.0d, 3.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "line_column", "line '{1, 2, 3}'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "line_column", "line '{1, 2, 3}'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "line_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "line_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("line_column", PGline.class));
@@ -845,9 +860,9 @@ class GetObjectTest {
   void getLineseg() throws SQLException {
     Statement stmt = conn.createStatement();
     PGlseg expected = new PGlseg(1.0d, 2.0d, 3.0d, 4.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "lseg_column", "lseg '[(1, 2), (3, 4)]'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "lseg_column", "lseg '[(1, 2), (3, 4)]'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "lseg_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "lseg_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("lseg_column", PGlseg.class));
@@ -864,9 +879,9 @@ class GetObjectTest {
   void getBox() throws SQLException {
     Statement stmt = conn.createStatement();
     PGbox expected = new PGbox(1.0d, 2.0d, 3.0d, 4.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "box_column", "box '((1, 2), (3, 4))'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "box_column", "box '((1, 2), (3, 4))'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "box_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "box_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("box_column", PGbox.class));
@@ -883,9 +898,9 @@ class GetObjectTest {
   void getPath() throws SQLException {
     Statement stmt = conn.createStatement();
     PGpath expected = new PGpath(new PGpoint[]{new PGpoint(1.0d, 2.0d), new PGpoint(3.0d, 4.0d)}, true);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "path_column", "path '[(1, 2), (3, 4)]'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "path_column", "path '[(1, 2), (3, 4)]'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "path_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "path_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("path_column", PGpath.class));
@@ -902,9 +917,9 @@ class GetObjectTest {
   void getPolygon() throws SQLException {
     Statement stmt = conn.createStatement();
     PGpolygon expected = new PGpolygon(new PGpoint[]{new PGpoint(1.0d, 2.0d), new PGpoint(3.0d, 4.0d)});
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "polygon_column", "polygon '((1, 2), (3, 4))'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "polygon_column", "polygon '((1, 2), (3, 4))'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "polygon_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "polygon_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("polygon_column", PGpolygon.class));
@@ -921,9 +936,9 @@ class GetObjectTest {
   void getCircle() throws SQLException {
     Statement stmt = conn.createStatement();
     PGcircle expected = new PGcircle(1.0d, 2.0d, 3.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "circle_column", "circle '<(1, 2), 3>'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "circle_column", "circle '<(1, 2), 3>'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "circle_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "circle_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("circle_column", PGcircle.class));
@@ -940,9 +955,9 @@ class GetObjectTest {
   void getInterval() throws SQLException {
     Statement stmt = conn.createStatement();
     PGInterval expected = new PGInterval(0, 0, 3, 4, 5, 6.0d);
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "interval_column", "interval '3 4:05:06'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "interval_column", "interval '3 4:05:06'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "interval_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "interval_column"));
     try {
       assertTrue(rs.next());
       assertEquals(expected, rs.getObject("interval_column", PGInterval.class));
@@ -963,9 +978,9 @@ class GetObjectTest {
     }
     Statement stmt = conn.createStatement();
     String expected = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11";
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "uuid_column", "'" + expected + "'"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "uuid_column", "'" + expected + "'"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "uuid_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "uuid_column"));
     try {
       assertTrue(rs.next());
       assertEquals(UUID.fromString(expected), rs.getObject("uuid_column", UUID.class));
@@ -981,9 +996,9 @@ class GetObjectTest {
   @Test
   void getInetAddressNull() throws SQLException, UnknownHostException {
     Statement stmt = conn.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "inet_column", "NULL"));
+    stmt.executeUpdate(TestUtil.insertSQL("testgetobj41", "inet_column", "NULL"));
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "inet_column"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testgetobj41", "inet_column"));
     try {
       assertTrue(rs.next());
       assertNull(rs.getObject("inet_column", InetAddress.class));

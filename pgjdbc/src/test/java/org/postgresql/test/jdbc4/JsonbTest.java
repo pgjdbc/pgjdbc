@@ -14,11 +14,14 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.Array;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -43,24 +46,35 @@ public class JsonbTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      assumeTrue(
+          TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4),
+          "jsonb requires PostgreSQL 9.4+");
+      TestUtil.createTable(con, "jsonbtest", "detail jsonb");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "jsonbtest");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     assumeTrue(
         TestUtil.haveMinimumServerVersion(con, ServerVersion.v9_4),
         "jsonb requires PostgreSQL 9.4+");
-    TestUtil.createTable(con, "jsonbtest", "detail jsonb");
+    TestUtil.execute(con, "TRUNCATE jsonbtest");
     Statement stmt = con.createStatement();
     stmt.executeUpdate("INSERT INTO jsonbtest (detail) VALUES ('{\"a\": 1}')");
     stmt.executeUpdate("INSERT INTO jsonbtest (detail) VALUES ('{\"b\": 1}')");
     stmt.executeUpdate("INSERT INTO jsonbtest (detail) VALUES ('{\"c\": 1}')");
     stmt.close();
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "jsonbtest");
-    super.tearDown();
   }
 
   @Test

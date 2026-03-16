@@ -17,7 +17,9 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,25 +33,37 @@ class DatabaseMetaDataTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createSchema(conn, "test_schema");
+      TestUtil.createEnumType(conn, "test_schema.test_enum", "'val'");
+      TestUtil.createTable(conn, "test_schema.off_path_table", "var test_schema.test_enum[]");
+      TestUtil.createEnumType(conn, "_test_enum", "'evil'");
+      TestUtil.createEnumType(conn, "test_enum", "'other'");
+      TestUtil.createTable(conn, "on_path_table", "a test_schema.test_enum[], b _test_enum, c test_enum[]");
+      TestUtil.createTable(conn, "decimaltest", "a decimal, b decimal(10, 5)");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "decimaltest");
+      TestUtil.dropTable(conn, "on_path_table");
+      TestUtil.dropType(conn, "test_enum");
+      TestUtil.dropType(conn, "_test_enum");
+      TestUtil.dropSchema(conn, "test_schema");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createSchema(conn, "test_schema");
-    TestUtil.createEnumType(conn, "test_schema.test_enum", "'val'");
-    TestUtil.createTable(conn, "test_schema.off_path_table", "var test_schema.test_enum[]");
-    TestUtil.createEnumType(conn, "_test_enum", "'evil'");
-    TestUtil.createEnumType(conn, "test_enum", "'other'");
-    TestUtil.createTable(conn, "on_path_table", "a test_schema.test_enum[], b _test_enum, c test_enum[]");
-    TestUtil.createTable(conn, "decimaltest", "a decimal, b decimal(10, 5)");
   }
 
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.dropTable(conn, "decimaltest");
-    TestUtil.dropTable(conn, "on_path_table");
-    TestUtil.dropType(conn, "test_enum");
-    TestUtil.dropType(conn, "_test_enum");
-    TestUtil.dropSchema(conn, "test_schema");
     TestUtil.closeDB(conn);
   }
 
