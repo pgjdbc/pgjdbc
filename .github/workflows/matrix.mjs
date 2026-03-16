@@ -109,7 +109,7 @@ matrix.addAxis({
 matrix.addAxis({
   name: 'hash',
   values: [
-    {value: 'regular', title: '', weight: 42},
+    {value: 'regular', title: '', weight: 10},
     {value: 'same', title: 'same hashcode', weight: 1}
   ]
 });
@@ -442,11 +442,15 @@ include.forEach(v => {
   delete v.hash;
 });
 
-console.log(include);
-
-let filePath = process.env['GITHUB_OUTPUT'] || '';
-if (filePath) {
+if (process.argv.includes('--coverage')) {
+  const coverage = matrix.pairCoverageReport();
+  console.log(`Pair coverage: ${coverage.covered}/${coverage.total} (${coverage.percentage}%), weight coverage ${coverage.weightPercentage}%`);
+} else {
+  console.log(include);
+  let filePath = process.env['GITHUB_OUTPUT'] || '';
+  if (filePath) {
     appendFileSync(filePath, `matrix<<MATRIX_BODY${EOL}${JSON.stringify({include})}${EOL}MATRIX_BODY${EOL}`, {
-        encoding: 'utf8'
+      encoding: 'utf8'
     });
+  }
 }

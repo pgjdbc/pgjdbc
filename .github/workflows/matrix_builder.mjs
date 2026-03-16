@@ -3,14 +3,21 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 import { RNG } from './rng.mjs';
 
+function pairKey(ai, vi, aj, vj) {
+  return `${ai}:${vi}|${aj}:${vj}`;
+}
+
 class Axis {
   constructor({name, title, values}) {
     this.name = name;
     this.title = title;
     this.values = values;
-    // If all entries have same weight, the axis has uniform distribution
-    this.uniform = values.reduce((a, b) => a === (b.weight || 1) ? a : 0, values[0].weight || 1) !== 0
-    this.totalWeight = this.uniform ? values.length : values.reduce((a, b) => a + (b.weight || 1), 0);
+    // Precompute normalized weights for pair scoring.
+    // Each value's weight is normalized so that the axis weights sum to 1.
+    const totalWeight = values.reduce((a, b) => a + (b.weight || 1), 0);
+    this.normalizedWeights = values.map(v => (v.weight || 1) / totalWeight);
+    // Map from value reference to its index for O(1) lookup
+    this.valueIndex = new Map(values.map((v, i) => [v, i]));
   }
 
   static matches(row, filter) {
@@ -42,22 +49,7 @@ class Axis {
       const filterStr = typeof filter === 'string' ? filter.toString() : JSON.stringify(filter);
       throw Error(`No values produces for axis '${this.name}' from ${JSON.stringify(this.values)}, filter=${filterStr}`);
     }
-    if (values.length === 1) {
-      return values[0];
-    }
-    if (this.uniform) {
-      return values[Math.floor(RNG.random() * values.length)];
-    }
-    const totalWeight = !filter ? this.totalWeight : values.reduce((a, b) => a + (b.weight || 1), 0);
-    let weight = RNG.random() * totalWeight;
-    for (let i = 0; i < values.length; i++) {
-      const value = values[i];
-      weight -= value.weight || 1;
-      if (weight <= 0) {
-        return value;
-      }
-    }
-    return values[values.length - 1];
+    return values[Math.floor(RNG.random() * values.length)];
   }
 }
 
@@ -71,6 +63,11 @@ class MatrixBuilder {
     this.includes = [];
     this.implications = [];
     this.failOnUnsatisfiableFilters = false;
+    this._pairsInitialized = false;
+    this._uncoveredPairs = null;
+    this._totalPairs = 0;
+    this._totalPairsWeight = 0;
+    this._uncoveredPairsWeight = 0;
   }
 
   /**
@@ -127,7 +124,116 @@ class MatrixBuilder {
   }
 
   /**
+   * Initializes the set of all value pairs to cover.
+   * Called lazily on first generateRow call (after all axes, excludes, and implications are configured).
+   */
+  _initPairs() {
+    if (this._pairsInitialized) return;
+    this._pairsInitialized = true;
+    this._uncoveredPairs = new Set();
+    let totalWeight = 0;
+    for (let i = 0; i < this.axes.length; i++) {
+      for (let j = i + 1; j < this.axes.length; j++) {
+        for (let vi = 0; vi < this.axes[i].values.length; vi++) {
+          const wi = this.axes[i].normalizedWeights[vi];
+          for (let vj = 0; vj < this.axes[j].values.length; vj++) {
+            this._uncoveredPairs.add(pairKey(i, vi, j, vj));
+            totalWeight += wi * this.axes[j].normalizedWeights[vj];
+          }
+        }
+      }
+    }
+    this._totalPairs = this._uncoveredPairs.size;
+    this._totalPairsWeight = totalWeight;
+    this._uncoveredPairsWeight = totalWeight;
+  }
+
+  /**
+   * Scores a candidate row by the weighted sum of uncovered pairs it would cover.
+   * Each pair's contribution is normalizedWeight_i * normalizedWeight_j,
+   * so axes with different weight scales contribute fairly.
+   */
+  _scoreNewPairs(row) {
+    let score = 0;
+    for (let i = 0; i < this.axes.length; i++) {
+      const axisI = this.axes[i];
+      const vi = axisI.valueIndex.get(row[axisI.name]);
+      const wi = axisI.normalizedWeights[vi];
+      for (let j = i + 1; j < this.axes.length; j++) {
+        const axisJ = this.axes[j];
+        const vj = axisJ.valueIndex.get(row[axisJ.name]);
+        if (this._uncoveredPairs.has(pairKey(i, vi, j, vj))) {
+          score += wi * axisJ.normalizedWeights[vj];
+        }
+      }
+    }
+    return score;
+  }
+
+  /**
+   * Marks all pairs in a row as covered.
+   */
+  _markCovered(row) {
+    let weight = 0;
+    for (let i = 0; i < this.axes.length; i++) {
+      const vi = this.axes[i].valueIndex.get(row[this.axes[i].name]);
+      const wi = this.axes[i].normalizedWeights[vi];
+      for (let j = i + 1; j < this.axes.length; j++) {
+        const vj = this.axes[j].valueIndex.get(row[this.axes[j].name]);
+        if (this._uncoveredPairs.delete(pairKey(i, vi, j, vj))) {
+          weight += wi * this.axes[j].normalizedWeights[vj];
+        }
+      }
+    }
+    this._uncoveredPairsWeight -= weight;
+  }
+
+  /**
+   * Generates a single valid candidate row matching the optional filter.
+   * Returns null if no valid candidate can be produced after several attempts.
+   */
+  _generateCandidate(filter) {
+    for (let attempt = 0; attempt < 20; attempt++) {
+      const row = this.axes.reduce(
+        (prev, next) =>
+          Object.assign(prev, {
+            [next.name]: next.pickValue(filter ? filter[next.name] : undefined)
+          }),
+        {}
+      );
+      if (this.matches(row)) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Computes the display name for a row based on the name pattern.
+   */
+  _computeName(row) {
+    return this.namePattern.map(axisName => {
+      let value = row[axisName];
+      const title = value.title;
+      if (typeof title != 'undefined') {
+        return title;
+      }
+      const computeTitle = this.axisByName[axisName].title;
+      if (computeTitle) {
+        return computeTitle(value);
+      }
+      if (typeof value === 'object' && value.hasOwnProperty('value')) {
+        return value.value;
+      }
+      return value;
+    }).filter(Boolean).join(", ");
+  }
+
+  /**
    * Adds a row that matches the given filter to the resulting matrix.
+   * Among many random candidates satisfying the filter, picks the one
+   * that covers the most previously-uncovered parameter pairs.
+   *
    * filter values could be
    *  - literal values: filter={os: 'windows-latest'}
    *  - arrays: filter={os: ['windows-latest', 'linux-latest']}
@@ -136,48 +242,44 @@ class MatrixBuilder {
    * @returns {*}
    */
   generateRow(filter) {
-    let res;
+    this._initPairs();
     if (filter) {
       // If matching row already exists, no need to generate more
-      res = this.rows.some(v => Axis.matches(v, filter));
-      if (res) {
-        return res;
+      const existing = this.rows.some(v => Axis.matches(v, filter));
+      if (existing) {
+        return existing;
       }
     }
-    for (let i = 0; i < 142; i++) {
-      res = this.axes.reduce(
-        (prev, next) =>
-          Object.assign(prev, {
-            [next.name]: next.pickValue(filter ? filter[next.name] : undefined)
-          }),
-        {}
-      );
-      if (!this.matches(res)) {
+
+    const numCandidates = 1000;
+    let bestRow = null;
+    let bestScore = -1;
+
+    for (let n = 0; n < numCandidates; n++) {
+      const candidate = this._generateCandidate(filter);
+      if (!candidate) {
         continue;
       }
-      const key = JSON.stringify(res);
-      if (!this.duplicates.hasOwnProperty(key)) {
-        this.duplicates[key] = true;
-        res.name =
-          this.namePattern.map(axisName => {
-            let value = res[axisName];
-            const title = value.title;
-            if (typeof title != 'undefined') {
-              return title;
-            }
-            const computeTitle = this.axisByName[axisName].title;
-            if (computeTitle) {
-                return computeTitle(value);
-            }
-            if (typeof value === 'object' && value.hasOwnProperty('value')) {
-                return value.value;
-            }
-            return value;
-          }).filter(Boolean).join(", ");
-        this.rows.push(res);
-        return res;
+
+      const key = JSON.stringify(candidate);
+      if (this.duplicates.hasOwnProperty(key)) continue;
+
+      const score = this._scoreNewPairs(candidate);
+      if (score > bestScore) {
+        bestScore = score;
+        bestRow = candidate;
       }
     }
+
+    if (bestRow) {
+      const key = JSON.stringify(bestRow);
+      this.duplicates[key] = true;
+      bestRow.name = this._computeName(bestRow);
+      this._markCovered(bestRow);
+      this.rows.push(bestRow);
+      return bestRow;
+    }
+
     const filterStr = typeof filter === 'string' ? filter.toString() : JSON.stringify(filter);
     const msg = `Unable to generate row for ${filterStr}. Please check include and exclude filters`;
     if (this.failOnUnsatisfiableFilters) {
@@ -188,10 +290,27 @@ class MatrixBuilder {
   }
 
   generateRows(maxRows, filter) {
+    this._initPairs();
     for (let i = 0; this.rows.length < maxRows && i < maxRows; i++) {
       this.generateRow(filter);
     }
     return this.rows;
+  }
+
+  /**
+   * Returns pair coverage statistics for the generated rows.
+   * @returns {{covered: number, total: number, percentage: string, weightPercentage: string}}
+   */
+  pairCoverageReport() {
+    this._initPairs();
+    const covered = this._totalPairs - this._uncoveredPairs.size;
+    const coveredWeight = this._totalPairsWeight - this._uncoveredPairsWeight;
+    return {
+      covered,
+      total: this._totalPairs,
+      percentage: (covered / this._totalPairs * 100).toFixed(1),
+      weightPercentage: (coveredWeight / this._totalPairsWeight * 100).toFixed(1)
+    };
   }
 
   /**
