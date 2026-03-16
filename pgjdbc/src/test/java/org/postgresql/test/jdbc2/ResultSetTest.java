@@ -23,6 +23,8 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -69,12 +71,51 @@ public class ResultSetTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testrs", "id integer");
+      TestUtil.createTable(con, "teststring", "a text");
+      TestUtil.createTable(con, "testint", "a int");
+      TestUtil.createTable(con, "testbool", "a boolean, b int");
+      TestUtil.createTable(con, "testboolstring", "a varchar(30), b boolean");
+      TestUtil.createTable(con, "testboolfloat", "i int, a float4, b boolean");
+      TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
+      TestUtil.createTable(con, "testnumeric", "t text, a numeric");
+      TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testrs");
+      TestUtil.dropTable(con, "teststring");
+      TestUtil.dropTable(con, "testint");
+      TestUtil.dropTable(con, "testbool");
+      TestUtil.dropTable(con, "testboolstring");
+      TestUtil.dropTable(con, "testboolfloat");
+      TestUtil.dropTable(con, "testboolint");
+      TestUtil.dropTable(con, "testnumeric");
+      TestUtil.dropTable(con, "testpgobject");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    Statement stmt = con.createStatement();
 
-    TestUtil.createTable(con, "testrs", "id integer");
+    TestUtil.execute(con, "TRUNCATE testrs");
+    TestUtil.execute(con, "TRUNCATE teststring");
+    TestUtil.execute(con, "TRUNCATE testint");
+    TestUtil.execute(con, "TRUNCATE testbool");
+    TestUtil.execute(con, "TRUNCATE testboolstring");
+    TestUtil.execute(con, "TRUNCATE testboolfloat");
+    TestUtil.execute(con, "TRUNCATE testboolint");
+    TestUtil.execute(con, "TRUNCATE testnumeric");
+    TestUtil.execute(con, "TRUNCATE testpgobject");
+
+    Statement stmt = con.createStatement();
 
     stmt.executeUpdate("INSERT INTO testrs VALUES (1)");
     stmt.executeUpdate("INSERT INTO testrs VALUES (2)");
@@ -83,18 +124,14 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testrs VALUES (6)");
     stmt.executeUpdate("INSERT INTO testrs VALUES (9)");
 
-    TestUtil.createTable(con, "teststring", "a text");
     stmt.executeUpdate("INSERT INTO teststring VALUES ('12345')");
 
-    TestUtil.createTable(con, "testint", "a int");
     stmt.executeUpdate("INSERT INTO testint VALUES (12345)");
 
     // Boolean Tests
-    TestUtil.createTable(con, "testbool", "a boolean, b int");
     stmt.executeUpdate("INSERT INTO testbool VALUES(true, 1)");
     stmt.executeUpdate("INSERT INTO testbool VALUES(false, 0)");
 
-    TestUtil.createTable(con, "testboolstring", "a varchar(30), b boolean");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1 ', true)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0', false)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES(' t', true)");
@@ -113,7 +150,6 @@ public class ResultSetTest extends BaseTest4 {
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('1.0', null)");
     stmt.executeUpdate("INSERT INTO testboolstring VALUES('0.0', null)");
 
-    TestUtil.createTable(con, "testboolfloat", "i int, a float4, b boolean");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(1, '1.0'::real, true)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(2, '0.0'::real, false)");
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(3, 1.000::real, true)");
@@ -134,7 +170,6 @@ public class ResultSetTest extends BaseTest4 {
     floatVal = Float.toString(StrictMath.nextUp(Long.MIN_VALUE + 1));
     stmt.executeUpdate("INSERT INTO testboolfloat VALUES(15, " + floatVal + ", null)");
 
-    TestUtil.createTable(con, "testboolint", "a bigint, b boolean");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(1, true)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(0, false)");
     stmt.executeUpdate("INSERT INTO testboolint VALUES(-1, null)");
@@ -143,9 +178,6 @@ public class ResultSetTest extends BaseTest4 {
 
     // End Boolean Tests
 
-    // TestUtil.createTable(con, "testbit", "a bit");
-
-    TestUtil.createTable(con, "testnumeric", "t text, a numeric");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('1.0', '1.0')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('0.0', '0.0')");
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('-1.0', '-1.0')");
@@ -185,24 +217,9 @@ public class ResultSetTest extends BaseTest4 {
 
     stmt.executeUpdate("INSERT INTO testnumeric VALUES('10223372036850000000', '10223372036850000000')");
 
-    TestUtil.createTable(con, "testpgobject", "id integer NOT NULL, d date, PRIMARY KEY (id)");
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
     stmt.close();
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testrs");
-    TestUtil.dropTable(con, "teststring");
-    TestUtil.dropTable(con, "testint");
-    // TestUtil.dropTable(con, "testbit");
-    TestUtil.dropTable(con, "testboolstring");
-    TestUtil.dropTable(con, "testboolfloat");
-    TestUtil.dropTable(con, "testboolint");
-    TestUtil.dropTable(con, "testnumeric");
-    TestUtil.dropTable(con, "testpgobject");
-    super.tearDown();
   }
 
   @Test
@@ -1429,7 +1446,6 @@ public class ResultSetTest extends BaseTest4 {
       }
       return year;
     }
-
   }
 
   @Test

@@ -14,7 +14,9 @@ import org.postgresql.test.util.BufferGenerator;
 import org.postgresql.test.util.StrangeInputStream;
 import org.postgresql.util.internal.FileUtils;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,24 +38,39 @@ class CopyLargeFileTest {
   private Connection con;
   private CopyManager copyAPI;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
+          "id SERIAL, text_id VARCHAR(1000) NOT NULL UNIQUE, name VARCHAR(10) NOT NULL UNIQUE");
+      TestUtil.createTable(con, "pgjdbc_issue366_test_data",
+          "id SERIAL,\n"
+              + "data_text_id VARCHAR(1000) NOT NULL /*UNIQUE <-- it slows down inserts due to additional index */,\n"
+              + "glossary_text_id VARCHAR(1000) NOT NULL /* REFERENCES pgjdbc_issue366_test_glossary(text_id) */,\n"
+              + "value DOUBLE PRECISION NOT NULL");
+      feedTable(con);
+    }
+
+    BufferGenerator.main(new String[]{});
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "pgjdbc_issue366_test_data");
+      TestUtil.dropTable(con, "pgjdbc_issue366_test_glossary");
+    }
+
+    new File("target/buffer.txt").delete();
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
-
-    TestUtil.createTable(con, "pgjdbc_issue366_test_glossary",
-        "id SERIAL, text_id VARCHAR(1000) NOT NULL UNIQUE, name VARCHAR(10) NOT NULL UNIQUE");
-    TestUtil.createTable(con, "pgjdbc_issue366_test_data",
-        "id SERIAL,\n"
-            + "data_text_id VARCHAR(1000) NOT NULL /*UNIQUE <-- it slows down inserts due to additional index */,\n"
-            + "glossary_text_id VARCHAR(1000) NOT NULL /* REFERENCES pgjdbc_issue366_test_glossary(text_id) */,\n"
-            + "value DOUBLE PRECISION NOT NULL");
-
-    feedTable();
-    BufferGenerator.main(new String[]{});
     copyAPI = ((PGConnection) con).getCopyAPI();
   }
 
-  private void feedTable() throws Exception {
+  private static void feedTable(Connection con) throws Exception {
     PreparedStatement stmt = con.prepareStatement(
         TestUtil.insertSQL("pgjdbc_issue366_test_glossary", "text_id, name", "?, ?"));
     for (int i = 0; i < 26; i++) {
@@ -71,13 +88,7 @@ class CopyLargeFileTest {
 
   @AfterEach
   void tearDown() throws Exception {
-    try {
-      TestUtil.dropTable(con, "pgjdbc_issue366_test_data");
-      TestUtil.dropTable(con, "pgjdbc_issue366_test_glossary");
-      new File("target/buffer.txt").delete();
-    } finally {
-      con.close();
-    }
+    con.close();
   }
 
   @Test
@@ -125,6 +136,5 @@ class CopyLargeFileTest {
         stmt.close();
       }
     }
-
   }
 }

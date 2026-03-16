@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,17 +27,30 @@ class Jdbc3SavepointTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "savepointtable", "id int primary key");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "savepointtable");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "savepointtable", "id int primary key");
+    TestUtil.execute(conn, "TRUNCATE savepointtable CASCADE");
     conn.setAutoCommit(false);
   }
 
   @AfterEach
   void tearDown() throws SQLException {
     conn.setAutoCommit(true);
-    TestUtil.dropTable(conn, "savepointtable");
     TestUtil.closeDB(conn);
   }
 
@@ -100,7 +115,6 @@ class Jdbc3SavepointTest {
       fail("Can't get name from unnamed savepoint.");
     } catch (SQLException sqle) {
     }
-
   }
 
   @Test

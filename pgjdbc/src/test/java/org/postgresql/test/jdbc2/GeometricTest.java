@@ -21,13 +21,15 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,15 +54,24 @@ public class GeometricTest extends BaseTest4 {
     return ids;
   }
 
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "testgeometric",
-        "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testgeometric",
+          "boxval box, circleval circle, lsegval lseg, pathval path, polygonval polygon, pointval point, lineval line");
+    }
   }
 
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testgeometric");
-    super.tearDown();
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testgeometric");
+    }
+  }
+
+  public void setUp() throws Exception {
+    super.setUp();
+    TestUtil.execute(con, "TRUNCATE testgeometric");
   }
 
   private void checkReadWrite(PGobject obj, String column) throws Exception {
@@ -178,7 +189,6 @@ public class GeometricTest extends BaseTest4 {
           checkReadWrite(testLine, columnName);
         }
       }
-
     }
   }
 

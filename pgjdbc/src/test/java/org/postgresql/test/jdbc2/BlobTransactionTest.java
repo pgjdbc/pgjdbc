@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,40 +37,38 @@ class BlobTransactionTest {
   private Connection con;
   private Connection con2;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testblob", "id name,lo oid");
+    }
+
+    /*
+     * this would have to be executed using the postgres user in order to get access to a C function
+     *
+     */
+    try (Connection privilegedCon = TestUtil.openPrivilegedDB()) {
+      TestUtil.execute(privilegedCon,
+          "CREATE OR REPLACE FUNCTION lo_manage() RETURNS pg_catalog.trigger AS '$libdir/lo' LANGUAGE C");
+
+      TestUtil.execute(privilegedCon,
+          "CREATE TRIGGER testblob_lomanage BEFORE UPDATE OR DELETE ON testblob FOR EACH ROW EXECUTE PROCEDURE lo_manage(lo)");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testblob");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
     con.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
     con2 = TestUtil.openDB();
     con2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
-
-    TestUtil.createTable(con, "testblob", "id name,lo oid");
-
-    String sql;
-
-    /*
-     * this would have to be executed using the postgres user in order to get access to a C function
-     *
-     */
-    Connection privilegedCon = TestUtil.openPrivilegedDB();
-    Statement st = privilegedCon.createStatement();
-    try {
-      sql =
-          "CREATE OR REPLACE FUNCTION lo_manage() RETURNS pg_catalog.trigger AS '$libdir/lo' LANGUAGE C";
-      st.executeUpdate(sql);
-    } finally {
-      st.close();
-    }
-
-    st = privilegedCon.createStatement();
-    try {
-      sql =
-          "CREATE TRIGGER testblob_lomanage BEFORE UPDATE OR DELETE ON testblob FOR EACH ROW EXECUTE PROCEDURE lo_manage(lo)";
-      st.executeUpdate(sql);
-    } finally {
-      st.close();
-    }
-    TestUtil.closeDB(privilegedCon);
 
     con.setAutoCommit(false);
     con2.setAutoCommit(false);
@@ -90,7 +90,7 @@ class BlobTransactionTest {
         }
       }
     } finally {
-      TestUtil.dropTable(con, "testblob");
+      TestUtil.execute(con, "TRUNCATE TABLE testblob");
       TestUtil.closeDB(con);
     }
   }

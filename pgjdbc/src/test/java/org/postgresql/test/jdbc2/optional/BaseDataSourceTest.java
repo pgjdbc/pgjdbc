@@ -18,6 +18,8 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.util.MiniJndiContextFactory;
 import org.postgresql.util.PSQLException;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -42,27 +44,37 @@ public abstract class BaseDataSourceTest extends BaseTest4 {
 
   protected BaseDataSource bds;
 
-  /**
-   * Creates a test table using a standard connection (not from a DataSource).
-   */
-  @Override
-  public void setUp() throws Exception {
-    con = TestUtil.openDB();
-    TestUtil.createTable(con, "poolingtest", "id int4 not null primary key, name varchar(50)");
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate("INSERT INTO poolingtest VALUES (1, 'Test Row 1')");
-    stmt.executeUpdate("INSERT INTO poolingtest VALUES (2, 'Test Row 2')");
-    TestUtil.closeDB(con);
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "poolingtest", "id int4 not null primary key, name varchar(50)");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "poolingtest");
+    }
   }
 
   /**
-   * Removes the test table using a standard connection (not from a DataSource).
+   * Sets up seed data using a standard connection (not from a DataSource).
+   */
+  @Override
+  public void setUp() throws Exception {
+    // TODO: why do we open a separate connection here? Can we reuse this.con?
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.execute(con, "TRUNCATE poolingtest");
+      TestUtil.execute(con, "INSERT INTO poolingtest VALUES (1, 'Test Row 1'), (2, 'Test Row 2')");
+    }
+  }
+
+  /**
+   * Cleans up connections.
    */
   @Override
   public void tearDown() throws SQLException {
-    TestUtil.closeDB(con);
-    con = TestUtil.openDB();
-    TestUtil.dropTable(con, "poolingtest");
     TestUtil.closeDB(con);
   }
 

@@ -21,6 +21,8 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,17 +58,25 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "arrtest");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
-    TestUtil.createTable(conn, "arrtest", "intarr int[], decarr decimal(2,1)[], strarr text[]");
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(conn, "arrtest");
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE arrtest");
   }
 
   @Test

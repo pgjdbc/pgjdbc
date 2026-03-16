@@ -17,7 +17,10 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringReader;
@@ -33,58 +36,78 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.TimeZone;
 
+@Isolated("Uses TimeZone.setDefault")
 public class UpdateableResultTest extends BaseTest4 {
+
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "updateable",
+          "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
+      TestUtil.createTable(con, "hasdate", "id int primary key, dt date unique, name text");
+      TestUtil.createTable(con, "unique_null_constraint", "u1 int unique, name1 text");
+      TestUtil.createTable(con, "uniquekeys", "id int unique not null, id2 int unique, dt date");
+      TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
+      TestUtil.execute(con, "CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success");
+      TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
+      TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique not null, dt date");
+      TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
+      TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
+      TestUtil.execute(con, "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10");
+      TestUtil.execute(con, "alter table compositepktable add primary key ( gen_id, dec_id )");
+      TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
+      TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
+      TestUtil.execute(con, "ALTER TABLE multicol ADD CONSTRAINT multicol_pk PRIMARY KEY (id1, id2)");
+      TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
+      TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "updateable");
+      TestUtil.dropTable(con, "second");
+      TestUtil.dropTable(con, "serialtable");
+      TestUtil.dropTable(con, "compositepktable");
+      TestUtil.dropTable(con, "stream");
+      TestUtil.dropTable(con, "multicol");
+      TestUtil.dropTable(con, "nopkmulticol");
+      TestUtil.dropTable(con, "booltable");
+      TestUtil.dropTable(con, "unique_null_constraint");
+      TestUtil.dropTable(con, "hasdate");
+      TestUtil.dropTable(con, "uniquekeys");
+      TestUtil.dropTable(con, "partialunique");
+      TestUtil.dropTable(con, "primaryunique");
+    }
+  }
 
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "updateable",
-        "id int primary key, name text, notselected text, ts timestamp with time zone, intarr int[]");
-    TestUtil.createTable(con, "hasdate", "id int primary key, dt date unique, name text");
-    TestUtil.createTable(con, "unique_null_constraint", "u1 int unique, name1 text");
-    TestUtil.createTable(con, "uniquekeys", "id int unique not null, id2 int unique, dt date");
-    TestUtil.createTable(con, "partialunique", "subject text, target text, success boolean");
-    TestUtil.execute(con, "CREATE UNIQUE INDEX tests_success_constraint ON partialunique (subject, target) WHERE success");
-    TestUtil.createTable(con, "second", "id1 int primary key, name1 text");
-    TestUtil.createTable(con, "primaryunique", "id int primary key, name text unique not null, dt date");
-    TestUtil.createTable(con, "serialtable", "gen_id serial primary key, name text");
-    TestUtil.createTable(con, "compositepktable", "gen_id serial, name text, dec_id serial");
-    TestUtil.execute(con, "alter sequence compositepktable_dec_id_seq increment by 10; alter sequence compositepktable_dec_id_seq restart with 10");
-    TestUtil.execute(con, "alter table compositepktable add primary key ( gen_id, dec_id )");
-    TestUtil.createTable(con, "stream", "id int primary key, asi text, chr text, bin bytea");
-    TestUtil.createTable(con, "multicol", "id1 int not null, id2 int not null, val text");
-    TestUtil.createTable(con, "nopkmulticol", "id1 int not null, id2 int not null, val text");
-    TestUtil.createTable(con, "booltable", "id int not null primary key, b boolean default false");
+    TestUtil.execute(con, "TRUNCATE updateable CASCADE");
+    TestUtil.execute(con, "TRUNCATE hasdate CASCADE");
+    TestUtil.execute(con, "TRUNCATE unique_null_constraint");
+    TestUtil.execute(con, "TRUNCATE uniquekeys CASCADE");
+    TestUtil.execute(con, "TRUNCATE partialunique");
+    TestUtil.execute(con, "TRUNCATE second CASCADE");
+    TestUtil.execute(con, "TRUNCATE primaryunique CASCADE");
+    TestUtil.execute(con, "TRUNCATE serialtable CASCADE");
+    TestUtil.execute(con, "TRUNCATE compositepktable CASCADE");
+    TestUtil.execute(con, "ALTER SEQUENCE compositepktable_gen_id_seq RESTART WITH 1");
+    TestUtil.execute(con, "ALTER SEQUENCE compositepktable_dec_id_seq RESTART WITH 10");
+    TestUtil.execute(con, "TRUNCATE stream CASCADE");
+    TestUtil.execute(con, "TRUNCATE multicol CASCADE");
+    TestUtil.execute(con, "TRUNCATE nopkmulticol");
+    TestUtil.execute(con, "TRUNCATE booltable CASCADE");
+    TestUtil.execute(con, "ALTER SEQUENCE serialtable_gen_id_seq RESTART WITH 1");
+
     TestUtil.execute(con, "insert into booltable (id) values (1)");
     TestUtil.execute(con, "insert into uniquekeys(id, id2, dt) values (1, 2, now())");
-
-    Statement st2 = con.createStatement();
-    // create pk for multicol table
-    st2.execute("ALTER TABLE multicol ADD CONSTRAINT multicol_pk PRIMARY KEY (id1, id2)");
-    // put some dummy data into second
-    st2.execute("insert into second values (1,'anyvalue' )");
-    st2.close();
+    TestUtil.execute(con, "insert into second values (1,'anyvalue' )");
     TestUtil.execute(con, "insert into unique_null_constraint values (1, 'dave')");
     TestUtil.execute(con, "insert into unique_null_constraint values (null, 'unknown')");
     TestUtil.execute(con, "insert into primaryunique values (1, 'dave', now())");
-
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "updateable");
-    TestUtil.dropTable(con, "second");
-    TestUtil.dropTable(con, "serialtable");
-    TestUtil.dropTable(con, "compositepktable");
-    TestUtil.dropTable(con, "stream");
-    TestUtil.dropTable(con, "nopkmulticol");
-    TestUtil.dropTable(con, "booltable");
-    TestUtil.dropTable(con, "unique_null_constraint");
-    TestUtil.dropTable(con, "hasdate");
-    TestUtil.dropTable(con, "uniquekeys");
-    TestUtil.dropTable(con, "partialunique");
-    TestUtil.dropTable(con, "primaryunique");
-    super.tearDown();
   }
 
   @Test
@@ -749,8 +772,7 @@ public class UpdateableResultTest extends BaseTest4 {
 
   @Test
   public void testOidUpdatable() throws Exception {
-    Connection privilegedCon = TestUtil.openPrivilegedDB();
-    try {
+    try (Connection privilegedCon = TestUtil.openPrivilegedDB()) {
       Statement st = privilegedCon.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
           ResultSet.CONCUR_UPDATABLE);
       ResultSet rs = st.executeQuery("SELECT oid,* FROM pg_class WHERE relname = 'pg_class'");
@@ -760,8 +782,6 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateRow();
       rs.close();
       st.close();
-    } finally {
-      privilegedCon.close();
     }
   }
 

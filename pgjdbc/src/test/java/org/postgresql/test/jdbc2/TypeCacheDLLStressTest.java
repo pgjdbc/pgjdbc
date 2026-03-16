@@ -7,6 +7,8 @@ package org.postgresql.test.jdbc2;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
@@ -37,10 +39,18 @@ public class TypeCacheDLLStressTest extends BaseTest4 {
     }
   }
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "create_and_drop_table", "user_id serial PRIMARY KEY");
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "create_and_drop_table", "user_id serial PRIMARY KEY");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "create_and_drop_table");
+    }
   }
 
   @Override

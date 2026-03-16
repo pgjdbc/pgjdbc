@@ -12,13 +12,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Properties;
 
 /*
@@ -27,6 +29,22 @@ import java.util.Properties;
 */
 class ColumnSanitiserEnabledTest {
   private Connection conn;
+
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "allmixedup",
+          "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
+      TestUtil.execute(conn, TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "allmixedup");
+    }
+  }
 
   @BeforeEach
   void setUp() throws Exception {
@@ -37,15 +55,10 @@ class ColumnSanitiserEnabledTest {
     BaseConnection bc = (BaseConnection) conn;
     assertFalse(bc.isColumnSanitiserDisabled(),
         "Expected state [FALSE] of base connection configuration failed test.");
-    TestUtil.createTable(conn, "allmixedup",
-        "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
-    Statement data = conn.createStatement();
-    data.execute(TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
-    data.close();
   }
 
-  protected void tearDown() throws Exception {
-    TestUtil.dropTable(conn, "allmixedup");
+  @AfterEach
+  void tearDown() throws Exception {
     TestUtil.closeDB(conn);
   }
 

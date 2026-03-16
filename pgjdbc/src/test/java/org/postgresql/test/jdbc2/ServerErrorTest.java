@@ -15,8 +15,11 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -25,25 +28,30 @@ import java.sql.Statement;
  */
 public class ServerErrorTest extends BaseTest4 {
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE DOMAIN testdom AS int4 CHECK (value < 10)");
+      TestUtil.createTable(con, "testerr", "id int not null, val testdom not null");
+      stmt.execute("ALTER TABLE testerr ADD CONSTRAINT testerr_pk PRIMARY KEY (id)");
+      stmt.close();
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testerr");
+      TestUtil.dropDomain(con, "testdom");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     assumeMinimumServerVersion(ServerVersion.v9_3);
-    Statement stmt = con.createStatement();
-
-    stmt.execute("CREATE DOMAIN testdom AS int4 CHECK (value < 10)");
-    TestUtil.createTable(con, "testerr", "id int not null, val testdom not null");
-    stmt.execute("ALTER TABLE testerr ADD CONSTRAINT testerr_pk PRIMARY KEY (id)");
-    stmt.close();
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testerr");
-    Statement stmt = con.createStatement();
-    stmt.execute("DROP DOMAIN IF EXISTS testdom");
-    stmt.close();
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE testerr");
   }
 
   @Test

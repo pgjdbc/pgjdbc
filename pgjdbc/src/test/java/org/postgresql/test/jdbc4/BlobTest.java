@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +35,23 @@ class BlobTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testblob", "id name,lo oid");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testblob");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "testblob", "id name,lo oid");
     conn.setAutoCommit(false);
   }
 
@@ -44,17 +59,11 @@ class BlobTest {
   void tearDown() throws Exception {
     conn.setAutoCommit(true);
     try {
-      Statement stmt = conn.createStatement();
-      try {
+      try (Statement stmt = conn.createStatement()) {
         stmt.execute("SELECT lo_unlink(lo) FROM testblob");
-      } finally {
-        try {
-          stmt.close();
-        } catch (Exception e) {
-        }
       }
+      TestUtil.execute(conn, "TRUNCATE testblob");
     } finally {
-      TestUtil.dropTable(conn, "testblob");
       TestUtil.closeDB(conn);
     }
   }

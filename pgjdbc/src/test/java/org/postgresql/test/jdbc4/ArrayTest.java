@@ -26,6 +26,8 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PGtokenizer;
 
 import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -60,31 +62,41 @@ public class ArrayTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "arrtest",
+          "intarr int[], decarr decimal(2,1)[], strarr text[]"
+          + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
+          + ", floatarr float8[]"
+          + ", intarr2 int4[][]");
+      TestUtil.createTable(conn, "arrcompprnttest", "id serial, name character(10)");
+      TestUtil.createTable(conn, "arrcompchldttest",
+          "id serial, name character(10), description character varying, parent integer");
+      TestUtil.createTable(conn, "\"CorrectCasing\"", "id serial");
+      TestUtil.createTable(conn, "\"Evil.Table\"", "id serial");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "arrtest");
+      TestUtil.dropTable(conn, "arrcompprnttest");
+      TestUtil.dropTable(conn, "arrcompchldttest");
+      TestUtil.dropTable(conn, "\"CorrectCasing\"");
+      TestUtil.dropTable(conn, "\"Evil.Table\"");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
     conn = con;
 
-    TestUtil.createTable(conn, "arrtest",
-        "intarr int[], decarr decimal(2,1)[], strarr text[]"
-        + (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3) ? ", uuidarr uuid[]" : "")
-        + ", floatarr float8[]"
-        + ", intarr2 int4[][]");
-    TestUtil.createTable(conn, "arrcompprnttest", "id serial, name character(10)");
-    TestUtil.createTable(conn, "arrcompchldttest",
-        "id serial, name character(10), description character varying, parent integer");
-    TestUtil.createTable(conn, "\"CorrectCasing\"", "id serial");
-    TestUtil.createTable(conn, "\"Evil.Table\"", "id serial");
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(conn, "arrtest");
-    TestUtil.dropTable(conn, "arrcompprnttest");
-    TestUtil.dropTable(conn, "arrcompchldttest");
-    TestUtil.dropTable(conn, "\"CorrectCasing\"");
-
-    super.tearDown();
+    TestUtil.execute(conn, "TRUNCATE arrtest CASCADE");
+    TestUtil.execute(conn, "TRUNCATE arrcompprnttest RESTART IDENTITY CASCADE");
+    TestUtil.execute(conn, "TRUNCATE arrcompchldttest RESTART IDENTITY CASCADE");
   }
 
   @Test
@@ -618,7 +630,6 @@ public class ArrayTest extends BaseTest4 {
         //the string format may vary based on how data stored
         MatcherAssert.assertThat(actual, RegexMatcher.matchesPattern("\\{3\\.5,-4\\.5,NULL,77(.0)?\\}"));
       }
-
     } finally {
       TestUtil.closeQuietly(rs);
       TestUtil.closeQuietly(stmt);
