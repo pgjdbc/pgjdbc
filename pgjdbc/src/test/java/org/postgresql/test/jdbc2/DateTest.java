@@ -320,6 +320,7 @@ public class DateTest extends BaseTest4 {
     st.close();
   }
 
+  @SuppressWarnings("deprecation")
   private static java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }

@@ -1203,6 +1203,7 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testSetTinyIntFloat() throws SQLException {
     PreparedStatement pstmt = con
         .prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");

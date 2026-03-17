@@ -6,12 +6,10 @@
 package org.postgresql.test.osgi;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import org.postgresql.jdbc2.optional.ConnectionPool;
-import org.postgresql.jdbc2.optional.PoolingDataSource;
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.osgi.PGDataSourceFactory;
 import org.postgresql.xa.PGXADataSource;
 
@@ -48,19 +46,22 @@ class PGDataSourceFactoryTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void createDataSourceSimple() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     properties.put("currentSchema", "schema");
     DataSource dataSource = dataSourceFactory.createDataSource(properties);
     assertNotNull(dataSource);
-    assertTrue(dataSource instanceof SimpleDataSource);
-    SimpleDataSource simpleDataSource = (SimpleDataSource) dataSource;
+    assertInstanceOf(org.postgresql.jdbc2.optional.SimpleDataSource.class, dataSource);
+    org.postgresql.jdbc2.optional.SimpleDataSource simpleDataSource =
+        (org.postgresql.jdbc2.optional.SimpleDataSource) dataSource;
     assertEquals("db", simpleDataSource.getDatabaseName());
     assertEquals("schema", simpleDataSource.getCurrentSchema());
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void createDataSourcePooling() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
@@ -68,8 +69,9 @@ class PGDataSourceFactoryTest {
     properties.put(DataSourceFactory.JDBC_MAX_POOL_SIZE, "10");
     DataSource dataSource = dataSourceFactory.createDataSource(properties);
     assertNotNull(dataSource);
-    assertTrue(dataSource instanceof PoolingDataSource);
-    PoolingDataSource poolingDataSource = (PoolingDataSource) dataSource;
+    assertInstanceOf(org.postgresql.jdbc2.optional.PoolingDataSource.class, dataSource);
+    org.postgresql.jdbc2.optional.PoolingDataSource poolingDataSource =
+        (org.postgresql.jdbc2.optional.PoolingDataSource) dataSource;
     assertEquals("db", poolingDataSource.getDatabaseName());
     assertEquals(5, poolingDataSource.getInitialConnections());
     assertEquals(10, poolingDataSource.getMaxConnections());
@@ -82,14 +84,16 @@ class PGDataSourceFactoryTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void createConnectionPoolDataSourceConfigured() throws Exception {
     Properties properties = new Properties();
     properties.put(DataSourceFactory.JDBC_DATABASE_NAME, "db");
     ConnectionPoolDataSource dataSource =
         dataSourceFactory.createConnectionPoolDataSource(properties);
     assertNotNull(dataSource);
-    assertTrue(dataSource instanceof ConnectionPool);
-    ConnectionPool connectionPoolDataSource = (ConnectionPool) dataSource;
+    assertInstanceOf(org.postgresql.jdbc2.optional.ConnectionPool.class, dataSource);
+    org.postgresql.jdbc2.optional.ConnectionPool connectionPoolDataSource =
+        (org.postgresql.jdbc2.optional.ConnectionPool) dataSource;
     assertEquals("db", connectionPoolDataSource.getDatabaseName());
   }
 

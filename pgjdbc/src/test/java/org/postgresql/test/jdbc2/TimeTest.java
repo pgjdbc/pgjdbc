@@ -57,6 +57,7 @@ class TimeTest {
    * Test use of calendar
    */
   @Test
+  @SuppressWarnings("deprecation")
   void getTimeZone() throws Exception {
     final Time midnight = new Time(0, 0, 0);
     Statement stmt = con.createStatement();
@@ -197,6 +198,7 @@ class TimeTest {
   /*
    * Helper for the TimeTests. It tests what should be in the db
    */
+  @SuppressWarnings("deprecation")
   private void timeTest() throws SQLException {
     Statement st = con.createStatement();
     ResultSet rs;

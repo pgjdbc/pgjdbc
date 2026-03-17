@@ -94,6 +94,7 @@ public abstract class BaseDataSourceTest extends BaseTest4 {
    */
   protected abstract void initializeDataSource() throws PSQLException;
 
+  @SuppressWarnings("deprecation")
   public static void setupDataSource(BaseDataSource bds) throws PSQLException {
     bds.setServerName(TestUtil.getServer());
     bds.setPortNumber(TestUtil.getPort());

@@ -5,12 +5,12 @@
 
 package org.postgresql.test.jdbc2.optional;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.core.BaseConnection;
 import org.postgresql.ds.common.BaseDataSource;
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -49,7 +49,7 @@ public class CaseOptimiserDataSourceTest {
   @BeforeEach
   void setUp() throws SQLException {
     try (Connection conn = getDataSourceConnection()) {
-      assertTrue(conn instanceof BaseConnection);
+      assertInstanceOf(BaseConnection.class, conn);
       BaseConnection bc = (BaseConnection) conn;
       assertTrue(bc.isColumnSanitiserDisabled(),
           "Expected state [TRUE] of base connection configuration failed test.");
@@ -91,14 +91,16 @@ public class CaseOptimiserDataSourceTest {
     return bds.getConnection();
   }
 
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new SimpleDataSource();
+      bds = new org.postgresql.jdbc2.optional.SimpleDataSource();
       setupDataSource(bds);
       bds.setDisableColumnSanitiser(true);
     }
   }
 
+  @SuppressWarnings("deprecation")
   public static void setupDataSource(BaseDataSource bds) throws PSQLException {
     bds.setServerName(TestUtil.getServer());
     bds.setPortNumber(TestUtil.getPort());

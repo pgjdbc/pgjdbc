@@ -199,6 +199,7 @@ public class TimestampTest extends BaseTest4 {
    * value (don't use setTimestamp) then see that we get back the same value from getTimestamp
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testGetTimestampWTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
 
@@ -315,6 +316,7 @@ public class TimestampTest extends BaseTest4 {
    * getTimestamp
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testGetTimestampWOTZ() throws SQLException {
     assumeTrue(TestUtil.haveIntegerDateTimes(con));
     //Refer to #896

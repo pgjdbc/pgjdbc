@@ -8,7 +8,6 @@ package org.postgresql.test.jdbc2.optional;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.ds.PGSimpleDataSource;
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.Test;
@@ -24,9 +23,10 @@ public class SimpleDataSourceTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource.
    */
   @Override
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new SimpleDataSource();
+      bds = new org.postgresql.jdbc2.optional.SimpleDataSource();
       setupDataSource(bds);
     }
   }

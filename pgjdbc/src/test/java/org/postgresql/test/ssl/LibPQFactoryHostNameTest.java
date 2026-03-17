@@ -8,7 +8,6 @@ package org.postgresql.test.ssl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.ssl.PGjdbcHostnameVerifier;
-import org.postgresql.ssl.jdbc4.LibPQFactory;
 
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -41,8 +40,9 @@ public class LibPQFactoryHostNameTest {
 
   @MethodSource("data")
   @ParameterizedTest
+  @SuppressWarnings("deprecation")
   void checkPattern(String hostname, String pattern, boolean expected) throws Exception {
-    assertEquals(expected, LibPQFactory.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
+    assertEquals(expected, org.postgresql.ssl.jdbc4.LibPQFactory.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
 
     assertEquals(expected, PGjdbcHostnameVerifier.INSTANCE.verifyHostName(hostname, pattern), hostname + ", pattern: " + pattern);
   }
