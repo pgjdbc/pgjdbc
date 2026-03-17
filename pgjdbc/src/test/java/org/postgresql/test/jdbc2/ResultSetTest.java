@@ -1427,6 +1427,7 @@ public class ResultSetTest extends BaseTest4 {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public Integer call() throws SQLException {
       int year = expectedYear;
       try (Statement statement = connection.createStatement()) {

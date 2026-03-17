@@ -49,6 +49,7 @@ class BaseDataSourceFailoverUrlsTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void nullPorts() {
     BaseDataSource bds = newDS();
     bds.setDatabaseName("database");
@@ -59,6 +60,7 @@ class BaseDataSourceFailoverUrlsTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void emptyPorts() {
     BaseDataSource bds = newDS();
     bds.setDatabaseName("database");

@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.core.ServerVersion;
 import org.postgresql.ds.PGConnectionPoolDataSource;
-import org.postgresql.jdbc2.optional.ConnectionPool;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -49,9 +48,10 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
    * Creates and configures a ConnectionPool.
    */
   @Override
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new ConnectionPool();
+      bds = new org.postgresql.jdbc2.optional.ConnectionPool();
       setupDataSource(bds);
     }
   }
@@ -491,8 +491,9 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testSerializable() throws IOException, ClassNotFoundException {
-    ConnectionPool pool = new ConnectionPool();
+    org.postgresql.jdbc2.optional.ConnectionPool pool = new org.postgresql.jdbc2.optional.ConnectionPool();
     pool.setDefaultAutoCommit(false);
     pool.setServerName("db.myhost.com");
     pool.setDatabaseName("mydb");
@@ -506,7 +507,7 @@ public class ConnectionPoolTest extends BaseDataSourceTest {
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     ObjectInputStream ois = new ObjectInputStream(bais);
-    ConnectionPool pool2 = (ConnectionPool) ois.readObject();
+    org.postgresql.jdbc2.optional.ConnectionPool pool2 = (org.postgresql.jdbc2.optional.ConnectionPool) ois.readObject();
 
     assertEquals(pool.isDefaultAutoCommit(), pool2.isDefaultAutoCommit());
     assertEquals(pool.getServerName(), pool2.getServerName());

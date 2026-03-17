@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.ds.common.BaseDataSource;
-import org.postgresql.jdbc2.optional.PoolingDataSource;
 import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.Test;
@@ -29,9 +28,10 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
   private static final String DS_NAME = "JDBC 2 SE Test DataSource";
 
   @Override
+  @SuppressWarnings("deprecation")
   public void tearDown() throws SQLException {
-    if (bds instanceof PoolingDataSource) {
-      ((PoolingDataSource) bds).close();
+    if (bds instanceof org.postgresql.jdbc2.optional.PoolingDataSource) {
+      ((org.postgresql.jdbc2.optional.PoolingDataSource) bds).close();
     }
     super.tearDown();
   }
@@ -40,13 +40,16 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource.
    */
   @Override
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new PoolingDataSource();
+      org.postgresql.jdbc2.optional.PoolingDataSource ds =
+          new org.postgresql.jdbc2.optional.PoolingDataSource();
+      bds = ds;
       setupDataSource(bds);
-      ((PoolingDataSource) bds).setDataSourceName(DS_NAME);
-      ((PoolingDataSource) bds).setInitialConnections(2);
-      ((PoolingDataSource) bds).setMaxConnections(10);
+      ds.setDataSourceName(DS_NAME);
+      ds.setInitialConnections(2);
+      ds.setMaxConnections(10);
     }
   }
 
@@ -76,9 +79,11 @@ public class PoolingDataSourceTest extends BaseDataSourceTest {
    * Check that 2 DS instances can't use the same name.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testCantReuseName() throws PSQLException {
     initializeDataSource();
-    PoolingDataSource pds = new PoolingDataSource();
+    org.postgresql.jdbc2.optional.PoolingDataSource pds =
+        new org.postgresql.jdbc2.optional.PoolingDataSource();
     try {
       pds.setDataSourceName(DS_NAME);
       fail("Should have denied 2nd DataSource with same name");

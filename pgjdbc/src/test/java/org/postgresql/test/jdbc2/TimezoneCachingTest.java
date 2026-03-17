@@ -39,6 +39,7 @@ public class TimezoneCachingTest extends BaseTest4 {
    * Test to check the internal cached timezone of a prepared statement is set/cleared as expected.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testPreparedStatementCachedTimezoneInstance() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 0, 31, 0, 0, 0, 0);
     Date date = new Date(2016 - 1900, 0, 31);
@@ -102,6 +103,7 @@ public class TimezoneCachingTest extends BaseTest4 {
    * Test to check the internal cached timezone of a prepared statement is used as expected.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testPreparedStatementCachedTimezoneUsage() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 0, 31, 0, 0, 0, 0);
     Statement stmt = null;
@@ -204,6 +206,7 @@ public class TimezoneCachingTest extends BaseTest4 {
    * Test to check the internal cached timezone of a result set is set/cleared as expected.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testResultSetCachedTimezoneInstance() throws SQLException {
     Timestamp ts = new Timestamp(2016 - 1900, 0, 31, 0, 0, 0, 0);
     TimeZone tz = TimeZone.getDefault();
@@ -251,6 +254,7 @@ public class TimezoneCachingTest extends BaseTest4 {
    * Test to check the internal cached timezone of a result set is used as expected.
    */
   @Test
+  @SuppressWarnings("deprecation")
   public void testResultSetCachedTimezoneUsage() throws SQLException {
     Statement stmt = null;
     PreparedStatement pstmt = null;
@@ -339,6 +343,7 @@ public class TimezoneCachingTest extends BaseTest4 {
 
   /* Set up the fixture for this test case: a connection to a database with
   a table for this test. */
+  @SuppressWarnings("deprecation")
   public void setUp() throws Exception {
     super.setUp();
     TimestampUtils timestampUtils = ((BaseConnection) con).getTimestampUtils();
