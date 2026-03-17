@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.test.annotations.DisableLogger;
 import org.postgresql.util.PGPropertyMaxResultBufferParser;
 import org.postgresql.util.PSQLException;
 
@@ -26,9 +27,6 @@ public class PGPropertyMaxResultBufferParserTest {
       {"100", 100L},
       {"10K", 10L * 1000},
       {"25M", 25L * 1000 * 1000},
-      //next two should be too big
-      {"35G", (long) (0.90 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
-      {"1T", (long) (0.90 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
       //percent test
       {"5p", (long) (0.05 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
       {"10pct", (long) (0.10 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
@@ -41,9 +39,28 @@ public class PGPropertyMaxResultBufferParserTest {
     return Arrays.asList(data);
   }
 
+  public static Collection<Object[]> largeData() {
+    Object[][] data = new Object[][]{
+      //next two should be too big
+      {"35G", (long) (0.90 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
+      {"1T", (long) (0.90 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax())},
+    };
+    return Arrays.asList(data);
+  }
+
   @MethodSource("data")
   @ParameterizedTest
   void getMaxResultBufferValue(String valueToParse, long expectedResult) {
+    assertDoesNotThrow(() -> {
+      long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
+      assertEquals(expectedResult, result);
+    });
+  }
+
+  @MethodSource("largeData")
+  @ParameterizedTest
+  @DisableLogger(PGPropertyMaxResultBufferParser.class)
+  void getMaxResultBufferValueLargeBuffers(String valueToParse, long expectedResult) {
     assertDoesNotThrow(() -> {
       long result = PGPropertyMaxResultBufferParser.parseProperty(valueToParse);
       assertEquals(expectedResult, result);

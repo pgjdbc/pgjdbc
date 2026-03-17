@@ -8,8 +8,10 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisableLogger;
 
 import org.junit.jupiter.api.Test;
 
@@ -45,6 +47,7 @@ class LoginTimeoutTest {
   }
 
   @Test
+  @DisableLogger(Driver.class)
   void badTimeout() throws Exception {
     testWithLoginTimeout("zzzz");
   }

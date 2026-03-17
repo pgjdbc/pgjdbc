@@ -69,22 +69,22 @@ public class PEMKeyManagerTest {
         if (Files.getFileAttributeView(keyFilePath, java.nio.file.attribute.PosixFileAttributeView.class) != null) {
           // Save original POSIX permissions
           originalPosixPermissions = Files.getPosixFilePermissions(keyFilePath);
-          LOGGER.info("Saved original POSIX permissions for " + keyFilePathStr);
+          LOGGER.fine("Saved original POSIX permissions for " + keyFilePathStr);
 
           // Set POSIX permissions to 400 (read-only for owner)
           Set<PosixFilePermission> perms = new HashSet<>();
           perms.add(PosixFilePermission.OWNER_READ);
           Files.setPosixFilePermissions(keyFilePath, perms);
-          LOGGER.info("Set POSIX permissions to 400 for " + keyFilePathStr);
+          LOGGER.fine("Set POSIX permissions to 400 for " + keyFilePathStr);
         } else {
           // Windows: Save original ACL and set owner-only read permissions
           AclFileAttributeView aclView = Files.getFileAttributeView(keyFilePath, AclFileAttributeView.class);
           if (aclView != null) {
             originalAclPermissions = aclView.getAcl();
-            LOGGER.info("Saved original ACL permissions for " + keyFilePathStr);
+            LOGGER.fine("Saved original ACL permissions for " + keyFilePathStr);
           }
           setWindowsOwnerOnlyPermissions(keyFilePath);
-          LOGGER.info("Set Windows ACL permissions to owner read-only for " + keyFilePathStr);
+          LOGGER.fine("Set Windows ACL permissions to owner read-only for " + keyFilePathStr);
         }
       }
     } catch (Exception e) {
@@ -103,7 +103,7 @@ public class PEMKeyManagerTest {
         // Restore POSIX permissions if they were saved
         if (originalPosixPermissions != null) {
           Files.setPosixFilePermissions(keyFilePath, originalPosixPermissions);
-          LOGGER.info("Restored original POSIX permissions for " + keyFilePath);
+          LOGGER.fine("Restored original POSIX permissions for " + keyFilePath);
           originalPosixPermissions = null;
         }
 
@@ -112,7 +112,7 @@ public class PEMKeyManagerTest {
           AclFileAttributeView aclView = Files.getFileAttributeView(keyFilePath, AclFileAttributeView.class);
           if (aclView != null) {
             aclView.setAcl(originalAclPermissions);
-            LOGGER.info("Restored original ACL permissions for " + keyFilePath);
+            LOGGER.fine("Restored original ACL permissions for " + keyFilePath);
           }
           originalAclPermissions = null;
         }

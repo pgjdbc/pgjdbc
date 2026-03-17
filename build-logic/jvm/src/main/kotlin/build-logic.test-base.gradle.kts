@@ -25,6 +25,9 @@ tasks.configureEach<Test> {
     exclude("**/*Suite*")
     jvmArgs("-Xmx1536m")
     jvmArgs("-Djdk.net.URLClassPath.disableClassPathURLCheck=true")
+    if (buildParameters.testJdkVersion >= 21) {
+        jvmArgs("-XX:+EnableDynamicAgentLoading")
+    }
     props.string("testExtraJvmArgs").trim().takeIf { it.isNotBlank() }?.let {
         jvmArgs(it.split(" ::: "))
     }

@@ -7,6 +7,7 @@ package org.postgresql.test.jdbc3;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -1120,7 +1121,8 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
         proc.execute();
         try (ResultSet results = (ResultSet) proc.getObject(2)) {
           while (results.next()) {
-            System.out.println("  " + i + " " + results.getTimestamp("now").toLocalDateTime());
+            // Getter should succeed without failure
+            assertNotNull(results.getTimestamp("now").toLocalDateTime());
           }
         }
       }

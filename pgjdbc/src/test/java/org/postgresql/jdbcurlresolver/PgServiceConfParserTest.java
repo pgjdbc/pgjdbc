@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGEnvironment;
+import org.postgresql.test.annotations.DisableLogger;
 import org.postgresql.util.StubEnvironmentAndProperties;
 
 import org.junit.jupiter.api.Test;
@@ -209,6 +210,7 @@ class PgServiceConfParserTest {
   // "PGSYSCONFDIR"                 : exist
   // <service>                      : exist
   @Test
+  @DisableLogger(PgServiceConfParser.class)
   void pgService43() throws Exception {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
@@ -281,6 +283,7 @@ class PgServiceConfParserTest {
   // "PGSYSCONFDIR"                 : exist
   // <service>                      : exist
   @Test
+  @DisableLogger(PgServiceConfParser.class)
   void pgService53() throws Exception {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
@@ -299,6 +302,7 @@ class PgServiceConfParserTest {
 
   // resource content read tests
   @Test
+  @DisableLogger(PgServiceConfParser.class)
   void pgService61() throws Exception {
     URL urlPath = getClass().getResource("/pg_service");
     assertNotNull(urlPath);
