@@ -1024,21 +1024,18 @@ class StatementTest {
     final Random rnd = new Random();
     for (int i = 0; i < 1000; i++) {
       final Statement st = con.createStatement();
-      executor.submit(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          int s = rnd.nextInt(10);
-          if (s > 8) {
-            try {
-              Thread.sleep(s - 9);
-            } catch (InterruptedException ex) {
-              // don't execute the close here as this thread was cancelled below in shutdownNow
-              return null;
-            }
+      executor.submit((Callable<Void>) () -> {
+        int s = rnd.nextInt(10);
+        if (s > 8) {
+          try {
+            Thread.sleep(0);
+          } catch (InterruptedException ex) {
+            // don't execute the close here as this thread was cancelled below in shutdownNow
+            return null;
           }
-          st.close();
-          return null;
         }
+        st.close();
+        return null;
       });
       ResultSet rs = null;
       String sqlState = "0";
@@ -1063,7 +1060,6 @@ class StatementTest {
       val = (val == null ? 0 : val) + 1;
       cnt.put(sqlState, val);
     }
-    System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
     executor.shutdown();
   }
 

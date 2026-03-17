@@ -157,13 +157,13 @@ public class Driver implements java.sql.Driver {
     // neither case can throw SecurityException.
     ClassLoader cl = getClass().getClassLoader();
     if (cl == null) {
-      LOGGER.log(Level.FINE, "Can't find our classloader for the Driver; "
+      LOGGER.log(Level.FINE, "Can''t find our classloader for the Driver; "
           + "attempt to use the system class loader");
       cl = ClassLoader.getSystemClassLoader();
     }
 
     if (cl == null) {
-      LOGGER.log(Level.WARNING, "Can't find a classloader for the Driver; not loading driver "
+      LOGGER.log(Level.WARNING, "Can''t find a classloader for the Driver; not loading driver "
           + "configuration from org/postgresql/driverconfig.properties");
       return merged; // Give up on finding defaults.
     }
@@ -721,7 +721,7 @@ public class Driver implements java.sql.Driver {
       try {
         return (long) (Float.parseFloat(timeout) * 1000);
       } catch (NumberFormatException e) {
-        LOGGER.log(Level.WARNING, "Couldn't parse loginTimeout value: {0}", timeout);
+        LOGGER.log(Level.WARNING, "Couldn''t parse loginTimeout value: {0}", timeout);
       }
     }
     return (long) DriverManager.getLoginTimeout() * 1000;

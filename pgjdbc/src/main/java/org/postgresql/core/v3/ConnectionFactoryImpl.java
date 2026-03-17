@@ -1088,7 +1088,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return;
     }
     if (PGProperty.REPLICATION.getOrDefault(info) != null) {
-      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow 'set ...' commands,"
+      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow ''set ...'' commands,"
           + " so skipping the following initial queries: ({0})."
           + " Consider configuring assumeMinServerVersion property so the driver"
           + " propagates the needed parameters in the startup packet", sb);

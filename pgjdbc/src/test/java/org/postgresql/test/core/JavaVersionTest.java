@@ -17,7 +17,6 @@ class JavaVersionTest {
     String currentVersion = System.getProperty("java.version");
     String msg = "java.version = " + currentVersion + ", JavaVersion.getRuntimeVersion() = "
         + JavaVersion.getRuntimeVersion();
-    System.out.println(msg);
     if (currentVersion.startsWith("1.8")) {
       assertEquals(JavaVersion.v1_8, JavaVersion.getRuntimeVersion(), msg);
     }

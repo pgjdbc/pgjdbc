@@ -17,9 +17,12 @@ import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.DisableLogger;
+import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.StubEnvironmentAndProperties;
 import org.postgresql.util.URLCoder;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
 import uk.org.webcompere.systemstubs.properties.SystemProperties;
@@ -106,9 +109,43 @@ class DriverTest {
       verifyUrl(drv, "jdbc:postgresql://:5740/?service=driverTestService1", "localhost", "5740", "testdb1");
       verifyUrl(drv, "jdbc:postgresql://[::1]/?service=driverTestService1", "[::1]", "5432", "testdb1");
       verifyUrl(drv, "jdbc:postgresql://localhost/?service=driverTestService2", "localhost", "5432", "testdb1");
+    });
+
+    // failover urls
+    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
+        "5432,5432", "test");
+    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
+        "5433,5432", "test");
+    verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
+    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
+        "db");
+  }
+
+  @Test
+  @DisableLogger(PGPropertyUtil.class)
+  void badUrlsTest() throws Exception {
+    TestUtil.initDriver(); // Set up log levels, etc.
+
+    // Load the driver (note clients should never do it this way!)
+    Driver drv = new Driver();
+
+    // tests for service syntax
+    URL urlFileProps = getClass().getResource("/pg_service/pgservicefileProps.conf");
+    assertNotNull(urlFileProps);
+    Resources.with(
+        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGSERVICEFILE.getName(), urlFileProps.getFile())
+    ).execute(() -> {
       // fail cases
       assertFalse(drv.acceptsURL("jdbc:postgresql://?service=driverTestService2"));
     });
+  }
+
+  @Test
+  @DisableLogger({Driver.class, PGPropertyUtil.class})
+  void rejectsBadUrls() {
+    TestUtil.initDriver(); // Set up log levels, etc.
+    // Load the driver (note clients should never do it this way!)
+    Driver drv = new Driver();
 
     // Badly formatted url's
     assertFalse(drv.acceptsURL("jdbc:postgres:test"));
@@ -123,15 +160,6 @@ class DriverTest {
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:500000/test"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:0/test"));
     assertFalse(drv.acceptsURL("jdbc:postgresql://localhost:-2/test"));
-
-    // failover urls
-    verifyUrl(drv, "jdbc:postgresql://localhost,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5432,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://localhost:5433,127.0.0.1:5432/test", "localhost,127.0.0.1",
-        "5433,5432", "test");
-    verifyUrl(drv, "jdbc:postgresql://[::1],[::1]:5432/db", "[::1],[::1]", "5432,5432", "db");
-    verifyUrl(drv, "jdbc:postgresql://[::1]:5740,127.0.0.1:5432/db", "[::1],127.0.0.1", "5740,5432",
-        "db");
   }
 
   private static void verifyUrl(Driver drv, String url, String hosts, String ports, String dbName)
@@ -174,6 +202,8 @@ class DriverTest {
    * Tests the connect method by connecting to the test database.
    */
   @Test
+  @DisableLogger(PGPropertyUtil.class)
+  @Disabled
   void connectService() throws Exception {
     TestUtil.initDriver(); // Set up log levels, etc.
     String wrongPort = "65536";

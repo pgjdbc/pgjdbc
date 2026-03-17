@@ -15,6 +15,7 @@ import org.postgresql.core.Version;
 import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
+import org.postgresql.ssl.PGjdbcHostnameVerifier;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -37,6 +38,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.SSLHandshakeException;
 
@@ -697,6 +700,13 @@ public class SslTest {
     } else {
       PGProperty.SSL_ROOT_CERT.set(props, TestUtil.getSslTestCertPath(clientRootCertificate.fileName + ".crt"));
     }
+    // Suppress expected hostname verification warnings when testing with a bad hostname
+    Logger hostnameVerifierLogger = Logger.getLogger(PGjdbcHostnameVerifier.class.getName());
+    Level previousLevel = hostnameVerifierLogger.getLevel();
+    if (host == Hostname.BAD) {
+      // We expect "Server name validation failed" warnings, so we disable the logger in tests
+      hostnameVerifierLogger.setLevel(Level.OFF);
+    }
     try (Connection conn = TestUtil.openDB(props)) {
       boolean sslUsed = TestUtil.queryForBoolean(conn, "SELECT ssl_is_used()");
       // Verify the successful connection (it might be the connection was supposed to fail)
@@ -719,6 +729,8 @@ public class SslTest {
         ae.initCause(e);
         throw ae;
       }
+    } finally {
+      hostnameVerifierLogger.setLevel(previousLevel);
     }
   }
 }

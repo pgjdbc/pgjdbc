@@ -7,6 +7,9 @@
     </encoder>
   </appender>
 
+  <!-- Suppress "settings-security.xml is not accessible" warning from pax-exam's maven resolver -->
+  <logger name="org.ops4j.pax.url.mvn.internal.config.MavenConfigurationImpl" level="ERROR" />
+
   <!-- Adjust to info or debug if you need to debug pax-exam -->
   <root level="warn">
     <appender-ref ref="STDOUT" />
