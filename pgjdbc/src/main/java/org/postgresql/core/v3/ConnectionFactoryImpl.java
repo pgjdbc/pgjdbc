@@ -157,6 +157,31 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   }
 
   /**
+   * Attempts an SSL connection after a plaintext connection attempt failed.
+   * Used when sslMode is ALLOW: plaintext is tried first, but if the server rejects it
+   * (e.g. the database requires SSL), the driver upgrades to SSL.
+   */
+  private PGStream tryConnectWithSsl(Properties info, SocketFactory socketFactory,
+      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
+      Exception originalException)
+      throws SQLException, IOException {
+    try {
+      PGStream stream =
+          tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, connectTimeoutMs, startNanos);
+      LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
+          hostSpec);
+      return stream;
+    } catch (SQLException | IOException e) {
+      log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", e);
+      originalException.addSuppressed(e);
+      if (originalException instanceof SQLException) {
+        throw (SQLException) originalException;
+      }
+      throw (IOException) originalException;
+    }
+  }
+
+  /**
    * Computes the remaining connect timeout in milliseconds.
    * Uses {@link System#nanoTime()} for monotonic elapsed-time measurement.
    *
@@ -344,32 +369,20 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            // Try using SSL
-            Throwable ex = null;
-            try {
-              newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, connectTimeoutMs, startNanos);
-              LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
-                  hostSpec);
-            } catch (SQLException ee) {
-              ex = ee;
-            } catch (IOException ee) {
-              ex = ee; // Can't use multi-catch in Java 6 :(
-            }
-            if (ex != null) {
-              log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", ex);
-              // non-SSL failed as well, so re-throw original exception
-              // Add SSL exception as suppressed
-              e.addSuppressed(ex);
-              throw e;
-            }
-
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }
-        } catch (SocketTimeoutException e) {
-          if (sslMode == SslMode.PREFER) {
+        } catch (IOException e) {
+          if (sslMode == SslMode.PREFER && e instanceof SocketTimeoutException) {
+            // SSL negotiation timed out (server didn't respond to SSLRequest).
+            // Since sslMode is PREFER, fall back to a non-encrypted connection.
             newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+          } else if (sslMode == SslMode.ALLOW) {
+            // Plaintext connection failed (e.g. server reset the connection
+            // instead of sending a FATAL auth error). Since sslMode is ALLOW,
+            // try upgrading to SSL.
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }
