@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -89,7 +90,7 @@ class LogicalReplicationStatusTest {
     LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
     stream.forceUpdateStatus();
 
-    LogSequenceNumber sentByServer = getSentLocationOnView();
+    LogSequenceNumber sentByServer = getLSNFromView(sentColumnName(), lastReceivedLSN);
 
     assertThat("When changes absent on server last receive by stream LSN "
             + "should be equal to last sent by server LSN",
@@ -153,7 +154,7 @@ class LogicalReplicationStatusTest {
     assertThat(
         "Replication stream by execute forceUpdateStatus should send to view actual received position "
             + "that allow monitoring lag",
-        lastReceivedLSN, equalTo(getWriteLocationOnView())
+        lastReceivedLSN, equalTo(getLSNFromView(writeColumnName(), lastReceivedLSN))
     );
   }
 
@@ -175,10 +176,11 @@ class LogicalReplicationStatusTest {
             .start();
 
     receiveMessageWithoutBlock(stream, 2);
+    LogSequenceNumber lastReceivedLSN = stream.getLastReceiveLSN();
     stream.forceUpdateStatus();
 
-    LogSequenceNumber writeLocation = getWriteLocationOnView();
-    LogSequenceNumber sentLocation = getSentLocationOnView();
+    LogSequenceNumber writeLocation = getLSNFromView(writeColumnName(), lastReceivedLSN);
+    LogSequenceNumber sentLocation = getLSNFromView(sentColumnName());
 
     assertThat(
         "In view pg_stat_replication column write_location define which position consume client "
@@ -215,7 +217,7 @@ class LogicalReplicationStatusTest {
 
     stream.forceUpdateStatus();
 
-    LogSequenceNumber result = getFlushLocationOnView();
+    LogSequenceNumber result = getLSNFromView(flushColumnName(), flushLSN);
 
     assertThat("Flush LSN use for define which wal can be recycled and it parameter should be "
             + "specify manually on replication stream, because only client "
@@ -283,7 +285,7 @@ class LogicalReplicationStatusTest {
     receiveMessageWithoutBlock(stream, 2);
     stream.forceUpdateStatus();
 
-    LogSequenceNumber result = getReplayLocationOnView();
+    LogSequenceNumber result = getLSNFromView(replayColumnName(), applyLSN);
 
     assertThat(
         "During receive message from replication stream all feedback parameter "
@@ -315,17 +317,19 @@ class LogicalReplicationStatusTest {
             .start();
 
     receiveMessageWithoutBlock(stream, 1);
-    stream.setAppliedLSN(stream.getLastReceiveLSN());
-    stream.setFlushedLSN(stream.getLastReceiveLSN());
+    LogSequenceNumber appliedLSN = stream.getLastReceiveLSN();
+    stream.setAppliedLSN(appliedLSN);
+    stream.setFlushedLSN(appliedLSN);
 
     receiveMessageWithoutBlock(stream, 1);
-    stream.setFlushedLSN(stream.getLastReceiveLSN());
+    LogSequenceNumber flushedLSN = stream.getLastReceiveLSN();
+    stream.setFlushedLSN(flushedLSN);
 
     receiveMessageWithoutBlock(stream, 1);
     stream.forceUpdateStatus();
 
-    LogSequenceNumber flushed = getFlushLocationOnView();
-    LogSequenceNumber applied = getReplayLocationOnView();
+    LogSequenceNumber flushed = getLSNFromView(flushColumnName(), flushedLSN);
+    LogSequenceNumber applied = getLSNFromView(replayColumnName(), appliedLSN);
 
     assertThat(
         "Last applied LSN and last flushed LSN it two not depends parameters and they can be not equal between",
@@ -397,7 +401,7 @@ class LogicalReplicationStatusTest {
     //get pending message and trigger update status by timeout
     stream.readPending();
 
-    LogSequenceNumber flushLSN = getFlushLocationOnView();
+    LogSequenceNumber flushLSN = getLSNFromView(flushColumnName(), waitLSN);
 
     assertThat("Status can be sent to backend by some time interval, "
             + "by default it parameter equals to 10 second, but in current test we change it on few millisecond "
@@ -465,24 +469,24 @@ class LogicalReplicationStatusTest {
     );
   }
 
-  private LogSequenceNumber getSentLocationOnView() throws Exception {
-    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-        ? "sent_lsn" : "sent_location"));
+  private String sentColumnName() throws Exception {
+    return ((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "sent_lsn" : "sent_location";
   }
 
-  private LogSequenceNumber getWriteLocationOnView() throws Exception {
-    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-        ? "write_lsn" : "write_location"));
+  private String writeColumnName() throws Exception {
+    return ((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "write_lsn" : "write_location";
   }
 
-  private LogSequenceNumber getFlushLocationOnView() throws Exception {
-    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-        ? "flush_lsn" : "flush_location"));
+  private String flushColumnName() throws Exception {
+    return ((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "flush_lsn" : "flush_location";
   }
 
-  private LogSequenceNumber getReplayLocationOnView() throws Exception {
-    return getLSNFromView((((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
-        ? "replay_lsn" : "replay_location"));
+  private String replayColumnName() throws Exception {
+    return ((BaseConnection) sqlConnection).haveMinimumServerVersion(ServerVersion.v10)
+        ? "replay_lsn" : "replay_location";
   }
 
   private static List<String> receiveMessageWithoutBlock(PGReplicationStream stream, int count)
@@ -512,32 +516,50 @@ class LogicalReplicationStatusTest {
     return new String(source, offset, length);
   }
 
-  private LogSequenceNumber getLSNFromView(String columnName) throws Exception {
-    int pid = ((PGConnection) replicationConnection).getBackendPID();
+  /**
+   * Reads an LSN column from pg_stat_replication, polling until a non-null value appears.
+   * If {@code expected} is non-null, keeps polling until the column matches that value
+   * (or a timeout expires).  This is necessary because {@code forceUpdateStatus()} only
+   * flushes data to the TCP socket; the server needs a short time to process the standby
+   * status update and reflect it in pg_stat_replication.
+   *
+   * @param expected if non-null, poll until the column equals this value; if null, return
+   *                 the first non-null value seen (or null on timeout)
+   */
+  private LogSequenceNumber getLSNFromView(String columnName,
+      LogSequenceNumber expected) throws Exception {
+    long start = System.nanoTime();
+    long timeout = TimeUnit.SECONDS.toNanos(2);
 
-    int repeatCount = 0;
-    while (true) {
+    LogSequenceNumber last = null;
+    while (System.nanoTime() - start < timeout) {
       try (
-          Statement st = sqlConnection.createStatement();
-          ResultSet rs = st.executeQuery("select * from pg_stat_replication where pid = " + pid)
+          PreparedStatement st = sqlConnection.prepareStatement(
+              "select r.* from pg_stat_replication r"
+                  + " join pg_replication_slots s on r.pid = s.active_pid"
+                  + " where s.slot_name = ?")
       ) {
-        String result = null;
-        if (rs.next()) {
-          result = rs.getString(columnName);
-        }
-
-        if (result == null || result.isEmpty()) {
-          //replication monitoring view updates with some delay, wait some time and try again
-          TimeUnit.MILLISECONDS.sleep(100L);
-          repeatCount++;
-          if (repeatCount == 10) {
-            return null;
+        st.setString(1, SLOT_NAME);
+        try (ResultSet rs = st.executeQuery()) {
+          String result = null;
+          if (rs.next()) {
+            result = rs.getString(columnName);
           }
-        } else {
-          return LogSequenceNumber.valueOf(result);
+          if (result != null && !result.isEmpty()) {
+            last = LogSequenceNumber.valueOf(result);
+            if (expected == null || last.equals(expected)) {
+              return last;
+            }
+          }
         }
       }
+      TimeUnit.MILLISECONDS.sleep(10L);
     }
+    return last;
+  }
+
+  private LogSequenceNumber getLSNFromView(String columnName) throws Exception {
+    return getLSNFromView(columnName, null);
   }
 
   private LogSequenceNumber getCurrentLSN() throws SQLException {
