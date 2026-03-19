@@ -718,9 +718,11 @@ class LogicalReplicationTest {
 
     List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
-    stream.setFlushedLSN(stream.getLastReceiveLSN());
-    stream.setAppliedLSN(stream.getLastReceiveLSN());
+    LogSequenceNumber feedbackLSN = stream.getLastReceiveLSN();
+    stream.setFlushedLSN(feedbackLSN);
+    stream.setAppliedLSN(feedbackLSN);
     stream.forceUpdateStatus();
+    waitForConfirmedFlushLSN(feedbackLSN);
 
     //emulate replication break
     replConnection.close();
@@ -798,10 +800,12 @@ class LogicalReplicationTest {
 
     List<String> consumedData = new ArrayList<>();
     consumedData.addAll(receiveMessageWithoutBlock(stream, 3));
-    stream.setFlushedLSN(stream.getLastReceiveLSN());
-    stream.setAppliedLSN(stream.getLastReceiveLSN());
+    LogSequenceNumber feedbackLSN = stream.getLastReceiveLSN();
+    stream.setFlushedLSN(feedbackLSN);
+    stream.setAppliedLSN(feedbackLSN);
 
     stream.forceUpdateStatus();
+    waitForConfirmedFlushLSN(feedbackLSN);
 
     //emulate replication break
     replConnection.close();
@@ -841,6 +845,37 @@ class LogicalReplicationTest {
             + "after restart consume changes via this slot should be started from last success lsn that "
             + "we send before via force status update, that why we wait consume both transaction without duplicates",
         result, equalTo(wait));
+  }
+
+  /**
+   * Polls pg_replication_slots until confirmed_flush_lsn reaches the expected value.
+   * forceUpdateStatus() only flushes data to the TCP socket; the server needs time
+   * to process the status update and advance the slot's confirmed_flush_lsn.
+   * Without this wait, closing the connection immediately after forceUpdateStatus()
+   * may discard the unprocessed status update, causing the slot to replay from an
+   * earlier position on restart.
+   */
+  private void waitForConfirmedFlushLSN(LogSequenceNumber expected)
+      throws SQLException, InterruptedException {
+    long start = System.nanoTime();
+    long timeout = TimeUnit.SECONDS.toNanos(2);
+    while (System.nanoTime() - start < timeout) {
+      try (
+          PreparedStatement st = sqlConnection.prepareStatement(
+              "select confirmed_flush_lsn from pg_replication_slots where slot_name = ?")
+      ) {
+        st.setString(1, SLOT_NAME);
+        try (ResultSet rs = st.executeQuery()) {
+          if (rs.next()) {
+            String lsn = rs.getString(1);
+            if (lsn != null && LogSequenceNumber.valueOf(lsn).equals(expected)) {
+              return;
+            }
+          }
+        }
+      }
+      TimeUnit.MILLISECONDS.sleep(10);
+    }
   }
 
   private void waitStopReplicationSlot() throws SQLException, InterruptedException {
