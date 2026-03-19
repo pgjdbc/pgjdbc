@@ -1607,7 +1607,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (maxResultRowSize >= 0) {
         estimatedReceiveBufferBytes += maxResultRowSize;
       } else {
-        LOGGER.log(Level.FINEST, "Couldn't estimate result size or result size unbounded, "
+        LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
             + "disabling batching for this query.");
         disallowBatching = true;
       }

@@ -12,9 +12,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.sql.Connection;
 import java.sql.Date;
@@ -51,6 +54,7 @@ import java.util.TimeZone;
  *
  * <p>(this matches what we must support per JDBC 3.0, tables B-5 and B-6)</p>
  */
+@Isolated("Uses TimeZone.setDefault")
 public class TimezoneTest {
   private static final int DAY = 24 * 3600 * 1000;
   private static final TimeZone saveTZ = TimeZone.getDefault();
@@ -82,6 +86,21 @@ public class TimezoneTest {
     cGMT13 = Calendar.getInstance(tzGMT13);
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testtimezone",
+          "seq int4, tstz timestamp with time zone, ts timestamp without time zone, t time without time zone, tz time with time zone, d date");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testtimezone");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     // We must change the default TZ before establishing the connection.
@@ -89,8 +108,7 @@ public class TimezoneTest {
     TimeZone.setDefault(TimeZone.getTimeZone("GMT+01"));
 
     connect();
-    TestUtil.createTable(con, "testtimezone",
-        "seq int4, tstz timestamp with time zone, ts timestamp without time zone, t time without time zone, tz time with time zone, d date");
+    TestUtil.execute(con, "TRUNCATE testtimezone");
 
     // This is not obvious, but the "gmt-3" timezone is actually 3 hours *ahead* of GMT
     // so will produce +03 timestamptz output
@@ -110,7 +128,6 @@ public class TimezoneTest {
     // System.err.println("++++++ TESTS END (" + getName() + ") ++++++");
     TimeZone.setDefault(saveTZ);
 
-    TestUtil.dropTable(con, "testtimezone");
     TestUtil.closeDB(con);
   }
 

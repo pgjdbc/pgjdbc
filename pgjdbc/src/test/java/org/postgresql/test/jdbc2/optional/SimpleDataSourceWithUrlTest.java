@@ -5,7 +5,6 @@
 
 package org.postgresql.test.jdbc2.optional;
 
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -19,9 +18,10 @@ public class SimpleDataSourceWithUrlTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource.
    */
   @Override
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new SimpleDataSource();
+      bds = new org.postgresql.jdbc2.optional.SimpleDataSource();
       bds.setUrl("jdbc:postgresql://" + TestUtil.getServer() + ":" + TestUtil.getPort() + "/"
           + TestUtil.getDatabase() + "?prepareThreshold=" + TestUtil.getPrepareThreshold());
       bds.setUser(TestUtil.getUser());

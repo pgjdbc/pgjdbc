@@ -12,9 +12,12 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,20 +30,28 @@ public class PreparedStatementTest extends BaseTest4 {
     PGProperty.PREFER_QUERY_MODE.set(props, "simple");
   }
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "timestamptztable", "tstz timestamptz");
-    TestUtil.createTable(con, "timetztable", "ttz timetz");
-    TestUtil.createTable(con, "timetable", "id serial, tt time");
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "timestamptztable", "tstz timestamptz");
+      TestUtil.createTable(conn, "timetztable", "ttz timetz");
+      TestUtil.createTable(conn, "timetable", "id serial, tt time");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "timestamptztable");
+      TestUtil.dropTable(conn, "timetztable");
+      TestUtil.dropTable(conn, "timetable");
+    }
   }
 
   @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "timestamptztable");
-    TestUtil.dropTable(con, "timetztable");
-    TestUtil.dropTable(con, "timetable");
-    super.tearDown();
+  public void setUp() throws Exception {
+    super.setUp();
+    TestUtil.execute(con, "TRUNCATE timestamptztable, timetztable, timetable");
   }
 
   @Test

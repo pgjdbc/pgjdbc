@@ -9,8 +9,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,10 +23,24 @@ import java.sql.SQLException;
  */
 public class ServerCursorTest extends BaseTest4 {
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "test_fetch", "value integer,data bytea");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "test_fetch");
+    }
+  }
+
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "test_fetch", "value integer,data bytea");
+    TestUtil.execute(con, "TRUNCATE test_fetch");
     con.setAutoCommit(false);
   }
 
@@ -31,7 +48,6 @@ public class ServerCursorTest extends BaseTest4 {
   public void tearDown() throws SQLException {
     con.rollback();
     con.setAutoCommit(true);
-    TestUtil.dropTable(con, "test_fetch");
     super.tearDown();
   }
 
@@ -62,7 +78,6 @@ public class ServerCursorTest extends BaseTest4 {
       byte[] dataBytes = rs.getBytes(2);
       assertEquals(DATA_STRING, new String(dataBytes, "UTF8"), "binary data got munged");
     }
-
   }
 
   // Test binary cursor fetching
@@ -81,7 +96,6 @@ public class ServerCursorTest extends BaseTest4 {
       byte[] dataBytes = rs.getBytes(2);
       assertEquals(DATA_STRING, new String(dataBytes, "UTF8"), "binary data got munged");
     }
-
   }
 
   //CHECKSTYLE: OFF

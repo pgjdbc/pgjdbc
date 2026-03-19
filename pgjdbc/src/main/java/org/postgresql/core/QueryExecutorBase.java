@@ -191,7 +191,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     try {
       byte[] cancelKey = this.cancelKey;
       if (cancelKey == null) {
-        LOGGER.log(Level.FINEST, " FE=> Can't send cancel request since cancelKey is null. It might be the cancel key is not received yet");
+        LOGGER.log(Level.FINEST, " FE=> Can''t send cancel request since cancelKey is null. It might be the cancel key is not received yet");
         return;
       }
       if (LOGGER.isLoggable(Level.FINEST)) {

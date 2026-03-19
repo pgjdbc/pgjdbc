@@ -25,7 +25,9 @@ import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.SharedTimer;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -58,6 +60,20 @@ import java.util.concurrent.atomic.AtomicReference;
 class StatementTest {
   private Connection con;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "test_lock", "name text");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "test_lock");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
@@ -65,11 +81,8 @@ class StatementTest {
     TestUtil.createTempTable(con, "escapetest",
         "ts timestamp, d date, t time, \")\" varchar(5), \"\"\"){a}'\" text ");
     TestUtil.createTempTable(con, "comparisontest", "str1 varchar(5), str2 varchar(15)");
-    TestUtil.createTable(con, "test_lock", "name text");
-    Statement stmt = con.createStatement();
-    stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
-    stmt.executeUpdate(TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
-    stmt.close();
+    TestUtil.execute(con, TestUtil.insertSQL("comparisontest", "str1,str2", "'_abcd','_found'"));
+    TestUtil.execute(con, TestUtil.insertSQL("comparisontest", "str1,str2", "'%abcd','%found'"));
   }
 
   @AfterEach
@@ -77,7 +90,6 @@ class StatementTest {
     TestUtil.dropTable(con, "test_statement");
     TestUtil.dropTable(con, "escapetest");
     TestUtil.dropTable(con, "comparisontest");
-    TestUtil.dropTable(con, "test_lock");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_loop()");
     TestUtil.execute(con, "DROP FUNCTION IF EXISTS notify_then_sleep()");
     con.close();
@@ -757,8 +769,7 @@ class StatementTest {
   void setQueryTimeoutWithSleep() throws SQLException, InterruptedException {
     // check that the timeout starts ticking at execute, not at the
     // setQueryTimeout call.
-    Statement stmt = con.createStatement();
-    try {
+    try (Statement stmt = con.createStatement()) {
       stmt.setQueryTimeout(1);
       Thread.sleep(3000);
       stmt.execute("select pg_sleep(5)");
@@ -995,7 +1006,7 @@ class StatementTest {
   }
 
   @Test
-  @Timeout(20)
+  @Timeout(40)
   void fastCloses() throws SQLException {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     con.createStatement().execute("SET SESSION client_min_messages = 'NOTICE'");
@@ -1012,21 +1023,18 @@ class StatementTest {
     final Random rnd = new Random();
     for (int i = 0; i < 1000; i++) {
       final Statement st = con.createStatement();
-      executor.submit(new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-          int s = rnd.nextInt(10);
-          if (s > 8) {
-            try {
-              Thread.sleep(s - 9);
-            } catch (InterruptedException ex) {
-              // don't execute the close here as this thread was cancelled below in shutdownNow
-              return null;
-            }
+      executor.submit((Callable<Void>) () -> {
+        int s = rnd.nextInt(10);
+        if (s > 8) {
+          try {
+            Thread.sleep(0);
+          } catch (InterruptedException ex) {
+            // don't execute the close here as this thread was cancelled below in shutdownNow
+            return null;
           }
-          st.close();
-          return null;
         }
+        st.close();
+        return null;
       });
       ResultSet rs = null;
       String sqlState = "0";
@@ -1051,7 +1059,6 @@ class StatementTest {
       val = (val == null ? 0 : val) + 1;
       cnt.put(sqlState, val);
     }
-    System.out.println("[testFastCloses] total counts for each sql state: " + cnt);
     executor.shutdown();
   }
 

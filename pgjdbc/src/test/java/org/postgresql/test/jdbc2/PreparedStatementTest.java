@@ -28,6 +28,8 @@ import org.postgresql.test.util.BrokenInputStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -41,6 +43,7 @@ import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
+import java.sql.Connection;
 import java.sql.ParameterMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -77,26 +80,38 @@ public class PreparedStatementTest extends BaseTest4 {
     return ids;
   }
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "streamtable", "bin bytea, str text");
-    TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
-    TestUtil.createTable(con, "intervaltable", "i interval");
-    TestUtil.createTable(con, "inttable", "a int");
-    TestUtil.createTable(con, "bool_tab", "bool_val boolean, null_val boolean, tf_val boolean, "
-        + "truefalse_val boolean, yn_val boolean, yesno_val boolean, "
-        + "onoff_val boolean, onezero_val boolean");
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "streamtable", "bin bytea, str text");
+      TestUtil.createTable(con, "texttable", "ch char(3), te text, vc varchar(3)");
+      TestUtil.createTable(con, "intervaltable", "i interval");
+      TestUtil.createTable(con, "inttable", "a int");
+      TestUtil.createTable(con, "bool_tab", "bool_val boolean, null_val boolean, tf_val boolean, "
+          + "truefalse_val boolean, yn_val boolean, yesno_val boolean, "
+          + "onoff_val boolean, onezero_val boolean");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "streamtable");
+      TestUtil.dropTable(con, "texttable");
+      TestUtil.dropTable(con, "intervaltable");
+      TestUtil.dropTable(con, "inttable");
+      TestUtil.dropTable(con, "bool_tab");
+    }
   }
 
   @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "streamtable");
-    TestUtil.dropTable(con, "texttable");
-    TestUtil.dropTable(con, "intervaltable");
-    TestUtil.dropTable(con, "inttable");
-    TestUtil.dropTable(con, "bool_tab");
-    super.tearDown();
+  public void setUp() throws Exception {
+    super.setUp();
+    TestUtil.execute(con, "TRUNCATE streamtable");
+    TestUtil.execute(con, "TRUNCATE texttable");
+    TestUtil.execute(con, "TRUNCATE intervaltable");
+    TestUtil.execute(con, "TRUNCATE inttable");
+    TestUtil.execute(con, "TRUNCATE bool_tab");
   }
 
   private int getNumberOfServerPreparedStatements(String sql)
@@ -1188,6 +1203,7 @@ public class PreparedStatementTest extends BaseTest4 {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testSetTinyIntFloat() throws SQLException {
     PreparedStatement pstmt = con
         .prepareStatement("CREATE temp TABLE tiny_int (max_val int4, min_val int4, null_val int4)");

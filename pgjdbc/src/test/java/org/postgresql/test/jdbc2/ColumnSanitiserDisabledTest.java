@@ -11,14 +11,15 @@ import static org.junit.jupiter.api.Assertions.fail;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Properties;
 
 /*
@@ -27,6 +28,26 @@ import java.util.Properties;
 */
 class ColumnSanitiserDisabledTest {
   private Connection conn;
+
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      /*
+       * Quoted columns will be stored with case preserved. Driver will receive column names as
+       * defined in db server.
+       */
+      TestUtil.createTable(conn, "allmixedup",
+          "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
+      TestUtil.execute(conn, TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "allmixedup");
+    }
+  }
 
   @BeforeEach
   void setUp() throws Exception {
@@ -37,20 +58,10 @@ class ColumnSanitiserDisabledTest {
     BaseConnection bc = (BaseConnection) conn;
     assertTrue(bc.isColumnSanitiserDisabled(),
         "Expected state [TRUE] of base connection configuration failed test.");
-    /*
-     * Quoted columns will be stored with case preserved. Driver will receive column names as
-     * defined in db server.
-     */
-    TestUtil.createTable(conn, "allmixedup",
-        "id int primary key, \"DESCRIPTION\" varchar(40), \"fOo\" varchar(3)");
-    Statement data = conn.createStatement();
-    data.execute(TestUtil.insertSQL("allmixedup", "1,'mixed case test', 'bar'"));
-    data.close();
   }
 
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.dropTable(conn, "allmixedup");
     TestUtil.closeDB(conn);
     System.setProperty("disableColumnSanitiser", "false");
   }

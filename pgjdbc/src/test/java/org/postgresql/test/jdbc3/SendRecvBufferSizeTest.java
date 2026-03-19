@@ -9,8 +9,11 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
@@ -24,20 +27,25 @@ public class SendRecvBufferSizeTest extends BaseTest4 {
     PGProperty.RECEIVE_BUFFER_SIZE.set(props, "1024");
   }
 
-  @Override
-  public void setUp() throws Exception {
-    super.setUp();
-    TestUtil.createTable(con, "hold", "a int");
-    Statement stmt = con.createStatement();
-    stmt.execute("INSERT INTO hold VALUES (1)");
-    stmt.execute("INSERT INTO hold VALUES (2)");
-    stmt.close();
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "hold", "a int");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "hold");
+    }
   }
 
   @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "hold");
-    super.tearDown();
+  public void setUp() throws Exception {
+    super.setUp();
+    TestUtil.execute(con, "TRUNCATE hold");
+    TestUtil.execute(con, "INSERT INTO hold VALUES (1),(2)");
   }
 
   // dummy test

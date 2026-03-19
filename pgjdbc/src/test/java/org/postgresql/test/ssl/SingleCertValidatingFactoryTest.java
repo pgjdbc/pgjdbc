@@ -7,6 +7,7 @@ package org.postgresql.test.ssl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
@@ -219,11 +220,9 @@ public class SingleCertValidatingFactoryTest {
   @Test
   void connectSSLWithValidationProperCertEnvVar() throws SQLException, IOException {
     String envVarName = "DATASOURCE_SSL_CERT";
-    if (System.getenv(envVarName) == null) {
-      System.out.println(
-          "Skipping test connectSSLWithValidationProperCertEnvVar (env variable is not defined)");
-      return;
-    }
+    assumeTrue(System.getenv(envVarName) != null,
+        () -> "Skipping test connectSSLWithValidationProperCertEnvVar (env variable " + envVarName + " is not defined)"
+    );
 
     Properties info = new Properties();
     info.setProperty("ssl", "true");

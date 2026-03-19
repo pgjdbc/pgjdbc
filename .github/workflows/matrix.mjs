@@ -95,12 +95,12 @@ matrix.addAxis({
 
 matrix.addAxis({
   name: 'os',
-  title: x => x.replace('-latest', ''),
+  title: x => (x.value || x).replace('-latest', ''),
   values: [
-    'ubuntu-latest',
-    // We use docker-compose for launching PostgreSQL
-    // 'windows-latest',
-    // 'macos-latest',
+    {value: 'ubuntu-latest', weight: 4},
+    {value: 'windows-latest', weight: 1},
+    // TODO: uncomment once the test failures are fixed
+    // {value: 'macos-latest', weight: 1},
   ]
 });
 
@@ -280,7 +280,9 @@ matrix.imply({java_distribution: {value: 'microsoft'}}, {java_version: v => v >=
 matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === eaJava || v >= 21});
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
-matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest']})
+matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
+// ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
+matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
 
@@ -303,26 +305,13 @@ matrix.generateRow({java_version: matrix.axisByName.java_version.values[0]});
 matrix.generateRow({java_version: "17"});
 // Ensure there will be at least one job with the latest Java (excluding EA)
 matrix.generateRow({java_version: matrix.axisByName.java_version.values.slice(-2)[0]});
-matrix.generateRow({ssl: {value: 'yes'}});
-// Ensure at least one Windows and at least one Linux job is present (macOS is almost the same as Linux)
-// matrix.generateRow({os: 'windows-latest'});
-matrix.generateRow({os: 'ubuntu-latest'});
 // Ensure we test all query_mode values
-for (let query_mode of matrix.axisByName.query_mode.values) {
-  matrix.generateRow({query_mode: query_mode});
-}
-for (let gss of matrix.axisByName.gss.values) {
-  matrix.generateRow({gss: gss});
-}
-for (let xa of matrix.axisByName.xa.values) {
-  matrix.generateRow({xa: xa});
-}
-for (let ssl of matrix.axisByName.ssl.values) {
-  matrix.generateRow({ssl: ssl});
-}
-for (let replication of matrix.axisByName.replication.values) {
-  matrix.generateRow({replication: replication});
-}
+matrix.ensureAllAxisValuesCovered('query_mode');
+matrix.ensureAllAxisValuesCovered('gss');
+matrix.ensureAllAxisValuesCovered('xa');
+matrix.ensureAllAxisValuesCovered('ssl');
+matrix.ensureAllAxisValuesCovered('replication');
+matrix.ensureAllAxisValuesCovered('os');
 // Ensure at least one job with autosave=always
 matrix.generateRow({autosave: {value: 'always'}});
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
@@ -353,6 +342,7 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
 
+  v.os = v.os.value;
   v.java_distribution = v.java_distribution.value;
   v.java_vendor = v.java_distribution.vendor;
   if (v.java_distribution === 'oracle') {
@@ -449,6 +439,9 @@ include.forEach(v => {
   }
   if (v.cleanupSavepoints === 'true') {
       testJvmArgs.push('-DcleanupSavepoints=true');
+  }
+  if (v.gss === 'no') {
+      testJvmArgs.push('-DskipGssEncryption=true');
   }
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');

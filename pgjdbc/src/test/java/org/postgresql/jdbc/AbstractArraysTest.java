@@ -386,6 +386,7 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("deprecation")
     public TimestampUtils getTimestampUtils() {
       throw new UnsupportedOperationException();
     }
@@ -959,6 +960,7 @@ public abstract class AbstractArraysTest<A> {
      * {@inheritDoc}
      */
     @Override
+    @SuppressWarnings("deprecation")
     public void addDataType(String type, String className) {
       throw new UnsupportedOperationException();
     }

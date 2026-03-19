@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,10 +35,23 @@ public class Jdbc3BlobTest {
 
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, TABLE);
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, TABLE, "ID INT PRIMARY KEY, DATA OID");
     conn.setAutoCommit(false);
   }
 
@@ -54,8 +69,11 @@ public class Jdbc3BlobTest {
         }
       }
     } finally {
-      TestUtil.dropTable(conn, TABLE);
-      TestUtil.closeDB(conn);
+      try {
+        TestUtil.execute(conn, "TRUNCATE " + TABLE);
+      } finally {
+        TestUtil.closeDB(conn);
+      }
     }
   }
 

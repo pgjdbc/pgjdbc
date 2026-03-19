@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.core.JavaVersion;
+import org.postgresql.test.annotations.DisableLogger;
 
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LazyCleanerTest {
   @Test
+  @DisableLogger(LazyCleanerImpl.class)
   void phantomCleaner() throws InterruptedException {
     List<Object> list = new ArrayList<>(Arrays.asList(
         new Object(), new Object(), new Object()));
@@ -139,6 +141,7 @@ public class LazyCleanerTest {
   }
 
   @Test
+  @DisableLogger(LazyCleanerImpl.class)
   void exceptionsDuringCleanupAreHandled() throws InterruptedException {
     LazyCleanerImpl t = new LazyCleanerImpl("test-cleaner", ofSeconds(5));
 

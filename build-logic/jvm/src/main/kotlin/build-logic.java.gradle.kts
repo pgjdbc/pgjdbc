@@ -75,7 +75,7 @@ tasks.configureEach<JavaCompile> {
             compilerArgs.add("-Xmaxerrs")
             compilerArgs.add("1")
         }
-        if (buildParameters.failOnJavacWarning && !name.contains("Test")) {
+        if (buildParameters.failOnJavacWarning) {
             compilerArgs.add("-Werror")
         }
     }

@@ -87,6 +87,7 @@ class WrapperTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void connectionUnwrapPGDataSource() throws SQLException {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
     dataSource.setDatabaseName(TestUtil.getDatabase());

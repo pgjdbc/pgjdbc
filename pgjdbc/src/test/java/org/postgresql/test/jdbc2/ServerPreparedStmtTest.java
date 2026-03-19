@@ -14,17 +14,33 @@ import org.postgresql.PGStatement;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
 /*
  * Tests for using server side prepared statements
  */
 public class ServerPreparedStmtTest extends BaseTest4 {
+
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testsps", "id integer, value boolean");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testsps");
+    }
+  }
 
   @Override
   public void setUp() throws Exception {
@@ -32,24 +48,8 @@ public class ServerPreparedStmtTest extends BaseTest4 {
 
     assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE, "Server-prepared statements are not supported in simple protocol, thus ignoring the tests");
 
-    Statement stmt = con.createStatement();
-
-    TestUtil.createTable(con, "testsps", "id integer, value boolean");
-
-    stmt.executeUpdate("INSERT INTO testsps VALUES (1,'t')");
-    stmt.executeUpdate("INSERT INTO testsps VALUES (2,'t')");
-    stmt.executeUpdate("INSERT INTO testsps VALUES (3,'t')");
-    stmt.executeUpdate("INSERT INTO testsps VALUES (4,'t')");
-    stmt.executeUpdate("INSERT INTO testsps VALUES (6,'t')");
-    stmt.executeUpdate("INSERT INTO testsps VALUES (9,'f')");
-
-    stmt.close();
-  }
-
-  @Override
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testsps");
-    super.tearDown();
+    TestUtil.execute(con, "TRUNCATE testsps");
+    TestUtil.execute(con, "INSERT INTO testsps VALUES (1,'t'),  (2,'t'), (3,'t'), (4,'t'), (6,'t'), (9,'f')");
   }
 
   @SuppressWarnings("deprecation")

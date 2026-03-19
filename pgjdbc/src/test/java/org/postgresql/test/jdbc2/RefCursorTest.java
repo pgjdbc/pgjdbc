@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
@@ -55,6 +56,24 @@ public class RefCursorTest extends BaseTest4 {
   public static void beforeClass() throws Exception {
     try (Connection con = TestUtil.openDB()) {
       assumeCallableStatementsSupported(con);
+      TestUtil.createTable(con, "testrs", "id integer primary key");
+      Statement stmt = con.createStatement();
+      stmt.execute("CREATE OR REPLACE FUNCTION testspg__getRefcursor () RETURNS refcursor AS '"
+          + "declare v_resset refcursor; begin open v_resset for select id from testrs order by id; "
+          + "return v_resset; end;' LANGUAGE plpgsql;");
+      stmt.execute("CREATE OR REPLACE FUNCTION testspg__getEmptyRefcursor () RETURNS refcursor AS '"
+          + "declare v_resset refcursor; begin open v_resset for select id from testrs where id < 1 order by id; "
+          + "return v_resset; end;' LANGUAGE plpgsql;");
+      stmt.close();
+    }
+  }
+
+  @AfterAll
+  public static void afterClass() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropFunction(con, "testspg__getRefcursor", "");
+      TestUtil.dropFunction(con, "testspg__getEmptyRefcursor", "");
+      TestUtil.dropTable(con, "testrs");
     }
   }
 
@@ -62,35 +81,14 @@ public class RefCursorTest extends BaseTest4 {
   public void setUp() throws Exception {
     // this is the same as the ResultSet setup.
     super.setUp();
-    Statement stmt = con.createStatement();
-
-    TestUtil.createTable(con, "testrs", "id integer primary key");
-
-    stmt.executeUpdate("INSERT INTO testrs VALUES (1)");
-    stmt.executeUpdate("INSERT INTO testrs VALUES (2)");
-    stmt.executeUpdate("INSERT INTO testrs VALUES (3)");
-    stmt.executeUpdate("INSERT INTO testrs VALUES (4)");
-    stmt.executeUpdate("INSERT INTO testrs VALUES (6)");
-    stmt.executeUpdate("INSERT INTO testrs VALUES (9)");
-
-    // Create the functions.
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getRefcursor () RETURNS refcursor AS '"
-        + "declare v_resset refcursor; begin open v_resset for select id from testrs order by id; "
-        + "return v_resset; end;' LANGUAGE plpgsql;");
-    stmt.execute("CREATE OR REPLACE FUNCTION testspg__getEmptyRefcursor () RETURNS refcursor AS '"
-        + "declare v_resset refcursor; begin open v_resset for select id from testrs where id < 1 order by id; "
-        + "return v_resset; end;' LANGUAGE plpgsql;");
-    stmt.close();
+    TestUtil.execute(con, "TRUNCATE testrs");
+    TestUtil.execute(con, "INSERT INTO testrs VALUES (1),(2),(3),(4),(6),(9)");
     con.setAutoCommit(false);
   }
 
   @Override
   public void tearDown() throws SQLException {
     con.setAutoCommit(true);
-    Statement stmt = con.createStatement();
-    stmt.execute("drop FUNCTION testspg__getRefcursor ();");
-    stmt.execute("drop FUNCTION testspg__getEmptyRefcursor ();");
-    TestUtil.dropTable(con, "testrs");
     super.tearDown();
   }
 

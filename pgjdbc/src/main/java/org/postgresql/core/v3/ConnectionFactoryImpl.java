@@ -47,6 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -58,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -130,10 +132,79 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     }
   }
 
-  private PGStream tryConnect(Properties info, SocketFactory socketFactory, HostSpec hostSpec,
-      SslMode sslMode, GSSEncMode gssEncMode)
+  /**
+   * Attempts a non-SSL connection after an SSL connection attempt failed.
+   * Used when sslMode is PREFER: SSL is preferred but not required,
+   * so an SSL failure (e.g. timeout during SSL negotiation) should fall back to plaintext.
+   */
+  private PGStream tryConnectWithoutSsl(Properties info, SocketFactory socketFactory,
+      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
+      Exception originalException)
       throws SQLException, IOException {
-    int connectTimeout = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
+    try {
+      PGStream stream =
+          tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode, connectTimeoutMs, startNanos);
+      LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
+          hostSpec);
+      return stream;
+    } catch (SQLException | IOException e) {
+      log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", e);
+      originalException.addSuppressed(e);
+      if (originalException instanceof SQLException) {
+        throw (SQLException) originalException;
+      }
+      throw (IOException) originalException;
+    }
+  }
+
+  /**
+   * Attempts an SSL connection after a plaintext connection attempt failed.
+   * Used when sslMode is ALLOW: plaintext is tried first, but if the server rejects it
+   * (e.g. the database requires SSL), the driver upgrades to SSL.
+   */
+  private PGStream tryConnectWithSsl(Properties info, SocketFactory socketFactory,
+      HostSpec hostSpec, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos,
+      Exception originalException)
+      throws SQLException, IOException {
+    try {
+      PGStream stream =
+          tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode, connectTimeoutMs, startNanos);
+      LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
+          hostSpec);
+      return stream;
+    } catch (SQLException | IOException e) {
+      log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", e);
+      originalException.addSuppressed(e);
+      if (originalException instanceof SQLException) {
+        throw (SQLException) originalException;
+      }
+      throw (IOException) originalException;
+    }
+  }
+
+  /**
+   * Computes the remaining connect timeout in milliseconds.
+   * Uses {@link System#nanoTime()} for monotonic elapsed-time measurement.
+   *
+   * @param connectTimeoutMs the original connect timeout in milliseconds, or 0 for no timeout
+   * @param startNanos the {@link System#nanoTime()} value when the connection attempt began
+   * @return remaining time in millis, or 0 if no timeout was set. If the deadline has passed,
+   *         returns 1 (minimum positive timeout) so the attempt fails quickly.
+   */
+  private static int remainingConnectTimeout(int connectTimeoutMs, long startNanos) {
+    if (connectTimeoutMs == 0) {
+      return 0;
+    }
+    long elapsedNanos = System.nanoTime() - startNanos;
+    long elapsedMs = TimeUnit.NANOSECONDS.toMillis(elapsedNanos);
+    long remaining = connectTimeoutMs - elapsedMs;
+    return remaining <= 0 ? 1 : (int) Math.min(remaining, Integer.MAX_VALUE);
+  }
+
+  private PGStream tryConnect(Properties info, SocketFactory socketFactory, HostSpec hostSpec,
+      SslMode sslMode, GSSEncMode gssEncMode, int connectTimeoutMs, long startNanos)
+      throws SQLException, IOException {
+    int connectTimeout = remainingConnectTimeout(connectTimeoutMs, startNanos);
     String user = PGProperty.USER.getOrDefault(info);
     String database = PGProperty.PG_DBNAME.getOrDefault(info);
     SslNegotiation sslNegotiation = SslNegotiation.of(Nullness.castNonNull(PGProperty.SSL_NEGOTIATION.getOrDefault(info)));
@@ -253,7 +324,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
       return newStream;
     } catch (Exception e) {
-      closeStream(newStream);
+      closeStream(newStream, e);
       throw e;
     }
   }
@@ -262,6 +333,9 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   public QueryExecutor openConnectionImpl(HostSpec[] hostSpecs, Properties info) throws SQLException {
     SslMode sslMode = SslMode.of(info);
     GSSEncMode gssEncMode = GSSEncMode.of(info);
+
+    int connectTimeoutMs = PGProperty.CONNECT_TIMEOUT.getInt(info) * 1000;
+    long startNanos = System.nanoTime();
 
     HostRequirement targetServerType;
     String targetServerTypeStr = castNonNull(PGProperty.TARGET_SERVER_TYPE.getOrDefault(info));
@@ -304,51 +378,27 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       PGStream newStream = null;
       try {
         try {
-          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode);
+          newStream = tryConnect(info, socketFactory, hostSpec, sslMode, gssEncMode, connectTimeoutMs, startNanos);
         } catch (SQLException e) {
           if (sslMode == SslMode.PREFER
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            // Try non-SSL connection to cover case like "non-ssl only db"
-            // Note: PREFER allows loss of encryption, so no significant harm is made
-            Throwable ex = null;
-            try {
-              newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.DISABLE, gssEncMode);
-              LOGGER.log(Level.FINE, "Downgraded to non-encrypted connection for host {0}",
-                  hostSpec);
-            } catch (SQLException | IOException ee) {
-              ex = ee;
-            }
-
-            if (ex != null) {
-              log(Level.FINE, "sslMode==PREFER, however non-SSL connection failed as well", ex);
-              // non-SSL failed as well, so re-throw original exception
-              // Add non-SSL exception as suppressed
-              e.addSuppressed(ex);
-              throw e;
-            }
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else if (sslMode == SslMode.ALLOW
               && PSQLState.INVALID_AUTHORIZATION_SPECIFICATION.getState().equals(e.getSQLState())) {
-            // Try using SSL
-            Throwable ex = null;
-            try {
-              newStream =
-                  tryConnect(info, socketFactory, hostSpec, SslMode.REQUIRE, gssEncMode);
-              LOGGER.log(Level.FINE, "Upgraded to encrypted connection for host {0}",
-                  hostSpec);
-            } catch (SQLException ee) {
-              ex = ee;
-            } catch (IOException ee) {
-              ex = ee; // Can't use multi-catch in Java 6 :(
-            }
-            if (ex != null) {
-              log(Level.FINE, "sslMode==ALLOW, however SSL connection failed as well", ex);
-              // non-SSL failed as well, so re-throw original exception
-              // Add SSL exception as suppressed
-              e.addSuppressed(ex);
-              throw e;
-            }
-
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+          } else {
+            throw e;
+          }
+        } catch (IOException e) {
+          if (sslMode == SslMode.PREFER && e instanceof SocketTimeoutException) {
+            // SSL negotiation timed out (server didn't respond to SSLRequest).
+            // Since sslMode is PREFER, fall back to a non-encrypted connection.
+            newStream = tryConnectWithoutSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
+          } else if (sslMode == SslMode.ALLOW) {
+            // Plaintext connection failed (e.g. server reset the connection
+            // instead of sending a FATAL auth error). Since sslMode is ALLOW,
+            // try upgrading to SSL.
+            newStream = tryConnectWithSsl(info, socketFactory, hostSpec, gssEncMode, connectTimeoutMs, startNanos, e);
           } else {
             throw e;
           }
@@ -392,7 +442,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             "Connection to {0} refused. Check that the hostname and port are correct and that the postmaster is accepting TCP/IP connections.",
             hostSpec), PSQLState.CONNECTION_UNABLE_TO_CONNECT, cex);
       } catch (IOException ioe) {
-        closeStream(newStream);
+        closeStream(newStream, ioe);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {
@@ -403,7 +453,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         throw new PSQLException(GT.tr("The connection attempt failed."),
             PSQLState.CONNECTION_UNABLE_TO_CONNECT, ioe);
       } catch (SQLException se) {
-        closeStream(newStream);
+        closeStream(newStream, se);
         GlobalHostStatusTracker.reportHostStatus(hostSpec, HostStatus.ConnectFail);
         knownStates.put(hostSpec, HostStatus.ConnectFail);
         if (hostIter.hasNext()) {
@@ -1067,7 +1117,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return;
     }
     if (PGProperty.REPLICATION.getOrDefault(info) != null) {
-      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow 'set ...' commands,"
+      LOGGER.log(Level.FINEST, " FE: Replication protocol does not allow ''set ...'' commands,"
           + " so skipping the following initial queries: ({0})."
           + " Consider configuring assumeMinServerVersion property so the driver"
           + " propagates the needed parameters in the startup packet", sb);

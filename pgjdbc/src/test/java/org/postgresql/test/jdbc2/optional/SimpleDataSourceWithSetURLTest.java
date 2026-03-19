@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.postgresql.Driver.parseURL;
 
 import org.postgresql.PGProperty;
-import org.postgresql.jdbc2.optional.SimpleDataSource;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 
@@ -25,9 +24,10 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
    * Creates and configures a new SimpleDataSource using setURL method.
    */
   @Override
+  @SuppressWarnings("deprecation")
   protected void initializeDataSource() throws PSQLException {
     if (bds == null) {
-      bds = new SimpleDataSource();
+      bds = new org.postgresql.jdbc2.optional.SimpleDataSource();
       bds.setURL(String.format("jdbc:postgresql://%s:%d/%s?prepareThreshold=%d", TestUtil.getServer(), TestUtil.getPort(), TestUtil.getDatabase(), TestUtil.getPrepareThreshold()));
       bds.setUser(TestUtil.getUser());
       bds.setPassword(TestUtil.getPassword());
@@ -49,6 +49,7 @@ public class SimpleDataSourceWithSetURLTest extends BaseDataSourceTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testSetURL() throws Exception {
     initializeDataSource();
 

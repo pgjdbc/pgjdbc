@@ -74,7 +74,8 @@ public class DataSourceFactoryTest {
     String filterCondition = "(&(objectClass=" + DataSourceFactory.class.getName() + ")"
         + "(" + DataSourceFactory.OSGI_JDBC_DRIVER_NAME + "=PostgreSQL JDBC Driver))";
     Filter filter = bundleContext.createFilter(filterCondition);
-    ServiceTracker tracker = new ServiceTracker(bundleContext, filter, null);
+    ServiceTracker<DataSourceFactory, DataSourceFactory> tracker =
+        new ServiceTracker<>(bundleContext, filter, null);
     tracker.open();
     Assert.assertNotNull("Unable to lookup dataSourceFactory with " + filterCondition,
         tracker.getService());

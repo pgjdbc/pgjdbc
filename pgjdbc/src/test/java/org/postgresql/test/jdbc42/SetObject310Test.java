@@ -16,6 +16,7 @@ import org.postgresql.test.jdbc2.BaseTest4;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -49,6 +50,7 @@ import java.util.TimeZone;
 
 @ParameterizedClass
 @MethodSource("data")
+@Isolated("Uses TimeZone.setDefault")
 public class SetObject310Test extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
@@ -87,7 +89,7 @@ public class SetObject310Test extends BaseTest4 {
   @BeforeAll
   public static void createTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
-      TestUtil.createTable(con, "table1", "timestamp_without_time_zone_column timestamp without time zone,"
+      TestUtil.createTable(con, "testsetobj310", "timestamp_without_time_zone_column timestamp without time zone,"
               + "timestamp_with_time_zone_column timestamp with time zone,"
               + "date_column date,"
               + "time_without_time_zone_column time without time zone,"
@@ -99,7 +101,7 @@ public class SetObject310Test extends BaseTest4 {
   @AfterAll
   public static void dropTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
-      TestUtil.dropTable(con, "table1");
+      TestUtil.dropTable(con, "testsetobj310");
     }
     TimeZone.setDefault(saveTZ);
   }
@@ -107,11 +109,11 @@ public class SetObject310Test extends BaseTest4 {
   @Override
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.execute(con, "delete from table1");
+    TestUtil.execute(con, "delete from testsetobj310");
   }
 
   private void insert(Object data, String columnName, Integer type) throws SQLException {
-    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
+    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testsetobj310", columnName, "?"));
     try {
       if (type != null) {
         ps.setObject(1, data, type);
@@ -127,7 +129,7 @@ public class SetObject310Test extends BaseTest4 {
   private String readString(String columnName) throws SQLException {
     Statement st = con.createStatement();
     try {
-      ResultSet rs = st.executeQuery(TestUtil.selectSQL("table1", columnName));
+      ResultSet rs = st.executeQuery(TestUtil.selectSQL("testsetobj310", columnName));
       try {
         assertNotNull(rs);
         assertTrue(rs.next());
@@ -159,7 +161,7 @@ public class SetObject310Test extends BaseTest4 {
   }
 
   private <T> T insertThenReadWithoutType(Object data, String columnName, Class<T> expectedType, boolean checkRoundtrip) throws SQLException {
-    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
+    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testsetobj310", columnName, "?"));
     try {
       ps.setObject(1, data);
       assertEquals(1, ps.executeUpdate());
@@ -169,7 +171,7 @@ public class SetObject310Test extends BaseTest4 {
 
     Statement st = con.createStatement();
     try {
-      ResultSet rs = st.executeQuery(TestUtil.selectSQL("table1", columnName));
+      ResultSet rs = st.executeQuery(TestUtil.selectSQL("testsetobj310", columnName));
       try {
         assertNotNull(rs);
 
@@ -191,7 +193,7 @@ public class SetObject310Test extends BaseTest4 {
   }
 
   private <T> T insertThenReadWithType(Object data, int sqlType, String columnName, Class<T> expectedType, boolean checkRoundtrip) throws SQLException {
-    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("table1", columnName, "?"));
+    PreparedStatement ps = con.prepareStatement(TestUtil.insertSQL("testsetobj310", columnName, "?"));
     try {
       ps.setObject(1, data, sqlType);
       assertEquals(1, ps.executeUpdate());
@@ -201,7 +203,7 @@ public class SetObject310Test extends BaseTest4 {
 
     Statement st = con.createStatement();
     try {
-      ResultSet rs = st.executeQuery(TestUtil.selectSQL("table1", columnName));
+      ResultSet rs = st.executeQuery(TestUtil.selectSQL("testsetobj310", columnName));
       try {
         assertNotNull(rs);
 
@@ -224,7 +226,7 @@ public class SetObject310Test extends BaseTest4 {
   private void deleteRows() throws SQLException {
     Statement st = con.createStatement();
     try {
-      st.executeUpdate("DELETE FROM table1");
+      st.executeUpdate("DELETE FROM testsetobj310");
     } finally {
       st.close();
     }

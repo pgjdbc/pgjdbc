@@ -18,6 +18,7 @@ import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.core.StringStartsWith;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.sql.Statement;
 import java.util.Map;
@@ -32,6 +33,7 @@ import java.util.logging.Logger;
  * (GUC_REPORT) parameters via PGConnection.getParameterStatuses() and
  * PGConnection.getParameterStatus().</p>
  */
+@Isolated("Uses TimeZone.setDefault")
 public class ParameterStatusTest extends BaseTest4 {
 
   private final TimeZone tzPlus0800 = TimeZone.getTimeZone("GMT+8:00");

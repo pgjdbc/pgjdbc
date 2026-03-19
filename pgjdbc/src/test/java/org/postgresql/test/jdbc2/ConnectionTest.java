@@ -21,7 +21,9 @@ import org.postgresql.jdbc.PgConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -44,27 +46,32 @@ import java.util.Properties;
 class ConnectionTest {
   private Connection con;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "test_a", "imagename name,image oid,id int4");
+      TestUtil.createTable(conn, "test_c", "source text,cost money,imageid int4");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "test_a");
+      TestUtil.dropTable(conn, "test_c");
+    }
+  }
+
   // Set up the fixture for this testcase: the tables for this test.
   @BeforeEach
   void setUp() throws Exception {
     con = TestUtil.openDB();
-
-    TestUtil.createTable(con, "test_a", "imagename name,image oid,id int4");
-    TestUtil.createTable(con, "test_c", "source text,cost money,imageid int4");
-
-    TestUtil.closeDB(con);
+    TestUtil.execute(con, "TRUNCATE test_a, test_c");
   }
 
   // Tear down the fixture for this test case.
   @AfterEach
   void tearDown() throws Exception {
-    TestUtil.closeDB(con);
-
-    con = TestUtil.openDB();
-
-    TestUtil.dropTable(con, "test_a");
-    TestUtil.dropTable(con, "test_c");
-
     TestUtil.closeDB(con);
   }
 

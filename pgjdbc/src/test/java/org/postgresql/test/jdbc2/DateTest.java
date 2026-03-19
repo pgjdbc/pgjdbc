@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.Isolated;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -36,6 +37,7 @@ import java.util.stream.Stream;
  */
 @ParameterizedClass
 @MethodSource("data")
+@Isolated("Uses TimeZone.setDefault")
 public class DateTest extends BaseTest4 {
   private static final TimeZone saveTZ = TimeZone.getDefault();
 
@@ -318,6 +320,7 @@ public class DateTest extends BaseTest4 {
     st.close();
   }
 
+  @SuppressWarnings("deprecation")
   private static java.sql.Date makeDate(int y, int m, int d) {
     return new java.sql.Date(y - 1900, m - 1, d);
   }

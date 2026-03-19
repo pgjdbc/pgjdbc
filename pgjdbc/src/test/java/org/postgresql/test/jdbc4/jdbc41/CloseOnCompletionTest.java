@@ -12,7 +12,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,15 +27,28 @@ import java.sql.Statement;
 class CloseOnCompletionTest {
   private Connection conn;
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.createTable(conn, "testclosecompletion", "id integer");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection conn = TestUtil.openDB()) {
+      TestUtil.dropTable(conn, "testclosecompletion");
+    }
+  }
+
   @BeforeEach
   void setUp() throws Exception {
     conn = TestUtil.openDB();
-    TestUtil.createTable(conn, "table1", "id integer");
+    TestUtil.execute(conn, "TRUNCATE testclosecompletion");
   }
 
   @AfterEach
   void tearDown() throws SQLException {
-    TestUtil.dropTable(conn, "table1");
     TestUtil.closeDB(conn);
   }
 
@@ -44,7 +59,7 @@ class CloseOnCompletionTest {
   void withoutCloseOnCompletion() throws SQLException {
     Statement stmt = conn.createStatement();
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testclosecompletion", "*"));
     rs.close();
     assertFalse(stmt.isClosed());
   }
@@ -57,7 +72,7 @@ class CloseOnCompletionTest {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
-    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("table1", "*"));
+    ResultSet rs = stmt.executeQuery(TestUtil.selectSQL("testclosecompletion", "*"));
     rs.close();
     assertTrue(stmt.isClosed());
   }
@@ -70,7 +85,7 @@ class CloseOnCompletionTest {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
-    stmt.execute(TestUtil.selectSQL("table1", "*") + ";" + TestUtil.selectSQL("table1", "*") + ";");
+    stmt.execute(TestUtil.selectSQL("testclosecompletion", "*") + ";" + TestUtil.selectSQL("testclosecompletion", "*") + ";");
     ResultSet rs = stmt.getResultSet();
     rs.close();
     assertFalse(stmt.isClosed());
@@ -89,7 +104,7 @@ class CloseOnCompletionTest {
     Statement stmt = conn.createStatement();
     stmt.closeOnCompletion();
 
-    stmt.executeUpdate(TestUtil.insertSQL("table1", "1"));
+    stmt.executeUpdate(TestUtil.insertSQL("testclosecompletion", "1"));
     assertFalse(stmt.isClosed());
   }
 
@@ -118,6 +133,5 @@ class CloseOnCompletionTest {
     } catch (SQLException ex) {
       assertEquals(PSQLState.OBJECT_NOT_IN_STATE.getState(), ex.getSQLState(), "Expecting <<This statement has been closed>>");
     }
-
   }
 }

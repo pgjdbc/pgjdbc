@@ -289,6 +289,12 @@ class MatrixBuilder {
     }
   }
 
+  ensureAllAxisValuesCovered(axisName) {
+    for (let value of this.axisByName[axisName].values) {
+      this.generateRow({[axisName]: value});
+    }
+  }
+
   generateRows(maxRows, filter) {
     this._initPairs();
     for (let i = 0; this.rows.length < maxRows && i < maxRows; i++) {

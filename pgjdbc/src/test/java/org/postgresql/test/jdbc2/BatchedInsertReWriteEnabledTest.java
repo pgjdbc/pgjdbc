@@ -11,11 +11,14 @@ import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.sql.BatchUpdateException;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -45,18 +48,26 @@ public class BatchedInsertReWriteEnabledTest extends BaseTest4 {
     return ids;
   }
 
+  @BeforeAll
+  static void createTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 VARCHAR, col2 INTEGER");
+    }
+  }
+
+  @AfterAll
+  static void dropTables() throws Exception {
+    try (Connection con = TestUtil.openDB()) {
+      TestUtil.dropTable(con, "testbatch");
+    }
+  }
+
   /* Set up the fixture for this testcase: a connection to a database with
   a table for this test. */
   public void setUp() throws Exception {
     super.setUp();
-    TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 VARCHAR, col2 INTEGER");
+    TestUtil.execute(con, "TRUNCATE testbatch");
     con.setAutoCommit(autoCommit == AutoCommit.YES);
-  }
-
-  // Tear down the fixture for this test case.
-  public void tearDown() throws SQLException {
-    TestUtil.dropTable(con, "testbatch");
-    super.tearDown();
   }
 
   @Override
