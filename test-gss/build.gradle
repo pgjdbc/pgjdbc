@@ -18,7 +18,7 @@ dependencies {
     testImplementation(group: 'junit', name: 'junit', version: '4.13.2')
 }
 application {
-    mainClassName = 'TestPostgres'
+    mainClass = 'TestPostgres'
     applicationDefaultJvmArgs = ['-Djava.security.auth.login.config=jaas.conf']
 }
 
