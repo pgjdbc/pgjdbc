@@ -27,7 +27,6 @@ dependencies {
 }
 
 checkerFramework {
-    skipVersionCheck = true
     excludeTests = true
     // See https://checkerframework.org/manual/#introduction
     checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
