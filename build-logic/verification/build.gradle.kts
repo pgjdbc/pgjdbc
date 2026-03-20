@@ -3,6 +3,8 @@ plugins {
 }
 
 dependencies {
+    // See https://github.com/gradle/gradle/issues/15383#issuecomment-779893192
+    implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
     implementation(project(":basics"))
     implementation(project(":build-parameters"))
     implementation("com.github.autostyle:com.github.autostyle.gradle.plugin:4.0")

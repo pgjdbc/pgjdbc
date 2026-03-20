@@ -16,12 +16,11 @@ import com.github.vlsi.gradle.release.dsl.dependencyLicenses
 import com.github.vlsi.gradle.release.dsl.licensesCopySpec
 
 plugins {
-    id("build-logic.java-published-library")
+    id("build-logic.java-shaded-published-library")
     id("build-logic.test-junit5")
     id("build-logic.java-comment-preprocessor")
     id("build-logic.without-type-annotations")
     id("biz.aQute.bnd.builder") apply false
-    id("com.gradleup.shadow")
     id("com.github.lburgazzoli.karaf")
     id("com.github.vlsi.gettext")
     id("com.github.vlsi.gradle-extensions")
