@@ -1,4 +1,6 @@
 import org.gradle.kotlin.dsl.dependencies
+import org.gradle.accessors.dm.LibrariesForLibs
+import org.gradle.kotlin.dsl.the
 
 plugins {
     id("build-logic.build-params")
@@ -27,6 +29,7 @@ dependencies {
 }
 
 checkerFramework {
+    version = the<LibrariesForLibs>().checkerframework.map { it.version }
     excludeTests = true
     // See https://checkerframework.org/manual/#introduction
     checkers.add("org.checkerframework.checker.nullness.NullnessChecker")
