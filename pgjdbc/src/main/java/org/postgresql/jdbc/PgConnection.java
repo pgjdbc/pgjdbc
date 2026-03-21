@@ -85,10 +85,12 @@ import java.sql.Statement;
 import java.sql.Struct;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -200,6 +202,9 @@ public class PgConnection implements BaseConnection {
    * Oids for which binary transfer should be disabled.
    */
   private final Set<? extends Integer> binaryDisabledOids;
+
+  // Track open statements to close non-holdable result sets on commit
+  private final List<java.lang.ref.WeakReference<PgStatement>> openStatements = new ArrayList<>();
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId;
@@ -879,6 +884,10 @@ public class PgConnection implements BaseConnection {
       // When that happens the connection is still registered in the finalizer queue, so it gets finalized
       return;
     }
+    
+    // Close all open statements
+    closeOpenStatements();
+    
     openStackTrace = null;
     try {
       cleanable.clean();
@@ -886,6 +895,25 @@ public class PgConnection implements BaseConnection {
       throw new PSQLException(
           GT.tr("Unable to close connection properly"),
           PSQLState.UNKNOWN_STATE, e);
+    }
+  }
+
+  /**
+   * Close all open statements.
+   */
+  private void closeOpenStatements() {
+    try (ResourceLock ignore = lock.obtain()) {
+      for (java.lang.ref.WeakReference<PgStatement> ref : openStatements) {
+        PgStatement stmt = ref.get();
+        if (stmt != null) {
+          try {
+            stmt.close();
+          } catch (SQLException e) {
+            // Ignore errors during cleanup
+          }
+        }
+      }
+      openStatements.clear();
     }
   }
 
@@ -1018,6 +1046,36 @@ public class PgConnection implements BaseConnection {
 
     if (queryExecutor.getTransactionState() != TransactionState.IDLE) {
       executeTransactionCommand(commitQuery);
+      closeNonHoldableResultSets();
+    }
+  }
+
+  /**
+   * Close all non-holdable result sets after commit.
+   */
+  private void closeNonHoldableResultSets() {
+    try (ResourceLock ignore = lock.obtain()) {
+      openStatements.removeIf(ref -> {
+        PgStatement stmt = ref.get();
+        if (stmt == null) {
+          return true; // Remove dead reference
+        }
+        try {
+          stmt.closeNonHoldableResultSets();
+        } catch (SQLException e) {
+          // Ignore errors during cleanup
+        }
+        return false;
+      });
+    }
+  }
+
+  /**
+   * Register a statement for tracking.
+   */
+  void registerStatement(PgStatement stmt) {
+    try (ResourceLock ignore = lock.obtain()){
+      openStatements.add(new java.lang.ref.WeakReference<>(stmt));
     }
   }
 
@@ -1443,21 +1501,27 @@ public class PgConnection implements BaseConnection {
   public Statement createStatement(int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgStatement stmt = new PgStatement(this, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgPreparedStatement stmt = new PgPreparedStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override
   public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency,
       int resultSetHoldability) throws SQLException {
     checkClosed();
-    return new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    PgCallableStatement stmt = new PgCallableStatement(this, sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+    registerStatement(stmt);
+    return stmt;
   }
 
   @Override

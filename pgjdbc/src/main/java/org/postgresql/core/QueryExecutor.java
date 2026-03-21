@@ -98,6 +98,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   int QUERY_BOTH_ROWS_AND_STATUS = 64;
 
   /**
+   * Flag for query execution that indicates a holdable cursor should be used if
+   * possible (survives transaction commit).
+   */
+  int QUERY_HOLDABLE_CURSOR = 128;
+
+  /**
    * Force this query to be described at each execution. This is done in pipelined batches where we
    * might need to detect mismatched result types.
    */
