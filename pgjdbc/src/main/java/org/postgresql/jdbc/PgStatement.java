@@ -23,6 +23,7 @@ import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.core.TransactionState;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.lock.qual.GuardedBy;
@@ -454,7 +455,9 @@ public class PgStatement implements Statement, BaseStatement {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
-    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
+    if (fetchSize > 0
+        && !wantsScrollableResultSet()
+        && (!connection.getAutoCommit() || connection.getQueryExecutor().getTransactionState() == TransactionState.OPEN)
         && !wantsHoldableResultSet()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
     }
