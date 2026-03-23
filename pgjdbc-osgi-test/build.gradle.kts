@@ -35,7 +35,7 @@ dependencies {
     testImplementation("org.apache.felix:org.apache.felix.framework:7.0.5")
     testImplementation("ch.qos.logback:logback-core:1.5.32")
     testImplementation("ch.qos.logback:logback-classic:1.5.32")
-    testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.8"))
+    testRuntimeOnly(platform("org.ow2.asm:asm-bom:9.9.1"))
     testRuntimeOnly("org.apache.aries.spifly:org.apache.aries.spifly.dynamic.bundle:1.3.7")
 }
 
