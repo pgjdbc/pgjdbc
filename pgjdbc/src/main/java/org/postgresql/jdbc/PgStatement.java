@@ -19,6 +19,7 @@ import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
 import org.postgresql.core.ResultHandlerBase;
 import org.postgresql.core.SqlCommand;
+import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -454,7 +455,14 @@ public class PgStatement implements Statement, BaseStatement {
     closeForNextExecution();
 
     // Enable cursor-based resultset if possible.
-    if (fetchSize > 0 && !wantsScrollableResultSet() && !connection.getAutoCommit()
+    // A server-side cursor requires an active transaction block. Without one,
+    // PostgreSQL auto-commits each statement, and the cursor is destroyed before
+    // the client can fetch subsequent batches.
+    // This is satisfied either by autoCommit=false (sendQueryPreamble will issue BEGIN)
+    // or by the server already being in a transaction (e.g. user issued START TRANSACTION / BEGIN).
+    if (fetchSize > 0 && !wantsScrollableResultSet()
+        && (!connection.getAutoCommit()
+            || connection.getQueryExecutor().getTransactionState() == TransactionState.OPEN)
         && !wantsHoldableResultSet()) {
       flags |= QueryExecutor.QUERY_FORWARD_CURSOR;
     }
