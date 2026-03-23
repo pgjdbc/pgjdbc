@@ -1,4 +1,4 @@
-FROM ubuntu:24.04@sha256:cd1dba651b3080c3686ecf4e3c4220f026b521fb76978881737d24f200828b2b
+FROM ubuntu:24.04@sha256:186072bba1b2f436cbb91ef2567abca677337cfc786c86e107d25b7072feef0c
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update \
