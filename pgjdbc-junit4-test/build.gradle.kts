@@ -4,7 +4,7 @@ plugins {
 
 dependencies {
     constraints {
-        testImplementation("org.apache.bcel:bcel:6.11.0") {
+        testImplementation("org.apache.bcel:bcel:6.12.0") {
             because("classloader-leak-test-framework uses bcel, and we want addressing CVEs")
         }
     }
