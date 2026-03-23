@@ -172,7 +172,7 @@ jobs:
         docker compose logs
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }}
       if: ${{ runner.os != 'Linux' }}
-      uses: ikalnytskyi/action-setup-postgres@v7
+      uses: ikalnytskyi/action-setup-postgres@10ab8a56cc77b4823c2bfa57b1d4dd5605ef0481 # v7
       with:
         username: postgres
         password: postgres
