@@ -49,13 +49,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -2139,14 +2140,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           if (isBinary(columnIndex + 1)) {
             rowBuffer.set(columnIndex, (byte[]) valueObject);
           } else {
+            Charset charset;
             try {
-              rowBuffer.set(columnIndex,
-                  PGbytea.toPGString((byte[]) valueObject).getBytes(connection.getEncoding().name()));
-            } catch (UnsupportedEncodingException e) {
+              charset = Charset.forName(connection.getEncoding().name());
+            } catch (UnsupportedCharsetException e) {
               throw new PSQLException(
                   GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
                   PSQLState.UNEXPECTED_ERROR, e);
             }
+            byte[] bytes = PGbytea.toPGString((byte[]) valueObject).getBytes(charset);
+            rowBuffer.set(columnIndex, bytes);
           }
           break;
 

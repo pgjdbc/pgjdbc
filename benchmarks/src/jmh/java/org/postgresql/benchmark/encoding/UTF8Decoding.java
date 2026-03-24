@@ -80,6 +80,7 @@ public class UTF8Decoding {
   }
 
   @Benchmark
+  @SuppressWarnings("JdkObsolete")
   public String string_string() throws UnsupportedEncodingException {
     return new String(source, 0, source.length, "UTF-8");
   }

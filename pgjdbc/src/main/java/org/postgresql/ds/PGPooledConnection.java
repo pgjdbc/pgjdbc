@@ -372,7 +372,7 @@ public class PGPooledConnection implements PooledConnection {
       this.proxy = proxy;
     }
 
-    public void close() {
+    void close() {
       if (con != null) {
         automatic = true;
       }
@@ -382,7 +382,7 @@ public class PGPooledConnection implements PooledConnection {
     }
 
     @SuppressWarnings("UnusedMethod")
-    public boolean isClosed() {
+    boolean isClosed() {
       return con == null;
     }
   }
