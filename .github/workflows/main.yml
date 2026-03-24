@@ -375,6 +375,11 @@ jobs:
         name="pg-server-logs-${{ matrix.name }}"
         # Remove characters illegal in GitHub artifact names: " : < > | * ? \r \n \ /
         name="${name//[\":<>|*?\\\/]/}"
+        # Shorten to 50 characters and add run id for uniqueness
+        if [ ${#name} -gt 50 ]; then
+          suffix="-${{ github.run_id }}"
+          name="${name:0:$((50 - ${#suffix}))}${suffix}"
+        fi
         echo "name=$name" >> "$GITHUB_OUTPUT"
     - name: Upload PostgreSQL server logs
       if: ${{ failure() }}
