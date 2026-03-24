@@ -311,9 +311,10 @@ jobs:
     # Install custom JDK from URL
     - name: 'Download JDK ${{ matrix.jdk_distribution }} / ${{ matrix.jdk_version }} from ${{ matrix.jdk_url }}'
       if: ${{ matrix.jdk_distribution == 'jdkfile' }}
+      env:
+        JDK_URL: ${{ matrix.jdk_url }}
       run: |
-        jdk_url="${{ matrix.jdk_url }}"
-        wget -nv -O "${{ runner.temp }}/java_package.tar.gz" "${jdk_url}"
+        wget -nv -O "$RUNNER_TEMP/java_package.tar.gz" "$JDK_URL"
     - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_url }}'
       uses: actions/setup-java@c1e323688fd81a25caa38c78aa6df2d33d3e20d9 # v4.8.0
       if: ${{ matrix.jdk_distribution == 'jdkfile' }}
@@ -342,12 +343,15 @@ jobs:
         psql -c 'SELECT version()'
 
     - name: Prepare local properties
+      env:
+        MATRIX_SSL: ${{ matrix.ssl }}
+        QUERY_MODE: ${{ matrix.query_mode }}
       run: |
         cat <<EOF >ssltest.local.properties
-        enable_ssl_tests=${{ matrix.ssl }}
+        enable_ssl_tests=$MATRIX_SSL
         EOF
         cat <<EOF >build.local.properties
-        preferQueryMode=${{ matrix.query_mode}}
+        preferQueryMode=$QUERY_MODE
         EOF
     - name: Test
       uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1

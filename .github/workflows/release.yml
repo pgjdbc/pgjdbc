@@ -21,6 +21,8 @@ jobs:
       pull-requests: read
     steps:
       - name: Validate input parameters
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         # language=bash
         run: |
           # Ensure we release from master or release/** branches, ensure version number follows semver
@@ -31,7 +33,7 @@ jobs:
           fi
 
           # Validate version follows semver or is empty
-          VERSION="${{ inputs.version }}"
+          VERSION="$INPUT_VERSION"
           if [[ -n "$VERSION" && ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version must be blank or follow semantic versioning format (x.y.z). Got '$VERSION'"
             exit 1
@@ -43,10 +45,12 @@ jobs:
       - name: Get the release version
         id: release_version
         shell: bash
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         # language=bash
         run: |
-          if [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
+          if [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
             echo "Got release version from workflow input: $VERSION"
           else
             VERSION=$(grep "^pgjdbc.version=" gradle.properties | cut -d'=' -f2)
@@ -128,10 +132,12 @@ jobs:
 
       - name: Compute the next patch version
         id: next_version
+        env:
+          RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
         # language=bash
         run: |
           # Compute the next patch version
-          IFS='.' read -r major minor patch <<< "${{ steps.release_version.outputs.version }}"
+          IFS='.' read -r major minor patch <<< "$RELEASE_VERSION"
           next_version="${major}.${minor}.$((patch + 1))"
           echo "Next version: $next_version"
           echo "version=$next_version" >> "$GITHUB_OUTPUT"
