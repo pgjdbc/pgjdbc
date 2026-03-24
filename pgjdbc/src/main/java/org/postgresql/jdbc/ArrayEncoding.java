@@ -325,7 +325,7 @@ final class ArrayEncoding {
      * @param offset
      *          The offset into <i>bytes</i> to write the <i>number</i> value.
      */
-    protected abstract void write(N number, byte[] bytes, int offset);
+    abstract void write(N number, byte[] bytes, int offset);
 
     /**
      * {@inheritDoc}
@@ -430,7 +430,7 @@ final class ArrayEncoding {
      * @param offset
      *          The offset into <i>bytes</i> to start writing.
      */
-    protected abstract void write(A array, byte[] bytes, int offset);
+    abstract void write(A array, byte[] bytes, int offset);
   }
 
   private static final AbstractArrayEncoder<long[]> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long[]>(8, Oid.INT8,

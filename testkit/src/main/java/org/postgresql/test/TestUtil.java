@@ -720,7 +720,7 @@ public class TestUtil {
     return s;
   }
 
-  /*
+  /**
    * Helper to prefix a number with leading zeros - ugly but it works...
    *
    * @param v value to prefix

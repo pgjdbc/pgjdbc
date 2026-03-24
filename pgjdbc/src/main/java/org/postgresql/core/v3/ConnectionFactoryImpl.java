@@ -86,11 +86,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       return this.key + "=" + this.value;
     }
 
-    public byte[] getEncodedKey() {
+    private byte[] getEncodedKey() {
       return this.key.getBytes(StandardCharsets.UTF_8);
     }
 
-    public byte[] getEncodedValue() {
+    private byte[] getEncodedValue() {
       return this.value.getBytes(StandardCharsets.UTF_8);
     }
   }

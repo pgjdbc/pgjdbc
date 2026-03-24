@@ -164,7 +164,7 @@ public class LazyCleanerImpl implements LazyCleaner {
       return false;
     }
 
-    public @Nullable Reference<? extends T> drainOne() {
+    @Nullable Reference<? extends T> drainOne() {
       Reference<? extends T> ref = this.ref;
       this.ref = null;
       return ref;

@@ -385,7 +385,7 @@ public class Driver implements java.sql.Driver {
      * @return the new connection, if successful
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
-    public Connection getResult(long timeout) throws SQLException {
+    Connection getResult(long timeout) throws SQLException {
       long expiry = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) + timeout;
       try (ResourceLock ignore = lock.obtain()) {
         while (true) {

@@ -461,7 +461,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
     try {
-      InputStreamReader inStream = new InputStreamReader(x, encoding);
+      InputStreamReader inStream = new InputStreamReader(x, Charset.forName(encoding));
       char[] chars = new char[length];
       int charsRead = 0;
       while (true) {

@@ -519,7 +519,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   // If query has no resulting fields, it cannot fail with 'cached plan must not change result type'
   // thus no need to set a savepoint before such query
-  private boolean queryMightFail(Query query) {
+  private static boolean queryMightFail(Query query) {
     return !(query instanceof SimpleQuery)
         || ((SimpleQuery) query).getFields() != null;
   }
@@ -2177,7 +2177,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // After this method returns, caller sends Sync and processes all responses via processResults()
   }
 
-  private int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
+  private static int calculateRowsToFetch(boolean noResults, boolean usePortal, int maxRows, int fetchSize) {
     if (noResults) {
       return 1;
     }
@@ -2190,13 +2190,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return fetchSize;
   }
 
-  private boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
+  private static boolean shouldDescribeStatement(boolean describeOnly, boolean oneShot,
       boolean queryHasUnknown, boolean paramsHasUnknown, SimpleQuery query) {
     return describeOnly
         || (!oneShot && paramsHasUnknown && queryHasUnknown && !query.isStatementDescribed());
   }
 
-  private void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
+  private static void resolveParameterTypes(SimpleQuery query, SimpleParameterList params) {
     int[] queryOIDs = castNonNull(query.getPrepareTypes());
     int[] paramOIDs = params.getTypeOIDs();
     for (int i = 0; i < paramOIDs.length; i++) {
