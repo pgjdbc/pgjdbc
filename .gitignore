@@ -4,6 +4,7 @@
 .project
 .checkstyle
 .DS_Store
+node_modules
 .externalToolBuilders
 build
 jars

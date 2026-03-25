@@ -3,9 +3,8 @@
 // See https://github.com/vlsi/github-actions-random-matrix
 import { appendFileSync } from 'fs';
 import { EOL } from 'os';
-import { RNG } from './rng.mjs';
-import { MatrixBuilder } from './matrix_builder.mjs';
-const matrix = new MatrixBuilder();
+import { createGitHubMatrixBuilder } from '@vlsi/github-actions-random-matrix/github';
+const { matrix, random } = createGitHubMatrixBuilder();
 
 // Some of the filter conditions might become unsatisfiable, and by default
 // the matrix would ignore that.
@@ -320,7 +319,7 @@ include.forEach(v => {
     // The idea is that everything should still work since the option is just a hint to the driver
     // on the minimal set of features it can use when connecting to the database.
     let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
-    v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(RNG.random() * assumeMinServerVersion.length)];
+    v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(random() * assumeMinServerVersion.length)];
     if (v.assumeMinServerVersion !== '') {
         v.name += ', assume min version ' + v.assumeMinServerVersion;
     }
@@ -383,7 +382,7 @@ include.forEach(v => {
   jvmArgs.push(`-Duser.country=${v.locale.country}`);
   jvmArgs.push(`-Duser.language=${v.locale.language}`);
   let jit = v.java_distribution === 'semeru' ? 'open9j' : 'hotspot';
-  if (jit === 'hotspot' && RNG.random() > 0.5) {
+  if (jit === 'hotspot' && random() > 0.5) {
     // The following options randomize instruction selection in JIT compiler
     // so it might reveal missing synchronization in TestNG code
     v.name += ', stress JIT';

@@ -134,6 +134,7 @@ jobs:
       shell: bash
       # language=bash
       run: |
+        npm ci --prefix .github/workflows
         node .github/workflows/matrix.mjs
 
   build-test:
