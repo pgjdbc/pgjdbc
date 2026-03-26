@@ -16,7 +16,11 @@ import java.util.logging.Logger;
 
 /**
  * routines to support PG properties
+ *
+ * @deprecated This class is not used by "pgjdbc" project anymore. This class is not part of "pgjdbc"
+ *             promises and should not be used. This class should be deleted in the next major version.
  */
+@Deprecated
 public class PGPropertyUtil {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyUtil.class.getName());
