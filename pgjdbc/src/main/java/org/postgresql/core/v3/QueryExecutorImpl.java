@@ -106,6 +106,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.VirtualThreadUtil;
 import org.postgresql.util.internal.IntSet;
 import org.postgresql.util.internal.SourceStreamIOException;
 
@@ -400,12 +401,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
+    // Check if we should use pipeline mode
+    if (shouldUsePipelineMode()) {
+      executePipelined(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+      return;
+    }
+
+    // Traditional execution - full lock
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
             new Object[]{handler, maxRows, fetchSize, flags});
       }
+      ExecutorQueues executorQueues = nonPipelinedQueues;
 
       if (parameters == null) {
         parameters = SimpleQuery.NO_PARAMETERS;
@@ -425,17 +434,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       boolean autosave = false;
       try {
         try {
-          handler = sendQueryPreamble(handler, flags);
-          autosave = sendAutomaticSavepoint(query, flags);
+          handler = sendQueryPreamble(handler, flags, executorQueues);
+          autosave = sendAutomaticSavepoint(query, flags, executorQueues);
           sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize, flags,
-              handler, null, adaptiveFetch);
+              handler, null, adaptiveFetch, executorQueues);
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
             // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
             // on its own
           } else {
-            sendSync();
+            sendSync(executorQueues);
           }
-          processResults(handler, flags, adaptiveFetch);
+          processResults(handler, flags, adaptiveFetch, executorQueues);
           estimatedReceiveBufferBytes = 0;
         } catch (PGBindException se) {
           // There are three causes of this error, an
@@ -452,8 +461,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // caller to rollback if there is a
           // transaction in progress?
           //
-          sendSync();
-          processResults(handler, flags, adaptiveFetch);
+          sendSync(executorQueues);
+          processResults(handler, flags, adaptiveFetch, executorQueues);
           estimatedReceiveBufferBytes = 0;
           handler
               .handleError(new PSQLException(GT.tr("Unable to bind parameter values for statement."),
@@ -469,7 +478,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave);
+          releaseSavePoint(autosave, executorQueues);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -477,10 +486,192 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private boolean sendAutomaticSavepoint(Query query, int flags) throws IOException {
+  private boolean shouldUsePipelineMode() {
+    return pipelineModeEnabled
+        && VirtualThreadUtil.isVirtualThread()
+        // Connection is not in an exclusive state (COPY, etc.)
+        && !hasLock(Thread.currentThread())
+        && getTransactionState() != TransactionState.FAILED;
+  }
+
+  /**
+   * Execute a query using pipeline mode with ticket-based queue.
+   * This allows multiple virtual threads to concurrently send queries
+   * and read results in FIFO order.
+   */
+  private void executePipelined(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
+
+    long myTicket = -1L;
+    boolean autosave = false;
+    boolean ticketClaimed = false;
+    ExecutorQueues executorQueues = new ExecutorQueues();
+
+    // Phase 1: WRITE - Send query to server (synchronized on write lock)
+    // ================================================================
+    try (ResourceLock ignore = writeLock.obtain()) {
+      try {
+        // Get our ticket number - this establishes our position in the result queue
+        myTicket = nextTicket;
+        nextTicket++;
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, "  pipeline execute ticket={0}, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
+                     new Object[]{myTicket, handler, maxRows, fetchSize, flags});
+        }
+        if (parameters == null) {
+          parameters = SimpleQuery.NO_PARAMETERS;
+        }
+
+        flags = updateQueryMode(flags);
+        boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+
+        ((V3ParameterList) parameters).convertFunctionOutParameters();
+
+        // Check parameters are all set
+        if (!describeOnly) {
+          ((V3ParameterList) parameters).checkAllParametersSet();
+        }
+
+        handler = sendQueryPreamble(handler, flags, executorQueues);
+        autosave = sendAutomaticSavepoint(query, flags, executorQueues);
+        sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize,
+            flags, handler, null, adaptiveFetch, executorQueues);
+        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+        } else {
+          sendSync(executorQueues);
+        }
+
+        // Flush to ensure query is sent
+        pgStream.flush();
+
+        // Successfully wrote - we're now in queue
+        ticketClaimed = true;
+
+      } catch (PGBindException se) {
+        // There are three causes of this error, an
+        // invalid total Bind message length, a
+        // BinaryStream that cannot provide the amount
+        // of data claimed by the length argument, and
+        // a BinaryStream that throws an Exception
+        // when reading.
+        //
+        // We simply do not send the Execute message
+        // so we can just continue on as if nothing
+        // has happened. Perhaps we need to
+        // introduce an error here to force the
+        // caller to rollback if there is a
+        // transaction in progress?
+        //
+        sendSync(executorQueues);
+        pgStream.flush();
+        ticketClaimed = true;
+        handler
+            .handleError( new PSQLException(
+                GT.tr( "Unable to bind parameter values for statement." ),
+                PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()
+            ) );
+      }
+    } catch (IOException e) {
+      abort();
+      handler.handleError(
+          new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
+                            PSQLState.CONNECTION_FAILURE, e));
+    }
+
+    try {
+      // Phase 2: WAIT - Wait for our turn to read results
+      // ==================================================
+      waitForOurTurnToRead(myTicket);
+
+      // Phase 3: READ - Process results from server
+      // ============================================
+      try {
+        processResults(handler, flags, adaptiveFetch, executorQueues);
+        estimatedReceiveBufferBytes = 0;
+      } catch (IOException e) {
+        abort();
+        handler.handleError(
+            new PSQLException(GT.tr("An I/O error occurred while receiving from the backend."),
+                PSQLState.CONNECTION_FAILURE, e));
+      }
+
+      try {
+        handler.handleCompletion();
+        if (cleanupSavePoints) {
+          releaseSavePoint(autosave, executorQueues);
+        }
+      } catch (SQLException e) {
+        rollbackIfRequired(autosave, e);
+      } finally {
+        // Phase 4: SIGNAL NEXT - Allow next thread to read
+        // =================================================
+        signalNextReader();
+      }
+    } catch (InterruptedException e) {
+      // If interrupted while waiting, skip our ticket so we don't block others
+      if (ticketClaimed) {
+        signalNextReader();
+      }
+      Thread.currentThread().interrupt();
+      handler.handleError(
+          new PSQLException(GT.tr("Interrupted while waiting to read query results"),
+                            PSQLState.QUERY_CANCELED, e));
+    } finally {
+      // If we failed before claiming ticket, clean up
+      if (!ticketClaimed) {
+        skipTicketIfCurrent(myTicket);
+      }
+    }
+  }
+
+  /**
+   * Wait until it's our turn to read from the InputStream.
+   * This implements a ticket-based queue system where threads
+   * read results in the same order queries were sent.
+   */
+  private void waitForOurTurnToRead(long myTicket) throws InterruptedException {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      // Wait until the server is ready to send us our results
+      while (currentlyServing != myTicket) {
+        nextReaderReady.await();
+      }
+      // Now it's our turn to read!
+    }
+  }
+
+  /**
+   * Signal the next thread in queue that it's their turn to read.
+   */
+  private void signalNextReader() {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      // Increment to next ticket
+      currentlyServing++;
+
+      // Wake up all waiting threads (the one with matching ticket will proceed)
+      nextReaderReady.signalAll();
+    }
+  }
+
+  /**
+   * Skip a ticket if it's currently being served.
+   * Used when a thread fails before writing its query.
+   */
+  private void skipTicketIfCurrent(long ticket) {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      if (currentlyServing == ticket) {
+        currentlyServing++;
+        nextReaderReady.signalAll();
+      }
+    }
+  }
+
+  private boolean sendAutomaticSavepoint(Query query, int flags, ExecutorQueues executorQueues) throws IOException {
     if (shouldCreateAutomaticSavepoint(query, flags)) {
       sendOneQuery(autoSaveQuery, SimpleQuery.NO_PARAMETERS, 1, 0,
-          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE, executorQueues);
       return true;
     }
     return false;
@@ -537,13 +728,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         || ((SimpleQuery) query).getFields() != null;
   }
 
-  private void releaseSavePoint(boolean autosave) throws SQLException {
+  private void releaseSavePoint(boolean autosave, ExecutorQueues executorQueues) throws SQLException {
     if (!shouldReleaseSavepoint(autosave)) {
       return;
     }
     try {
       sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
-          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+          QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE, executorQueues);
     } catch (IOException ex) {
       throw new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
     }
@@ -641,6 +832,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         LOGGER.log(Level.FINEST, "  batch execute {0} queries, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
             new Object[]{queries.length, batchHandler, maxRows, fetchSize, flags});
       }
+      ExecutorQueues executorQueues = nonPipelinedQueues;
 
       flags = updateQueryMode(flags);
 
@@ -657,8 +849,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       boolean autosave = false;
       ResultHandler handler = batchHandler;
       try {
-        handler = sendQueryPreamble(batchHandler, flags);
-        autosave = sendAutomaticSavepoint(queries[0], flags);
+        handler = sendQueryPreamble(batchHandler, flags, executorQueues);
+        autosave = sendAutomaticSavepoint(queries[0], flags, executorQueues);
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
@@ -666,7 +858,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (i == 0) {
             estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
           } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
+            flushIfDeadlockRisk(query, handler, batchHandler, flags, executorQueues);
           }
 
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
@@ -674,7 +866,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             parameters = SimpleQuery.NO_PARAMETERS;
           }
 
-          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
+          sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch, executorQueues);
 
           if (handler.getException() != null) {
             break;
@@ -685,9 +877,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
-            sendSync();
+            sendSync(executorQueues);
           }
-          processResults(handler, flags, adaptiveFetch);
+          processResults(handler, flags, adaptiveFetch, executorQueues);
           estimatedReceiveBufferBytes = 0;
         }
       } catch (IOException e) {
@@ -700,7 +892,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       try {
         handler.handleCompletion();
         if (cleanupSavePoints) {
-          releaseSavePoint(autosave);
+          releaseSavePoint(autosave, executorQueues);
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
@@ -708,7 +900,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags)
+  private ResultHandler sendQueryPreamble(final ResultHandler delegateHandler, int flags, ExecutorQueues executorQueues)
       throws IOException {
     // First, send CloseStatements for finalized SimpleQueries that had statement names assigned.
     processDeadParsedQueries();
@@ -731,7 +923,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     final SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0 ? beginTransactionQuery : beginReadOnlyTransactionQuery;
 
-    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
+    sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags, executorQueues);
 
     // Insert a handler that intercepts the BEGIN.
     return new ResultHandlerDelegate(delegateHandler) {
@@ -771,15 +963,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
+      ExecutorQueues executorQueues = nonPipelinedQueues;
       if (!suppressBegin) {
-        doSubprotocolBegin();
+        doSubprotocolBegin(executorQueues);
       }
       try {
         // Process any pending responses from simple queries (e.g., RELEASE SAVEPOINT
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by receiveFastpathResult(). See https://github.com/pgjdbc/pgjdbc/issues/3910
-        if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new DiscardResultHandler(), 0);
+        if (!executorQueues.pendingExecuteQueue.isEmpty()) {
+          processResults(new DiscardResultHandler(), 0, false, executorQueues);
         }
         sendFastpathCall(fnid, (SimpleParameterList) parameters);
         return receiveFastpathResult();
@@ -791,7 +984,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  public void doSubprotocolBegin() throws SQLException {
+  public void doSubprotocolBegin(ExecutorQueues executorQueues) throws SQLException {
     if (getTransactionState() == TransactionState.IDLE) {
 
       LOGGER.log(Level.FINEST, "Issuing BEGIN before fastpath or copy call.");
@@ -830,9 +1023,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
                          | QueryExecutor.QUERY_ONESHOT
                          | QueryExecutor.QUERY_EXECUTE_AS_SIMPLE;
         beginFlags = updateQueryMode(beginFlags);
-        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
-        sendSync();
-        processResults(handler, 0);
+        sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags, executorQueues);
+        sendSync(executorQueues);
+        processResults(handler, 0, false, executorQueues);
         estimatedReceiveBufferBytes = 0;
       } catch (IOException ioe) {
         throw new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
@@ -1080,8 +1273,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
+      ExecutorQueues executorQueues = nonPipelinedQueues;
       if (!suppressBegin) {
-        doSubprotocolBegin();
+        doSubprotocolBegin(executorQueues);
       }
       byte[] buf = sql.getBytes(StandardCharsets.UTF_8);
 
@@ -1089,8 +1283,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // Process any pending responses from simple queries (e.g., RELEASE SAVEPOINT
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by processCopyResults(). See https://github.com/pgjdbc/pgjdbc/issues/3910
-        if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new DiscardResultHandler(), 0);
+        if (!executorQueues.pendingExecuteQueue.isEmpty()) {
+          processResults(new DiscardResultHandler(), 0, false, executorQueues);
         }
         LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
@@ -1654,7 +1848,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void flushIfDeadlockRisk(SimpleQuery query,
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+      final int flags, ExecutorQueues executorQueues) throws IOException {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
@@ -1662,8 +1856,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
-      sendSync();
-      processResults(resultHandler, flags);
+      sendSync(executorQueues);
+      processResults(resultHandler, flags, false, executorQueues);
       // We've processed incoming bytes, and the query to be executed would consume receive buffer
       estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
@@ -1677,7 +1871,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void sendQuery(Query query, V3ParameterList parameters, int maxRows, int fetchSize,
       int flags, ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch) throws IOException, SQLException {
+      @Nullable BatchResultHandler batchHandler, boolean adaptiveFetch, ExecutorQueues executorQueues) throws IOException, SQLException {
     // Now the query itself.
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
@@ -1689,7 +1883,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
         sendOneQuery((SimpleQuery) query, (SimpleParameterList) parameters, maxRows, fetchSize,
-            flags);
+            flags, executorQueues);
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
@@ -1697,7 +1891,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (i == 0) {
           estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
         } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags, executorQueues);
           // If we saw errors, don't send anything more.
           if (resultHandler.getException() != null) {
             break;
@@ -1717,7 +1911,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, subquery);
         }
-        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags);
+        sendOneQuery((SimpleQuery) subquery, subparam, maxRows, fetchSize, flags, executorQueues);
       }
     }
   }
@@ -1726,11 +1920,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // Message sending
   //
 
-  private void sendSync() throws IOException {
-    sendSync(true);
+  private void sendSync(ExecutorQueues executorQueues) throws IOException {
+    sendSync(true, executorQueues);
   }
 
-  private void sendSync(boolean flush) throws IOException {
+  private void sendSync(boolean flush, ExecutorQueues executorQueues) throws IOException {
     inExtendedProtocol = false;
     LOGGER.log(Level.FINEST, " FE=> Sync");
 
@@ -1740,11 +1934,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.flush();
     }
     // Below "add queues" are likely not required at all
-    pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
-    pendingDescribePortalQueue.add(sync);
+    executorQueues.pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
+    executorQueues.pendingDescribePortalQueue.add(sync);
   }
 
-  private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot)
+  private void sendParse(SimpleQuery query, SimpleParameterList params, boolean oneShot, ExecutorQueues executorQueues)
       throws IOException {
     // Already parsed, or we have a Parse pending and the types are right?
     int[] typeOIDs = params.getTypeOIDs();
@@ -1822,12 +2016,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger4(params.getTypeOID(i));
     }
 
-    pendingParseQueue.add(query);
+    executorQueues.pendingParseQueue.add(query);
     inExtendedProtocol = true;
   }
 
   private void sendBind(SimpleQuery query, SimpleParameterList params, @Nullable Portal portal,
-      boolean noBinaryTransfer) throws IOException {
+      boolean noBinaryTransfer, ExecutorQueues executorQueues) throws IOException {
     inExtendedProtocol = true;
 
     String statementName = query.getStatementName();
@@ -1957,7 +2151,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       pgStream.sendInteger2(fields[i].getFormat());
     }
 
-    pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
+    executorQueues.pendingBindQueue.add(portal == null ? UNNAMED_PORTAL : portal);
 
     if (bindException != null) {
       throw bindException;
@@ -1976,7 +2170,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return useBinaryForReceive(oid);
   }
 
-  private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
+  private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal, ExecutorQueues executorQueues) throws IOException {
     inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(portal={0})", portal);
@@ -1994,12 +2188,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
     pgStream.sendChar(0); // end of portal name
 
-    pendingDescribePortalQueue.add(query);
+    executorQueues.pendingDescribePortalQueue.add(query);
     query.setPortalDescribed(true);
   }
 
   private void sendDescribeStatement(SimpleQuery query, SimpleParameterList params,
-      boolean describeOnly) throws IOException {
+      boolean describeOnly, ExecutorQueues executorQueues) throws IOException {
     inExtendedProtocol = true;
 
     LOGGER.log(Level.FINEST, " FE=> Describe(statement={0})", query.getStatementName());
@@ -2019,14 +2213,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // Note: statement name can change over time for the same query object
     // Thus we take a snapshot of the query name
-    pendingDescribeStatementQueue.add(
+    executorQueues.pendingDescribeStatementQueue.add(
         new DescribeRequest(query, params, describeOnly, query.getStatementName()));
-    pendingDescribePortalQueue.add(query);
+    executorQueues.pendingDescribePortalQueue.add(query);
     query.setStatementDescribed(true);
     query.setPortalDescribed(true);
   }
 
-  private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit)
+  private void sendExecute(SimpleQuery query, @Nullable Portal portal, int limit, ExecutorQueues executorQueues)
       throws IOException {
     inExtendedProtocol = true;
 
@@ -2046,7 +2240,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendChar(0); // portal name terminator
     pgStream.sendInteger4(limit); // row limit
 
-    pendingExecuteQueue.add(new ExecuteRequest(query, portal, false));
+    executorQueues.pendingExecuteQueue.add(new ExecuteRequest(query, portal, false));
   }
 
   private void sendClosePortal(String portalName) throws IOException {
@@ -2115,13 +2309,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * consume server responses and update pending queues.</p>
    */
   private void sendOneQuery(SimpleQuery query, SimpleParameterList params, int maxRows,
-      int fetchSize, int flags) throws IOException {
+      int fetchSize, int flags, ExecutorQueues executorQueues) throws IOException {
     boolean asSimple = (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0;
     if (asSimple) {
       assert (flags & QueryExecutor.QUERY_DESCRIBE_ONLY) == 0
           : "Simple mode does not support describe requests. sql = " + query.getNativeSql()
           + ", flags = " + flags;
-      sendSimpleQuery(query, params);
+      sendSimpleQuery(query, params, executorQueues);
       return;
     }
 
@@ -2150,7 +2344,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // STATE: Send Parse message (or skip if already parsed)
     // NEXT: Server will respond with ParseComplete (or skip if cached)
-    sendParse(query, params, oneShot);
+    sendParse(query, params, oneShot, executorQueues);
 
     boolean queryHasUnknown = query.hasUnresolvedTypes();
     boolean paramsHasUnknown = params.hasUnresolvedTypes();
@@ -2165,7 +2359,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (describeStatement) {
       // STATE: Send Describe(Statement) to get parameter types
       // NEXT: Server responds with ParameterDescription
-      sendDescribeStatement(query, params, describeOnly);
+      sendDescribeStatement(query, params, describeOnly, executorQueues);
       if (describeOnly) {
         return;
       }
@@ -2180,7 +2374,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     // STATE: Send Bind message to bind parameters to statement
     // NEXT: Server responds with BindComplete
-    sendBind(query, params, portal, noBinaryTransfer);
+    sendBind(query, params, portal, noBinaryTransfer, executorQueues);
 
     // A statement describe will also output a RowDescription,
     // so don't reissue it here if we've already done so.
@@ -2204,13 +2398,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (!query.isPortalDescribed() || forceDescribePortal) {
         // STATE: Send Describe(Portal) to get result metadata
         // NEXT: Server responds with RowDescription or NoData
-        sendDescribePortal(query, portal);
+        sendDescribePortal(query, portal, executorQueues);
       }
     }
 
     // STATE: Send Execute message to run the query
     // NEXT: Server responds with DataRow* followed by CommandComplete or PortalSuspended
-    sendExecute(query, portal, rows);
+    sendExecute(query, portal, rows, executorQueues);
     // After this method returns, caller sends Sync and processes all responses via processResults()
   }
 
@@ -2243,11 +2437,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params) throws IOException {
+  private void sendSimpleQuery(SimpleQuery query, SimpleParameterList params, ExecutorQueues executorQueues) throws IOException {
     if (inExtendedProtocol) {
       // A sync message is required when switching from extended protocol to a simple query protocol
       // See https://github.com/pgjdbc/pgjdbc/issues/3107
-      sendSync(false);
+      sendSync(false, executorQueues);
     }
 
     String nativeSql = query.toString(
@@ -2263,8 +2457,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.send(encoded);
     pgStream.sendChar(0);
     pgStream.flush();
-    pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
-    pendingDescribePortalQueue.add(query);
+    executorQueues.pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
+    executorQueues.pendingDescribePortalQueue.add(query);
   }
 
   //
@@ -2358,6 +2552,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   protected void processResults(ResultHandler handler, int flags, boolean adaptiveFetch)
       throws IOException {
+    processResults( handler, flags, adaptiveFetch, nonPipelinedQueues );
+  }
+
+  protected void processResults(ResultHandler handler, int flags, boolean adaptiveFetch, ExecutorQueues executorQueues)
+      throws IOException {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
@@ -2383,7 +2582,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
           pgStream.receiveInteger4(); // len, discarded
 
-          SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
+          SimpleQuery parsedQuery = executorQueues.pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
 
           LOGGER.log(Level.FINEST, " <=BE ParseComplete [{0}]", parsedStatementName);
@@ -2395,7 +2594,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
-          DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
+          DescribeRequest describeData = executorQueues.pendingDescribeStatementQueue.getFirst();
           SimpleQuery query = describeData.query;
           SimpleParameterList params = describeData.parameterList;
           boolean describeOnly = describeData.describeOnly;
@@ -2423,7 +2622,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (describeOnly) {
             doneAfterRowDescNoData = true;
           } else {
-            pendingDescribeStatementQueue.removeFirst();
+            executorQueues.pendingDescribeStatementQueue.removeFirst();
           }
           break;
         }
@@ -2431,7 +2630,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
           pgStream.receiveInteger4(); // len, discarded
 
-          Portal boundPortal = pendingBindQueue.removeFirst();
+          Portal boundPortal = executorQueues.pendingBindQueue.removeFirst();
+
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
 
           registerOpenPortal(boundPortal);
@@ -2446,10 +2646,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
-          pendingDescribePortalQueue.removeFirst();
+          executorQueues.pendingDescribePortalQueue.removeFirst();
 
           if (doneAfterRowDescNoData) {
-            DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+            DescribeRequest describeData = executorQueues.pendingDescribeStatementQueue.removeFirst();
             SimpleQuery currentQuery = describeData.query;
 
             Field[] fields = currentQuery.getFields();
@@ -2469,7 +2669,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
-          ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+          ExecuteRequest executeData = executorQueues.pendingExecuteQueue.removeFirst();
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
@@ -2515,7 +2715,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           doneAfterRowDescNoData = false;
 
-          ExecuteRequest executeData = castNonNull(pendingExecuteQueue.peekFirst());
+          ExecuteRequest executeData = castNonNull(executorQueues.pendingExecuteQueue.peekFirst());
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
@@ -2543,7 +2743,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
 
           if (!executeData.asSimple) {
-            pendingExecuteQueue.removeFirst();
+            executorQueues.pendingExecuteQueue.removeFirst();
           } else {
             // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
@@ -2651,7 +2851,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
-          ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+          ExecuteRequest executeData = executorQueues.pendingExecuteQueue.removeFirst();
           Portal currentPortal = executeData.portal;
           handler.handleCommandStatus("EMPTY", 0, 0);
           if (currentPortal != null) {
@@ -2678,15 +2878,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Field[] fields = receiveFields();
           tuples = new ArrayList<>();
 
-          SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
-          if (!pendingExecuteQueue.isEmpty()
-              && !castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
-            pendingDescribePortalQueue.removeFirst();
+          SimpleQuery query = castNonNull(executorQueues.pendingDescribePortalQueue.peekFirst());
+          if (!executorQueues.pendingExecuteQueue.isEmpty()
+              && !castNonNull(executorQueues.pendingExecuteQueue.peekFirst()).asSimple) {
+            executorQueues.pendingDescribePortalQueue.removeFirst();
           }
           query.setFields(fields);
-
           if (doneAfterRowDescNoData) {
-            DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+            DescribeRequest describeData = executorQueues.pendingDescribeStatementQueue.removeFirst();
             SimpleQuery currentQuery = describeData.query;
             currentQuery.setFields(fields);
 
@@ -2699,19 +2898,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.READY_FOR_QUERY_RESPONSE: // eventual response to Sync
           receiveRFQ();
-          if (!pendingExecuteQueue.isEmpty()
-              && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
+          if (!executorQueues.pendingExecuteQueue.isEmpty()
+              && castNonNull(executorQueues.pendingExecuteQueue.peekFirst()).asSimple) {
             tuples = null;
             pgStream.clearResultBufferCount();
 
-            ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
+            ExecuteRequest executeRequest = executorQueues.pendingExecuteQueue.removeFirst();
             // Simple queries might return several resultsets, thus we clear
             // fields, so queries like "select 1;update; select2" will properly
             // identify that "update" did not return any results
-            executeRequest.query.setFields(null);
+            executeRequest.query.setFields( null );
 
-            pendingDescribePortalQueue.removeFirst();
-            if (!pendingExecuteQueue.isEmpty()) {
+            executorQueues.pendingDescribePortalQueue.removeFirst();
+            if (!executorQueues.pendingExecuteQueue.isEmpty()) {
               if (getTransactionState() == TransactionState.IDLE) {
                 handler.secureProgress();
               }
@@ -2722,27 +2921,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           endQuery = true;
 
           // Reset the statement name of Parses that failed.
-          while (!pendingParseQueue.isEmpty()) {
-            SimpleQuery failedQuery = pendingParseQueue.removeFirst();
+          while (!executorQueues.pendingParseQueue.isEmpty()) {
+            SimpleQuery failedQuery = executorQueues.pendingParseQueue.removeFirst();
             failedQuery.unprepare();
           }
 
-          pendingParseQueue.clear(); // No more ParseComplete messages expected.
+          executorQueues.pendingParseQueue.clear(); // No more ParseComplete messages expected.
           // Pending "describe" requests might be there in case of error
           // If that is the case, reset "described" status, so the statement is properly
           // described on next execution
-          while (!pendingDescribeStatementQueue.isEmpty()) {
-            DescribeRequest request = pendingDescribeStatementQueue.removeFirst();
+          while (!executorQueues.pendingDescribeStatementQueue.isEmpty()) {
+            DescribeRequest request = executorQueues.pendingDescribeStatementQueue.removeFirst();
             LOGGER.log(Level.FINEST, " FE marking setStatementDescribed(false) for query {0}", request.query);
             request.query.setStatementDescribed(false);
           }
-          while (!pendingDescribePortalQueue.isEmpty()) {
-            SimpleQuery describePortalQuery = pendingDescribePortalQueue.removeFirst();
+          while (!executorQueues.pendingDescribePortalQueue.isEmpty()) {
+            SimpleQuery describePortalQuery = executorQueues.pendingDescribePortalQueue.removeFirst();
             LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for query {0}", describePortalQuery);
             describePortalQuery.setPortalDescribed(false);
           }
-          pendingBindQueue.clear(); // No more BindComplete messages expected.
-          pendingExecuteQueue.clear(); // No more query executions expected.
+          executorQueues.pendingBindQueue.clear(); // No more BindComplete messages expected.
+          executorQueues.pendingExecuteQueue.clear(); // No more query executions expected.
           break;
 
         case PgMessageType.COPY_IN_RESPONSE:
@@ -2759,7 +2958,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.send(buf);
           pgStream.sendChar(0);
           pgStream.flush();
-          sendSync(); // send sync message
+          sendSync(executorQueues); // send sync message
           skipMessage(); // skip the response message
           break;
 
@@ -2809,6 +3008,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
+      ExecutorQueues executorQueues = nonPipelinedQueues;
       final Portal portal = (Portal) cursor;
 
       // Insert a ResultHandler that turns bare command statuses into empty datasets
@@ -2828,10 +3028,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         processDeadParsedQueries();
         processDeadPortals();
 
-        sendExecute(query, portal, fetchSize);
-        sendSync();
+        sendExecute(query, portal, fetchSize, executorQueues);
+        sendSync(executorQueues);
 
-        processResults(handler, 0, adaptiveFetch);
+        processResults(handler, 0, adaptiveFetch, executorQueues);
         estimatedReceiveBufferBytes = 0;
       } catch (IOException e) {
         abort();
@@ -3285,12 +3485,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     return integerDateTimes;
   }
 
-  private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<>();
-  private final Deque<Portal> pendingBindQueue = new ArrayDeque<>();
-  private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<>();
-  private final Deque<DescribeRequest> pendingDescribeStatementQueue =
-      new ArrayDeque<>();
-  private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<>();
+  private static final class ExecutorQueues {
+    private final Deque<SimpleQuery> pendingParseQueue = new ArrayDeque<>();
+    private final Deque<Portal> pendingBindQueue = new ArrayDeque<>();
+    private final Deque<ExecuteRequest> pendingExecuteQueue = new ArrayDeque<>();
+    private final Deque<DescribeRequest> pendingDescribeStatementQueue =
+        new ArrayDeque<>();
+    final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<>();
+  }
+
+  private final ExecutorQueues nonPipelinedQueues = new ExecutorQueues();
 
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;

@@ -53,8 +53,31 @@ val java11 by sourceSets.creating {
     // Make java11 source set depend on main source set (to access LazyCleaner base class)
     compileClasspath += sourceSets.main.get().output
 }
+// Create a separate source set for Java 21+ specific code (e.g., VirtualThread)
+val java21 by sourceSets.creating {
+    java {
+        srcDir("src/main/java21")
+    }
+    // Make java21 source set depend on main source set
+    compileClasspath += sourceSets.main.get().output
+}
+// Create a separate source set for Java 21+ specific code (e.g., VirtualThread)
+val testJava21 by sourceSets.creating {
+    java {
+        srcDir("src/test/java21")
+    }
+    // Make java21 source set depend on test source set
+    compileClasspath += sourceSets.test.get().compileClasspath + sourceSets.test.get().output
+    runtimeClasspath += sourceSets.test.get().runtimeClasspath
+}
 
-if (buildParameters.testJdkVersion >= 11) {
+if (buildParameters.testJdkVersion >= 21) {
+    // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
+    // So we explicitly prepend the classpath with Java 11 classes
+    tasks.test {
+        classpath = java21.output + java11.output + classpath
+    }
+} else if (buildParameters.testJdkVersion >= 11) {
     // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
     // So we explicitly prepend the classpath with Java 11 classes
     tasks.test {
@@ -69,9 +92,26 @@ tasks.named<JavaCompile>(java11.compileJavaTaskName) {
     dependsOn(tasks.compileJava)
 }
 
+// Configure the java21 source set to compile with Java 21
+tasks.named<JavaCompile>(java21.compileJavaTaskName) {
+    options.release.set(21)
+    // Ensure main classes are compiled before java11 classes
+    dependsOn(tasks.compileJava)
+}
+
+// Configure the java21 source set to compile with Java 21
+tasks.named<JavaCompile>(testJava21.compileJavaTaskName) {
+    options.release.set(21)
+    // Ensure main classes are compiled before java21 test classes
+    dependsOn(tasks.compileTestJava)
+}
+
 fun CopySpec.addMultiReleaseContents() {
     into("META-INF/versions/11") {
         from(java11.output)
+    }
+    into("META-INF/versions/21") {
+        from(java21.output)
     }
 }
 
