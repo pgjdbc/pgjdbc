@@ -1137,5 +1137,10 @@ public abstract class AbstractArraysTest<A> {
     public boolean getConvertBooleanToNumeric() {
       return false;
     }
+
+    @Override
+    public boolean allowSpecialNumeric() {
+      return false;
+    }
   }
 }
