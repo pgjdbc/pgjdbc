@@ -106,6 +106,7 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
+import org.postgresql.util.VirtualThreadUtil;
 import org.postgresql.util.internal.IntSet;
 import org.postgresql.util.internal.SourceStreamIOException;
 
@@ -393,6 +394,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
+    // Check if we should use pipeline mode
+    if (shouldUsePipelineMode()) {
+      executePipelined(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+      return;
+    }
+
+    // Traditional execution - full lock
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       if (LOGGER.isLoggable(Level.FINEST)) {
@@ -466,6 +474,190 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       } catch (SQLException e) {
         rollbackIfRequired(autosave, e);
+      }
+    }
+  }
+
+  private boolean shouldUsePipelineMode() {
+    return pipelineModeEnabled
+        && VirtualThreadUtil.isVirtualThread()
+        // Connection is not in an exclusive state (COPY, etc.)
+        && !hasLock(Thread.currentThread())
+        && getTransactionState() != TransactionState.FAILED;
+  }
+
+  /**
+   * Execute a query using pipeline mode with ticket-based queue.
+   * This allows multiple virtual threads to concurrently send queries
+   * and read results in FIFO order.
+   */
+  private void executePipelined(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
+
+    long myTicket = -1L;
+    boolean autosave = false;
+    boolean ticketClaimed = false;
+    ExecuteRequest lastRequest = null;
+
+    // Phase 1: WRITE - Send query to server (synchronized on write lock)
+    // ================================================================
+    try (ResourceLock ignore = writeLock.obtain()) {
+      try {
+        // Get our ticket number - this establishes our position in the result queue
+        myTicket = nextTicket;
+        nextTicket++;
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, "  pipeline execute ticket={0}, handler={1}, maxRows={2}, fetchSize={3}, flags={4}",
+                     new Object[]{myTicket, handler, maxRows, fetchSize, flags});
+        }
+        if (parameters == null) {
+          parameters = SimpleQuery.NO_PARAMETERS;
+        }
+
+        flags = updateQueryMode(flags);
+        boolean describeOnly = (QUERY_DESCRIBE_ONLY & flags) != 0;
+
+        ((V3ParameterList) parameters).convertFunctionOutParameters();
+
+        // Check parameters are all set
+        if (!describeOnly) {
+          ((V3ParameterList) parameters).checkAllParametersSet();
+        }
+
+        handler = sendQueryPreamble(handler, flags);
+        autosave = sendAutomaticSavepoint(query, flags);
+        sendQuery(query, (V3ParameterList) parameters, maxRows, fetchSize,
+            flags, handler, null, adaptiveFetch);
+        if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+        } else {
+          sendSync();
+        }
+
+        // Flush to ensure query is sent
+        pgStream.flush();
+
+        // Successfully wrote - we're now in queue
+        ticketClaimed = true;
+
+      } catch (PGBindException se) {
+        // There are three causes of this error, an
+        // invalid total Bind message length, a
+        // BinaryStream that cannot provide the amount
+        // of data claimed by the length argument, and
+        // a BinaryStream that throws an Exception
+        // when reading.
+        //
+        // We simply do not send the Execute message
+        // so we can just continue on as if nothing
+        // has happened. Perhaps we need to
+        // introduce an error here to force the
+        // caller to rollback if there is a
+        // transaction in progress?
+        //
+        sendSync();
+        pgStream.flush();
+        ticketClaimed = true;
+        handler
+            .handleError( new PSQLException(
+                GT.tr( "Unable to bind parameter values for statement." ),
+                PSQLState.INVALID_PARAMETER_VALUE, se.getIOException()
+            ) );
+      } finally {
+        lastRequest = pendingExecuteQueue.getLast();
+      }
+    } catch (IOException e) {
+      abort();
+      handler.handleError(
+          new PSQLException(GT.tr("An I/O error occurred while sending to the backend."),
+                            PSQLState.CONNECTION_FAILURE, e));
+    }
+
+    try {
+      // Phase 2: WAIT - Wait for our turn to read results
+      // ==================================================
+      waitForOurTurnToRead(myTicket);
+
+      // Phase 3: READ - Process results from server
+      // ============================================
+      try {
+        processResults(handler, flags, adaptiveFetch, lastRequest);
+        estimatedReceiveBufferBytes = 0;
+      } catch (IOException e) {
+        abort();
+        handler.handleError(
+            new PSQLException(GT.tr("An I/O error occurred while receiving from the backend."),
+                PSQLState.CONNECTION_FAILURE, e));
+      }
+
+      try {
+        handler.handleCompletion();
+        if (cleanupSavePoints) {
+          releaseSavePoint(autosave);
+        }
+      } catch (SQLException e) {
+        rollbackIfRequired(autosave, e);
+      } finally {
+        // Phase 4: SIGNAL NEXT - Allow next thread to read
+        // =================================================
+        signalNextReader();
+      }
+    } catch (InterruptedException e) {
+      // If interrupted while waiting, skip our ticket so we don't block others
+      if (ticketClaimed) {
+        signalNextReader();
+      }
+      Thread.currentThread().interrupt();
+      handler.handleError(
+          new PSQLException(GT.tr("Interrupted while waiting to read query results"),
+                            PSQLState.QUERY_CANCELED, e));
+    } finally {
+      // If we failed before claiming ticket, clean up
+      if (!ticketClaimed) {
+        skipTicketIfCurrent(myTicket);
+      }
+    }
+  }
+
+  /**
+   * Wait until it's our turn to read from the InputStream.
+   * This implements a ticket-based queue system where threads
+   * read results in the same order queries were sent.
+   */
+  private void waitForOurTurnToRead(long myTicket) throws InterruptedException {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      // Wait until the server is ready to send us our results
+      while (currentlyServing != myTicket) {
+        nextReaderReady.await();
+      }
+      // Now it's our turn to read!
+    }
+  }
+
+  /**
+   * Signal the next thread in queue that it's their turn to read.
+   */
+  private void signalNextReader() {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      // Increment to next ticket
+      currentlyServing++;
+
+      // Wake up all waiting threads (the one with matching ticket will proceed)
+      nextReaderReady.signalAll();
+    }
+  }
+
+  /**
+   * Skip a ticket if it's currently being served.
+   * Used when a thread fails before writing its query.
+   */
+  private void skipTicketIfCurrent(long ticket) {
+    try (ResourceLock ignore = readQueueLock.obtain()) {
+      if (currentlyServing == ticket) {
+        currentlyServing++;
+        nextReaderReady.signalAll();
       }
     }
   }
@@ -2324,6 +2516,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   protected void processResults(ResultHandler handler, int flags, boolean adaptiveFetch)
       throws IOException {
+    processResults(handler, flags, adaptiveFetch, null);
+  }
+
+  // endSync is the SYNC request within pendingExecuteQueue that represents the end of results
+  // or null if this method shall process to the end
+  protected void processResults(ResultHandler handler, int flags, boolean adaptiveFetch, @Nullable ExecuteRequest endSync)
+      throws IOException {
     boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
     boolean bothRowsAndStatus = (flags & QueryExecutor.QUERY_BOTH_ROWS_AND_STATUS) != 0;
 
@@ -2349,10 +2548,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
           pgStream.receiveInteger4(); // len, discarded
 
-          SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
-          String parsedStatementName = parsedQuery.getStatementName();
+          try (ResourceLock lock = writeLock.obtain()) {
+            SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
+            String parsedStatementName = parsedQuery.getStatementName();
 
-          LOGGER.log(Level.FINEST, " <=BE ParseComplete [{0}]", parsedStatementName);
+            LOGGER.log(Level.FINEST, " <=BE ParseComplete [{0}]", parsedStatementName);
+          }
 
           break;
 
@@ -2361,10 +2562,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
-          DescribeRequest describeData = pendingDescribeStatementQueue.getFirst();
+          DescribeRequest describeData;
+          try (ResourceLock lock = writeLock.obtain()) {
+            describeData = pendingDescribeStatementQueue.getFirst();
+            boolean describeOnly = describeData.describeOnly;
+
+            if ( describeOnly ) {
+              doneAfterRowDescNoData = true;
+            } else {
+              pendingDescribeStatementQueue.removeFirst();
+            }
+          }
           SimpleQuery query = describeData.query;
           SimpleParameterList params = describeData.parameterList;
-          boolean describeOnly = describeData.describeOnly;
           // This might differ from query.getStatementName if the query was re-prepared
           String origStatementName = describeData.statementName;
 
@@ -2386,18 +2596,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             query.setPrepareTypes(params.getTypeOIDs());
           }
 
-          if (describeOnly) {
-            doneAfterRowDescNoData = true;
-          } else {
-            pendingDescribeStatementQueue.removeFirst();
-          }
           break;
         }
 
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
           pgStream.receiveInteger4(); // len, discarded
 
-          Portal boundPortal = pendingBindQueue.removeFirst();
+          Portal boundPortal;
+          try (ResourceLock lock = writeLock.obtain()) {
+            boundPortal = pendingBindQueue.removeFirst();
+          }
+
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
 
           registerOpenPortal(boundPortal);
@@ -2412,10 +2621,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
-          pendingDescribePortalQueue.removeFirst();
-
           if (doneAfterRowDescNoData) {
-            DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+            DescribeRequest describeData;
+            try (ResourceLock lock = writeLock.obtain()) {
+              pendingDescribePortalQueue.removeFirst();
+              describeData = pendingDescribeStatementQueue.removeFirst();
+            }
             SimpleQuery currentQuery = describeData.query;
 
             Field[] fields = currentQuery.getFields();
@@ -2424,6 +2635,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               tuples = new ArrayList<>();
               handler.handleResultRows(currentQuery, fields, tuples, null);
               tuples = null;
+            }
+          } else {
+            try (ResourceLock lock = writeLock.obtain()) {
+              pendingDescribePortalQueue.removeFirst();
             }
           }
           break;
@@ -2435,7 +2650,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.receiveInteger4(); // len, discarded
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
-          ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+          ExecuteRequest executeData;
+          try (ResourceLock lock = writeLock.obtain()) {
+            executeData = pendingExecuteQueue.removeFirst();
+          }
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
@@ -2470,7 +2688,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           doneAfterRowDescNoData = false;
 
-          ExecuteRequest executeData = castNonNull(pendingExecuteQueue.peekFirst());
+          ExecuteRequest executeData;
+          try (ResourceLock lock = writeLock.obtain()) {
+            executeData = castNonNull(pendingExecuteQueue.peekFirst());
+            if (!executeData.asSimple) {
+              pendingExecuteQueue.removeFirst();
+            } else {
+              // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
+            }
+          }
           SimpleQuery currentQuery = executeData.query;
           Portal currentPortal = executeData.portal;
 
@@ -2495,12 +2721,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               lastSetSearchPathQuery = nativeSql;
               deallocateEpoch++;
             }
-          }
-
-          if (!executeData.asSimple) {
-            pendingExecuteQueue.removeFirst();
-          } else {
-            // For simple 'Q' queries, executeQueue is cleared via ReadyForQuery message
           }
 
           // we want to make sure we do not add any results from these queries to the result set
@@ -2606,7 +2826,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
-          ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
+          ExecuteRequest executeData;
+          try (ResourceLock lock = writeLock.obtain()) {
+            executeData = pendingExecuteQueue.removeFirst();
+          }
           Portal currentPortal = executeData.portal;
           handler.handleCommandStatus("EMPTY", 0, 0);
           if (currentPortal != null) {
@@ -2633,15 +2856,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Field[] fields = receiveFields();
           tuples = new ArrayList<>();
 
-          SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
-          if (!pendingExecuteQueue.isEmpty()
-              && !castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
-            pendingDescribePortalQueue.removeFirst();
+          DescribeRequest describeData;
+          try (ResourceLock lock = writeLock.obtain()) {
+            SimpleQuery query = castNonNull(pendingDescribePortalQueue.peekFirst());
+            if (!pendingExecuteQueue.isEmpty()
+                && !castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
+              pendingDescribePortalQueue.removeFirst();
+            }
+            query.setFields(fields);
+            if (doneAfterRowDescNoData) {
+              describeData = pendingDescribeStatementQueue.removeFirst();
+            } else {
+              describeData = null;
+            }
           }
-          query.setFields(fields);
-
-          if (doneAfterRowDescNoData) {
-            DescribeRequest describeData = pendingDescribeStatementQueue.removeFirst();
+          if (describeData != null) {
             SimpleQuery currentQuery = describeData.query;
             currentQuery.setFields(fields);
 
@@ -2654,50 +2883,30 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.READY_FOR_QUERY_RESPONSE: // eventual response to Sync
           receiveRFQ();
-          if (!pendingExecuteQueue.isEmpty()
-              && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
-            tuples = null;
-            pgStream.clearResultBufferCount();
+          try (ResourceLock lock = writeLock.obtain()) {
+            if (!pendingExecuteQueue.isEmpty()
+                && castNonNull(pendingExecuteQueue.peekFirst()).asSimple) {
+              tuples = null;
+              pgStream.clearResultBufferCount();
 
-            ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
-            // Simple queries might return several resultsets, thus we clear
-            // fields, so queries like "select 1;update; select2" will properly
-            // identify that "update" did not return any results
-            executeRequest.query.setFields(null);
+              ExecuteRequest executeRequest = pendingExecuteQueue.removeFirst();
+              // Simple queries might return several resultsets, thus we clear
+              // fields, so queries like "select 1;update; select2" will properly
+              // identify that "update" did not return any results
+              executeRequest.query.setFields(null);
 
-            pendingDescribePortalQueue.removeFirst();
-            if (!pendingExecuteQueue.isEmpty()) {
-              if (getTransactionState() == TransactionState.IDLE) {
-                handler.secureProgress();
+              pendingDescribePortalQueue.removeFirst();
+              if (executeRequest != endSync && !pendingExecuteQueue.isEmpty()) {
+                if (getTransactionState() == TransactionState.IDLE) {
+                  handler.secureProgress();
+                }
+                // process subsequent results (e.g. for cases like batched execution of simple 'Q' queries)
+                break;
               }
-              // process subsequent results (e.g. for cases like batched execution of simple 'Q' queries)
-              break;
             }
           }
           endQuery = true;
 
-          // Reset the statement name of Parses that failed.
-          while (!pendingParseQueue.isEmpty()) {
-            SimpleQuery failedQuery = pendingParseQueue.removeFirst();
-            failedQuery.unprepare();
-          }
-
-          pendingParseQueue.clear(); // No more ParseComplete messages expected.
-          // Pending "describe" requests might be there in case of error
-          // If that is the case, reset "described" status, so the statement is properly
-          // described on next execution
-          while (!pendingDescribeStatementQueue.isEmpty()) {
-            DescribeRequest request = pendingDescribeStatementQueue.removeFirst();
-            LOGGER.log(Level.FINEST, " FE marking setStatementDescribed(false) for query {0}", request.query);
-            request.query.setStatementDescribed(false);
-          }
-          while (!pendingDescribePortalQueue.isEmpty()) {
-            SimpleQuery describePortalQuery = pendingDescribePortalQueue.removeFirst();
-            LOGGER.log(Level.FINEST, " FE marking setPortalDescribed(false) for query {0}", describePortalQuery);
-            describePortalQuery.setPortalDescribed(false);
-          }
-          pendingBindQueue.clear(); // No more BindComplete messages expected.
-          pendingExecuteQueue.clear(); // No more query executions expected.
           break;
 
         case PgMessageType.COPY_IN_RESPONSE:

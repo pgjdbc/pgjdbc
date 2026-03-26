@@ -1723,6 +1723,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return pipeline mode
+   * @see PGProperty#PIPELINE_MODE
+   */
+  public boolean getPipelineMode() {
+    return PGProperty.PIPELINE_MODE.getBoolean(properties);
+  }
+
+  /**
+   * @param pipelineMode true or false
+   * @see PGProperty#PIPELINE_MODE
+   */
+  public void setPipelineMode(boolean pipelineMode) {
+    PGProperty.PIPELINE_MODE.set(properties, pipelineMode);
+  }
+
+  /**
    * @return connection configuration regarding automatic per-query savepoints
    * @see PGProperty#AUTOSAVE
    */
