@@ -585,27 +585,38 @@ public class Driver implements java.sql.Driver {
       StringBuilder hosts = new StringBuilder();
       StringBuilder ports = new StringBuilder();
       for (String address : addresses) {
-        int portIdx = address.lastIndexOf(':');
-        if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
-          String portStr = address.substring(portIdx + 1);
-          ports.append(portStr);
-          CharSequence hostStr = address.subSequence(0, portIdx);
-          if (hostStr.length() == 0) {
-            hosts.append(PGProperty.PG_HOST.getDefaultValue());
+        if (address.length() > 0) {
+          int portIdx = address.lastIndexOf(':');
+          if (portIdx != -1 && address.lastIndexOf(']') < portIdx) {
+            String portStr = address.substring(portIdx + 1);
+            ports.append(portStr);
+            CharSequence hostStr = address.subSequence(0, portIdx);
+            if (hostStr.length() == 0) {
+              hosts.append(PGProperty.PG_HOST.getDefaultValue());
+            } else {
+              hosts.append(hostStr);
+            }
           } else {
-            hosts.append(hostStr);
+            ports.append(PGProperty.PG_PORT.getDefaultValue());
+            hosts.append(address);
           }
-        } else {
-          ports.append(PGProperty.PG_PORT.getDefaultValue());
-          hosts.append(address);
+          ports.append(',');
+          hosts.append(',');
         }
-        ports.append(',');
-        hosts.append(',');
       }
-      ports.setLength(ports.length() - 1);
-      hosts.setLength(hosts.length() - 1);
-      PGProperty.PG_HOST.set(priority1Url, hosts.toString());
-      PGProperty.PG_PORT.set(priority1Url, ports.toString());
+      // remove the trailing ,
+      if ( ports.length() > 0 ) {
+        ports.setLength(ports.length() - 1);
+      }
+      if ( hosts.length() > 0 ) {
+        hosts.setLength(hosts.length() - 1);
+      }
+      if (hosts.length() > 0 ) {
+        PGProperty.PG_HOST.set(priority1Url, hosts.toString());
+      }
+      if (ports.length() > 0) {
+        PGProperty.PG_PORT.set(priority1Url, ports.toString());
+      }
     } else if (urlServer.startsWith("/")) {
       return null;
     } else {
@@ -658,6 +669,7 @@ public class Driver implements java.sql.Driver {
       // priority 2 - forEach() returns all entries EXCEPT defaults
       defaults.forEach(result::putIfAbsent);
     }
+    // if we have a service file then it takes priority
     priority3Service.forEach(result::putIfAbsent);
     if (defaults != null) {
       // priority 4 - stringPropertyNames() returns all entries INCLUDING defaults
