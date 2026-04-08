@@ -891,6 +891,29 @@ public class PgStatement implements Statement, BaseStatement {
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
 
+    // Describe the query before batching so flushIfDeadlockRisk can estimate
+    // response sizes accurately and avoid client/server TCP deadlock. See #194.
+    SqlCommand sqlCommand = queries[0].getSqlCommand();
+    boolean queryReturnsRows = wantsGeneratedKeysAlways
+        || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
+    if (queryReturnsRows
+        && !queries[0].isStatementDescribed()
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+      StatementResultHandler describeHandler = new StatementResultHandler();
+      try {
+        connection.getQueryExecutor().execute(
+            queries[0], parameterLists[0], describeHandler, 0, 0, describeFlags);
+      } catch (SQLException e) {
+        handler.handleError(e);
+        handler.handleCompletion();
+      }
+      ResultWrapper describeResult = describeHandler.getResults();
+      if (describeResult != null) {
+        castNonNull(describeResult.getResultSet(), "describeResult.getResultSet()").close();
+      }
+    }
+
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
     }

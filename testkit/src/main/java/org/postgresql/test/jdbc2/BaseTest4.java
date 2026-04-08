@@ -62,6 +62,9 @@ public class BaseTest4 {
     if (stringType != null) {
       PGProperty.STRING_TYPE.set(props, stringType.name().toLowerCase(Locale.ROOT));
     }
+    if (preferQueryMode != null) {
+      PGProperty.PREFER_QUERY_MODE.set(props, preferQueryMode.value());
+    }
   }
 
   protected static void forceBinary(Properties props) {
@@ -71,6 +74,10 @@ public class BaseTest4 {
 
   public final void setBinaryMode(BinaryMode binaryMode) {
     this.binaryMode = binaryMode;
+  }
+
+  public final void setPreferQueryMode(PreferQueryMode preferQueryMode) {
+    this.preferQueryMode = preferQueryMode;
   }
 
   public @Nullable StringType getStringType() {
