@@ -79,7 +79,7 @@ public class BatchDeadlockTest {
     Properties props = new Properties();
     props.setProperty("receiveBufferSize", String.valueOf(SMALL_RECV_BUF_BYTES));
     con = TestUtil.openDB(props);
-    TestUtil.createTempTable(con, "batch_deadlock_test", "id INTEGER, data TEXT");
+    TestUtil.createTable(con, "batch_deadlock_test", "id INTEGER, data TEXT");
   }
 
   @AfterEach
