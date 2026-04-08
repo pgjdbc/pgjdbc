@@ -67,12 +67,6 @@ public class BatchDeadlockTest {
   /** Maximum time the fixed batch is allowed to run before we consider it hung. */
   private static final Duration BATCH_TIMEOUT = Duration.ofSeconds(30);
 
-  /**
-   * Maximum time to wait for the pre-fix simulation to deadlock.
-   * Short enough to keep CI fast; long enough to be reliable.
-   */
-  private static final Duration DEADLOCK_TIMEOUT = Duration.ofSeconds(10);
-
   private Connection con;
 
   @BeforeEach
