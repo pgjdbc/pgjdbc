@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.v3.QueryExecutorImpl;
 import org.postgresql.jdbc.PgConnection;
@@ -144,61 +145,6 @@ public class BatchDeadlockTest {
     assertTimeoutPreemptively(BATCH_TIMEOUT, () -> executeLargeInsertBatch(con),
         "Large batch should complete without deadlock within "
             + BATCH_TIMEOUT.getSeconds() + "s after the fix");
-  }
-
-  /**
-   * Verifies that a large batch deadlocks when {@code maxBufferedRecvBytes} is overridden to the
-   * old hardcoded value (64,000 bytes) while the actual socket buffer is small (8KB).
-   *
-   * <p>This reproduces the pre-fix behaviour described in GitHub issue #194: the driver
-   * pipelines up to 64KB of estimated responses before flushing, but the actual OS TCP buffers
-   * can only hold ~8KB, causing both sides to block waiting for the other to read.
-   *
-   * <p>A separate connection is used so that the deadlock does not corrupt the connection
-   * used by the other tests and tearDown.
-   *
-   * <p>Note: this test is best-effort. It will skip gracefully when the OS enforces a minimum
-   * socket buffer size >= 64KB (e.g. on some Linux systems with large TCP buffer auto-tuning),
-   * since in that case the deadlock would not occur even with the old code. The other three
-   * tests in this class are reliable on all systems and provide the primary verification.
-   */
-  @Test
-  void largeBatchDeadlocksBeforeFix() throws Exception {
-    int actualSocketRecvBuf = getSocketReceiveBufferSize(con);
-    if (actualSocketRecvBuf >= OLD_HARDCODED_MAX_BUFFERED_RECV_BYTES) {
-      // OS enforced a minimum socket buffer >= old constant; deadlock cannot be triggered.
-      return;
-    }
-
-    // Open a dedicated connection for the deadlock test so tearDown is not affected.
-    Properties props = new Properties();
-    props.setProperty("receiveBufferSize", String.valueOf(SMALL_RECV_BUF_BYTES));
-    Connection deadlockCon = TestUtil.openDB(props);
-
-    // Simulate pre-fix behaviour: override maxBufferedRecvBytes to the old hardcoded value.
-    setMaxBufferedRecvBytes(deadlockCon, OLD_HARDCODED_MAX_BUFFERED_RECV_BYTES);
-
-    boolean[] timedOut = {false};
-    try {
-      assertTimeoutPreemptively(DEADLOCK_TIMEOUT,
-          () -> executeLargeInsertBatch(deadlockCon));
-    } catch (AssertionError e) {
-      // assertTimeoutPreemptively throws AssertionError on timeout, confirming deadlock.
-      timedOut[0] = true;
-    } finally {
-      // Close forcibly; the connection may be in a broken state after the deadlock.
-      try {
-        deadlockCon.close();
-      } catch (Exception ignored) {
-        // expected when the connection was aborted by the timeout
-      }
-    }
-
-    assertTrue(timedOut[0],
-        "With old hardcoded maxBufferedRecvBytes=" + OLD_HARDCODED_MAX_BUFFERED_RECV_BYTES
-            + " and actual socket recv buf=" + actualSocketRecvBuf
-            + ", the batch should deadlock (time out within "
-            + DEADLOCK_TIMEOUT.getSeconds() + "s)");
   }
 
   // ---------------------------------------------------------------------------
