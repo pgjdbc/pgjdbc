@@ -56,7 +56,7 @@
   * 7. DEADLOCK PREVENTION STATE MACHINE
   *    Prevents client/server deadlock via buffer management:
   *    - Tracks estimatedReceiveBufferBytes (accumulated response size)
-  *    - When exceeds MAX_BUFFERED_RECV_BYTES (64KB), forces Sync and processes results
+  *    - When exceeds maxBufferedRecvBytes (socket recv buffer size), forces Sync and processes results
   *    - Resets counter after consuming server responses
   *    - Ensures server doesn't block on write while client blocks on write
   */
@@ -234,6 +234,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
+
+    // Initialize maxBufferedRecvBytes from actual socket receive buffer size.
+    // This is used by flushIfDeadlockRisk() to avoid client/server deadlocks in batch execution.
+    int recvBufSize = DEFAULT_MAX_BUFFERED_RECV_BYTES;
+    try {
+      int socketRecvBuf = pgStream.getSocket().getReceiveBufferSize();
+      if (socketRecvBuf > 0) {
+        recvBufSize = socketRecvBuf;
+      }
+    } catch (SocketException e) {
+      // ignore, use the default
+    }
+    this.maxBufferedRecvBytes = recvBufSize;
+
     readStartupMessages();
   }
 
@@ -585,7 +599,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // waiting for the driver to read some more data.
   //
   // To avoid this, we guess at how much response data we can request from the
-  // server before the server -> driver stream's buffer is full (MAX_BUFFERED_RECV_BYTES).
+  // server before the server -> driver stream's buffer is full (maxBufferedRecvBytes).
   // This is the point where the server blocks on write and stops reading data. If we
   // reach this point, we force a Sync message and read pending data from the server
   // until ReadyForQuery, then go back to writing more queries unless we saw an error.
@@ -604,15 +618,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
   // See github issue #194 and #195 .
   //
-  // Assume 64k server->client buffering, which is extremely conservative. A typical
-  // system will have 200kb or more of buffers for its receive buffers, and the sending
-  // system will typically have the same on the send side, giving us 400kb or to work
-  // with. (We could check Java's receive buffer size, but prefer to assume a very
-  // conservative buffer instead, and we don't know how big the server's send
-  // buffer is.)
+  // Use the actual socket receive buffer size as the maximum amount of data we'll
+  // allow to accumulate before forcing a Sync and reading results. This is more
+  // accurate than a hardcoded value, as it reflects the actual OS-level buffering
+  // available on the client side. We still don't know the server's send buffer size,
+  // but using the actual receive buffer size (rather than assuming a very conservative
+  // 64KB) significantly reduces the number of unnecessary forced Syncs in batch
+  // execution, especially on systems with larger socket buffers (commonly 256KB+).
   //
-  private static final int MAX_BUFFERED_RECV_BYTES = 64000;
+  // If we cannot determine the socket receive buffer size (e.g. due to a SocketException),
+  // we fall back to the conservative 64KB default.
+  //
+  private static final int DEFAULT_MAX_BUFFERED_RECV_BYTES = 64000;
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
+
+  /**
+   * The maximum number of bytes we'll allow to accumulate in the estimated receive buffer
+   * before forcing a Sync and reading results. Initialized from the actual socket receive
+   * buffer size, or falls back to DEFAULT_MAX_BUFFERED_RECV_BYTES if unavailable.
+   *
+   * <p>Not {@code final} to allow override in tests via reflection.</p>
+   */
+  private int maxBufferedRecvBytes;
 
   @Override
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
@@ -1586,7 +1613,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * To prevent client/server protocol deadlocks, we try to manage the estimated recv buffer size
    * and force a sync +flush and process results if we think it might be getting too full.
    *
-   * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+   * See the comments above DEFAULT_MAX_BUFFERED_RECV_BYTES and maxBufferedRecvBytes for details.
    */
   private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
       ResultHandler resultHandler,
@@ -1622,7 +1649,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        */
     }
 
-    if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
+    if (disallowBatching || estimatedReceiveBufferBytes >= maxBufferedRecvBytes) {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       processResults(resultHandler, flags);
@@ -3257,7 +3284,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    *
    * <p>Starts at zero, reset by every Sync message. Mainly used for batches.</p>
    *
-   * <p>Used to avoid deadlocks, see MAX_BUFFERED_RECV_BYTES.</p>
+   * <p>Used to avoid deadlocks, see DEFAULT_MAX_BUFFERED_RECV_BYTES and maxBufferedRecvBytes.</p>
    */
   private int estimatedReceiveBufferBytes;
 
