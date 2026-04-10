@@ -114,6 +114,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
   private static final int AUTH_REQ_SASL_CONTINUE = 11;
   private static final int AUTH_REQ_SASL_FINAL = 12;
 
+  /**
+   * Upper bound on iterations of the authentication exchange. SCRAM completes in 4
+   * round-trips (SASL + SASLContinue + SASLFinal + Ok), GSS/SSPI a few more for nested
+   * security context establishment. 64 leaves comfortable headroom for any real handshake
+   * while preventing a malicious server from looping the client indefinitely
+   * (CPU/memory pre-auth DoS).
+   */
+  private static final int MAX_AUTH_ITERATIONS = 64;
+
   private static final String IN_HOT_STANDBY = "in_hot_standby";
 
   private static ISSPIClient createSSPI(PGStream pgStream,
@@ -636,8 +645,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // fallthrough
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw pgStream.poison(new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+            PSQLState.PROTOCOL_VIOLATION));
     }
   }
 
@@ -712,8 +721,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       default:
-        throw new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
-            PSQLState.PROTOCOL_VIOLATION);
+        throw pgStream.poison(new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
+            PSQLState.PROTOCOL_VIOLATION));
     }
   }
 
@@ -798,24 +807,45 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     @Nullable EnumSet<AuthMethod> authMethods = AuthMethod.parseRequireAuth(requireAuth);
 
     try {
+      int authIterations = 0;
       authloop: while (true) {
+        if (++authIterations > MAX_AUTH_ITERATIONS) {
+          throw pgStream.poison(new PSQLException(GT.tr(
+              "Protocol error. Authentication did not complete within {0} round-trips.",
+              MAX_AUTH_ITERATIONS),
+              PSQLState.PROTOCOL_VIOLATION));
+        }
         int beresp = pgStream.receiveChar();
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // read the length and ignore it.
-            pgStream.receiveInteger4();
+            // NegotiateProtocolVersion: 4 (self) + 4 (protocol) + 4 (numOptions) + per-option C-strings
+            int negotiateMsgLen = pgStream.readMessageLength("NegotiateProtocolVersion", 12);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
+            if (numOptionsNotRecognized < 0) {
+              throw pgStream.poison(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion has negative option count {0}.",
+                  numOptionsNotRecognized),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
+            // Each unrecognized option is at least a NUL byte; cap against the envelope.
+            if (numOptionsNotRecognized > negotiateMsgLen - 12) {
+              throw pgStream.poison(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion option count {0} exceeds remaining message size {1}.",
+                  numOptionsNotRecognized, negotiateMsgLen - 12),
+                  PSQLState.PROTOCOL_VIOLATION));
+            }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
               String errorMessage = "Protocol error, received invalid options: ";
               for (int i = 0; i < numOptionsNotRecognized; i++) {
-                errorMessage  += (i > 0 ? "," : "") + pgStream.receiveString();
+                errorMessage += (i > 0 ? "," : "") + pgStream.receiveString();
               }
               LOGGER.log(Level.FINEST, errorMessage);
-              throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
+              throw pgStream.poison(new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION));
             }
+            pgStream.endMessage();
             int major = protocol >> 16 & 0xff;
             int minor = protocol & 0xff;
             pgStream.setProtocolVersion( ProtocolVersion.fromMajorMinor(major, minor));
@@ -827,7 +857,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int elen = pgStream.receiveInteger4();
+            int elen = pgStream.readMessageLength("ErrorResponse", 5);
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -836,8 +866,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
-            // Get the message length
-            int msgLen = pgStream.receiveInteger4();
+            // AuthenticationRequest: 4 (self) + 4 (areq) + optional payload.
+            // The largest payload variant is AUTH_REQ_GSS_CONT carrying a Kerberos token
+            // (typically 1-16 KB; up to ~64 KB with Windows AD PAC; a few hundred KB in
+            // pathological nested-group cases). SCRAM/MD5/password variants are much
+            // smaller. A 2 MiB cap leaves >30x headroom over real-world GSS extremes while
+            // failing fast on a desynced stream.
+            int msgLen = pgStream.readMessageLength("AuthenticationRequest", 8, 8 + 2 * 1024 * 1024);
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();
@@ -1036,6 +1071,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 }
                 /* Cleanup after successful authentication */
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationOk");
+                pgStream.endMessage();
                 break authloop; // We're done.
 
               default:
@@ -1044,12 +1080,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     "The authentication type {0} is not supported. Check that you have configured the pg_hba.conf file to include the client''s IP address or subnet, and that it is using an authentication scheme supported by the driver.",
                     areq), PSQLState.CONNECTION_REJECTED);
             }
+            // Subtype-specific code paths above either consumed every body byte or threw.
+            // AUTH_REQ_SASL already calls endMessage() inside advertisedMechanisms, so this
+            // is a no-op there (tracker already reset); for the others it tightens the
+            // envelope check.
+            pgStream.endMessage();
 
             break;
 
           default:
-            throw new PSQLException(GT.tr("Protocol error.  Session setup failed."),
-                PSQLState.PROTOCOL_VIOLATION);
+            throw pgStream.poison(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+                PSQLState.PROTOCOL_VIOLATION));
         }
       }
     } finally {

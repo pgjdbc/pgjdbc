@@ -99,6 +99,129 @@ public class PGStream implements Closeable, Flushable {
   private int maxRowSizeBytes = -1;
 
   /**
+   * Set to {@code true} the first time a protocol-level hardening check rejects a
+   * backend message. Once poisoned the stream is permanently desynced — even if the
+   * underlying socket happens to be open, no further bytes from it can be trusted. The
+   * flag is consulted by {@link #isClosed()} so a connection pool that asks
+   * {@code isClosed()/isValid()} on borrow will discard the connection rather than
+   * hand it to another caller. The matching socket close is best-effort, so a
+   * subsequent forgotten {@code abort()} cannot leak the file descriptor either.
+   */
+  private volatile boolean poisoned;
+
+  /**
+   * Name of the protocol message currently being parsed, captured by the most recent
+   * {@link #readMessageLength(String, int)} / {@link #readFixedMessageLength(String, int)}
+   * call. Surfaced in error messages produced by the bounded-string helpers and by
+   * {@link #endMessage()}, so the wire-level packet name does not have to be threaded
+   * through every read site. {@code null} between messages.
+   */
+  private @Nullable String currentMessageName;
+
+  /**
+   * Declared total length (including the 4 length bytes) of the protocol message currently
+   * being parsed. Captured alongside {@link #currentMessageName} for error reporting.
+   * {@code 0} between messages.
+   */
+  private int currentMessageLength;
+
+  /**
+   * Stream position (in bytes consumed) at which the protocol message body started by the
+   * most recent {@link #readMessageLength(String, int)} (or
+   * {@link #readFixedMessageLength(String, int)}) call must end. {@code -1} means no
+   * message is currently being tracked. Compared against
+   * {@link VisibleBufferedInputStream#getPosition()} in {@link #endMessage()} to detect a
+   * desynced stream where the declared envelope size and the actual reads disagree.
+   */
+  private long messageEndPosition = -1;
+
+  /**
+   * Captures the name and declared length of a message that has just been read by
+   * {@link #readMessageLength(String, int)} / {@link #readFixedMessageLength(String, int)},
+   * so subsequent bounded-string reads and {@link #endMessage()} can quote them in error
+   * messages without the caller threading the values through every receive site.
+   */
+  private void beginMessage(String packetName, int messageLength) {
+    this.currentMessageName = packetName;
+    this.currentMessageLength = messageLength;
+    this.messageEndPosition = pgInput.getPosition() + (messageLength - 4);
+  }
+
+  /**
+   * Returns the name of the message currently being parsed, or a placeholder if no
+   * message is tracked. Used internally by error messages.
+   */
+  private String currentMessageNameForError() {
+    String name = currentMessageName;
+    return name != null ? name : "unknown";
+  }
+
+  /**
+   * Verifies that the protocol message body started by the most recent
+   * {@link #readMessageLength(String, int) readMessageLength} (or
+   * {@link #readFixedMessageLength(String, int) readFixedMessageLength}) call was fully
+   * consumed. Throws {@link IOException} when the caller read fewer or more body bytes
+   * than the message envelope declared, which is the signature of a desynced stream
+   * (e.g. a corrupted ParameterStatus that contains a name and value but extra trailing
+   * bytes that would otherwise be misread as the next message header).
+   *
+   * <p>The packet name is the one captured at {@code readMessageLength} time, so callers
+   * do not have to repeat it. Resets the tracker regardless of outcome, so a subsequent
+   * {@code readMessageLength} call starts fresh.</p>
+   *
+   * @throws IOException if the message body was not exactly consumed
+   */
+  public void endMessage() throws IOException {
+    long expected = messageEndPosition;
+    String name = currentMessageNameForError();
+    messageEndPosition = -1;
+    currentMessageName = null;
+    currentMessageLength = 0;
+    if (expected < 0) {
+      return;
+    }
+    long actual = pgInput.getPosition();
+    if (actual != expected) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. {0} message has {1} unread bytes.",
+          name, expected - actual)));
+    }
+  }
+
+  /**
+   * Marks the stream as desynced and best-effort closes the underlying socket. Returns
+   * the supplied exception so call sites can write {@code throw pgStream.poison(new ...(...))}
+   * fluently. The generic signature supports both {@link IOException} thrown by
+   * PGStream's internal hardening checks and {@link org.postgresql.util.PSQLException}
+   * (e.g. {@link org.postgresql.util.PSQLState#PROTOCOL_VIOLATION}) thrown by the
+   * higher layers (auth, cancel-key, startup negotiation, ...). After this call
+   * {@link #isClosed()} reports {@code true}, so even if the regular abort path is
+   * somehow skipped the connection cannot be reused.
+   */
+  public <T extends Throwable> T poison(T reason) {
+    poisoned = true;
+    try {
+      // Force an immediate TCP RST rather than a graceful FIN/ACK exchange. close() on
+      // a graceful path can block waiting for the OS to flush queued bytes when
+      // SO_LINGER > 0; on a poisoned connection we have no reason to wait, and any
+      // bytes still in our send buffer are part of a request the server is already
+      // about to discard. setSoLinger(true, 0) makes the subsequent close() emit an
+      // RST and drop both input and output buffers immediately.
+      try {
+        connection.setSoLinger(true, 0);
+      } catch (SocketException ignore) {
+        // Some socket types refuse SO_LINGER (already-closed sockets, certain SSL
+        // wrappers); fall through to plain close().
+      }
+      connection.close();
+    } catch (IOException ignore) {
+      // best-effort: the socket may already be closed, or the close itself may fail —
+      // either way the stream is already marked as poisoned.
+    }
+    return reason;
+  }
+
+  /**
    * Constructor: Connect to the PostgreSQL back end and return a stream connection.
    *
    * @param socketFactory socket factory to use when creating sockets
@@ -492,6 +615,15 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * PostgreSQL backend's {@code MaxAllocSize} (1 GB - 1): the largest legal size of a single
+   * protocol message. Any length field that exceeds this value, or that falls below the
+   * message's minimum, indicates a corrupted or desynced stream. This is a protocol-level
+   * bound and is shared by every PostgreSQL wire-compatible backend (CockroachDB,
+   * YugabyteDB, Redshift, Greenplum, ...).
+   */
+  public static final int MAX_MESSAGE_SIZE = 0x3fffffff;
+
+  /**
    * Receives a four byte integer from the backend.
    *
    * @return the integer received from the backend
@@ -499,6 +631,81 @@ public class PGStream implements Closeable, Flushable {
    */
   public int receiveInteger4() throws IOException {
     return pgInput.readInt4();
+  }
+
+  /**
+   * Reads a 4-byte length prefix and validates it against {@link #MAX_MESSAGE_SIZE}.
+   * Equivalent to {@link #readMessageLength(String, int, int)
+   * readMessageLength(packetName, minLength, MAX_MESSAGE_SIZE)}.
+   *
+   * <p>For standard PostgreSQL protocol messages the length field is self-inclusive (it
+   * counts the 4 length bytes themselves), so {@code minLength} is typically ≥ 4. Callers
+   * reading non-self-inclusive length prefixes (e.g. the GSS encryption handshake token
+   * length) can pass {@code minLength = 0}.</p>
+   *
+   * @param packetName protocol message name used in the error message
+   * @param minLength inclusive minimum legal value of the length field
+   * @return the validated length
+   * @throws IOException if the length is out of range
+   */
+  public int readMessageLength(String packetName, int minLength) throws IOException {
+    return readMessageLength(packetName, minLength, MAX_MESSAGE_SIZE);
+  }
+
+  /**
+   * Reads a 4-byte length prefix and validates it is within
+   * {@code [minLength, maxLength]}. Throws {@link IOException} on violation, so the caller
+   * tears the connection down instead of using the wire-provided length to drive an
+   * allocation or a skip. Callers should pass the tightest protocol-level upper bound they
+   * know (for messages with a protocol-defined maximum well below {@link #MAX_MESSAGE_SIZE}),
+   * so a desynced stream is detected as early as possible.
+   *
+   * <p>If the user has configured {@code maxResultBuffer}, lengths exceeding it are also
+   * rejected — the user has declared an upper bound on memory they are willing to spend
+   * on a single result, and a single backend message larger than that bound cannot be
+   * processed within the budget.</p>
+   *
+   * @param packetName protocol message name used in the error message
+   * @param minLength inclusive minimum legal value of the length field
+   * @param maxLength inclusive maximum legal value of the length field;
+   *                  must be ≤ {@link #MAX_MESSAGE_SIZE}
+   * @return the validated length
+   * @throws IOException if the length is out of range
+   */
+  public int readMessageLength(String packetName, int minLength, int maxLength) throws IOException {
+    int len = receiveInteger4();
+    if (len < minLength || len > maxLength) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
+          packetName, len, minLength, maxLength)));
+    }
+    if (maxResultBuffer > 0 && len > maxResultBuffer) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. {0} message has length {1} which exceeds maxResultBuffer cap of {2} bytes.",
+          packetName, len, maxResultBuffer)));
+    }
+    // Capture name + declared length + envelope endpoint so subsequent bounded-string
+    // reads and endMessage() do not need them threaded through as parameters.
+    beginMessage(packetName, len);
+    return len;
+  }
+
+  /**
+   * Reads and validates a fixed-length protocol message length prefix. Throws
+   * {@link IOException} when the length is not exactly {@code expectedLength}.
+   *
+   * @param packetName protocol message name used in the error message
+   * @param expectedLength the exact length the message must have
+   * @throws IOException if the length differs from {@code expectedLength}
+   */
+  public void readFixedMessageLength(String packetName, int expectedLength) throws IOException {
+    int len = receiveInteger4();
+    if (len != expectedLength) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. {0} message has length {1}, expected {2}.",
+          packetName, len, expectedLength)));
+    }
+    beginMessage(packetName, expectedLength);
   }
 
   /**
@@ -559,14 +766,39 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Receives a null-terminated string from the backend. If we don't see a null, then we assume
-   * something has gone wrong.
+   * Scans the next NUL-terminated C-string and returns its length (including the trailing
+   * NUL). The scan is always bounded so a desynced stream cannot drive an unbounded
+   * buffer-grow-and-read loop. The bound is the remaining envelope of the message
+   * currently being parsed ({@link #readMessageLength(String, int) readMessageLength}'s
+   * declared length minus everything already consumed) when one is tracked, otherwise
+   * {@link #MAX_MESSAGE_SIZE}. The {@code maxResultBuffer} cap is enforced one level up
+   * by {@link #readMessageLength(String, int, int)}, so envelope-tracked strings inherit
+   * it transitively via the message length.
+   */
+  private int scanBoundedCStringLength() throws IOException {
+    if (messageEndPosition < 0) {
+      return pgInput.scanCStringLength(
+          MAX_MESSAGE_SIZE, "<no envelope>", MAX_MESSAGE_SIZE);
+    }
+    long remaining = messageEndPosition - pgInput.getPosition();
+    if (remaining <= 0) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. {0} message of {1} bytes has no remaining envelope budget.",
+          currentMessageNameForError(), currentMessageLength)));
+    }
+    return pgInput.scanCStringLength(
+        (int) remaining, currentMessageNameForError(), currentMessageLength);
+  }
+
+  /**
+   * Reads a NUL-terminated C-string from the backend. The scan is always bounded — see
+   * {@link #scanBoundedCStringLength()} for the budget selection rules.
    *
-   * @return string from back end
-   * @throws IOException if an I/O error occurs, or end of file
+   * @return the decoded string
+   * @throws IOException if no NUL is found within the budget, or on I/O error
    */
   public String receiveString() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanBoundedCStringLength();
     String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
@@ -575,14 +807,15 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Receives a null-terminated string from the backend and attempts to decode to a
    * {@link Encoding#decodeCanonicalized(byte[], int, int) canonical} {@code String}.
-   * If we don't see a null, then we assume something has gone wrong.
+   * The scan is always bounded — see {@link #scanBoundedCStringLength()} for the budget
+   * selection rules.
    *
    * @return string from back end
-   * @throws IOException if an I/O error occurs, or end of file
+   * @throws IOException if no NUL is found within the budget, or on I/O error
    * @see Encoding#decodeCanonicalized(byte[], int, int)
    */
   public String receiveCanonicalString() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanBoundedCStringLength();
     String res = encoding.decodeCanonicalized(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
@@ -591,14 +824,15 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Receives a null-terminated string from the backend and attempts to decode to a
    * {@link Encoding#decodeCanonicalizedIfPresent(byte[], int, int) canonical} {@code String}.
-   * If we don't see a null, then we assume something has gone wrong.
+   * The scan is always bounded — see {@link #scanBoundedCStringLength()} for the budget
+   * selection rules.
    *
    * @return string from back end
-   * @throws IOException if an I/O error occurs, or end of file
+   * @throws IOException if no NUL is found within the budget, or on I/O error
    * @see Encoding#decodeCanonicalizedIfPresent(byte[], int, int)
    */
   public String receiveCanonicalStringIfPresent() throws IOException {
-    int len = pgInput.scanCStringLength();
+    int len = scanBoundedCStringLength();
     String res = encoding.decodeCanonicalizedIfPresent(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
     pgInput.skip(len);
     return res;
@@ -613,19 +847,50 @@ public class PGStream implements Closeable, Flushable {
    * @throws SQLException if read more bytes than set maxResultBuffer
    */
   public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
-    int messageSize = receiveInteger4(); // MESSAGE SIZE
+    // DataRow envelope: 4 (self) + 2 (nf) + nf * 4 (per-field lengths), minimum 6.
+    int messageSize = readMessageLength("DataRow", 6);
+    // receiveInteger2() returns a signed 16-bit value. The protocol does not pin a specific
+    // maximum column count (forks such as CockroachDB/YugabyteDB/Redshift may differ from
+    // PostgreSQL's own limit), so bound nf only via the message envelope below.
     int nf = receiveInteger2();
+    // The stream is desynced: we cannot locate the next message boundary, so we must not
+    // continue reading. Throw IOException so the caller closes (aborts) the connection
+    // instead of treating this as a per-query error and looping over garbage bytes.
+    if (nf < 0) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. DataRow has negative field count {0} (message size {1}).",
+          nf, messageSize)));
+    }
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    if (dataToReadSize < 0) {
+      throw poison(new IOException(GT.tr(
+          "Protocol error. DataRow field count {0} requires at least {1} bytes for per-field length prefixes, but message size is only {2}.",
+          nf, 4 * nf, messageSize)));
+    }
     setMaxRowSizeBytes(dataToReadSize);
 
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
     OutOfMemoryError oom = null;
+    int remaining = dataToReadSize;
     for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
+        // Field length is inconsistent with the row envelope — stream is desynced.
+        // See comment above: IOException triggers a connection abort upstream.
+        if (size < -1) {
+          throw poison(new IOException(GT.tr(
+              "Protocol error. DataRow field {0} has negative length {1}.",
+              i, size)));
+        }
+        if (size > remaining) {
+          throw poison(new IOException(GT.tr(
+              "Protocol error. DataRow field {0} length {1} exceeds remaining row bytes {2}.",
+              i, size, remaining)));
+        }
+        remaining -= size;
         try {
           answer[i] = new byte[size];
           receive(answer[i], 0, size);
@@ -635,6 +900,11 @@ public class PGStream implements Closeable, Flushable {
         }
       }
     }
+
+    // Envelope must be fully consumed; any leftover would indicate that the claimed
+    // message size exceeded the sum of the field lengths, leaving bytes in the stream
+    // that would misalign the next message header.
+    endMessage();
 
     if (oom != null) {
       throw oom;
@@ -729,8 +999,8 @@ public class PGStream implements Closeable, Flushable {
     if (c < 0) {
       return;
     }
-    throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
-        PSQLState.COMMUNICATION_ERROR);
+    throw poison(new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
+        PSQLState.COMMUNICATION_ERROR));
   }
 
   /**
@@ -836,14 +1106,14 @@ public class PGStream implements Closeable, Flushable {
     if (maxResultBuffer != -1) {
       resultBufferByteCount += value;
       if (resultBufferByteCount > maxResultBuffer) {
-        throw new PSQLException(GT.tr(
+        throw poison(new PSQLException(GT.tr(
           "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}",
-          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)), PSQLState.COMMUNICATION_ERROR);
+          String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)), PSQLState.COMMUNICATION_ERROR));
       }
     }
   }
 
   public boolean isClosed() {
-    return connection.isClosed();
+    return poisoned || connection.isClosed();
   }
 }
