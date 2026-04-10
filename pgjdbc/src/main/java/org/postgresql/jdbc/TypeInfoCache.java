@@ -793,6 +793,34 @@ public class TypeInfoCache implements TypeInfo {
     return type;
   }
 
+  public static int estimateMaxLength(int oid, short typlen, int typmod) {
+    if (typlen >= 0) {
+      return typlen;
+    }
+    switch (oid) {
+      case Oid.BPCHAR:
+      case Oid.VARCHAR:
+      case Oid.VARBIT:
+        if (typmod == -1) {
+          return -1;
+        }
+        return typmod - 4;
+      case Oid.NUMERIC:
+        if (typmod == -1) {
+          return -1;
+        }
+        int precision = (typmod - 4 >> 16) & 0xffff;
+        // The actual storage requirement is two bytes for each group of four decimal digits,
+        // plus three to eight bytes overhead.
+        return 8 + precision / 2;
+      case Oid.BIT:
+      case Oid.CHAR:
+        return typmod;
+      default:
+        return -1;
+    }
+  }
+
   @Override
   public int getPrecision(int oid, int typmod) {
     oid = convertArrayToBaseOid(oid);
