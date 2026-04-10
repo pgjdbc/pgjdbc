@@ -145,7 +145,7 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
           // Error
           switch (response) {
             case PgMessageType.ERROR_RESPONSE:
-              int elen = pgStream.receiveInteger4();
+              int elen = pgStream.readMessageLength("ErrorResponse", 5);
               ServerErrorMessage errorMsg
                   = new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
 
@@ -154,7 +154,13 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
               return new PSQLException(errorMsg, logServerErrorDetail);
             case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
-              int len = pgStream.receiveInteger4();
+              // AuthenticationGSSContinue: 4 (self) + 4 (type) + GSS token bytes.
+              // Kerberos tokens are typically 1-16 KB; Windows AD PAC-bloated tickets
+              // can reach ~64 KB (Microsoft's historical MaxTokenSize = 48000/65535);
+              // pathological nested-group memberships have been reported up to a few
+              // hundred KB. A 2 MiB cap leaves >30x headroom over real-world extremes
+              // while failing fast on a desynced stream.
+              int len = pgStream.readMessageLength("AuthenticationGSSContinue", 8, 8 + 2 * 1024 * 1024);
               @SuppressWarnings("unused")
               int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
               // should check type = 8
