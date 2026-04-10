@@ -164,6 +164,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Encoding.canonicalize("in_hot_standby");
   }
 
+  class DiscardResultsHandler extends ResultHandlerBase {
+    @Override
+    public void handleWarning(SQLWarning warning) {
+      addWarning(warning);
+    }
+  }
+
   /**
    * TimeZone of the current connection (TimeZone backend parameter).
    */
@@ -763,7 +770,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by receiveFastpathResult(). See https://github.com/pgjdbc/pgjdbc/issues/3910
         if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new ResultHandlerBase(), 0);
+          processResults(new DiscardResultsHandler(), 0);
         }
         sendFastpathCall(fnid, (SimpleParameterList) parameters);
         return receiveFastpathResult();
@@ -1074,7 +1081,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // from cleanupSavepoints). These responses would otherwise be misinterpreted
         // by processCopyResults(). See https://github.com/pgjdbc/pgjdbc/issues/3910
         if (!pendingExecuteQueue.isEmpty()) {
-          processResults(new ResultHandlerBase(), 0);
+          processResults(new DiscardResultsHandler(), 0);
         }
         LOGGER.log(Level.FINEST, " FE=> Query(CopyStart)");
 
