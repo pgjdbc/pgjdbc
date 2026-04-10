@@ -2865,7 +2865,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int tableOid = pgStream.receiveInteger4();
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
-      int typeLength = pgStream.receiveInteger2();
+      short typeLength = (short) pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
       int formatType = pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
