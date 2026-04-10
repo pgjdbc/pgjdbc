@@ -1616,12 +1616,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       /*
        * Statement is not described so we can't estimate the response size. If the query
-       * has a RETURNING clause, the response could be arbitrarily large and pipelining
-       * risks deadlock. Disable batching to be safe. See issue #194.
+       * has a RETURNING clause, assume the response is at least as large as the buffer
+       * limit so we flush after every query. This avoids deadlock when the actual
+       * RETURNING data is large enough to fill TCP buffers. See issue #194.
        */
       SqlCommand sqlCommand = sq.getSqlCommand();
       if (sqlCommand != null && sqlCommand.isReturningKeywordPresent()) {
-        disallowBatching = true;
+        estimatedReceiveBufferBytes += MAX_BUFFERED_RECV_BYTES;
       }
     }
 
