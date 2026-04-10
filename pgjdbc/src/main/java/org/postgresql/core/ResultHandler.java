@@ -88,10 +88,4 @@ public interface ResultHandler {
    * @return the first encountered exception
    */
   @Nullable SQLException getException();
-
-  /**
-   * Returns the first encountered warning. The rest are chained via {@link SQLException#setNextException(SQLException)}
-   * @return the first encountered warning
-   */
-  @Nullable SQLWarning getWarning();
 }
