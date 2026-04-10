@@ -2206,12 +2206,8 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     @Override
-    public void handleCompletion() throws SQLException {
-      SQLWarning warning = getWarning();
-      if (warning != null) {
-        PgResultSet.this.addWarning(warning);
-      }
-      super.handleCompletion();
+    public void handleWarning(SQLWarning warning) {
+      PgResultSet.this.addWarning(warning);
     }
   }
 

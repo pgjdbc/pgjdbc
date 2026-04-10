@@ -1253,12 +1253,8 @@ public class PgConnection implements BaseConnection {
    */
   private class TransactionCommandHandler extends ResultHandlerBase {
     @Override
-    public void handleCompletion() throws SQLException {
-      SQLWarning warning = getWarning();
-      if (warning != null) {
-        PgConnection.this.addWarning(warning);
-      }
-      super.handleCompletion();
+    public void handleWarning(SQLWarning warning) {
+      PgConnection.this.addWarning(warning);
     }
   }
 
