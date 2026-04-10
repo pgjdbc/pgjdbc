@@ -1615,11 +1615,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     } else {
       /*
-       * We only describe a statement if we're expecting results from it, so it's legal to batch
-       * unprepared statements. We'll abort later if we get any uresults from them where none are
-       * expected. For now all we can do is hope the user told us the truth and assume that
-       * NODATA_QUERY_RESPONSE_SIZE_BYTES is enough to cover it.
+       * Statement is not described so we can't estimate the response size. If the query
+       * has a RETURNING clause, the response could be arbitrarily large and pipelining
+       * risks deadlock. Disable batching to be safe. See issue #194.
        */
+      SqlCommand sqlCommand = sq.getSqlCommand();
+      if (sqlCommand != null && sqlCommand.isReturningKeywordPresent()) {
+        disallowBatching = true;
+      }
     }
 
     if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
