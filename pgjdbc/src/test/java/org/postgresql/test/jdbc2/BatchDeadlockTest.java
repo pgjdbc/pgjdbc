@@ -5,6 +5,9 @@
 
 package org.postgresql.test.jdbc2;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterAll;
@@ -104,6 +107,10 @@ public class BatchDeadlockTest extends BaseTest4 {
   @Override
   protected void setUp() throws Exception {
     super.setUp();
+    // The pre-describe fix only works with extended query protocol.
+    // Simple query mode does not support Describe, so skip these tests.
+    assumeTrue(preferQueryMode != PreferQueryMode.SIMPLE,
+        "Batch deadlock fix requires extended query protocol");
     TestUtil.execute(con, "TRUNCATE batch_deadlock_test");
     con.setAutoCommit(false);
   }

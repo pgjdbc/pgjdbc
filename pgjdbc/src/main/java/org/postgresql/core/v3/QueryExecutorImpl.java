@@ -1615,15 +1615,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     } else {
       /*
-       * Statement is not described so we can't estimate the response size. If the query
-       * has a RETURNING clause, assume the response is at least as large as the buffer
-       * limit so we flush after every query. This avoids deadlock when the actual
-       * RETURNING data is large enough to fill TCP buffers. See issue #194.
+       * We only describe a statement if we're expecting results from it, so it's legal to batch
+       * unprepared statements. We'll abort later if we get any uresults from them where none are
+       * expected. For now all we can do is hope the user told us the truth and assume that
+       * NODATA_QUERY_RESPONSE_SIZE_BYTES is enough to cover it.
        */
-      SqlCommand sqlCommand = sq.getSqlCommand();
-      if (sqlCommand != null && sqlCommand.isReturningKeywordPresent()) {
-        estimatedReceiveBufferBytes += MAX_BUFFERED_RECV_BYTES;
-      }
     }
 
     if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
