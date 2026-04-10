@@ -13,6 +13,7 @@ import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.SqlCommand;
 import org.postgresql.jdbc.PgResultSet;
+import org.postgresql.jdbc.TypeInfoCache;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -99,8 +100,8 @@ class SimpleQuery implements Query {
     int maxResultRowSize = 0;
     if (fields != null) {
       for (Field f : fields) {
-        final int fieldLength = f.getLength();
-        if (fieldLength < 1 || fieldLength >= 65535) {
+        final int fieldLength = TypeInfoCache.estimateMaxLength(f.getOID(), f.getLength(), f.getMod());
+        if (fieldLength < 0) {
           /*
            * Field length unknown or large; we can't make any safe estimates about the result size,
            * so we have to fall back to sending queries individually.

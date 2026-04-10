@@ -17,7 +17,7 @@ public class Field {
   public static final int TEXT_FORMAT = 0;
   public static final int BINARY_FORMAT = 1;
 
-  private final int length; // Internal Length of this field
+  private final short length; // Internal Length of this field
   private final int oid; // OID of the type
   private final int mod; // type modifier of this field
   private String columnLabel; // Column label
@@ -49,7 +49,7 @@ public class Field {
    * @param length the length of the field
    * @param mod modifier
    */
-  public Field(String name, int oid, int length, int mod) {
+  public Field(String name, int oid, short length, int mod) {
     this(name, oid, length, mod, 0, 0);
   }
 
@@ -60,7 +60,7 @@ public class Field {
    * @param oid the OID of the field
    */
   public Field(String name, int oid) {
-    this(name, oid, 0, -1);
+    this(name, oid, (short) 0, -1);
   }
 
   /**
@@ -72,7 +72,7 @@ public class Field {
    * @param tableOid the OID of the columns' table
    * @param positionInTable the position of column in the table (first column is 1, second column is 2, etc...)
    */
-  public Field(String columnLabel, int oid, int length, int mod, int tableOid,
+  public Field(String columnLabel, int oid, short length, int mod, int tableOid,
       int positionInTable) {
     this.columnLabel = columnLabel;
     this.oid = oid;
@@ -112,7 +112,7 @@ public class Field {
    * Returns the length of this Field's data type.
    * @return the length of this Field's data type
    */
-  public int getLength() {
+  public short getLength() {
     return length;
   }
 

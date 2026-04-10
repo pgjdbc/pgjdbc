@@ -65,8 +65,10 @@ public class BatchDeadlockTest extends BaseTest4 {
 
   /**
    * Size of the text payload per row in characters.
+   * Query executor tries to keep receiving buffer under 64000 bytes,
+   * so if we have payloads greater than 32K, then it would effectively be a "one-by-one" processing.
    */
-  private static final int PAYLOAD_SIZE = 100_000;
+  private static final int PAYLOAD_SIZE = 30_000;
 
   private final String payload = String.join("", Collections.nCopies(PAYLOAD_SIZE, "X"));
 
@@ -90,7 +92,7 @@ public class BatchDeadlockTest extends BaseTest4 {
   @BeforeAll
   static void createTables() throws Exception {
     try (Connection con = TestUtil.openDB()) {
-      TestUtil.createTable(con, "batch_deadlock_test", "id SERIAL PRIMARY KEY, data TEXT");
+      TestUtil.createTable(con, "batch_deadlock_test", "id SERIAL PRIMARY KEY, data varchar(" + PAYLOAD_SIZE + ")");
     }
   }
 
