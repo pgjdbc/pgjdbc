@@ -803,15 +803,25 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
         switch (beresp) {
           case PgMessageType.NEGOTIATE_PROTOCOL_RESPONSE:  // Negotiate Protocol Version
-            // read the length and ignore it.
-            pgStream.receiveInteger4();
+            // NegotiateProtocolVersion: 4 (self) + 4 (protocol) + 4 (numOptions) + per-option C-strings
+            int negotiateMsgLen = pgStream.readMessageLength("NegotiateProtocolVersion", 12);
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
+            // Each unrecognized option is at least a NUL byte; cap against the envelope.
+            if (numOptionsNotRecognized < 0 || numOptionsNotRecognized > negotiateMsgLen - 12) {
+              throw new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion option count {0} inconsistent with message size {1}.",
+                  numOptionsNotRecognized, negotiateMsgLen),
+                  PSQLState.PROTOCOL_VIOLATION);
+            }
             if (numOptionsNotRecognized > 0) {
               // do not connect and throw an error
               String errorMessage = "Protocol error, received invalid options: ";
+              int maxOptionNameBytes = negotiateMsgLen - 12;
               for (int i = 0; i < numOptionsNotRecognized; i++) {
-                errorMessage  += (i > 0 ? "," : "") + pgStream.receiveString();
+                errorMessage += (i > 0 ? "," : "")
+                    + pgStream.receiveBoundedString(
+                        "NegotiateProtocolVersion", negotiateMsgLen, maxOptionNameBytes);
               }
               LOGGER.log(Level.FINEST, errorMessage);
               throw new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION);
@@ -827,7 +837,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             // The most common one to be thrown here is:
             // "User authentication failed"
             //
-            int elen = pgStream.receiveInteger4();
+            int elen = pgStream.readMessageLength("ErrorResponse", 5);
 
             ServerErrorMessage errorMsg =
                 new ServerErrorMessage(pgStream.receiveErrorString(elen - 4));
@@ -836,8 +846,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
-            // Get the message length
-            int msgLen = pgStream.receiveInteger4();
+            // AuthenticationRequest: 4 (self) + 4 (areq) + optional payload.
+            // The largest payload variant is AUTH_REQ_GSS_CONT carrying a Kerberos token
+            // (typically 1-16 KB; up to ~64 KB with Windows AD PAC; a few hundred KB in
+            // pathological nested-group cases). SCRAM/MD5/password variants are much
+            // smaller. A 2 MiB cap leaves >30x headroom over real-world GSS extremes while
+            // failing fast on a desynced stream.
+            int msgLen = pgStream.readMessageLength("AuthenticationRequest", 8, 8 + 2 * 1024 * 1024);
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();

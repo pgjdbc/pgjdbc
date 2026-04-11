@@ -6,6 +6,7 @@
 package org.postgresql.core;
 
 import org.postgresql.util.ByteConverter;
+import org.postgresql.util.GT;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -368,6 +369,55 @@ public class VisibleBufferedInputStream extends InputStream {
         throw new EOFException();
       }
       pos = index;
+    }
+  }
+
+  /**
+   * Scans the length of the next null-terminated string from the stream, rejecting a scan
+   * that would consume more than {@code maxBytes} bytes without finding a NUL. This is used
+   * to prevent an unbounded scan (and unbounded buffer growth) on a desynced stream.
+   *
+   * <p>{@code packetName} and {@code messageLength} are used only to enrich the
+   * {@link IOException} thrown on a budget violation, so an operator triaging a desync can
+   * see which protocol message and which declared envelope size was being parsed without
+   * needing to attach a debugger.</p>
+   *
+   * @param maxBytes inclusive maximum number of bytes the scan is allowed to consume,
+   *                 including the trailing NUL
+   * @param packetName protocol message name surfaced in the error
+   * @param messageLength declared total length (including the 4 length bytes) of the protocol
+   *                      message currently being parsed, surfaced in the error
+   * @return the length of the next null-terminated string (including the trailing NUL)
+   * @throws IOException if no NUL is found within {@code maxBytes}, or if reading fails
+   */
+  public int scanCStringLength(int maxBytes, String packetName, int messageLength)
+      throws IOException {
+    if (maxBytes <= 0) {
+      throw new IOException(GT.tr(
+          "Protocol error. Unexpected C-string in {0} message of {1} bytes (remaining budget: {2} bytes).",
+          packetName, messageLength, maxBytes));
+    }
+    int scanned = 0;
+    while (true) {
+      // After readMore() the buffer may have been compacted (index reset to 0) or extended
+      // (index unchanged). Either way, the bytes already counted in `scanned` are now at
+      // [index, index + scanned), so resume scanning from index + scanned to avoid
+      // re-counting them and tripping the budget check on well-formed traffic.
+      int pos = index + scanned;
+      while (pos < endIndex) {
+        scanned++;
+        if (buffer[pos++] == '\0') {
+          return scanned;
+        }
+        if (scanned > maxBytes) {
+          throw new IOException(GT.tr(
+              "Protocol error. C-string in {0} message of {1} bytes exceeds remaining budget of {2} bytes.",
+              packetName, messageLength, maxBytes));
+        }
+      }
+      if (!readMore(STRING_SCAN_SPAN, true)) {
+        throw new EOFException();
+      }
     }
   }
 
