@@ -14,7 +14,7 @@ dependencies {
         }
     }
     jmhImplementation(projects.testkit)
-    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.6.13")
+    jmhImplementation("org.roaringbitmap:RoaringBitmap:1.6.14")
     jmhImplementation("it.unimi.dsi:fastutil:8.5.18")
     jmhImplementation("org.openjdk.jmh:jmh-core:1.37")
     jmhImplementation("org.openjdk.jmh:jmh-generator-annprocess:1.37")
