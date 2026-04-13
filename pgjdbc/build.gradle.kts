@@ -137,8 +137,8 @@ dependencies {
     }
     shaded("com.ongres.scram:scram-client:3.2")
 
-    implementation("org.checkerframework:checker-qual:3.54.0")
-    java11.implementationConfigurationName("org.checkerframework:checker-qual:3.54.0")
+    implementation("org.checkerframework:checker-qual:3.55.1")
+    java11.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
 
     testKitSourcesWithoutAnnotations(projects.testkit)
 
