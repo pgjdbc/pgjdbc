@@ -1161,6 +1161,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       } else if (op instanceof CopyOut) {
         sendQueryCancel();
+        // Drain remaining CopyData messages and wait for ReadyForQuery so the
+        // connection is clean for the next query. Without this drain the stale
+        // server messages corrupt subsequent operations (issue #1290).
+        try (ResourceLock ignore = lock.obtain()) {
+          do {
+            try {
+              processCopyResults(op, true);
+            } catch (SQLException se) {
+              errors++;
+              if (error != null) {
+                SQLException e = se;
+                SQLException next;
+                while ((next = e.getNextException()) != null) {
+                  e = next;
+                }
+                e.setNextException(error);
+              }
+              error = se;
+            }
+          } while (hasLock(op));
+        }
       }
 
     } catch (IOException ioe) {
