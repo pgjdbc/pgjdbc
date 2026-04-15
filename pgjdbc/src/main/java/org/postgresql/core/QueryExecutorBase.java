@@ -74,6 +74,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
 
+  // Pipeline mode support for virtual threads
+  protected final ResourceLock writeLock = new ResourceLock();
+  protected final ResourceLock readQueueLock = new ResourceLock();
+  protected final Condition nextReaderReady = readQueueLock.newCondition();
+  // protected by writeLock
+  protected long nextTicket;
+  // protected by readQueueLock
+  protected long currentlyServing;
+  protected final boolean pipelineModeEnabled;
+
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
@@ -90,6 +100,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
     this.preferQueryMode = PreferQueryMode.of(preferMode);
     this.autoSave = AutoSave.of(PGProperty.AUTOSAVE.getOrDefault(info));
     this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
+    this.pipelineModeEnabled = PGProperty.PIPELINE_MODE.getBoolean(info);
     // assignment, argument
     this.cachedQueryCreateAction = new CachedQueryCreateAction(this);
     statementCache = new LruCache<>(
