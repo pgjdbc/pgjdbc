@@ -492,6 +492,15 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * PostgreSQL backend's {@code MaxAllocSize} (1 GB - 1): the largest legal size of a single
+   * protocol message. Any length field that exceeds this value, or that falls below the
+   * message's minimum, indicates a corrupted or desynced stream. This is a protocol-level
+   * bound and is shared by every PostgreSQL wire-compatible backend (CockroachDB,
+   * YugabyteDB, Redshift, Greenplum, ...).
+   */
+  public static final int MAX_MESSAGE_SIZE = 0x3fffffff;
+
+  /**
    * Receives a four byte integer from the backend.
    *
    * @return the integer received from the backend
@@ -499,6 +508,67 @@ public class PGStream implements Closeable, Flushable {
    */
   public int receiveInteger4() throws IOException {
     return pgInput.readInt4();
+  }
+
+  /**
+   * Reads a 4-byte length prefix and validates it against {@link #MAX_MESSAGE_SIZE}.
+   * Equivalent to {@link #readMessageLength(String, int, int)
+   * readMessageLength(packetName, minLength, MAX_MESSAGE_SIZE)}.
+   *
+   * <p>For standard PostgreSQL protocol messages the length field is self-inclusive (it
+   * counts the 4 length bytes themselves), so {@code minLength} is typically ≥ 4. Callers
+   * reading non-self-inclusive length prefixes (e.g. the GSS encryption handshake token
+   * length) can pass {@code minLength = 0}.</p>
+   *
+   * @param packetName protocol message name used in the error message
+   * @param minLength inclusive minimum legal value of the length field
+   * @return the validated length
+   * @throws IOException if the length is out of range
+   */
+  public int readMessageLength(String packetName, int minLength) throws IOException {
+    return readMessageLength(packetName, minLength, MAX_MESSAGE_SIZE);
+  }
+
+  /**
+   * Reads a 4-byte length prefix and validates it is within
+   * {@code [minLength, maxLength]}. Throws {@link IOException} on violation, so the caller
+   * tears the connection down instead of using the wire-provided length to drive an
+   * allocation or a skip. Callers should pass the tightest protocol-level upper bound they
+   * know (for messages with a protocol-defined maximum well below {@link #MAX_MESSAGE_SIZE}),
+   * so a desynced stream is detected as early as possible.
+   *
+   * @param packetName protocol message name used in the error message
+   * @param minLength inclusive minimum legal value of the length field
+   * @param maxLength inclusive maximum legal value of the length field;
+   *                  must be ≤ {@link #MAX_MESSAGE_SIZE}
+   * @return the validated length
+   * @throws IOException if the length is out of range
+   */
+  public int readMessageLength(String packetName, int minLength, int maxLength) throws IOException {
+    int len = receiveInteger4();
+    if (len < minLength || len > maxLength) {
+      throw new IOException(GT.tr(
+          "Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
+          packetName, len, minLength, maxLength));
+    }
+    return len;
+  }
+
+  /**
+   * Reads and validates a fixed-length protocol message length prefix. Throws
+   * {@link IOException} when the length is not exactly {@code expectedLength}.
+   *
+   * @param packetName protocol message name used in the error message
+   * @param expectedLength the exact length the message must have
+   * @throws IOException if the length differs from {@code expectedLength}
+   */
+  public void readFixedMessageLength(String packetName, int expectedLength) throws IOException {
+    int len = receiveInteger4();
+    if (len != expectedLength) {
+      throw new IOException(GT.tr(
+          "Protocol error. {0} message has length {1}, expected {2}.",
+          packetName, len, expectedLength));
+    }
   }
 
   /**
@@ -605,6 +675,54 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Reads a NUL-terminated C-string, refusing to scan beyond {@code maxBytes} bytes without
+   * finding a NUL. Callers pass the outer protocol message's remaining envelope budget (or
+   * a tighter per-field upper bound) so that a desynced stream cannot drive an unbounded
+   * buffer-grow-and-read loop. The {@code packetName} and {@code messageLength} parameters
+   * are used only for error message context. Named distinctly from
+   * {@link #receiveString(int)} (which reads a fixed-length blob) because the semantics
+   * are different.
+   *
+   * @param packetName protocol message name surfaced in the error
+   * @param messageLength declared total length (including the 4 length bytes) of the
+   *                      message currently being parsed
+   * @param maxBytes inclusive maximum number of bytes the scan is allowed to consume,
+   *                 including the trailing NUL
+   * @return the decoded string
+   * @throws IOException if the NUL is not found within {@code maxBytes}
+   */
+  public String receiveBoundedString(String packetName, int messageLength, int maxBytes)
+      throws IOException {
+    int len = pgInput.scanCStringLength(maxBytes, packetName, messageLength);
+    String res = encoding.decode(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
+    pgInput.skip(len);
+    return res;
+  }
+
+  /**
+   * Canonicalized-decoding variant of {@link #receiveBoundedString(String, int, int)}.
+   */
+  public String receiveBoundedCanonicalString(String packetName, int messageLength, int maxBytes)
+      throws IOException {
+    int len = pgInput.scanCStringLength(maxBytes, packetName, messageLength);
+    String res = encoding.decodeCanonicalized(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
+    pgInput.skip(len);
+    return res;
+  }
+
+  /**
+   * {@link Encoding#decodeCanonicalizedIfPresent(byte[], int, int)} variant of
+   * {@link #receiveBoundedString(String, int, int)}.
+   */
+  public String receiveBoundedCanonicalStringIfPresent(
+      String packetName, int messageLength, int maxBytes) throws IOException {
+    int len = pgInput.scanCStringLength(maxBytes, packetName, messageLength);
+    String res = encoding.decodeCanonicalizedIfPresent(pgInput.getBuffer(), pgInput.getIndex(), len - 1);
+    pgInput.skip(len);
+    return res;
+  }
+
+  /**
    * Read a tuple from the back end. A tuple is a two dimensional array of bytes. This variant reads
    * the V3 protocol's tuple representation.
    *
@@ -613,19 +731,40 @@ public class PGStream implements Closeable, Flushable {
    * @throws SQLException if read more bytes than set maxResultBuffer
    */
   public Tuple receiveTupleV3() throws IOException, OutOfMemoryError, SQLException {
-    int messageSize = receiveInteger4(); // MESSAGE SIZE
+    // DataRow envelope: 4 (self) + 2 (nf) + nf * 4 (per-field lengths), minimum 6.
+    int messageSize = readMessageLength("DataRow", 6);
+    // receiveInteger2() returns a signed 16-bit value. The protocol does not pin a specific
+    // maximum column count (forks such as CockroachDB/YugabyteDB/Redshift may differ from
+    // PostgreSQL's own limit), so bound nf only via the message envelope below.
     int nf = receiveInteger2();
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
+    if (nf < 0 || dataToReadSize < 0) {
+      // The stream is desynced: we cannot locate the next message boundary, so we must not
+      // continue reading. Throw IOException so the caller closes (aborts) the connection
+      // instead of treating this as a per-query error and looping over garbage bytes.
+      throw new IOException(
+          GT.tr("Protocol error. DataRow message with invalid field count {0} and/or message size {1}.",
+              nf, messageSize));
+    }
     setMaxRowSizeBytes(dataToReadSize);
 
     byte[][] answer = new byte[nf][];
 
     increaseByteCounter(dataToReadSize);
     OutOfMemoryError oom = null;
+    int remaining = dataToReadSize;
     for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
+        if (size < 0 || size > remaining) {
+          // Field length is inconsistent with the row envelope — stream is desynced.
+          // See comment above: IOException triggers a connection abort upstream.
+          throw new IOException(
+              GT.tr("Protocol error. DataRow field {0} has invalid length {1} (remaining row bytes: {2}).",
+                  i, size, remaining));
+        }
+        remaining -= size;
         try {
           answer[i] = new byte[size];
           receive(answer[i], 0, size);
@@ -634,6 +773,15 @@ public class PGStream implements Closeable, Flushable {
           skip(size);
         }
       }
+    }
+
+    // Envelope must be fully consumed; any leftover would indicate that the claimed message
+    // size exceeded the sum of the field lengths, leaving bytes in the stream that would
+    // misalign the next message header.
+    if (remaining != 0) {
+      throw new IOException(GT.tr(
+          "Protocol error. DataRow message has {0} unread bytes (message size {1}).",
+          remaining, messageSize));
     }
 
     if (oom != null) {
