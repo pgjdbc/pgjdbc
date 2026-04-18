@@ -806,6 +806,9 @@ public class TypeInfoCache implements TypeInfo {
         }
         return typmod - 4;
       case Oid.NUMERIC:
+        if (typmod == -1) {
+          return -1;
+        }
         int precision = (typmod - 4 >> 16) & 0xffff;
         // The actual storage requirement is two bytes for each group of four decimal digits,
         // plus three to eight bytes overhead.
