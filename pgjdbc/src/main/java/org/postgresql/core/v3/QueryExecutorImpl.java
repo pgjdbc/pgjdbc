@@ -658,7 +658,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         estimatedReceiveBufferBytes = 0;
 
         for (int i = 0; i < queries.length; i++) {
-          Query query = queries[i];
+          SimpleQuery query = (SimpleQuery) queries[i];
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
+          } else {
+            flushIfDeadlockRisk(query, handler, batchHandler, flags);
+          }
+
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
           if (parameters == null) {
             parameters = SimpleQuery.NO_PARAMETERS;
@@ -672,10 +678,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         if (handler.getException() == null) {
-          if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
-            // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
-            // on its own
-          } else {
+          // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
+          // on its own
+          if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
             sendSync();
           }
           processResults(handler, flags, adaptiveFetch);
@@ -1589,22 +1594,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
-  /*
-   * To prevent client/server protocol deadlocks, we try to manage the estimated recv buffer size
-   * and force a sync +flush and process results if we think it might be getting too full.
-   *
-   * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+  /**
+   * Returns estimated number of bytes produced by a single query execution, or
+   * {@link #MAX_BUFFERED_RECV_BYTES} if no estimation can be made.
+   * @param query input query
+   * @param flags query execution flags
+   * @return estimated number of bytes produced by a single query execution or MAX_BUFFERED_RECV_BYTES
    */
-  private void flushIfDeadlockRisk(Query query, boolean disallowBatching,
-      ResultHandler resultHandler,
-      @Nullable BatchResultHandler batchHandler,
-      final int flags) throws IOException {
+  private int estimateQueryResponseBytes(SimpleQuery query, int flags) {
     // Assume all statements need at least this much reply buffer space,
     // plus params
-    estimatedReceiveBufferBytes += NODATA_QUERY_RESPONSE_SIZE_BYTES;
+    int resultBytes = NODATA_QUERY_RESPONSE_SIZE_BYTES;
 
-    SimpleQuery sq = (SimpleQuery) query;
-    if (sq.isStatementDescribed()) {
+    // We know this is deprecated, but still respect it in case anyone's using it.
+    // PgJDBC its self no longer does.
+    @SuppressWarnings("deprecation")
+    boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
+    if (disallowBatching) {
+      return MAX_BUFFERED_RECV_BYTES;
+    }
+
+    if (query.isStatementDescribed()) {
       /*
        * Estimate the response size of the fields and add it to the expected response size.
        *
@@ -1612,13 +1622,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * case for batches and we're leaving plenty of breathing room in this approach. It's still
        * not deadlock-proof though; see pgjdbc github issues #194 and #195.
        */
-      int maxResultRowSize = sq.getMaxResultRowSize();
+      int maxResultRowSize = query.getMaxResultRowSize();
       if (maxResultRowSize >= 0) {
-        estimatedReceiveBufferBytes += maxResultRowSize;
+        resultBytes += maxResultRowSize;
       } else {
         LOGGER.log(Level.FINEST, "Couldn''t estimate result size or result size unbounded, "
             + "disabling batching for this query.");
-        disallowBatching = true;
+        return MAX_BUFFERED_RECV_BYTES;
       }
     } else {
       /*
@@ -1628,17 +1638,34 @@ public class QueryExecutorImpl extends QueryExecutorBase {
        * NODATA_QUERY_RESPONSE_SIZE_BYTES is enough to cover it.
        */
     }
+    return resultBytes;
+  }
 
-    if (disallowBatching || estimatedReceiveBufferBytes >= MAX_BUFFERED_RECV_BYTES) {
+  /*
+   * To prevent client/server protocol deadlocks, we try to manage the estimated recv buffer size
+   * and force a sync +flush and process results if we think it might be getting too full.
+   *
+   * See the comments above MAX_BUFFERED_RECV_BYTES's declaration for details.
+   */
+  private void flushIfDeadlockRisk(SimpleQuery query,
+      ResultHandler resultHandler,
+      @Nullable BatchResultHandler batchHandler,
+      final int flags) throws IOException {
+    int resultBytes = estimateQueryResponseBytes(query, flags);
+
+    int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
+    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+      estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
+    } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
       processResults(resultHandler, flags);
-      estimatedReceiveBufferBytes = 0;
+      // We've processed incoming bytes, and the query to be executed would consume receive buffer
+      estimatedReceiveBufferBytes = resultBytes;
       if (batchHandler != null) {
         batchHandler.secureProgress();
       }
     }
-
   }
 
   /*
@@ -1651,14 +1678,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     Query[] subqueries = query.getSubqueries();
     SimpleParameterList[] subparams = parameters.getSubparams();
 
-    // We know this is deprecated, but still respect it in case anyone's using it.
-    // PgJDBC its self no longer does.
-    @SuppressWarnings("deprecation")
-    boolean disallowBatching = (flags & QueryExecutor.QUERY_DISALLOW_BATCHING) != 0;
-
     if (subqueries == null) {
-      flushIfDeadlockRisk(query, disallowBatching, resultHandler, batchHandler, flags);
-
       // If we saw errors, don't send anything more.
       if (resultHandler.getException() == null) {
         if (fetchSize != 0) {
@@ -1669,12 +1689,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
     } else {
       for (int i = 0; i < subqueries.length; i++) {
-        final Query subquery = subqueries[i];
-        flushIfDeadlockRisk(subquery, disallowBatching, resultHandler, batchHandler, flags);
-
-        // If we saw errors, don't send anything more.
-        if (resultHandler.getException() != null) {
-          break;
+        final SimpleQuery subquery = (SimpleQuery) subqueries[i];
+        if (i == 0) {
+          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
+        } else {
+          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+          // If we saw errors, don't send anything more.
+          if (resultHandler.getException() != null) {
+            break;
+          }
         }
 
         // In the situation where parameters is already
