@@ -453,7 +453,7 @@ public class PgConnection implements BaseConnection {
    * @return oids for which binary transfer can be enabled
    * @throws PSQLException if any oid is not valid
    */
-  private static Set<Integer> getBinaryEnabledOids(Properties info) throws PSQLException {
+  public Set<Integer> getBinaryEnabledOids(Properties info) throws SQLException {
     // check if binary transfer should be enabled for built-in types
     boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
     // get formats that currently have binary protocol support
@@ -476,17 +476,18 @@ public class PgConnection implements BaseConnection {
    * @return oids for which binary transfer should be disabled
    * @throws PSQLException if any oid is not valid
    */
-  private static Set<? extends Integer> getBinaryDisabledOids(Properties info)
-      throws PSQLException {
+  public Set<? extends Integer> getBinaryDisabledOids(Properties info)
+      throws SQLException {
     // check for oids that should explicitly be disabled
     String oids = PGProperty.BINARY_TRANSFER_DISABLE.getOrDefault(info);
+
     if (oids == null) {
       return Collections.emptySet();
     }
     return getOidSet(oids);
   }
 
-  private static Set<? extends Integer> getOidSet(String oidList) throws PSQLException {
+  private Set<? extends Integer> getOidSet(String oidList) throws SQLException {
     if (oidList.isEmpty()) {
       return Collections.emptySet();
     }
@@ -494,7 +495,12 @@ public class PgConnection implements BaseConnection {
     StringTokenizer tokenizer = new StringTokenizer(oidList, ",");
     while (tokenizer.hasMoreTokens()) {
       String oid = tokenizer.nextToken();
-      oids.add(Oid.valueOf(oid));
+      if (Character.isDigit(oid.charAt(0))) {
+        oids.add(Oid.valueOf(oid));
+      } else {
+        // look up oid
+        oids.add(typeCache.getPGType(oid));
+      }
     }
     return oids;
   }
