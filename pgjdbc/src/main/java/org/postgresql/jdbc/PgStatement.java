@@ -12,7 +12,9 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Field;
+import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
@@ -809,6 +811,29 @@ public class PgStatement implements Statement, BaseStatement {
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
     CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
+    // BatchResultHandler allocates one update-count slot per batch entry, but
+    // multi-statement SQL emits one CommandComplete per statement, so it fails
+    // with "Too many update results" or ClassCastException deep in the protocol.
+    // Reject at the JDBC boundary. Note: CachedQueryCreateAction only splits when
+    // isParameterized=true or preferQueryMode >= EXTENDED. Statement.addBatch(sql)
+    // always passes isParameterized=false, so SIMPLE and EXTENDED_FOR_PREPARED
+    // produce a single SimpleQuery wrapping the raw multi-statement SQL (with
+    // getSubqueries()==null). Re-parse with splitStatements=true in those modes.
+    boolean isMultiStatement = cachedQuery.query.getSubqueries() != null;
+    if (!isMultiStatement
+        && connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
+      List<NativeQuery> parsed = Parser.parseJdbcSql(sql,
+          connection.getStandardConformingStrings(),
+          false /* withParameters */, true /* splitStatements */,
+          false /* isBatchedReWriteConfigured */, false /* quoteReturningIdentifiers */);
+      isMultiStatement = parsed.size() > 1;
+    }
+    if (isMultiStatement) {
+      throw new PSQLException(
+          GT.tr("Multi-statement SQL is not supported in Statement.addBatch(); "
+              + "call addBatch() once per statement instead."),
+          PSQLState.NOT_IMPLEMENTED);
+    }
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
