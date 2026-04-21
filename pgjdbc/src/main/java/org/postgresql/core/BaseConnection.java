@@ -244,4 +244,10 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return true if boolean to numeric conversion is enabled
    */
   boolean getConvertBooleanToNumeric();
+
+  /**
+   * Returns true enable handling of special numeric values (e.g., NaN, Infinity) in NUMERIC arrays.
+   * @return true enable handling of special numeric values (e.g., NaN, Infinity) in NUMERIC arrays.
+   */
+  boolean allowSpecialNumeric();
 }
