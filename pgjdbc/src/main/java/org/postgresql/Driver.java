@@ -17,6 +17,7 @@ import org.postgresql.util.HostSpec;
 import org.postgresql.util.PGPropertyUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+import org.postgresql.util.SRVLookup;
 import org.postgresql.util.SharedTimer;
 import org.postgresql.util.URLCoder;
 
@@ -250,7 +251,7 @@ public class Driver implements java.sql.Driver {
     // get defaults
     Properties defaults;
 
-    if (!url.startsWith("jdbc:postgresql:")) {
+    if (!url.startsWith("jdbc:postgresql:") && !url.startsWith("jdbc:postgresql+srv:")) {
       return null;
     }
     try {
@@ -543,6 +544,12 @@ public class Driver implements java.sql.Driver {
     // argument "defaults" INCLUDING defaults
     // priority 5 - PGProperty defaults for PGHOST, PGPORT, PGDBNAME
 
+    // Normalise jdbc:postgresql+srv:// → jdbc:postgresql:// and remember the SRV flag.
+    boolean isSrvScheme = url.startsWith("jdbc:postgresql+srv:");
+    if (isSrvScheme) {
+      url = "jdbc:postgresql:" + url.substring("jdbc:postgresql+srv:".length());
+    }
+
     String urlServer = url;
     String urlArgs = "";
 
@@ -651,6 +658,25 @@ public class Driver implements java.sql.Driver {
       priority3Service.putAll(result);
     }
 
+    // Handle +srv scheme: the host parsed from the URL authority is the SRV domain, not a direct
+    // PostgreSQL host. Move it to SRV_HOST so hostSpecs() can resolve it via DNS SRV lookup.
+    if (isSrvScheme) {
+      String srvHost = priority1Url.getProperty(PGProperty.PG_HOST.getName());
+      if (srvHost != null && !srvHost.isEmpty()) {
+        PGProperty.SRV_HOST.set(priority1Url, srvHost);
+      }
+    }
+
+    // Mutual exclusivity: srvhost= query param must not coexist with an explicit host in the URL
+    // authority component (the +srv scheme already handles this by design).
+    if (!isSrvScheme
+        && priority1Url.containsKey(PGProperty.SRV_HOST.getName())
+        && priority1Url.containsKey(PGProperty.PG_HOST.getName())) {
+      LOGGER.log(Level.WARNING,
+          "srvhost and host are mutually exclusive; do not specify both in the JDBC URL");
+      return null;
+    }
+
     // combine result based on order of priority
     Properties result = new Properties();
     result.putAll(priority1Url);
@@ -701,7 +727,11 @@ public class Driver implements java.sql.Driver {
   /**
    * @return the address portion of the URL
    */
-  private static HostSpec[] hostSpecs(Properties props) {
+  private static HostSpec[] hostSpecs(Properties props) throws PSQLException {
+    String srvHost = PGProperty.SRV_HOST.getOrDefault(props);
+    if (srvHost != null && !srvHost.isEmpty()) {
+      return SRVLookup.resolve(srvHost);
+    }
     String[] hosts = castNonNull(PGProperty.PG_HOST.getOrDefault(props)).split(",");
     String[] ports = castNonNull(PGProperty.PG_PORT.getOrDefault(props)).split(",");
     String localSocketAddress = PGProperty.LOCAL_SOCKET_ADDRESS.getOrDefault(props);
