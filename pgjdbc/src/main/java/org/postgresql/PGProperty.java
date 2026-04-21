@@ -482,6 +482,20 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
+   * DNS SRV domain for PostgreSQL service discovery. When set, the driver looks up
+   * {@code _postgresql._tcp.<srvhost>} SRV records and uses the resulting host/port pairs as the
+   * candidate list, ordered by priority (ascending) then weight (descending) per RFC 2782.
+   *
+   * <p>Can be specified via the {@code jdbc:postgresql+srv://<domain>/<db>} URL scheme or as an
+   * explicit connection property {@code srvhost=<domain>}. Mutually exclusive with an explicit
+   * {@code host} in the JDBC URL authority component.
+   */
+  SRV_HOST(
+      "srvhost",
+      null,
+      "DNS SRV domain for PostgreSQL service discovery (_postgresql._tcp.<srvhost>)"),
+
+  /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
    * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.
