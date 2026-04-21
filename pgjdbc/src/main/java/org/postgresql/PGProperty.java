@@ -828,6 +828,30 @@ public enum PGProperty {
       "false",
       "Enable or disable TCP keep-alive. The default is {@code false}."),
 
+  /**
+   * The maximum number of keep-alive probes to be sent before a connection is considered to be broken. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this keep-alive probe retransmit limit is system dependent, but is typically 8.
+   */
+  TCP_KEEP_COUNT(
+      "tcpKeepCount",
+      null,
+      "The maximum number of keep-alive probes to be sent before a connection is considered to be broken. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this keep-alive probe retransmit limit is system dependent, but is typically 8."),
+
+  /**
+   * The number of seconds of idle time before keep-alive initiates a probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this idle period is system dependent, but is typically 2 hours.
+   */
+  TCP_KEEP_IDLE(
+      "tcpKeepIdle",
+      null,
+      "The number of seconds of idle time before keep-alive initiates a probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this idle period is system dependent, but is typically 2 hours."),
+
+  /**
+   * The number of seconds to wait before retransmitting a keep-alive probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this retransmission interval is system dependent, but is typically 75 seconds.
+   */
+  TCP_KEEP_INTERVAL(
+      "tcpKeepInterval",
+      null,
+      "The number of seconds to wait before retransmitting a keep-alive probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available. The default value for this retransmission interval is system dependent, but is typically 75 seconds."),
+
   TCP_NO_DELAY(
       "tcpNoDelay",
       "true",
@@ -982,6 +1006,20 @@ public enum PGProperty {
    */
   public @Nullable String getOrNull(Properties properties) {
     return properties.getProperty(name);
+  }
+
+  /**
+   * Set the value for this connection parameter in the given {@link Properties}.
+   *
+   * @param properties properties in which the value should be set
+   * @param value value for this connection parameter
+   */
+  public void setInteger(Properties properties, @Nullable Integer value) {
+    if (value == null) {
+      properties.remove(name);
+    } else {
+      properties.setProperty(name, String.valueOf(value));
+    }
   }
 
   /**

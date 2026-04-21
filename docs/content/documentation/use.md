@@ -269,6 +269,15 @@ The timeout is specified in seconds.
 * **`tcpKeepAlive (`*boolean*`)`** *Default `false`*\
 Enable or disable TCP keep-alive probe.
 
+* **`tcpKeepCount (`*integer*`)`** *Default `null`*\
+The maximum number of keep-alive probes to be sent before a connection is considered to be broken. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+
+* **`tcpKeepIdle (`*integer*`)`** *Default `null`*\
+The number of seconds of idle time before keep-alive initiates a probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+
+* **`tcpKeepInterval (`*integer*`)`** *Default `null`*\
+The number of seconds to wait before retransmitting a keep-alive probe. Only supported from JDK 11 onwards and only when jdk.net.ExtendedSocketOptions is available.
+
 * **`tcpNoDelay (`*boolean*`)`** *Default `true`*\
 Enable or disable TCP nodelay.
 
