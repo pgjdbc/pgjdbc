@@ -123,15 +123,17 @@ public class LruCache<Key extends Object, Value extends CanEstimateSize>
     Map<Key, Value> cache = this.cache;
     synchronized (cache) {
       Value value = cache.remove(key);
-      if (value == null) {
-        if (createAction == null) {
-          throw new UnsupportedOperationException("createAction == null, so can't create object");
-        }
-        return createAction.create(key);
+      if (value != null) {
+        currentSize -= value.getSize();
+        return value;
       }
-      currentSize -= value.getSize();
-      return value;
     }
+    if (createAction == null) {
+      throw new UnsupportedOperationException("createAction == null, so can't create object");
+    }
+    // It is fine to execute createAction without synchronization as we never return the same object
+    // to different threads in any case
+    return createAction.create(key);
   }
 
   /**
