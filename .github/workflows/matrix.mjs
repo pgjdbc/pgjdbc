@@ -243,6 +243,20 @@ matrix.addAxis({
   ]
 });
 
+// Occasionally constrain the JVM to a single CPU via -XX:ActiveProcessorCount=1. This shrinks
+// JVM-internal pools (ForkJoinPool common pool, GC threads, etc.) and has caught regressions
+// where bursty work cannot keep up with producers — e.g. LazyCleaner backed by FJP, see
+// https://github.com/pgjdbc/pgjdbc/issues/4037
+// Both HotSpot and OpenJ9 support the flag.
+matrix.addAxis({
+  name: 'cpu_count',
+  title: x => x.value === '1' ? 'ActiveProcessorCount=1' : '',
+  values: [
+    {value: '1', weight: 1},
+    {value: 'default', weight: 10},
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -252,7 +266,7 @@ matrix.setNamePattern([
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
-    'autosave', 'cleanupSavepoints'
+    'autosave', 'cleanupSavepoints', 'cpu_count'
 ]);
 
 // We take EA builds from Oracle
@@ -302,6 +316,7 @@ matrix.ensureAllAxisValuesCovered('xa');
 matrix.ensureAllAxisValuesCovered('ssl');
 matrix.ensureAllAxisValuesCovered('replication');
 matrix.ensureAllAxisValuesCovered('os');
+matrix.ensureAllAxisValuesCovered('cpu_count');
 // Ensure at least one job with autosave=always
 matrix.generateRow({autosave: {value: 'always'}});
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
@@ -429,6 +444,13 @@ include.forEach(v => {
   if (v.gss === 'no') {
       testJvmArgs.push('-DskipGssEncryption=true');
   }
+  if (v.cpu_count.value === '1') {
+      // Constrains ForkJoinPool common pool to a single worker, exposing FJP submit/compensation
+      // overhead in code paths like LazyCleaner. See https://github.com/pgjdbc/pgjdbc/issues/4037
+      // Both HotSpot and OpenJ9 support -XX:ActiveProcessorCount.
+      testJvmArgs.push('-XX:ActiveProcessorCount=1');
+  }
+  delete v.cpu_count;
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;
