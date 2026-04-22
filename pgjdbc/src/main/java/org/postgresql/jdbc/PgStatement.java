@@ -12,7 +12,9 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.CachedQuery;
 import org.postgresql.core.Field;
+import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
+import org.postgresql.core.Parser;
 import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
@@ -220,6 +222,16 @@ public class PgStatement implements Statement, BaseStatement {
   protected boolean wantsHoldableResultSet() {
     // FIXME: false if not supported
     return rsHoldability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
+  }
+
+  /**
+   * ResultHandler that discards all results.
+   */
+  class DiscardResultHandler extends ResultHandlerBase {
+    @Override
+    public void handleWarning(SQLWarning warning) {
+      PgStatement.this.addWarning(warning);
+    }
   }
 
   /**
@@ -510,21 +522,8 @@ public class PgStatement implements Statement, BaseStatement {
       // When binaryTransfer is forced, then we need to know resulting parameter and column types,
       // thus sending a describe request.
       int flags2 = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      StatementResultHandler handler2 = new StatementResultHandler();
-      connection.getQueryExecutor().execute(queryToExecute, queryParameters, handler2, 0, 0,
+      connection.getQueryExecutor().execute(queryToExecute, queryParameters, new DiscardResultHandler(), 0, 0,
           flags2);
-      // We should not create temporary ResultSet when processing "describe row" command;
-      // however, it is the way PgPreparedStatement#getMetaData() works now
-      ResultWrapper result2 = handler2.getResults();
-      if (result2 != null) {
-        // Note: if the user requested "statement.closeOnCompletion()" then we should not
-        // let the driver's internal resultset to close the user statement
-        // At best we should stop creating the intermediate ResultSet objects
-        boolean prevCloseOnCompletion = closeOnCompletion;
-        closeOnCompletion = false;
-        castNonNull(result2.getResultSet(), "result2.getResultSet()").close();
-        closeOnCompletion = prevCloseOnCompletion;
-      }
     }
 
     StatementResultHandler handler = new StatementResultHandler();
@@ -812,6 +811,29 @@ public class PgStatement implements Statement, BaseStatement {
     // Simple statements should not replace ?, ? with $1, $2
     boolean shouldUseParameterized = false;
     CachedQuery cachedQuery = connection.createQuery(sql, replaceProcessingEnabled, shouldUseParameterized);
+    // BatchResultHandler allocates one update-count slot per batch entry, but
+    // multi-statement SQL emits one CommandComplete per statement, so it fails
+    // with "Too many update results" or ClassCastException deep in the protocol.
+    // Reject at the JDBC boundary. Note: CachedQueryCreateAction only splits when
+    // isParameterized=true or preferQueryMode >= EXTENDED. Statement.addBatch(sql)
+    // always passes isParameterized=false, so SIMPLE and EXTENDED_FOR_PREPARED
+    // produce a single SimpleQuery wrapping the raw multi-statement SQL (with
+    // getSubqueries()==null). Re-parse with splitStatements=true in those modes.
+    boolean isMultiStatement = cachedQuery.query.getSubqueries() != null;
+    if (!isMultiStatement
+        && connection.getPreferQueryMode().compareTo(PreferQueryMode.EXTENDED) < 0) {
+      List<NativeQuery> parsed = Parser.parseJdbcSql(sql,
+          connection.getStandardConformingStrings(),
+          false /* withParameters */, true /* splitStatements */,
+          false /* isBatchedReWriteConfigured */, false /* quoteReturningIdentifiers */);
+      isMultiStatement = parsed.size() > 1;
+    }
+    if (isMultiStatement) {
+      throw new PSQLException(
+          GT.tr("Multi-statement SQL is not supported in Statement.addBatch(); "
+              + "call addBatch() once per statement instead."),
+          PSQLState.NOT_IMPLEMENTED);
+    }
     batchStatements.add(cachedQuery.query);
     batchParameters.add(null);
   }
@@ -890,6 +912,24 @@ public class PgStatement implements Statement, BaseStatement {
 
     BatchResultHandler handler;
     handler = createBatchHandler(queries, parameterLists);
+
+    // Describe the query before batching so flushIfDeadlockRisk can estimate
+    // response sizes accurately and avoid client/server TCP deadlock. See #194.
+    SqlCommand sqlCommand = queries[0].getSqlCommand();
+    boolean queryReturnsRows = wantsGeneratedKeysAlways
+        || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
+    if (queryReturnsRows
+        && !queries[0].isStatementDescribed()
+        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+      int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+      try {
+        connection.getQueryExecutor().execute(
+            queries[0], parameterLists[0], new DiscardResultHandler(), 0, 0, describeFlags);
+      } catch (SQLException e) {
+        handler.handleError(e);
+        handler.handleCompletion();
+      }
+    }
 
     try (ResourceLock ignore = lock.obtain()) {
       result = null;
