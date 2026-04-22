@@ -29,7 +29,6 @@ import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
 import java.time.Duration;
 import java.util.concurrent.ForkJoinPool;
-import java.util.function.BooleanSupplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -126,23 +125,24 @@ public class LazyCleanerImpl implements LazyCleaner {
     private final String threadName;
     private @Nullable Reference<? extends T> ref;
     private final long blockTimeoutMillis;
-    private final BooleanSupplier shouldTerminate;
 
-    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout, BooleanSupplier shouldTerminate) {
+    RefQueueBlocker(ReferenceQueue<T> queue, String threadName, Duration blockTimeout) {
       this.queue = queue;
       this.threadName = threadName;
-      this.blockTimeoutMillis = blockTimeout.toMillis();
-      this.shouldTerminate = shouldTerminate;
+      // ReferenceQueue.remove(0) blocks indefinitely; clamp to a small positive timeout so a
+      // user-configured threadTtl of 0/negative still yields a quickly-terminating cleanup task
+      // rather than a thread that parks forever waiting for the next reference.
+      long millis = blockTimeout.toMillis();
+      this.blockTimeoutMillis = millis > 0 ? millis : 1;
     }
 
     @Override
     public boolean isReleasable() {
-      if (ref != null || shouldTerminate.getAsBoolean()) {
+      if (ref != null) {
         return true; // already have a ref from a previous call
       }
       // non-blocking check
       ref = queue.poll();
-      // no need to block if we already have a ref from a previous call
       return ref != null;
     }
 
@@ -156,12 +156,13 @@ public class LazyCleanerImpl implements LazyCleaner {
       String oldName = currentThread.getName();
       try {
         currentThread.setName(threadName);
-        // Perform blocking operation
+        // Wait the full blockTimeoutMillis for a reference. Returning true unconditionally lets
+        // managedBlock exit so the outer loop can decide whether to terminate the cleanup task.
         ref = queue.remove(blockTimeoutMillis);
       } finally {
         currentThread.setName(oldName);
       }
-      return false;
+      return true;
     }
 
     @Nullable Reference<? extends T> drainOne() {
@@ -188,16 +189,22 @@ public class LazyCleanerImpl implements LazyCleaner {
             // InnocuousForkJoinWorkerThread or a SecurityManager forbids setContextClassLoader
           }
           RefQueueBlocker<Object> blocker =
-              new RefQueueBlocker<>(queue, threadName, threadTtl, this::checkEmpty);
-          while (!checkEmpty()) {
+              new RefQueueBlocker<>(queue, threadName, threadTtl);
+          while (true) {
             try {
               ForkJoinPool.managedBlock(blocker);
               Node<?> ref = (Node<?>) blocker.drainOne();
               if (ref != null) {
                 ref.onClean(true);
+              } else if (checkEmpty()) {
+                // The blocker waited the full threadTtl without receiving a ref, and there are
+                // no pending registrations, so the cleanup task can terminate. Keeping the task
+                // alive across transient empties amortizes ForkJoinPool submit/compensation
+                // overhead under bursty workloads.
+                break;
               }
             } catch (InterruptedException e) {
-              if (!blocker.isReleasable()) {
+              if (checkEmpty()) {
                 LOGGER.log(Level.FINE, "Got interrupt and the cleanup queue is empty, will terminate the cleanup thread");
                 break;
               }
