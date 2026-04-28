@@ -141,6 +141,10 @@ publishing {
                     id.set("bokken")
                     name.set("Brett Okken")
                 }
+                developer {
+                    id.set("sehrope")
+                    name.set("Sehrope Sarkuni")
+                }
             }
             issueManagement {
                 system.set("GitHub issues")
