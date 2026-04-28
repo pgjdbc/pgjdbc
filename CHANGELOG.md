@@ -4,13 +4,13 @@ Notable changes since version 42.0.0, read the complete [History of Changes](htt
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
-## [42.7.10] (2026-02-11)
-
 ### Security
 * fix: Limit SCRAM PBKDF2 iterations accepted from the server
 pgjdbc was vulnerable to a client-side denial of service in SCRAM-SHA-256 authentication, where a malicious or compromised PostgreSQL server could specify an extremely large PBKDF2 iteration count, causing the client to consume unbounded CPU and potentially exhaust connection pools. The fix introduces a new scramMaxIterations connection property (defaulting to 100,000) to cap iteration counts before computation begins.
 See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-98qh-xjc8-98pq) for more detail.
 The following [CVE-2026-42198](https://nvd.nist.gov/vuln/detail/CVE-2026-42198) has been issued.
+
+## [42.7.10] (2026-02-11)
 
 ### Changed
 * chore: Migrate to Shadow 9 [PR 3931](https://github.com/pgjdbc/pgjdbc/pull/3931)
