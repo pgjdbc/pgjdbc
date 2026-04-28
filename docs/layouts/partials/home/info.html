@@ -15,8 +15,8 @@
             Latest Releases
         </h2>
         <p>
-            Current release is 42.7.10 This is a maintenance release. This resolves a regression regarding proleptic dates see <a href="https://github.com/pgjdbc/pgjdbc/pull/3932">PR #3932</a> for details
-            and <a href="https://jdbc.postgresql.org/changelogs/2026-02-11-42/">Changelog</a> for other minor changes
+            Current release is 42.7.11 This is a security and maintenance release. This fixes a SCRAM PBKDF2 iteration DoS vulnerability (CVE-2026-42198), adds the require_auth connection property, and includes numerous bug fixes.
+            See the <a href="https://jdbc.postgresql.org/changelogs/2026-04-28-42/">Changelog</a> for details
         </p>
         <ul role="list">
             {{ range $.Site.Data.homepagedata.info }}

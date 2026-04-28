@@ -2,13 +2,33 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
-## [Unreleased]
+## [42.7.11] (2026-04-28)
 
 ### Security
-* fix: Limit SCRAM PBKDF2 iterations accepted from the server
+* fix: Limit SCRAM PBKDF2 iterations accepted from the server.
 pgjdbc was vulnerable to a client-side denial of service in SCRAM-SHA-256 authentication, where a malicious or compromised PostgreSQL server could specify an extremely large PBKDF2 iteration count, causing the client to consume unbounded CPU and potentially exhaust connection pools. The fix introduces a new scramMaxIterations connection property (defaulting to 100,000) to cap iteration counts before computation begins.
 See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-98qh-xjc8-98pq) for more detail.
 The following [CVE-2026-42198](https://nvd.nist.gov/vuln/detail/CVE-2026-42198) has been issued.
+
+### Added
+* feat: implement require_auth connection property, aligning with libpq behavior [PR #3895](https://github.com/pgjdbc/pgjdbc/pull/3895)
+
+### Changed
+* chore: replace Appveyor CI with ikalnytskyi/action-setup-postgres [PR #3966](https://github.com/pgjdbc/pgjdbc/pull/3966)
+* chore: upgrade Gradle to v9 [PR #3978](https://github.com/pgjdbc/pgjdbc/pull/3978)
+
+### Fixed
+* fix: ensure extended protocol messages end with Sync message [PR #3728](https://github.com/pgjdbc/pgjdbc/pull/3728)
+* fix: enable cursor-based fetching in extended protocol when transaction started via SQL command [PR #3996](https://github.com/pgjdbc/pgjdbc/pull/3996)
+* fix: retry with SSL on IOException when sslMode=ALLOW [PR #3973](https://github.com/pgjdbc/pgjdbc/pull/3973)
+* fix: make sure the driver honours connectTimeout when retrying the connection [PR #3968](https://github.com/pgjdbc/pgjdbc/pull/3968)
+* fix: allow fallback to non-SSL connection when sslMode=prefer and sslResponseTimeout kicks in [PR #3968](https://github.com/pgjdbc/pgjdbc/pull/3968)
+* fix: catch SecurityException from setContextClassLoader on ForkJoinPool workers [PR #3962](https://github.com/pgjdbc/pgjdbc/pull/3962)
+* fix: use compareTo for LogSequenceNumber comparison to handle unsigned values correctly [PR #3961](https://github.com/pgjdbc/pgjdbc/pull/3961)
+* fix: release COPY lock on IOException to prevent connection hang [PR #3957](https://github.com/pgjdbc/pgjdbc/pull/3957)
+* fix: return jsonb as PGObject instead of String [PR #3956](https://github.com/pgjdbc/pgjdbc/pull/3956)
+* fix: align SSL key file permission check with libpq [PR #3952](https://github.com/pgjdbc/pgjdbc/pull/3952)
+* fix: guard connection closed flag with a reentrant lock to protect against concurrent close [PR #3905](https://github.com/pgjdbc/pgjdbc/pull/3905)
 
 ## [42.7.10] (2026-02-11)
 
