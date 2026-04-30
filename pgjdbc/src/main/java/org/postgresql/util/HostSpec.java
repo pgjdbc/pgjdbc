@@ -71,8 +71,15 @@ public class HostSpec {
   }
 
   private Boolean matchesNonProxyHosts() {
-    String nonProxyHosts = System.getProperty("socksNonProxyHosts", DEFAULT_NON_PROXY_HOSTS);
-    if (nonProxyHosts == null || this.host.isEmpty()) {
+    String nonProxyHosts = System.getProperty("socksNonProxyHosts");
+    if (nonProxyHosts == null || nonProxyHosts.isEmpty()) {
+      nonProxyHosts = DEFAULT_NON_PROXY_HOSTS;
+    } else {
+      // Align with java.net.DefaultProxySelector which always appends its
+      // built-in defaults (localhost, 127.*, etc.) to the user-supplied value.
+      nonProxyHosts = nonProxyHosts + "|" + DEFAULT_NON_PROXY_HOSTS;
+    }
+    if (this.host.isEmpty()) {
       return false;
     }
 
