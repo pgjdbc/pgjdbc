@@ -26,7 +26,7 @@ jobs:
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - name: Get the current version
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         id: current_version
         with:
           # language=javascript
@@ -70,7 +70,7 @@ jobs:
           arguments: --scan --no-parallel --no-daemon :postgresql:osgiJar
       - name: Attach files to release
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         env:
           # https://github.com/release-drafter/release-drafter#action-outputs
           RELEASE_ID: ${{ steps.prepare_release.outputs.id }}
