@@ -44,11 +44,11 @@ import org.checkerframework.checker.nullness.qual.RequiresNonNull;
 import org.checkerframework.dataflow.qual.Pure;
 
 import java.io.ByteArrayInputStream;
+import java.io.CharArrayReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.StringReader;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -488,7 +488,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     // long string datatype, but with toast the text datatype is capable of
     // handling very large values. Thus the implementation ends up calling
     // getString() since there is no current way to stream the value from the server
-    return new StringReader(value);
+    return new CharArrayReader(value.toCharArray());
   }
 
   @Override
