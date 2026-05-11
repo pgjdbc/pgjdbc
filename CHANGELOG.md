@@ -2,6 +2,14 @@
 Notable changes since version 42.0.0, read the complete [History of Changes](https://jdbc.postgresql.org/documentation/changelog.html).
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
+## [42.7.12] (2026-xx-xx)
+
+### Security
+### Added
+### Changed
+### Fixed
+* fix: getCharacterStream wraps String in StringReader [PR #4063](https://github.com/pgjdbc/pgjdbc/pull/4063)
+
 ## [42.7.11] (2026-04-28)
 
 ### Security
@@ -96,12 +104,12 @@ The following [CVE-2026-42198](https://nvd.nist.gov/vuln/detail/CVE-2026-42198) 
 
 ### Security
 * security: **Client Allows Fallback to Insecure Authentication Despite channelBinding=require configuration.**
-Fix `channel binding required` handling to reject non-SASL authentication 
-Previously, when channel binding was set to "require", the driver would silently ignore this 
-requirement for non-SASL authentication methods. This could lead to a false sense of security 
-when channel binding was explicitly requested but not actually enforced. The fix ensures that when 
-channel binding is set to "require", the driver will reject connections that use 
-non-SASL authentication methods or when SASL authentication has not completed properly. 
+Fix `channel binding required` handling to reject non-SASL authentication
+Previously, when channel binding was set to "require", the driver would silently ignore this
+requirement for non-SASL authentication methods. This could lead to a false sense of security
+when channel binding was explicitly requested but not actually enforced. The fix ensures that when
+channel binding is set to "require", the driver will reject connections that use
+non-SASL authentication methods or when SASL authentication has not completed properly.
 See the [Security Advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54) for more detail. Reported by [George MacKerron](https://github.com/jawj)
 The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) has been issued
 
@@ -117,7 +125,7 @@ The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) 
 ### Performance Improvements
 * performance: Improve ResultSetMetadata.fetchFieldMetaData by using IN row values instead of UNION ALL for improved query performance (later reverted) [PR #3510](https://github.com/pgjdbc/pgjdbc/pull/3510)
 * feat:Use a single simple query for all startup parameters, so groupStartupParameters is no longer needed  [PR #3613](https://github.com/pgjdbc/pgjdbc/pull/3613)
-* 
+*
 ## Bug Fixes
 
 ### Protocol & Connection Handling
@@ -270,13 +278,13 @@ The following [CVE-2025-49146](https://nvd.nist.gov/vuln/detail/CVE-2025-49146) 
     * make sure we handle boolean types in simple query mode
     * support uuid as well
     * handle all well known types in text mode and change `else if` to `switch`
-* fix: released new versions of 42.2.29, 42.3.10, 42.4.5, 42.5.6, 42.6.2 to deal with `NoSuchMethodError on ByteBuffer#position` when running on Java 8 
+* fix: released new versions of 42.2.29, 42.3.10, 42.4.5, 42.5.6, 42.6.2 to deal with `NoSuchMethodError on ByteBuffer#position` when running on Java 8
 
 ## [42.7.2] (2024-02-21 08:23:00 -0500)
 
 ### Security
-* security: SQL Injection via line comment generation, it is possible in `SimpleQuery` mode to generate a line comment by having a placeholder for a numeric with a `-` 
-such as `-?`. There must be second placeholder for a string immediately after. Setting the parameter to a -ve value creates a line comment. 
+* security: SQL Injection via line comment generation, it is possible in `SimpleQuery` mode to generate a line comment by having a placeholder for a numeric with a `-`
+such as `-?`. There must be second placeholder for a string immediately after. Setting the parameter to a -ve value creates a line comment.
 This has been fixed in this version fixes [CVE-2024-1597](https://www.cve.org/CVERecord?id=CVE-2024-1597). Reported by [Paul Gerste](https://github.com/paul-gerste-sonarsource). See the [security advisory](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-24rp-q3w6-vc56) for more details. This has been fixed in versions 42.7.2, 42.6.1 42.5.5, 42.4.4, 42.3.9, 42.2.28.jre7. See the security advisory for work arounds.
 
 ### Changed
@@ -331,7 +339,7 @@ This has been fixed in this version fixes [CVE-2024-1597](https://www.cve.org/CV
 ## [42.6.0] (2023-03-17 15:34:34 -0400)
 
 ### Changed
-* fix: use PhantomReferences instead of `Obejct.finalize()` to track Connection leaks [PR #2847](https://github.com/pgjdbc/pgjdbc/pull/2847) 
+* fix: use PhantomReferences instead of `Obejct.finalize()` to track Connection leaks [PR #2847](https://github.com/pgjdbc/pgjdbc/pull/2847)
 
     The change replaces all uses of Object.finalize with PhantomReferences.
     The leaked resources (Connections) are tracked in a helper thread that is active as long as
@@ -344,25 +352,25 @@ This has been fixed in this version fixes [CVE-2024-1597](https://www.cve.org/CV
 ## [42.5.4] (2023-02-15 10:21:04 -0500)
 
 ### Fixed
-* fix: fix testGetSQLTypeQueryCache by searching for xid type. We used to search for box type but it is now cached. xid is not cached, this nuance is required for the test.  
+* fix: fix testGetSQLTypeQueryCache by searching for xid type. We used to search for box type but it is now cached. xid is not cached, this nuance is required for the test.
 * fix OidValueCorrectnessTest BOX_ARRAY OID, by adding BOX_ARRAY to the oidTypeName map [PR #2810]((https://github.com/pgjdbc/pgjdbc/pull/2810).
-* fixes [Issue #2804](https://github.com/pgjdbc/pgjdbc/issues/2804).  
-* fix: Make sure that github CI runs tests on all [PRs #2809]((https://github.com/pgjdbc/pgjdbc/pull/2809)).  
+* fixes [Issue #2804](https://github.com/pgjdbc/pgjdbc/issues/2804).
+* fix: Make sure that github CI runs tests on all [PRs #2809]((https://github.com/pgjdbc/pgjdbc/pull/2809)).
 
 ## [42.5.3] (2023-02-03 08:24:50 -0500)
 
 ### Fixed
-* fix: Add box to TypeInfoCache, fixes [Issue #2746](https://github.com/pgjdbc/pgjdbc/issues/2746) [PR #2747](https://github.com/pgjdbc/pgjdbc/pull/2747)  
+* fix: Add box to TypeInfoCache, fixes [Issue #2746](https://github.com/pgjdbc/pgjdbc/issues/2746) [PR #2747](https://github.com/pgjdbc/pgjdbc/pull/2747)
 * fix: regression in PgResultSet LONG_MIN copy and paste error fixes [Issue #2748](https://github.com/pgjdbc/pgjdbc/issues/2748) [PR#2749](https://github.com/pgjdbc/pgjdbc/pull/2749)
 
 ## [42.5.2] (2023-01-31 14:30:46 -0500)
 
 ### Changed
-* regression: This release has 2 known regressions which make it unusable see the notes above. We advise people to use 42.5.3 instead.  
-* docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)  
-* docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)  
-* docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)  
-* feat: Define binary transfer for custom types dynamically/automatically fixes [Issue #2554](https://github.com/pgjdbc/pgjdbc/issues/2554) [PR #2556](https://github.com/pgjdbc/pgjdbc/pull/2556)  
+* regression: This release has 2 known regressions which make it unusable see the notes above. We advise people to use 42.5.3 instead.
+* docs: specify that timeouts are in seconds and there is a maximum. Housekeeping on some tests fixes [#Issue 2671](https://github.com/pgjdbc/pgjdbc/issues/2671) [PR #2686](https://github.com/pgjdbc/pgjdbc/pull/2686)
+* docs: clarify binaryTransfer and add it to README [PR# 2698](https://github.com/pgjdbc/pgjdbc/pull/2698)
+* docs: Document the need to encode reserved characters in the connection URL [PR #2700](https://github.com/pgjdbc/pgjdbc/pull/2700)
+* feat: Define binary transfer for custom types dynamically/automatically fixes [Issue #2554](https://github.com/pgjdbc/pgjdbc/issues/2554) [PR #2556](https://github.com/pgjdbc/pgjdbc/pull/2556)
 
 ### Added
 * fix: added gssResponseTimeout as part of [PR #2687](https://github.com/pgjdbc/pgjdbc/pull/2687) to make sure we don't wait forever on a GSS RESPONSE
@@ -389,12 +397,12 @@ This has been fixed in this version fixes CVE-2022-41946 see the [security advis
 
 ## [42.5.0] (2022-08-23 11:20:11 -0400)
 ### Changed
-- fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8. 
-float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/2598) fixes [Issue #2597](https://github.com/pgjdbc/pgjdbc/issues/2597) 
+- fix: revert change in [PR #1986](https://github.com/pgjdbc/pgjdbc/pull/1986) where float was aliased to float4 from float8.
+float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/2598) fixes [Issue #2597](https://github.com/pgjdbc/pgjdbc/issues/2597)
 
 ## [42.4.2] (2022-08-17 10:33:40 -0400)
 ### Changed
-- fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553] 
+- fix: add alias to the generated getUDT() query for clarity (PR #2553)[https://github.com/pgjdbc/pgjdbc/pull/2553]
 
 ### Added
 - fix: make setObject accept UUID array [PR #2587](https://github.com/pgjdbc/pgjdbc/pull/2587)
@@ -427,14 +435,14 @@ float now aliases to float8 [PR #2598](https://github.com/pgjdbc/pgjdbc/pull/259
 
 ## [42.4.0] (2022-06-09 08:14:02 -0400)
 ### Changed
-- fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group 
-startup parameters in a transaction (default=false like 42.2.x) fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497) 
+- fix: added GROUP_STARTUP_PARAMETERS boolean property to determine whether or not to group
+startup parameters in a transaction (default=false like 42.2.x) fixes [Issue #2425](https://github.com/pgjdbc/pgjdbc/issues/2497)
 pgbouncer cannot deal with transactions in statement pooling mode [PR #2425](https://github.com/pgjdbc/pgjdbc/pull/2425)
 
 ### Fixed
-- fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767) 
+- fix: queries with up to 65535 (inclusive) parameters are supported now (previous limit was 32767)
 [PR #2525](https://github.com/pgjdbc/pgjdbc/pull/2525), [Issue #1311](https://github.com/pgjdbc/pgjdbc/issues/1311)
-- fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings. 
+- fix: workaround JarIndex parsing issue by using groupId/artifactId-version directory namings.
 Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531), [issue #2527](https://github.com/pgjdbc/pgjdbc/issues/2527)
 - fix: use Locale.ROOT for toUpperCase() toLowerCase() calls
 - doc: add Vladimir Sitnikov's PGP key
@@ -464,7 +472,7 @@ Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531)
 - docs: fix readme.md after [PR 2495](https://github.com/pgjdbc/pgjdbc/pull/2495) [PR 2496](https://github.com/pgjdbc/pgjdbc/pull/249)
 - feat: targetServerType=preferPrimary connection parameter [PR 2483](https://github.com/pgjdbc/pgjdbc/pull/2483)
 - fix: revert removal of toOffsetDateTime(String timestamp)  fixes [Issue #2497](https://github.com/pgjdbc/pgjdbc/issues/2497) [PR 2501](https://github.com/pgjdbc/pgjdbc/pull/2501)
-  
+
 ## [42.3.4] (2022-04-01 14:16:28 -0400)
 ### Changed
 - fix: change name of build cache [PR 2471](https://github.com/pgjdbc/pgjdbc/pull/2471)
@@ -472,26 +480,26 @@ Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531)
 - fix: Use non-synchronized getTimeZone in TimestampUtils [PR 2451](https://github.com/pgjdbc/pgjdbc/pull/2451)
 - docs: Fix CHANGELOG.md misformatted markdown headings [PR 2461](https://github.com/pgjdbc/pgjdbc/pull/2461)
 - docs:  remove loggerLevel and loggerFile from docs and issues [PR 2489](https://github.com/pgjdbc/pgjdbc/pull/2489)
-- feat: use direct wire format -> LocalDate conversion without resorting to java.util.Date, java.util.Calendar, 
+- feat: use direct wire format -> LocalDate conversion without resorting to java.util.Date, java.util.Calendar,
   and default timezones [PR 2464](https://github.com/pgjdbc/pgjdbc/pull/2464) fixes Issue #2221
 
 ### Added
 
 ### Fixed
 - docs: Update testing documentation [PR 2446](https://github.com/pgjdbc/pgjdbc/pull/2446)
-- fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes [Issue #2421](https://github.com/pgjdbc/pgjdbc/issues/2421)  [PR 2441](https://github.com/pgjdbc/pgjdbc/pull/2441) 
+- fix: Throw an exception if the driver cannot parse the URL instead of returning NULL fixes [Issue #2421](https://github.com/pgjdbc/pgjdbc/issues/2421)  [PR 2441](https://github.com/pgjdbc/pgjdbc/pull/2441)
 - fix: Use PGProperty instead of the property names directly [PR 2444](https://github.com/pgjdbc/pgjdbc/pull/2444)
 - docs: update changelog, missing links at bottom and formatting [PR 2460](https://github.com/pgjdbc/pgjdbc/pull/2460)
 - fix: Remove isDeprecated from PGProperty. It was originally intended to help produce automated docs. Fixes Issue #2479 [PR 2480](https://github.com/pgjdbc/pgjdbc/pull/2480)
 - fix: change PGInterval parseISO8601Format to support fractional second [PR 2457](https://github.com/pgjdbc/pgjdbc/pull/2457)
-- fix: GSS login to use TGT from keytab fixes Issue #2469 [PR 2470](https://github.com/pgjdbc/pgjdbc/pull/2470) 
+- fix: GSS login to use TGT from keytab fixes Issue #2469 [PR 2470](https://github.com/pgjdbc/pgjdbc/pull/2470)
 - fix: More test and fix for issues discovered by [PR #2476](https://github.com/pgjdbc/pgjdbc/pull/2476) [PR #2488](https://github.com/pgjdbc/pgjdbc/pull/2488)
 
 ## [42.3.3] (2022-02-15 11:32:24 -0500)
 ### Changed
-- fix: Removed loggerFile and loggerLevel configuration. While the properties still exist. 
+- fix: Removed loggerFile and loggerLevel configuration. While the properties still exist.
   They can no longer be used to configure the driver logging. Instead use java.util.logging
-  configuration mechanisms such as `logging.properties`. 
+  configuration mechanisms such as `logging.properties`.
 
 ### Added
 
@@ -499,7 +507,7 @@ Regression since 42.2.13. [PR #2531](https://github.com/pgjdbc/pgjdbc/pull/2531)
 
 ## [42.3.2] (2022-02-01 07:35:41 -0500)
 ### Security
-- CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName, 
+- CVE-2022-21724 pgjdbc instantiates plugin instances based on class names provided via authenticationPluginClassName,
 sslhostnameverifier, socketFactory, sslfactory, sslpasswordcallback connection properties.
 However, the driver did not verify if the class implements the expected interface before instantiating the class. This
 would allow a malicious class to be instantiated that could execute arbitrary code from the JVM. Fixed in [commit](https://github.com/pgjdbc/pgjdbc/commit/f4d0ed69c0b3aae8531d83d6af4c57f22312c813)
@@ -509,7 +517,7 @@ would allow a malicious class to be instantiated that could execute arbitrary co
 - test: materialized view privileges [PR #2209](https://github.com/pgjdbc/pgjdbc/pull/2209) fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
 - docs: add info about convenience maven project [PR #2407](https://github.com/pgjdbc/pgjdbc/pull/2407)
 - docs: Document timezone reversal from POSIX to ISO [PR #2413](https://github.com/pgjdbc/pgjdbc/pull/2413)
-- fix: we will ask the server if it supports GSS Encryption if gssEncryption 
+- fix: we will ask the server if it supports GSS Encryption if gssEncryption
 is prefer or require [PR #2396](https://github.com/pgjdbc/pgjdbc/pull/2396) remove the need to have a ticket in the cache before asking the server if gss encryptions are supported
 - docs: remove Java 6 and 7 references from contributing [PR #2385](https://github.com/pgjdbc/pgjdbc/pull/2385)
 - style: remove Java 8 / JDBC 4.2 checks [PR #2383](https://github.com/pgjdbc/pgjdbc/pull/2383) Remove all remaining checks whether the source is lower than Java 8
@@ -519,7 +527,7 @@ CallableStatement#getBoolean(int) on BIT(>1).
 - style: import java.time types in more classes [PR #2382](https://github.com/pgjdbc/pgjdbc/pull/2382) Use imports for java.time types in all remaining classes.
 - style: import java.time types in TimestampUtils [PR #2380](https://github.com/pgjdbc/pgjdbc/pull/2380) Use imports for java.time types in TimestampUtils.
 - refactor: Change internal constructors to pass only connection Properties
-Changes internal constructors for PgConnection and related classes to only accept the connection properties object and 
+Changes internal constructors for PgConnection and related classes to only accept the connection properties object and
 remove the user and password arguments. Any locations that required those fields can retrieve them from the properties map.
 - test: Fix DatabaseMetadataTest to perform mview tests only on 9.3+
 - perf: read in_hot_standby GUC on connection [PR #2334](https://github.com/pgjdbc/pgjdbc/pull/2334)
@@ -557,7 +565,7 @@ precision when .getTimestamp() is called on TIME(6). [PR #2181](https://github.c
 Add to TestUtil and also to DatabaseMetaData setup and teardown fixes [Issue #2060](https://github.com/pgjdbc/pgjdbc/issues/2060)
 - fix: typo in connect.md [PR #2338](https://github.com/pgjdbc/pgjdbc/pull/2238) `OutOfMemoryException` => `OutOfMemoryError`
 - fix: use local TimestampUtil in PgStatement and PgResultset for thread
-safety TimestampUtil is not thread safe. It raises exceptions when multiple threads use ResultSets of one connection. [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291) 
+safety TimestampUtil is not thread safe. It raises exceptions when multiple threads use ResultSets of one connection. [PR #2291](https://github.com/pgjdbc/pgjdbc/pull/2291)
 fixes [Issue #921](https://github.com/pgjdbc/pgjdbc/issues/921)
 If PgStatement and PgResultSet use their own TimestampUtil no synchronize is needed.
 - fix: typo in CONTRIBUTING.md [PR #2332](https://github.com/pgjdbc/pgjdbc/pull/2332) seccion => section
@@ -775,7 +783,7 @@ We have released 42.2.12 to correct regressions in this version: Specifically
 
 We recommend that version 42.2.11 not be used.
 ### Changed
- - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error. 
+ - reverted [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)  throw an error instead of silently rolling back a commit error.
  This change introduced a breaking change which will be moved to 42.3.0
  - reverted [PR 1719](https://github.com/pgjdbc/pgjdbc/pull/1719)  add support for full names of data types (#1719)
 
@@ -785,7 +793,7 @@ We recommend that version 42.2.11 not be used.
 **Notable changes**
 As mentioned above this version is broken and should not be used.
 ### Changed
- - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals. 
+ - Reverted [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1252). The driver will now wait for EOF when sending cancel signals.
  - `DatabaseMetaData#getProcedures` returns only procedures (not functions) for PostgreSQL 11+ [PR 1723](https://github.com/pgjdbc/pgjdbc/pull/1723)
  - Convert silent rollbacks into exception if application sends `commit` or `xa.prepare` command [PR 1729](https://github.com/pgjdbc/pgjdbc/pull/1729)
 
@@ -814,7 +822,7 @@ As mentioned above this version is broken and should not be used.
 ### Added
  - Add maxResultBuffer property [PR 1657](https://github.com/pgjdbc/pgjdbc/pull/1657)
  - add caller push of binary data (rebase of #953) [PR 1659](https://github.com/pgjdbc/pgjdbc/pull/1659)
- 
+
 ### Fixed
  - Cleanup PGProperty, sort values, and add some missing to docs [PR 1686](https://github.com/pgjdbc/pgjdbc/pull/1686)
  - Fixing LocalTime rounding (losing precision) [PR 1570](https://github.com/pgjdbc/pgjdbc/pull/1570)
@@ -828,7 +836,7 @@ As mentioned above this version is broken and should not be used.
  - Issue #1482 where the port was being added to the GSSAPI service name [PR 1651](https://github.com/pgjdbc/pgjdbc/pull/1651)
  - remove receiving EOF from backend after cancel since according to protocol the server closes the connection once cancel is sent (connection reset exception is always thrown) [PR 1641](https://github.com/pgjdbc/pgjdbc/pull/1641)
  - Unable to register out parameter Issue #1646 [PR 1648](https://github.com/pgjdbc/pgjdbc/pull/1648)
-  
+
 ## [42.2.9] (2019-12-06)
 ### Changed
 
@@ -837,21 +845,21 @@ As mentioned above this version is broken and should not be used.
  - pkcs12 key functionality [PR 1599](https://github.com/pgjdbc/pgjdbc/pull/1599)
  - new "escapeSyntaxCallMode" connection property [PR 1560](https://github.com/pgjdbc/pgjdbc/pull/1560)
  - connection property to limit server error detail in exception exceptions [PR 1579](https://github.com/pgjdbc/pgjdbc/pull/1579)
- - cancelQuery() to PGConnection public interface [PR 1157](https://github.com/pgjdbc/pgjdbc/pull/1157) 
+ - cancelQuery() to PGConnection public interface [PR 1157](https://github.com/pgjdbc/pgjdbc/pull/1157)
  - support for large update counts (JDBC 4.2) [PR 935](https://github.com/pgjdbc/pgjdbc/pull/935)
- - Add Binary Support for Oid.NUMERIC and Oid.NUMERIC_ARRAY [PR 1636](https://github.com/pgjdbc/pgjdbc/pull/1636) 
- 
+ - Add Binary Support for Oid.NUMERIC and Oid.NUMERIC_ARRAY [PR 1636](https://github.com/pgjdbc/pgjdbc/pull/1636)
+
 ### Fixed
  - issue 716 getTypeInfo() may not return data in the order specified in Oracle documentation [PR 1506](https://github.com/pgjdbc/pgjdbc/pull/1506)
  - PgSQLXML setCharacterStream() results in null value  [PR 1608](https://github.com/pgjdbc/pgjdbc/pull/1608)
  - get correct column length for simple domains [PR 1605](https://github.com/pgjdbc/pgjdbc/pull/1605)
  - NPE as a result of calling executeQuery twice on a statement fixes issue [#684](https://github.com/pgjdbc/pgjdbc/issues/684) [PR 1610] (https://github.com/pgjdbc/pgjdbc/pull/1610)
- - handle numeric domain types [PR 1611](https://github.com/pgjdbc/pgjdbc/pull/1611) 
+ - handle numeric domain types [PR 1611](https://github.com/pgjdbc/pgjdbc/pull/1611)
  - pginterval to take iso8601 strings [PR 1612](https://github.com/pgjdbc/pgjdbc/pull/1612)
- - remove currentTimeMillis from code, tests are OK [PR 1617](https://github.com/pgjdbc/pgjdbc/pull/1617) 
+ - remove currentTimeMillis from code, tests are OK [PR 1617](https://github.com/pgjdbc/pgjdbc/pull/1617)
  - NPE when calling setNull on a PreparedStatement with no parameters [PR 1620](https://github.com/pgjdbc/pgjdbc/pull/1620)
  - allow OUT parameter registration when using CallableStatement native CALL [PR 1561](https://github.com/pgjdbc/pgjdbc/pull/1561)
- - add release save point into execute with batch [PR 1583](https://github.com/pgjdbc/pgjdbc/pull/1583) 
+ - add release save point into execute with batch [PR 1583](https://github.com/pgjdbc/pgjdbc/pull/1583)
  - Prevent use of extended query protocol for BEGIN before COPY [PR 1639](https://github.com/pgjdbc/pgjdbc/pull/1639)
 
 ## [42.2.8] (2019-09-13)
@@ -861,7 +869,7 @@ As mentioned above this version is broken and should not be used.
 
 ### Fixed
 
-* fix: Revert inet default Java type to PGObject and handle values with net masks [PR 1568](https://github.com/pgjdbc/pgjdbc/pull/1568) 
+* fix: Revert inet default Java type to PGObject and handle values with net masks [PR 1568](https://github.com/pgjdbc/pgjdbc/pull/1568)
 
 ## [42.2.7] (2019-09-03)
 ### Changed
@@ -875,7 +883,7 @@ As mentioned above this version is broken and should not be used.
 
 ### Fixed
 - fix [issue 1547](https://github.com/pgjdbc/pgjdbc/issues/1547) As long as peek returns some bytes do not reset the timeout, this allows us to continue checking until any async notifies are consumed [PR 1548](https://github.com/pgjdbc/pgjdbc/pull/1548)
-- fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467) 
+- fix: [issue 1466](https://github.com/pgjdbc/pgjdbc/issues/1466) In logical decoding the if the backend was requesting a reply we… [PR 1467](https://github.com/pgjdbc/pgjdbc/pull/1467)
 - fix: [issue 1534](https://github.com/pgjdbc/pgjdbc/issues/1534) Proleptic java.time support [PR 1539](https://github.com/pgjdbc/pgjdbc/pull/1539)
 - fix Ensure isValid() will not last more than timeout seconds [PR 1557](https://github.com/pgjdbc/pgjdbc/pull/1557)
 ## [42.2.6] (2019-06-19)
@@ -940,7 +948,7 @@ argument if it is not null [PR 1160](https://github.com/pgjdbc/pgjdbc/pull/1160)
 - SQL_TSI_YEAR is treated as hour, SQL_TSI_WEEK is treated as hour, SQL_TSI_MINUTE is treated as second
 
 ### Changed
-- Reduce the severity of the error log messages when an exception is re-thrown. The error will be 
+- Reduce the severity of the error log messages when an exception is re-thrown. The error will be
 thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc  [PR 1187](https://github.com/pgjdbc/pgjdbc/pull/1187)
 - Deprecate Fastpath API [PR 903](https://github.com/pgjdbc/pgjdbc/pull/903)
 - Support parenthesis in {oj ...} JDBC escape syntax [PR 1204](https://github.com/pgjdbc/pgjdbc/pull/1204)
@@ -1028,7 +1036,7 @@ thrown to caller to be dealt with so no need to log at this verbosity by pgjdbc 
 
 ## [42.1.2] (2017-07-12)
 ### Changed
-- Better logic for *returning* keyword detection. Previously, pgjdbc could be defeated by column names that contain *returning*, so pgjdbc failed to "return generated keys" as it considered statement as already having *returning* keyword [PR 824](https://github.com/pgjdbc/pgjdbc/pull/824) [201daf1d](https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc) 
+- Better logic for *returning* keyword detection. Previously, pgjdbc could be defeated by column names that contain *returning*, so pgjdbc failed to "return generated keys" as it considered statement as already having *returning* keyword [PR 824](https://github.com/pgjdbc/pgjdbc/pull/824) [201daf1d](https://github.com/pgjdbc/pgjdbc/commit/201daf1dc916bbc35e2bbec961aebfd1b1e30bfc)
 - Use server-prepared statements for batch inserts when prepareThreshold>0. Note: this enables batch to use server-prepared from the first *executeBatch()* execution (previously it waited for *prepareThreshold* *executeBatch()* calls) [abc3d9d7](https://github.com/pgjdbc/pgjdbc/commit/abc3d9d7f34a001322fbbe53f25d5e77a33a667f)
 
 ### Fixed
