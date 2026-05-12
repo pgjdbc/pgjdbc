@@ -62,11 +62,11 @@ class DatabaseMetaDataCacheTest {
     List<LogRecord> typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
     assertEquals(0, typeQueries.size());
 
-    ti.getSQLType("xid");  // this must be a type not in the hardcoded 'types' list
+    ti.getPgTypeByPgName("xid");  // this must be a type not in the hardcoded 'types' list
     typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
     assertEquals(1, typeQueries.size());
 
-    ti.getSQLType("xid");  // this time it should be retrieved from the cache
+    ti.getPgTypeByPgName("xid");  // this time it should be retrieved from the cache
     typeQueries = log.getRecordsMatching(SQL_TYPE_QUERY_LOG_FILTER);
     assertEquals(1, typeQueries.size());
   }

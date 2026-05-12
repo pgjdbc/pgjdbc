@@ -11,7 +11,6 @@ import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
-import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
@@ -23,10 +22,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,82 +33,150 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+/**
+ * Cache for PostgreSQL type information.
+ *
+ * <p>This class maintains a cache of PostgreSQL type metadata (PgType) and provides
+ * methods to look up types by OID or name. The cache is automatically invalidated
+ * when DDL commands (CREATE, DROP, ALTER) are executed in the current session.</p>
+ *
+ * <p><b>Known Limitation:</b> DDL changes (ALTER TYPE, DROP TYPE, CREATE TYPE)
+ * executed in other database sessions are not detected until the next DDL command
+ * is executed in the current session. This can result in stale type information
+ * being used until the next DDL command triggers cache invalidation. Applications
+ * that modify types concurrently from multiple connections should be aware of this
+ * behavior.</p>
+ */
 public class TypeInfoCache implements TypeInfo {
 
   private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
-  // pgname (String) -> java.sql.Types (Integer)
-  private final Map<String, Integer> pgNameToSQLType;
+  public static final String PG_TYPE_FIELDS =
+      "t.oid as typoid, t.typname, t.typcategory, t.typtype, t.typtypmod, t.typelem, t.typarray, t.typbasetype, t.typdelim, tn.nspname as typnspname, pg_catalog.format_type(t.oid, null) as typfullname";
 
-  private final Map<Integer, Integer> oidToSQLType;
+  public static final String PG_TYPE_TABLE =
+      "pg_catalog.pg_type t JOIN pg_catalog.pg_namespace tn ON (t.typnamespace = tn.oid)";
 
-  // pgname (String) -> java class name (String)
-  // ie "text" -> "java.lang.String"
-  private final Map<String, String> pgNameToJavaClass;
+  /**
+   * Enables to invalidate the caches if user executes create/drop type SQLs
+   * @see QueryExecutor#getTypeCacheEpoch()
+   */
+  private int typeCacheEpoch;
+  // Connection-specific oid -> PgType cache
+  private final Map<Integer, PgType> typesByOid = new HashMap<>();
+  // Connection-specific name -> PgType cache
+  private final Map<String, PgType> typesByPgName = new HashMap<>();
+  // Global oid -> PgType cache which includes only well-known types
+  private final static Map<Integer, PgType> DEFAULT_TYPES_BY_OID;
+  // Global name -> PgType cache which includes only well-known types
+  private final static Map<String, PgType> DEFAULT_TYPES_BY_PGNAME;
 
-  // oid (Integer) -> pgname (String)
-  private final Map<Integer, String> oidToPgName;
-  // pgname (String) -> oid (Integer)
-  private final Map<String, Integer> pgNameToOid;
+  // Java type registry for Java ↔ PostgreSQL type mappings
+  private final JavaTypeRegistry javaTypeRegistry = new JavaTypeRegistry();
 
-  private final Map<String, Integer> javaArrayTypeToOid;
-
-  // pgname (String) -> extension pgobject (Class)
-  private final Map<String, Class<? extends PGobject>> pgNameToPgObject;
-
-  // type array oid -> base type's oid
-  private final Map<Integer, Integer> pgArrayToPgType;
-
-  // array type oid -> base type array element delimiter
-  private final Map<Integer, Character> arrayOidToDelimiter;
+  // Codec registry for type encoding/decoding
+  private final CodecRegistry codecRegistry = new CodecRegistry();
 
   private final BaseConnection conn;
   private final int unknownLength;
-  private @Nullable PreparedStatement getOidStatementSimple;
-  private @Nullable PreparedStatement getOidStatementComplexNonArray;
-  private @Nullable PreparedStatement getOidStatementComplexArray;
-  private @Nullable PreparedStatement getNameStatement;
-  private @Nullable PreparedStatement getArrayElementOidStatement;
-  private @Nullable PreparedStatement getArrayDelimiterStatement;
-  private @Nullable PreparedStatement getTypeInfoStatement;
-  private @Nullable PreparedStatement getAllTypeInfoStatement;
+  private @Nullable PreparedStatement findPgTypeByName;
+  private @Nullable PreparedStatement findPgTypeByOid;
+  private @Nullable PreparedStatement findAllPgTypes;
+  private @Nullable PreparedStatement findCompositeFields;
   private final ResourceLock lock = new ResourceLock();
 
-  // basic pg types info:
-  // 0 - type name
-  // 1 - type oid
-  // 2 - sql type
-  // 3 - java class
-  // 4 - array type oid
-  private static final Object[][] types = {
-      {"int2", Oid.INT2, Types.SMALLINT, "java.lang.Integer", Oid.INT2_ARRAY},
-      {"int4", Oid.INT4, Types.INTEGER, "java.lang.Integer", Oid.INT4_ARRAY},
-      {"oid", Oid.OID, Types.BIGINT, "java.lang.Long", Oid.OID_ARRAY},
-      {"int8", Oid.INT8, Types.BIGINT, "java.lang.Long", Oid.INT8_ARRAY},
-      {"money", Oid.MONEY, Types.DOUBLE, "java.lang.Double", Oid.MONEY_ARRAY},
-      {"numeric", Oid.NUMERIC, Types.NUMERIC, "java.math.BigDecimal", Oid.NUMERIC_ARRAY},
-      {"float4", Oid.FLOAT4, Types.REAL, "java.lang.Float", Oid.FLOAT4_ARRAY},
-      {"float8", Oid.FLOAT8, Types.DOUBLE, "java.lang.Double", Oid.FLOAT8_ARRAY},
-      {"char", Oid.CHAR, Types.CHAR, "java.lang.String", Oid.CHAR_ARRAY},
-      {"bpchar", Oid.BPCHAR, Types.CHAR, "java.lang.String", Oid.BPCHAR_ARRAY},
-      {"varchar", Oid.VARCHAR, Types.VARCHAR, "java.lang.String", Oid.VARCHAR_ARRAY},
-      {"varbit", Oid.VARBIT, Types.OTHER, "java.lang.String", Oid.VARBIT_ARRAY},
-      {"text", Oid.TEXT, Types.VARCHAR, "java.lang.String", Oid.TEXT_ARRAY},
-      {"name", Oid.NAME, Types.VARCHAR, "java.lang.String", Oid.NAME_ARRAY},
-      {"bytea", Oid.BYTEA, Types.BINARY, "[B", Oid.BYTEA_ARRAY},
-      {"bool", Oid.BOOL, Types.BIT, "java.lang.Boolean", Oid.BOOL_ARRAY},
-      {"bit", Oid.BIT, Types.BIT, "java.lang.Boolean", Oid.BIT_ARRAY},
-      {"date", Oid.DATE, Types.DATE, "java.sql.Date", Oid.DATE_ARRAY},
-      {"time", Oid.TIME, Types.TIME, "java.sql.Time", Oid.TIME_ARRAY},
-      {"timetz", Oid.TIMETZ, Types.TIME, "java.sql.Time", Oid.TIMETZ_ARRAY},
-      {"timestamp", Oid.TIMESTAMP, Types.TIMESTAMP, "java.sql.Timestamp", Oid.TIMESTAMP_ARRAY},
-      {"timestamptz", Oid.TIMESTAMPTZ, Types.TIMESTAMP, "java.sql.Timestamp",
-          Oid.TIMESTAMPTZ_ARRAY},
-      {"refcursor", Oid.REF_CURSOR, Types.REF_CURSOR, "java.sql.ResultSet", Oid.REF_CURSOR_ARRAY},
-      {"json", Oid.JSON, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSON_ARRAY},
-      {"jsonb", Oid.JSONB, Types.OTHER, "org.postgresql.util.PGobject", Oid.JSONB_ARRAY},
-      {"point", Oid.POINT, Types.OTHER, "org.postgresql.geometric.PGpoint", Oid.POINT_ARRAY},
-      {"box", Oid.BOX, Types.OTHER, "org.postgresql.geometric.PGBox", Oid.BOX_ARRAY}
+  // Note: this is generated with org.postgresql.jdbc.TypeInfoCacheTest.generateBaseTypes
+  // Constructor: PgType(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype)
+  private static final PgType[] BASE_TYPES = {
+      // bit types (typcategory='V' bit-string)
+      new PgType(new ObjectName("pg_catalog", "bit"), "bit", Oid.BIT, 'b', 'V', -1, Oid.UNSPECIFIED, Oid.BIT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bit"), "bit[]", Oid.BIT_ARRAY, 'b', 'A', -1, Oid.BIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // boolean (typcategory='B')
+      new PgType(new ObjectName("pg_catalog", "bool"), "boolean", Oid.BOOL, 'b', 'B', -1, Oid.UNSPECIFIED, Oid.BOOL_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bool"), "boolean[]", Oid.BOOL_ARRAY, 'b', 'A', -1, Oid.BOOL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // geometric types (typcategory='G')
+      new PgType(new ObjectName("pg_catalog", "box"), "box", Oid.BOX, 'b', 'G', -1, Oid.POINT, Oid.BOX_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_box"), "box[]", Oid.BOX_ARRAY, 'b', 'A', -1, Oid.BOX, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // string types (typcategory='S')
+      new PgType(new ObjectName("pg_catalog", "bpchar"), "character", Oid.BPCHAR, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.BPCHAR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bpchar"), "character[]", Oid.BPCHAR_ARRAY, 'b', 'A', -1, Oid.BPCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // user-defined types (typcategory='U')
+      new PgType(new ObjectName("pg_catalog", "bytea"), "bytea", Oid.BYTEA, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.BYTEA_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bytea"), "bytea[]", Oid.BYTEA_ARRAY, 'b', 'A', -1, Oid.BYTEA, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // geometric types (typcategory='G')
+      new PgType(new ObjectName("pg_catalog", "circle"), "circle", Oid.CIRCLE, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.CIRCLE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_circle"), "circle[]", Oid.CIRCLE_ARRAY, 'b', 'A', -1, Oid.CIRCLE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // date/time types (typcategory='D')
+      new PgType(new ObjectName("pg_catalog", "date"), "date", Oid.DATE, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.DATE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_date"), "date[]", Oid.DATE_ARRAY, 'b', 'A', -1, Oid.DATE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // numeric types (typcategory='N')
+      new PgType(new ObjectName("pg_catalog", "float4"), "real", Oid.FLOAT4, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.FLOAT4_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_float4"), "real[]", Oid.FLOAT4_ARRAY, 'b', 'A', -1, Oid.FLOAT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "float8"), "double precision", Oid.FLOAT8, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.FLOAT8_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_float8"), "double precision[]", Oid.FLOAT8_ARRAY, 'b', 'A', -1, Oid.FLOAT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // numeric types (typcategory='N')
+      new PgType(new ObjectName("pg_catalog", "int2"), "smallint", Oid.INT2, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT2_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int2"), "smallint[]", Oid.INT2_ARRAY, 'b', 'A', -1, Oid.INT2, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "int4"), "integer", Oid.INT4, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT4_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int4"), "integer[]", Oid.INT4_ARRAY, 'b', 'A', -1, Oid.INT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "int8"), "bigint", Oid.INT8, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT8_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int8"), "bigint[]", Oid.INT8_ARRAY, 'b', 'A', -1, Oid.INT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // timespan types (typcategory='T')
+      new PgType(new ObjectName("pg_catalog", "interval"), "interval", Oid.INTERVAL, 'b', 'T', -1, Oid.UNSPECIFIED, Oid.INTERVAL_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_interval"), "interval[]", Oid.INTERVAL_ARRAY, 'b', 'A', -1, Oid.INTERVAL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // user-defined types (typcategory='U')
+      new PgType(new ObjectName("pg_catalog", "json"), "json", Oid.JSON, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.JSON_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_json"), "json[]", Oid.JSON_ARRAY, 'b', 'A', -1, Oid.JSON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // geometric types (typcategory='G')
+      new PgType(new ObjectName("pg_catalog", "line"), "line", Oid.LINE, 'b', 'G', -1, Oid.FLOAT8, Oid.LINE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_line"), "line[]", Oid.LINE_ARRAY, 'b', 'A', -1, Oid.LINE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "lseg"), "lseg", Oid.LSEG, 'b', 'G', -1, Oid.POINT, Oid.LSEG_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_lseg"), "lseg[]", Oid.LSEG_ARRAY, 'b', 'A', -1, Oid.LSEG, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // money (typcategory='N' numeric) - special case, PG actually uses typcategory 'N' but pgjdbc maps it to DOUBLE
+      new PgType(new ObjectName("pg_catalog", "money"), "money", Oid.MONEY, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.MONEY_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_money"), "money[]", Oid.MONEY_ARRAY, 'b', 'A', -1, Oid.MONEY, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // string types (typcategory='S')
+      new PgType(new ObjectName("pg_catalog", "name"), "name", Oid.NAME, 'b', 'S', -1, Oid.CHAR, Oid.NAME_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_name"), "name[]", Oid.NAME_ARRAY, 'b', 'A', -1, Oid.NAME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // numeric types (typcategory='N')
+      new PgType(new ObjectName("pg_catalog", "numeric"), "numeric", Oid.NUMERIC, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.NUMERIC_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_numeric"), "numeric[]", Oid.NUMERIC_ARRAY, 'b', 'A', -1, Oid.NUMERIC, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "oid"), "oid", Oid.OID, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.OID_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_oid"), "oid[]", Oid.OID_ARRAY, 'b', 'A', -1, Oid.OID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // geometric types (typcategory='G')
+      new PgType(new ObjectName("pg_catalog", "path"), "path", Oid.PATH, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.PATH_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_path"), "path[]", Oid.PATH_ARRAY, 'b', 'A', -1, Oid.PATH, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "point"), "point", Oid.POINT, 'b', 'G', -1, Oid.FLOAT8, Oid.POINT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_point"), "point[]", Oid.POINT_ARRAY, 'b', 'A', -1, Oid.POINT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "polygon"), "polygon", Oid.POLYGON, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.POLYGON_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_polygon"), "polygon[]", Oid.POLYGON_ARRAY, 'b', 'A', -1, Oid.POLYGON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // user-defined types (typcategory='U')
+      new PgType(new ObjectName("pg_catalog", "refcursor"), "refcursor", Oid.REFCURSOR, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.REFCURSOR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_refcursor"), "refcursor[]", Oid.REFCURSOR_ARRAY, 'b', 'A', -1, Oid.REFCURSOR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // string types (typcategory='S')
+      new PgType(new ObjectName("pg_catalog", "text"), "text", Oid.TEXT, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.TEXT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_text"), "text[]", Oid.TEXT_ARRAY, 'b', 'A', -1, Oid.TEXT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // date/time types (typcategory='D')
+      new PgType(new ObjectName("pg_catalog", "time"), "time without time zone", Oid.TIME, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIME_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_time"), "time without time zone[]", Oid.TIME_ARRAY, 'b', 'A', -1, Oid.TIME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timestamp"), "timestamp without time zone", Oid.TIMESTAMP, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMESTAMP_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timestamp"), "timestamp without time zone[]", Oid.TIMESTAMP_ARRAY, 'b', 'A', -1, Oid.TIMESTAMP, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timestamptz"), "timestamp with time zone", Oid.TIMESTAMPTZ, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMESTAMPTZ_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timestamptz"), "timestamp with time zone[]", Oid.TIMESTAMPTZ_ARRAY, 'b', 'A', -1, Oid.TIMESTAMPTZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timetz"), "time with time zone", Oid.TIMETZ, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMETZ_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timetz"), "time with time zone[]", Oid.TIMETZ_ARRAY, 'b', 'A', -1, Oid.TIMETZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // user-defined types (typcategory='U')
+      new PgType(new ObjectName("pg_catalog", "uuid"), "uuid", Oid.UUID, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.UUID_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_uuid"), "uuid[]", Oid.UUID_ARRAY, 'b', 'A', -1, Oid.UUID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // bit-string types (typcategory='V')
+      new PgType(new ObjectName("pg_catalog", "varbit"), "bit varying", Oid.VARBIT, 'b', 'V', -1, Oid.UNSPECIFIED, Oid.VARBIT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_varbit"), "bit varying[]", Oid.VARBIT_ARRAY, 'b', 'A', -1, Oid.VARBIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // string types (typcategory='S')
+      new PgType(new ObjectName("pg_catalog", "varchar"), "character varying", Oid.VARCHAR, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.VARCHAR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_varchar"), "character varying[]", Oid.VARCHAR_ARRAY, 'b', 'A', -1, Oid.VARCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      // user-defined types (typcategory='U')
+      new PgType(new ObjectName("pg_catalog", "xml"), "xml", Oid.XML, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.XML_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_xml"), "xml[]", Oid.XML_ARRAY, 'b', 'A', -1, Oid.XML, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
   };
 
   /**
@@ -151,633 +218,222 @@ public class TypeInfoCache implements TypeInfo {
     TYPE_ALIASES.put("timestamp", "timestamp");
     TYPE_ALIASES.put("timestamp with time zone", "timestamptz");
     TYPE_ALIASES.put("timestamptz", "timestamptz");
+    Map<Integer, PgType> typesByOid = new HashMap<>((int)(BASE_TYPES.length / 0.75f));
+    Map<String, PgType> typesByPgName = new HashMap<>((int)(2 * BASE_TYPES.length / 0.75f));
+    for (PgType type : BASE_TYPES) {
+      typesByOid.put(type.getOid(), type);
+      // TODO: double-check if we should have fullName or quoted "user"."object_name" or both
+      typesByPgName.put(type.getFullName(), type);
+      // Allow both lowercase and uppercase lookups
+      typesByPgName.put(type.getFullName().toUpperCase(Locale.ROOT), type);
+    }
+    DEFAULT_TYPES_BY_OID = typesByOid;
+    DEFAULT_TYPES_BY_PGNAME = typesByPgName;
+    // TODO: do we need something like DEFAULT_arrayOid?
   }
 
   @SuppressWarnings("method.invocation")
   public TypeInfoCache(BaseConnection conn, int unknownLength) {
     this.conn = conn;
     this.unknownLength = unknownLength;
-    oidToPgName = new HashMap<>((int) Math.round(types.length * 1.5));
-    pgNameToOid = new HashMap<>((int) Math.round(types.length * 1.5));
-    javaArrayTypeToOid = new HashMap<>((int) Math.round(types.length * 1.5));
-    pgNameToJavaClass = new HashMap<>((int) Math.round(types.length * 1.5));
-    pgNameToPgObject = new HashMap<>((int) Math.round(types.length * 1.5));
-    pgArrayToPgType = new HashMap<>((int) Math.round(types.length * 1.5));
-    arrayOidToDelimiter = new HashMap<>((int) Math.round(types.length * 2.5));
+  }
 
-    // needs to be synchronized because the iterator is returned
-    // from getPGTypeNamesWithSQLTypes()
-    pgNameToSQLType = Collections.synchronizedMap(new HashMap<String, Integer>((int) Math.round(types.length * 1.5)));
-    oidToSQLType = Collections.synchronizedMap(new HashMap<Integer, Integer>((int) Math.round(types.length * 1.5)));
+  /**
+   * Gets the Java type registry for this connection.
+   *
+   * @return the Java type registry
+   */
+  public JavaTypeRegistry getJavaTypeRegistry() {
+    return javaTypeRegistry;
+  }
 
-    for (Object[] type : types) {
-      String pgTypeName = (String) type[0];
-      Integer oid = (Integer) type[1];
-      Integer sqlType = (Integer) type[2];
-      String javaClass = (String) type[3];
-      Integer arrayOid = (Integer) type[4];
-
-      addCoreType(pgTypeName, oid, sqlType, javaClass, arrayOid);
-    }
-
-    pgNameToJavaClass.put("hstore", Map.class.getName());
+  /**
+   * Gets the codec registry for this connection.
+   *
+   * @return the codec registry
+   */
+  public CodecRegistry getCodecRegistry() {
+    return codecRegistry;
   }
 
   @Override
-  public void addCoreType(String pgTypeName, Integer oid, Integer sqlType,
-      String javaClass, Integer arrayOid) {
-    try (ResourceLock ignore = lock.obtain()) {
-      pgNameToJavaClass.put(pgTypeName, javaClass);
-      pgNameToOid.put(pgTypeName, oid);
-      oidToPgName.put(oid, pgTypeName);
-      javaArrayTypeToOid.put(javaClass, arrayOid);
-      pgArrayToPgType.put(arrayOid, oid);
-      pgNameToSQLType.put(pgTypeName, sqlType);
-      oidToSQLType.put(oid, sqlType);
-
-      // Currently we hardcode all core types array delimiter
-      // to a comma. In a stock install the only exception is
-      // the box datatype and it's not a JDBC core type.
-      //
-      Character delim = ',';
-      if ("box".equals(pgTypeName)) {
-        delim = ';';
-      }
-      arrayOidToDelimiter.put(oid, delim);
-      arrayOidToDelimiter.put(arrayOid, delim);
-
-      String pgArrayTypeName = pgTypeName + "[]";
-      pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-      pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
-      oidToSQLType.put(arrayOid, Types.ARRAY);
-      pgNameToOid.put(pgArrayTypeName, arrayOid);
-      pgArrayTypeName = "_" + pgTypeName;
-      if (!pgNameToJavaClass.containsKey(pgArrayTypeName)) {
-        pgNameToJavaClass.put(pgArrayTypeName, "java.sql.Array");
-        pgNameToSQLType.put(pgArrayTypeName, Types.ARRAY);
-        pgNameToOid.put(pgArrayTypeName, arrayOid);
-        oidToPgName.put(arrayOid, pgArrayTypeName);
-      }
+  public void add(PgType pgType) {
+    typesByOid.put(pgType.getOid(), pgType);
+    // Register array OID mapping for the Java class
+    int arrayOid = pgType.getArrayOid();
+    if (arrayOid != Oid.UNSPECIFIED) {
+      Class<?> javaClass = JavaTypeRegistry.getDefaultJavaClass(pgType.getOid());
+      javaTypeRegistry.registerArrayOid(javaClass, arrayOid);
     }
   }
 
   @Override
   public void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      pgNameToPgObject.put(type, klass);
-      pgNameToJavaClass.put(type, klass.getName());
-    }
+    javaTypeRegistry.addPGobject(type, klass);
   }
 
   @Override
-  public Iterator<String> getPGTypeNamesWithSQLTypes() {
-    return pgNameToSQLType.keySet().iterator();
-  }
-
-  @Override
+  @SuppressWarnings("deprecation")
   public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
-    return oidToSQLType.keySet().iterator();
+    throw new UnsupportedOperationException();
+//     return oidToSQLType.keySet().iterator();
   }
 
-  private static String getSQLTypeQuery(boolean typoidParam) {
-    // There's no great way of telling what's an array type.
-    // People can name their own types starting with _.
-    // Other types use typelem that aren't actually arrays, like box.
-    //
-    // in case of multiple records (in different schemas) choose the one from the current
-    // schema,
-    // otherwise take the last version of a type that is at least more deterministic then before
-    // (keeping old behaviour of finding types, that should not be found without correct search
-    // path)
-    StringBuilder sql = new StringBuilder();
-    sql.append("SELECT typinput='pg_catalog.array_in'::regproc as is_array, typtype, typname, pg_type.oid ");
-    sql.append("  FROM pg_catalog.pg_type ");
-    sql.append("  LEFT JOIN (select ns.oid as nspoid, ns.nspname, r.r ");
-    sql.append("          from pg_namespace as ns ");
-    // -- go with older way of unnesting array to be compatible with 8.0
-    sql.append("          join ( select s.r, (current_schemas(false))[s.r] as nspname ");
-    sql.append("                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r ");
-    sql.append("         using ( nspname ) ");
-    sql.append("       ) as sp ");
-    sql.append("    ON sp.nspoid = typnamespace ");
-    if (typoidParam) {
-      sql.append(" WHERE pg_type.oid = ? ");
-    }
-    sql.append(" ORDER BY sp.r, pg_type.oid DESC;");
-    return sql.toString();
+  private static String getFindPgTypeQuery(String whereClause) {
+    /* language=PostgreSQL */
+    return "SELECT " + PG_TYPE_FIELDS + "\n"
+        + "  FROM " + PG_TYPE_TABLE + "\n"
+        + whereClause;
   }
 
-  private static int getSQLTypeFromQueryResult(ResultSet rs) throws SQLException {
-    Integer type = null;
-    boolean isArray = rs.getBoolean("is_array");
-    String typtype = rs.getString("typtype");
-    if (isArray) {
-      type = Types.ARRAY;
-    } else if ("c".equals(typtype)) {
-      type = Types.STRUCT;
-    } else if ("d".equals(typtype)) {
-      type = Types.DISTINCT;
-    } else if ("e".equals(typtype)) {
-      type = Types.VARCHAR;
-    }
-    if (type == null) {
-      type = Types.OTHER;
-    }
-    return type;
+  public static PgType mapToPgType(ResultSet rs) throws SQLException {
+    String typcategoryStr = rs.getString("typcategory");
+    String typtypeStr = rs.getString("typtype");
+    String typdelimStr = rs.getString("typdelim");
+    char typcategory = typcategoryStr != null && !typcategoryStr.isEmpty() ? typcategoryStr.charAt(0) : 'X';
+    char typtype = typtypeStr != null && !typtypeStr.isEmpty() ? typtypeStr.charAt(0) : 'b';
+    char typdelim = typdelimStr != null && !typdelimStr.isEmpty() ? typdelimStr.charAt(0) : ',';
+    int oid = rs.getInt("typoid");
+
+    return new PgType(
+        new ObjectName(rs.getString("typnspname"), rs.getString("typname")),
+        rs.getString("typfullname"),
+        oid,
+        typtype,
+        typcategory,
+        rs.getInt("typtypmod"),
+        rs.getInt("typelem"),
+        rs.getInt("typarray"),
+        rs.getInt("typbasetype"),
+        typdelim);
   }
 
-  private PreparedStatement prepareGetAllTypeInfoStatement() throws SQLException {
-    PreparedStatement getAllTypeInfoStatement = this.getAllTypeInfoStatement;
-    if (getAllTypeInfoStatement == null) {
-      getAllTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(false));
-      this.getAllTypeInfoStatement = getAllTypeInfoStatement;
+  private PreparedStatement preparefindAllPgTypes() throws SQLException {
+    PreparedStatement findAllPgTypes = this.findAllPgTypes;
+    if (findAllPgTypes == null) {
+      findAllPgTypes = conn.prepareStatement(getFindPgTypeQuery(""));
+      this.findAllPgTypes = findAllPgTypes;
     }
-    return getAllTypeInfoStatement;
+    return findAllPgTypes;
+  }
+
+  private @Nullable PgType loadPgTypes(PreparedStatement preparedStatement) throws SQLException {
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) preparedStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+    }
+    PgType lastPgType = null;
+    try (ResultSet rs = castNonNull(preparedStatement.getResultSet());) {
+      while (rs.next()) {
+        PgType type = mapToPgType(rs);
+        lastPgType = type;
+        add(type);
+      }
+    }
+    return lastPgType;
   }
 
   public void cacheSQLTypes() throws SQLException {
     LOGGER.log(Level.FINEST, "caching all SQL typecodes");
-    PreparedStatement getAllTypeInfoStatement = prepareGetAllTypeInfoStatement();
-    // Go through BaseStatement to avoid transaction start.
-    if (!((BaseStatement) getAllTypeInfoStatement)
-        .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-      throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-    }
-    ResultSet rs = castNonNull(getAllTypeInfoStatement.getResultSet());
-    while (rs.next()) {
-      String typeName = castNonNull(rs.getString("typname"));
-      Integer type = getSQLTypeFromQueryResult(rs);
-      if (!pgNameToSQLType.containsKey(typeName)) {
-        pgNameToSQLType.put(typeName, type);
-      }
-
-      Integer typeOid = longOidToInt(castNonNull(rs.getLong("oid")));
-      if (!oidToSQLType.containsKey(typeOid)) {
-        oidToSQLType.put(typeOid, type);
-      }
-    }
-    rs.close();
+    loadPgTypes(preparefindAllPgTypes());
   }
 
-  private PreparedStatement prepareGetTypeInfoStatement() throws SQLException {
-    PreparedStatement getTypeInfoStatement = this.getTypeInfoStatement;
-    if (getTypeInfoStatement == null) {
-      getTypeInfoStatement = conn.prepareStatement(getSQLTypeQuery(true));
-      this.getTypeInfoStatement = getTypeInfoStatement;
+  private PreparedStatement prepareFindPgTypeByOid() throws SQLException {
+    PreparedStatement findPgTypeByOid = this.findPgTypeByOid;
+    if (findPgTypeByOid == null) {
+      String sql = getFindPgTypeQuery(" WHERE t.oid = ? ");
+      findPgTypeByOid = conn.prepareStatement(sql);
+      this.findPgTypeByOid = findPgTypeByOid;
     }
-    return getTypeInfoStatement;
+    return findPgTypeByOid;
   }
 
   @Override
-  public int getSQLType(String pgTypeName) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      /*
-        Get a few things out of the way such as arrays and known types
-      */
-      if (pgTypeName.endsWith("[]")) {
-        return Types.ARRAY;
-      }
-      Integer i = this.pgNameToSQLType.get(pgTypeName);
-      if (i != null) {
-        return i;
-      }
+  @SuppressWarnings("deprecation")
+  public int getJavaArrayType(Class<?> javaClass) throws SQLException {
+    return javaTypeRegistry.getArrayOidForJavaClass(javaClass);
+  }
 
-      /*
-        All else fails then we will query the database.
-        save for future calls
-      */
-      i = getSQLType(castNonNull(getPGType(pgTypeName)));
-
-      pgNameToSQLType.put(pgTypeName, i);
-      return i;
+  private PreparedStatement prepareFindPgTypeByPgName(String pgTypeName) throws SQLException {
+    PreparedStatement findTypeStatement = this.findPgTypeByName;
+    if (findTypeStatement == null) {
+      String sql = getFindPgTypeQuery(" WHERE t.oid = ?::regtype");
+      findTypeStatement = conn.prepareStatement(sql);
+      this.findPgTypeByName = findTypeStatement;
     }
+    findTypeStatement.setString(1, pgTypeName);
+    return findTypeStatement;
+  }
+
+  private void invalidateCacheIfNeeded() {
+    int typeCacheEpoch = this.typeCacheEpoch;
+    int connectionTypeCacheEpoch = conn.getTypeCacheEpoch();
+    if (typeCacheEpoch == connectionTypeCacheEpoch) {
+      // All good
+      return;
+    }
+    // Epoch mismatch, invalidating the caches
+    typesByPgName.clear();
+    typesByOid.clear();
+    codecRegistry.invalidateCache();
+    // Update epoch after clearing to prevent repeated invalidations
+    this.typeCacheEpoch = connectionTypeCacheEpoch;
   }
 
   @Override
-  public int getJavaArrayType(String className) throws SQLException {
+  public PgType getPgTypeByPgName(String pgTypeName) throws SQLException {
+    pgTypeName = getTypeForAlias(pgTypeName);
+    PgType pgType = DEFAULT_TYPES_BY_PGNAME.get(pgTypeName);
+    if (pgType != null) {
+      return pgType;
+    }
     try (ResourceLock ignore = lock.obtain()) {
-      Integer oid = javaArrayTypeToOid.get(className);
-      if (oid == null) {
-        return Oid.UNSPECIFIED;
-      }
-      return oid;
-    }
-  }
-
-  @Override
-  public int getSQLType(int typeOid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (typeOid == Oid.UNSPECIFIED) {
-        return Types.OTHER;
-      }
-
-      Integer i = oidToSQLType.get(typeOid);
-      if (i != null) {
-        return i;
-      }
-
-      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type oid ''{0}''", intOidToLong(typeOid));
-
-      PreparedStatement getTypeInfoStatement = prepareGetTypeInfoStatement();
-
-      getTypeInfoStatement.setLong(1, intOidToLong(typeOid));
-
-      // Go through BaseStatement to avoid transaction start.
-      if (!((BaseStatement) getTypeInfoStatement)
-          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      ResultSet rs = castNonNull(getTypeInfoStatement.getResultSet());
-
-      int sqlType = Types.OTHER;
-      if (rs.next()) {
-        sqlType = getSQLTypeFromQueryResult(rs);
-      }
-      rs.close();
-
-      oidToSQLType.put(typeOid, sqlType);
-      return sqlType;
-    }
-  }
-
-  private PreparedStatement getOidStatement(String pgTypeName) throws SQLException {
-    boolean isArray = pgTypeName.endsWith("[]");
-    boolean hasQuote = pgTypeName.contains("\"");
-    int dotIndex = pgTypeName.indexOf('.');
-
-    if (dotIndex == -1 && !hasQuote && !isArray) {
-      PreparedStatement getOidStatementSimple = this.getOidStatementSimple;
-      if (getOidStatementSimple == null) {
-        String sql;
-        // see comments in @getSQLType()
-        // -- go with older way of unnesting array to be compatible with 8.0
-        sql = "SELECT pg_type.oid, typname "
-              + "  FROM pg_catalog.pg_type "
-              + "  LEFT "
-              + "  JOIN (select ns.oid as nspoid, ns.nspname, r.r "
-              + "          from pg_namespace as ns "
-              + "          join ( select s.r, (current_schemas(false))[s.r] as nspname "
-              + "                   from generate_series(1, array_upper(current_schemas(false), 1)) as s(r) ) as r "
-              + "         using ( nspname ) "
-              + "       ) as sp "
-              + "    ON sp.nspoid = typnamespace "
-              + " WHERE typname = ? "
-              + " ORDER BY sp.r, pg_type.oid DESC LIMIT 1;";
-        this.getOidStatementSimple = getOidStatementSimple = conn.prepareStatement(sql);
-      }
-      // coerce to lower case to handle upper case type names
-      String lcName = pgTypeName.toLowerCase(Locale.ROOT);
-      // default arrays are represented with _ as prefix ... this dont even work for public schema
-      // fully
-      getOidStatementSimple.setString(1, lcName);
-      return getOidStatementSimple;
-    }
-    PreparedStatement oidStatementComplex;
-    if (isArray) {
-      PreparedStatement getOidStatementComplexArray = this.getOidStatementComplexArray;
-      if (getOidStatementComplexArray == null) {
-        String sql;
-        if (conn.haveMinimumServerVersion(ServerVersion.v8_3)) {
-          sql = "SELECT t.typarray, arr.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + "  JOIN pg_catalog.pg_type arr ON arr.oid = t.typarray"
-              + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.oid DESC LIMIT 1";
-        } else {
-          sql = "SELECT t.oid, t.typname "
-              + "  FROM pg_catalog.pg_type t"
-              + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-              + " WHERE t.typelem = (SELECT oid FROM pg_catalog.pg_type WHERE typname = ?)"
-              + " AND substring(t.typname, 1, 1) = '_' AND t.typlen = -1"
-              + " AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
-              + " ORDER BY t.typelem DESC LIMIT 1";
-        }
-        this.getOidStatementComplexArray = getOidStatementComplexArray = conn.prepareStatement(sql);
-      }
-      oidStatementComplex = getOidStatementComplexArray;
-    } else {
-      PreparedStatement getOidStatementComplexNonArray = this.getOidStatementComplexNonArray;
-      if (getOidStatementComplexNonArray == null) {
-        String sql = "SELECT t.oid, t.typname "
-            + "  FROM pg_catalog.pg_type t"
-            + "  JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid"
-            + " WHERE t.typname = ? AND (n.nspname = ? OR ? AND n.nspname = ANY (current_schemas(true)))"
-            + " ORDER BY t.oid DESC LIMIT 1";
-        this.getOidStatementComplexNonArray = getOidStatementComplexNonArray = conn.prepareStatement(sql);
-      }
-      oidStatementComplex = getOidStatementComplexNonArray;
-    }
-    //type name requested may be schema specific, of the form "{schema}"."typeName",
-    //or may check across all schemas where a schema is not specified.
-    String fullName = isArray ? pgTypeName.substring(0, pgTypeName.length() - 2) : pgTypeName;
-    String schema;
-    String name;
-    // simple use case
-    if (dotIndex == -1) {
-      schema = null;
-      name = fullName;
-    } else {
-      if (fullName.startsWith("\"")) {
-        if (fullName.endsWith("\"")) {
-          String[] parts = fullName.split("\"\\.\"");
-          schema = parts.length == 2 ? parts[0] + "\"" : null;
-          name = parts.length == 2 ? "\"" + parts[1] : parts[0];
-        } else {
-          int lastDotIndex = fullName.lastIndexOf('.');
-          name = fullName.substring(lastDotIndex + 1);
-          schema = fullName.substring(0, lastDotIndex);
-        }
-      } else {
-        schema = fullName.substring(0, dotIndex);
-        name = fullName.substring(dotIndex + 1);
-      }
-    }
-    if (schema != null && schema.startsWith("\"") && schema.endsWith("\"")) {
-      schema = schema.substring(1, schema.length() - 1);
-    } else if (schema != null) {
-      schema = schema.toLowerCase(Locale.ROOT);
-    }
-    if (name.startsWith("\"") && name.endsWith("\"")) {
-      name = name.substring(1, name.length() - 1);
-    } else {
-      name = name.toLowerCase(Locale.ROOT);
-    }
-    oidStatementComplex.setString(1, name);
-    oidStatementComplex.setString(2, schema);
-    oidStatementComplex.setBoolean(3, schema == null);
-    return oidStatementComplex;
-  }
-
-  @Override
-  public int getPGType(String pgTypeName) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      // there really isn't anything else to return other than UNSPECIFIED here.
-      if (pgTypeName == null) {
-        return Oid.UNSPECIFIED;
-      }
-
-      Integer oid = pgNameToOid.get(pgTypeName);
-      if (oid != null) {
-        return oid;
-      }
-
-      PreparedStatement oidStatement = getOidStatement(pgTypeName);
-
-      // Go through BaseStatement to avoid transaction start.
-      if (!((BaseStatement) oidStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      oid = Oid.UNSPECIFIED;
-      ResultSet rs = castNonNull(oidStatement.getResultSet());
-      if (rs.next()) {
-        oid = (int) rs.getLong(1);
-        String internalName = castNonNull(rs.getString(2));
-        oidToPgName.put(oid, internalName);
-        pgNameToOid.put(internalName, oid);
-      }
-      pgNameToOid.put(pgTypeName, oid);
-      rs.close();
-
-      return oid;
-    }
-  }
-
-  @Override
-  public @Nullable String getPGType(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        // TODO: it would be great to forbid UNSPECIFIED argument, and make the return type non-nullable
-        return null;
-      }
-
-      String pgTypeName = oidToPgName.get(oid);
-      if (pgTypeName != null) {
-        return pgTypeName;
-      }
-
-      PreparedStatement getNameStatement = prepareGetNameStatement();
-
-      getNameStatement.setInt(1, oid);
-
-      // Go through BaseStatement to avoid transaction start.
-      if (!((BaseStatement) getNameStatement).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      ResultSet rs = castNonNull(getNameStatement.getResultSet());
-      if (rs.next()) {
-        boolean onPath = rs.getBoolean(1);
-        String schema = castNonNull(rs.getString(2), "schema");
-        String name = castNonNull(rs.getString(3), "name");
-        if (onPath) {
-          pgTypeName = name;
-          pgNameToOid.put(schema + "." + name, oid);
-        } else {
-          // TODO: escaping !?
-          pgTypeName = "\"" + schema + "\".\"" + name + "\"";
-          // if all is lowercase add special type info
-          // TODO: should probably check for all special chars
-          if (schema.equals(schema.toLowerCase(Locale.ROOT)) && schema.indexOf('.') == -1
-              && name.equals(name.toLowerCase(Locale.ROOT)) && name.indexOf('.') == -1) {
-            pgNameToOid.put(schema + "." + name, oid);
-          }
-        }
-        pgNameToOid.put(pgTypeName, oid);
-        oidToPgName.put(oid, pgTypeName);
-      }
-      rs.close();
-
-      return pgTypeName;
-    }
-  }
-
-  private PreparedStatement prepareGetNameStatement() throws SQLException {
-    PreparedStatement getNameStatement = this.getNameStatement;
-    if (getNameStatement == null) {
-      String sql;
-      sql = "SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname "
-            + "FROM pg_catalog.pg_type t "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
-
-      this.getNameStatement = getNameStatement = conn.prepareStatement(sql);
-    }
-    return getNameStatement;
-  }
-
-  @Override
-  public int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
-    elementTypeName = getTypeForAlias(elementTypeName);
-    return getPGType(elementTypeName + "[]");
-  }
-
-  /**
-   * Return the oid of the array's base element if it's an array, if not return the provided oid.
-   * This doesn't do any database lookups, so it's only useful for the originally provided type
-   * mappings. This is fine for it's intended uses where we only have intimate knowledge of types
-   * that are already known to the driver.
-   *
-   * @param oid input oid
-   * @return oid of the array's base element or the provided oid (if not array)
-   */
-  protected int convertArrayToBaseOid(int oid) {
-    try (ResourceLock ignore = lock.obtain()) {
-      Integer i = pgArrayToPgType.get(oid);
-      if (i == null) {
-        return oid;
-      }
-      return i;
-    }
-  }
-
-  @Override
-  public char getArrayDelimiter(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        return ',';
-      }
-
-      Character delim = arrayOidToDelimiter.get(oid);
-      if (delim != null) {
-        return delim;
-      }
-
-      PreparedStatement getArrayDelimiterStatement = prepareGetArrayDelimiterStatement();
-
-      getArrayDelimiterStatement.setInt(1, oid);
-
-      // Go through BaseStatement to avoid transaction start.
-      if (!((BaseStatement) getArrayDelimiterStatement)
-          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      ResultSet rs = castNonNull(getArrayDelimiterStatement.getResultSet());
-      if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      String s = castNonNull(rs.getString(1));
-      delim = s.charAt(0);
-
-      arrayOidToDelimiter.put(oid, delim);
-
-      rs.close();
-
-      return delim;
-    }
-  }
-
-  private PreparedStatement prepareGetArrayDelimiterStatement() throws SQLException {
-    PreparedStatement getArrayDelimiterStatement = this.getArrayDelimiterStatement;
-    if (getArrayDelimiterStatement == null) {
-      String sql;
-      sql = "SELECT e.typdelim FROM pg_catalog.pg_type t, pg_catalog.pg_type e "
-            + "WHERE t.oid = ? and t.typelem = e.oid";
-      this.getArrayDelimiterStatement = getArrayDelimiterStatement = conn.prepareStatement(sql);
-    }
-    return getArrayDelimiterStatement;
-  }
-
-  @Override
-  public int getPGArrayElement(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      if (oid == Oid.UNSPECIFIED) {
-        return Oid.UNSPECIFIED;
-      }
-
-      Integer pgType = pgArrayToPgType.get(oid);
-
+      invalidateCacheIfNeeded();
+      pgType = typesByPgName.get(pgTypeName);
       if (pgType != null) {
         return pgType;
       }
 
-      PreparedStatement getArrayElementOidStatement = prepareGetArrayElementOidStatement();
-
-      getArrayElementOidStatement.setInt(1, oid);
-
-      // Go through BaseStatement to avoid transaction start.
-      if (!((BaseStatement) getArrayElementOidStatement)
-          .executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      PreparedStatement findPgTypeByPgName = prepareFindPgTypeByPgName(pgTypeName);
+      PgType res = loadPgTypes(findPgTypeByPgName);
+      if (res == null) {
+        throw new PSQLException(GT.tr("Unknown type {0}.", pgTypeName),
+            PSQLState.INVALID_PARAMETER_TYPE);
       }
-
-      ResultSet rs = castNonNull(getArrayElementOidStatement.getResultSet());
-      if (!rs.next()) {
-        throw new PSQLException(GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
-      }
-
-      pgType = (int) rs.getLong(1);
-      boolean onPath = rs.getBoolean(2);
-      String schema = rs.getString(3);
-      String name = castNonNull(rs.getString(4));
-      pgArrayToPgType.put(oid, pgType);
-      pgNameToOid.put(schema + "." + name, pgType);
-      String fullName = "\"" + schema + "\".\"" + name + "\"";
-      pgNameToOid.put(fullName, pgType);
-      if (onPath && name.equals(name.toLowerCase(Locale.ROOT))) {
-        oidToPgName.put(pgType, name);
-        pgNameToOid.put(name, pgType);
-      } else {
-        oidToPgName.put(pgType, fullName);
-      }
-
-      rs.close();
-
-      return pgType;
+      typesByPgName.put(pgTypeName, res);
+      return castNonNull(res);
     }
   }
 
-  private PreparedStatement prepareGetArrayElementOidStatement() throws SQLException {
-    PreparedStatement getArrayElementOidStatement = this.getArrayElementOidStatement;
-    if (getArrayElementOidStatement == null) {
-      String sql;
-      sql = "SELECT e.oid, n.nspname = ANY(current_schemas(true)), n.nspname, e.typname "
-            + "FROM pg_catalog.pg_type t JOIN pg_catalog.pg_type e ON t.typelem = e.oid "
-            + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = ?";
-      this.getArrayElementOidStatement = getArrayElementOidStatement = conn.prepareStatement(sql);
+  @Override
+  public PgType getPgTypeByOid(int oid) throws SQLException {
+    PgType pgType = DEFAULT_TYPES_BY_OID.get(oid);
+    if (pgType != null) {
+      return pgType;
     }
-    return getArrayElementOidStatement;
+    try (ResourceLock ignore = lock.obtain()) {
+      invalidateCacheIfNeeded();
+      pgType = typesByOid.get(oid);
+      if (pgType != null) {
+        return pgType;
+      }
+
+      PreparedStatement findPgTypeByOid = prepareFindPgTypeByOid();
+      findPgTypeByOid.setInt(1, oid);
+      return castNonNull(loadPgTypes(findPgTypeByOid));
+    }
   }
 
   @Override
   public @Nullable Class<? extends PGobject> getPGobject(String type) {
-    try (ResourceLock ignore = lock.obtain()) {
-      return pgNameToPgObject.get(type);
-    }
+    return javaTypeRegistry.getPGobject(type);
   }
 
   @Override
-  public String getJavaClass(int oid) throws SQLException {
-    try (ResourceLock ignore = lock.obtain()) {
-      String pgTypeName = getPGType(oid);
-      if (pgTypeName == null) {
-        // Technically speaking, we should not be here
-        // null result probably means oid == UNSPECIFIED which has no clear way
-        // to map to Java
-        return "java.lang.String";
-      }
-
-      String result = pgNameToJavaClass.get(pgTypeName);
-      if (result != null) {
-        return result;
-      }
-
-      if (getSQLType(pgTypeName) == Types.ARRAY) {
-        result = "java.sql.Array";
-        pgNameToJavaClass.put(pgTypeName, result);
-      }
-
-      return result == null ? "java.lang.String" : result;
-    }
-  }
-
-  @Override
+  @SuppressWarnings("deprecation")
   public @Nullable String getTypeForAlias(@Nullable String alias) {
-    if ( alias == null ) {
+    if (alias == null) {
       return null;
     }
     String type = TYPE_ALIASES.get(alias);
@@ -822,8 +478,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
-  public int getPrecision(int oid, int typmod) {
-    oid = convertArrayToBaseOid(oid);
+  public int getPrecision(int oid, int typmod) throws SQLException {
     switch (oid) {
       case Oid.INT2:
         return 5;
@@ -888,8 +543,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
-  public int getScale(int oid, int typmod) {
-    oid = convertArrayToBaseOid(oid);
+  public int getScale(int oid, int typmod) throws SQLException {
     switch (oid) {
       case Oid.FLOAT4:
         return 8;
@@ -919,50 +573,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
-  public boolean isCaseSensitive(int oid) {
-    oid = convertArrayToBaseOid(oid);
-    switch (oid) {
-      case Oid.OID:
-      case Oid.INT2:
-      case Oid.INT4:
-      case Oid.INT8:
-      case Oid.FLOAT4:
-      case Oid.FLOAT8:
-      case Oid.NUMERIC:
-      case Oid.BOOL:
-      case Oid.BIT:
-      case Oid.VARBIT:
-      case Oid.DATE:
-      case Oid.TIME:
-      case Oid.TIMETZ:
-      case Oid.TIMESTAMP:
-      case Oid.TIMESTAMPTZ:
-      case Oid.INTERVAL:
-        return false;
-      default:
-        return true;
-    }
-  }
-
-  @Override
-  public boolean isSigned(int oid) {
-    oid = convertArrayToBaseOid(oid);
-    switch (oid) {
-      case Oid.INT2:
-      case Oid.INT4:
-      case Oid.INT8:
-      case Oid.FLOAT4:
-      case Oid.FLOAT8:
-      case Oid.NUMERIC:
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  @Override
-  public int getDisplaySize(int oid, int typmod) {
-    oid = convertArrayToBaseOid(oid);
+  public int getDisplaySize(int oid, int typmod) throws SQLException {
     switch (oid) {
       case Oid.INT2:
         return 6; // -32768 to +32767
@@ -1057,8 +668,7 @@ public class TypeInfoCache implements TypeInfo {
   }
 
   @Override
-  public int getMaximumPrecision(int oid) {
-    oid = convertArrayToBaseOid(oid);
+  public int getMaximumPrecision(int oid) throws SQLException {
     switch (oid) {
       case Oid.NUMERIC:
         return 1000;
@@ -1082,48 +692,84 @@ public class TypeInfoCache implements TypeInfo {
     }
   }
 
-  @Override
-  public boolean requiresQuoting(int oid) throws SQLException {
-    int sqlType = getSQLType(oid);
-    return requiresQuotingSqlType(sqlType);
-  }
-
   /**
-   * Returns true if particular sqlType requires quoting.
-   * This method is used internally by the driver, so it might disappear without notice.
+   * Gets the fields for a composite type.
+   * Fields are loaded eagerly when first accessed and cached.
    *
-   * @param sqlType sql type as in java.sql.Types
-   * @return true if the type requires quoting
-   * @throws SQLException if something goes wrong
+   * @param oid the OID of the composite type
+   * @return the list of fields, or an empty list if not a composite type
+   * @throws SQLException if a database error occurs
    */
   @Override
-  public boolean requiresQuotingSqlType(int sqlType) throws SQLException {
-    switch (sqlType) {
-      case Types.BIGINT:
-      case Types.DOUBLE:
-      case Types.FLOAT:
-      case Types.INTEGER:
-      case Types.REAL:
-      case Types.SMALLINT:
-      case Types.TINYINT:
-      case Types.NUMERIC:
-      case Types.DECIMAL:
-        return false;
-    }
-    return true;
-  }
-
-  @Override
-  public int longOidToInt(long oid) throws SQLException {
-    if ((oid & 0xFFFF_FFFF_0000_0000L) != 0) {
-      throw new PSQLException(GT.tr("Value is not an OID: {0}", oid), PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+  public List<PgField> getFields(int oid) throws SQLException {
+    PgType pgType = getPgTypeByOid(oid);
+    if (!pgType.isComposite()) {
+      return java.util.Collections.emptyList();
     }
 
-    return (int) oid;
+    List<PgField> fields = pgType.getFields();
+    if (fields != null) {
+      return fields;
+    }
+
+    // Fields not loaded yet, load them now
+    try (ResourceLock ignore = lock.obtain()) {
+      // Double-check after acquiring lock - check connection cache first
+      PgType cachedType = typesByOid.get(oid);
+      if (cachedType != null && cachedType.getFields() != null) {
+        return cachedType.getFields();
+      }
+
+      fields = loadCompositeFields(oid);
+
+      // Update the cached type with fields
+      // Use cachedType if available, otherwise use the original pgType
+      // (which may be from DEFAULT_TYPES_BY_OID for built-in types)
+      PgType baseType = cachedType != null ? cachedType : pgType;
+      PgType updatedType = baseType.withFields(fields);
+      typesByOid.put(oid, updatedType);
+
+      return fields;
+    }
   }
 
-  @Override
-  public long intOidToLong(int oid) {
-    return ((long) oid) & 0xFFFFFFFFL;
+  private PreparedStatement prepareFindCompositeFields() throws SQLException {
+    PreparedStatement stmt = this.findCompositeFields;
+    if (stmt == null) {
+      /* language=PostgreSQL */
+      String sql = "SELECT a.attname, a.atttypid, a.attnum, a.atttypmod\n"
+          + "FROM pg_catalog.pg_type t\n"
+          + "JOIN pg_catalog.pg_attribute a ON (a.attrelid = t.typrelid)\n"
+          + "WHERE t.oid = ?\n"
+          + "  AND a.attnum > 0\n"
+          + "  AND NOT a.attisdropped\n"
+          + "ORDER BY a.attnum";
+      stmt = conn.prepareStatement(sql);
+      this.findCompositeFields = stmt;
+    }
+    return stmt;
+  }
+
+  private List<PgField> loadCompositeFields(int typeOid) throws SQLException {
+    PreparedStatement stmt = prepareFindCompositeFields();
+    stmt.setInt(1, typeOid);
+
+    List<PgField> fields = new ArrayList<>();
+    // Go through BaseStatement to avoid transaction start.
+    if (!((BaseStatement) stmt).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+      return fields;
+    }
+
+    try (ResultSet rs = castNonNull(stmt.getResultSet())) {
+      while (rs.next()) {
+        String name = rs.getString("attname");
+        int fieldTypeOid = rs.getInt("atttypid");
+        int position = rs.getInt("attnum");
+        int typmod = rs.getInt("atttypmod");
+        fields.add(new PgField(name, fieldTypeOid, position, typmod));
+      }
+    }
+
+    return fields;
   }
 }
