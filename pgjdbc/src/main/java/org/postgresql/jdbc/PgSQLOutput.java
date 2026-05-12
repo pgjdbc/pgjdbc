@@ -55,7 +55,10 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
   protected PgSQLOutput(PgType type, CodecContext ctx) throws SQLException {
     this.compositeType = type;
     this.ctx = ctx;
-    this.fields = type.getFields();
+    List<PgField> typeFields = type.getFields();
+    // Fields are loaded lazily for composite types: fall back to the type info
+    // cache when the PgType instance hasn't materialized them yet.
+    this.fields = typeFields != null ? typeFields : ctx.getTypeInfo().getFields(type.getOid());
   }
 
   /**
@@ -318,7 +321,12 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
       writeNull();
       return;
     }
-    attributeValues.add(encodeString(x.getString(), getFieldType(field)));
+    String xml = x.getString();
+    if (xml == null) {
+      writeNull();
+      return;
+    }
+    attributeValues.add(encodeString(xml, getFieldType(field)));
   }
 
   @Override

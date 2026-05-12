@@ -135,12 +135,11 @@ class TimetzCodecTest {
   }
 
   @Test
-  void decodeTextAs_LocalTime() throws SQLException {
-    LocalTime result = codec.decodeTextAs("10:30:00+00", timetzType, LocalTime.class, ctx);
-
-    assertNotNull(result);
-    assertEquals(10, result.getHour());
-    assertEquals(30, result.getMinute());
+  void decodeTextAs_LocalTime_rejected() {
+    // timetz → LocalTime would silently drop the offset, so the contract is
+    // to surface DATA_TYPE_MISMATCH instead.
+    assertThrows(org.postgresql.util.PSQLException.class,
+        () -> codec.decodeTextAs("10:30:00+00", timetzType, LocalTime.class, ctx));
   }
 
   @Test

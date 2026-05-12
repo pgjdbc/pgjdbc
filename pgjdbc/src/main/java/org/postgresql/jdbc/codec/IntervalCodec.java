@@ -110,13 +110,14 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
   @Override
   public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
     if (value instanceof PGInterval) {
-      return ((PGInterval) value).getValue();
+      String text = ((PGInterval) value).getValue();
+      return text != null ? text : "";
     }
     return value.toString();
   }
 
   @Override
-  public String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     Object interval = decodeBinary(data, type, ctx);
     return interval != null ? interval.toString() : null;
   }

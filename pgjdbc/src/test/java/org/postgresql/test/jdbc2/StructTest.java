@@ -153,34 +153,43 @@ public class StructTest {
     // Insert data using text literal
     int id;
     try (Statement stmt = conn.createStatement()) {
+      // The nested composite ("200 Maple Dr",...) must be quoted *and* its
+      // inner double-quotes escaped, otherwise PostgreSQL parses it as two
+      // top-level attributes (and rejects the literal).
       try (ResultSet rs = stmt.executeQuery(
-          "INSERT INTO struct_test (person) VALUES " +
-              "('(\"Alice Brown\",35,(\"200 Maple Dr\",\"Austin\",\"73301\"))'::test_person) " +
-              "RETURNING id")) {
+          "INSERT INTO struct_test (person) VALUES "
+              + "('(\"Alice Brown\",35,\"(\\\"200 Maple Dr\\\",\\\"Austin\\\",\\\"73301\\\")\")'::test_person) "
+              + "RETURNING id")) {
         assertTrue(rs.next());
         id = rs.getInt(1);
       }
     }
 
-    // Read as SQLData using type map
+    // Read as SQLData using type map. The map must be installed on the
+    // connection so SQLData.readSQL — which calls SQLInput.readObject() on the
+    // nested address field — can resolve the nested type to TestAddress.
     Map<String, Class<?>> typeMap = new HashMap<>();
     typeMap.put("test_person", TestPerson.class);
     typeMap.put("test_address", TestAddress.class);
-
-    try (PreparedStatement ps = conn.prepareStatement(
-        "SELECT person FROM struct_test WHERE id = ?")) {
-      ps.setInt(1, id);
-      try (ResultSet rs = ps.executeQuery()) {
-        assertTrue(rs.next());
-        TestPerson person = rs.getObject(1, TestPerson.class);
-        assertNotNull(person);
-        assertEquals("Alice Brown", person.name);
-        assertEquals(35, person.age);
-        assertNotNull(person.address);
-        assertEquals("200 Maple Dr", person.address.street);
-        assertEquals("Austin", person.address.city);
-        assertEquals("73301", person.address.zip);
+    conn.setTypeMap(typeMap);
+    try {
+      try (PreparedStatement ps = conn.prepareStatement(
+          "SELECT person FROM struct_test WHERE id = ?")) {
+        ps.setInt(1, id);
+        try (ResultSet rs = ps.executeQuery()) {
+          assertTrue(rs.next());
+          TestPerson person = rs.getObject(1, TestPerson.class);
+          assertNotNull(person);
+          assertEquals("Alice Brown", person.name);
+          assertEquals(35, person.age);
+          assertNotNull(person.address);
+          assertEquals("200 Maple Dr", person.address.street);
+          assertEquals("Austin", person.address.city);
+          assertEquals("73301", person.address.zip);
+        }
       }
+    } finally {
+      conn.setTypeMap(new HashMap<>());
     }
   }
 

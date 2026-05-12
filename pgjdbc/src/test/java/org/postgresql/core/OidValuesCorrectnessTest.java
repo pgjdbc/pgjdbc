@@ -45,7 +45,11 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents situation that a new value will be added to Oid class with ignoring the test.
    */
   private static List<String> oidsToIgnore = Arrays.asList(
-      "UNSPECIFIED" //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      "UNSPECIFIED", //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      // hstore is a contrib extension; its OID is assigned at CREATE EXTENSION time and
+      // varies between installations, so the constants in Oid.java are sample values only.
+      "HSTORE",
+      "HSTORE_ARRAY"
   );
 
   /**
@@ -102,6 +106,12 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("JSON_ARRAY", "_JSON");
     oidTypeNames.put("REF_CURSOR", "REFCURSOR");
     oidTypeNames.put("REF_CURSOR_ARRAY", "_REFCURSOR");
+    oidTypeNames.put("REFCURSOR_ARRAY", "_REFCURSOR");
+    oidTypeNames.put("LINE_ARRAY", "_LINE");
+    oidTypeNames.put("LSEG_ARRAY", "_LSEG");
+    oidTypeNames.put("PATH_ARRAY", "_PATH");
+    oidTypeNames.put("POLYGON_ARRAY", "_POLYGON");
+    oidTypeNames.put("CIRCLE_ARRAY", "_CIRCLE");
   }
 
   public static Iterable<Object[]> data() throws IllegalAccessException {

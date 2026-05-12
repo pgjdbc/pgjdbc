@@ -5,8 +5,6 @@
 
 package org.postgresql.jdbc;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
 import org.postgresql.api.codec.Codec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.util.GT;
@@ -33,7 +31,10 @@ public class PgParameterMetaData implements ParameterMetaData {
     checkParamIndex(param);
     int oid = oids[param - 1];
     CodecContext ctx = connection.getCodecContext();
-    Codec codec = ctx.getCodecs().getByOid(oid, null);
+    // Resolve PgType so codec lookup can fall through to typename / typtype
+    // resolution rather than returning FallbackCodec.
+    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
+    Codec codec = ctx.getCodecs().getByOid(oid, pgType);
     if (codec != null) {
       return codec.getDefaultJavaType().getName();
     }
@@ -67,7 +68,10 @@ public class PgParameterMetaData implements ParameterMetaData {
   @Override
   public String getParameterTypeName(int param) throws SQLException {
     checkParamIndex(param);
-    return connection.getTypeInfo().getPgTypeByOid(oids[param - 1]).getFullName();
+    // Return the raw pg_type.typname (e.g. "timestamp", "_int4") rather than
+    // format_type()'s pretty name ("timestamp without time zone", "integer[]"),
+    // matching the legacy contract that callers rely on.
+    return connection.getTypeInfo().getPgTypeByOid(oids[param - 1]).getTypeName().getName();
   }
 
   // we don't know this

@@ -7,6 +7,7 @@ package org.postgresql.core;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.FieldMetadata;
 import org.postgresql.jdbc.TimestampUtils;
 import org.postgresql.util.LruCache;
@@ -216,6 +217,15 @@ public interface BaseConnection extends PGConnection, Connection {
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 
   /**
+   * Returns the current type cache epoch.
+   * @return the current type cache epoch
+   * @see QueryExecutor#getTypeCacheEpoch()
+   */
+  default int getTypeCacheEpoch() {
+    return 0;
+  }
+
+  /**
    * Indicates if statements to backend should be hinted as read only.
    *
    * @return Indication if hints to backend (such as when transaction begins)
@@ -244,4 +254,25 @@ public interface BaseConnection extends PGConnection, Connection {
    * @return true if boolean to numeric conversion is enabled
    */
   boolean getConvertBooleanToNumeric();
+
+  /**
+   * Returns a CodecContext for this connection.
+   *
+   * <p>The CodecContext provides access to codecs and type information
+   * needed for encoding and decoding values.</p>
+   *
+   * @return the codec context
+   * @throws SQLException if the context cannot be created
+   */
+  CodecContext getCodecContext() throws SQLException;
+
+  /**
+   * Returns whether PostgreSQL boolean should map to JDBC BOOLEAN type.
+   *
+   * <p>When true, ResultSetMetaData.getColumnType() returns Types.BOOLEAN for
+   * boolean columns instead of the default Types.BIT.</p>
+   *
+   * @return true if boolean should map to BOOLEAN, false for BIT (default)
+   */
+  boolean getMapBooleanToBoolean();
 }

@@ -318,13 +318,40 @@ public class TimezoneCachingTest extends BaseTest4 {
   }
 
   private static TimeZone getTimeZoneCache(Object stmt) {
-    try {
-      Field defaultTimeZoneField = stmt.getClass().getDeclaredField("defaultTimeZone");
-      defaultTimeZoneField.setAccessible(true);
-      return (TimeZone) defaultTimeZoneField.get(stmt);
-    } catch (Exception e) {
+    // The typecache refactor moved the timezone cache from a direct field on
+    // PgResultSet/PgPreparedStatement into DateTimeHelper, which the statement
+    // holds in a dateTimeHelper field (declared on PgStatement, so we walk up
+    // the class hierarchy to find it on PgPreparedStatement instances).
+    TimeZone direct = readField(stmt, "defaultTimeZone");
+    if (direct != null) {
+      return direct;
+    }
+    Object helper = readFieldObject(stmt, "dateTimeHelper");
+    if (helper == null) {
+      return null;
+    }
+    return readField(helper, "defaultTimeZone");
+  }
+
+  @SuppressWarnings("unchecked")
+  private static <T> @org.checkerframework.checker.nullness.qual.Nullable T readField(Object target, String name) {
+    Class<?> cls = target.getClass();
+    while (cls != null) {
+      try {
+        Field f = cls.getDeclaredField(name);
+        f.setAccessible(true);
+        return (T) f.get(target);
+      } catch (NoSuchFieldException ignore) {
+        cls = cls.getSuperclass();
+      } catch (Exception e) {
+        return null;
+      }
     }
     return null;
+  }
+
+  private static @org.checkerframework.checker.nullness.qual.Nullable Object readFieldObject(Object target, String name) {
+    return readField(target, name);
   }
 
   @BeforeAll

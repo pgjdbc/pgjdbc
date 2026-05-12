@@ -13,10 +13,13 @@ import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Field;
 import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
+import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -24,6 +27,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.Array;
 import java.sql.ResultSet;
+import java.sql.SQLData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +63,12 @@ public class PgArray implements Array {
   private final int oid;
 
   /**
+   * Snapshot of CodecContext at array creation time.
+   * This ensures consistent type mappings during array operations.
+   */
+  private final CodecContext codecContext;
+
+  /**
    * Field value as String.
    */
   protected @Nullable String fieldString;
@@ -76,6 +86,7 @@ public class PgArray implements Array {
   private PgArray(BaseConnection connection, int oid) throws SQLException {
     this.connection = connection;
     this.oid = oid;
+    this.codecContext = connection.getCodecContext();
   }
 
   /**
@@ -106,8 +117,26 @@ public class PgArray implements Array {
     this.fieldBytes = fieldBytes;
   }
 
+  /**
+   * Returns {@code oid} of the array type
+   * @return array type oid
+   */
+  public int getOid() {
+    return oid;
+  }
+
   private BaseConnection getConnection() {
     return castNonNull(connection);
+  }
+
+  private PgType getPgType() throws SQLException {
+    TypeInfo typeInfo = getConnection().getTypeInfo();
+    return typeInfo.getPgTypeByOid(oid);
+  }
+
+  private PgType getElementPgType() throws SQLException {
+    TypeInfo typeInfo = getConnection().getTypeInfo();
+    return typeInfo.getPgTypeByOid(getPgType().getTypelem());
   }
 
   @Override
@@ -142,41 +171,85 @@ public class PgArray implements Array {
 
   public @Nullable Object getArrayImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
+    CodecDepth.enter();
+    try {
+      // array index is out of range
+      if (index < 1) {
+        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+            PSQLState.DATA_ERROR);
+      }
 
-    // for now maps aren't supported.
-    if (map != null && !map.isEmpty()) {
-      throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map)");
+      if (fieldBytes != null) {
+        // Binary format - maps not supported for binary arrays yet
+        if (map != null && !map.isEmpty()) {
+          throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map) for binary arrays");
+        }
+        return readBinaryArray(fieldBytes, (int) index, count);
+      }
+
+      if (fieldString == null) {
+        return null;
+      }
+
+      final PgArrayList arrayList = buildArrayList(fieldString);
+
+      if (count == 0) {
+        count = arrayList.size();
+      }
+
+      // array index out of range
+      if ((index - 1) + count > arrayList.size()) {
+        throw new PSQLException(
+            GT.tr("The array index is out of range: {0}, number of elements: {1}.",
+                index + count, (long) arrayList.size()),
+            PSQLState.DATA_ERROR);
+      }
+
+      Object array = buildArray(arrayList, (int) index, count);
+
+      // Apply type mapping for SQLData implementations
+      if (map != null && !map.isEmpty() && array instanceof Object[]) {
+        applyTypeMapping((Object[]) array, map);
+      }
+
+      return array;
+    } finally {
+      CodecDepth.exit();
     }
+  }
 
-    // array index is out of range
-    if (index < 1) {
-      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-          PSQLState.DATA_ERROR);
+  /**
+   * Applies type mapping to convert PGobject instances to SQLData implementations.
+   */
+  @SuppressWarnings("unchecked")
+  private void applyTypeMapping(Object @Nullable [] array, Map<String, Class<?>> map)
+      throws SQLException {
+    if (array == null) {
+      return;
     }
-
-    if (fieldBytes != null) {
-      return readBinaryArray(fieldBytes, (int) index, count);
+    CodecContext ctx = codecContext.withTypeMap(map);
+    for (int i = 0; i < array.length; i++) {
+      Object element = array[i];
+      if (element instanceof PGobject) {
+        PGobject pgObj = (PGobject) element;
+        Class<?> targetClass = map.get(pgObj.getType());
+        if (targetClass != null && SQLData.class.isAssignableFrom(targetClass)) {
+          String value = pgObj.getValue();
+          if (value != null) {
+            int elementOid = getPgType().getTypelem();
+            PgType elementType = castNonNull(connection).getTypeInfo().getPgTypeByOid(elementOid);
+            Object decoded = CompositeCodec.INSTANCE.decodeTextAs(
+                value, elementType, (Class<? extends SQLData>) targetClass, ctx);
+            if (decoded != null) {
+              array[i] = decoded;
+            }
+          }
+        }
+      } else if (element instanceof Object[]) {
+        // Recursively apply to nested arrays
+        applyTypeMapping((Object[]) element, map);
+      }
     }
-
-    if (fieldString == null) {
-      return null;
-    }
-
-    final PgArrayList arrayList = buildArrayList(fieldString);
-
-    if (count == 0) {
-      count = arrayList.size();
-    }
-
-    // array index out of range
-    if ((index - 1) + count > arrayList.size()) {
-      throw new PSQLException(
-          GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-              index + count, (long) arrayList.size()),
-          PSQLState.DATA_ERROR);
-    }
-
-    return buildArray(arrayList, (int) index, count);
   }
 
   private Object readBinaryArray(byte[] fieldBytes, int index, int count) throws SQLException {
@@ -306,7 +379,7 @@ public class PgArray implements Array {
   private PgArrayList buildArrayList(String fieldString) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       if (arrayList == null) {
-        arrayList = ArrayDecoding.buildArrayList(fieldString, getConnection().getTypeInfo().getArrayDelimiter(oid));
+        arrayList = ArrayDecoding.buildArrayList(fieldString, getPgType().getDelimiter());
       }
       return arrayList;
     }
@@ -319,18 +392,28 @@ public class PgArray implements Array {
    */
   private Object buildArray(ArrayDecoding.PgArrayList input, int index, int count) throws SQLException {
     final BaseConnection connection = getConnection();
-    return ArrayDecoding.readStringArray(index, count, connection.getTypeInfo().getPGArrayElement(oid), input, connection);
+    return ArrayDecoding.readStringArray(index, count, getPgType().getTypelem(), input, connection);
   }
 
   @Override
   public int getBaseType() throws SQLException {
-    return getConnection().getTypeInfo().getSQLType(getBaseTypeName());
+    return getElementPgType().getSqlType();
   }
 
   @Override
   public String getBaseTypeName() throws SQLException {
-    int elementOID = getConnection().getTypeInfo().getPGArrayElement(oid);
-    return castNonNull(getConnection().getTypeInfo().getPGType(elementOID));
+    // Legacy contract: raw pg_type.typname (e.g. "int4") for types reachable
+    // via the search_path, but a fully qualified \"schema\".\"typname\" form
+    // for off-path or quoted types (e.g. "Composites"."ComplexCompositeTest").
+    int elemOid = getElementPgType().getOid();
+    TypeInfo typeInfo = getConnection().getTypeInfo();
+    if (typeInfo instanceof TypeInfoCache) {
+      String displayName = ((TypeInfoCache) typeInfo).getPGTypeDisplayName(elemOid);
+      if (displayName != null) {
+        return displayName;
+      }
+    }
+    return getElementPgType().getTypeName().getName();
   }
 
   @Override
@@ -360,73 +443,77 @@ public class PgArray implements Array {
 
   public ResultSet getResultSetImpl(long index, int count, @Nullable Map<String, Class<?>> map)
       throws SQLException {
-
-    // for now maps aren't supported.
-    if (map != null && !map.isEmpty()) {
-      throw Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
-    }
-
-    // array index is out of range
-    if (index < 1) {
-      throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
-          PSQLState.DATA_ERROR);
-    }
-
-    if (fieldBytes != null) {
-      return readBinaryResultSet(fieldBytes, (int) index, count);
-    }
-
-    final PgArrayList arrayList = buildArrayList(castNonNull(fieldString));
-
-    if (count == 0) {
-      count = arrayList.size();
-    }
-
-    // array index out of range
-    if ((--index) + count > arrayList.size()) {
-      throw new PSQLException(
-          GT.tr("The array index is out of range: {0}, number of elements: {1}.",
-                  index + count, (long) arrayList.size()),
-          PSQLState.DATA_ERROR);
-    }
-
-    List<Tuple> rows = new ArrayList<>();
-
-    Field[] fields = new Field[2];
-
-    // one dimensional array
-    if (arrayList.dimensionsCount <= 1) {
-      // array element type
-      final int baseOid = getConnection().getTypeInfo().getPGArrayElement(oid);
-      fields[0] = new Field("INDEX", Oid.INT4);
-      fields[1] = new Field("VALUE", baseOid);
-
-      for (int i = 0; i < count; i++) {
-        int offset = (int) index + i;
-        byte[] @Nullable [] t = new byte[2][0];
-        String v = (String) arrayList.get(offset);
-        t[0] = getConnection().encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : getConnection().encodeString(v);
-        rows.add(new Tuple(t));
+    CodecDepth.enter();
+    try {
+      // for now maps aren't supported.
+      if (map != null && !map.isEmpty()) {
+        throw Driver.notImplemented(this.getClass(), "getResultSetImpl(long,int,Map)");
       }
-    } else {
-      // when multi-dimensional
-      fields[0] = new Field("INDEX", Oid.INT4);
-      fields[1] = new Field("VALUE", oid);
-      for (int i = 0; i < count; i++) {
-        int offset = (int) index + i;
-        byte[] @Nullable [] t = new byte[2][0];
-        Object v = arrayList.get(offset);
 
-        t[0] = getConnection().encodeString(Integer.toString(offset + 1));
-        t[1] = v == null ? null : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
-        rows.add(new Tuple(t));
+      // array index is out of range
+      if (index < 1) {
+        throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
+            PSQLState.DATA_ERROR);
       }
-    }
 
-    BaseStatement stat = (BaseStatement) getConnection()
-        .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-    return stat.createDriverResultSet(fields, rows);
+      if (fieldBytes != null) {
+        return readBinaryResultSet(fieldBytes, (int) index, count);
+      }
+
+      final PgArrayList arrayList = buildArrayList(castNonNull(fieldString));
+
+      if (count == 0) {
+        count = arrayList.size();
+      }
+
+      // array index out of range
+      if ((--index) + count > arrayList.size()) {
+        throw new PSQLException(
+            GT.tr("The array index is out of range: {0}, number of elements: {1}.",
+                    index + count, (long) arrayList.size()),
+            PSQLState.DATA_ERROR);
+      }
+
+      List<Tuple> rows = new ArrayList<>();
+
+      Field[] fields = new Field[2];
+
+      // one dimensional array
+      if (arrayList.dimensionsCount <= 1) {
+        // array element type
+        final int baseOid = getPgType().getTypelem();
+        fields[0] = new Field("INDEX", Oid.INT4);
+        fields[1] = new Field("VALUE", baseOid);
+
+        for (int i = 0; i < count; i++) {
+          int offset = (int) index + i;
+          byte[] @Nullable [] t = new byte[2][0];
+          String v = (String) arrayList.get(offset);
+          t[0] = getConnection().encodeString(Integer.toString(offset + 1));
+          t[1] = v == null ? null : getConnection().encodeString(v);
+          rows.add(new Tuple(t));
+        }
+      } else {
+        // when multi-dimensional
+        fields[0] = new Field("INDEX", Oid.INT4);
+        fields[1] = new Field("VALUE", oid);
+        for (int i = 0; i < count; i++) {
+          int offset = (int) index + i;
+          byte[] @Nullable [] t = new byte[2][0];
+          Object v = arrayList.get(offset);
+
+          t[0] = getConnection().encodeString(Integer.toString(offset + 1));
+          t[1] = v == null ? null : getConnection().encodeString(toString((ArrayDecoding.PgArrayList) v));
+          rows.add(new Tuple(t));
+        }
+      }
+
+      BaseStatement stat = (BaseStatement) getConnection()
+          .createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+      return stat.createDriverResultSet(fields, rows);
+    } finally {
+      CodecDepth.exit();
+    }
   }
 
   @Override
@@ -438,7 +525,7 @@ public class PgArray implements Array {
 
         final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
         assert arraySupport != null;
-        fieldString = arraySupport.toArrayString(connection.getTypeInfo().getArrayDelimiter(oid), array);
+        fieldString = arraySupport.toArrayString(getPgType().getDelimiter(), array);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
@@ -456,7 +543,7 @@ public class PgArray implements Array {
 
     StringBuilder b = new StringBuilder().append('{');
 
-    char delim = getConnection().getTypeInfo().getArrayDelimiter(oid);
+    char delim = getPgType().getDelimiter();
 
     for (int i = 0; i < list.size(); i++) {
       Object v = list.get(i);

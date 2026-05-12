@@ -16,7 +16,6 @@ import org.postgresql.util.ByteConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.math.BigDecimal;
 import java.sql.SQLException;
 
 class Float8CodecTest {

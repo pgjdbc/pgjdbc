@@ -43,7 +43,6 @@ import org.postgresql.jdbc.codec.XmlCodec;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.Iterator;
@@ -68,6 +67,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ol>
  *
  * <h2>Caching</h2>
+ *
  * <p>OID → Codec lookups are cached using Caffeine for performance.
  * The cache is size-bounded (default 1000 entries) with LRU eviction.</p>
  *
@@ -101,6 +101,7 @@ public class CodecRegistry {
   /**
    * Creates a new CodecRegistry with default codecs.
    */
+  @SuppressWarnings({"this-escape", "method.invocation"})
   public CodecRegistry() {
     this.oidCache = Caffeine.newBuilder()
         .maximumSize(OID_CACHE_SIZE)
@@ -109,8 +110,11 @@ public class CodecRegistry {
     // Load SPI codecs once
     loadSpiCodecs();
 
-    // Register built-in codecs
+    // Register built-in codecs. The instance is fully field-initialized at this
+    // point (oidCache is set above; the registration maps are final and assigned
+    // in their declarations), so the constructor escape is safe.
     registerBuiltinCodecs();
+    registerSpiCodecs();
   }
 
   /**
@@ -250,6 +254,17 @@ public class CodecRegistry {
     registerByClass(java.util.UUID.class, UuidCodec.INSTANCE);
     registerByClass(byte[].class, ByteaCodec.INSTANCE);
     registerByClass(org.postgresql.util.PGRange.class, RangeCodec.INSTANCE);
+  }
+
+  /**
+   * Applies SPI-loaded codecs to this registry after built-ins so a consumer
+   * can override default codecs from the test/application classpath.
+   */
+  private void registerSpiCodecs() {
+    for (Codec codec : spiCodecs.values()) {
+      registerByName(codec);
+      registerByClass(codec.getDefaultJavaType(), codec);
+    }
   }
 
   /**

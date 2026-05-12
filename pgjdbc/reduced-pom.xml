@@ -60,6 +60,11 @@
             <version>%{com.ongres.scram:scram-client}</version>
         </dependency>
         <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>%{com.github.ben-manes.caffeine:caffeine}</version>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <scope>test</scope>
@@ -295,6 +300,10 @@
                                         <relocation>
                                             <pattern>com.ongres</pattern>
                                             <shadedPattern>org.postgresql.shaded.com.ongres</shadedPattern>
+                                        </relocation>
+                                        <relocation>
+                                            <pattern>com.github.benmanes.caffeine</pattern>
+                                            <shadedPattern>org.postgresql.shaded.com.github.benmanes.caffeine</shadedPattern>
                                         </relocation>
                                     </relocations>
                                 </configuration>

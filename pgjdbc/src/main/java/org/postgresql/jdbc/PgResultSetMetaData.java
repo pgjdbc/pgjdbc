@@ -11,6 +11,7 @@ import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.Gettable;
 import org.postgresql.util.GettableHashMap;
@@ -440,7 +441,19 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   }
 
   protected @Nullable String getPGType(int columnIndex) throws SQLException {
-    return getFieldWithType(columnIndex).getPgType().getFullName();
+    // Return the raw pg_type.typname (e.g. "int4", "_int4") for on-path types,
+    // but a fully qualified \"schema\".\"typname\" form for off-path/shadowed
+    // types (e.g. "Composites"."Table"). Matches the legacy ResultSetMetaData
+    // contract used by getColumnTypeName.
+    PgType pgType = getFieldWithType(columnIndex).getPgType();
+    TypeInfo typeInfo = connection.getTypeInfo();
+    if (typeInfo instanceof TypeInfoCache) {
+      String displayName = ((TypeInfoCache) typeInfo).getPGTypeDisplayName(pgType.getOid());
+      if (displayName != null) {
+        return displayName;
+      }
+    }
+    return pgType.getTypeName().getName();
   }
 
   protected int getSQLType(int columnIndex) throws SQLException {
@@ -460,6 +473,18 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   public String getColumnClassName(int column) throws SQLException {
     PgType pgType = getFieldWithType(column).getPgType();
     int oid = pgType.getOid();
+    // For built-in types JavaTypeRegistry has a precise mapping; for extension
+    // types (e.g. hstore, whose OID is assigned at install time) fall through
+    // to the codec's default Java type so callers see the right wrapper class
+    // (Map for hstore, etc.) instead of the registry's default String.
+    org.postgresql.api.codec.Codec codec =
+        connection.getTypeInfo().getCodecRegistry().getByOid(oid, pgType);
+    if (codec != null) {
+      Class<?> codecDefault = codec.getDefaultJavaType();
+      if (codecDefault != null && codecDefault != Object.class) {
+        return codecDefault.getName();
+      }
+    }
     return JavaTypeRegistry.getDefaultJavaClassName(oid);
   }
 

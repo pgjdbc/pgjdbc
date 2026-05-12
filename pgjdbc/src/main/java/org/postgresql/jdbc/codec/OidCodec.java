@@ -140,7 +140,7 @@ public final class OidCodec implements BinaryCodec, TextCodec {
       return (T) String.valueOf(value);
     }
     if (targetClass == Double.class) {
-      return (T) Double.valueOf(value);
+      return (T) Double.valueOf((double) value);
     }
     if (targetClass == BigDecimal.class) {
       return (T) BigDecimal.valueOf(value);

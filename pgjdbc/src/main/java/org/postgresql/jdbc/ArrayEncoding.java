@@ -332,6 +332,12 @@ public final class ArrayEncoding {
      */
     @Override
     public final void appendArray(StringBuilder sb, char delim, N[] array) {
+      // Numeric literals don't need quoting in a PG array literal — emit
+      // {1,2,3} rather than {"1","2","3"} so PgArray.toString() (used by
+      // BinaryCodec.decodeAsString) matches the wire text format that
+      // PostgreSQL would have sent in text mode. This is what the legacy
+      // Statement+text path produced and what tests like
+      // ResultSetTest#testgetBadBoolean assert on.
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i != 0) {
@@ -340,9 +346,7 @@ public final class ArrayEncoding {
         if (array[i] == null) {
           sb.append('N').append('U').append('L').append('L');
         } else {
-          sb.append('"');
           sb.append(array[i].toString());
-          sb.append('"');
         }
       }
       sb.append('}');

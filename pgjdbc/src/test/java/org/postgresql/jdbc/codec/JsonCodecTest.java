@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -43,13 +44,15 @@ class JsonCodecTest {
 
   @Test
   void getDefaultJavaType() {
-    assertEquals(String.class, codec.getDefaultJavaType());
+    assertEquals(PGobject.class, codec.getDefaultJavaType());
   }
 
   @Test
-  void decodeText_returnsString() throws SQLException {
+  void decodeText_returnsPGobject() throws SQLException {
     String json = "{\"key\":\"value\"}";
-    assertEquals(json, codec.decodeText(json, jsonType, null));
+    PGobject decoded = (PGobject) codec.decodeText(json, jsonType, null);
+    assertEquals("json", decoded.getType());
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
@@ -62,7 +65,9 @@ class JsonCodecTest {
   void decodeBinary_utf8() throws SQLException {
     String json = "{\"key\":\"value\"}";
     byte[] data = json.getBytes(StandardCharsets.UTF_8);
-    assertEquals(json, codec.decodeBinary(data, jsonType, null));
+    PGobject decoded = (PGobject) codec.decodeBinary(data, jsonType, null);
+    assertEquals("json", decoded.getType());
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
@@ -74,9 +79,10 @@ class JsonCodecTest {
 
   @Test
   void decodeBinary_unicode() throws SQLException {
-    String json = "{\"name\":\"\u00e9\u00e8\"}";
+    String json = "{\"name\":\"éè\"}";
     byte[] data = json.getBytes(StandardCharsets.UTF_8);
-    assertEquals(json, codec.decodeBinary(data, jsonType, null));
+    PGobject decoded = (PGobject) codec.decodeBinary(data, jsonType, null);
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
@@ -114,9 +120,10 @@ class JsonCodecTest {
   }
 
   @Test
-  void decodeBinaryAs_Object() throws SQLException {
+  void decodeBinaryAs_Object_returnsPGobject() throws SQLException {
     byte[] data = "{\"a\":1}".getBytes(StandardCharsets.UTF_8);
-    assertEquals("{\"a\":1}", codec.decodeBinaryAs(data, jsonType, Object.class, null));
+    PGobject decoded = (PGobject) codec.decodeBinaryAs(data, jsonType, Object.class, null);
+    assertEquals("{\"a\":1}", decoded.getValue());
   }
 
   @Test
@@ -141,13 +148,15 @@ class JsonCodecTest {
   void textRoundtrip() throws SQLException {
     String json = "{\"nested\":{\"array\":[1,2,3]}}";
     String encoded = codec.encodeText(json, jsonType, null);
-    assertEquals(json, codec.decodeText(encoded, jsonType, null));
+    PGobject decoded = (PGobject) codec.decodeText(encoded, jsonType, null);
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
   void binaryRoundtrip() throws SQLException {
     String json = "{\"nested\":{\"array\":[1,2,3]}}";
     byte[] encoded = codec.encodeBinary(json, jsonType, null);
-    assertEquals(json, codec.decodeBinary(encoded, jsonType, null));
+    PGobject decoded = (PGobject) codec.decodeBinary(encoded, jsonType, null);
+    assertEquals(json, decoded.getValue());
   }
 }

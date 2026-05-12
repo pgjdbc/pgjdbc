@@ -5,9 +5,12 @@
 
 package org.postgresql;
 
+import org.postgresql.api.Experimental;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.copy.CopyManager;
 import org.postgresql.fastpath.Fastpath;
 import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
@@ -398,4 +401,53 @@ public interface PGConnection {
    * @return state of adaptive fetch (turned on or off)
    */
   boolean getAdaptiveFetch();
+
+  /**
+   * Registers a custom codec for this connection.
+   *
+   * <p>Custom codecs take precedence over built-in codecs for the same type name.
+   * This allows applications to customize how specific PostgreSQL types are
+   * encoded and decoded.</p>
+   *
+   * @param codec the codec to register
+   * @throws SQLException if the codec cannot be registered
+   * @since 42.8.0
+   */
+  @Experimental("Codec API is experimental and may change in future releases")
+  void registerCodec(Codec codec) throws SQLException;
+
+  /**
+   * Unregisters a custom codec from this connection.
+   *
+   * <p>This is useful for connection pool reset scenarios where custom codecs
+   * registered by a previous user should be removed.</p>
+   *
+   * @param typeName the type name to unregister
+   * @since 42.8.0
+   */
+  @Experimental("Codec API is experimental and may change in future releases")
+  void unregisterCodec(String typeName);
+
+  /**
+   * Gets the codec registry for this connection.
+   *
+   * <p>The codec registry provides access to all registered codecs and can be
+   * used for manual type conversions.</p>
+   *
+   * @return the codec registry
+   * @since 42.8.0
+   */
+  @Experimental("Codec API is experimental and may change in future releases")
+  CodecRegistry getCodecRegistry();
+
+  /**
+   * Clears all custom codecs registered on this connection.
+   *
+   * <p>This is useful for connection pool reset scenarios. Built-in codecs
+   * are not affected.</p>
+   *
+   * @since 42.8.0
+   */
+  @Experimental("Codec API is experimental and may change in future releases")
+  void resetCodecs();
 }

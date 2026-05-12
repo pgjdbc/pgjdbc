@@ -83,7 +83,10 @@ class DatabaseMetaDataCacheTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void typeForAlias() {
+    // getTypeForAlias is deprecated in favor of PgType lookup via the new TypeInfoCache,
+    // but the test stays to cover backward-compat behavior of the legacy entry point.
     TypeInfo ti = con.getTypeInfo();
     assertEquals("bool", ti.getTypeForAlias("boolean"));
     assertEquals("bool", ti.getTypeForAlias("Boolean"));

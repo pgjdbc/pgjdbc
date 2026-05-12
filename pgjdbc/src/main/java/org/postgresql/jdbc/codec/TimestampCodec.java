@@ -92,7 +92,13 @@ public final class TimestampCodec implements BinaryCodec, TextCodec {
       return ts.toString(null, Timestamp.from((Instant) value));
     }
     if (value instanceof java.util.Date) {
-      return ts.toString(null, new Timestamp(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return ts.toString(null, new Timestamp(time));
+    }
+    if (value instanceof String) {
+      // setObject(i, "2024-01-01 12:00:00", Types.TIMESTAMP) and friends.
+      return ts.toString(null, ts.toTimestamp(null, (String) value));
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to timestamp", value.getClass().getName()),
@@ -155,7 +161,7 @@ public final class TimestampCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timestamp to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -200,7 +206,7 @@ public final class TimestampCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timestamp to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -208,6 +214,12 @@ public final class TimestampCodec implements BinaryCodec, TextCodec {
     TimestampUtils ts = ctx.getTimestampUtils();
     LocalDateTime ldt = ts.toLocalDateTimeBin(data);
     return ldt == null ? null : ts.toString(ldt);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    // Preserve the original text (with microsecond precision).
+    return data;
   }
 
   @Override

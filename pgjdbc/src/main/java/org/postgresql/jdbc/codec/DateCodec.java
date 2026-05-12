@@ -64,7 +64,11 @@ public final class DateCodec implements BinaryCodec, TextCodec {
       LocalDate ld = (LocalDate) value;
       ts.toBinDate(null, result, Date.valueOf(ld));
     } else if (value instanceof java.util.Date) {
-      ts.toBinDate(null, result, new Date(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      ts.toBinDate(null, result, new Date(time));
+    } else if (value instanceof String) {
+      ts.toBinDate(null, result, ts.toDate(null, (String) value));
     } else {
       throw new PSQLException(
           GT.tr("Cannot convert {0} to date", value.getClass().getName()),
@@ -93,7 +97,20 @@ public final class DateCodec implements BinaryCodec, TextCodec {
       return ts.toString((LocalDate) value);
     }
     if (value instanceof java.util.Date) {
-      return ts.toString(null, new Date(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return ts.toString(null, new Date(time));
+    }
+    if (value instanceof String) {
+      // setObject(i, "2024-01-01", Types.DATE) and friends — let TimestampUtils
+      // parse the literal so we match the legacy behavior of the driver.
+      try {
+        return ts.toString(null, ts.toDate(null, (String) value));
+      } catch (Exception e) {
+        throw new PSQLException(
+            GT.tr("Cannot convert {0} to date", value),
+            PSQLState.INVALID_PARAMETER_TYPE, e);
+      }
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to date", value.getClass().getName()),
@@ -136,7 +153,7 @@ public final class DateCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert date to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -161,7 +178,7 @@ public final class DateCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert date to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -169,6 +186,11 @@ public final class DateCodec implements BinaryCodec, TextCodec {
     TimestampUtils ts = ctx.getTimestampUtils();
     LocalDate ld = ts.toLocalDateBin(data);
     return ld == null ? null : ts.toString(ld);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    return data;
   }
 
   @Override

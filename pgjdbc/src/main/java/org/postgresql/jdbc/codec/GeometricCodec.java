@@ -201,6 +201,16 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
       if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
         return (R) decodeBinary(data, type, ctx);
       }
+      // User-registered PGobject subclass for this PG type
+      // (Connection.addDataType). Materialize the requested class and feed it
+      // the bytes via PGBinaryObject.setByteValue.
+      if (PGobject.class.isAssignableFrom(targetClass)) {
+        if (data == null || data.length == 0) {
+          return null;
+        }
+        return (R) instantiateCustomPGobject(
+            (Class<? extends PGobject>) targetClass, data, /* text */ null, ctx);
+      }
       throw new PSQLException(
           GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
           PSQLState.DATA_TYPE_MISMATCH);
@@ -213,9 +223,45 @@ public final class GeometricCodec<T extends PGobject> implements TextCodec {
       if (targetClass == javaType || targetClass == Object.class || targetClass == PGobject.class) {
         return (R) decodeText(data, type, ctx);
       }
+      if (PGobject.class.isAssignableFrom(targetClass)) {
+        if (data == null || data.isEmpty()) {
+          return null;
+        }
+        return (R) instantiateCustomPGobject(
+            (Class<? extends PGobject>) targetClass, /* binary */ null, data, ctx);
+      }
       throw new PSQLException(
           GT.tr("Cannot decode {0} to {1}", typeName, targetClass.getName()),
           PSQLState.DATA_TYPE_MISMATCH);
+    }
+
+    /**
+     * Instantiates a user-registered PGobject subclass and feeds it the
+     * value: binary via {@link PGBinaryObject#setByteValue} when the class
+     * implements it, otherwise the text representation.
+     */
+    private PGobject instantiateCustomPGobject(
+        Class<? extends PGobject> targetClass,
+        byte @Nullable [] binary,
+        @Nullable String text,
+        CodecContext ctx) throws SQLException {
+      try {
+        PGobject obj = targetClass.getDeclaredConstructor().newInstance();
+        obj.setType(typeName);
+        if (binary != null && obj instanceof PGBinaryObject) {
+          ((PGBinaryObject) obj).setByteValue(binary, 0);
+        } else if (text != null) {
+          obj.setValue(text);
+        } else if (binary != null) {
+          // Class isn't a PGBinaryObject — re-emit the bytes as text.
+          obj.setValue(new String(binary, ctx.getCharset()));
+        }
+        return obj;
+      } catch (ReflectiveOperationException e) {
+        throw new PSQLException(
+            GT.tr("Failed to instantiate {0}", targetClass.getName()),
+            PSQLState.DATA_TYPE_MISMATCH, e);
+      }
     }
 
     @Override

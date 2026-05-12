@@ -43,7 +43,9 @@ class XmlCodecTest {
 
   @Test
   void getDefaultJavaType() {
-    assertEquals(String.class, codec.getDefaultJavaType());
+    // PgResultSet.getObject returns SQLXML for xml columns (legacy contract),
+    // even though the codec itself decodes to String.
+    assertEquals(java.sql.SQLXML.class, codec.getDefaultJavaType());
   }
 
   @Test

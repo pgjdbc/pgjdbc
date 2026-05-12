@@ -160,8 +160,9 @@ public final class ByteaCodec implements BinaryCodec, TextCodec {
       return (byte[]) value;
     }
     if (value instanceof String) {
-      // Assume hex encoding
-      return PGbytea.toBytes(((String) value).getBytes());
+      // PGbytea.toBytes accepts the ASCII-only hex / escape encoding produced by
+      // PostgreSQL, so the platform default charset is irrelevant here.
+      return PGbytea.toBytes(((String) value).getBytes(java.nio.charset.StandardCharsets.US_ASCII));
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to bytea", value.getClass().getName()),
