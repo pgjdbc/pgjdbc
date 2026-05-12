@@ -1,9 +1,14 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
 package org.postgresql.jdbc;
 
 import org.postgresql.test.TestUtil;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,7 +19,7 @@ public class TypeInfoCacheTest {
   @Test
   @Disabled("This is intended to be run manually")
   public void generateBaseTypes() throws SQLException {
-    try(Connection con = TestUtil.openDB();
+    try (Connection con = TestUtil.openDB();
         PreparedStatement ps = con.prepareStatement(
             "with pgjdbc_mapping(typname, sql_type_name, java_class) as (\n"
                 + "    select *\n"
@@ -97,7 +102,7 @@ public class TypeInfoCacheTest {
                 + "    order by element_typname, ordr\n"
                 + "  ) mapping");
         ResultSet rs = ps.executeQuery()) {
-      while(rs.next()) {
+      while (rs.next()) {
         System.out.println(rs.getString(1));
       }
     }

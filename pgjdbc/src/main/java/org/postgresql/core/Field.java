@@ -5,11 +5,19 @@
 
 package org.postgresql.core;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
+import org.postgresql.api.codec.TextCodec;
+import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.FieldMetadata;
+import org.postgresql.jdbc.PgType;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.dataflow.qual.Pure;
 
+import java.sql.SQLException;
 import java.util.Locale;
 
 public class Field {
@@ -35,11 +43,8 @@ public class Field {
   // Don't use unless that has been called.
   private @Nullable FieldMetadata metadata;
 
-  private int sqlType;
-  private String pgType = NOT_YET_LOADED;
-
-  // New string to avoid clashes with other strings
-  private static final String NOT_YET_LOADED = new String("pgType is not yet loaded");
+  private @Nullable PgType pgType;
+  private @Nullable Codec codec;
 
   /**
    * Construct a field based on the information fed to it.
@@ -161,26 +166,69 @@ public class Field {
         + ")";
   }
 
-  public void setSQLType(int sqlType) {
-    this.sqlType = sqlType;
+  public PgType getPgType() {
+    return castNonNull(pgType);
   }
 
   public int getSQLType() {
-    return sqlType;
-  }
-
-  public void setPGType(String pgType) {
-    this.pgType = pgType;
+    return getPgType().getSqlType();
   }
 
   public String getPGType() {
-    return pgType;
+    return getPgType().getFullName();
   }
 
-  @SuppressWarnings("ReferenceEquality")
-  public boolean isTypeInitialized() {
-    //noinspection StringEquality
-    return pgType != NOT_YET_LOADED;
+  public void initializePgType(TypeInfo typeInfo) throws SQLException {
+    if (pgType != null) {
+      return;
+    }
+    pgType = typeInfo.getPgTypeByOid(oid);
+  }
+
+  /**
+   * Initializes the codec for this field.
+   *
+   * <p>This should be called after {@link #initializePgType(TypeInfo)} to ensure
+   * the PgType is available for codec resolution.</p>
+   *
+   * @param codecRegistry the codec registry to use for lookup
+   */
+  public void initializeCodec(CodecRegistry codecRegistry) {
+    if (codec != null) {
+      return;
+    }
+    codec = codecRegistry.getByOid(oid, pgType);
+  }
+
+  /**
+   * Returns the cached codec for this field.
+   *
+   * <p>Requires {@link #initializeCodec(CodecRegistry)} to have been called first.</p>
+   *
+   * @return the codec for this field
+   */
+  public Codec getCodec() {
+    return castNonNull(codec);
+  }
+
+  /**
+   * Returns the binary codec for this field, or null if binary encoding is not supported.
+   *
+   * @return the binary codec, or null
+   */
+  public @Nullable BinaryCodec getBinaryCodec() {
+    Codec c = castNonNull(codec);
+    return c instanceof BinaryCodec ? (BinaryCodec) c : null;
+  }
+
+  /**
+   * Returns the text codec for this field, or null if text encoding is not supported.
+   *
+   * @return the text codec, or null
+   */
+  public @Nullable TextCodec getTextCodec() {
+    Codec c = castNonNull(codec);
+    return c instanceof TextCodec ? (TextCodec) c : null;
   }
 
   public void upperCaseLabel() {

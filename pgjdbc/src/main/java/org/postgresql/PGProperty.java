@@ -299,6 +299,71 @@ public enum PGProperty {
           + "behavior that surfaces 'cached plan must not change result type'."),
 
   /**
+   * Controls the default Java type returned by getObject() for DATE columns.
+   * When set to "java.time", returns LocalDate. When set to "java.sql" (default),
+   * returns java.sql.Date.
+   */
+  GETOBJECT_DATE(
+      "getobjectDate",
+      "java.sql",
+      "Default type for getObject() on DATE: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIME columns.
+   * When set to "java.time", returns LocalTime. When set to "java.sql" (default),
+   * returns java.sql.Time.
+   */
+  GETOBJECT_TIME(
+      "getobjectTime",
+      "java.sql",
+      "Default type for getObject() on TIME: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIMESTAMP columns.
+   * When set to "java.time", returns LocalDateTime. When set to "java.sql" (default),
+   * returns java.sql.Timestamp.
+   */
+  GETOBJECT_TIMESTAMP(
+      "getobjectTimestamp",
+      "java.sql",
+      "Default type for getObject() on TIMESTAMP: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIMESTAMP WITH TIME ZONE columns.
+   * When set to "java.time", returns OffsetDateTime. When set to "java.sql" (default),
+   * returns java.sql.Timestamp.
+   */
+  GETOBJECT_TIMESTAMPTZ(
+      "getobjectTimestamptz",
+      "java.sql",
+      "Default type for getObject() on TIMESTAMPTZ: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
+   * Controls the default Java type returned by getObject() for TIME WITH TIME ZONE columns.
+   * When set to "java.time", returns OffsetTime. When set to "java.sql" (default),
+   * returns java.sql.Time.
+   */
+  GETOBJECT_TIMETZ(
+      "getobjectTimetz",
+      "java.sql",
+      "Default type for getObject() on TIMETZ: java.sql or java.time",
+      false,
+      new String[]{"java.sql", "java.time"}
+  ),
+
+  /**
    * Group startup parameters in a transaction
    * This is important in pool-by-transaction scenarios in order to make sure that all the statements
    * reaches the same connection that is being initialized. All of the startup parameters will be wrapped
@@ -463,6 +528,20 @@ public enum PGProperty {
       "logUnclosedConnections",
       "false",
       "When connections that are not explicitly closed are garbage collected, log the stacktrace from the opening of the connection to trace the leak source"),
+
+  /**
+   * Controls the JDBC SQL type reported for PostgreSQL boolean columns in metadata.
+   * When set to "bit" (default for backward compatibility), boolean maps to Types.BIT.
+   * When set to "boolean", boolean maps to Types.BOOLEAN, which is more semantically correct.
+   * This affects ResultSetMetaData.getColumnType() and ORM type detection (e.g., Hibernate).
+   */
+  MAP_PG_TYPE_BOOLEAN(
+      "mapPgTypeBoolean",
+      "bit",
+      "JDBC type for PostgreSQL boolean: bit or boolean",
+      false,
+      new String[]{"bit", "boolean"}
+  ),
 
   /**
    * Specifies size of buffer during fetching result set. Can be specified as specified size or

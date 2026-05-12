@@ -45,7 +45,11 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
    * Prevents situation that a new value will be added to Oid class with ignoring the test.
    */
   private static List<String> oidsToIgnore = Arrays.asList(
-      "UNSPECIFIED" //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      "UNSPECIFIED", //UNSPECIFIED isn't an Oid, it's a value to specify that Oid value is unspecified
+      // hstore is a contrib extension; its OID is assigned at CREATE EXTENSION time and
+      // varies between installations, so the constants in Oid.java are sample values only.
+      "HSTORE",
+      "HSTORE_ARRAY"
   );
 
   /**

@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.postgresql.core.Oid;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -42,13 +43,15 @@ class JsonbCodecTest {
 
   @Test
   void getDefaultJavaType() {
-    assertEquals(String.class, codec.getDefaultJavaType());
+    assertEquals(PGobject.class, codec.getDefaultJavaType());
   }
 
   @Test
-  void decodeText_returnsString() throws SQLException {
+  void decodeText_returnsPGobject() throws SQLException {
     String json = "{\"key\":\"value\"}";
-    assertEquals(json, codec.decodeText(json, jsonbType, null));
+    PGobject decoded = (PGobject) codec.decodeText(json, jsonbType, null);
+    assertEquals("jsonb", decoded.getType());
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
@@ -66,7 +69,9 @@ class JsonbCodecTest {
     data[0] = 1; // version byte
     System.arraycopy(jsonBytes, 0, data, 1, jsonBytes.length);
 
-    assertEquals(json, codec.decodeBinary(data, jsonbType, null));
+    PGobject decoded = (PGobject) codec.decodeBinary(data, jsonbType, null);
+    assertEquals("jsonb", decoded.getType());
+    assertEquals(json, decoded.getValue());
   }
 
   @Test
@@ -140,6 +145,7 @@ class JsonbCodecTest {
   void binaryRoundtrip() throws SQLException {
     String json = "{\"nested\":{\"array\":[1,2,3]}}";
     byte[] encoded = codec.encodeBinary(json, jsonbType, null);
-    assertEquals(json, codec.decodeBinary(encoded, jsonbType, null));
+    PGobject decoded = (PGobject) codec.decodeBinary(encoded, jsonbType, null);
+    assertEquals(json, decoded.getValue());
   }
 }

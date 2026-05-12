@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.time.LocalTime;
+import java.time.OffsetTime;
 
 /**
  * Codec for PostgreSQL time (without time zone) type.
@@ -77,8 +78,17 @@ public final class TimeCodec implements BinaryCodec, TextCodec {
     if (value instanceof LocalTime) {
       return ts.toString((LocalTime) value);
     }
+    if (value instanceof OffsetTime) {
+      // Caller asked for TIME (no time zone) — strip the offset.
+      return ts.toString(((OffsetTime) value).toLocalTime());
+    }
     if (value instanceof java.util.Date) {
-      return ts.toString(null, new Time(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return ts.toString(null, new Time(time));
+    }
+    if (value instanceof String) {
+      return ts.toString(null, ts.toTime(null, (String) value));
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to time", value.getClass().getName()),
@@ -121,7 +131,7 @@ public final class TimeCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert time to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -147,7 +157,7 @@ public final class TimeCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert time to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -155,6 +165,13 @@ public final class TimeCodec implements BinaryCodec, TextCodec {
     TimestampUtils ts = ctx.getTimestampUtils();
     LocalTime lt = ts.toLocalTimeBin(data);
     return lt == null ? null : ts.toString(lt);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    // Preserve the original text (including microseconds) — java.sql.Time.toString()
+    // would truncate the fractional part.
+    return data;
   }
 
   @Override

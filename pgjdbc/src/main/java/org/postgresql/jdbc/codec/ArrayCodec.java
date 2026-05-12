@@ -168,6 +168,13 @@ public final class ArrayCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    // Preserve the PostgreSQL text representation (e.g. {{1,0},{0,1}});
+    // PgArray.toString() would re-emit elements with quotes.
+    return data;
+  }
+
+  @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw cannotConvert("int");
   }

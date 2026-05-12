@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.api.Experimental;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Encoding;
@@ -202,13 +204,62 @@ public final class CodecContext {
       if (this.typeMap.isEmpty()) {
         return this;
       }
-      return new CodecContext(connection, codecs, javaTypes, Collections.emptyMap(),
-          prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
-          prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
+      typeMap = Collections.emptyMap();
     }
-    return new CodecContext(connection, codecs, javaTypes, typeMap,
+    // withTypeMap is only meaningful on a connection-backed context; the
+    // test-only constructor produces a context with a null connection / null
+    // registries. Reject calls on such a context rather than synthesizing a
+    // partially-constructed copy.
+    BaseConnection conn = connection;
+    CodecRegistry registries = codecs;
+    JavaTypeRegistry javaTypeReg = javaTypes;
+    if (conn == null || registries == null || javaTypeReg == null) {
+      throw new SQLException("withTypeMap is not supported on a connectionless CodecContext");
+    }
+    CodecContext copy = new CodecContext(conn, registries, javaTypeReg, typeMap,
         prefersJavaTimeForDate, prefersJavaTimeForTime, prefersJavaTimeForTimetz,
         prefersJavaTimeForTimestamp, prefersJavaTimeForTimestamptz, convertBooleanToNumeric);
+    if (timestampUtils != null) {
+      copy = copy.withTimestampUtils(timestampUtils);
+    }
+    return copy;
+  }
+
+  /**
+   * Returns a new CodecContext that uses the given TimestampUtils instance
+   * for date/time conversions. This is meant for callers like PgResultSet
+   * that maintain a per-instance TimestampUtils (so timezone caching is
+   * scoped to the result set rather than shared at the connection level).
+   *
+   * @param utils the TimestampUtils to use, or null to fall through to the
+   *     connection-level default
+   * @return a new CodecContext that delegates getTimestampUtils to {@code utils}
+   */
+  public CodecContext withTimestampUtils(@Nullable TimestampUtils utils) {
+    if (utils == this.timestampUtils) {
+      return this;
+    }
+    return new CodecContext(this, utils);
+  }
+
+  /**
+   * Copy constructor with a custom TimestampUtils.
+   */
+  private CodecContext(CodecContext source, @Nullable TimestampUtils utils) {
+    this.connection = source.connection;
+    this.typeInfo = source.typeInfo;
+    this.codecs = source.codecs;
+    this.javaTypes = source.javaTypes;
+    this.typeMap = source.typeMap;
+    this.encoding = source.encoding;
+    this.charset = source.charset;
+    this.timestampUtils = utils;
+    this.prefersJavaTimeForDate = source.prefersJavaTimeForDate;
+    this.prefersJavaTimeForTime = source.prefersJavaTimeForTime;
+    this.prefersJavaTimeForTimetz = source.prefersJavaTimeForTimetz;
+    this.prefersJavaTimeForTimestamp = source.prefersJavaTimeForTimestamp;
+    this.prefersJavaTimeForTimestamptz = source.prefersJavaTimeForTimestamptz;
+    this.convertBooleanToNumeric = source.convertBooleanToNumeric;
   }
 
   /**
@@ -221,7 +272,8 @@ public final class CodecContext {
    * @return the database connection
    */
   public BaseConnection getConnection() {
-    return connection;
+    return castNonNull(connection,
+        "CodecContext has no connection (constructed for unit testing only)");
   }
 
   /**
@@ -230,7 +282,8 @@ public final class CodecContext {
    * @return the type info cache
    */
   public TypeInfo getTypeInfo() {
-    return typeInfo;
+    return castNonNull(typeInfo,
+        "CodecContext has no TypeInfo (constructed for unit testing only)");
   }
 
   /**
@@ -239,7 +292,8 @@ public final class CodecContext {
    * @return the codec registry
    */
   public CodecRegistry getCodecs() {
-    return codecs;
+    return castNonNull(codecs,
+        "CodecContext has no CodecRegistry (constructed for unit testing only)");
   }
 
   /**
@@ -248,7 +302,8 @@ public final class CodecContext {
    * @return the Java type registry
    */
   public JavaTypeRegistry getJavaTypes() {
-    return javaTypes;
+    return castNonNull(javaTypes,
+        "CodecContext has no JavaTypeRegistry (constructed for unit testing only)");
   }
 
   /**
@@ -269,7 +324,8 @@ public final class CodecContext {
    * @return the character encoding
    */
   public Encoding getEncoding() {
-    return encoding;
+    return castNonNull(encoding,
+        "CodecContext has no Encoding (constructed for unit testing only)");
   }
 
   /**
@@ -291,7 +347,7 @@ public final class CodecContext {
     if (timestampUtils != null) {
       return timestampUtils;
     }
-    return connection.getTimestampUtils();
+    return getConnection().getTimestampUtils();
   }
 
   /**
@@ -308,7 +364,8 @@ public final class CodecContext {
     if (clazz != null) {
       return clazz;
     }
-    return javaTypes.getPGobject(typeName);
+    JavaTypeRegistry javaTypeReg = javaTypes;
+    return javaTypeReg == null ? null : javaTypeReg.getPGobject(typeName);
   }
 
   /**

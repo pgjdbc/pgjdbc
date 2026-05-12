@@ -10,8 +10,8 @@ import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
-import org.postgresql.util.PGobject;
 import org.postgresql.util.PGUnknownBinary;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -212,15 +212,4 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  private static final char[] HEX_CHARS = "0123456789abcdef".toCharArray();
-
-  private static String bytesToHex(byte[] bytes) {
-    char[] hexChars = new char[bytes.length * 2];
-    for (int i = 0; i < bytes.length; i++) {
-      int v = bytes[i] & 0xFF;
-      hexChars[i * 2] = HEX_CHARS[v >>> 4];
-      hexChars[i * 2 + 1] = HEX_CHARS[v & 0x0F];
-    }
-    return new String(hexChars);
-  }
 }

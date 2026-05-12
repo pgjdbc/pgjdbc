@@ -38,7 +38,10 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
 
   @Override
   public Class<?> getDefaultJavaType() {
-    return String.class;
+    // SQLXML matches the legacy ResultSetMetaData contract; PgResultSet.getObject
+    // produces the PgSQLXML wrapper via getSQLXML() rather than the codec's
+    // decodeText (which still returns a String for codec-level callers).
+    return java.sql.SQLXML.class;
   }
 
   @Override
@@ -66,7 +69,7 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  public String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+  public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     if (data == null || data.length == 0) {
       return null;
     }

@@ -47,6 +47,8 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   // check the getXXX methods..
   private int @Nullable [] functionReturnType;
   private int @Nullable [] testReturn;
+  // Type names for STRUCT OUT parameters (indexed by parameter index - 1)
+  private @Nullable String @Nullable [] outParameterTypeNames;
   // returnTypeSet is true when a proper call to registerOutParameter has been made
   private boolean returnTypeSet;
   protected @Nullable Object @Nullable [] callResult;
@@ -61,6 +63,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
       int inParamCount = this.preparedParameters.getInParameterCount() + 1;
       this.testReturn = new int[inParamCount];
       this.functionReturnType = new int[inParamCount];
+      this.outParameterTypeNames = new String[inParamCount];
     }
   }
 
@@ -462,7 +465,71 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
-    throw Driver.notImplemented(this.getClass(), "getObjectImpl(int,Map)");
+
+    Object result = getCallResult(i);
+    if (result == null) {
+      return null;
+    }
+
+    // Determine the PostgreSQL type name
+    // First check if type name was registered via registerOutParameter
+    @Nullable String typeName = null;
+    @Nullable String[] typeNames = this.outParameterTypeNames;
+    if (typeNames != null && i <= typeNames.length) {
+      typeName = typeNames[i - 1];
+    }
+
+    // If no registered type name, try to get from result
+    if (typeName == null) {
+      if (result instanceof org.postgresql.util.PGobject) {
+        typeName = ((org.postgresql.util.PGobject) result).getType();
+      } else if (result instanceof java.sql.Struct) {
+        typeName = ((java.sql.Struct) result).getSQLTypeName();
+      }
+    }
+
+    if (typeName == null) {
+      // No type name available, fall back to default
+      return result;
+    }
+
+    // Look up in the map
+    Class<?> targetClass = map.get(typeName);
+    if (targetClass == null) {
+      // Type not in map, return as-is
+      return result;
+    }
+
+    // If the target is an SQLData implementation, decode using CompositeCodec
+    if (java.sql.SQLData.class.isAssignableFrom(targetClass)) {
+      PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
+      CodecContext ctx = connection.getCodecContext().withTypeMap(map);
+      @SuppressWarnings("unchecked")
+      Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) targetClass;
+
+      if (result instanceof org.postgresql.util.PGobject) {
+        String textValue = ((org.postgresql.util.PGobject) result).getValue();
+        if (textValue == null) {
+          return null;
+        }
+        return org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
+            textValue, pgType, sqlDataClass, ctx);
+      } else if (result instanceof java.sql.Struct) {
+        // Encode struct attributes as text via per-field codecs, then decode to SQLData.
+        String textValue = org.postgresql.jdbc.codec.CompositeCodec.encodeAttributesAsText(
+            ((java.sql.Struct) result).getAttributes(), pgType, ctx);
+        return org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
+            textValue, pgType, sqlDataClass, ctx);
+      }
+    }
+
+    // For non-SQLData targets, check if result is already the right type
+    if (targetClass.isInstance(result)) {
+      return result;
+    }
+
+    // Return as-is if we can't convert
+    return result;
   }
 
   @Override
@@ -506,7 +573,16 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public void registerOutParameter(@Positive int parameterIndex, int sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter(int,int,String)");
+    // Register the OUT parameter with the given SQL type
+    registerOutParameter(parameterIndex, sqlType);
+
+    // Store the type name for STRUCT/DISTINCT types
+    if (sqlType == Types.STRUCT || sqlType == Types.DISTINCT) {
+      @Nullable String[] typeNames = this.outParameterTypeNames;
+      if (typeNames != null && parameterIndex <= typeNames.length) {
+        typeNames[parameterIndex - 1] = typeName;
+      }
+    }
   }
 
   @Override
@@ -524,19 +600,19 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType));
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, int scale)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType), scale);
   }
 
   @Override
   public void registerOutParameter(@Positive int parameterIndex, SQLType sqlType, String typeName)
       throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "registerOutParameter");
+    registerOutParameter(parameterIndex, JavaTypeRegistry.getSqlTypeCode(sqlType), typeName);
   }
 
   @Override
@@ -729,6 +805,59 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (type == ResultSet.class) {
       return type.cast(getObject(parameterIndex));
     }
+
+    Object result = getCallResult(parameterIndex);
+    if (result == null) {
+      return null;
+    }
+
+    // If result is already the requested type, return it
+    if (type.isInstance(result)) {
+      return type.cast(result);
+    }
+
+    // Handle SQLData implementations
+    if (java.sql.SQLData.class.isAssignableFrom(type)) {
+      // Get the type name from registerOutParameter if available
+      @Nullable String typeName = null;
+      @Nullable String[] typeNames = this.outParameterTypeNames;
+      if (typeNames != null && parameterIndex <= typeNames.length) {
+        typeName = typeNames[parameterIndex - 1];
+      }
+
+      // If result is a PGobject or String, decode it to SQLData
+      if (result instanceof org.postgresql.util.PGobject) {
+        org.postgresql.util.PGobject pgo = (org.postgresql.util.PGobject) result;
+        String textValue = pgo.getValue();
+        if (textValue == null) {
+          return null;
+        }
+        if (typeName == null) {
+          typeName = pgo.getType();
+        }
+        PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
+        CodecContext ctx = connection.getCodecContext();
+        @SuppressWarnings("unchecked")
+        Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
+        return type.cast(org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
+            textValue, pgType, sqlDataClass, ctx));
+      } else if (result instanceof java.sql.Struct) {
+        java.sql.Struct struct = (java.sql.Struct) result;
+        if (typeName == null) {
+          typeName = struct.getSQLTypeName();
+        }
+        PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
+        CodecContext ctx = connection.getCodecContext();
+        // Encode struct as text via per-field codecs, then decode to SQLData.
+        String textValue = org.postgresql.jdbc.codec.CompositeCodec.encodeAttributesAsText(
+            struct.getAttributes(), pgType, ctx);
+        @SuppressWarnings("unchecked")
+        Class<? extends java.sql.SQLData> sqlDataClass = (Class<? extends java.sql.SQLData>) type;
+        return type.cast(org.postgresql.jdbc.codec.CompositeCodec.INSTANCE.decodeTextAs(
+            textValue, pgType, sqlDataClass, ctx));
+      }
+    }
+
     throw new PSQLException(GT.tr("Unsupported type conversion to {0}.", type),
             PSQLState.INVALID_PARAMETER_VALUE);
   }

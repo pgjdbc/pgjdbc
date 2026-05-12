@@ -66,10 +66,16 @@ public class TypeInfoCache implements TypeInfo {
   private final Map<Integer, PgType> typesByOid = new HashMap<>();
   // Connection-specific name -> PgType cache
   private final Map<String, PgType> typesByPgName = new HashMap<>();
+  // Cache: oid -> visibility-aware display name (e.g. "int4" if on-path or
+  // "\"Schema\".\"Type\"" if off-path). Computed lazily from
+  // pg_type_is_visible. The legacy driver maintained the same map and
+  // several callers (Array.getBaseTypeName, ResultSetMetaData.getColumnTypeName)
+  // rely on its qualified-name semantics.
+  private final Map<Integer, String> displayNameByOid = new HashMap<>();
   // Global oid -> PgType cache which includes only well-known types
-  private final static Map<Integer, PgType> DEFAULT_TYPES_BY_OID;
+  private static final Map<Integer, PgType> DEFAULT_TYPES_BY_OID;
   // Global name -> PgType cache which includes only well-known types
-  private final static Map<String, PgType> DEFAULT_TYPES_BY_PGNAME;
+  private static final Map<String, PgType> DEFAULT_TYPES_BY_PGNAME;
 
   // Java type registry for Java ↔ PostgreSQL type mappings
   private final JavaTypeRegistry javaTypeRegistry = new JavaTypeRegistry();
@@ -80,9 +86,11 @@ public class TypeInfoCache implements TypeInfo {
   private final BaseConnection conn;
   private final int unknownLength;
   private @Nullable PreparedStatement findPgTypeByName;
+  private @Nullable PreparedStatement findPgTypeByTypname;
   private @Nullable PreparedStatement findPgTypeByOid;
   private @Nullable PreparedStatement findAllPgTypes;
   private @Nullable PreparedStatement findCompositeFields;
+  private @Nullable PreparedStatement findTypeVisibility;
   private final ResourceLock lock = new ResourceLock();
 
   // Note: this is generated with org.postgresql.jdbc.TypeInfoCacheTest.generateBaseTypes
@@ -243,6 +251,7 @@ public class TypeInfoCache implements TypeInfo {
    *
    * @return the Java type registry
    */
+  @Override
   public JavaTypeRegistry getJavaTypeRegistry() {
     return javaTypeRegistry;
   }
@@ -252,6 +261,7 @@ public class TypeInfoCache implements TypeInfo {
    *
    * @return the codec registry
    */
+  @Override
   public CodecRegistry getCodecRegistry() {
     return codecRegistry;
   }
@@ -277,7 +287,6 @@ public class TypeInfoCache implements TypeInfo {
   @SuppressWarnings("deprecation")
   public Iterator<Integer> getPGTypeOidsWithSQLTypes() {
     throw new UnsupportedOperationException();
-//     return oidToSQLType.keySet().iterator();
   }
 
   private static String getFindPgTypeQuery(String whereClause) {
@@ -296,9 +305,11 @@ public class TypeInfoCache implements TypeInfo {
     char typdelim = typdelimStr != null && !typdelimStr.isEmpty() ? typdelimStr.charAt(0) : ',';
     int oid = rs.getInt("typoid");
 
+    String typName = castNonNull(rs.getString("typname"));
+    String typFullName = castNonNull(rs.getString("typfullname"));
     return new PgType(
-        new ObjectName(rs.getString("typnspname"), rs.getString("typname")),
-        rs.getString("typfullname"),
+        new ObjectName(rs.getString("typnspname"), typName),
+        typFullName,
         oid,
         typtype,
         typcategory,
@@ -376,6 +387,7 @@ public class TypeInfoCache implements TypeInfo {
     // Epoch mismatch, invalidating the caches
     typesByPgName.clear();
     typesByOid.clear();
+    displayNameByOid.clear();
     codecRegistry.invalidateCache();
     // Update epoch after clearing to prevent repeated invalidations
     this.typeCacheEpoch = connectionTypeCacheEpoch;
@@ -383,7 +395,7 @@ public class TypeInfoCache implements TypeInfo {
 
   @Override
   public PgType getPgTypeByPgName(String pgTypeName) throws SQLException {
-    pgTypeName = getTypeForAlias(pgTypeName);
+    pgTypeName = castNonNull(getTypeForAlias(pgTypeName));
     PgType pgType = DEFAULT_TYPES_BY_PGNAME.get(pgTypeName);
     if (pgType != null) {
       return pgType;
@@ -395,8 +407,35 @@ public class TypeInfoCache implements TypeInfo {
         return pgType;
       }
 
+      LOGGER.log(Level.FINEST, "querying SQL typecode for pg type {0}", pgTypeName);
       PreparedStatement findPgTypeByPgName = prepareFindPgTypeByPgName(pgTypeName);
-      PgType res = loadPgTypes(findPgTypeByPgName);
+      PgType res;
+      try {
+        res = loadPgTypes(findPgTypeByPgName);
+      } catch (PSQLException e) {
+        // regtype cast can fail for names outside the current search_path
+        // (e.g. SearchPathLookupTest exercises the back-compat path that
+        // resolves the most recently created type by typname alone). Fall
+        // back to a plain typname lookup before giving up.
+        res = null;
+      }
+      if (res == null) {
+        // Strip enclosing quotes (and trailing schema-qualifier) so the
+        // typname comparison sees the raw identifier as stored in pg_type.
+        String fallbackName = pgTypeName;
+        int lastDot = fallbackName.lastIndexOf('.');
+        if (lastDot >= 0) {
+          fallbackName = fallbackName.substring(lastDot + 1);
+        }
+        if (fallbackName.length() >= 2
+            && fallbackName.charAt(0) == '"'
+            && fallbackName.charAt(fallbackName.length() - 1) == '"') {
+          fallbackName = fallbackName.substring(1, fallbackName.length() - 1);
+        }
+        PreparedStatement fallback = prepareFindPgTypeByTypname();
+        fallback.setString(1, fallbackName);
+        res = loadPgTypes(fallback);
+      }
       if (res == null) {
         throw new PSQLException(GT.tr("Unknown type {0}.", pgTypeName),
             PSQLState.INVALID_PARAMETER_TYPE);
@@ -404,6 +443,78 @@ public class TypeInfoCache implements TypeInfo {
       typesByPgName.put(pgTypeName, res);
       return castNonNull(res);
     }
+  }
+
+  /**
+   * Resolves the display name for the given type OID using the legacy
+   * driver's "qualified-when-not-visible" rule:
+   *
+   * <ul>
+   *   <li>If the type is reachable via the current search_path with the bare
+   *       {@code typname}, return {@code typname} (e.g. "int4").</li>
+   *   <li>Otherwise return {@code "schema"."typname"} (quoted, qualified)
+   *       so the result is unambiguous (e.g.
+   *       {@code "Composites"."ComplexCompositeTest"}).</li>
+   * </ul>
+   *
+   * <p>The result is cached per-connection and invalidated together with the
+   * rest of the type cache (any CREATE/DROP/ALTER/SET search_path).</p>
+   *
+   * @param oid the type OID
+   * @return the display name, or null if the OID does not refer to a type
+   * @throws SQLException if the visibility lookup fails
+   */
+  public @Nullable String getPGTypeDisplayName(int oid) throws SQLException {
+    if (oid == Oid.UNSPECIFIED) {
+      return null;
+    }
+    try (ResourceLock ignore = lock.obtain()) {
+      invalidateCacheIfNeeded();
+      String cached = displayNameByOid.get(oid);
+      if (cached != null) {
+        return cached;
+      }
+      PreparedStatement ps = prepareFindTypeVisibility();
+      ps.setInt(1, oid);
+      if (!((BaseStatement) ps).executeWithFlags(QueryExecutor.QUERY_SUPPRESS_BEGIN)) {
+        return null;
+      }
+      try (ResultSet rs = castNonNull(ps.getResultSet())) {
+        if (!rs.next()) {
+          return null;
+        }
+        String typname = castNonNull(rs.getString(1));
+        String nspname = castNonNull(rs.getString(2));
+        boolean visible = rs.getBoolean(3);
+        String display = visible ? typname : "\"" + nspname + "\".\"" + typname + "\"";
+        displayNameByOid.put(oid, display);
+        return display;
+      }
+    }
+  }
+
+  private PreparedStatement prepareFindTypeVisibility() throws SQLException {
+    PreparedStatement ps = this.findTypeVisibility;
+    if (ps == null) {
+      ps = conn.prepareStatement(
+          "SELECT t.typname, n.nspname, pg_catalog.pg_type_is_visible(t.oid) "
+              + "FROM pg_catalog.pg_type t "
+              + "JOIN pg_catalog.pg_namespace n ON (t.typnamespace = n.oid) "
+              + "WHERE t.oid = ?");
+      this.findTypeVisibility = ps;
+    }
+    return ps;
+  }
+
+  private PreparedStatement prepareFindPgTypeByTypname() throws SQLException {
+    PreparedStatement findTypeStatement = this.findPgTypeByTypname;
+    if (findTypeStatement == null) {
+      String sql = getFindPgTypeQuery(
+          " WHERE t.typname = ? ORDER BY t.oid DESC LIMIT 1");
+      findTypeStatement = conn.prepareStatement(sql);
+      this.findPgTypeByTypname = findTypeStatement;
+    }
+    return findTypeStatement;
   }
 
   @Override
@@ -421,7 +532,12 @@ public class TypeInfoCache implements TypeInfo {
 
       PreparedStatement findPgTypeByOid = prepareFindPgTypeByOid();
       findPgTypeByOid.setInt(1, oid);
-      return castNonNull(loadPgTypes(findPgTypeByOid));
+      PgType loaded = loadPgTypes(findPgTypeByOid);
+      if (loaded == null) {
+        throw new PSQLException(
+            GT.tr("No results were returned by the query."), PSQLState.NO_DATA);
+      }
+      return loaded;
     }
   }
 
@@ -716,8 +832,11 @@ public class TypeInfoCache implements TypeInfo {
     try (ResourceLock ignore = lock.obtain()) {
       // Double-check after acquiring lock - check connection cache first
       PgType cachedType = typesByOid.get(oid);
-      if (cachedType != null && cachedType.getFields() != null) {
-        return cachedType.getFields();
+      if (cachedType != null) {
+        List<PgField> cachedFields = cachedType.getFields();
+        if (cachedFields != null) {
+          return cachedFields;
+        }
       }
 
       fields = loadCompositeFields(oid);
@@ -762,7 +881,7 @@ public class TypeInfoCache implements TypeInfo {
 
     try (ResultSet rs = castNonNull(stmt.getResultSet())) {
       while (rs.next()) {
-        String name = rs.getString("attname");
+        String name = castNonNull(rs.getString("attname"));
         int fieldTypeOid = rs.getInt("atttypid");
         int position = rs.getInt("attnum");
         int typmod = rs.getInt("atttypmod");

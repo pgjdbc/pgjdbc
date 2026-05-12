@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.BooleanTypeUtil;
@@ -71,7 +73,7 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsInt(s);
   }
 
@@ -82,7 +84,7 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsLong(s);
   }
 
@@ -93,7 +95,7 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsDouble(s);
   }
 
@@ -104,7 +106,7 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
 
   @Override
   public float decodeAsFloat(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return (float) parseAsDouble(s);
   }
 
@@ -115,13 +117,13 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable BigDecimal decodeAsBigDecimal(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsBigDecimal(s);
   }
 
   @Override
   public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    String s = decodeAsString(data, type, ctx);
+    String s = castNonNull(decodeAsString(data, type, ctx));
     return parseAsBoolean(s);
   }
 

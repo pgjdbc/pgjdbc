@@ -9,6 +9,9 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -98,6 +101,72 @@ public class BooleanTypeUtil {
       return false;
     }
     throw cannotCoerceException(numval);
+  }
+
+  /**
+   * Functional adapter the codec layer uses to lazily retrieve the codec's
+   * native string representation when constructing an error message.
+   */
+  @FunctionalInterface
+  public interface StringSupplier {
+    @Nullable String get() throws SQLException;
+  }
+
+  /**
+   * Coerces {@code value} to boolean using the legacy contract (Boolean,
+   * Number with values 0/1, String/Character literals). On failure, formats
+   * the error message using {@code stringSupplier} so callers (codecs) can
+   * provide a richer text representation than {@code value.toString()}.
+   *
+   * @param value decoded codec value
+   * @param stringSupplier supplier for the codec's native string form
+   * @return the boolean value
+   * @throws SQLException if conversion fails
+   */
+  public static boolean castAndCheck(@Nullable Object value, StringSupplier stringSupplier)
+      throws SQLException {
+    if (value instanceof Boolean) {
+      return (Boolean) value;
+    }
+    if (value instanceof Number) {
+      double d = ((Number) value).doubleValue();
+      if (d == 1.0d) {
+        return true;
+      }
+      if (d == 0.0d) {
+        return false;
+      }
+    }
+    if (value instanceof String) {
+      try {
+        return fromString((String) value);
+      } catch (PSQLException ignore) {
+        // fall through to the formatted error below
+      }
+    }
+    if (value instanceof org.postgresql.util.PGobject) {
+      String pgString = ((org.postgresql.util.PGobject) value).getValue();
+      if (pgString != null) {
+        try {
+          return fromString(pgString);
+        } catch (PSQLException ignore) {
+          // fall through to the formatted error below
+        }
+      }
+    }
+    if (value instanceof Character) {
+      try {
+        return fromCharacter((Character) value);
+      } catch (PSQLException ignore) {
+        // fall through to the formatted error below
+      }
+    }
+    String text = stringSupplier.get();
+    if (text == null) {
+      text = value == null ? "null" : value.toString();
+    }
+    throw new PSQLException(
+        GT.tr("Cannot cast to boolean: \"{0}\"", text), PSQLState.CANNOT_COERCE);
   }
 
   private static PSQLException cannotCoerceException(final Object value) {

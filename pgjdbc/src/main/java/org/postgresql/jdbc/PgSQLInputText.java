@@ -5,7 +5,10 @@
 
 package org.postgresql.jdbc;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.jdbc.codec.CompositeCodec;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -14,8 +17,6 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Text format SQLInput implementation.
@@ -46,7 +47,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
    */
   public PgSQLInputText(String compositeData, PgType type, CodecContext ctx)
       throws SQLException {
-    super(parseCompositeString(compositeData), type, ctx);
+    super(CompositeCodec.parseCompositeText(compositeData), type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
     this.cachedTypes = new PgType[fields.size()];
     cacheCodecs();
@@ -59,7 +60,7 @@ public final class PgSQLInputText extends PgSQLInput<String> {
    * @param type the composite type
    * @param ctx the codec context
    */
-  public PgSQLInputText(String @Nullable [] attributeValues, PgType type, CodecContext ctx)
+  public PgSQLInputText(@Nullable String[] attributeValues, PgType type, CodecContext ctx)
       throws SQLException {
     super(attributeValues, type, ctx);
     this.cachedCodecs = new TextCodec[fields.size()];
@@ -74,77 +75,10 @@ public final class PgSQLInputText extends PgSQLInput<String> {
     for (int i = 0; i < fields.size(); i++) {
       PgField field = fields.get(i);
       int oid = field.getTypeOid();
-      cachedTypes[i] = ctx.getTypeInfo().getPgTypeByOid(oid);
-      cachedCodecs[i] = ctx.getCodecs().getTextCodec(oid);
+      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
+      cachedTypes[i] = fieldType;
+      cachedCodecs[i] = castNonNull(ctx.getCodecs().getTextCodec(oid, fieldType));
     }
-  }
-
-  /**
-   * Parses composite text format "(val1,val2,...)" into individual field values.
-   */
-  private static String @Nullable [] parseCompositeString(String text) {
-    List<@Nullable String> values = new ArrayList<>();
-
-    if (text.startsWith("(") && text.endsWith(")")) {
-      text = text.substring(1, text.length() - 1);
-    }
-
-    int i = 0;
-    int len = text.length();
-
-    while (i <= len) {
-      if (i == len) {
-        // Handle trailing empty value
-        if (!values.isEmpty() || len == 0) {
-          values.add(null);
-        }
-        break;
-      }
-
-      char c = text.charAt(i);
-      if (c == '"') {
-        // Quoted value
-        StringBuilder sb = new StringBuilder();
-        i++; // skip opening quote
-        while (i < len) {
-          char ch = text.charAt(i);
-          if (ch == '"') {
-            if (i + 1 < len && text.charAt(i + 1) == '"') {
-              sb.append('"');
-              i += 2;
-            } else {
-              i++; // skip closing quote
-              break;
-            }
-          } else if (ch == '\\' && i + 1 < len) {
-            sb.append(text.charAt(i + 1));
-            i += 2;
-          } else {
-            sb.append(ch);
-            i++;
-          }
-        }
-        values.add(sb.toString());
-        if (i < len && text.charAt(i) == ',') {
-          i++;
-        }
-      } else if (c == ',') {
-        values.add(null);
-        i++;
-      } else {
-        // Unquoted value
-        int start = i;
-        while (i < len && text.charAt(i) != ',') {
-          i++;
-        }
-        values.add(text.substring(start, i));
-        if (i < len && text.charAt(i) == ',') {
-          i++;
-        }
-      }
-    }
-
-    return values.toArray(new String[0]);
   }
 
   /**
@@ -255,7 +189,19 @@ public final class PgSQLInputText extends PgSQLInput<String> {
 
   @Override
   protected @Nullable Object decodeObject(String data, PgType fieldType) throws SQLException {
-    return getCodec().decodeText(data, getCurrentType(), ctx);
+    // Honor only the explicit JDBC typeMap here. If no explicit mapping is
+    // present, return the codec's default Java type so SPI-provided codecs can
+    // surface their own Java objects instead of being forced through the
+    // legacy PGobject registry.
+    PgType currentType = getCurrentType();
+    Class<?> mapped = ctx.getTypeMap().get(currentType.getFullName());
+    if (mapped == null) {
+      mapped = ctx.getTypeMap().get(currentType.getTypeName().getName());
+    }
+    if (mapped != null) {
+      return getCodec().decodeTextAs(data, currentType, mapped, ctx);
+    }
+    return getCodec().decodeText(data, currentType, ctx);
   }
 
   @Override

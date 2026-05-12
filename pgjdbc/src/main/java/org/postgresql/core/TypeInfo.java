@@ -238,6 +238,9 @@ public interface TypeInfo {
    */
   @Deprecated
   default int getPGArrayType(@Nullable String elementTypeName) throws SQLException {
+    if (elementTypeName == null) {
+      return 0;
+    }
     return getPgTypeByPgName(elementTypeName).getArrayOid();
   }
 

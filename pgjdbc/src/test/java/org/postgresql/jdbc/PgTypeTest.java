@@ -39,7 +39,10 @@ public class PgTypeTest {
     assertEquals(Types.DATE, PgType.toJdbcSqlType(Oid.DATE, 'D', 'b'));
     assertEquals(Types.TIME, PgType.toJdbcSqlType(Oid.TIME, 'D', 'b'));
     assertEquals(Types.TIMESTAMP, PgType.toJdbcSqlType(Oid.TIMESTAMP, 'D', 'b'));
-    assertEquals(Types.TIMESTAMP_WITH_TIMEZONE, PgType.toJdbcSqlType(Oid.TIMESTAMPTZ, 'D', 'b'));
+    // Legacy contract: TIMESTAMPTZ maps to Types.TIMESTAMP (93), not
+    // Types.TIMESTAMP_WITH_TIMEZONE (2014). Several JDBC consumers rely on
+    // this.
+    assertEquals(Types.TIMESTAMP, PgType.toJdbcSqlType(Oid.TIMESTAMPTZ, 'D', 'b'));
 
     // Binary
     assertEquals(Types.BINARY, PgType.toJdbcSqlType(Oid.BYTEA, 'U', 'b'));
@@ -66,9 +69,12 @@ public class PgTypeTest {
     // Enum type (typtype='e')
     assertEquals(Types.VARCHAR, PgType.toJdbcSqlType(unknownOid, 'E', 'e'));
 
-    // Domain type (typtype='d') - falls back to category
-    assertEquals(Types.NUMERIC, PgType.toJdbcSqlType(unknownOid, 'N', 'd'));
-    assertEquals(Types.VARCHAR, PgType.toJdbcSqlType(unknownOid, 'S', 'd'));
+    // Domain type (typtype='d') — JDBC spec contract is Types.DISTINCT
+    // regardless of the inherited base typcategory. The COLUMN_SIZE /
+    // DECIMAL_DIGITS branch in PgDatabaseMetaData.getColumns is responsible
+    // for the base type's typmod-derived precision/scale separately.
+    assertEquals(Types.DISTINCT, PgType.toJdbcSqlType(unknownOid, 'N', 'd'));
+    assertEquals(Types.DISTINCT, PgType.toJdbcSqlType(unknownOid, 'S', 'd'));
 
     // Array category
     assertEquals(Types.ARRAY, PgType.toJdbcSqlType(unknownOid, 'A', 'b'));

@@ -83,7 +83,12 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
       return ts.toString((LocalTime) value);
     }
     if (value instanceof java.util.Date) {
-      return ts.toString(null, new Time(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return ts.toString(null, new Time(time));
+    }
+    if (value instanceof String) {
+      return ts.toString(null, ts.toTime(null, (String) value));
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to timetz", value.getClass().getName()),
@@ -113,13 +118,13 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
     if (targetClass == OffsetTime.class) {
       return (T) ts.toOffsetTimeBin(data);
     }
-    if (targetClass == LocalTime.class) {
-      return (T) ts.toOffsetTimeBin(data).toLocalTime();
-    }
     if (targetClass == OffsetDateTime.class) {
       // JDBC spec: timetz can be retrieved as OffsetDateTime with epoch date
       return (T) ts.toOffsetTimeBin(data).atDate(LocalDate.ofEpochDay(0));
     }
+    // LocalTime / LocalDateTime / LocalDate are explicitly rejected per the
+    // JDBC contract — they discard the time zone information that this column
+    // carries. Fall through to the throw below.
     if (targetClass == java.util.Date.class) {
       return (T) ts.toTimeBin(null, data);
     }
@@ -132,7 +137,7 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timetz to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -146,15 +151,13 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
     if (targetClass == OffsetTime.class) {
       return (T) ts.toOffsetTime(data);
     }
-    if (targetClass == LocalTime.class) {
-      OffsetTime ot = ts.toOffsetTime(data);
-      return ot == null ? null : (T) ot.toLocalTime();
-    }
     if (targetClass == OffsetDateTime.class) {
       // JDBC spec: timetz can be retrieved as OffsetDateTime with epoch date
       OffsetTime ot = ts.toOffsetTime(data);
       return ot == null ? null : (T) ot.atDate(LocalDate.ofEpochDay(0));
     }
+    // LocalTime / LocalDateTime / LocalDate are rejected — they drop the
+    // time zone information that this column carries.
     if (targetClass == java.util.Date.class) {
       return (T) ts.toTime(null, data);
     }
@@ -167,13 +170,18 @@ public final class TimetzCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timetz to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     TimestampUtils ts = ctx.getTimestampUtils();
     return ts.toStringOffsetTimeBin(data);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    return data;
   }
 
   @Override

@@ -5,14 +5,14 @@
 
 package org.postgresql.jdbc.codec;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PGSQLType;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PGobject;
@@ -27,8 +27,8 @@ import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.SQLData;
+import java.sql.SQLException;
 import java.sql.SQLInput;
 import java.sql.SQLOutput;
 import java.sql.Statement;
@@ -51,6 +51,10 @@ public class CodecIntegrationTest {
   @BeforeAll
   public static void setUp() throws Exception {
     conn = TestUtil.openDB();
+    // jsonb was introduced in PostgreSQL 9.4; older servers can't run this
+    // test class.
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_4),
+        "jsonb requires PostgreSQL 9.4+");
     cleanup();
     try (Statement stmt = conn.createStatement()) {
       // Create test types

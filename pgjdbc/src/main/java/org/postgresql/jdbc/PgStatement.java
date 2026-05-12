@@ -15,7 +15,6 @@ import org.postgresql.core.Field;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
-import org.postgresql.core.Provider;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultCursor;
@@ -40,7 +39,6 @@ import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimeZone;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
@@ -159,12 +157,13 @@ public class PgStatement implements Statement, BaseStatement {
 
   protected boolean adaptiveFetch;
 
-  private @Nullable TimestampUtils timestampUtils; // our own Object because it's not thread safe
+  private final DateTimeHelper dateTimeHelper;
 
   @SuppressWarnings("method.invocation")
   PgStatement(PgConnection c, int rsType, int rsConcurrency, int rsHoldability)
       throws SQLException {
     this.connection = c;
+    this.dateTimeHelper = new DateTimeHelper(c.getQueryExecutor());
     forceBinaryTransfers |= c.getForceBinary();
     // validation check for allowed values of resultset type
     if (rsType != ResultSet.TYPE_FORWARD_ONLY && rsType != ResultSet.TYPE_SCROLL_INSENSITIVE && rsType != ResultSet.TYPE_SCROLL_SENSITIVE) {
@@ -1398,9 +1397,10 @@ public class PgStatement implements Statement, BaseStatement {
   }
 
   protected TimestampUtils getTimestampUtils() {
-    if (timestampUtils == null) {
-      timestampUtils = new TimestampUtils(!connection.getQueryExecutor().getIntegerDateTimes(), (Provider<TimeZone>) new QueryExecutorTimeZoneProvider(connection.getQueryExecutor()));
-    }
-    return timestampUtils;
+    return dateTimeHelper.getTimestampUtils();
+  }
+
+  protected DateTimeHelper getDateTimeHelper() {
+    return dateTimeHelper;
   }
 }

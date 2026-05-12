@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc.codec;
 
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
@@ -188,13 +190,13 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
       // Write lower bound if not infinite
       if (range.hasLowerBound()) {
-        byte[] lowerData = elementCodec.encodeBinary(range.getLower(), elementType, ctx);
+        byte[] lowerData = elementCodec.encodeBinary(castNonNull(range.getLower()), elementType, ctx);
         writeLengthPrefixed(out, lowerData);
       }
 
       // Write upper bound if not infinite
       if (range.hasUpperBound()) {
-        byte[] upperData = elementCodec.encodeBinary(range.getUpper(), elementType, ctx);
+        byte[] upperData = elementCodec.encodeBinary(castNonNull(range.getUpper()), elementType, ctx);
         writeLengthPrefixed(out, upperData);
       }
 
@@ -270,15 +272,20 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
 
     CodecDepth.enter();
     try {
-      // Get the element type OID for parsing element values
+      // pg_type.typelem is zero for range types — the subtype lives in pg_range.
+      // We don't load pg_range yet, so fall back to leaving the bound text values
+      // unparsed when the subtype OID is unknown. Element typing for ranges is
+      // tracked as a follow-up.
       int elementOid = type.getTypelem();
-      PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-      Codec elementCodec = ctx.getCodecs().getByOid(elementOid, elementType);
+      PgType elementType = elementOid != 0 ? ctx.getTypeInfo().getPgTypeByOid(elementOid) : null;
+      Codec elementCodec = elementOid != 0 ? ctx.getCodecs().getByOid(elementOid, elementType) : null;
 
-      // Parse the range using the element codec for parsing bounds
-      PGRange<Object> range = PGRange.parse(data, value -> {
-        if (elementCodec instanceof TextCodec) {
-          return ((TextCodec) elementCodec).decodeText(value, elementType, ctx);
+      PGRange<Object> range = PGRange.<Object>parse(data, (String value) -> {
+        if (elementCodec instanceof TextCodec && elementType != null) {
+          Object decoded = ((TextCodec) elementCodec).decodeText(value, elementType, ctx);
+          if (decoded != null) {
+            return decoded;
+          }
         }
         return value;
       });

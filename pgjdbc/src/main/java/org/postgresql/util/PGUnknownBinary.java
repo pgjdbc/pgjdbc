@@ -55,12 +55,13 @@ public class PGUnknownBinary implements Serializable, Cloneable {
 
   @Override
   public String toString() {
-    if (bytes == null) {
+    byte[] data = bytes;
+    if (data == null) {
       return "null";
     }
     StringBuilder sb = new StringBuilder();
     sb.append("\\x");
-    for (byte b : bytes) {
+    for (byte b : data) {
       sb.append(String.format("%02x", b & 0xff));
     }
     return sb.toString();

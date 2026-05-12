@@ -176,21 +176,17 @@ class TimestamptzCodecTest {
   }
 
   @Test
-  void decodeTextAs_LocalDateTime() throws SQLException {
-    LocalDateTime result = codec.decodeTextAs("2024-01-15 10:30:00+00", timestamptzType, LocalDateTime.class, ctx);
-
-    assertNotNull(result);
-    assertEquals(2024, result.getYear());
-    assertEquals(1, result.getMonthValue());
-    assertEquals(15, result.getDayOfMonth());
+  void decodeTextAs_LocalDateTime_rejected() {
+    // timestamptz → LocalDateTime would silently drop the timezone, so the
+    // contract is to surface DATA_TYPE_MISMATCH instead.
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextAs("2024-01-15 10:30:00+00", timestamptzType, LocalDateTime.class, ctx));
   }
 
   @Test
-  void decodeTextAs_LocalDate() throws SQLException {
-    LocalDate result = codec.decodeTextAs("2024-01-15 10:30:00+00", timestamptzType, LocalDate.class, ctx);
-
-    assertNotNull(result);
-    assertEquals(LocalDate.of(2024, 1, 15), result);
+  void decodeTextAs_LocalDate_rejected() {
+    assertThrows(PSQLException.class,
+        () -> codec.decodeTextAs("2024-01-15 10:30:00+00", timestamptzType, LocalDate.class, ctx));
   }
 
   @Test

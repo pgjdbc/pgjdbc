@@ -9,7 +9,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import org.postgresql.core.BaseConnection;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 

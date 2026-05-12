@@ -5,6 +5,8 @@
 
 package org.postgresql.jdbc;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -32,17 +34,16 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-
 /**
  * Base class for SQLInput implementations.
  * Uses generic BufferType to avoid code duplication between binary and text formats.
  *
  * @param <BufferType> the type of buffer for attribute values (byte[] for binary, String for text)
  */
+@SuppressWarnings({"override.return", "override.param"})
 public abstract class PgSQLInput<BufferType> implements SQLInput {
 
-  protected final BufferType @Nullable [] attributeValues;
+  protected final @Nullable BufferType[] attributeValues;
   protected final PgType compositeType;
   protected final CodecContext ctx;
   protected final List<PgField> fields;
@@ -56,12 +57,15 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
    * @param type the composite type
    * @param ctx the codec context
    */
-  protected PgSQLInput(BufferType @Nullable [] attributeValues, PgType type, CodecContext ctx)
+  protected PgSQLInput(@Nullable BufferType[] attributeValues, PgType type, CodecContext ctx)
       throws SQLException {
     this.attributeValues = attributeValues;
     this.compositeType = type;
     this.ctx = ctx;
-    this.fields = type.getFields();
+    List<PgField> typeFields = type.getFields();
+    // Fields are loaded lazily for composite types: fall back to the type info
+    // cache when the PgType instance hasn't materialized them yet.
+    this.fields = typeFields != null ? typeFields : ctx.getTypeInfo().getFields(type.getOid());
   }
 
   @Override

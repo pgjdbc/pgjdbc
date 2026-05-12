@@ -41,6 +41,7 @@ public final class CodecDepth {
    */
   public static final int MAX_DEPTH = 64;
 
+  @SuppressWarnings("type.argument")
   private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
   private CodecDepth() {

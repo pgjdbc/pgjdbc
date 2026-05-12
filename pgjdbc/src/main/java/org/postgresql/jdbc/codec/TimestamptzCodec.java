@@ -20,7 +20,6 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -104,7 +103,12 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
       return ts.toString((LocalDateTime) value);
     }
     if (value instanceof java.util.Date) {
-      return ts.toString(null, new Timestamp(((java.util.Date) value).getTime()));
+      @SuppressWarnings("JavaUtilDate")
+      long time = ((java.util.Date) value).getTime();
+      return ts.toString(null, new Timestamp(time));
+    }
+    if (value instanceof String) {
+      return ts.toString(null, ts.toTimestamp(null, (String) value));
     }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to timestamptz", value.getClass().getName()),
@@ -143,14 +147,9 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
       OffsetDateTime odt = ts.toOffsetDateTimeBin(data);
       return (T) odt.toInstant();
     }
-    if (targetClass == LocalDateTime.class) {
-      OffsetDateTime odt = ts.toOffsetDateTimeBin(data);
-      return (T) odt.toLocalDateTime();
-    }
-    if (targetClass == LocalDate.class) {
-      OffsetDateTime odt = ts.toOffsetDateTimeBin(data);
-      return (T) odt.toLocalDate();
-    }
+    // LocalDate / LocalTime / LocalDateTime are intentionally rejected — they
+    // drop the time zone information that this column carries; the JDBC
+    // contract surfaces that as DATA_TYPE_MISMATCH.
     if (targetClass == java.sql.Date.class) {
       return (T) ts.toDateBin(null, data);
     }
@@ -166,7 +165,7 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timestamptz to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -188,14 +187,8 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
       OffsetDateTime odt = ts.toOffsetDateTime(data);
       return odt == null ? null : (T) odt.toInstant();
     }
-    if (targetClass == LocalDateTime.class) {
-      OffsetDateTime odt = ts.toOffsetDateTime(data);
-      return odt == null ? null : (T) odt.toLocalDateTime();
-    }
-    if (targetClass == LocalDate.class) {
-      OffsetDateTime odt = ts.toOffsetDateTime(data);
-      return odt == null ? null : (T) odt.toLocalDate();
-    }
+    // LocalDate / LocalTime / LocalDateTime are intentionally rejected — they
+    // drop the time zone information that this column carries.
     if (targetClass == java.sql.Date.class) {
       return (T) ts.toDate(null, data);
     }
@@ -211,13 +204,18 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
     }
     throw new PSQLException(
         GT.tr("Cannot convert timestamptz to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     TimestampUtils ts = ctx.getTimestampUtils();
     return ts.toStringOffsetDateTime(data);
+  }
+
+  @Override
+  public @Nullable String decodeAsString(String data, PgType type, CodecContext ctx) throws SQLException {
+    return data;
   }
 
   @Override

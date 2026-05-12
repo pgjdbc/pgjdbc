@@ -52,6 +52,7 @@ public class PGRange<T> extends PGobject implements Serializable, Cloneable {
   /**
    * Creates an empty range.
    */
+  @SuppressWarnings({"this-escape", "method.invocation"})
   public PGRange() {
     this.isEmpty = true;
     setType("range");
@@ -65,6 +66,7 @@ public class PGRange<T> extends PGobject implements Serializable, Cloneable {
    * @param lowerInclusive true if lower bound is inclusive
    * @param upperInclusive true if upper bound is inclusive
    */
+  @SuppressWarnings({"this-escape", "method.invocation"})
   public PGRange(@Nullable T lower, @Nullable T upper, boolean lowerInclusive, boolean upperInclusive) {
     this.lower = lower;
     this.upper = upper;
