@@ -1,0 +1,231 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.jdbc.codec;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.postgresql.core.Oid;
+import org.postgresql.jdbc.ObjectName;
+import org.postgresql.jdbc.PgType;
+import org.postgresql.util.ByteConverter;
+import org.postgresql.util.PGInterval;
+import org.postgresql.util.PSQLException;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.sql.SQLException;
+
+class IntervalCodecTest {
+
+  private IntervalCodec codec;
+  private PgType intervalType;
+
+  @BeforeEach
+  void setUp() {
+    codec = IntervalCodec.INSTANCE;
+    intervalType = new PgType(
+        new ObjectName("pg_catalog", "interval"),
+        "interval",
+        Oid.INTERVAL,
+        'b', 'T', -1, 0, 0, 0
+    );
+  }
+
+  @Test
+  void getTypeName() {
+    assertEquals("interval", codec.getTypeName());
+  }
+
+  @Test
+  void getDefaultJavaType() {
+    assertEquals(PGInterval.class, codec.getDefaultJavaType());
+  }
+
+  // ==================== Text Decoding ====================
+
+  @Test
+  void decodeText_simpleInterval() throws SQLException {
+    PGInterval result = (PGInterval) codec.decodeText("1 year 2 mons 3 days 04:05:06", intervalType, null);
+    assertEquals(1, result.getYears());
+    assertEquals(2, result.getMonths());
+    assertEquals(3, result.getDays());
+    assertEquals(4, result.getHours());
+    assertEquals(5, result.getMinutes());
+    assertEquals(6.0, result.getSeconds(), 0.001);
+  }
+
+  @Test
+  void decodeText_hoursOnly() throws SQLException {
+    PGInterval result = (PGInterval) codec.decodeText("04:05:06", intervalType, null);
+    assertEquals(0, result.getYears());
+    assertEquals(0, result.getMonths());
+    assertEquals(0, result.getDays());
+    assertEquals(4, result.getHours());
+    assertEquals(5, result.getMinutes());
+    assertEquals(6.0, result.getSeconds(), 0.001);
+  }
+
+  // ==================== Binary Decoding ====================
+
+  @Test
+  void decodeBinary_simpleInterval() throws SQLException {
+    // 1 hour, 2 days, 3 months
+    byte[] data = new byte[16];
+    long microseconds = 3600_000_000L; // 1 hour
+    ByteConverter.int8(data, 0, microseconds);
+    ByteConverter.int4(data, 8, 2); // days
+    ByteConverter.int4(data, 12, 3); // months
+
+    PGInterval result = (PGInterval) codec.decodeBinary(data, intervalType, null);
+    assertEquals(0, result.getYears());
+    assertEquals(3, result.getMonths());
+    assertEquals(2, result.getDays());
+    assertEquals(1, result.getHours());
+    assertEquals(0, result.getMinutes());
+    assertEquals(0.0, result.getSeconds(), 0.001);
+  }
+
+  @Test
+  void decodeBinary_withYears() throws SQLException {
+    // 14 months = 1 year 2 months
+    byte[] data = new byte[16];
+    ByteConverter.int8(data, 0, 0);
+    ByteConverter.int4(data, 8, 0);
+    ByteConverter.int4(data, 12, 14);
+
+    PGInterval result = (PGInterval) codec.decodeBinary(data, intervalType, null);
+    assertEquals(1, result.getYears());
+    assertEquals(2, result.getMonths());
+  }
+
+  @Test
+  void decodeBinary_invalidLength() {
+    byte[] data = new byte[8]; // wrong length
+    assertThrows(PSQLException.class, () -> codec.decodeBinary(data, intervalType, null));
+  }
+
+  // ==================== Encoding ====================
+
+  @Test
+  void encodeText_pgInterval() throws SQLException {
+    PGInterval interval = new PGInterval(1, 2, 3, 4, 5, 6.0);
+    String result = codec.encodeText(interval, intervalType, null);
+    // PGInterval.getValue() returns the PostgreSQL text representation
+    assertEquals(interval.getValue(), result);
+  }
+
+  @Test
+  void encodeBinary_pgInterval() throws SQLException {
+    PGInterval interval = new PGInterval(0, 3, 2, 1, 0, 0);
+    byte[] result = codec.encodeBinary(interval, intervalType, null);
+
+    assertEquals(16, result.length);
+    long microseconds = ByteConverter.int8(result, 0);
+    int days = ByteConverter.int4(result, 8);
+    int months = ByteConverter.int4(result, 12);
+
+    assertEquals(3600_000_000L, microseconds); // 1 hour
+    assertEquals(2, days);
+    assertEquals(3, months);
+  }
+
+  @Test
+  void encodeBinary_fromString() throws SQLException {
+    byte[] result = codec.encodeBinary("1 year 2 mons", intervalType, null);
+    assertEquals(16, result.length);
+    int months = ByteConverter.int4(result, 12);
+    assertEquals(14, months); // 1 year + 2 months
+  }
+
+  @Test
+  void encodeBinary_unsupportedType() {
+    assertThrows(PSQLException.class,
+        () -> codec.encodeBinary(42, intervalType, null));
+  }
+
+  // ==================== Type Conversions ====================
+
+  @Test
+  void decodeAsInt_throws() {
+    assertThrows(PSQLException.class, () -> codec.decodeAsInt("1 hour", intervalType, null));
+  }
+
+  @Test
+  void decodeAsLong_throws() {
+    assertThrows(PSQLException.class, () -> codec.decodeAsLong("1 hour", intervalType, null));
+  }
+
+  @Test
+  void decodeAsDouble_throws() {
+    assertThrows(PSQLException.class, () -> codec.decodeAsDouble("1 hour", intervalType, null));
+  }
+
+  @Test
+  void decodeAsString_text() throws SQLException {
+    assertEquals("1 year", codec.decodeAsString("1 year", intervalType, null));
+  }
+
+  // ==================== decodeBinaryAs/decodeTextAs ====================
+
+  @Test
+  void decodeBinaryAs_PGInterval() throws SQLException {
+    byte[] data = new byte[16];
+    ByteConverter.int8(data, 0, 0);
+    ByteConverter.int4(data, 8, 5);
+    ByteConverter.int4(data, 12, 0);
+
+    PGInterval result = codec.decodeBinaryAs(data, intervalType, PGInterval.class, null);
+    assertEquals(5, result.getDays());
+  }
+
+  @Test
+  void decodeBinaryAs_String() throws SQLException {
+    byte[] data = new byte[16];
+    ByteConverter.int8(data, 0, 0);
+    ByteConverter.int4(data, 8, 5);
+    ByteConverter.int4(data, 12, 0);
+
+    String result = codec.decodeBinaryAs(data, intervalType, String.class, null);
+    // Should contain the interval string representation
+    assertEquals(new PGInterval(0, 0, 5, 0, 0, 0).getValue(), result);
+  }
+
+  @Test
+  void decodeBinaryAs_unsupported() {
+    byte[] data = new byte[16];
+    assertThrows(PSQLException.class,
+        () -> codec.decodeBinaryAs(data, intervalType, Integer.class, null));
+  }
+
+  @Test
+  void decodeTextAs_PGInterval() throws SQLException {
+    PGInterval result = codec.decodeTextAs("5 days", intervalType, PGInterval.class, null);
+    assertEquals(5, result.getDays());
+  }
+
+  @Test
+  void decodeTextAs_String() throws SQLException {
+    assertEquals("5 days", codec.decodeTextAs("5 days", intervalType, String.class, null));
+  }
+
+  // ==================== Roundtrip ====================
+
+  @Test
+  void binaryRoundtrip() throws SQLException {
+    PGInterval original = new PGInterval(1, 2, 3, 4, 5, 6.0);
+    byte[] encoded = codec.encodeBinary(original, intervalType, null);
+    PGInterval decoded = (PGInterval) codec.decodeBinary(encoded, intervalType, null);
+
+    assertEquals(original.getYears(), decoded.getYears());
+    assertEquals(original.getMonths(), decoded.getMonths());
+    assertEquals(original.getDays(), decoded.getDays());
+    assertEquals(original.getHours(), decoded.getHours());
+    assertEquals(original.getMinutes(), decoded.getMinutes());
+    assertEquals(original.getSeconds(), decoded.getSeconds(), 0.001);
+  }
+}
