@@ -446,6 +446,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void abort();
 
   /**
+   * Enable NIO mode after connection setup is complete. No-op if not supported.
+   */
+  default void enableNIO() {
+  }
+
+  /**
    * Close this connection cleanly.
    */
   void close();

@@ -65,6 +65,7 @@ package org.postgresql.core.v3;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.PGNotification;
 import org.postgresql.PGProperty;
 import org.postgresql.copy.CopyIn;
 import org.postgresql.copy.CopyOperation;
@@ -73,6 +74,7 @@ import org.postgresql.core.CommandCompleteParser;
 import org.postgresql.core.Encoding;
 import org.postgresql.core.EncodingPredictor;
 import org.postgresql.core.Field;
+import org.postgresql.core.NIOInputStream;
 import org.postgresql.core.NativeQuery;
 import org.postgresql.core.Notification;
 import org.postgresql.core.Oid;
@@ -239,9 +241,68 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.pipelineMode = PGProperty.PIPELINE_MODE.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
+
+    if (pipelineMode) {
+      this.pipelineResponseReader = new PipelineResponseReader(pgStream, this);
+    } else {
+      this.pipelineResponseReader = null;
+    }
+  }
+
+  @Override
+  public void enableNIO() {
+    try {
+      pgStream.enableNIO();
+    } catch (IOException e) {
+      // Non-fatal — fall back to traditional I/O
+    }
+    // Start notification poller if NIO is available
+    NIOInputStream nioInput = pgStream.getNIOInput();
+    if (nioInput != null) {
+      this.notificationPoller = new NotificationPoller(nioInput, pgStream);
+      this.notificationPoller.start();
+    }
+  }
+
+  @Override
+  public PGNotification[] getNotifications() throws SQLException {
+    NotificationPoller poller = this.notificationPoller;
+    if (poller != null && poller.hasDataAvailable()) {
+      // Acquire lock to prevent concurrent socket access with query execution
+      try (ResourceLock ignore = lock.obtain()) {
+        processPolledNotifications();
+      }
+      poller.clearDataAvailable();
+    }
+    return super.getNotifications();
+  }
+
+  /**
+   * Process async messages that the poller detected. Reads and handles
+   * NotificationResponse, ParameterStatus, and NoticeResponse messages.
+   */
+  private void processPolledNotifications() {
+    try {
+      while (pgStream.hasMessagePending()) {
+        int c = pgStream.peekChar();
+        if (c == 'A') { // NotificationResponse
+          pgStream.receiveChar();
+          receiveAsyncNotify();
+        } else if (c == 'S') { // ParameterStatus
+          pgStream.receiveChar();
+          receiveParameterStatus();
+        } else {
+          // Not an async message — stop processing
+          break;
+        }
+      }
+    } catch (Exception e) {
+      // Best effort — don't fail for async processing errors
+    }
   }
 
   @Override
@@ -398,6 +459,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void execute(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler,
+      int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
+        return;
+      }
+      // Simple queries can't use pipeline protocol — execute synchronously
+      executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+      return;
+    }
+    executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeSynchronous(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -629,6 +705,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+        executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+        return;
+      }
+      executeBatchPipeline(queries, parameterLists, batchHandler, maxRows, flags);
+      return;
+    }
+    executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeBatchSynchronous(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -2792,6 +2882,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize,
       boolean adaptiveFetch) throws SQLException {
+    if (pipelineMode) {
+      fetchPipeline(cursor, handler, fetchSize);
+      return;
+    }
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       final Portal portal = (Portal) cursor;
@@ -2890,7 +2984,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int typeOid = pgStream.receiveInteger4();
       short typeLength = (short) pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
-      int formatType = pgStream.receiveInteger2();
+      short formatType = (short)pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
@@ -3277,6 +3371,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       new ArrayDeque<>();
   private final Deque<SimpleQuery> pendingDescribePortalQueue = new ArrayDeque<>();
 
+  /**
+   * Clear pending queues after pipeline execution. The pipeline path uses
+   * {@link PipelineResponseReader} to process responses independently, but the send methods
+   * (sendParse, sendBind, sendDescribePortal, sendExecute, sendSync) still add entries to these
+   * queues. If not cleared, subsequent {@link #executeSynchronous} calls will find stale entries
+   * and {@code processResults} will misinterpret responses.
+   */
+  private void clearPipelinePendingQueues() {
+    pendingParseQueue.clear();
+    pendingBindQueue.clear();
+    pendingExecuteQueue.clear();
+    pendingDescribeStatementQueue.clear();
+    pendingDescribePortalQueue.clear();
+  }
+
   private long nextUniqueID = 1;
   private final boolean allowEncodingChanges;
   private final boolean cleanupSavePoints;
@@ -3324,4 +3433,373 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
           null, false);
+
+  @Override
+  public void close() {
+    shutdownPipelineReader();
+    super.close();
+  }
+
+  @Override
+  public void abort() {
+    shutdownPipelineReader();
+    super.abort();
+  }
+
+  private void shutdownPipelineReader() {
+    NotificationPoller poller = notificationPoller;
+    if (poller != null) {
+      poller.shutdown();
+      try {
+        poller.join(2000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+      notificationPoller = null;
+    }
+  }
+
+  // --- Pipeline mode fields ---
+  private final boolean pipelineMode;
+  private final @Nullable PipelineResponseReader pipelineResponseReader;
+  private @Nullable NotificationPoller notificationPoller;
+
+  /**
+   * Execute a single query in pipeline mode. Sends messages, flushes,
+   * then reads all responses synchronously on the calling thread.
+   */
+  private void executePipeline(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler, int maxRows, int fetchSize, int flags) throws SQLException {
+
+    // Handle CompositeQuery (multi-statement SQL) by executing each subquery
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries != null) {
+      SimpleParameterList[] subparams = parameters != null
+          ? ((SimpleParameterList) parameters).getSubparams() : null;
+      for (int i = 0; i < subqueries.length; i++) {
+        ParameterList subparam = subparams != null ? subparams[i] : null;
+        executePipeline(subqueries[i], subparam, handler, maxRows, fetchSize, flags);
+        if (handler.getException() != null) {
+          break;
+        }
+      }
+      return;
+    }
+
+    if (parameters == null) {
+      parameters = SimpleQuery.NO_PARAMETERS;
+    }
+
+    flags = updateQueryMode(flags);
+    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
+    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
+    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+    boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
+        && fetchSize > 0;
+
+    SimpleQuery sq = (SimpleQuery) query;
+    SimpleParameterList params = (SimpleParameterList) parameters;
+    params.checkAllParametersSet();
+
+    int rows;
+    if (noResults) {
+      rows = 1;
+    } else if (usePortal) {
+      rows = fetchSize;
+    } else if (maxRows != 0) {
+      rows = maxRows;
+    } else {
+      rows = 0;
+    }
+
+    Portal portal = null;
+    if (usePortal) {
+      portal = new Portal(sq, "C_" + (nextUniqueID++));
+    }
+
+    List<ResponseSlot> slots = new ArrayList<>();
+    ResponseSlot beginSlot = null;
+
+    try (ResourceLock ignore = sendLock.obtain()) {
+      processDeadParsedQueries();
+      processDeadPortals();
+
+      // Send BEGIN if needed — as extended protocol so it shares our Sync
+      boolean needsBegin = (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+          && getTransactionState() == TransactionState.IDLE;
+      if (needsBegin) {
+        SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0
+            ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+        sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
+            QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_ONESHOT);
+        beginSlot = new ResponseSlot(beginQuery, null, false, 0);
+        slots.add(beginSlot);
+      }
+
+      sendParse(sq, params, oneShot);
+      sendBind(sq, params, portal, noBinaryTransfer);
+      if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline sendDescribePortal, portalDescribed={0}, fields={1}, query={2}",
+              new Object[]{sq.isPortalDescribed(), sq.getFields() != null, sq});
+        }
+        sendDescribePortal(sq, portal);
+      }
+      sendExecute(sq, portal, rows);
+      sendSync();
+
+      ResponseSlot slot = new ResponseSlot(sq, portal, false, flags);
+      if ((noMeta || sq.isPortalDescribed()) && sq.getFields() != null) {
+        slot.fields = castNonNull(sq.getFields());
+      }
+      slots.add(slot);
+
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Read all responses synchronously on this thread
+    try {
+      castNonNull(pipelineResponseReader).readResponses(slots);
+    } catch (SQLException e) {
+      clearPipelinePendingQueues();
+      handler.handleError(e);
+      handler.handleCompletion();
+      return;
+    }
+    clearPipelinePendingQueues();
+
+    // Check BEGIN result
+    if (beginSlot != null && beginSlot.error != null) {
+      handler.handleError(beginSlot.error);
+      handler.handleCompletion();
+      return;
+    }
+
+    // Deliver results to handler
+    ResponseSlot slot = slots.get(slots.size() - 1);
+    deliverSlotResults(slot, handler, sq);
+    handler.handleCompletion();
+  }
+
+  /**
+   * Execute a batch of queries in pipeline mode. Sends all queries under a single
+   * sendLock acquisition with one Sync at the end, then reads all responses.
+   */
+  private void executeBatchPipeline(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int flags) throws SQLException {
+
+    flags = updateQueryMode(flags);
+    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
+    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
+
+    int rows;
+    if (noResults) {
+      rows = 1;
+    } else if (maxRows != 0) {
+      rows = maxRows;
+    } else {
+      rows = 0;
+    }
+
+    List<ResponseSlot> slots = new ArrayList<>();
+    int firstQuerySlotIndex = 0;
+
+    // NIO-style interleaved send/receive: send queries in chunks, reading
+    // available responses between chunks to keep the TCP window open and
+    // overlap server processing with client sending.
+    final int sendChunkSize = 128;
+
+    ResultHandler handler = batchHandler;
+    PipelineResponseReader reader = castNonNull(pipelineResponseReader);
+    try (ResourceLock ignore = sendLock.obtain()) {
+      processDeadParsedQueries();
+      processDeadPortals();
+
+      // Send BEGIN if needed — as extended protocol
+      boolean needsBegin = (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+          && getTransactionState() == TransactionState.IDLE;
+      if (needsBegin) {
+        SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0
+            ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+        sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
+            QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_ONESHOT);
+        ResponseSlot beginSlot = new ResponseSlot(beginQuery, null, false, 0);
+        slots.add(beginSlot);
+        firstQuerySlotIndex = 1;
+      }
+
+      for (int i = 0; i < queries.length; i++) {
+        SimpleQuery sq = (SimpleQuery) queries[i];
+        SimpleParameterList params = (SimpleParameterList) parameterLists[i];
+        if (params == null) {
+          params = SimpleQuery.NO_PARAMETERS;
+        }
+        params.checkAllParametersSet();
+
+        sendParse(sq, params, oneShot);
+        sendBind(sq, params, null, noBinaryTransfer);
+        if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+          sendDescribePortal(sq, null);
+        }
+        sendExecute(sq, null, rows);
+
+        ResponseSlot slot = new ResponseSlot(sq, null, false, flags);
+        if ((noMeta || sq.isPortalDescribed()) && sq.getFields() != null) {
+          slot.fields = castNonNull(sq.getFields());
+        }
+        slots.add(slot);
+
+        // NIO interleave: after each chunk, flush and read any available responses
+        if ((i + 1) % sendChunkSize == 0 && i < queries.length - 1) {
+          pgStream.flush();
+          reader.readAvailableResponses(slots);
+        }
+      }
+
+      sendSync();
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      batchHandler.handleCompletion();
+      return;
+    }
+
+    // Read all responses (blocks until ReadyForQuery)
+    try {
+      reader.readResponses(slots);
+    } catch (SQLException e) {
+      clearPipelinePendingQueues();
+      handler.handleError(e);
+      batchHandler.handleCompletion();
+      return;
+    }
+    clearPipelinePendingQueues();
+
+    // Check BEGIN result
+    if (firstQuerySlotIndex > 0 && slots.get(0).error != null) {
+      handler.handleError(slots.get(0).error);
+      batchHandler.handleCompletion();
+      return;
+    }
+
+    // Deliver results for each query
+    for (int i = firstQuerySlotIndex; i < slots.size(); i++) {
+      ResponseSlot slot = slots.get(i);
+      deliverSlotResults(slot, handler, (SimpleQuery) queries[i - firstQuerySlotIndex]);
+      if (slot.error != null) {
+        break;
+      }
+      batchHandler.secureProgress();
+    }
+
+    batchHandler.handleCompletion();
+  }
+
+  /**
+   * Execute a cursor fetch in pipeline mode.
+   */
+  private void fetchPipeline(ResultCursor cursor, ResultHandler handler, int fetchSize) throws SQLException {
+    Portal portal = (Portal) cursor;
+    SimpleQuery query = castNonNull(portal.getQuery());
+
+    ResponseSlot slot = new ResponseSlot(query, portal, false, 0);
+    if (query.getFields() != null) {
+      slot.fields = castNonNull(query.getFields());
+    }
+    List<ResponseSlot> slots = new ArrayList<>();
+    slots.add(slot);
+
+    try (ResourceLock ignore = sendLock.obtain()) {
+      sendExecute(query, portal, fetchSize);
+      sendSync();
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Read responses synchronously
+    try {
+      castNonNull(pipelineResponseReader).readResponses(slots);
+    } catch (SQLException e) {
+      clearPipelinePendingQueues();
+      handler.handleError(e);
+      handler.handleCompletion();
+      return;
+    }
+    clearPipelinePendingQueues();
+
+    // Deliver fetch results
+    if (slot.error != null) {
+      handler.handleError(slot.error);
+    } else if (slot.warnings != null) {
+      handler.handleWarning(slot.warnings);
+    }
+
+    Field[] fields = query.getFields();
+    if (fields != null) {
+      List<Tuple> tuples = slot.tuples != null ? slot.tuples : new ArrayList<>();
+      ResultCursor resultCursor = slot.portalSuspended ? portal : null;
+      handler.handleResultRows(query, fields, tuples, resultCursor);
+    } else {
+      handler.handleCommandStatus("EMPTY", 0, 0);
+    }
+
+    handler.handleCompletion();
+  }
+
+  /**
+   * Deliver results from a completed ResponseSlot to a ResultHandler.
+   */
+  private static void deliverSlotResults(ResponseSlot slot, ResultHandler handler, SimpleQuery query) {
+    if (slot.error != null) {
+      handler.handleError(slot.error);
+      return;
+    }
+    if (slot.warnings != null) {
+      handler.handleWarning(slot.warnings);
+    }
+    @SuppressWarnings("nullness")
+    Field @Nullable [] fields = slot.fields != null ? slot.fields : query.getFields();
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      Field @Nullable [] qf = query.getFields();
+      LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: slot.fields={0}, query.getFields()={1}, tuples={2}, commandStatus={3}, query={4}",
+          new Object[]{
+              slot.fields != null ? slot.fields.length : null,
+              qf != null ? qf.length : null,
+              slot.tuples != null ? slot.tuples.size() : null,
+              slot.commandStatus,
+              query});
+    }
+    if (fields != null && slot.tuples != null) {
+      // SELECT-like query that returned rows
+      ResultCursor cursor = slot.portalSuspended ? slot.portal : null;
+      handler.handleResultRows(query, fields, slot.tuples, cursor);
+    } else if (slot.commandStatus != null) {
+      // DML or DDL — no result rows
+      handler.handleCommandStatus(slot.commandStatus, slot.updateCount, slot.insertOID);
+    } else {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: NO RESULT DELIVERED, fields={0}, tuples={1}, commandStatus={2}",
+            new Object[]{fields != null, slot.tuples != null, slot.commandStatus});
+      }
+    }
+  }
 }

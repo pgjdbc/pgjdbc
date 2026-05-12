@@ -34,6 +34,7 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.SocketChannel;
 import java.sql.SQLException;
 
 import javax.net.SocketFactory;
@@ -50,6 +51,8 @@ public class PGStream implements Closeable, Flushable {
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
   private Socket connection;
+  private @Nullable SocketChannel nioChannel;
+  private @Nullable NIOInputStream nioInput;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
   private @Nullable ProtocolVersion protocolVersion;
@@ -198,6 +201,40 @@ public class PGStream implements Closeable, Flushable {
     return connection;
   }
 
+  /**
+   * Returns the NIO input stream if available (non-SSL connections).
+   * Use {@link NIOInputStream#isReadable()} for thread-safe async readability checks.
+   */
+  public @Nullable NIOInputStream getNIOInput() {
+    return nioInput;
+  }
+
+  /**
+   * Returns true if this stream uses NIO (SocketChannel + Selector).
+   */
+  public boolean isNIO() {
+    return nioChannel != null && nioInput != null;
+  }
+
+  /**
+   * Switch to NIO mode. Call after connection setup (including SSL negotiation) is complete.
+   * If the connection uses SSL or a custom socket factory, this is a no-op.
+   *
+   * <p>After this call, reads go through NIOInputStream (Selector-based) and
+   * {@link #getNIOInput()}.isReadable() can be used for async notification detection.
+   */
+  public void enableNIO() throws IOException {
+    SocketChannel ch = nioChannel;
+    if (ch == null || connection instanceof javax.net.ssl.SSLSocket) {
+      return; // SSL or no channel — can't use NIO
+    }
+    ch.configureBlocking(false);
+    nioInput = new NIOInputStream(ch, 8192);
+    pgInput = new VisibleBufferedInputStream(nioInput, 8192);
+    int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, connection.getSendBufferSize()));
+    pgOutput = new PgBufferedOutputStream(new NIOOutputStream(ch, sendBufferSize), sendBufferSize);
+  }
+
   public SocketFactory getSocketFactory() {
     return socketFactory;
   }
@@ -256,26 +293,39 @@ public class PGStream implements Closeable, Flushable {
   private Socket createSocket(int timeout) throws IOException {
     Socket socket = null;
     try {
-      socket = socketFactory.createSocket();
+      Socket factorySocket = socketFactory.createSocket();
+
+      // If the factory produced an unconnected plain socket, replace with a
+      // SocketChannel-backed socket for NIO support
+      if (factorySocket.getClass() == Socket.class && !factorySocket.isConnected()
+          && factorySocket.getChannel() == null) {
+        factorySocket.close();
+        SocketChannel ch = SocketChannel.open();
+        // Keep blocking for now — SSL negotiation needs blocking mode.
+        // Switch to non-blocking in changeSocket after connection setup.
+        this.nioChannel = ch;
+        factorySocket = ch.socket();
+      } else if (factorySocket.getChannel() != null) {
+        this.nioChannel = factorySocket.getChannel();
+      }
+
+      socket = factorySocket;
       String localSocketAddress = hostSpec.getLocalSocketAddress();
       if (localSocketAddress != null) {
         socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
       }
       if (!socket.isConnected()) {
-        // When using a SOCKS proxy, the host might not be resolvable locally,
-        // thus we defer resolution until the traffic reaches the proxy. If there
-        // is no proxy, we must resolve the host to an IP to connect the socket.
         InetSocketAddress address = hostSpec.shouldResolve()
             ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
             : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
         socket.connect(address, timeout);
       }
       return socket;
-    } catch ( Exception ex ) {
+    } catch (Exception ex) {
       if (socket != null) {
         try {
           socket.close();
-        } catch ( Exception ex1 ) {
+        } catch (Exception ex1) {
           ex.addSuppressed(ex1);
         }
       }
@@ -302,9 +352,22 @@ public class PGStream implements Closeable, Flushable {
     // really need to.
     connection.setTcpNoDelay(true);
 
-    pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
-    int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
-    pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
+    if (nioChannel != null && socket.getChannel() == nioChannel
+        && !(socket instanceof javax.net.ssl.SSLSocket)) {
+      // Channel available but keep blocking for now — NIO is enabled later
+      // via enableNIO() after connection setup (including SSL) is complete.
+      pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
+      int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
+      pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
+    } else {
+      // Traditional path (SSL upgrade or custom socket factory)
+      // Channel is no longer usable — fall back to blocking InputStream
+      nioChannel = null;
+      nioInput = null;
+      pgInput = new VisibleBufferedInputStream(connection.getInputStream(), 8192);
+      int sendBufferSize = Math.min(maxSendBufferSize, Math.max(8192, socket.getSendBufferSize()));
+      pgOutput = new PgBufferedOutputStream(connection.getOutputStream(), sendBufferSize);
+    }
 
     if (encoding != null) {
       setEncoding(encoding);
@@ -746,6 +809,11 @@ public class PGStream implements Closeable, Flushable {
 
     pgOutput.close();
     pgInput.close();
+    // Explicitly close NIOInputStream (and its Selector) if active
+    NIOInputStream nio = this.nioInput;
+    if (nio != null) {
+      nio.close();
+    }
     connection.close();
   }
 

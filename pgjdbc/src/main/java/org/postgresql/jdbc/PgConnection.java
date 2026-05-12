@@ -401,6 +401,9 @@ public class PgConnection implements BaseConnection {
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
     cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
+
+    // Enable NIO after all connection setup (including SSL) is complete
+    queryExecutor.enableNIO();
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
