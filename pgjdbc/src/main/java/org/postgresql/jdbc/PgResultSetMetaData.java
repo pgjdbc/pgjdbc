@@ -18,6 +18,7 @@ import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
@@ -81,7 +82,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
     Field field = getField(column);
-    return connection.getTypeInfo().isCaseSensitive(field.getOID());
+    return PgType.isCaseSensitive(field.getOID());
   }
 
   /**
@@ -139,7 +140,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   @Override
   public boolean isSigned(int column) throws SQLException {
     Field field = getField(column);
-    return connection.getTypeInfo().isSigned(field.getOID());
+    return PgType.isSigned(field.getOID());
   }
 
   @Override
@@ -432,12 +433,23 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return fields[columnIndex - 1];
   }
 
+  private Field getFieldWithType(@Positive int columnIndex) throws SQLException {
+    Field field = getField(columnIndex);
+    field.initializePgType(connection.getTypeInfo());
+    return field;
+  }
+
   protected @Nullable String getPGType(int columnIndex) throws SQLException {
-    return connection.getTypeInfo().getPGType(getField(columnIndex).getOID());
+    return getFieldWithType(columnIndex).getPgType().getFullName();
   }
 
   protected int getSQLType(int columnIndex) throws SQLException {
-    return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
+    int sqlType = getFieldWithType(columnIndex).getPgType().getSqlType();
+    // Handle boolean type mapping preference
+    if (sqlType == Types.BIT && connection.getMapBooleanToBoolean()) {
+      return Types.BOOLEAN;
+    }
+    return sqlType;
   }
 
   // ** JDBC 2 Extensions **
@@ -446,23 +458,9 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   @Override
   public String getColumnClassName(int column) throws SQLException {
-    Field field = getField(column);
-    String result = connection.getTypeInfo().getJavaClass(field.getOID());
-
-    if (result != null) {
-      return result;
-    }
-
-    int sqlType = getSQLType(column);
-    if (sqlType == Types.ARRAY) {
-      return "java.sql.Array";
-    } else {
-      String type = getPGType(column);
-      if ("unknown".equals(type)) {
-        return "java.lang.String";
-      }
-      return "java.lang.Object";
-    }
+    PgType pgType = getFieldWithType(column).getPgType();
+    int oid = pgType.getOid();
+    return JavaTypeRegistry.getDefaultJavaClassName(oid);
   }
 
   @Override
