@@ -58,6 +58,7 @@ class ResponseSlot {
   private ResponseSlot() {
   }
 
+  @SuppressWarnings("initialization.fields.uninitialized")
   ResponseSlot(@Nullable SimpleQuery query, @Nullable Portal portal, boolean asSimple, int flags) {
     this.query = query;
     this.portal = portal;
