@@ -398,6 +398,7 @@ val sourceDistribution by tasks.registering(Tar::class) {
             exclude("**/*Suite*")
             exclude("*/org/postgresql/test/sspi/*.java")
             exclude("*/org/postgresql/replication/**")
+            exclude("*/org/postgresql/test/core/PipelinePerformanceTest.java")
         }
         from(testKitSourcesWithoutAnnotationsResolved.elements.map { set ->
             set.map {

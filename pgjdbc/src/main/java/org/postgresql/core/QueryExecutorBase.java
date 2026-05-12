@@ -74,6 +74,12 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
 
+  /**
+   * Lock used in pipeline mode to serialize access to the send path (pgOutput).
+   * In non-pipeline mode this is unused — the main {@link #lock} covers everything.
+   */
+  protected final ResourceLock sendLock = new ResourceLock();
+
   @SuppressWarnings({"assignment", "argument", "method.invocation"})
   protected QueryExecutorBase(PGStream pgStream, int cancelSignalTimeout, Properties info) throws SQLException {
     this.pgStream = pgStream;
@@ -109,6 +115,13 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   protected QueryExecutorCloseAction createCloseAction() {
     return new QueryExecutorCloseAction(pgStream);
+  }
+
+  /**
+   * Returns whether server error detail should be included in error messages.
+   */
+  public boolean getLogServerErrorDetail() {
+    return logServerErrorDetail;
   }
 
   /**
