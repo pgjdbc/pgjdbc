@@ -27,31 +27,31 @@ import java.util.Map;
 /**
  * Utility for using arrays in requests.
  *
- * <p>
- * Binary format:
+ * <p>Binary format:</p>
  * <ul>
  * <li>4 bytes with number of dimensions</li>
  * <li>4 bytes, boolean indicating nulls present or not</li>
  * <li>4 bytes type oid</li>
- * <li>8 bytes describing the length of each dimension (repeated for each dimension)</li>
- * <ul>
- * <li>4 bytes for length</li>
- * <li>4 bytes for lower bound on length to check for overflow (it appears this value can always be 0)</li>
+ * <li>8 bytes describing the length of each dimension (repeated for each dimension)
+ *   <ul>
+ *   <li>4 bytes for length</li>
+ *   <li>4 bytes for lower bound on length to check for overflow (it appears this value can always be 0)</li>
+ *   </ul>
+ * </li>
+ * <li>data in depth first element order corresponding number and length of dimensions
+ *   <ul>
+ *   <li>4 bytes describing length of element, {@code 0xFFFFFFFF} ({@code -1}) means {@code null}</li>
+ *   <li>binary representation of element (iff not {@code null}).</li>
+ *   </ul>
+ * </li>
  * </ul>
- * <li>data in depth first element order corresponding number and length of dimensions</li>
- * <ul>
- * <li>4 bytes describing length of element, {@code 0xFFFFFFFF} ({@code -1}) means {@code null}</li>
- * <li>binary representation of element (iff not {@code null}).
- * </ul>
- * </ul>
- * </p>
  *
  * @author Brett Okken
  */
-final class ArrayEncoding {
+public final class ArrayEncoding {
 
   @SuppressWarnings("ExtendsObject")
-  interface ArrayEncoder<A extends Object> {
+  public interface ArrayEncoder<A extends Object> {
 
     /**
      * The default array type oid supported by this instance.

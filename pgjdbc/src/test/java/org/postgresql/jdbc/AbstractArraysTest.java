@@ -286,6 +286,31 @@ public abstract class AbstractArraysTest<A> {
       return typeInfo;
     }
 
+    @Override
+    public CodecContext getCodecContext() {
+      return TestCodecContext.create();
+    }
+
+    @Override
+    public CodecRegistry getCodecRegistry() {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
+    @Override
+    public void resetCodecs() {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
+    @Override
+    public void registerCodec(org.postgresql.api.codec.Codec codec) {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
+    @Override
+    public void unregisterCodec(String typeName) {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -1135,6 +1160,11 @@ public abstract class AbstractArraysTest<A> {
 
     @Override
     public boolean getConvertBooleanToNumeric() {
+      return false;
+    }
+
+    @Override
+    public boolean getMapBooleanToBoolean() {
       return false;
     }
   }
