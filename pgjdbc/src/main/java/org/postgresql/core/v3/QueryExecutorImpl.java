@@ -3425,6 +3425,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendBind(sq, params, portal, noBinaryTransfer);
       if (!noMeta && !sq.isPortalDescribed()) {
         sendDescribePortal(sq, portal);
+      } else {
+        // Describe skipped — pre-populate slot fields from cached query metadata
+        slot.fields = sq.getFields();
       }
       sendExecute(sq, portal, rows);
       sendSync();
@@ -3525,6 +3528,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         sendExecute(sq, null, rows);
 
         slots[i] = new ResponseSlot(sq, null, false, flags);
+        if (noMeta || sq.isPortalDescribed()) {
+          slots[i].fields = sq.getFields();
+        }
         pending.add(slots[i]);
       }
 

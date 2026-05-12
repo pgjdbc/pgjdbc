@@ -142,7 +142,7 @@ public class PipelineModeTest extends BaseTest4 {
   public void testTransactionCommit() throws SQLException {
     TestUtil.createTempTable(con, "pipeline_tx", "id INT");
     con.setAutoCommit(false);
-    try (PreparedStatement ps = con.prepareStatement("INSERT INTO pipeline_tx VALUES (?)")) {
+    try (PreparedStatement ps = con.prepareStatement("INSERT INTO pipeline_tx VALUES (?::int)")) {
       ps.setInt(1, 42);
       ps.executeUpdate();
     }
@@ -160,7 +160,7 @@ public class PipelineModeTest extends BaseTest4 {
   public void testTransactionRollback() throws SQLException {
     TestUtil.createTempTable(con, "pipeline_rb", "id INT");
     con.setAutoCommit(false);
-    try (PreparedStatement ps = con.prepareStatement("INSERT INTO pipeline_rb VALUES (?)")) {
+    try (PreparedStatement ps = con.prepareStatement("INSERT INTO pipeline_rb VALUES (?::int)")) {
       ps.setInt(1, 99);
       ps.executeUpdate();
     }
@@ -256,7 +256,7 @@ public class PipelineModeTest extends BaseTest4 {
   @Test
   public void testPreparedStatementReuse() throws SQLException {
     // Tests that prepared statement caching works with pipeline mode
-    try (PreparedStatement ps = con.prepareStatement("SELECT ? + 1")) {
+    try (PreparedStatement ps = con.prepareStatement("SELECT ?::int + 1")) {
       for (int i = 0; i < 20; i++) {
         ps.setInt(1, i);
         try (ResultSet rs = ps.executeQuery()) {
@@ -375,7 +375,7 @@ public class PipelineModeTest extends BaseTest4 {
 
   @Test
   public void testPreparedStatementWithWrongParamCount() throws SQLException {
-    try (PreparedStatement ps = con.prepareStatement("SELECT ?, ?")) {
+    try (PreparedStatement ps = con.prepareStatement("SELECT ?::int, ?::int")) {
       ps.setInt(1, 1);
       // Missing parameter 2
       assertThrows(SQLException.class, ps::executeQuery);

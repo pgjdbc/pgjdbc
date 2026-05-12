@@ -225,7 +225,7 @@ public class PipelinePerformanceTest {
 
   private void runLargeResultFetch(Connection conn, int rows) throws SQLException {
     try (PreparedStatement ps = conn.prepareStatement(
-        "SELECT generate_series(1, ?)")) {
+        "SELECT generate_series(1, ?::int)")) {
       ps.setInt(1, rows);
       try (ResultSet rs = ps.executeQuery()) {
         while (rs.next()) {
