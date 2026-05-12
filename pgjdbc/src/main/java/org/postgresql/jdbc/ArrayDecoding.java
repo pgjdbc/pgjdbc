@@ -48,7 +48,7 @@ import java.util.Map;
  *
  * @author Brett Okken
  */
-final class ArrayDecoding {
+public final class ArrayDecoding {
 
   /**
    * Array list implementation specific for storing PG array elements. If
@@ -56,7 +56,7 @@ final class ArrayDecoding {
    * {@link String}. For all larger <i>dimensionsCount</i>, the values will be
    * {@link PgArrayList} instances.
    */
-  static final class PgArrayList extends ArrayList<@Nullable Object> {
+  public static final class PgArrayList extends ArrayList<@Nullable Object> {
 
     private static final long serialVersionUID = 1L;
 
@@ -456,27 +456,25 @@ final class ArrayDecoding {
   }
 
   @SuppressWarnings("unchecked")
-  private static <A extends @NonNull Object> ArrayDecoder<A> getDecoder(int oid, BaseConnection connection) throws SQLException {
-    final Integer key = oid;
+  private static <A extends @NonNull Object> ArrayDecoder<A> getDecoder(int elementOid, BaseConnection connection) throws SQLException {
+    final Integer key = elementOid;
     @SuppressWarnings("rawtypes")
     final ArrayDecoder decoder = OID_TO_DECODER.get(key);
     if (decoder != null) {
       return decoder;
     }
 
-    final ArrayAssistant assistant = ArrayAssistantRegistry.getAssistant(oid);
+    final ArrayAssistant assistant = ArrayAssistantRegistry.getAssistant(elementOid);
 
     if (assistant != null) {
       return new ArrayAssistantObjectArrayDecoder(assistant);
     }
 
-    final String typeName = connection.getTypeInfo().getPGType(oid);
-    if (typeName == null) {
-      throw Driver.notImplemented(PgArray.class, "readArray(data,oid)");
-    }
+    PgType elementType = connection.getTypeInfo().getPgTypeByOid(elementOid);
+    String typeName = elementType.getFullName();
 
     // 42.2.x should return enums as strings
-    int type = connection.getTypeInfo().getSQLType(typeName);
+    int type = elementType.getSqlType();
     if (type == Types.CHAR || type == Types.VARCHAR) {
       return (ArrayDecoder<A>) STRING_ONLY_DECODER;
     }
@@ -586,7 +584,7 @@ final class ArrayDecoding {
    *          The delimiter character appropriate for the data type.
    * @return A {@link PgArrayList} representing the parsed <i>fieldString</i>.
    */
-  static PgArrayList buildArrayList(String fieldString, char delim) {
+  public static PgArrayList buildArrayList(String fieldString, char delim) {
 
     final PgArrayList arrayList = new PgArrayList();
 
