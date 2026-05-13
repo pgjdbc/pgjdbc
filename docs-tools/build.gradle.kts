@@ -132,8 +132,10 @@ val docsServe by tasks.registering(Exec::class) {
     // -PdocsPort=NNNN overrides the default 1313.
     val port = providers.gradleProperty("docsPort").orElse("1313")
     argumentProviders.add(CommandLineArgumentProvider {
-        listOf("server", "--bind", "127.0.0.1", "--port", port.get(),
-               "--disableFastRender")
+        listOf(
+            "server", "--bind", "127.0.0.1", "--port", port.get(),
+            "--disableFastRender"
+        )
     })
     commandLine("hugo")
     ensureHugoOnPath()

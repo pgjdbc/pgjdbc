@@ -20,20 +20,43 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        
+
+      # Hugo (extended) goes on PATH; the :docs-tools:docsBuild Gradle task
+      # invokes it via Exec after the property generator has produced the
+      # YAML data file. Keeping the dedicated Hugo install step (instead of
+      # e.g. `brew install hugo`) lets us pin a tested release without
+      # relying on whatever the runner happens to ship.
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@16361eb4acea8698b220b76c0d4e84e1fd22c61d # v2.6.0
         with:
           hugo-version: 'latest'
           extended: true
-          
+
+      # JDK is required for the docs build: :docs-tools:generateProperties
+      # introspects PGProperty.class via ASM and emits the connection
+      # property YAML before Hugo runs. Same JDK as the main pipeline.
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: zulu
+          java-version: 21
+
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-        
+
+      # :docs-tools:docsBuild = :docs-tools:generateProperties (strict —
+      # fails on any missing or inconsistent @PgApi / @PgTags /
+      # @PgPropertyType annotation) then `hugo --gc --minify` in docs/.
+      # See docs-tools/build.gradle.kts.
       - name: Build
-        run: hugo --minify
-        working-directory: ./docs
-        
+        uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1
+        env:
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: docs-build
+          arguments: --no-parallel --no-daemon --scan :docs-tools:docsBuild
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
