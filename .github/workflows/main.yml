@@ -394,6 +394,23 @@ jobs:
       with:
         name: ${{ steps.artifact_name.outputs.name }}
         path: ${{ runner.temp }}/pg-server-logs.txt
+    - name: Sanitize test results artifact name
+      if: ${{ always() }}
+      id: test_artifact_name
+      shell: bash
+      env:
+        MATRIX_NAME: ${{ matrix.name }}
+      run: |
+        name="test-results-${MATRIX_NAME}"
+        name="${name//[\":<>|*?\\\/]/}"
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+    - name: Upload test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ steps.test_artifact_name.outputs.name }}
+        path: pgjdbc/build/test-results/test/
+        retention-days: 7
     - name: Test GSS
       if: ${{ matrix.gss == 'yes' }}
       # language=bash
