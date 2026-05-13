@@ -7,13 +7,19 @@ package org.postgresql.util;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import java.lang.management.ManagementFactory;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class PGPropertyMaxResultBufferParser {
 
   private static final Logger LOGGER = Logger.getLogger(PGPropertyMaxResultBufferParser.class.getName());
+
+  private static final String MANAGEMENT_FACTORY_CLASS_NAME = "java.lang.management.ManagementFactory";
+  private static final String MEMORY_MX_BEAN_CLASS_NAME = "java.lang.management.MemoryMXBean";
+  private static final String MEMORY_USAGE_CLASS_NAME = "java.lang.management.MemoryUsage";
+  private static final double MAX_RESULT_BUFFER_HEAP_FRACTION = 0.9;
 
   private static final String[] PERCENT_PHRASES = new String[]{
     "p",
@@ -30,16 +36,21 @@ public class PGPropertyMaxResultBufferParser {
    * @throws PSQLException Exception when given value can't be parsed.
    */
   public static long parseProperty(@Nullable String value) throws PSQLException {
+    return parseProperty(value, MANAGEMENT_FACTORY_CLASS_NAME);
+  }
+
+  static long parseProperty(@Nullable String value, String managementFactoryClassName)
+      throws PSQLException {
     long result = -1;
     //noinspection StatementWithEmptyBody
     if (value == null) {
       // default branch
     } else if (checkIfValueContainsPercent(value)) {
-      result = parseBytePercentValue(value);
+      result = parseBytePercentValue(value, managementFactoryClassName);
     } else if (!value.isEmpty()) {
       result = parseByteValue(value);
     }
-    result = adjustResultSize(result);
+    result = adjustResultSize(result, managementFactoryClassName);
     return result;
   }
 
@@ -61,7 +72,8 @@ public class PGPropertyMaxResultBufferParser {
    * @return percent value of max result buffer size.
    * @throws PSQLException Exception when given value can't be parsed.
    */
-  private static long parseBytePercentValue(String value) throws PSQLException {
+  private static long parseBytePercentValue(String value, String managementFactoryClassName)
+      throws PSQLException {
     long result = -1;
     int length;
 
@@ -74,7 +86,7 @@ public class PGPropertyMaxResultBufferParser {
             value);
       }
 
-      result = calculatePercentOfMemory(value, length);
+      result = calculatePercentOfMemory(value, length, managementFactoryClassName);
     }
     return result;
   }
@@ -125,10 +137,18 @@ public class PGPropertyMaxResultBufferParser {
    * @param percentPhraseLength Length of percent phrase inside given value.
    * @return Size of byte buffer based on percent of max heap memory.
    */
-  private static long calculatePercentOfMemory(String value, int percentPhraseLength) {
+  private static long calculatePercentOfMemory(
+      String value, int percentPhraseLength, String managementFactoryClassName)
+      throws PSQLException {
     String realValue = value.substring(0, value.length() - percentPhraseLength);
     double percent = Double.parseDouble(realValue) / 100;
-    return (long) (percent * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+    long maxHeapMemory = getMaxHeapMemory(managementFactoryClassName);
+    if (maxHeapMemory < 0) {
+      throw new PSQLException(GT.tr(
+          "Could not parse maxResultBuffer value {0}; percent values require {1}.",
+          value, MANAGEMENT_FACTORY_CLASS_NAME), PSQLState.INVALID_PARAMETER_VALUE);
+    }
+    return (long) (percent * maxHeapMemory);
   }
 
   /**
@@ -193,9 +213,20 @@ public class PGPropertyMaxResultBufferParser {
    * @param value Size to be adjusted.
    * @return Adjusted size (original size or 90% of max heap memory)
    */
-  private static long adjustResultSize(long value) {
-    if (value > 0.9 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax()) {
-      long newResult = (long) (0.9 * ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax());
+  private static long adjustResultSize(long value, String managementFactoryClassName)
+      throws PSQLException {
+    if (value <= 0) {
+      return value;
+    }
+
+    long maxHeapMemory = getMaxHeapMemory(managementFactoryClassName);
+    if (maxHeapMemory < 0) {
+      return value;
+    }
+
+    long maxResultBuffer = (long) (MAX_RESULT_BUFFER_HEAP_FRACTION * maxHeapMemory);
+    if (value > maxResultBuffer) {
+      long newResult = maxResultBuffer;
 
       LOGGER.log(Level.WARNING, GT.tr(
           "WARNING! Required to allocate {0} bytes, which exceeded possible heap memory size. Assigned {1} bytes as limit.",
@@ -204,6 +235,34 @@ public class PGPropertyMaxResultBufferParser {
       value = newResult;
     }
     return value;
+  }
+
+  static long getMaxHeapMemory(String managementFactoryClassName) throws PSQLException {
+    try {
+      Class<?> managementFactoryClass = Class.forName(managementFactoryClassName);
+      Class<?> memoryMxBeanClass = Class.forName(MEMORY_MX_BEAN_CLASS_NAME);
+      Class<?> memoryUsageClass = Class.forName(MEMORY_USAGE_CLASS_NAME);
+
+      Method getMemoryMxBean = managementFactoryClass.getMethod("getMemoryMXBean");
+      Method getHeapMemoryUsage = memoryMxBeanClass.getMethod("getHeapMemoryUsage");
+      Method getMax = memoryUsageClass.getMethod("getMax");
+
+      Object memoryMxBean = getMemoryMxBean.invoke(null);
+      Object heapMemoryUsage = getHeapMemoryUsage.invoke(memoryMxBean);
+      Object maxHeapMemory = getMax.invoke(heapMemoryUsage);
+      if (!(maxHeapMemory instanceof Long)) {
+        throw new PSQLException(GT.tr(
+            "Could not determine JVM max heap memory for maxResultBuffer."),
+            PSQLState.UNEXPECTED_ERROR);
+      }
+      return (Long) maxHeapMemory;
+    } catch (ClassNotFoundException | LinkageError | SecurityException e) {
+      return -1;
+    } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+      throw new PSQLException(GT.tr(
+          "Could not determine JVM max heap memory for maxResultBuffer."),
+          PSQLState.UNEXPECTED_ERROR, e);
+    }
   }
 
   /**
