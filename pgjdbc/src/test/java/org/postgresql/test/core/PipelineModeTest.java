@@ -88,6 +88,9 @@ public class PipelineModeTest extends BaseTest4 {
 
   @Test
   public void testBatchInsert() throws SQLException {
+    org.junit.jupiter.api.Assumptions.assumeFalse(
+        Boolean.parseBoolean(System.getProperty("reWriteBatchedInserts")),
+        "reWriteBatchedInserts returns SUCCESS_NO_INFO instead of per-row counts");
     TestUtil.createTempTable(con, "pipeline_batch", "id INT, val INT");
     try (PreparedStatement ps = con.prepareStatement(
         "INSERT INTO pipeline_batch (id, val) VALUES (?, ?)")) {
