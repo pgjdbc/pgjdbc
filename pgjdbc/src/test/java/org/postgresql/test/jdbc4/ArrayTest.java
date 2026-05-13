@@ -38,6 +38,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Struct;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,7 @@ public class ArrayTest extends BaseTest4 {
     setBinaryMode(binaryMode);
   }
 
+  //@Parameterized.Parameters(name = "binary = {0}")
   public static Iterable<Object[]> data() {
     Collection<Object[]> ids = new ArrayList<>();
     for (BinaryMode binaryMode : BinaryMode.values()) {
@@ -521,13 +523,7 @@ public class ArrayTest extends BaseTest4 {
   public void testCasingComposite() throws SQLException {
     assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "Arrays of composite types requires PostgreSQL 8.3+");
 
-    PGobject cc = new PGobject();
-    cc.setType("\"CorrectCasing\"");
-    cc.setValue("(1)");
-    Object[] in = new Object[1];
-    in[0] = cc;
-
-    Array arr = conn.createArrayOf("\"CorrectCasing\"", in);
+    Array arr = conn.createArrayOf("\"CorrectCasing\"", new Object[]{conn.createStruct("\"CorrectCasing\"", new Object[]{1})});
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::\"CorrectCasing\"[]");
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
@@ -535,9 +531,8 @@ public class ArrayTest extends BaseTest4 {
     assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    assertInstanceOf(PGobject.class, resArr[0]);
-    PGobject resObj = (PGobject) resArr[0];
-    assertEquals("(1)", resObj.getValue());
+    assertInstanceOf(Struct.class, resArr[0]);
+    assertEquals("(1)", resArr[0].toString());
   }
 
   @Test
@@ -570,13 +565,7 @@ public class ArrayTest extends BaseTest4 {
   public void testEvilCasing() throws SQLException {
     assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v8_3), "Arrays of composite types requires PostgreSQL 8.3+");
 
-    PGobject cc = new PGobject();
-    cc.setType("\"Evil.Table\"");
-    cc.setValue("(1)");
-    Object[] in = new Object[1];
-    in[0] = cc;
-
-    Array arr = conn.createArrayOf("\"Evil.Table\"", in);
+    Array arr = conn.createArrayOf("\"Evil.Table\"", new Object[] {conn.createStruct("\"Evil.Table\"", new Object[]{1})});
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::\"Evil.Table\"[]");
     pstmt.setArray(1, arr);
     ResultSet rs = pstmt.executeQuery();
@@ -584,9 +573,8 @@ public class ArrayTest extends BaseTest4 {
     assertTrue(rs.next());
     Object[] resArr = (Object[]) rs.getArray(1).getArray();
 
-    assertInstanceOf(PGobject.class, resArr[0]);
-    PGobject resObj = (PGobject) resArr[0];
-    assertEquals("(1)", resObj.getValue());
+    assertInstanceOf(Struct.class, resArr[0]);
+    assertEquals("(1)", resArr[0].toString());
   }
 
   @Test
