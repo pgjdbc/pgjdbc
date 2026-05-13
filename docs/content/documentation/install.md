@@ -1,17 +1,17 @@
 ---
 title: "Quick Start"
-date: 2026-05-12T00:00:00Z
+date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1
 toc: true
-last_reviewed: "2026-05-12"
+last_reviewed: "2026-05-13"
 aliases:
     - "/documentation/quickstart/"
 ---
 
-Add pgJDBC to your build, open a connection, run a query. This page covers
-the 90% case; once you have something working, the rest of the documentation
-fills in the edges.
+Add pgJDBC to your build, open a TLS-protected connection, run a query.
+This page is the minimum viable path to a working application; the rest
+of the documentation fills in the edges.
 
 ## 1. Add the dependency
 
@@ -36,17 +36,23 @@ libraryDependencies += "org.postgresql" % "postgresql" % "42.7.11"
 
 {{< callout type="note" >}}
 Driver loading is automatic via the Java `ServiceLoader`. You do not need
-`Class.forName("org.postgresql.Driver")` — that has been unnecessary since Java&nbsp;6.
+`Class.forName("org.postgresql.Driver")` — that has been unnecessary since
+Java&nbsp;6.
 {{< /callout >}}
 
 ## 2. Open a connection
 
 ```java
-String url = "jdbc:postgresql://localhost:5432/mydb";
+String url = "jdbc:postgresql://db.example.com:5432/mydb";
+
 Properties props = new Properties();
 props.setProperty("user", "alice");
 props.setProperty("password", System.getenv("PGPASSWORD"));
-props.setProperty("sslmode", "verify-full");
+
+// TLS + channel-bound SCRAM. See § 3 for the rationale.
+props.setProperty("sslmode",        "verify-full");
+props.setProperty("sslrootcert",    "/etc/postgresql/ssl/ca.pem");
+props.setProperty("channelBinding", "require");
 
 try (Connection conn = DriverManager.getConnection(url, props);
      PreparedStatement ps = conn.prepareStatement(
@@ -62,57 +68,64 @@ try (Connection conn = DriverManager.getConnection(url, props);
 
 {{< callout type="security" title="Don't put secrets in the URL" >}}
 Reserved URL characters in passwords must be percent-encoded, and the URL
-ends up in logs and error messages. Use a `Properties` object or a
-secrets manager instead.
+ends up in logs and error messages. Use a `Properties` object (as shown
+above) or a secrets manager instead.
 {{< /callout >}}
 
 ## 3. Configure SSL/TLS
 
-For any non-local server, set `sslmode` to `verify-full` and point the
-driver at the server's CA certificate via `sslrootcert`. Without
-`verify-full`, the driver does not validate the server's hostname — see
-[Using SSL](/documentation/ssl/) for the full discussion.
+For any non-local server, use **both** of these together:
 
-The SSL-related connection properties relevant to this page:
+- `sslmode=verify-full` — the driver validates the server's certificate
+  chain against `sslrootcert` **and** verifies that the certificate's
+  Subject Alternative Name matches the hostname you connected to. Any
+  weaker mode (including the default `prefer`) leaves you open to a
+  man-in-the-middle attack.
+- `channelBinding=require` — binds the SCRAM authentication exchange to
+  the established TLS channel. An attacker who terminated and
+  re-established the TLS connection to the server cannot replay the SCRAM
+  handshake; without channel binding, that attack works even when TLS is
+  in use.
+
+Channel binding requires PostgreSQL&nbsp;11 or newer **and** the server
+must be configured for SCRAM-SHA-256 (the default since PG&nbsp;14). If
+you must run against legacy infrastructure, fall back to
+`channelBinding=prefer` — but only after explicitly auditing what the
+target server supports.
+
+{{< callout type="warning" title="`sslmode=require` is not enough" >}}
+`require` encrypts the connection but does **not** validate the
+certificate, so it cannot detect a MITM. It exists only for backwards
+compatibility with very old setups.
+{{< /callout >}}
+
+The SSL-related connection properties:
 
 {{< param-table data="connection-properties" tag="ssl" >}}
 
 ## 4. Common follow-ups
 
-- **Connection pooling.** Use HikariCP or Tomcat JDBC; do not call
-  `DriverManager.getConnection` per request. The driver was built for
-  pool usage.
-- **Authentication.** SCRAM-SHA-256 is the default on PostgreSQL 14+;
-  pgjdbc handles it transparently. For Kerberos/GSSAPI see [Authentication](/documentation/use/#connection-parameters).
+- **Connection pooling.** Use HikariCP, Tomcat JDBC, or your container's
+  pool. Do not call `DriverManager.getConnection` per request — the
+  driver was built for pool usage and the cost of opening a connection
+  is significant.
+- **Authentication.** SCRAM-SHA-256 is handled transparently. For
+  Kerberos / GSSAPI / SSPI see the corresponding connection properties
+  below; for plug-in based authentication see `authenticationPluginClassName`.
 - **Performance.** Server-side prepared statements activate after
-  `prepareThreshold` executions (default 5); see
-  [Server Prepared Statements](/documentation/server-prepare/).
+  `prepareThreshold` executions (default 5) — see
+  [Server Prepared Statements](/documentation/server-prepare/) for the
+  full discussion, including binary transfer trade-offs.
 
-## Shortcode reference (Phase 0 exemplar)
+The authentication-related connection properties:
 
-This section is for documentation contributors and is not part of the
-user-facing Quick Start. It demonstrates the available shortcodes; once
-authors are familiar with them, this section can be removed.
+{{< param-table data="connection-properties" tag="authentication" >}}
 
-### Inline badges
+## What's next
 
-A new feature: {{< since "42.7.4" >}}. A retired one:
-{{< deprecated since="42.6.0" use="primary instead of master" >}}.
-
-### Callouts
-
-{{< callout type="tip" >}}
-`tip` calls out a small but useful suggestion.
-{{< /callout >}}
-
-{{< callout type="warning" >}}
-`warning` flags a foot-gun or a behavior change.
-{{< /callout >}}
-
-{{< callout type="deprecated" title="Old API" >}}
-`deprecated` marks a paragraph about something being phased out.
-{{< /callout >}}
-
-### Property reference (full table, with filter)
-
-{{< param-table data="connection-properties" >}}
+- [Connection Properties reference](/documentation/use/) — the full set of
+  tunables.
+- [Using SSL](/documentation/ssl/) — certificate setup, custom socket
+  factories, CRL/OCSP.
+- [Connection Pools and Data Sources](/documentation/datasource/) — how
+  to integrate with HikariCP and friends.
