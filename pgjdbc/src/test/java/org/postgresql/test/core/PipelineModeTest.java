@@ -17,6 +17,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -28,6 +29,7 @@ import java.util.Properties;
  * Integration tests for pipeline mode (dedicated reader thread).
  * Requires a running PostgreSQL server configured via build.local.properties.
  */
+@Timeout(30)
 public class PipelineModeTest extends BaseTest4 {
 
   @Override

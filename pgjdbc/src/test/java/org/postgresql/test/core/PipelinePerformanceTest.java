@@ -11,6 +11,7 @@ import org.postgresql.test.TestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,6 +27,7 @@ import java.util.Properties;
  *
  * <p>Run with: ./gradlew test --tests "org.postgresql.test.core.PipelinePerformanceTest"
  */
+@Timeout(30)
 public class PipelinePerformanceTest {
 
   private static Connection syncConn;
