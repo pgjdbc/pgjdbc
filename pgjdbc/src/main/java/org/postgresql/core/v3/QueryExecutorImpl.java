@@ -3424,10 +3424,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       sendParse(sq, params, oneShot);
       sendBind(sq, params, portal, noBinaryTransfer);
       if (!noMeta && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline sendDescribePortal, portalDescribed={0}, fields={1}, query={2}",
+              new Object[]{sq.isPortalDescribed(), sq.getFields() != null, sq});
+        }
         sendDescribePortal(sq, portal);
       } else if (sq.getFields() != null) {
         // Describe skipped — pre-populate slot fields from cached query metadata
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline skip Describe, using cached fields={0}, portalDescribed={1}, query={2}",
+              new Object[]{sq.getFields().length, sq.isPortalDescribed(), sq});
+        }
         slot.fields = sq.getFields();
+      } else {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline skip Describe, noMeta={0}, portalDescribed={1}, fields=null, query={2}",
+              new Object[]{noMeta, sq.isPortalDescribed(), sq});
+        }
       }
       sendExecute(sq, portal, rows);
       sendSync();
@@ -3523,12 +3536,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         sendParse(sq, params, oneShot);
         sendBind(sq, params, null, noBinaryTransfer);
         if (!noMeta && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " FE=> pipeline batch[{0}] sendDescribePortal, portalDescribed={1}, fields={2}",
+                new Object[]{i, sq.isPortalDescribed(), sq.getFields() != null});
+          }
           sendDescribePortal(sq, null);
         }
         sendExecute(sq, null, rows);
 
         slots[i] = new ResponseSlot(sq, null, false, flags);
         if ((noMeta || sq.isPortalDescribed()) && sq.getFields() != null) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " FE=> pipeline batch[{0}] pre-populate slot.fields from cache, fields={1}",
+                new Object[]{i, sq.getFields().length});
+          }
           slots[i].fields = sq.getFields();
         }
         pending.add(slots[i]);
@@ -3633,6 +3654,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       handler.handleWarning(slot.warnings);
     }
     Field[] fields = slot.fields != null ? slot.fields : query.getFields();
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: slot.fields={0}, query.getFields()={1}, tuples={2}, commandStatus={3}, query={4}",
+          new Object[]{
+              slot.fields != null ? slot.fields.length : null,
+              query.getFields() != null ? query.getFields().length : null,
+              slot.tuples != null ? slot.tuples.size() : null,
+              slot.commandStatus,
+              query});
+    }
     if (fields != null && slot.tuples != null) {
       // SELECT-like query that returned rows
       ResultCursor cursor = slot.portalSuspended ? slot.portal : null;
@@ -3640,6 +3670,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else if (slot.commandStatus != null) {
       // DML or DDL — no result rows
       handler.handleCommandStatus(slot.commandStatus, slot.updateCount, slot.insertOID);
+    } else {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: NO RESULT DELIVERED, fields={0}, tuples={1}, commandStatus={2}",
+            new Object[]{fields != null, slot.tuples != null, slot.commandStatus});
+      }
     }
   }
 }
