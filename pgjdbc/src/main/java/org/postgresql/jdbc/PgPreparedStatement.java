@@ -14,6 +14,7 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
+import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
@@ -1796,7 +1797,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   public ParameterMetaData getParameterMetaData() throws SQLException {
     int flags = QueryExecutor.QUERY_ONESHOT | QueryExecutor.QUERY_DESCRIBE_ONLY
         | QueryExecutor.QUERY_SUPPRESS_BEGIN;
-    StatementResultHandler handler = new StatementResultHandler();
+    ResultHandler handler = new DiscardResultHandler();
     connection.getQueryExecutor().execute(preparedQuery.query, preparedParameters, handler, 0, 0,
         flags);
 

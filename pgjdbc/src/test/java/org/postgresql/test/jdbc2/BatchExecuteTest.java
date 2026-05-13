@@ -9,12 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
@@ -279,6 +281,24 @@ public class BatchExecuteTest extends BaseTest4 {
 
     } finally {
       TestUtil.closeQuietly(stmt);
+    }
+  }
+
+  @Test
+  public void testMultiStatementSqlInAddBatch() throws Exception {
+    // Multi-statement SQL in a single addBatch() entry has never worked in pgjdbc:
+    // BatchResultHandler allocates one update-count slot per batch entry, but
+    // CompositeQuery emits one CommandComplete per sub-statement, so it used to fail
+    // deep inside the protocol layer with "Too many update results were returned"
+    // or ClassCastException. Reject it at the JDBC boundary with a clear message.
+    try (Statement stmt = con.createStatement()) {
+      String sql = "UPDATE testbatch SET col1 = col1 + 1 WHERE pk = 1;"
+          + " UPDATE testbatch SET col1 = col1 + 2 WHERE pk = 1";
+      SQLException sqle = assertThrows(SQLException.class, () -> stmt.addBatch(sql));
+      assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), sqle.getSQLState(),
+          "Multi-statement addBatch() should fail with NOT_IMPLEMENTED SQLState");
+      assertEquals(0, getCol1Value(),
+          "Rejected addBatch() must not execute either UPDATE.");
     }
   }
 
