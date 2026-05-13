@@ -190,7 +190,7 @@ class PipelineReaderThread extends Thread {
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
-      short positionInTable = (short) pgStream.receiveInteger2();
+      int positionInTable = pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
       int typeLength = pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
