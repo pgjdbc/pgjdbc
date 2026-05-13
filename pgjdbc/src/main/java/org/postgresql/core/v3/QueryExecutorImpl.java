@@ -3423,7 +3423,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
       sendParse(sq, params, oneShot);
       sendBind(sq, params, portal, noBinaryTransfer);
-      if (!noMeta && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+      if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
         if (LOGGER.isLoggable(Level.FINEST)) {
           LOGGER.log(Level.FINEST, " FE=> pipeline sendDescribePortal, portalDescribed={0}, fields={1}, query={2}",
               new Object[]{sq.isPortalDescribed(), sq.getFields() != null, sq});
@@ -3535,7 +3535,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         sendParse(sq, params, oneShot);
         sendBind(sq, params, null, noBinaryTransfer);
-        if (!noMeta && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+        if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, " FE=> pipeline batch[{0}] sendDescribePortal, portalDescribed={1}, fields={2}",
                 new Object[]{i, sq.isPortalDescribed(), sq.getFields() != null});
