@@ -2570,8 +2570,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (changesSearchPath
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
+              // *and* the per-connection type cache: name-keyed lookups
+              // (TypeInfoCache.getPgTypeByPgName) resolve against the
+              // current search_path, so a previously-cached "foo" might
+              // now refer to a different type.
               lastSetSearchPathQuery = nativeSql;
               deallocateEpoch++;
+              typeCacheEpoch++;
             }
           }
 

@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Struct;
+import java.util.List;
 
 /**
  * Integration tests for TypeInfoCache invalidation on DDL commands.
@@ -302,6 +303,143 @@ public class CacheInvalidationTest {
     } finally {
       try (Statement stmt = conn.createStatement()) {
         stmt.execute("DROP TYPE IF EXISTS cache_test_type CASCADE");
+      }
+    }
+  }
+
+  // ==================== SET search_path invalidation =====================
+
+  /**
+   * Changing the {@code search_path} between two schemas that hold a type
+   * with the same name must invalidate the per-connection name->type cache.
+   * Otherwise the second {@code getPgTypeByPgName} returns the OID resolved
+   * before the {@code SET} and the caller acts on stale metadata.
+   */
+  @Test
+  void setSearchPath_typeCacheInvalidated() throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("CREATE SCHEMA cache_test_schema_a");
+      stmt.execute("CREATE SCHEMA cache_test_schema_b");
+      stmt.execute("CREATE TYPE cache_test_schema_a.cache_test_searchpath AS (id int)");
+      stmt.execute("CREATE TYPE cache_test_schema_b.cache_test_searchpath AS (name text)");
+
+      org.postgresql.core.TypeInfo typeInfo =
+          conn.unwrap(org.postgresql.core.BaseConnection.class).getTypeInfo();
+
+      stmt.execute("SET search_path TO cache_test_schema_a");
+      int oidA = typeInfo.getPgTypeByPgName("cache_test_searchpath").getOid();
+      List<org.postgresql.jdbc.PgField> fieldsA =
+          typeInfo.getFields(oidA);
+      assertEquals(1, fieldsA.size(), "schema_a type has one int field");
+      assertEquals("id", fieldsA.get(0).getName());
+
+      stmt.execute("SET search_path TO cache_test_schema_b");
+      int oidB = typeInfo.getPgTypeByPgName("cache_test_searchpath").getOid();
+      // The cache must be invalidated so the bare typename resolves to the
+      // type now visible via search_path, not the one cached previously.
+      assertEquals(false, oidA == oidB,
+          "After SET search_path, getPgTypeByPgName must resolve to the new schema's type");
+      List<org.postgresql.jdbc.PgField> fieldsB =
+          typeInfo.getFields(oidB);
+      assertEquals(1, fieldsB.size(), "schema_b type has one text field");
+      assertEquals("name", fieldsB.get(0).getName());
+    } finally {
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute("RESET search_path");
+        stmt.execute("DROP SCHEMA IF EXISTS cache_test_schema_a CASCADE");
+        stmt.execute("DROP SCHEMA IF EXISTS cache_test_schema_b CASCADE");
+      }
+    }
+  }
+
+  // ==================== ALTER TABLE on row-type Tests ====================
+
+  /**
+   * Every table has an implicit composite row type. After ALTER TABLE
+   * drops and re-adds a column with a different type, the row type's
+   * field list changes — the driver's per-OID composite-fields cache
+   * must invalidate so a subsequent {@code SELECT t FROM t} returns
+   * attributes matching the new column types.
+   */
+  @Test
+  void alterTable_rowTypeFieldsRefreshed() throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      // Initial schema: (id int, name varchar)
+      stmt.execute("CREATE TABLE cache_test_table (id int, name varchar)");
+      stmt.execute("INSERT INTO cache_test_table VALUES (1, 'hello')");
+
+      // First read populates the type cache for the table's row type.
+      try (ResultSet rs = stmt.executeQuery(
+          "SELECT t FROM cache_test_table t")) {
+        rs.next();
+        Struct struct = (Struct) rs.getObject(1);
+        assertNotNull(struct);
+        Object[] attrs = struct.getAttributes();
+        assertEquals(2, attrs.length, "Initial row type has 2 fields");
+        assertEquals(1, attrs[0]);
+        assertEquals("hello", attrs[1]);
+      }
+
+      // Replace the second column with a different-typed column of the
+      // same name. The implicit row type changes; pgjdbc's prior cache
+      // must not be reused.
+      stmt.execute("ALTER TABLE cache_test_table DROP COLUMN name");
+      stmt.execute("ALTER TABLE cache_test_table ADD COLUMN name int4");
+      stmt.execute("UPDATE cache_test_table SET name = 42 WHERE id = 1");
+
+      try (ResultSet rs = stmt.executeQuery(
+          "SELECT t FROM cache_test_table t")) {
+        rs.next();
+        Struct struct = (Struct) rs.getObject(1);
+        assertNotNull(struct);
+        Object[] attrs = struct.getAttributes();
+        assertEquals(2, attrs.length, "Row type still has 2 fields after ALTER");
+        assertEquals(1, attrs[0]);
+        // The cache invalidation must surface the new int4 type; reading
+        // the old varchar metadata would either return "42" as a String
+        // or throw a decode error.
+        assertEquals(42, attrs[1], "Second attribute is int4 after ALTER");
+      }
+    } finally {
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute("DROP TABLE IF EXISTS cache_test_table CASCADE");
+      }
+    }
+  }
+
+  /**
+   * Same scenario as {@link #alterTable_rowTypeFieldsRefreshed} but the
+   * column count grows: ALTER TABLE adds a new column. Tests that the
+   * cached field list isn't truncated to the old arity.
+   */
+  @Test
+  void alterTable_addColumn_rowTypeReflectsNewArity() throws SQLException {
+    try (Statement stmt = conn.createStatement()) {
+      stmt.execute("CREATE TABLE cache_test_table (id int, name varchar)");
+      stmt.execute("INSERT INTO cache_test_table VALUES (1, 'one')");
+
+      try (ResultSet rs = stmt.executeQuery(
+          "SELECT t FROM cache_test_table t")) {
+        rs.next();
+        Struct struct = (Struct) rs.getObject(1);
+        assertEquals(2, struct.getAttributes().length);
+      }
+
+      stmt.execute("ALTER TABLE cache_test_table ADD COLUMN extra boolean DEFAULT true");
+
+      try (ResultSet rs = stmt.executeQuery(
+          "SELECT t FROM cache_test_table t")) {
+        rs.next();
+        Struct struct = (Struct) rs.getObject(1);
+        Object[] attrs = struct.getAttributes();
+        assertEquals(3, attrs.length, "Row type grew to 3 fields after ADD COLUMN");
+        assertEquals(1, attrs[0]);
+        assertEquals("one", attrs[1]);
+        assertEquals(true, attrs[2]);
+      }
+    } finally {
+      try (Statement stmt = conn.createStatement()) {
+        stmt.execute("DROP TABLE IF EXISTS cache_test_table CASCADE");
       }
     }
   }
