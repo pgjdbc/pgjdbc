@@ -246,21 +246,22 @@ class PipelineReaderThread extends Thread {
 
     advanceSlot();
     if (currentSlot != null) {
-      currentSlot.commandStatus = status;
+      ResponseSlot slot = currentSlot;
+      slot.commandStatus = status;
       try {
         commandCompleteParser.parse(status);
-        currentSlot.updateCount = commandCompleteParser.getRows();
-        currentSlot.insertOID = commandCompleteParser.getOid();
+        slot.updateCount = commandCompleteParser.getRows();
+        slot.insertOID = commandCompleteParser.getOid();
       } catch (SQLException e) {
-        currentSlot.completeExceptionally(e);
+        slot.completeExceptionally(e);
         currentSlot = null;
         return;
       }
       // For non-simple queries, CommandComplete ends this slot's data
       // (ReadyForQuery will finalize it)
       // For simple queries, more results may follow before ReadyForQuery
-      if (!currentSlot.asSimple) {
-        currentSlot.complete();
+      if (!slot.asSimple) {
+        slot.complete();
         currentSlot = null;
       }
     }
