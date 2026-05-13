@@ -190,11 +190,11 @@ class PipelineReaderThread extends Thread {
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
-      int positionInTable = pgStream.receiveInteger2();
+      short positionInTable = (short)pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
-      int typeLength = pgStream.receiveInteger2();
+      short typeLength = (short)pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
-      int formatType = pgStream.receiveInteger2();
+      short formatType = (short)pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel, typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
     }
