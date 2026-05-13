@@ -411,7 +411,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
-    if (pipelineMode) {
+    if (pipelineMode && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
       executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
       return;
     }
@@ -646,7 +646,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
       throws SQLException {
-    if (pipelineMode) {
+    if (pipelineMode && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
       executeBatchPipeline(queries, parameterLists, batchHandler, maxRows, flags);
       return;
     }

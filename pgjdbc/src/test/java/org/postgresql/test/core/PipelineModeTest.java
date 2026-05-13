@@ -16,6 +16,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.jdbc2.BaseTest4;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -24,6 +25,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Integration tests for pipeline mode (dedicated reader thread).
@@ -31,6 +35,15 @@ import java.util.Properties;
  */
 @Timeout(30)
 public class PipelineModeTest extends BaseTest4 {
+
+  @BeforeAll
+  static void enableLogging() {
+    Logger logger = Logger.getLogger("org.postgresql");
+    logger.setLevel(Level.FINEST);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(Level.FINEST);
+    logger.addHandler(handler);
+  }
 
   @Override
   protected void updateProperties(Properties props) {

@@ -19,6 +19,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Comparative performance test: pipeline mode vs synchronous mode.
@@ -35,6 +38,12 @@ public class PipelinePerformanceTest {
 
   @BeforeAll
   static void setUp() throws SQLException {
+    Logger logger = Logger.getLogger("org.postgresql");
+    logger.setLevel(Level.FINEST);
+    ConsoleHandler handler = new ConsoleHandler();
+    handler.setLevel(Level.FINEST);
+    logger.addHandler(handler);
+
     Properties syncProps = new Properties();
     syncConn = TestUtil.openDB(syncProps);
 
