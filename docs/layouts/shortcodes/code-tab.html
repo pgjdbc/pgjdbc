@@ -1,0 +1,29 @@
+{{/*
+  code-tab: a single tab inside {{< code-tabs >}}. Emits nothing on its own;
+  writes a (name, html) entry into the parent's Scratch under "code-tabs".
+
+  Params (named):
+    name  required, label shown on the tab button (e.g. "Maven", "Gradle (Kotlin)")
+    lang  optional, language hint for syntax highlighting (e.g. "xml", "kotlin", "java")
+*/}}
+{{- $name := .Get "name" -}}
+{{- $lang := .Get "lang" | default "" -}}
+{{- $body := trim .Inner "\n" -}}
+{{- $html := "" -}}
+{{- if $lang -}}
+  {{- $html = transform.Highlight $body $lang "" -}}
+{{- else -}}
+  {{- $html = printf "<pre><code>%s</code></pre>" (htmlEscape $body) -}}
+{{- end -}}
+{{- $entry := dict "name" $name "lang" $lang "html" $html -}}
+{{- /*
+  We cannot use .Parent.Scratch.Add because Hugo renders nested shortcodes
+  before the parent template runs, so the slice cannot be pre-initialised
+  by the parent. Instead we Get/append/Set, which works with an absent key.
+*/ -}}
+{{- $existing := .Parent.Scratch.Get "code-tabs" -}}
+{{- if $existing -}}
+  {{- .Parent.Scratch.Set "code-tabs" ($existing | append $entry) -}}
+{{- else -}}
+  {{- .Parent.Scratch.Set "code-tabs" (slice $entry) -}}
+{{- end -}}

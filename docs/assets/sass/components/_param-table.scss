@@ -1,0 +1,147 @@
+.param-table-wrap {
+  margin-block: var(--space-m);
+
+  /* Sticky thead requires a non-scrolling parent so that <th> participates
+     in PAGE vertical scroll. On narrow screens we fall back to in-wrapper
+     horizontal scroll (and lose sticky, which is acceptable on mobile). */
+  @include mq-max(medium) {
+    overflow-x: auto;
+  }
+}
+
+.param-table {
+  /* Cancel the global `table { display: block; overflow-x: auto }` from
+     components/_table.scss. We need native table layout so that:
+       - sticky thead activates against the page scroll (not an inner one);
+       - column widths can be auto-fit by content. */
+  display: table;
+  overflow: visible;
+
+  /* `separate` (rather than `collapse`) makes `position: sticky` on <th>
+     reliable across browsers; visual is identical because spacing is 0. */
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: var(--fs-300);
+
+  th, td {
+    padding: var(--space-2xs) var(--space-s);
+    border-block-end: var(--border-subtle);
+    vertical-align: top;
+    text-align: start;
+  }
+
+  thead th {
+    background: var(--clr-neutral-100);
+    font-weight: 600;
+    color: var(--clr-neutral-700);
+    /* Park below the sticky page navbar. */
+    position: sticky;
+    inset-block-start: var(--navbar-height);
+    /* Stay above tbody rows when they scroll past. Same z-index as the page
+       navbar is fine: they occupy adjacent vertical bands and never overlap. */
+    z-index: 1;
+    box-shadow: inset 0 -1px 0 var(--clr-neutral-300);
+  }
+
+  &__name {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    font-weight: 600;
+    color: var(--clr-primary-400);
+    white-space: nowrap;
+  }
+
+  /* Mute the property name when the row is no longer recommended.
+     Versions column still carries the explicit "deprecated in X.Y" badge. */
+  tr[data-param-status="deprecated"] &__name code,
+  tr[data-param-status="hidden"]     &__name code {
+    color: var(--clr-neutral-500);
+  }
+
+  &__type {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    color: var(--clr-neutral-600);
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  &__unit {
+    display: block;
+    margin-block-start: var(--space-3xs);
+    color: var(--clr-neutral-500);
+    font-size: var(--fs-200);
+    font-style: italic;
+  }
+
+  &__default {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+    color: var(--clr-neutral-700);
+    white-space: nowrap;
+  }
+
+  &__since,
+  &__deprecated,
+  &__versions {
+    white-space: nowrap;
+  }
+
+  &__version-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3xs);
+    align-items: flex-start;
+    line-height: 1.2;
+  }
+
+  &__search {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+    margin-block-end: var(--space-s);
+
+    input[type="search"] {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: var(--space-2xs) var(--space-s);
+      border: var(--border-subtle);
+      border-radius: var(--radius-s);
+      font: inherit;
+      font-size: var(--fs-300);
+
+      &:focus-visible {
+        outline: 2px solid var(--clr-primary-300);
+        outline-offset: 1px;
+      }
+    }
+  }
+
+  &__count {
+    flex: 0 0 auto;
+    color: var(--clr-neutral-500);
+    font-size: var(--fs-300);
+    white-space: nowrap;
+  }
+}
+
+/* Cancel the default `.main-inner :is(.article, ...) li { margin: 1em 0 }`
+   from base/_base.scss inside our version list. Top-level rule with an
+   explicit `.main-inner .article` prefix outscores the base. */
+.main-inner .article .param-table__version-list > li {
+  margin: 0;
+  padding: 0;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

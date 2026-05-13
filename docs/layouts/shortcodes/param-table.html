@@ -1,0 +1,131 @@
+{{/*
+  param-table: reference table for connection / system / driver properties.
+
+  Reads .Site.Data.<data> as a list of dicts. Expected keys per entry:
+    name           string, required (PGProperty.getName())
+    type           string, one of BOOLEAN INT LONG STRING ENUM CLASS
+                   DURATION_SECONDS DURATION_MILLIS SIZE_BYTES
+    default        string|null
+    introducedIn   string (semver-ish; "9.4", "42.7.4", …)
+    status         string, one of STABLE EXPERIMENTAL MAINTAINED INTERNAL DEPRECATED HIDDEN
+    deprecatedIn   string, optional
+    hiddenIn       string, optional
+    tags           list of strings (lowercased Tag enum names)
+    description    inline markdown, short
+
+  Params:
+    data       (string, required)  data file key in site Data
+    tag        (string, optional)  filter to rows whose `tags` contains this tag
+    search     (boolean, optional) render an in-page filter input above table
+                                   (defaults to true; pass search="false" to disable)
+
+  Examples:
+    {{< param-table data="connection-properties" >}}
+    {{< param-table data="connection-properties" tag="ssl" >}}
+    {{< param-table data="connection-properties" tag="fetch" search="false" >}}
+*/}}
+{{- $dataKey := .Get "data" -}}
+{{- $filterTag := lower (.Get "tag" | default "") -}}
+{{- $showSearch := ne (.Get "search" | default "true") "false" -}}
+{{- $all := index .Site.Data $dataKey -}}
+{{- $rows := slice -}}
+{{- range $all -}}
+  {{- $include := true -}}
+  {{- if $filterTag -}}
+    {{- $tags := .tags | default slice -}}
+    {{- $include = false -}}
+    {{- range $tags -}}
+      {{- if eq (lower .) $filterTag -}}{{- $include = true -}}{{- end -}}
+    {{- end -}}
+  {{- end -}}
+  {{- if $include -}}{{- $rows = $rows | append . -}}{{- end -}}
+{{- end -}}
+{{/* Map @PgPropertyType.Kind values to (primary, unit) pairs.
+     Primary is the Java type; unit is rendered on a second line so the
+     column stays narrow. Empty unit means single-line cell. */}}
+{{- $typeLabels := dict
+    "BOOLEAN"          (slice "boolean" "")
+    "INT"              (slice "int" "")
+    "LONG"             (slice "long" "")
+    "STRING"           (slice "string" "")
+    "ENUM"             (slice "enum" "")
+    "CLASS"            (slice "class" "")
+    "DURATION_SECONDS" (slice "int" "seconds")
+    "DURATION_MILLIS"  (slice "int" "milliseconds")
+    "SIZE_BYTES"       (slice "int" "bytes")
+    "SIZE_EXPRESSION"  (slice "string" "size, e.g. 2M")
+-}}
+{{- $tableId := printf "pt-%d" .Ordinal -}}
+{{- with $rows -}}
+<div class="param-table-wrap" data-param-table id="{{ $tableId }}">
+{{- if $showSearch }}
+  <label class="param-table__search">
+    <span class="visually-hidden">Filter properties</span>
+    <input type="search"
+           placeholder="Filter {{ len $rows }} {{ with $filterTag }}{{ . }} {{ end }}propert{{ if eq (len $rows) 1 }}y{{ else }}ies{{ end }} by name or description…"
+           data-param-table-search
+           aria-controls="{{ $tableId }}-tbody">
+    <span class="param-table__count" data-param-table-count>{{ len $rows }} of {{ len $rows }}</span>
+  </label>
+{{- end }}
+<table class="param-table">
+  <thead>
+    <tr>
+      <th scope="col">Name</th>
+      <th scope="col">Type</th>
+      <th scope="col">Default</th>
+      <th scope="col">Versions</th>
+      <th scope="col">Description</th>
+    </tr>
+  </thead>
+  <tbody id="{{ $tableId }}-tbody">
+    {{- range $rows -}}
+      {{- $anchor    := anchorize .name -}}
+      {{- $status    := upper (.status | default "STABLE") -}}
+      {{- $haystack  := lower (printf "%s %s" .name (.description | default "" | plainify)) -}}
+      {{- $rawType   := upper (.type | default "") -}}
+      {{- $typePair  := index $typeLabels $rawType -}}
+      {{- $typeLabel := "" -}}
+      {{- $typeUnit  := "" -}}
+      {{- if $typePair -}}
+        {{- $typeLabel = index $typePair 0 -}}
+        {{- $typeUnit  = index $typePair 1 -}}
+      {{- else -}}
+        {{- $typeLabel = lower $rawType -}}
+      {{- end -}}
+      <tr id="prop-{{ $anchor }}"
+          data-param-row
+          data-param-name="{{ .name }}"
+          data-param-haystack="{{ $haystack }}"
+          {{- with .tags }} data-param-tags="{{ delimit . "," }}"{{ end }}
+          data-param-status="{{ lower $status }}">
+        <td class="param-table__name">
+          <a href="#prop-{{ $anchor }}"><code>{{ .name }}</code></a>
+        </td>
+        <td class="param-table__type">
+          <code>{{ $typeLabel }}</code>
+          {{- with $typeUnit }}<span class="param-table__unit">{{ . }}</span>{{ end }}
+        </td>
+        <td class="param-table__default">{{- with .default }}<code>{{ . }}</code>{{- else }}—{{- end }}</td>
+        <td class="param-table__versions">
+          <ul class="param-table__version-list">
+            {{- with .introducedIn }}
+              <li><span class="badge badge--since" title="Available since pgjdbc {{ . }}">since&nbsp;{{ . }}</span></li>
+            {{- end }}
+            {{- with .deprecatedIn }}
+              <li><span class="badge badge--deprecated-in" title="Deprecated in pgjdbc {{ . }}">deprecated&nbsp;in&nbsp;{{ . }}</span></li>
+            {{- end }}
+            {{- with .hiddenIn }}
+              <li><span class="badge badge--hidden-in" title="Hidden in pgjdbc {{ . }}">hidden&nbsp;in&nbsp;{{ . }}</span></li>
+            {{- end }}
+          </ul>
+        </td>
+        <td class="param-table__desc">{{ .description | markdownify }}</td>
+      </tr>
+    {{- end -}}
+  </tbody>
+</table>
+</div>
+{{- else -}}
+<p><em>param-table: no rows match. Looked in <code>data/{{ $dataKey }}.(toml|yaml|json)</code>{{ with $filterTag }}, filtering by tag <code>{{ . }}</code>{{ end }}.</em></p>
+{{- end -}}

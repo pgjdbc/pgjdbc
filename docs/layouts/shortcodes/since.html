@@ -1,0 +1,15 @@
+{{/*
+  since: inline badge marking when a feature/parameter appeared.
+
+  Params (positional or named):
+    version (positional or "version")    required, e.g. "42.7.4"
+
+  Usage:
+    {{< since "42.7.4" >}}
+    {{< since version="42.7.4" >}}
+*/}}
+{{- $version := .Get 0 -}}
+{{- if not $version -}}{{- $version = .Get "version" -}}{{- end -}}
+{{- if $version -}}
+<span class="badge badge--since" title="Available since pgjdbc {{ $version }}">Since {{ $version }}</span>
+{{- end -}}

@@ -1,0 +1,47 @@
+{{/*
+  code-tabs: container for one or more {{< code-tab >}} children.
+
+  Children push entries into .Scratch via .Parent.Scratch.Add. We render
+  .Inner first (which triggers the children but emits nothing, since each
+  child writes to Scratch instead of producing output), then read the
+  collected slice and emit the structured tabs/panels.
+
+  Usage:
+    {{< code-tabs >}}
+    {{< code-tab name="Maven" lang="xml" >}}
+    <dependency>...</dependency>
+    {{< /code-tab >}}
+    {{< code-tab name="Gradle (Kotlin)" lang="kotlin" >}}
+    implementation("org.postgresql:postgresql:42.7.11")
+    {{< /code-tab >}}
+    {{< /code-tabs >}}
+*/}}
+{{- $id := printf "ct-%d" .Ordinal -}}
+{{- /* trigger child shortcodes; they Set/append into Scratch and emit nothing */ -}}
+{{- $_ := .Inner -}}
+{{- $tabs := .Scratch.Get "code-tabs" -}}
+{{- if not $tabs -}}{{- $tabs = slice -}}{{- end -}}
+<div class="code-tabs" data-code-tabs id="{{ $id }}">
+  <ul class="code-tabs__list" role="tablist">
+    {{- range $i, $t := $tabs -}}
+      <li class="code-tabs__tab" role="presentation">
+        <button class="code-tabs__btn"
+                role="tab"
+                type="button"
+                aria-controls="{{ $id }}-panel-{{ $i }}"
+                aria-selected="{{ if eq $i 0 }}true{{ else }}false{{ end }}"
+                data-tab-target="{{ $i }}">{{ $t.name }}</button>
+      </li>
+    {{- end -}}
+  </ul>
+  <div class="code-tabs__panels">
+    {{- range $i, $t := $tabs -}}
+      <div id="{{ $id }}-panel-{{ $i }}"
+           class="code-tabs__panel"
+           role="tabpanel"
+           data-active="{{ if eq $i 0 }}true{{ else }}false{{ end }}">
+        {{ $t.html | safeHTML }}
+      </div>
+    {{- end -}}
+  </div>
+</div>

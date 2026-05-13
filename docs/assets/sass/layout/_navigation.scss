@@ -5,7 +5,9 @@
 
   position: sticky;
   top: 0;
-  z-index: 1;
+  /* Above .param-table thead (z-index: 1) so the navbar always covers the
+     parking band even if --navbar-height under-estimates actual height. */
+  z-index: 2;
   padding: var(--primary-spacing) var(--container-spacing);
   box-shadow: 0px 3px 3px hsla(0, 0%, 0%, 0.15);
   background-color: var(--clr-white);

@@ -1,4 +1,7 @@
 import './accordion.js'
+import './code-tabs.js'
 import './copyToClipboard.js'
 import './lunr-search.js'
 import './menutoggle.js'
+import './navbar-height.js'
+import './param-table.js'

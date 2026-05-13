@@ -1,0 +1,38 @@
+{{/*
+  callout: themed admonition box.
+
+  Params (named):
+    type    one of: note | tip | warning | security | deprecated   (default: note)
+    title   optional override for the heading (default: auto from type)
+
+  Usage:
+    {{< callout type="warning" title="Heads up" >}}
+    Markdown body here.
+    {{< /callout >}}
+*/}}
+{{- $type    := lower (.Get "type" | default "note") -}}
+{{- $valid   := slice "note" "tip" "warning" "security" "deprecated" -}}
+{{- if not (in $valid $type) -}}{{- $type = "note" -}}{{- end -}}
+{{- $titles  := dict
+    "note"       "Note"
+    "tip"        "Tip"
+    "warning"    "Warning"
+    "security"   "Security"
+    "deprecated" "Deprecated"
+-}}
+{{- $icons   := dict
+    "note"       "ⓘ"
+    "tip"        "★"
+    "warning"    "⚠"
+    "security"   "🔒"
+    "deprecated" "✕"
+-}}
+{{- $title   := .Get "title" | default (index $titles $type) -}}
+{{- $icon    := index $icons $type -}}
+<aside class="callout callout--{{ $type }}" role="note">
+  <span class="callout__icon" aria-hidden="true">{{ $icon }}</span>
+  <div class="callout__body">
+    <strong class="callout__title">{{ $title }}</strong>
+    {{ .Inner | markdownify }}
+  </div>
+</aside>

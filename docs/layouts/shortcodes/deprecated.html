@@ -1,0 +1,19 @@
+{{/*
+  deprecated: inline badge marking when a feature/parameter was deprecated.
+
+  Params (named):
+    since   required, e.g. "42.7.0"
+    use     optional, recommended replacement (free text)
+    removed optional, version that removes it (still shows as deprecated until then)
+
+  Usage:
+    {{< deprecated since="42.7.0" use="primary instead of master" >}}
+    {{< deprecated since="42.5.0" removed="43.0.0" >}}
+*/}}
+{{- $since   := .Get "since" -}}
+{{- $use     := .Get "use" -}}
+{{- $removed := .Get "removed" -}}
+{{- $tip     := printf "Deprecated since pgjdbc %s" (default "?" $since) -}}
+{{- if $removed -}}{{- $tip = printf "%s; scheduled for removal in %s" $tip $removed -}}{{- end -}}
+{{- if $use -}}{{- $tip = printf "%s. Use: %s" $tip $use -}}{{- end -}}
+<span class="badge badge--deprecated" title="{{ $tip }}">Deprecated{{ with $since }} since {{ . }}{{ end }}</span>

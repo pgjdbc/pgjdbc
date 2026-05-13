@@ -39,6 +39,12 @@ weight = 6
 ### DOCS ITEMS
 
 [[docs]]
+identifier = "install"
+name = "Quick Start"
+url = "/documentation/install/"
+weight = 1
+
+[[docs]]
 identifier = "setup"
 name = "Getting Started"
 url = "/documentation/setup/"

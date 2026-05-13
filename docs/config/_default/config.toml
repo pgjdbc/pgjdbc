@@ -3,6 +3,14 @@
 baseURL = "https://jdbc.postgresql.org/"
 languageCode = "en-us"
 title = "pgJDBC"
+
+# Used by partials/docs/page-meta.html to render "Edit this page on GitHub".
+# The full URL is <docsRepo>/edit/<docsBranch>/<docsContentRoot>/<page-path>.
+[params]
+docsRepo         = "https://github.com/pgjdbc/pgjdbc"
+docsBranch       = "master"
+docsContentRoot  = "docs/content"
+
 [permalinks]
 page = "/:slug/"
 posts = "/:year/:month/:slug/"
