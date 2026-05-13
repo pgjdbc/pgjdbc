@@ -47,6 +47,7 @@ if (providers.gradleProperty("jdkTestVersion").orNull?.toInt() != 8) {
 }
 include("postgresql")
 include("testkit")
+include("docs-tools")
 
 project(":postgresql").projectDir = file("pgjdbc")
 
