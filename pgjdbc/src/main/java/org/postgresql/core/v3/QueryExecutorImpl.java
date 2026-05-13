@@ -2467,6 +2467,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
+          if (isFlushCacheOnDdl()
+              && (status.startsWith("CREATE ")
+                  || status.startsWith("DROP ")
+                  || status.startsWith("ALTER "))) {
+            // DDL invalidates any server-side prepared plan that references
+            // the affected relation. Bump the epoch so the driver
+            // re-prepares matching statements on next use, instead of
+            // surfacing PostgreSQL's "cached plan must not change result
+            // type" to callers that don't opt into autosave=ALWAYS.
+            deallocateEpoch++;
+          }
 
           doneAfterRowDescNoData = false;
 

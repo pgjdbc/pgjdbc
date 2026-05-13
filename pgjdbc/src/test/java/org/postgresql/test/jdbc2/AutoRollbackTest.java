@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.core.BaseConnection;
+import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TransactionState;
@@ -155,6 +156,11 @@ public class AutoRollbackTest extends BaseTest4 {
     con.setAutoCommit(autoCommit == AutoCommit.YES);
     BaseConnection baseConnection = con.unwrap(BaseConnection.class);
     baseConnection.setFlushCacheOnDeallocate(flushCacheOnDeallocate);
+    // Tie flushCacheOnDdl to the same parameterization. When false, the
+    // driver behaves like the legacy code and surfaces "cached plan must
+    // not change result type" after an ALTER on a referenced table.
+    QueryExecutor qe = baseConnection.getQueryExecutor();
+    qe.setFlushCacheOnDdl(flushCacheOnDeallocate);
     assumeTrue(failMode != FailMode.DEALLOCATE || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "DEALLOCATE ALL requires PostgreSQL 8.3+");
     assumeTrue(failMode != FailMode.DISCARD || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "DISCARD ALL requires PostgreSQL 8.3+");
     assumeTrue(failMode != FailMode.ALTER || TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_3), "Plan invalidation on table redefinition requires PostgreSQL 8.3+");
@@ -195,7 +201,14 @@ public class AutoRollbackTest extends BaseTest4 {
                 continue;
               }
               for (boolean flushCacheOnDeallocate : booleans) {
-                if (!(flushCacheOnDeallocate || DEALLOCATES.contains(failMode))) {
+                // The flag now also controls flushCacheOnDdl (tied 1:1 in
+                // setUp), so it's meaningful for FailMode.ALTER too — both
+                // legacy (false: surface "cached plan must not change result
+                // type") and new (true: re-prepare transparently) paths
+                // get coverage.
+                if (!(flushCacheOnDeallocate
+                    || DEALLOCATES.contains(failMode)
+                    || failMode == FailMode.ALTER)) {
                   continue;
                 }
 
@@ -346,8 +359,10 @@ public class AutoRollbackTest extends BaseTest4 {
     } catch (SQLException e) {
       if (autoSave == AutoSave.NEVER && autoCommit == AutoCommit.NO) {
         if (DEALLOCATES.contains(failMode) && !flushCacheOnDeallocate
-            || failMode == FailMode.ALTER) {
-          // The above statement failed with "prepared statement does not exist", thus subsequent one should fail with
+            || (failMode == FailMode.ALTER && !flushCacheOnDeallocate)) {
+          // The above statement failed with "prepared statement does not exist"
+          // (or "cached plan must not change result type" under
+          // flushCacheOnDdl=false), thus subsequent one should fail with
           // transaction aborted.
           assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), e.getSQLState(), "AutoSave==NEVER, thus statements should fail with 'current transaction is aborted...', "
               + " error message is " + e.getMessage());
@@ -371,10 +386,18 @@ public class AutoRollbackTest extends BaseTest4 {
         fail("flushCacheOnDeallocate == false, thus DEALLOCATE ALL should kill the transaction");
       }
     } else if (failMode == FailMode.ALTER) {
+      // With flushCacheOnDdl enabled (the default and also what
+      // flushCacheOnDeallocate=true triggers in this test's setUp), the
+      // driver re-prepares server-side plans after ALTER so the re-execute
+      // succeeds transparently — autosave=NEVER is no longer required to
+      // see "cached plan must not change result type" turned into a hard
+      // failure. Only assert the legacy hard-failure path when the cache
+      // is intentionally not flushed.
       if (autoSave == AutoSave.NEVER
+          && !flushCacheOnDeallocate
           && con.unwrap(PGConnection.class).getPreferQueryMode() != PreferQueryMode.SIMPLE
           && cols == ReturnColumns.STAR) {
-        fail("autosave=NEVER, thus the transaction should be killed");
+        fail("autosave=NEVER + flushCacheOnDdl=false, thus the transaction should be killed");
       }
     } else {
       fail("It is not specified why the test should pass, thus marking a failure");
