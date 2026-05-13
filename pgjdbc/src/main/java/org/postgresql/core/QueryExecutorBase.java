@@ -56,6 +56,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   private PreferQueryMode preferQueryMode;
   private AutoSave autoSave;
   private boolean flushCacheOnDeallocate = true;
+  private boolean flushCacheOnDdl = true;
   protected final boolean logServerErrorDetail;
 
   // default value for server versions that don't report standard_conforming_strings
@@ -460,6 +461,16 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   @Override
   public void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate) {
     this.flushCacheOnDeallocate = flushCacheOnDeallocate;
+  }
+
+  @Override
+  public boolean isFlushCacheOnDdl() {
+    return flushCacheOnDdl;
+  }
+
+  @Override
+  public void setFlushCacheOnDdl(boolean flushCacheOnDdl) {
+    this.flushCacheOnDdl = flushCacheOnDdl;
   }
 
   protected boolean hasNotifications() {

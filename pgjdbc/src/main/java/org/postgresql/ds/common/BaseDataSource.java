@@ -1804,6 +1804,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.HIDE_UNPRIVILEGED_OBJECTS.set(properties, hideUnprivileged);
   }
 
+  /**
+   * @return boolean indicating whether DDL invalidates the prepared-statement cache
+   * @see PGProperty#FLUSH_CACHE_ON_DDL
+   */
+  public boolean getFlushCacheOnDdl() {
+    return PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(properties);
+  }
+
+  /**
+   * @param flushCacheOnDdl true to invalidate prepared statements on CREATE/DROP/ALTER
+   * @see PGProperty#FLUSH_CACHE_ON_DDL
+   */
+  public void setFlushCacheOnDdl(boolean flushCacheOnDdl) {
+    PGProperty.FLUSH_CACHE_ON_DDL.set(properties, flushCacheOnDdl);
+  }
+
   public @Nullable String getMaxResultBuffer() {
     return PGProperty.MAX_RESULT_BUFFER.getOrDefault(properties);
   }

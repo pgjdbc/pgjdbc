@@ -250,6 +250,22 @@ public enum PGProperty {
       new String[]{"select", "callIfNoReturn", "call"}),
 
   /**
+   * Controls whether DDL commands (CREATE/DROP/ALTER) invalidate the
+   * prepared-statement cache. When enabled (the default), the driver
+   * transparently re-prepares server-side plans after DDL, so callers don't
+   * see "cached plan must not change result type" after an
+   * {@code ALTER TABLE} on a referenced table. Disable to keep the legacy
+   * behaviour (the error is propagated and transparent recovery requires
+   * {@code autosave=ALWAYS}).
+   */
+  FLUSH_CACHE_ON_DDL(
+      "flushCacheOnDdl",
+      "true",
+      "Invalidate the prepared-statement cache when a CREATE/DROP/ALTER "
+          + "CommandComplete is observed (default true). Disable for legacy "
+          + "behavior that surfaces 'cached plan must not change result type'."),
+
+  /**
    * Group startup parameters in a transaction
    * This is important in pool-by-transaction scenarios in order to make sure that all the statements
    * reaches the same connection that is being initialized. All of the startup parameters will be wrapped

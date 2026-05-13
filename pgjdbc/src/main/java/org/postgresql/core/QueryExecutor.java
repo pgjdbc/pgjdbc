@@ -572,6 +572,28 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setFlushCacheOnDeallocate(boolean flushCacheOnDeallocate);
 
   /**
+   * Returns whether the prepared-statement cache is invalidated when a
+   * {@code CREATE}/{@code DROP}/{@code ALTER} CommandComplete message is
+   * observed in the same session.
+   *
+   * @return true if DDL invalidates the prepared-statement cache
+   */
+  boolean isFlushCacheOnDdl();
+
+  /**
+   * Controls whether a {@code CREATE}/{@code DROP}/{@code ALTER}
+   * CommandComplete message invalidates the prepared-statement cache.
+   * When enabled (the default), the driver re-prepares server-side
+   * statements after DDL so callers don't trip on
+   * "cached plan must not change result type". Disable for parity with the
+   * pre-existing behaviour, which propagated that error and relied on
+   * {@code autosave=ALWAYS} for transparent recovery.
+   *
+   * @param flushCacheOnDdl true to invalidate prepared statements on DDL
+   */
+  void setFlushCacheOnDdl(boolean flushCacheOnDdl);
+
+  /**
    * @return the ReplicationProtocol instance for this connection.
    */
   ReplicationProtocol getReplicationProtocol();

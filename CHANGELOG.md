@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Security
 ### Added
+* feat: invalidate the prepared-statement cache after CREATE/DROP/ALTER so callers no longer trip on "cached plan must not change result type" without opting into `autosave=ALWAYS`. Controlled by the new `flushCacheOnDdl` connection property (default `true`); set to `false` for the prior behaviour.
+
 ### Changed
 ### Fixed
 * fix: getCharacterStream wraps String in StringReader [PR #4063](https://github.com/pgjdbc/pgjdbc/pull/4063)

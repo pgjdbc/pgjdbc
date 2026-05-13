@@ -304,6 +304,11 @@ public class PgConnection implements BaseConnection {
 
     this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
+    // Default is true: DDL transparently invalidates the prepared-statement
+    // cache so the driver re-prepares server plans rather than surfacing
+    // "cached plan must not change result type" to callers.
+    queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
+
     // get oids that support binary transfer
     Set<Integer> binaryOids = getBinaryEnabledOids(info);
     // get oids that should be disabled from transfer
