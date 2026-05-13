@@ -248,7 +248,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (pipelineMode) {
       this.pipelinePendingSlots = new ConcurrentLinkedDeque<>();
       this.pipelineReaderThread = new PipelineReaderThread(pgStream, this, pipelinePendingSlots);
-      this.pipelineReaderThread.start();
+      // Reader thread is started later via startPipelineReaderThread() after connection setup
     } else {
       this.pipelinePendingSlots = null;
       this.pipelineReaderThread = null;
@@ -3371,6 +3371,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final boolean pipelineMode;
   private final @Nullable ConcurrentLinkedDeque<ResponseSlot> pipelinePendingSlots;
   private final @Nullable PipelineReaderThread pipelineReaderThread;
+
+  /**
+   * Start the pipeline reader thread. Must be called after connection setup is complete
+   * to avoid the reader thread consuming responses meant for synchronous setup queries.
+   */
+  @Override
+  public void startPipelineReaderThread() {
+    if (pipelineReaderThread != null) {
+      pipelineReaderThread.start();
+    }
+  }
 
   private ConcurrentLinkedDeque<ResponseSlot> pipelineSlots() {
     return castNonNull(pipelinePendingSlots);

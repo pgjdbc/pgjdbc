@@ -401,6 +401,9 @@ public class PgConnection implements BaseConnection {
 
     xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
     cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
+
+    // Start the pipeline reader thread after all setup queries are complete
+    queryExecutor.startPipelineReaderThread();
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
