@@ -158,6 +158,45 @@ public class Jdbc3CallableStatementTest extends BaseTest4 {
 
   }
 
+  /**
+   * Regression test for <a href="https://github.com/pgjdbc/pgjdbc/issues/2647">#2647</a>:
+   * {@code CallableStatement.getObject(int, Class)} only handled
+   * {@code ResultSet.class} and threw {@code Unsupported type conversion}
+   * for everything else. With the codec rework the typed accessor honours
+   * the JDBC spec and returns the value as the requested class when the
+   * conversion is supported.
+   */
+  @Test
+  public void testGetObjectWithType_issue2647() throws Throwable {
+    // OUT arguments for procedures were added in PostgreSQL 14
+    // (https://www.postgresql.org/docs/14/sql-createprocedure.html). On
+    // PG 11–13 the CREATE PROCEDURE below fails with
+    // "procedures cannot have OUT arguments", so skip those servers —
+    // the issue #2647 reproducer only makes sense once the server
+    // supports the syntax the user reported it with.
+    assumeMinimumServerVersion(ServerVersion.v14);
+    try (Statement stmt = con.createStatement()) {
+      stmt.execute("CREATE OR REPLACE PROCEDURE test_2647(OUT result BIGINT) AS "
+          + "$$ BEGIN result := 42; END $$ LANGUAGE plpgsql");
+    }
+    try (CallableStatement call = con.prepareCall("call test_2647(?)")) {
+      call.setNull(1, Types.BIGINT);
+      call.registerOutParameter(1, Types.BIGINT);
+      call.execute();
+
+      Long boxed = call.getObject(1, Long.class);
+      assertNotNull(boxed);
+      assertEquals(42L, boxed.longValue());
+
+      // Untyped getObject still works (the legacy fast path).
+      assertEquals(42L, call.getObject(1));
+    } finally {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("DROP PROCEDURE IF EXISTS test_2647(BIGINT)");
+      }
+    }
+  }
+
   @Test
   public void testNotEnoughParameters() throws Throwable {
     CallableStatement cs = con.prepareCall("{call myiofunc(?,?)}");

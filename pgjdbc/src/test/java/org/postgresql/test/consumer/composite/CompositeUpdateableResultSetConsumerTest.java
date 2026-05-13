@@ -45,7 +45,7 @@ import java.util.Collection;
 @ParameterizedClass
 @MethodSource("data")
 class CompositeUpdateableResultSetConsumerTest extends BaseTest4 {
-  public CompositeUpdateableResultSetConsumerTest(BinaryMode binaryMode) {
+  CompositeUpdateableResultSetConsumerTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
 
