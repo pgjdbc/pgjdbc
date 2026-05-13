@@ -38,7 +38,7 @@ public class PipelinePerformanceTest {
 
   @BeforeAll
   static void setUp() throws SQLException {
-    Logger logger = Logger.getLogger("org.postgresql");
+    Logger logger = Logger.getLogger("org.postgresql.core.v3");
     logger.setLevel(Level.FINEST);
     ConsoleHandler handler = new ConsoleHandler();
     handler.setLevel(Level.FINEST);

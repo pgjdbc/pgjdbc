@@ -38,7 +38,7 @@ public class PipelineModeTest extends BaseTest4 {
 
   @BeforeAll
   static void enableLogging() {
-    Logger logger = Logger.getLogger("org.postgresql");
+    Logger logger = Logger.getLogger("org.postgresql.core.v3");
     logger.setLevel(Level.FINEST);
     ConsoleHandler handler = new ConsoleHandler();
     handler.setLevel(Level.FINEST);

@@ -307,7 +307,7 @@ jobs:
         arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
-          testExtraJvmArgs=${{ matrix.testExtraJvmArgs }} ::: -Djava.util.logging.config.file=logging.properties
+          testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
           jdkBuildVersion=21
           jdkTestVersion=${{ matrix.java_version == 'EA' && steps.setup_ea_java.outputs.version || matrix.java_version }}
           jdkTestVendor=${{ matrix.java_vendor }}
