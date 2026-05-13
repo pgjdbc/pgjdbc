@@ -102,6 +102,7 @@ public class Oid {
   public static final int MACADDR8 = 774;
   public static final int TSVECTOR = 3614;
   public static final int TSQUERY = 3615;
+  public static final int RECORD = 2249;
 
   private static final Map<Integer, String> OID_TO_NAME = new HashMap<>(100);
   private static final Map<String, Integer> NAME_TO_OID = new HashMap<>(100);

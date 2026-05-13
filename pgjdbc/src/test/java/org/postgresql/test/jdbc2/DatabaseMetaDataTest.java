@@ -800,17 +800,22 @@ public class DatabaseMetaDataTest {
       assertFalse(rs.next());
     }
 
-    /* getFunctionColumns also has to be aware of dropped columns
-       add this in here to make sure it can deal with them
+    /* Functions returning a composite type are reported as a single STRUCT
+       return value rather than a row per attribute, so dropped attributes
+       are simply not part of the output.
      */
     try (ResultSet rs = dbmd.getFunctionColumns(null, null, "f4", null)) {
       assertTrue(rs.next());
+      assertEquals("returnValue", rs.getString(4));
+      assertEquals(DatabaseMetaData.functionReturn, rs.getInt(5));
+      assertEquals(Types.STRUCT, rs.getInt(6));
 
       assertTrue(rs.next());
-      assertEquals("id", rs.getString(4));
+      assertEquals("$1", rs.getString(4));
+      assertEquals(DatabaseMetaData.functionColumnIn, rs.getInt(5));
+      assertEquals(Types.INTEGER, rs.getInt(6));
 
-      assertTrue(rs.next());
-      assertEquals("updated", rs.getString(4));
+      assertFalse(rs.next());
     }
   }
 
@@ -1245,34 +1250,14 @@ public class DatabaseMetaDataTest {
     ResultSet rs = dbmd.getProcedureColumns(null, null, "f4", null);
 
     assertTrue(rs.next());
+    assertEquals("returnValue", rs.getString(4));
+    assertEquals(DatabaseMetaData.procedureColumnReturn, rs.getInt(5));
+    assertEquals(Types.STRUCT, rs.getInt(6));
+
+    assertTrue(rs.next());
     assertEquals("$1", rs.getString(4));
     assertEquals(DatabaseMetaData.procedureColumnIn, rs.getInt(5));
     assertEquals(Types.INTEGER, rs.getInt(6));
-
-    assertTrue(rs.next());
-    assertEquals("id", rs.getString(4));
-    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.INTEGER, rs.getInt(6));
-
-    assertTrue(rs.next());
-    assertEquals("name", rs.getString(4));
-    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
-
-    assertTrue(rs.next());
-    assertEquals("updated", rs.getString(4));
-    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.TIMESTAMP, rs.getInt(6));
-
-    assertTrue(rs.next());
-    assertEquals("colour", rs.getString(4));
-    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
-
-    assertTrue(rs.next());
-    assertEquals("quest", rs.getString(4));
-    assertEquals(DatabaseMetaData.procedureColumnResult, rs.getInt(5));
-    assertEquals(Types.VARCHAR, rs.getInt(6));
 
     assertFalse(rs.next());
     rs.close();

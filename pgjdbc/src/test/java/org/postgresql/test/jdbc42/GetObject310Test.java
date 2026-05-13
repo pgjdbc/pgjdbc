@@ -96,18 +96,22 @@ public class GetObject310Test extends BaseTest4 {
 
   @Test
   public void issue1384() throws SQLException {
+    TimeZone savedDefault = TimeZone.getDefault();
     TimeZone.setDefault(TimeZone.getTimeZone("CET"));
-    OffsetDateTime ts = OffsetDateTime.parse("0999-01-01T00:00:00Z");
-    System.out.println("binaryMode = " + binaryMode);
-    try (PreparedStatement s = con.prepareStatement("SELECT ?")) {
-      System.out.println("        input offsetDateTime = " + ts);
-      s.setObject(1, ts);
-      try (ResultSet rs = s.executeQuery()) {
-        rs.next();
-        System.out.println("             getTimestamp(1) = " + rs.getTimestamp(1));
-        System.out.println("getObject(1, OffsetDateTime) = " + rs.getObject(1, OffsetDateTime.class));
-        System.out.println("                getString(1) = " + rs.getString(1));
+    try {
+      OffsetDateTime ts = OffsetDateTime.parse("0999-01-01T00:00:00Z");
+      try (PreparedStatement s = con.prepareStatement("SELECT ?")) {
+        s.setObject(1, ts);
+        try (ResultSet rs = s.executeQuery()) {
+          assertTrue(rs.next());
+          // The Java-side OffsetDateTime must round-trip the exact
+          // instant regardless of the JVM default timezone
+          // (regression for issue 1384).
+          assertEquals(ts, rs.getObject(1, OffsetDateTime.class));
+        }
       }
+    } finally {
+      TimeZone.setDefault(savedDefault);
     }
   }
 

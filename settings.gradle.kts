@@ -45,6 +45,7 @@ if (providers.gradleProperty("jdkTestVersion").orNull?.toInt() != 8) {
     // Mockito requires Java 11+
     include("pgjdbc-mockito-test")
 }
+include("pgjdbc-spring-jdbc-test")
 include("postgresql")
 include("testkit")
 
