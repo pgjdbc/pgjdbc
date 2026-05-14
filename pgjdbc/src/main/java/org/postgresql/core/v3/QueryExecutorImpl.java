@@ -411,10 +411,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
-    if (pipelineMode && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
-      executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
+        return;
+      }
+      // Simple queries can't use pipeline protocol — pause reader thread
+      // so it doesn't consume responses meant for the synchronous path.
+      PipelineReaderThread reader = castNonNull(pipelineReaderThread);
+      reader.pause();
+      try {
+        executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+      } finally {
+        reader.unpause();
+      }
       return;
     }
+    executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeSynchronous(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler,
+      int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       if (LOGGER.isLoggable(Level.FINEST)) {
@@ -646,10 +664,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
       throws SQLException {
-    if (pipelineMode && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+        PipelineReaderThread reader = castNonNull(pipelineReaderThread);
+        reader.pause();
+        try {
+          executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+        } finally {
+          reader.unpause();
+        }
+        return;
+      }
       executeBatchPipeline(queries, parameterLists, batchHandler, maxRows, flags);
       return;
     }
+    executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeBatchSynchronous(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       if (LOGGER.isLoggable(Level.FINEST)) {

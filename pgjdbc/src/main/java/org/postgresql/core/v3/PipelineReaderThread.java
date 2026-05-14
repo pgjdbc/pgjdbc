@@ -41,6 +41,8 @@ class PipelineReaderThread extends Thread {
   private final ConcurrentLinkedDeque<ResponseSlot> pendingSlots;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
+  private volatile boolean paused;
+  private final Object pauseLock = new Object();
 
   private @Nullable ResponseSlot currentSlot;
 
@@ -58,19 +60,61 @@ class PipelineReaderThread extends Thread {
     this.interrupt();
   }
 
+  /**
+   * Pause the reader thread so the synchronous path can read from the socket.
+   * Blocks until the reader thread is actually paused.
+   */
+  void pause() {
+    synchronized (pauseLock) {
+      paused = true;
+      try {
+        // Reader checks paused flag after each SocketTimeoutException or message.
+        // Wait for it to enter the paused state.
+        pauseLock.wait(2000);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  /**
+   * Resume the reader thread after synchronous execution completes.
+   */
+  void unpause() {
+    synchronized (pauseLock) {
+      paused = false;
+      pauseLock.notifyAll();
+    }
+  }
+
   @Override
   public void run() {
     try {
+      // Set a short socket timeout so we can check the paused flag periodically
+      pgStream.setNetworkTimeout(100);
       while (running.get()) {
+        // Check if we should pause for synchronous execution
+        if (paused) {
+          synchronized (pauseLock) {
+            pauseLock.notifyAll(); // signal that we're paused
+            while (paused && running.get()) {
+              try {
+                pauseLock.wait();
+              } catch (InterruptedException e) {
+                if (!running.get()) {
+                  return;
+                }
+              }
+            }
+          }
+          // Restore socket timeout after pause (synchronous path may have changed it)
+          pgStream.setNetworkTimeout(100);
+        }
         try {
           processOneMessage();
         } catch (SocketTimeoutException e) {
-          // Network timeout — fail current slot but don't kill the thread
-          if (currentSlot != null) {
-            currentSlot.completeExceptionally(new PSQLException(
-                "Query timed out", PSQLState.QUERY_CANCELED, e));
-            currentSlot = null;
-          }
+          // This is the 100ms poll timeout — just continue the loop
+          // to check the paused flag and try again.
         }
       }
     } catch (IOException e) {
