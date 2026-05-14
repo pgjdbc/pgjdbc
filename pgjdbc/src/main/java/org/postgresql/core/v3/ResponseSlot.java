@@ -14,21 +14,17 @@ import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.LockSupport;
 
 /**
- * Completion token for a pipelined query. Created by the sending thread,
- * populated and completed by the reader thread.
- *
- * <p>Uses LockSupport.park/unpark instead of CompletableFuture to avoid
- * per-query object allocation overhead.</p>
+ * Completion token for a pipelined query. Created before sending,
+ * populated during response processing in {@code readResponses()}.
  */
 class ResponseSlot {
 
   /**
    * Sentinel instance used to mark Sync boundaries in the pending queue.
-   * When the reader thread encounters ReadyForQuery, it drains slots up to
-   * and including the next SYNC_MARKER to handle error cascading.
+   * When ReadyForQuery is received, slots are drained up to and including
+   * the next SYNC_MARKER to handle error cascading.
    */
   static final ResponseSlot SYNC_MARKER = new ResponseSlot();
 
@@ -37,7 +33,7 @@ class ResponseSlot {
   boolean asSimple;
   int flags;
 
-  // Results — written only by reader thread
+  // Results — populated during readResponses()
   @Nullable Field[] fields;
   @Nullable List<Tuple> tuples;
   @Nullable String commandStatus;
@@ -46,10 +42,6 @@ class ResponseSlot {
   @Nullable SQLWarning warnings;
   @Nullable SQLException error;
   boolean portalSuspended;
-
-  // Signaling: reader thread sets done=true then unparks the waiter
-  private volatile boolean done;
-  private volatile @Nullable Thread waiter;
 
   /** Sentinel constructor */
   @SuppressWarnings("initialization.fields.uninitialized")
@@ -79,32 +71,20 @@ class ResponseSlot {
     }
   }
 
-  /**
-   * Called by the sending thread to block until the reader thread completes this slot.
-   * No liveness check — use only when reader thread reference is unavailable.
-   */
-  void await() {
-    waiter = Thread.currentThread();
-    while (!done) {
-      LockSupport.park(this);
-    }
-  }
-
-  /**
-   * Called by the reader thread to signal completion.
-   */
-  void complete() {
-    done = true;
-    Thread w = waiter;
-    if (w != null) {
-      LockSupport.unpark(w);
-    }
-  }
-
-  void completeExceptionally(SQLException ex) {
+  void setError(SQLException ex) {
     if (this.error == null) {
       this.error = ex;
     }
-    complete();
+  }
+
+  /**
+   * Mark this slot as fully populated. In the synchronous pipeline model
+   * this is a logical marker only (no thread signaling needed).
+   */
+  void complete() {
+  }
+
+  void completeExceptionally(SQLException ex) {
+    setError(ex);
   }
 }

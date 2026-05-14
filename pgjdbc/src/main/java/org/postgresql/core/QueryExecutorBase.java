@@ -76,6 +76,8 @@ public abstract class QueryExecutorBase implements QueryExecutor {
 
   /**
    * Lock used in pipeline mode to serialize access to the send path (pgOutput).
+   * In the current synchronous pipeline design this is never contended (no reader thread),
+   * but is retained for correctness if the connection is shared across threads.
    * In non-pipeline mode this is unused — the main {@link #lock} covers everything.
    */
   protected final ResourceLock sendLock = new ResourceLock();
