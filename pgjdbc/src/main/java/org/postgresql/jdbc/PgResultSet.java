@@ -2048,27 +2048,36 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
   private void setRowBufferColumn(Tuple rowBuffer,
       int columnIndex, @Nullable Object valueObject) throws SQLException {
-    if (valueObject instanceof PGobject) {
+    if (valueObject == null) {
+      rowBuffer.set(columnIndex, null);
+      return;
+    }
+    boolean binary = isBinary(columnIndex + 1);
+    if (valueObject instanceof PGobject && !binary) {
+      // PGobject already carries its own text representation
+      // (PgStruct.getValue() also lazily encodes its attributes).
       String value = ((PGobject) valueObject).getValue();
       rowBuffer.set(columnIndex, value == null ? null : connection.encodeString(value));
-    } else {
-      if (valueObject == null) {
-        rowBuffer.set(columnIndex, null);
-        return;
-      }
-      switch (getSQLType(columnIndex + 1)) {
+      return;
+    }
+    switch (getSQLType(columnIndex + 1)) {
 
-        // boolean needs to be formatted as t or f instead of true or false
-        case Types.BIT:
-        case Types.BOOLEAN:
+      // boolean needs to be formatted as t or f instead of true or false
+      case Types.BIT:
+      case Types.BOOLEAN:
+        if (!binary) {
           rowBuffer.set(columnIndex, connection
               .encodeString((Boolean) valueObject ? "t" : "f"));
           break;
-        //
-        // toString() isn't enough for date and time types; we must format it correctly
-        // or we won't be able to re-parse it.
-        //
-        case Types.DATE: {
+        }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
+      //
+      // toString() isn't enough for date and time types; we must format it correctly
+      // or we won't be able to re-parse it.
+      //
+      case Types.DATE:
+        if (!binary) {
           // getObject(int, LocalDate.class) returns LocalDate, so updating the row buffer with
           // such a value must not assume it is always a java.sql.Date.
           String stringValue = valueObject instanceof LocalDate
@@ -2077,8 +2086,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.TIME: {
+      case Types.TIME:
+        if (!binary) {
           // time and timetz both map to Types.TIME, so the value can be java.sql.Time,
           // java.time.LocalTime (time) or java.time.OffsetTime (timetz).
           String stringValue;
@@ -2092,9 +2104,12 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.TIMESTAMP:
-        case Types.TIMESTAMP_WITH_TIMEZONE: {
+      case Types.TIMESTAMP:
+      case Types.TIMESTAMP_WITH_TIMEZONE:
+        if (!binary) {
           // timestamp and timestamptz both map to Types.TIMESTAMP, so the value can be
           // java.sql.Timestamp, java.time.LocalDateTime (timestamp)
           // or java.time.OffsetDateTime (timestamptz).
@@ -2109,36 +2124,65 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
           rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
         }
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
 
-        case Types.NULL:
-          // Should never happen?
-          break;
+      case Types.NULL:
+        // Should never happen?
+        break;
 
-        case Types.BINARY:
-        case Types.LONGVARBINARY:
-        case Types.VARBINARY:
-          if (isBinary(columnIndex + 1)) {
-            rowBuffer.set(columnIndex, (byte[]) valueObject);
-          } else {
-            Charset charset;
-            try {
-              charset = Charset.forName(connection.getEncoding().name());
-            } catch (UnsupportedCharsetException e) {
-              throw new PSQLException(
-                  GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
-                  PSQLState.UNEXPECTED_ERROR, e);
-            }
-            byte[] bytes = PGbytea.toPGString((byte[]) valueObject).getBytes(charset);
-            rowBuffer.set(columnIndex, bytes);
+      case Types.BINARY:
+      case Types.LONGVARBINARY:
+      case Types.VARBINARY:
+        if (binary) {
+          rowBuffer.set(columnIndex, (byte[]) valueObject);
+        } else {
+          Charset charset;
+          try {
+            charset = Charset.forName(connection.getEncoding().name());
+          } catch (UnsupportedCharsetException e) {
+            throw new PSQLException(
+                GT.tr("The JVM claims not to support the encoding: {0}", connection.getEncoding().name()),
+                PSQLState.UNEXPECTED_ERROR, e);
           }
-          break;
+          byte[] bytes = PGbytea.toPGString((byte[]) valueObject).getBytes(charset);
+          rowBuffer.set(columnIndex, bytes);
+        }
+        break;
 
-        default:
-          rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
-          break;
-      }
-
+      default:
+        encodeRowBufferColumnViaCodec(rowBuffer, columnIndex, valueObject);
+        break;
     }
+  }
+
+  /**
+   * Encodes {@code valueObject} into {@code rowBuffer} via the codec
+   * registry, choosing the binary or text representation that matches
+   * the column's wire format. Falls back to {@link String#valueOf} for
+   * columns whose type has no registered codec, mirroring the legacy
+   * default-branch behaviour.
+   */
+  private void encodeRowBufferColumnViaCodec(
+      Tuple rowBuffer, int columnIndex, Object valueObject) throws SQLException {
+    CodecContext ctx = getCodecContext();
+    int oid = fields[columnIndex].getOID();
+    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
+    if (isBinary(columnIndex + 1)) {
+      BinaryCodec codec = ctx.getCodecs().getBinaryCodec(oid, pgType);
+      if (codec != null) {
+        rowBuffer.set(columnIndex, codec.encodeBinary(valueObject, pgType, ctx));
+        return;
+      }
+    } else {
+      TextCodec codec = ctx.getCodecs().getTextCodec(oid, pgType);
+      if (codec != null) {
+        String text = codec.encodeText(valueObject, pgType, ctx);
+        rowBuffer.set(columnIndex, text == null ? null : connection.encodeString(text));
+        return;
+      }
+    }
+    rowBuffer.set(columnIndex, connection.encodeString(String.valueOf(valueObject)));
   }
 
   private void updateRowBuffer(@Nullable PreparedStatement insertStatement,
