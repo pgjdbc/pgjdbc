@@ -3485,10 +3485,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
       sendExecute(sq, portal, rows);
       sendSync();
-      pgStream.flush();
 
       slots.add(slot);
       slots.add(ResponseSlot.SYNC_MARKER);
+
+      pgStream.flush();
     } catch (IOException e) {
       abort();
       handler.handleError(new PSQLException(
@@ -3597,8 +3598,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       sendSync();
-      pgStream.flush();
       pending.add(ResponseSlot.SYNC_MARKER);
+      pgStream.flush();
     } catch (IOException e) {
       abort();
       handler.handleError(new PSQLException(
@@ -3641,10 +3642,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try (ResourceLock ignore = sendLock.obtain()) {
       sendExecute(query, portal, fetchSize);
       sendSync();
-      pgStream.flush();
 
       slots.add(slot);
       slots.add(ResponseSlot.SYNC_MARKER);
+
+      pgStream.flush();
     } catch (IOException e) {
       abort();
       handler.handleError(new PSQLException(
