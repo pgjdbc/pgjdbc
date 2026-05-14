@@ -41,11 +41,15 @@ includeBuild("build-logic")
 include("benchmarks")
 include("pgjdbc-junit4-test")
 include("pgjdbc-osgi-test")
-if (providers.gradleProperty("jdkTestVersion").orNull?.toInt() != 8) {
+val jdkTestVersion = providers.gradleProperty("jdkTestVersion").orNull?.toInt()
+if (jdkTestVersion != 8) {
     // Mockito requires Java 11+
     include("pgjdbc-mockito-test")
 }
-include("pgjdbc-spring-jdbc-test")
+if (jdkTestVersion == null || jdkTestVersion >= 17) {
+    // Spring 6.x requires Java 17+
+    include("pgjdbc-spring-jdbc-test")
+}
 include("postgresql")
 include("testkit")
 
