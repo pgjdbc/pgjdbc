@@ -235,6 +235,8 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isReWriteBatchedInsertsEnabled();
 
+  boolean isPipelineModeEnabled();
+
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
       String @Nullable ... columnNames)
       throws SQLException;

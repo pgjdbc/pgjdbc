@@ -883,6 +883,17 @@ public enum PGProperty {
       "",
       "Factory class to instantiate factories for XML processing"),
 
+  /**
+   * Enable pipeline mode for batch execution. When enabled, the driver sends multiple queries
+   * to the server before reading responses, reducing round-trip latency for batch operations.
+   * This uses synchronous pipelining (no reader thread) — all queries are sent first, then
+   * all responses are read on the main thread.
+   */
+  PIPELINE_MODE(
+      "pipelineMode",
+      "false",
+      "Enable pipeline mode for batch execution to reduce round-trip latency."),
+
   ;
 
   private final String name;

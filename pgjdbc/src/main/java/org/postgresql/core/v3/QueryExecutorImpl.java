@@ -619,6 +619,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   // buffer is.)
   //
   private static final int MAX_BUFFERED_RECV_BYTES = 64000;
+  private static final int MAX_BUFFERED_RECV_BYTES_PIPELINE = 8 * 1024 * 1024;
   private static final int NODATA_QUERY_RESPONSE_SIZE_BYTES = 250;
 
   @Override
@@ -1653,8 +1654,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       final int flags) throws IOException {
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
+    int maxBuffered = isPipelineModeEnabled() ? MAX_BUFFERED_RECV_BYTES_PIPELINE : MAX_BUFFERED_RECV_BYTES;
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
-    if (estimatedReceiveBufferBytesTotal < MAX_BUFFERED_RECV_BYTES) {
+    if (estimatedReceiveBufferBytesTotal < maxBuffered) {
       estimatedReceiveBufferBytes = estimatedReceiveBufferBytesTotal;
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
