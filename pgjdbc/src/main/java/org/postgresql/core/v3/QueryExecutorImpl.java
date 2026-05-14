@@ -414,16 +414,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (pipelineMode) {
       if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
         executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
-        return;
-      }
-      // Simple queries can't use pipeline protocol — pause reader thread
-      // so it doesn't consume responses meant for the synchronous path.
-      PipelineReaderThread reader = castNonNull(pipelineReaderThread);
-      reader.pause();
-      try {
+      } else if (pipelineReaderThread != null && pipelineReaderThread.isAlive()) {
+        executeSimplePipeline(query, parameters, handler, flags);
+      } else {
+        // Reader thread not started yet (connection setup phase) — use synchronous path
         executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
-      } finally {
-        reader.unpause();
       }
       return;
     }
@@ -666,12 +661,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       throws SQLException {
     if (pipelineMode) {
       if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
-        PipelineReaderThread reader = castNonNull(pipelineReaderThread);
-        reader.pause();
-        try {
+        if (pipelineReaderThread != null && pipelineReaderThread.isAlive()) {
+          executeBatchSimplePipeline(queries, parameterLists, batchHandler, flags);
+        } else {
           executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
-        } finally {
-          reader.unpause();
         }
         return;
       }
@@ -3518,12 +3511,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
       }
       sendExecute(sq, portal, rows);
-      sendSync();
 
       slots.add(slot);
       slots.add(ResponseSlot.SYNC_MARKER);
 
-      pgStream.flush();
+      sendSync();
     } catch (IOException e) {
       abort();
       handler.handleError(new PSQLException(
@@ -3557,6 +3549,98 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // Deliver results to handler
     deliverSlotResults(slot, handler, sq);
     handler.handleCompletion();
+  }
+
+  /**
+   * Execute a simple query in pipeline mode. Sends the query using the simple protocol ('Q' message)
+   * and waits for the reader thread to complete the ResponseSlot.
+   */
+  private void executeSimplePipeline(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler, int flags) throws SQLException {
+
+    // Handle CompositeQuery (multi-statement SQL) by executing each subquery
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries != null) {
+      SimpleParameterList[] subparams = parameters != null
+          ? ((SimpleParameterList) parameters).getSubparams() : null;
+      for (int i = 0; i < subqueries.length; i++) {
+        ParameterList subparam = subparams != null ? subparams[i] : null;
+        executeSimplePipeline(subqueries[i], subparam, handler, flags);
+        if (handler.getException() != null) {
+          break;
+        }
+      }
+      return;
+    }
+
+    if (parameters == null) {
+      parameters = SimpleQuery.NO_PARAMETERS;
+    }
+
+    SimpleQuery sq = (SimpleQuery) query;
+    SimpleParameterList params = (SimpleParameterList) parameters;
+
+    ResponseSlot slot = new ResponseSlot(sq, null, true, flags);
+    ConcurrentLinkedDeque<ResponseSlot> slots = pipelineSlots();
+
+    try (ResourceLock ignore = sendLock.obtain()) {
+      // Send the simple query message
+      String nativeSql = sq.toString(
+          params,
+          SqlSerializationContext.of(getStandardConformingStrings(), false));
+
+      LOGGER.log(Level.FINEST, " FE=> PipelineSimpleQuery(query=\"{0}\")", nativeSql);
+      Encoding encoding = pgStream.getEncoding();
+      byte[] encoded = encoding.encode(nativeSql);
+      pgStream.sendChar(PgMessageType.QUERY_REQUEST);
+      pgStream.sendInteger4(encoded.length + 4 + 1);
+      pgStream.send(encoded);
+      pgStream.sendChar(0);
+
+      // Add slot before flush so reader can find it
+      slots.add(slot);
+      slots.add(ResponseSlot.SYNC_MARKER);
+
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Wait for reader thread to complete the slot
+    try {
+      slot.await(castNonNull(pipelineReaderThread));
+    } catch (Exception e) {
+      handler.handleError(new PSQLException(
+          "Interrupted waiting for simple query response",
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Deliver results to handler
+    deliverSlotResults(slot, handler, sq);
+    handler.handleCompletion();
+  }
+
+  /**
+   * Execute a batch of simple queries in pipeline mode.
+   * Sends each query individually and waits for each response.
+   */
+  private void executeBatchSimplePipeline(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int flags) throws SQLException {
+    for (int i = 0; i < queries.length; i++) {
+      executeSimplePipeline(queries[i], parameterLists[i], batchHandler, flags);
+      if (batchHandler.getException() != null) {
+        break;
+      }
+      batchHandler.secureProgress();
+    }
+    batchHandler.handleCompletion();
   }
 
   /**
@@ -3631,7 +3715,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         pending.add(slots[i]);
       }
 
-      sendSync();
+      sendSync(false);
       pending.add(ResponseSlot.SYNC_MARKER);
       pgStream.flush();
     } catch (IOException e) {
@@ -3675,12 +3759,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try (ResourceLock ignore = sendLock.obtain()) {
       sendExecute(query, portal, fetchSize);
-      sendSync();
 
       slots.add(slot);
       slots.add(ResponseSlot.SYNC_MARKER);
 
-      pgStream.flush();
+      sendSync();
     } catch (IOException e) {
       abort();
       handler.handleError(new PSQLException(

@@ -29,8 +29,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Dedicated reader thread for pipeline mode. Owns pgInput exclusively after startup.
- * Reads protocol messages and dispatches results to ResponseSlots.
+ * Dedicated reader thread for pipeline mode. Owns ALL socket reads exclusively.
+ * No other thread may read from pgStream while this thread is running.
+ * Handles both extended protocol and simple query protocol responses.
  */
 class PipelineReaderThread extends Thread {
 
@@ -41,8 +42,6 @@ class PipelineReaderThread extends Thread {
   private final ConcurrentLinkedDeque<ResponseSlot> pendingSlots;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private final CommandCompleteParser commandCompleteParser = new CommandCompleteParser();
-  private volatile boolean paused;
-  private final Object pauseLock = new Object();
 
   private @Nullable ResponseSlot currentSlot;
 
@@ -60,61 +59,15 @@ class PipelineReaderThread extends Thread {
     this.interrupt();
   }
 
-  /**
-   * Pause the reader thread so the synchronous path can read from the socket.
-   * Blocks until the reader thread is actually paused.
-   */
-  void pause() {
-    synchronized (pauseLock) {
-      paused = true;
-      try {
-        // Reader checks paused flag after each SocketTimeoutException or message.
-        // Wait for it to enter the paused state.
-        pauseLock.wait(2000);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-      }
-    }
-  }
-
-  /**
-   * Resume the reader thread after synchronous execution completes.
-   */
-  void unpause() {
-    synchronized (pauseLock) {
-      paused = false;
-      pauseLock.notifyAll();
-    }
-  }
-
   @Override
   public void run() {
     try {
-      // Set a short socket timeout so we can check the paused flag periodically
       pgStream.setNetworkTimeout(100);
       while (running.get()) {
-        // Check if we should pause for synchronous execution
-        if (paused) {
-          synchronized (pauseLock) {
-            pauseLock.notifyAll(); // signal that we're paused
-            while (paused && running.get()) {
-              try {
-                pauseLock.wait();
-              } catch (InterruptedException e) {
-                if (!running.get()) {
-                  return;
-                }
-              }
-            }
-          }
-          // Restore socket timeout after pause (synchronous path may have changed it)
-          pgStream.setNetworkTimeout(100);
-        }
         try {
           processOneMessage();
         } catch (SocketTimeoutException e) {
-          // This is the 100ms poll timeout — just continue the loop
-          // to check the paused flag and try again.
+          // Poll timeout — loop back to check running flag
         }
       }
     } catch (IOException e) {
@@ -234,11 +187,11 @@ class PipelineReaderThread extends Thread {
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
-      short positionInTable = (short)pgStream.receiveInteger2();
+      short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
-      short typeLength = (short)pgStream.receiveInteger2();
+      short typeLength = (short) pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
-      short formatType = (short)pgStream.receiveInteger2();
+      short formatType = (short) pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel, typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
     }
@@ -246,9 +199,11 @@ class PipelineReaderThread extends Thread {
     LOGGER.log(Level.FINEST, " <=BE RowDescription({0})", size);
 
     advanceSlot();
-    if (currentSlot != null && currentSlot.query != null) {
+    if (currentSlot != null) {
       currentSlot.fields = fields;
-      currentSlot.query.setFields(fields);
+      if (currentSlot.query != null) {
+        currentSlot.query.setFields(fields);
+      }
     }
   }
 
@@ -256,7 +211,7 @@ class PipelineReaderThread extends Thread {
     pgStream.receiveInteger4(); // message size
     int numParams = pgStream.receiveInteger2();
     for (int i = 0; i < numParams; i++) {
-      pgStream.receiveInteger4(); // type OID — consumed but not used in pipeline mode
+      pgStream.receiveInteger4(); // type OID
     }
     LOGGER.log(Level.FINEST, " <=BE ParameterDescription({0})", numParams);
   }
@@ -301,9 +256,8 @@ class PipelineReaderThread extends Thread {
         currentSlot = null;
         return;
       }
-      // For non-simple queries, CommandComplete ends this slot's data
-      // (ReadyForQuery will finalize it)
-      // For simple queries, more results may follow before ReadyForQuery
+      // For simple queries, more CommandComplete messages may follow before ReadyForQuery
+      // For extended protocol, CommandComplete ends this slot
       if (!slot.asSimple) {
         slot.complete();
         currentSlot = null;
@@ -345,8 +299,9 @@ class PipelineReaderThread extends Thread {
     try {
       executor.receiveParameterStatus();
     } catch (SQLException e) {
-      // Fatal parameter status change (encoding, datestyle)
-      failAllPending(e);
+      failAllPending(new PSQLException(
+          "Fatal parameter status change",
+          PSQLState.CONNECTION_FAILURE, e));
     }
   }
 
@@ -382,7 +337,7 @@ class PipelineReaderThread extends Thread {
         throw new IOException("unexpected transaction state: " + (int) tStatus);
     }
 
-    // Complete current slot if still active (simple query case)
+    // Complete current slot if still active (simple query case — ReadyForQuery ends it)
     if (currentSlot != null) {
       currentSlot.complete();
       currentSlot = null;
@@ -403,7 +358,7 @@ class PipelineReaderThread extends Thread {
     }
   }
 
-  private void failAllPending(SQLException ex) {
+  private void failAllPending(PSQLException ex) {
     if (currentSlot != null) {
       currentSlot.completeExceptionally(ex);
       currentSlot = null;
@@ -414,10 +369,5 @@ class PipelineReaderThread extends Thread {
         slot.completeExceptionally(ex);
       }
     }
-  }
-
-  // Overload for IOException
-  private void failAllPending(PSQLException ex) {
-    failAllPending((SQLException) ex);
   }
 }
