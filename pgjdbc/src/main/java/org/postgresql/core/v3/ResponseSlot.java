@@ -91,6 +91,11 @@ class ResponseSlot {
     waiter = Thread.currentThread();
     while (!done) {
       LockSupport.parkNanos(this, 1_000_000_000L); // 1 second
+      if (Thread.interrupted()) {
+        throw new PSQLException(
+            "Interrupted while waiting for pipeline response",
+            PSQLState.CONNECTION_FAILURE);
+      }
       if (!done && !readerThread.isAlive()) {
         throw new PSQLException(
             "Pipeline reader thread died unexpectedly",
