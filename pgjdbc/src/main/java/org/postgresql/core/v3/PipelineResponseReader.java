@@ -169,6 +169,33 @@ class PipelineResponseReader {
     return receivedRFQ;
   }
 
+  /**
+   * Read responses for a single Execute (cursor fetch) without requiring Sync/ReadyForQuery.
+   * Reads until the slot is completed by PortalSuspended or CommandComplete.
+   * This avoids the round-trip cost of Sync for each fetch iteration.
+   */
+  void readFetchResponse(List<ResponseSlot> slots) throws SQLException {
+    if (this.slots != slots) {
+      begin(slots);
+    }
+    try {
+      // Read until the slot is advanced (completed by PortalSuspended or CommandComplete)
+      int startIndex = slotIndex;
+      while (slotIndex == startIndex) {
+        processOneMessage();
+      }
+    } catch (IOException e) {
+      failRemaining(new PSQLException(
+          "An I/O error occurred while reading from the backend.",
+          PSQLState.CONNECTION_FAILURE, e));
+      throw new PSQLException(
+          "An I/O error occurred while reading from the backend.",
+          PSQLState.CONNECTION_FAILURE, e);
+    } finally {
+      end();
+    }
+  }
+
   private void begin(List<ResponseSlot> slots) {
     this.slots = slots;
     this.slotIndex = 0;

@@ -3660,7 +3660,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     try (ResourceLock ignore = sendLock.obtain()) {
       sendExecute(query, portal, fetchSize);
-      sendSync();
+      // No Sync — read response directly after Execute.
+      // Server responds with DataRow* + PortalSuspended or CommandComplete.
       pgStream.flush();
     } catch (IOException e) {
       abort();
@@ -3671,16 +3672,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return;
     }
 
-    // Read responses synchronously
+    // Read until PortalSuspended or CommandComplete (no ReadyForQuery expected)
     try {
-      castNonNull(pipelineResponseReader).readResponses(slots);
+      castNonNull(pipelineResponseReader).readFetchResponse(slots);
     } catch (SQLException e) {
-      clearPipelinePendingQueues();
       handler.handleError(e);
       handler.handleCompletion();
       return;
     }
-    clearPipelinePendingQueues();
 
     // Deliver fetch results
     if (slot.error != null) {
