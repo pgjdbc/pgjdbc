@@ -4,7 +4,9 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 10
 toc: true
+last_reviewed: "2026-05-13"
 aliases:
+    - "/documentation/datasource/"
     - "/documentation/head/ds-ds.html"
 ---
 
@@ -29,7 +31,7 @@ used in an application server environment unless the application server does not
 PostgreSQL® includes one implementation of `ConnectionPoolDataSource` named `org.postgresql.ds.PGConnectionPoolDataSource` .
 
 JDBC requires that a `ConnectionPoolDataSource` be configured via JavaBean properties, shown in
-[Table 11.1, “`ConnectionPoolDataSource` Configuration Properties”](/documentation/datasource/#table111-connectionpooldatasource-configuration-properties),
+[Table 11.1, “`ConnectionPoolDataSource` Configuration Properties”](/documentation/connect/datasource/#table111-connectionpooldatasource-configuration-properties),
 so there are get and set methods for each of these properties.
 
 ##### Table 11.1.  `ConnectionPoolDataSource` Configuration Properties
@@ -63,7 +65,7 @@ Or, if semicolons are used as separators instead of newlines, it could look like
 
 ## Applications DataSource
 
-PostgreSQL® includes two implementations of `DataSource` , as shown in [Table 11.2, “`DataSource` Implementations”](/documentation/datasource/#table112datasource-implementations).
+PostgreSQL® includes two implementations of `DataSource` , as shown in [Table 11.2, “`DataSource` Implementations”](/documentation/connect/datasource/#table112datasource-implementations).
 
 One that does pooling and the other that does not. The pooling implementation does not actually close connections when
 the client calls the `close()` method, but instead returns the connections to a pool of available connections for other
@@ -84,7 +86,7 @@ your application server or check out the excellent [jakarta commons DBCP](http:/
 |Yes|`org.postgresql.ds.PGPoolingDataSource`|
 
 Both implementations use the same configuration scheme. JDBC requires that a `DataSource` be configured via JavaBean properties,
-shown in [Table 11.3, “`DataSource` Configuration Properties”](/documentation/datasource/#table113-datasource-configuration-properties),
+shown in [Table 11.3, “`DataSource` Configuration Properties”](/documentation/connect/datasource/#table113-datasource-configuration-properties),
 so there are get and set methods for each of these properties.
 
 ##### Table 11.3.  `DataSource` Configuration Properties
@@ -100,7 +102,7 @@ so there are get and set methods for each of these properties.
 |sslfactory|STRING|Custom javax.net.ssl. SSLSocketFactory class name (see the section called [“Custom SSLSocketFactory”](ssl-factory.html))|
 
 The pooling implementation requires some additional configuration properties, which are shown in
-[Table 11.4, “Additional Pooling `DataSource` Configuration Properties](/documentation/datasource/#table114additional-pooling-datasource-configuration-properties).
+[Table 11.4, “Additional Pooling `DataSource` Configuration Properties](/documentation/connect/datasource/#table114additional-pooling-datasource-configuration-properties).
 
 ##### Table 11.4. Additional Pooling `DataSource` Configuration Properties
 
@@ -110,7 +112,7 @@ The pooling implementation requires some additional configuration properties, wh
 |initialConnections|INT|The number of database connections to be created when the pool is initialized.|
 |maxConnections|INT|The maximum number of open database connections to allow. When more connections are requested, the caller will hang until a connection is returned to the pool.|
 
-[Example 11.1, “`DataSource` Code Example”](/documentation/datasource/#example111-datasource-code-example) shows an example
+[Example 11.1, “`DataSource` Code Example”](/documentation/connect/datasource/#example111-datasource-code-example) shows an example
 of typical application code using a pooling `DataSource`.
 
 ##### Example 11.1.  `DataSource` Code Example
@@ -160,7 +162,7 @@ instead of the PostgreSQL® `ConnectionPoolDataSource` implementation.
 
 In an application environment, the application may store the `DataSource` in JNDI so that it doesn't have to make a reference
 to the `DataSource` available to all application components that may need to use it. An example of this is shown in
-[Example 11.2, “`DataSource` JNDI Code Example”](/documentation/datasource/#example112-datasource-jndi-code-example).
+[Example 11.2, “`DataSource` JNDI Code Example”](/documentation/connect/datasource/#example112-datasource-jndi-code-example).
 
 ##### Example 11.2.  `DataSource` JNDI Code Example
 

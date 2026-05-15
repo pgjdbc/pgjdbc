@@ -102,7 +102,7 @@ The org.postgresql.largeobject package provides to Java the libpq C interface's
 large object API. It consists of two classes, `LargeObjectManager` , which deals
 with creating, opening and deleting large objects, and `LargeObject` which deals
 with an individual object.  For an example usage of this API, please see
-[Processing Binary Data in JDBC](/documentation/binary-data/#example71processing-binary-data-in-jdbc).
+[Processing Binary Data in JDBC](/documentation/data-types/binary-bytea/#example71processing-binary-data-in-jdbc).
 
 ## Listen / Notify
 

@@ -4,6 +4,9 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 5
 toc: true
+last_reviewed: "2026-05-13"
+aliases:
+    - "/documentation/callproc/"
 ---
 
 PostgreSQL® supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures

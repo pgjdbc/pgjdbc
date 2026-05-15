@@ -1,9 +1,12 @@
 ---
-title: "JDBC escapes"
+title: "JDBC escape syntax"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 7
 toc: true
+last_reviewed: "2026-05-13"
+aliases:
+    - "/documentation/escapes/"
 ---
 
 The JDBC specification (like the ODBC specification) acknowledges the fact that some vendor specific SQL may be required

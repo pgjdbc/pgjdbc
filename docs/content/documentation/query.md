@@ -106,7 +106,7 @@ per `Statement` or `PreparedStatement` at a given time.
 * If you need to perform a query while processing a `ResultSet`, you can simply create and use another `Statement` .
 
 * If you are using threads, and several are using the database, you must use a separate `Statement` for each thread. 
-Refer to [Using the Driver in a Multithreaded or a Servlet Environment](/documentation/thread/) if you are thinking of 
+Refer to [Multithreaded use](/documentation/query/multithreading/) if you are thinking of 
 using threads, as it covers some important points.
 
 * When you are done using the `Statement` or `PreparedStatement` you should close it.

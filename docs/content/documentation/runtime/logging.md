@@ -1,9 +1,12 @@
 ---
-title: "Logging using java.util.logging"
+title: "Driver logging"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 11
 toc: true
+last_reviewed: "2026-05-13"
+aliases:
+    - "/documentation/logging/"
 ---
 
 The PostgreSQL® JDBC Driver supports the use of logging (or tracing) to help resolve issues with the

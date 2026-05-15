@@ -125,7 +125,7 @@ The authentication-related connection properties:
 
 - [Connection Properties reference](/documentation/use/) — the full set of
   tunables.
-- [Using SSL](/documentation/ssl/) — certificate setup, custom socket
+- [SSL / TLS](/documentation/security/ssl-tls/) — certificate setup, custom socket
   factories, CRL/OCSP.
-- [Connection Pools and Data Sources](/documentation/datasource/) — how
+- [Connection Pools and Data Sources](/documentation/connect/datasource/) — how
   to integrate with HikariCP and friends.

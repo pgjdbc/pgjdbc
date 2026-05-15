@@ -103,18 +103,18 @@ Connection conn = DriverManager.getConnection(url);
 
 * **`ssl (`*boolean*`)`** *Default `false`*\
 Connect using SSL. The server must have been compiled with SSL support. This property does not need a value associated with it. The mere presence of it specifies an SSL connection. 
-However, for compatibility with future versions, the value "true" is preferred. For more information see [Using SSL](/documentation/ssl/).\
+However, for compatibility with future versions, the value "true" is preferred. For more information see [SSL / TLS](/documentation/security/ssl-tls/).\
 Setting up the certificates and keys for ssl connection can be tricky see [The test documentation](https://github.com/pgjdbc/pgjdbc/blob/master/certdir/README.md) for detailed examples.
 
 * **`sslfactory(`*String*`)`** *Default `org.postgresql.ssl.LibPQFactory`*\
 The provided value is a class name to use as the `SSLSocketFactory` when establishing an SSL connection. 
-For more information see the section called [Custom SSLSocketFactory](/documentation/ssl/#custom-sslsocketfactory) defaults to LibPQFactory
+For more information see the section called [Custom SSLSocketFactory](/documentation/security/ssl-tls/#custom-sslsocketfactory) defaults to LibPQFactory
 
 * **`sslfactoryarg (`*String*`)`** : (deprecated)\
-This value is an optional argument to the constructor of the sslfactory class provided above. For more information see the section called [Custom SSLSocketFactory](/documentation/ssl/#custom-sslsocketfactory).
+This value is an optional argument to the constructor of the sslfactory class provided above. For more information see the section called [Custom SSLSocketFactory](/documentation/security/ssl-tls/#custom-sslsocketfactory).
 
 * **`sslmode (`*String*`)`** *Default `prefer`*\
-possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/ssl/#configuring-the-client) for details.
+possible values include `disable` , `allow` , `prefer` , `require` , `verify-ca` and `verify-full` . `require` , `allow` and `prefer` all default to a non-validating SSL factory and do not check the validity of the certificate or the host name. `verify-ca` validates the certificate, but does not verify the hostname. `verify-full` will validate that the certificate is correct and verify the host connected to has the same hostname as the certificate. Default is `prefer` Setting these will necessitate storing the server certificate on the client machine see [Configuring the client](/documentation/security/ssl-tls/#configuring-the-client) for details.
 
 * **`sslNegotiation (`*String*`)`** *Default `postgres`*\
 possible values include `postgres` and `direct`. `postgres` is the default and traditional SSL negotiation is performed where GSS is requested, then SSL is requested. If set to `direct` then SSL is assumed and an SSL packed is sent without requesting if the server supports it. This avoids one round trip to the server and is only available for server version 17 or higher.

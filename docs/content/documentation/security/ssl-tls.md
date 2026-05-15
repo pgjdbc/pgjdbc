@@ -1,10 +1,12 @@
 ---
-title: "Using SSL"
+title: "SSL / TLS"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 3
 toc: true
+last_reviewed: "2026-05-13"
 aliases:
+    - "/documentation/ssl/"
     - "/documentation/head/ssl-client.html"
 ---
 

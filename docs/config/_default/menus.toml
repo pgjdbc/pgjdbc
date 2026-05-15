@@ -58,8 +58,8 @@ weight = 3
 
 [[docs]]
 identifier = "ssl"
-name = "Using SSL"
-url = "/documentation/ssl/"
+name = "SSL / TLS"
+url = "/documentation/security/ssl-tls/"
 weight = 4
 
 [[docs]]
@@ -71,19 +71,19 @@ weight = 5
 [[docs]]
 identifier = "callproc"
 name = "Calling Stored Functions and Procedures"
-url = "/documentation/callproc/"
+url = "/documentation/query/stored-procedures/"
 weight = 6
 
 [[docs]]
 identifier = "binary-data"
-name = "Storing Binary Data"
-url = "/documentation/binary-data/"
+name = "Binary data (BYTEA)"
+url = "/documentation/data-types/binary-bytea/"
 weight = 7
 
 [[docs]]
 identifier = "escapes"
-name = "JDBC escapes"
-url = "/documentation/escapes/"
+name = "JDBC escape syntax"
+url = "/documentation/query/jdbc-escapes/"
 weight = 8
 
 [[docs]]
@@ -94,20 +94,20 @@ weight = 9
 
 [[docs]]
 identifier = "thread"
-name = "Using the Driver in a Multithreaded or a Servlet Environment"
-url = "/documentation/thread/"
+name = "Multithreaded use"
+url = "/documentation/query/multithreading/"
 weight = 10
 
 [[docs]]
 identifier = "datasource"
 name = "Connection Pools and Data Sources"
-url = "/documentation/datasource/"
+url = "/documentation/connect/datasource/"
 weight = 11
 
 [[docs]]
 identifier = "logging"
-name = "Logging using java.util.logging"
-url = "/documentation/logging/"
+name = "Driver logging"
+url = "/documentation/runtime/logging/"
 weight = 12
 
 [[docs]]

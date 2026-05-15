@@ -1,9 +1,12 @@
 ---
-title: "Storing Binary Data"
+title: "Binary data (BYTEA)"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 6
 toc: false
+last_reviewed: "2026-05-13"
+aliases:
+    - "/documentation/binary-data/"
 ---
 
 PostgreSQL® provides two distinct ways to store binary data.  Binary data can be stored in a table using the data type
@@ -35,7 +38,7 @@ or by using the `getBLOB()` and `setBLOB()` methods.
 >
 > You must access Large Objects within an SQL transaction block.  You can start a transaction block by calling `setAutoCommit(false)` .
 
-[Example 7.1, “Processing Binary Data in JDBC”](/documentation/binary-data/#example71processing-binary-data-in-jdbc)
+[Example 7.1, “Processing Binary Data in JDBC”](/documentation/data-types/binary-bytea/#example71processing-binary-data-in-jdbc)
 contains some examples on how to process binary data using the PostgreSQL® JDBC driver.
 
 ##### Example 7.1. Processing Binary Data in JDBC
