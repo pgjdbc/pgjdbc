@@ -3,6 +3,7 @@ title: "Connect"
 weight: 20
 toc: false
 last_reviewed: "2026-05-13"
+description: "JDBC URL syntax, Unix sockets, multi-host fail-over, and integration with connection pools."
 ---
 
 Establishing a JDBC connection to PostgreSQL: URL forms, multi-host

@@ -3,6 +3,7 @@ title: "Runtime"
 weight: 80
 toc: false
 last_reviewed: "2026-05-13"
+description: "JVM-environment specifics: logging configuration, future GraalVM / JPMS / OSGi / Android notes."
 ---
 
 How pgJDBC behaves in specific JVM environments: logging configuration

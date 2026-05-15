@@ -3,6 +3,7 @@ title: "PostgreSQL features"
 weight: 60
 toc: false
 last_reviewed: "2026-05-13"
+description: "PostgreSQL-specific functionality reached via PGConnection: COPY, LISTEN/NOTIFY, replication, parameter status."
 ---
 
 PostgreSQL-specific functionality exposed through pgJDBC extensions to

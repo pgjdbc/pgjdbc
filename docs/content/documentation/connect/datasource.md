@@ -8,6 +8,8 @@ last_reviewed: "2026-05-13"
 aliases:
     - "/documentation/datasource/"
     - "/documentation/head/ds-ds.html"
+    - "/documentation/thread/"
+    - "/documentation/query/multithreading/"
 ---
 
 JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package
@@ -25,6 +27,32 @@ For an environment without an application server, PostgreSQL® provides two impl
 application can use directly. One implementation performs connection pooling, while the other simply provides access to
 database connections through the `DataSource` interface without any pooling. Again, these implementations should not be
 used in an application server environment unless the application server does not support the `ConnectionPoolDataSource` interface.
+
+## Thread safety
+
+A single `Connection` is **not** thread-safe. Each PostgreSQL backend
+serves exactly one client connection at a time, so the driver does not
+internally synchronise calls on a `Connection`, `Statement`,
+`PreparedStatement`, or `ResultSet`. If two application threads issue
+overlapping calls on the same `Connection`, results are undefined.
+
+The safe shape:
+
+- **Use a pool.** HikariCP, Tomcat JDBC, or your application server's
+  built-in pool. Each thread checks out a `Connection`, uses it, and
+  returns it; the pool guarantees a single thread is using a given
+  connection at any time.
+- **Treat `DataSource` as the thread-safe handle.** Inject the
+  `DataSource` everywhere; never share a `Connection`, `Statement`, or
+  `ResultSet` across threads.
+- **Cancel from another thread is allowed.** `Statement.cancel()` is
+  explicitly thread-safe — it sends a cancel request out-of-band over
+  a fresh socket (controlled by `cancelSignalTimeout`). This is the
+  one exception to "don't touch the connection from another thread".
+
+A small piece of the driver's internals, `org.postgresql.jdbc.TimestampUtils`,
+is thread-safe and reused across connections. End-user code does not
+interact with it directly.
 
 ## Application Servers ConnectionPoolDataSource
 

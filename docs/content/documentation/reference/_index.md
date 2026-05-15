@@ -3,6 +3,7 @@ title: "Reference"
 weight: 70
 toc: false
 last_reviewed: "2026-05-13"
+description: "Generated catalogue of every connection property, with defaults, types, and the version each was introduced."
 ---
 
 The complete catalogue of every connection property the driver

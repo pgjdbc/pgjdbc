@@ -1,20 +1,72 @@
 ---
-title: "Preparing the Database Server for JDBC"
+title: "Server preparation"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 5
 toc: true
 last_reviewed: "2026-05-13"
+description: "Three things to check on the PostgreSQL server before the first JDBC connection: TCP listener, pg_hba.conf, and database encoding."
 aliases:
     - "/documentation/setup/#preparing-the-database-server-for-jdbc/"
     - "/documentation/setup/#creating-a-database/"
 ---
 
-Out of the box, Java does not support unix sockets so the PostgreSQL® server must be configured to allow TCP/IP connections. Starting with server version 8.0 TCP/IP connections are allowed from `localhost` . To allow connections to other interfaces
-than the loopback interface, you must modify the `postgresql.conf` file's `listen_addresses` setting.
+Three things to verify on the server side before a Java application can
+connect. None of them are pgJDBC-specific — they are PostgreSQL
+configuration tasks — but each one is a common reason for an otherwise
+correct application to fail at startup.
 
-Once you have made sure the server is correctly listening for TCP/IP connections the next step is to verify that users are allowed to connect to the server. Client authentication is setup in `pg_hba.conf` . Refer to the main PostgreSQL® [documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html) for details .
+## 1. The server listens on TCP
 
-## Creating a Database
+Java cannot connect over a Unix-domain socket without an extra
+library (see [Unix sockets](/documentation/connect/unix-sockets/)). For
+TCP, the server must be configured to accept it.
 
-When creating a database to be accessed via JDBC it is important to select an appropriate encoding for your data. Many other client interfaces do not care what data you send back and forth, and will allow you to do inappropriate things, but Java makes sure that your data is correctly encoded.  Do not use a database that uses the `SQL_ASCII` encoding. This is not a real encoding and you will have problems the moment you store data in it that does not fit in the seven bit ASCII character set. If you do not know what your encoding will be or are otherwise unsure about what you will be storing the `UNICODE` encoding is a reasonable default to use.
+```bash
+# postgresql.conf — accept connections on all interfaces
+listen_addresses = '*'
+```
+
+The default is `localhost`, which is fine for an application running on
+the same host as the database; for anything else, broaden the address
+or list specific interfaces. Restart PostgreSQL after editing.
+
+## 2. pg_hba.conf allows the connection
+
+Even with the listener open, PostgreSQL refuses authentication for
+client/database/host combinations that are not explicitly permitted.
+The relevant file is `pg_hba.conf` in the server's data directory.
+
+A minimal SCRAM-secured rule for a remote application:
+
+```
+# TYPE   DATABASE   USER   ADDRESS            METHOD
+host     mydb       alice  10.0.0.0/16        scram-sha-256
+hostssl  mydb       alice  0.0.0.0/0          scram-sha-256
+```
+
+The full reference is the PostgreSQL
+[`pg_hba.conf` documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html).
+Use `hostssl` (not `host`) for any non-local rule so plaintext rows
+never apply over the network; pair it with `sslmode=verify-full` on
+the client side (see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls)).
+
+## 3. Database encoding is UTF-8
+
+```sql
+CREATE DATABASE mydb WITH ENCODING 'UTF8';
+```
+
+Java strings are UTF-16 internally and the driver converts to whatever
+the database's `client_encoding` is. With a UTF-8 database the round-trip
+is lossless for any text Java can represent.
+
+Avoid `SQL_ASCII`. It is not a real encoding — it accepts any byte
+sequence without validation — and you will hit corruption the first
+time the application stores a character outside seven-bit ASCII.
+
+## Next step
+
+With those three boxes ticked, return to the
+[Quick Start](/documentation/getting-started/install/) and open the
+first connection.

@@ -115,8 +115,8 @@ The SSL-related connection properties:
   below; for plug-in based authentication see `authenticationPluginClassName`.
 - **Performance.** Server-side prepared statements activate after
   `prepareThreshold` executions (default 5) — see
-  [Server Prepared Statements](/documentation/server-prepare/) for the
-  full discussion, including binary transfer trade-offs.
+  [Server-prepared statements](/documentation/query/prepared-statements/)
+  for the full discussion, including binary transfer trade-offs.
 
 The authentication-related connection properties:
 

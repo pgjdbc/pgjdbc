@@ -7,5 +7,28 @@
         {{ .Title }}
     </h1>
     {{ .Content }}
+
+    {{/* On section pages, render a card list of child pages
+         (subsections and regular pages alike, ordered by weight).
+         Without this, readers landing on /documentation/connect/
+         see only the section's short intro paragraph and have to
+         retreat to the sidebar to continue. */}}
+    {{- if .IsSection }}
+      {{- with .Pages.ByWeight }}
+        <ul class="section-children">
+          {{- range . }}
+            <li>
+              <a href="{{ .RelPermalink }}" class="section-children__link">
+                <span class="section-children__title">{{ .Title }}</span>
+                {{- with (or .Description .Summary) }}
+                  <span class="section-children__summary">{{ . | plainify | truncate 160 }}</span>
+                {{- end }}
+              </a>
+            </li>
+          {{- end }}
+        </ul>
+      {{- end }}
+    {{- end }}
+
     {{- partial "previous-next-links.html" . -}}
 </article>

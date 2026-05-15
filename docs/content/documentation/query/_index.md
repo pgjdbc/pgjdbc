@@ -3,6 +3,7 @@ title: "Query"
 weight: 40
 toc: false
 last_reviewed: "2026-05-13"
+description: "Issuing SQL, prepared statements, cursor-based fetching, stored procedures, escape syntax."
 ---
 
 Issuing SQL, processing results, calling stored procedures, escape

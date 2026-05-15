@@ -3,6 +3,7 @@ title: "Security"
 weight: 30
 toc: false
 last_reviewed: "2026-05-13"
+description: "TLS, authentication mechanisms, and the recommended security baseline for production connections."
 ---
 
 TLS configuration, authentication mechanisms (SCRAM, channel binding,
