@@ -34,6 +34,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.sql.SQLException;
 
 import javax.net.SocketFactory;
@@ -50,6 +53,8 @@ public class PGStream implements Closeable, Flushable {
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
   private Socket connection;
+  private @Nullable SocketChannel socketChannel;
+  private @Nullable Selector selector;
   private VisibleBufferedInputStream pgInput;
   private PgBufferedOutputStream pgOutput;
   private @Nullable ProtocolVersion protocolVersion;
@@ -253,23 +258,91 @@ public class PGStream implements Closeable, Flushable {
     this.minStreamAvailableCheckDelay = delay;
   }
 
+  /**
+   * Check if data is available on the socket without consuming any bytes.
+   * Uses NIO Selector when available (non-SSL connections), falls back to
+   * {@link #hasMessagePending()} otherwise.
+   *
+   * <p>This is safe to call from a background thread — it does not read from
+   * the socket, only checks readability via the Selector.
+   *
+   * @param timeoutMillis maximum time to wait for data (0 = non-blocking)
+   * @return true if data is available to read
+   * @throws IOException if an I/O error occurs
+   */
+  public boolean isDataAvailable(long timeoutMillis) throws IOException {
+    // Check buffered data first
+    if (pgInput.available() > 0) {
+      return true;
+    }
+
+    SocketChannel ch = this.socketChannel;
+    Selector sel = this.selector;
+    if (ch == null || sel == null) {
+      // No channel (SSL or custom socket) — fall back to hasMessagePending
+      return hasMessagePending();
+    }
+
+    // Use Selector to check readability without consuming data
+    SelectionKey key = ch.keyFor(sel);
+    if (key == null || !key.isValid()) {
+      ch.configureBlocking(false);
+      key = ch.register(sel, SelectionKey.OP_READ);
+    }
+
+    try {
+      int ready = timeoutMillis > 0 ? sel.select(timeoutMillis) : sel.selectNow();
+      return ready > 0;
+    } finally {
+      sel.selectedKeys().clear();
+      // Restore blocking mode for normal I/O
+      ch.configureBlocking(true);
+    }
+  }
+
+  /**
+   * Returns true if this stream has NIO Selector support (non-SSL connection).
+   */
+  public boolean hasSelector() {
+    return selector != null && socketChannel != null;
+  }
+
   private Socket createSocket(int timeout) throws IOException {
     Socket socket = null;
     try {
-      socket = socketFactory.createSocket();
+      // Try to create a SocketChannel-backed socket for NIO Selector support.
+      // If the socketFactory produces a plain socket (e.g. custom factories, SOCKS proxy),
+      // we fall back to non-channel mode (no Selector support).
+      Socket factorySocket = socketFactory.createSocket();
+      SocketChannel channel = factorySocket.getChannel();
+
+      if (channel == null && factorySocket.getClass() == Socket.class && !factorySocket.isConnected()) {
+        // Default socket factory produced an unconnected plain socket — replace with channel-backed
+        factorySocket.close();
+        channel = SocketChannel.open();
+        channel.configureBlocking(true);
+        factorySocket = channel.socket();
+      }
+
+      socket = factorySocket;
       String localSocketAddress = hostSpec.getLocalSocketAddress();
       if (localSocketAddress != null) {
         socket.bind(new InetSocketAddress(InetAddress.getByName(localSocketAddress), 0));
       }
       if (!socket.isConnected()) {
-        // When using a SOCKS proxy, the host might not be resolvable locally,
-        // thus we defer resolution until the traffic reaches the proxy. If there
-        // is no proxy, we must resolve the host to an IP to connect the socket.
         InetSocketAddress address = hostSpec.shouldResolve()
             ? new InetSocketAddress(hostSpec.getHost(), hostSpec.getPort())
             : InetSocketAddress.createUnresolved(hostSpec.getHost(), hostSpec.getPort());
         socket.connect(address, timeout);
       }
+
+      // Store the channel if available (will be null after SSL upgrade)
+      if (channel != null) {
+        this.socketChannel = channel;
+        this.selector = Selector.open();
+        channel.configureBlocking(true); // keep blocking for normal I/O
+      }
+
       return socket;
     } catch ( Exception ex ) {
       if (socket != null) {
@@ -296,6 +369,20 @@ public class PGStream implements Closeable, Flushable {
         + " excessive changeSocket calls";
 
     this.connection = socket;
+
+    // After SSL upgrade, the channel is no longer usable for Selector operations
+    // because SSL wraps the socket with a different stream.
+    if (socket.getChannel() == null || socket.getChannel() != this.socketChannel) {
+      this.socketChannel = null;
+      if (this.selector != null) {
+        try {
+          this.selector.close();
+        } catch (IOException e) {
+          // best effort
+        }
+        this.selector = null;
+      }
+    }
 
     // Submitted by Jason Venner <jason@idiom.com>. Disable Nagle
     // as we are selective about flushing output only when we
@@ -746,6 +833,9 @@ public class PGStream implements Closeable, Flushable {
 
     pgOutput.close();
     pgInput.close();
+    if (selector != null) {
+      selector.close();
+    }
     connection.close();
   }
 
