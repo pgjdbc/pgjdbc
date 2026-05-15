@@ -4,6 +4,7 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 aliases:
     - "/documentation/head/index.html"
+    - "/documentation/reading/"   # reading.md removed in Phase 1a
 ---
 
 Java Database Connectivity (JDBC) is an application programming interface (API) for

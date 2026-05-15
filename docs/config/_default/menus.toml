@@ -110,8 +110,5 @@ name = "Driver logging"
 url = "/documentation/runtime/logging/"
 weight = 12
 
-[[docs]]
-identifier = "reading"
-name = "Further Reading"
-url = "/documentation/reading/"
-weight = 13
+# `reading.md` removed in Phase 1a; the page was a 13-line list of links
+# already present in the site footer. No replacement.
