@@ -14,7 +14,8 @@ section that matches what you need to do.
 
 If you are evaluating pgJDBC for a new project, go to
 **[Getting started](/documentation/getting-started/install/)** for the
-Maven/Gradle dependency and a TLS-protected first connection. For supported
-PostgreSQL and Java versions, see [Server preparation](/documentation/getting-started/server-prep/);
+Maven/Gradle dependency and a TLS-protected first connection. For the
+PostgreSQL server-side checks (TCP listener, `pg_hba.conf`, database
+encoding), see [Server preparation](/documentation/getting-started/server-prep/);
 for the complete catalogue of every tunable, see
 [Connection properties](/documentation/reference/connection-properties/).
