@@ -224,12 +224,12 @@ A value of `0` disables the cache.
 Determine the number of `PreparedStatement` executions required before switching over to use server side prepared statements. 
 The default is five, meaning start using server side prepared statements on the fifth execution of the same `PreparedStatement` object. 
 A value of `-1` activates server side prepared statements and forces binary transfer for enabled types (see `binaryTransfer` ).
-More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements).
+More information on server side prepared statements is available in the section called [Server Prepared Statements](/documentation/query/prepared-statements/).
 
 * **`preparedStatementCacheQueries (`*int*`)`** *Default `256`*\
 Determine the number of queries that are cached in each connection. 
 The default is 256, meaning if you use more than 256 different queries in `prepareStatement()` calls, the least recently used ones will be discarded. 
-The cache allows application to benefit from [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements) (see `prepareThreshold` ) even if the prepared statement is closed after each execution. 
+The cache allows application to benefit from [Server Prepared Statements](/documentation/query/prepared-statements/) (see `prepareThreshold` ) even if the prepared statement is closed after each execution. 
 The value of 0 disables the cache. N. B. Each connection has its own statement cache.
 
 * **`preparedStatementCacheSizeMiB (`*int*`)`** *Default `5`*\

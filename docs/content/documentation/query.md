@@ -130,7 +130,7 @@ it prepares the row for processing.
 is closed automatically.
 
 * When PreparedStatement API is used,  `ResultSet` switches to binary mode after five query executions (this default is 
-set by the `prepareThreshold` connection property, see [Server Prepared Statements](/documentation/server-prepare/#server-prepared-statements). 
+set by the `prepareThreshold` connection property, see [Server Prepared Statements](/documentation/query/prepared-statements/). 
 This may cause unexpected behaviour when some methods are called. For example, results on method calls such as `getString()` 
 on non-string data types, while logically equivalent, may be formatted differently after execution exceeds the set 
 `prepareThreshold` when conversion to object method switches to the method with a return type matching the return mode.
