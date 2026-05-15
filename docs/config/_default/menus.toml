@@ -37,78 +37,16 @@ url = "/security/"
 weight = 6
 
 ### DOCS ITEMS
-
-[[docs]]
-identifier = "install"
-name = "Quick Start"
-url = "/documentation/install/"
-weight = 1
-
-[[docs]]
-identifier = "setup"
-name = "Getting Started"
-url = "/documentation/setup/"
-weight = 2
-
-[[docs]]
-identifier = "use"
-name = "Initializing the Driver"
-url = "/documentation/use/"
-weight = 3
-
-[[docs]]
-identifier = "ssl"
-name = "SSL / TLS"
-url = "/documentation/security/ssl-tls/"
-weight = 4
-
-[[docs]]
-identifier = "query"
-name = "Issuing a Query and Processing the Result"
-url = "/documentation/query/"
-weight = 5
-
-[[docs]]
-identifier = "callproc"
-name = "Calling Stored Functions and Procedures"
-url = "/documentation/query/stored-procedures/"
-weight = 6
-
-[[docs]]
-identifier = "binary-data"
-name = "Binary data (BYTEA)"
-url = "/documentation/data-types/binary-bytea/"
-weight = 7
-
-[[docs]]
-identifier = "escapes"
-name = "JDBC escape syntax"
-url = "/documentation/query/jdbc-escapes/"
-weight = 8
-
-[[docs]]
-identifier = "server-prepare"
-name = "PostgreSQL™ Extensions to the JDBC API"
-url = "/documentation/server-prepare/"
-weight = 9
-
-[[docs]]
-identifier = "thread"
-name = "Multithreaded use"
-url = "/documentation/query/multithreading/"
-weight = 10
-
-[[docs]]
-identifier = "datasource"
-name = "Connection Pools and Data Sources"
-url = "/documentation/connect/datasource/"
-weight = 11
-
-[[docs]]
-identifier = "logging"
-name = "Driver logging"
-url = "/documentation/runtime/logging/"
-weight = 12
-
-# `reading.md` removed in Phase 1a; the page was a 13-line list of links
-# already present in the site footer. No replacement.
+#
+# Phase 1b: the docs sidebar is driven directly from the page tree under
+# /documentation/ (see layouts/partials/docs/sidebar.html). Section
+# ordering comes from `weight:` in each section's `_index.md`. Page
+# ordering within a section comes from each page's own `weight:`.
+#
+# Pages with `_build.list: never` in frontmatter (the four legacy-URL
+# hub pages: use.md, query.md, setup.md, server-prepare.md) are
+# excluded from the sidebar automatically.
+#
+# Adding a new docs page no longer needs a menu entry here — just
+# create the markdown file with frontmatter `weight:` and Hugo picks it
+# up.

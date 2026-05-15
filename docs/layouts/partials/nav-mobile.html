@@ -9,14 +9,25 @@
     </ul>
 </div>
 <div class="docsmenu mobilemenu dn">
+    {{/* Mirror the desktop sidebar: section landings + their pages,
+         driven by the page tree instead of menus.toml. */}}
+    {{- $docsRoot := .Site.GetPage "/documentation" -}}
     <ul role="list">
-        {{ range .Site.Menus.docs.ByWeight }}
+        {{- range $docsRoot.RegularPages.ByWeight }}
         <li role="listitem" class="hover-bg-black">
-            <a href="{{ .URL }}">
-                {{.Name }}
-            </a>
+            <a href="{{ .RelPermalink }}">{{ .Title }}</a>
         </li>
-        {{- end}}
+        {{- end }}
+        {{- range $docsRoot.Sections.ByWeight }}
+        <li role="listitem" class="hover-bg-black">
+            <a href="{{ .RelPermalink }}"><strong>{{ .Title }}</strong></a>
+        </li>
+            {{- range .RegularPages.ByWeight }}
+            <li role="listitem" class="hover-bg-black">
+                <a href="{{ .RelPermalink }}">&nbsp;&nbsp;{{ .Title }}</a>
+            </li>
+            {{- end }}
+        {{- end }}
     </ul>
 </div>
 <div class="nav-inside">

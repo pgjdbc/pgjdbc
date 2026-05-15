@@ -5,6 +5,10 @@ draft: false
 weight: 8
 toc: false
 last_reviewed: "2026-05-13"
+# Hidden from sidebar / section listings; hub + JS redirector for legacy
+# deep links continues to serve at the old URL.
+_build:
+  list: never
 ---
 
 This page covered seven loosely-related extension topics under one URL.

@@ -5,6 +5,10 @@ draft: false
 weight: 2
 toc: false
 last_reviewed: "2026-05-13"
+# Hidden from sidebar / section listings; the page still resolves at the
+# old URL and serves as a hub + JS redirector for legacy deep links.
+_build:
+  list: never
 ---
 
 This page was split into focused topical pages. If you arrived here

@@ -7,6 +7,7 @@ toc: true
 last_reviewed: "2026-05-13"
 aliases:
     - "/documentation/quickstart/"
+    - "/documentation/install/"
 ---
 
 Add pgJDBC to your build, open a TLS-protected connection, run a query.

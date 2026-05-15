@@ -5,19 +5,70 @@
 
   align-self: start;
   position: sticky;
+  /* Park below the top navbar so the sidebar header is not hidden when
+     the user scrolls. Mirrors the param-table thead behaviour. */
+  inset-block-start: var(--navbar-height);
+  max-height: calc(100vh - var(--navbar-height));
+  overflow-y: auto;
 
   &__wrapper {
     padding-inline: var(--primary-spacing);
   }
 
-  &__links__link {
-    color: var(--clr--indigo);
-    text-decoration: none;
+  /* First-level entries: section headings (e.g. "Connect", "Security"). */
+  &__section {
+    margin-block: var(--space-s);
+    list-style: none;
 
-    &--active {
-      color: var(--clr-primary-400);
+    &__title {
+      display: block;
+      color: var(--clr-indigo);
       font-weight: 700;
       text-decoration: none;
+      padding-block: var(--space-3xs);
+
+      &:hover { color: var(--clr-primary-400); }
+
+      &--active {
+        color: var(--clr-primary-400);
+      }
+    }
+
+    &__pages {
+      margin: 0;
+      padding-inline-start: var(--space-s);
+      list-style: none;
+
+      /* Cancel the .article li margin reset that doesn't apply here, but
+         also matches the rest of the sidebar's tightness. */
+      li {
+        margin: 0;
+        padding: 0;
+      }
+    }
+
+    &--active &__title {
+      /* Bold the section title when the current page belongs to it. */
+      color: var(--clr-primary-400);
+    }
+  }
+
+  /* Leaf entries: individual pages. */
+  &__links {
+    margin: 0;
+    padding-block: var(--space-3xs);
+    list-style: none;
+
+    &__link {
+      color: var(--clr-indigo);
+      text-decoration: none;
+
+      &:hover { color: var(--clr-primary-400); }
+
+      &--active {
+        color: var(--clr-primary-400);
+        font-weight: 700;
+      }
     }
   }
 

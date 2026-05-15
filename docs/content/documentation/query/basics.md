@@ -2,7 +2,7 @@
 title: "Issuing a Query and Processing the Result"
 date: 2026-05-13T00:00:00Z
 draft: false
-weight: 10
+weight: 1
 toc: true
 last_reviewed: "2026-05-13"
 aliases:
