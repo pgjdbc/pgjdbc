@@ -1,0 +1,5 @@
+# Per-developer Claude session state. Restructure notes under
+# .claude/restructure/ are intentionally committed so future sessions
+# and PR reviewers can pick them up.
+settings.local.json
+worktrees/
