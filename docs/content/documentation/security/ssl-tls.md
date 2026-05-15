@@ -42,7 +42,7 @@ and the source to the `NonValidatingFactory` provided by the JDBC driver.
 
 ## Configuring the Client
 
-There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/use/#connection-parameters/)
+There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/reference/connection-properties/)
 
 The simplest being `ssl=true` , passing this into the driver will cause the driver to validate both the SSL certificate
 and verify the hostname (same as `verify-full` ).

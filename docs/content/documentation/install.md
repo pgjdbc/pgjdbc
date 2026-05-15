@@ -123,7 +123,7 @@ The authentication-related connection properties:
 
 ## What's next
 
-- [Connection Properties reference](/documentation/use/) — the full set of
+- [Connection Properties reference](/documentation/reference/connection-properties/) — the full set of
   tunables.
 - [SSL / TLS](/documentation/security/ssl-tls/) — certificate setup, custom socket
   factories, CRL/OCSP.

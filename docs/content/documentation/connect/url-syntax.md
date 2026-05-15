@@ -1,0 +1,37 @@
+---
+title: "Connecting to the Database"
+date: 2026-05-13T00:00:00Z
+draft: false
+weight: 5
+toc: true
+last_reviewed: "2026-05-13"
+aliases:
+    - "/documentation/use/#connecting-to-the-database/"
+    - "/documentation/head/connect.html"
+---
+
+With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
+
+* jdbc:postgresql:database
+* jdbc:postgresql:/
+* jdbc:postgresql://host/database
+* jdbc:postgresql://host/
+* jdbc:postgresql://host:port/database
+* jdbc:postgresql://host:port/
+
+The parameters have the following meanings:
+
+* **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address your must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
+
+* **`port`** = The port number the server is listening on. Defaults to the PostgreSQL® standard port number (5432).
+
+* **`database`** = The database name. The default is to connect to a database with the same name as the user name used to connect to the server.
+
+To connect, you need to get a `Connection` instance from JDBC. To do this, you use the `DriverManager.getConnection()` method:
+ `Connection db = DriverManager.getConnection(url, username, password)`
+
+> **Important**
+> 
+> Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. See [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
+</content>
+</invoke>

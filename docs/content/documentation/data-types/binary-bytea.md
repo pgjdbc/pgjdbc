@@ -27,7 +27,7 @@ in 7.2 has introduced a change in behaviour as compared to previous releases. Si
 `getBytes()` , `setBytes()` , `getBinaryStream()` , and `setBinaryStream()` operate on the BYTEA data type. In 7.1 and
 earlier, these methods operated on the OID data type associated with Large Objects. It is possible to revert the driver
 back to the old 7.1 behaviour by setting the property `compatible` on the `Connection` object to the value `7.1`.
-More details on connection properties are available in the section called [Connection Parameters](/documentation/use/#connection-parameters).
+More details on connection properties are available in the section called [Connection Parameters](/documentation/reference/connection-properties/).
 
 To use the BYTEA data type you should simply use the `getBytes()` , `setBytes()` , `getBinaryStream()` , or `setBinaryStream()` methods.
 
