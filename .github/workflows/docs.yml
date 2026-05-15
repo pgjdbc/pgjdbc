@@ -20,6 +20,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          # :docs-tools:generateReleaseHistory enumerates REL42.* tags and
+          # release/42.*.x branches via JGit to build the compatibility
+          # matrix. A shallow checkout would surface only `master` and
+          # produce an empty table on the published site.
+          fetch-depth: 0
+          fetch-tags: true
 
       # Hugo (extended) goes on PATH; the :docs-tools:docsBuild Gradle task
       # invokes it via Exec after the property generator has produced the

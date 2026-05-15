@@ -25,6 +25,27 @@ dependencies {
     // bytecode. PGProperty's static initialiser only builds a HashMap and
     // is safe to trigger.
     implementation(projects.postgresql)
+
+    // GenerateReleaseHistory walks git refs (release/*.x branches and
+    // REL42.* tags). JGit 7.x has first-class git-worktree support
+    // (commondir indirection) and a typed API — preferable to shelling
+    // out to `git`. JGit 7.x bytecode targets Java 17; pgjdbc builds on
+    // JDK 21, so the runtime is fine. docs-tools sources stay at Java 8
+    // — we only call JGit method signatures that exist in pre-9 types,
+    // so javac --release 8 is satisfied.
+    implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
+
+    // SLF4J binding for JGit. Without one, SLF4J 2.x prints a per-JVM
+    // "No SLF4J providers were found" warning and silently routes JGit's
+    // diagnostics to NOP. slf4j-simple writes to stderr with no config
+    // file; tune via -Dorg.slf4j.simpleLogger.defaultLogLevel=warn.
+    runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
+
+    // snakeyaml is used only to parse the small hand-maintained
+    // release-history-overlay.yaml. Output YAML is still hand-rolled
+    // (see ReleaseHistoryYamlEmitter / YamlEmitter) so the on-disk shape
+    // stays stable and reviewable.
+    implementation("org.yaml:snakeyaml:2.2")
 }
 
 // Compiled bytecode of :postgresql, where PGProperty.class lives.
@@ -78,10 +99,58 @@ val generatePropertiesPartial by tasks.registering(JavaExec::class) {
     configureGenerator(allowIncomplete = true)
 }
 
+// ===== generateReleaseHistory ============================================
+//
+// Scans the local clone's `release/<NN>.x` branches and `REL<NN>` tags,
+// merges with docs/data/release-history-overlay.yaml, emits
+// docs/data/release-history.yaml. Consumed by the `release-history`
+// Hugo shortcode on the compatibility page.
+//
+// For CI to produce a complete table the checkout must include all
+// `REL42.*` tags and the `release/42.*.x` branches (full-history clone
+// or an explicit `git fetch --tags`).
+// We pass the project root (where `.git` lives, as either a directory in
+// a regular clone or a pointer file in a git worktree); JGit's findGitDir()
+// walks up from there and follows the pointer in the worktree case.
+val projectRoot = isolated.rootProject.projectDirectory.asFile
+val releaseHistoryOverlay =
+    isolated.rootProject.projectDirectory.dir("docs/data")
+        .file("release-history-overlay.yaml")
+val releaseHistoryYaml =
+    isolated.rootProject.projectDirectory.dir("docs/data")
+        .file("release-history.yaml")
+
+val generateReleaseHistory by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Generate docs/data/release-history.yaml from git refs " +
+        "(release/* branches, REL* tags) + release-history-overlay.yaml."
+
+    mainClass.set("org.postgresql.tools.docs.GenerateReleaseHistory")
+    classpath = sourceSets.main.get().runtimeClasspath
+
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf(
+            projectRoot.absolutePath,
+            releaseHistoryOverlay.asFile.absolutePath,
+            releaseHistoryYaml.asFile.absolutePath,
+        )
+    })
+
+    // The git directory's content drives the output, but Gradle cannot
+    // track .git efficiently — declare the overlay as the only file input
+    // and mark the task non-cacheable on the git side via outputs.upToDateWhen.
+    inputs.file(releaseHistoryOverlay).withPropertyName("overlay")
+    outputs.file(releaseHistoryYaml).withPropertyName("releaseHistoryYaml")
+    outputs.upToDateWhen { false }
+
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
 // ----- Hugo wrappers -------------------------------------------------------
 //
 // docsBuild  — strict production build: regenerate connection-properties.yaml
-//              from PGProperty annotations, then run a one-shot Hugo build.
+//              and release-history.yaml, then run a one-shot Hugo build.
 //              Fails if any PGProperty value has incomplete annotations.
 //
 // docsServe  — local dev server: regenerate with --allow-incomplete (so
@@ -114,9 +183,11 @@ fun Exec.ensureHugoOnPath() {
 
 val docsBuild by tasks.registering(Exec::class) {
     group = "documentation"
-    description = "Regenerate connection-properties.yaml and run a " +
-        "production Hugo build into docs/public."
+    description = "Regenerate connection-properties.yaml and " +
+        "release-history.yaml, then run a production Hugo build into " +
+        "docs/public."
     dependsOn(generateProperties)
+    dependsOn(generateReleaseHistory)
     workingDir = docsDir
     commandLine("hugo", "--gc", "--minify")
     ensureHugoOnPath()
@@ -125,8 +196,10 @@ val docsBuild by tasks.registering(Exec::class) {
 val docsServe by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Start the Hugo dev server with hot-reload " +
-        "(connection-properties.yaml regenerated in allow-incomplete mode)."
+        "(connection-properties.yaml regenerated in allow-incomplete mode; " +
+        "release-history.yaml regenerated from git refs)."
     dependsOn(generatePropertiesPartial)
+    dependsOn(generateReleaseHistory)
     workingDir = docsDir
 
     // -PdocsPort=NNNN overrides the default 1313.

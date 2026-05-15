@@ -1,0 +1,44 @@
+# Hand-maintained companion to docs/data/release-history.yaml (generated
+# by :docs-tools:generateReleaseHistory from refs in the local clone).
+#
+# Only contains data that cannot be derived from git itself:
+#   - minimum Java runtime (sparse breakpoints by pgjdbc version);
+#   - minimum PostgreSQL server (sparse breakpoints by pgjdbc version);
+#   - the .jre6 / .jre7 classifier variants of the 42.2.x line;
+#   - optional per-branch one-liner notes.
+#
+# Resolver semantics (applies to both `min_java` and `min_postgresql`):
+# for a given pgjdbc version, the chosen row is the entry with the
+# LARGEST `pgjdbc` value still ≤ the given version. Add a new row only
+# when the supported minimum actually changes. A branch whose latest
+# tag is older than the lowest breakpoint here is NOT rendered in the
+# matrix at all — the lowest breakpoint is the de facto floor of the
+# table.
+
+min_java:
+  - pgjdbc: "42.2.0"
+    java:   8
+
+min_postgresql:
+  - pgjdbc: "42.2.0"
+    postgresql: "8.4"
+  - pgjdbc: "42.7.5"
+    postgresql: "9.1"
+
+# Classifier-variant builds of the 42.2.x line. These ship as separate
+# Maven artefacts with a `.jre6` / `.jre7` suffix and stopped earlier
+# than the unclassified Java 8 build. Rendered as separate rows in the
+# compatibility table; not merged into the main branch row.
+classifiers:
+  - id: jre6
+    branch: "42.2.x"
+    last_version: "42.2.27"
+    min_java: 6
+  - id: jre7
+    branch: "42.2.x"
+    last_version: "42.2.29"
+    min_java: 7
+
+# Optional one-liner shown in the "Notes" column of the table.
+notes:
+  "42.2.x": "Last line shipping `.jre6` / `.jre7` classifiers for Java 6 / 7."

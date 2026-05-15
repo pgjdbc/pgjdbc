@@ -1,0 +1,65 @@
+{{/*
+  release-history: compatibility matrix for the pgJDBC release lines.
+
+  Reads .Site.Data.release-history (emitted by
+  :docs-tools:generateReleaseHistory). Expected top-level keys:
+    branches      list of dicts: id, latest, first_release, last_release,
+                  release_count, min_java, min_postgresql, notes (optional)
+    classifiers   list of dicts: id, branch, last_version,
+                  last_release (optional), min_java
+
+  Branch rows come first (descending by id); classifier rows follow,
+  one per `.jreN` variant.
+
+  No arguments.
+
+  Example:
+    {{< release-history >}}
+*/}}
+{{/* Data file's name contains a hyphen, so dot-access isn't usable;
+     `index` looks up the map entry by string key. */}}
+{{- $data := index .Site.Data "release-history" -}}
+{{- if not $data -}}
+<p><em>release-history: <code>data/release-history.yaml</code> not found.
+Run <code>./gradlew :docs-tools:generateReleaseHistory</code> to generate it.</em></p>
+{{- else -}}
+<div class="release-history-wrap">
+<table class="release-history">
+  <thead>
+    <tr>
+      <th scope="col">Release line</th>
+      <th scope="col">Latest</th>
+      <th scope="col">First release</th>
+      <th scope="col">Last release</th>
+      <th scope="col">Min&nbsp;Java</th>
+      <th scope="col">Min&nbsp;PostgreSQL</th>
+      <th scope="col">Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{- range $data.branches }}
+      <tr class="release-history__branch">
+        <th scope="row"><code>{{ .id }}</code></th>
+        <td><code>{{ .latest }}</code></td>
+        <td>{{ .first_release }}</td>
+        <td>{{ .last_release }}</td>
+        <td>{{ .min_java }}</td>
+        <td>{{ .min_postgresql }}</td>
+        <td>{{ with .notes }}{{ . | markdownify }}{{ end }}</td>
+      </tr>
+    {{- end }}
+    {{- range $data.classifiers }}
+      <tr class="release-history__classifier">
+        <th scope="row"><code>{{ .branch }}.{{ .id }}</code></th>
+        <td><code>{{ .last_version }}.{{ .id }}</code></td>
+        <td>—</td>
+        <td>{{ with .last_release }}{{ . }}{{ else }}—{{ end }}</td>
+        <td>{{ .min_java }}</td>
+        <td>—</td>
+        <td>Maven classifier variant of <code>{{ .branch }}</code> for Java {{ .min_java }}.</td>
+      </tr>
+    {{- end }}
+  </tbody>
+</table>
+</div>
+{{- end -}}
