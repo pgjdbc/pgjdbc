@@ -1,15 +1,20 @@
 {{/*
-  release-history: compatibility matrix for the pgJDBC release lines.
+  release-history: compatibility matrix for pgJDBC release lines.
 
   Reads .Site.Data.release-history (emitted by
-  :docs-tools:generateReleaseHistory). Expected top-level keys:
-    branches      list of dicts: id, latest, first_release, last_release,
-                  release_count, min_java, min_postgresql, notes (optional)
-    classifiers   list of dicts: id, branch, last_version,
-                  last_release (optional), min_java
+  :docs-tools:generateReleaseHistory). Each entry under `rows` is one
+  "compatibility segment" — a contiguous run of tagged versions in a
+  release branch with the same (min Java, min PostgreSQL) — or one
+  `.jreN` classifier variant. Rows are ordered branch-descending and,
+  within a branch, released-descending (so the newest segment of each
+  line floats to the top of its group).
 
-  Branch rows come first (descending by id); classifier rows follow,
-  one per `.jreN` variant.
+  The Status cell is split visually: long-form labels like
+    "Security until 2028-11"
+    "Superseded by 42.7.5+"
+  render the label on the first visual line and the date / version
+  pointer on the second, so the column does not blow up horizontally.
+  "Current" and "EOL since YYYY-MM" stay on one line.
 
   No arguments.
 
@@ -27,36 +32,34 @@ Run <code>./gradlew :docs-tools:generateReleaseHistory</code> to generate it.</e
 <table class="release-history">
   <thead>
     <tr>
-      <th scope="col">Release line</th>
-      <th scope="col">Latest</th>
-      <th scope="col">First release</th>
-      <th scope="col">Last release</th>
-      <th scope="col">Min&nbsp;Java</th>
-      <th scope="col">Min&nbsp;PostgreSQL</th>
+      <th scope="col">Release&nbsp;line</th>
+      <th scope="col">Version range</th>
+      <th scope="col">Released</th>
+      <th scope="col">Java</th>
+      <th scope="col">PostgreSQL</th>
+      <th scope="col">Status</th>
       <th scope="col">Notes</th>
     </tr>
   </thead>
   <tbody>
-    {{- range $data.branches }}
-      <tr class="release-history__branch">
-        <th scope="row"><code>{{ .id }}</code></th>
-        <td><code>{{ .latest }}</code></td>
-        <td>{{ .first_release }}</td>
-        <td>{{ .last_release }}</td>
-        <td>{{ .min_java }}</td>
-        <td>{{ .min_postgresql }}</td>
+    {{- range $data.rows }}
+      {{- $isCurrent := eq .status "Current" -}}
+      <tr{{ if $isCurrent }} class="release-history__current"{{ end }}>
+        <th scope="row" class="release-history__line"><code>{{ .release_line }}</code></th>
+        <td class="release-history__range"><code>{{ .version_range }}</code></td>
+        <td class="release-history__date">{{ with .released }}{{ . }}{{ else }}—{{ end }}</td>
+        <td>{{ with .min_java }}{{ . }}+{{ else }}—{{ end }}</td>
+        <td>{{ with .min_postgresql }}{{ . }}+{{ else }}—{{ end }}</td>
+        <td class="release-history__status">
+          {{- if hasPrefix .status "Security until " -}}
+            Security&nbsp;until<br>{{ trim (strings.TrimPrefix "Security until " .status) " " }}
+          {{- else if hasPrefix .status "Superseded by " -}}
+            Superseded&nbsp;by<br>{{ trim (strings.TrimPrefix "Superseded by " .status) " " }}
+          {{- else -}}
+            {{ .status }}
+          {{- end -}}
+        </td>
         <td>{{ with .notes }}{{ . | markdownify }}{{ end }}</td>
-      </tr>
-    {{- end }}
-    {{- range $data.classifiers }}
-      <tr class="release-history__classifier">
-        <th scope="row"><code>{{ .branch }}.{{ .id }}</code></th>
-        <td><code>{{ .last_version }}.{{ .id }}</code></td>
-        <td>—</td>
-        <td>{{ with .last_release }}{{ . }}{{ else }}—{{ end }}</td>
-        <td>{{ .min_java }}</td>
-        <td>—</td>
-        <td>Maven classifier variant of <code>{{ .branch }}</code> for Java {{ .min_java }}.</td>
       </tr>
     {{- end }}
   </tbody>

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -35,20 +36,25 @@ import org.eclipse.jgit.revwalk.RevWalk;
  * (release branches + release tags) merged with the hand-maintained
  * {@code docs/data/release-history-overlay.yaml}.
  *
- * <p>The output drives the {@code release-history} Hugo shortcode used
- * on the {@code /documentation/getting-started/compatibility/} page.
- * Source-of-truth principle (Phase 0.5): everything that CAN come from
- * the repository (tag names, commit dates) comes from there; only the
- * minimums that no file in the tree expresses (PostgreSQL server
- * version policy, classifier variants, per-branch notes) live in the
- * checked-in overlay.
+ * <p>The output is a flat {@code rows} list consumed by the
+ * {@code release-history} Hugo shortcode on the
+ * {@code /documentation/getting-started/compatibility/} page. Each row
+ * represents one "compatibility segment":
  *
- * <h2>Invocation</h2>
- * <pre>
- *   GenerateReleaseHistory &lt;git-dir&gt; &lt;overlay-yaml&gt; &lt;output-yaml&gt;
- * </pre>
- * The Gradle task {@code :docs-tools:generateReleaseHistory} fills the
- * three arguments from the project layout.
+ * <ul>
+ *   <li><b>segment row</b> — a contiguous run of tagged versions on a
+ *       release branch with the same {@code (min_java, min_postgresql)}
+ *       pair. The version range becomes the {@code 42.7.0-42.7.4} cell.
+ *   <li><b>classifier row</b> — the latest {@code .jre6} / {@code .jre7}
+ *       build of the 42.2.x line, surfaced as a separate row under the
+ *       same release-line label.
+ * </ul>
+ *
+ * <p>The {@code Status} column is derived from each line's
+ * {@code .0} commit date plus the overlay's
+ * {@code support_window_years}: rows older than the window are
+ * "EOL since YYYY-MM", rows still inside are "Security until YYYY-MM",
+ * and the latest segment of the latest release line is "Current".
  */
 public final class GenerateReleaseHistory {
 
@@ -67,47 +73,32 @@ public final class GenerateReleaseHistory {
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
             System.err.println("usage: GenerateReleaseHistory "
-                + "<git-dir> <overlay-yaml> <output-yaml>");
+                + "<project-root> <overlay-yaml> <output-yaml>");
             System.exit(2);
         }
-        Path gitDir = Paths.get(args[0]);
+        Path projectRoot = Paths.get(args[0]);
         Path overlayYaml = Paths.get(args[1]);
         Path outputYaml = Paths.get(args[2]);
 
-        // 1. Open repo and scan refs.
-        GitFacts facts = collectGitFacts(gitDir);
-
-        // 2. Load overlay.
+        GitFacts facts = collectGitFacts(projectRoot);
         Overlay overlay = OverlayLoader.load(overlayYaml);
-
-        // 3. Build per-branch records, resolving sparse overlay breakpoints.
-        List<BranchRecord> branches = buildBranches(facts, overlay);
-
-        // 4. Build classifier records, enriching with commit date from the
-        //    referenced last_version tag (if present).
-        List<ClassifierRecord> classifiers = buildClassifiers(facts, overlay);
-
-        // 5. Emit YAML.
-        ReleaseHistoryYamlEmitter.writeTo(branches, classifiers, outputYaml);
-        System.out.println("Wrote " + branches.size() + " branches + "
-            + classifiers.size() + " classifier rows to " + outputYaml);
+        List<Row> rows = buildRows(facts, overlay, LocalDate.now(ZoneOffset.UTC));
+        YamlEmitter.writeTo(rows, outputYaml);
+        System.out.println("Wrote " + rows.size() + " release-history rows to "
+            + outputYaml);
     }
 
     /* ===== Git scan ======================================================== */
 
-    /** Plain data carrier: branches and (per branch) sorted versions with dates. */
     static final class GitFacts {
         /** Branch ids, sorted descending: ["42.7.x", "42.6.x", ..., "42.2.x"]. */
         final List<String> branchIds = new ArrayList<>();
-        /** branchId -> versions on that branch, ordered ascending. */
         final Map<String, List<TaggedRelease>> tagsByBranch = new LinkedHashMap<>();
     }
 
     static final class TaggedRelease {
         final String version;
-        /** Commit date (UTC), formatted ISO yyyy-MM-dd. Lightweight or annotated
-         *  tag: we always peel to the commit and read its commit time. */
-        final String commitDate;
+        final String commitDate;   // ISO "yyyy-MM-dd"
 
         TaggedRelease(String version, String commitDate) {
             this.version = version;
@@ -116,11 +107,6 @@ public final class GenerateReleaseHistory {
     }
 
     private static GitFacts collectGitFacts(Path projectRoot) throws IOException {
-        // Git.open() resolves the `.git` pointer (regular directory or
-        // worktree pointer file) and follows `commondir`; we end up with
-        // a Repository whose object store is the shared main `.git/objects`
-        // and whose ref database sees both the shared tags and the per-
-        // worktree branch heads. JGit 7.x has solid worktree support.
         try (Git git = Git.open(projectRoot.toFile())) {
             return scanRefs(git.getRepository());
         }
@@ -134,11 +120,6 @@ public final class GenerateReleaseHistory {
                 branchIds.add(m.group(1));
             }
         }
-
-        // Tags: bucket by branch id (42.X.x) extracted from version (42.X.Y).
-        // For annotated tags we peel through to the commit and read its
-        // commit time. (There is no annotated/lightweight distinction we
-        // need to preserve — both end up reduced to a commit date.)
         Map<String, List<TaggedRelease>> tagsByBranch = new HashMap<>();
         try (RevWalk walk = new RevWalk(repo)) {
             for (Ref ref : repo.getRefDatabase().getRefs()) {
@@ -149,7 +130,6 @@ public final class GenerateReleaseHistory {
                 String version = m.group(1);
                 String branchId = toBranchId(version);
                 branchIds.add(branchId);
-
                 ObjectId peeled = peelTag(repo, ref);
                 if (peeled == null) {
                     continue;
@@ -164,7 +144,6 @@ public final class GenerateReleaseHistory {
         for (List<TaggedRelease> list : tagsByBranch.values()) {
             list.sort(Comparator.comparing(t -> versionKey(t.version)));
         }
-
         GitFacts out = new GitFacts();
         out.branchIds.addAll(branchIds);
         for (String id : out.branchIds) {
@@ -173,7 +152,6 @@ public final class GenerateReleaseHistory {
         return out;
     }
 
-    /** {@code 42.7.5} -> {@code 42.7.x}. */
     private static String toBranchId(String version) {
         int second = version.indexOf('.', version.indexOf('.') + 1);
         return version.substring(0, second) + ".x";
@@ -195,10 +173,14 @@ public final class GenerateReleaseHistory {
     /* ===== Overlay model ================================================== */
 
     static final class Overlay {
+        int supportWindowYears = 5;
         final List<Breakpoint> minJava = new ArrayList<>();
         final List<Breakpoint> minPostgresql = new ArrayList<>();
         final List<Classifier> classifiers = new ArrayList<>();
-        final Map<String, String> notes = new LinkedHashMap<>();
+        final List<String> securityReleases = new ArrayList<>();
+        final Map<String, List<String>> testedJava = new LinkedHashMap<>();
+        final Map<String, List<String>> testedPostgresql = new LinkedHashMap<>();
+        final Map<String, String> branchNotes = new LinkedHashMap<>();
     }
 
     static final class Breakpoint {
@@ -225,108 +207,199 @@ public final class GenerateReleaseHistory {
         }
     }
 
-    /* ===== Per-branch record ============================================== */
+    /* ===== Row model ====================================================== */
 
-    static final class ClassifierRecord {
-        final String id;
-        final String branch;
-        final String lastVersion;
-        final String lastRelease;  // commit date of REL<lastVersion>, may be ""
-        final String minJava;
-
-        ClassifierRecord(String id, String branch, String lastVersion,
-                         String lastRelease, String minJava) {
-            this.id = id;
-            this.branch = branch;
-            this.lastVersion = lastVersion;
-            this.lastRelease = lastRelease;
-            this.minJava = minJava;
-        }
+    static final class Row {
+        String releaseLine = "";    // "42.7.x"
+        String versionRange = "";   // "42.7.0-42.7.4" or "42.7.5" or "42.2.27.jre6"
+        String released = "";       // ISO date of the last release in the range
+        String minJava = "";
+        String minPostgresql = "";
+        String status = "";         // "Current" / "Security until 2028-11" / "EOL since 2023-01"
+        String notes = "";
     }
 
-    static final class BranchRecord {
-        final String id;            // "42.7.x"
-        final String latest;        // "42.7.11" — may be null if no tags
-        final String firstRelease;  // ISO date of 42.X.0 (or earliest tag)
-        final String lastRelease;   // ISO date of latest tag
-        final int releaseCount;
-        final String minJava;       // "8"
-        final String minPostgresql; // "9.1"
-        final String notes;         // may be empty
+    /* ===== Row building =================================================== */
 
-        BranchRecord(String id, String latest, String firstRelease, String lastRelease,
-                     int releaseCount, String minJava, String minPostgresql, String notes) {
-            this.id = id;
-            this.latest = latest;
-            this.firstRelease = firstRelease;
-            this.lastRelease = lastRelease;
-            this.releaseCount = releaseCount;
-            this.minJava = minJava;
-            this.minPostgresql = minPostgresql;
-            this.notes = notes;
-        }
-    }
-
-    /* ===== Build phase: merge facts + overlay ============================ */
-
-    private static List<BranchRecord> buildBranches(GitFacts facts, Overlay overlay) {
-        // Sort breakpoints ascending; resolver scans for the largest entry
-        // whose pgjdbc <= target.
+    private static List<Row> buildRows(GitFacts facts, Overlay overlay, LocalDate today) {
         List<Breakpoint> jBp = sortedAscending(overlay.minJava);
         List<Breakpoint> pgBp = sortedAscending(overlay.minPostgresql);
 
-        List<BranchRecord> out = new ArrayList<>();
+        Map<String, List<Classifier>> classifiersByBranch = new HashMap<>();
+        for (Classifier c : overlay.classifiers) {
+            classifiersByBranch
+                .computeIfAbsent(c.branch, k -> new ArrayList<>())
+                .add(c);
+        }
+
+        // First branch in branchIds is the latest (descending sort).
+        String latestLine = facts.branchIds.isEmpty() ? "" : facts.branchIds.get(0);
+
+        List<Row> out = new ArrayList<>();
         for (String branchId : facts.branchIds) {
             List<TaggedRelease> tags = facts.tagsByBranch.get(branchId);
             if (tags == null || tags.isEmpty()) {
-                // Branch with no shipped releases — skip. (Easy to lift this
-                // later if we want to show in-progress lines.)
                 continue;
             }
-            TaggedRelease firstTag = tags.get(0);
-            TaggedRelease lastTag = tags.get(tags.size() - 1);
-
-            String minJava = resolve(jBp, lastTag.version);
-            String minPg = resolve(pgBp, lastTag.version);
-            // Branches older than the lowest overlay breakpoint render with
-            // empty compatibility cells, which is worse than not rendering
-            // them at all. The overlay's lowest breakpoint is therefore the
-            // de facto floor for the rendered matrix.
-            if (minJava.isEmpty() && minPg.isEmpty()) {
+            TaggedRelease latest = tags.get(tags.size() - 1);
+            // Branch is rendered only if its latest tag falls within the
+            // overlay's coverage (≥ lowest breakpoint).
+            if (resolve(jBp, latest.version).isEmpty()
+                    && resolve(pgBp, latest.version).isEmpty()) {
                 continue;
             }
-            String note = overlay.notes.getOrDefault(branchId, "");
 
-            out.add(new BranchRecord(
-                branchId,
-                lastTag.version,
-                firstTag.commitDate,
-                lastTag.commitDate,
-                tags.size(),
-                minJava,
-                minPg,
-                note));
-        }
-        // Already in descending-version order via versionDescending().
-        return out;
-    }
+            // Compute the line's support window from its .0 (or earliest)
+            // tag plus support_window_years. Used in the Status column
+            // for every row of this line.
+            LocalDate lineStart = LocalDate.parse(tags.get(0).commitDate);
+            LocalDate supportEnd = lineStart.plusYears(overlay.supportWindowYears);
+            String supportEndYm = DateTimeFormatter.ofPattern("yyyy-MM").format(supportEnd);
 
-    private static List<ClassifierRecord> buildClassifiers(GitFacts facts, Overlay overlay) {
-        List<ClassifierRecord> out = new ArrayList<>();
-        for (Classifier c : overlay.classifiers) {
-            String date = "";
-            List<TaggedRelease> tags = facts.tagsByBranch.get(c.branch);
-            if (tags != null) {
+            // Group consecutive tags by (min_java, min_pg). Each group is
+            // one "segment" — one row in the rendered matrix.
+            List<Segment> segments = computeSegments(tags, jBp, pgBp);
+
+            // Collect this branch's rows into a local list so we can sort
+            // by released-desc before appending to the global output;
+            // release-line groups stay in their outer (descending) order.
+            List<Row> branchRows = new ArrayList<>();
+
+            for (int i = 0; i < segments.size(); i++) {
+                Segment seg = segments.get(i);
+                boolean isLastSegment = i == segments.size() - 1;
+                boolean isCurrent = isLastSegment && branchId.equals(latestLine);
+
+                Row row = new Row();
+                row.releaseLine = branchId;
+                row.versionRange = formatRange(seg.firstVersion, seg.lastVersion);
+                row.released = seg.lastDate;
+                row.minJava = seg.minJava;
+                row.minPostgresql = seg.minPg;
+                if (!isLastSegment) {
+                    // Intermediate segment: a newer segment on the same
+                    // line raised one of the floors. Point readers at the
+                    // version that introduced the next floor.
+                    Segment next = segments.get(i + 1);
+                    row.status = "Superseded by " + next.firstVersion + "+";
+                } else if (isCurrent) {
+                    row.status = "Current";
+                } else if (today.isBefore(supportEnd)) {
+                    row.status = "Security until " + supportEndYm;
+                } else {
+                    row.status = "EOL since " + supportEndYm;
+                }
+                row.notes = composeNotes(isCurrent, branchId, overlay);
+                branchRows.add(row);
+            }
+
+            // Classifier rows piggy-back on the parent line's status.
+            for (Classifier c : classifiersByBranch.getOrDefault(
+                    branchId, Collections.emptyList())) {
+                // Find the tag for this classifier's last_version to pull a date.
+                String date = "";
                 for (TaggedRelease t : tags) {
                     if (t.version.equals(c.lastVersion)) {
                         date = t.commitDate;
                         break;
                     }
                 }
+                Row row = new Row();
+                row.releaseLine = branchId;
+                row.versionRange = c.lastVersion + "." + c.id;
+                row.released = date;
+                row.minJava = c.minJava;
+                row.minPostgresql = resolve(pgBp, c.lastVersion);
+                row.status = today.isBefore(supportEnd)
+                    ? "Security until " + supportEndYm
+                    : "EOL since " + supportEndYm;
+                // No per-classifier note: the Java column ("6+" / "7+")
+                // and the version range column already convey that this
+                // row is the latest jreN build of the line.
+                branchRows.add(row);
             }
-            out.add(new ClassifierRecord(c.id, c.branch, c.lastVersion, date, c.minJava));
+
+            // Sort within the branch by released-desc; stable sort keeps
+            // tied dates in emission order (main segment before classifier
+            // with the same date).
+            branchRows.sort((a, b) -> b.released.compareTo(a.released));
+            out.addAll(branchRows);
         }
         return out;
+    }
+
+    private static String composeNotes(boolean isCurrent, String branchId, Overlay overlay) {
+        if (isCurrent) {
+            List<String> jv = overlay.testedJava.getOrDefault(
+                branchId, Collections.emptyList());
+            List<String> pgv = overlay.testedPostgresql.getOrDefault(
+                branchId, Collections.emptyList());
+            if (jv.isEmpty() && pgv.isEmpty()) {
+                return overlay.branchNotes.getOrDefault(branchId, "");
+            }
+            StringBuilder sb = new StringBuilder("CI: Java ");
+            sb.append(String.join(", ", jv));
+            sb.append("; PostgreSQL ");
+            sb.append(collapsedPgList(pgv));
+            sb.append('.');
+            return sb.toString();
+        }
+        return overlay.branchNotes.getOrDefault(branchId, "");
+    }
+
+    /** Render PG list as "first&ndash;last" when it has at least five
+     *  entries (the only realistic case is "every supported version in
+     *  the modern Postgres line"); otherwise comma-separated. */
+    private static String collapsedPgList(List<String> values) {
+        if (values.size() >= 5) {
+            return values.get(0) + "-" + values.get(values.size() - 1);
+        }
+        return String.join(", ", values);
+    }
+
+    /* ===== Segment computation =========================================== */
+
+    static final class Segment {
+        String firstVersion;
+        String lastVersion;
+        String firstDate;
+        String lastDate;
+        String minJava;
+        String minPg;
+    }
+
+    private static List<Segment> computeSegments(List<TaggedRelease> tags,
+                                                 List<Breakpoint> jBp,
+                                                 List<Breakpoint> pgBp) {
+        List<Segment> out = new ArrayList<>();
+        Segment current = null;
+        String prevJ = null;
+        String prevPg = null;
+        for (TaggedRelease t : tags) {
+            String j = resolve(jBp, t.version);
+            String pg = resolve(pgBp, t.version);
+            if (current == null
+                    || !j.equals(prevJ) || !pg.equals(prevPg)) {
+                current = new Segment();
+                current.firstVersion = t.version;
+                current.firstDate = t.commitDate;
+                current.minJava = j;
+                current.minPg = pg;
+                out.add(current);
+            }
+            current.lastVersion = t.version;
+            current.lastDate = t.commitDate;
+            prevJ = j;
+            prevPg = pg;
+        }
+        return out;
+    }
+
+    private static String formatRange(String first, String last) {
+        if (first == null || first.equals(last)) {
+            return last == null ? "" : last;
+        }
+        return first + "-" + last;
     }
 
     private static List<Breakpoint> sortedAscending(List<Breakpoint> bps) {
@@ -335,7 +408,6 @@ public final class GenerateReleaseHistory {
         return copy;
     }
 
-    /** Sparse-breakpoint resolver: largest breakpoint with pgjdbc &le; target wins. */
     private static String resolve(List<Breakpoint> ascending, String target) {
         String resolved = null;
         long targetKey = versionKey(target);
@@ -351,8 +423,6 @@ public final class GenerateReleaseHistory {
 
     /* ===== Version helpers =============================================== */
 
-    /** Pack a dotted version into a sortable long. Up to 5 components,
-     *  each in [0, 999]. "42.7.11" -> 42_007_011_000_000. */
     static long versionKey(String version) {
         long key = 0;
         int count = 0;
@@ -363,7 +433,6 @@ public final class GenerateReleaseHistory {
             try {
                 key = key * 1000 + Long.parseLong(part);
             } catch (NumberFormatException ex) {
-                // Best-effort: unknown segment treated as 0.
                 key = key * 1000;
             }
             count++;
@@ -406,6 +475,10 @@ public final class GenerateReleaseHistory {
                 }
                 root = (Map<String, Object>) parsed;
             }
+            Object sw = root.get("support_window_years");
+            if (sw instanceof Number) {
+                overlay.supportWindowYears = ((Number) sw).intValue();
+            }
             for (Map<String, Object> e : (List<Map<String, Object>>)
                     root.getOrDefault("min_java", Collections.emptyList())) {
                 overlay.minJava.add(new Breakpoint(
@@ -426,25 +499,54 @@ public final class GenerateReleaseHistory {
                     String.valueOf(e.get("last_version")),
                     String.valueOf(e.get("min_java"))));
             }
-            Object notesRaw = root.get("notes");
-            if (notesRaw instanceof Map) {
+            for (Object o : (List<Object>) root.getOrDefault(
+                    "security_releases", Collections.emptyList())) {
+                overlay.securityReleases.add(String.valueOf(o));
+            }
+            Object tj = root.get("tested_java");
+            if (tj instanceof Map) {
                 for (Map.Entry<String, Object> e :
-                        ((Map<String, Object>) notesRaw).entrySet()) {
-                    overlay.notes.put(e.getKey(), String.valueOf(e.getValue()));
+                        ((Map<String, Object>) tj).entrySet()) {
+                    overlay.testedJava.put(e.getKey(), toStringList(e.getValue()));
+                }
+            }
+            Object tpg = root.get("tested_postgresql");
+            if (tpg instanceof Map) {
+                for (Map.Entry<String, Object> e :
+                        ((Map<String, Object>) tpg).entrySet()) {
+                    overlay.testedPostgresql.put(e.getKey(), toStringList(e.getValue()));
+                }
+            }
+            Object bn = root.get("branch_notes");
+            if (bn instanceof Map) {
+                for (Map.Entry<String, Object> e :
+                        ((Map<String, Object>) bn).entrySet()) {
+                    overlay.branchNotes.put(e.getKey(), String.valueOf(e.getValue()));
                 }
             }
             return overlay;
         }
+
+        @SuppressWarnings("unchecked")
+        private static List<String> toStringList(Object raw) {
+            if (!(raw instanceof List)) {
+                return Collections.emptyList();
+            }
+            List<String> out = new ArrayList<>();
+            for (Object o : (List<Object>) raw) {
+                out.add(String.valueOf(o));
+            }
+            return out;
+        }
     }
 
-    /* ===== YAML emitter (hand-rolled, no snakeyaml-on-output) ============ */
+    /* ===== YAML emitter (hand-rolled) ==================================== */
 
-    static final class ReleaseHistoryYamlEmitter {
-        private ReleaseHistoryYamlEmitter() {
+    static final class YamlEmitter {
+        private YamlEmitter() {
         }
 
-        static void writeTo(List<BranchRecord> branches, List<ClassifierRecord> classifiers,
-                            Path output) throws IOException {
+        static void writeTo(List<Row> rows, Path output) throws IOException {
             Files.createDirectories(output.getParent());
             try (java.io.Writer w = Files.newBufferedWriter(
                     output, java.nio.charset.StandardCharsets.UTF_8)) {
@@ -453,29 +555,21 @@ public final class GenerateReleaseHistory {
                 w.write("#                  + docs/data/release-history-overlay.yaml.\n");
                 w.write("# Run `./gradlew :docs-tools:generateReleaseHistory` to regenerate.\n");
                 w.write("\n");
-                w.write("branches:\n");
-                for (BranchRecord r : branches) {
-                    w.write("  - id:             " + quoted(r.id) + "\n");
-                    w.write("    latest:         " + quoted(r.latest) + "\n");
-                    w.write("    first_release:  " + quoted(r.firstRelease) + "\n");
-                    w.write("    last_release:   " + quoted(r.lastRelease) + "\n");
-                    w.write("    release_count:  " + r.releaseCount + "\n");
-                    w.write("    min_java:       " + quoted(r.minJava) + "\n");
-                    w.write("    min_postgresql: " + quoted(r.minPostgresql) + "\n");
+                w.write("rows:\n");
+                for (Row r : rows) {
+                    w.write("  - release_line:   " + quoted(r.releaseLine) + "\n");
+                    w.write("    version_range:  " + quoted(r.versionRange) + "\n");
+                    w.write("    released:       " + quoted(r.released) + "\n");
+                    if (!r.minJava.isEmpty()) {
+                        w.write("    min_java:       " + quoted(r.minJava) + "\n");
+                    }
+                    if (!r.minPostgresql.isEmpty()) {
+                        w.write("    min_postgresql: " + quoted(r.minPostgresql) + "\n");
+                    }
+                    w.write("    status:         " + quoted(r.status) + "\n");
                     if (!r.notes.isEmpty()) {
                         w.write("    notes:          " + quoted(r.notes) + "\n");
                     }
-                }
-                w.write("\n");
-                w.write("classifiers:\n");
-                for (ClassifierRecord c : classifiers) {
-                    w.write("  - id:           " + quoted(c.id) + "\n");
-                    w.write("    branch:       " + quoted(c.branch) + "\n");
-                    w.write("    last_version: " + quoted(c.lastVersion) + "\n");
-                    if (!c.lastRelease.isEmpty()) {
-                        w.write("    last_release: " + quoted(c.lastRelease) + "\n");
-                    }
-                    w.write("    min_java:     " + quoted(c.minJava) + "\n");
                 }
             }
         }
@@ -487,5 +581,4 @@ public final class GenerateReleaseHistory {
             return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
         }
     }
-
 }
