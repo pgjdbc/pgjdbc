@@ -7,8 +7,8 @@ package org.postgresql.jdbc.codec;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
-import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -18,6 +18,8 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
@@ -25,7 +27,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL text type.
  */
-public final class TextCodecImpl implements BinaryCodec, TextCodec {
+public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextCodec {
 
   public static final TextCodecImpl INSTANCE = new TextCodecImpl();
 
@@ -63,6 +65,20 @@ public final class TextCodecImpl implements BinaryCodec, TextCodec {
   @Override
   public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
     return toString(value);
+  }
+
+  @Override
+  public void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+      throws SQLException, IOException {
+    String s = toString(value);
+    Charset encoding = ctx.getCharset();
+    out.write(s.getBytes(encoding));
+  }
+
+  @Override
+  public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    out.append(toString(value));
   }
 
   @Override

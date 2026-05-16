@@ -69,7 +69,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).intValue();
     }
-    throw new SQLException("Cannot convert " + (value == null ? "null" : value.getClass()) + " to int");
+    throw Codec.cannotConvert(value, "int");
   }
 
   /**
@@ -107,7 +107,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
-    throw new SQLException("Cannot convert " + (value == null ? "null" : value.getClass()) + " to long");
+    throw Codec.cannotConvert(value, "long");
   }
 
   /**
@@ -142,7 +142,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).floatValue();
     }
-    throw new SQLException("Cannot convert " + (value == null ? "null" : value.getClass()) + " to float");
+    throw Codec.cannotConvert(value, "float");
   }
 
   /**
@@ -159,7 +159,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
     }
-    throw new SQLException("Cannot convert " + (value == null ? "null" : value.getClass()) + " to double");
+    throw Codec.cannotConvert(value, "double");
   }
 
   /**
@@ -216,7 +216,7 @@ public interface TextCodec extends Codec {
       }
       return BigDecimal.valueOf(((Number) value).doubleValue());
     }
-    throw new SQLException("Cannot convert " + value.getClass() + " to BigDecimal");
+    throw Codec.cannotConvert(value, "BigDecimal");
   }
 
   /**
@@ -243,6 +243,6 @@ public interface TextCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw new SQLException("Conversion to " + targetClass.getName() + " not supported for " + getTypeName());
+    throw Codec.cannotConvert(getTypeName(), targetClass.getName());
   }
 }

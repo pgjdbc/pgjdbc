@@ -5,8 +5,8 @@
 
 package org.postgresql.jdbc.codec;
 
-import org.postgresql.api.codec.BinaryCodec;
-import org.postgresql.api.codec.TextCodec;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
@@ -17,13 +17,15 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 
 /**
  * Codec for PostgreSQL int4 (INTEGER) type.
  */
-public final class Int4Codec implements BinaryCodec, TextCodec {
+public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec {
 
   public static final Int4Codec INSTANCE = new Int4Codec();
 
@@ -52,6 +54,22 @@ public final class Int4Codec implements BinaryCodec, TextCodec {
     byte[] result = new byte[4];
     ByteConverter.int4(result, 0, v);
     return result;
+  }
+
+  @Override
+  public void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+      throws SQLException, IOException {
+    if (out instanceof BackpatchingBinarySink) {
+      ((BackpatchingBinarySink) out).writeInt32(toInt(value));
+      return;
+    }
+    out.write(encodeBinary(value, type, ctx));
+  }
+
+  @Override
+  public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    out.append(Integer.toString(toInt(value)));
   }
 
   @Override
@@ -186,9 +204,18 @@ public final class Int4Codec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private int toInt(Object value) throws SQLException {
+  static int toInt(Object value) throws SQLException {
+    if (value instanceof Integer) {
+      return (Integer) value;
+    }
     if (value instanceof Number) {
-      return ((Number) value).intValue();
+      long asLong = ((Number) value).longValue();
+      if (asLong < Integer.MIN_VALUE || asLong > Integer.MAX_VALUE) {
+        throw new PSQLException(
+            GT.tr("Value {0} is out of int4 range", value),
+            PSQLState.NUMERIC_VALUE_OUT_OF_RANGE);
+      }
+      return (int) asLong;
     }
     if (value instanceof String) {
       try {
@@ -203,7 +230,7 @@ public final class Int4Codec implements BinaryCodec, TextCodec {
       return (Boolean) value ? 1 : 0;
     }
     throw new PSQLException(
-        GT.tr("Cannot convert {0} to int", value.getClass().getName()),
+        GT.tr("Cannot convert {0} to int4", value.getClass().getName()),
         PSQLState.INVALID_PARAMETER_TYPE);
   }
 }

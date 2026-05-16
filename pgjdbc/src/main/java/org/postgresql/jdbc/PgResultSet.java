@@ -764,6 +764,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
+    map = IdentifierNormalizingTypeMap.of(map, connection.getTypeInfo());
 
     byte[] value = getRawValue(i);
     if (value == null) {

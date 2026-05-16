@@ -1026,6 +1026,29 @@ public final class ArrayEncoding {
   }
 
   /**
+   * Returns whether {@link #getArrayEncoder} has a dedicated, element-aware
+   * encoder for <i>array</i>. When this returns {@code false} the lookup falls
+   * back to a generic {@code Object[]} encoder that emits each element via
+   * {@code toString()} and rejects binary encoding — callers that need correct
+   * encoding for arbitrary element types (e.g. {@code Struct[]},
+   * {@link java.sql.SQLData}{@code []}) should route per element through the
+   * codec layer instead.
+   *
+   * @param array
+   *          The array to inspect. Must not be {@code null}.
+   * @return {@code true} when the array's element type has a registered
+   *         encoder; {@code false} when only the generic {@code Object[]}
+   *         fallback applies.
+   */
+  public static boolean hasNativeEncoder(Object array) {
+    Class<?> componentType = array.getClass().getComponentType();
+    while (componentType != null && componentType.isArray()) {
+      componentType = componentType.getComponentType();
+    }
+    return componentType != null && ARRAY_CLASS_TO_ENCODER.containsKey(componentType);
+  }
+
+  /**
    * Returns support for encoding <i>array</i>.
    *
    * @param array
