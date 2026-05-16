@@ -142,7 +142,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     env:
       ACTIONS_STEP_DEBUG: true
