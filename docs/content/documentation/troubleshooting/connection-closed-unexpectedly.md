@@ -151,9 +151,13 @@ recipe above.
 - [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/)
   — the different "I/O stuck" failure mode where the TCP socket is
   *not* dead but both ends are deadlocked on full buffers.
+- [Connection pooling](/documentation/connect/connection-pooling/)
+  — HikariCP / Tomcat JDBC / c3p0 production recipes (validation
+  defaults, idle eviction, `tcpKeepAlive` under pool ownership),
+  pool sizing, and `ApplicationName` per pool.
 - [Connection Pools and Data Sources](/documentation/connect/datasource/)
-  — where the pool-validation recipe belongs in the broader
-  configuration.
+  — the JDBC `DataSource` / `ConnectionPoolDataSource` API
+  contracts and pgJDBC's bundled implementations.
 - [Connection properties reference](/documentation/reference/connection-properties/)
   — `tcpKeepAlive`, `socketTimeout`, `loginTimeout`,
   `cancelSignalTimeout`.

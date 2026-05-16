@@ -12,6 +12,8 @@ aliases:
     - "/documentation/query/multithreading/"
 ---
 
+This page covers the JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and the two `DataSource` implementations pgJDBC bundles (`PGSimpleDataSource`, `PGPoolingDataSource`). For the production-pool recipes — HikariCP / Tomcat JDBC / c3p0 with pool sizing, validation, `ApplicationName` per pool, and the per-connection state that matters for sizing — see [Connection pooling](/documentation/connect/connection-pooling/).
+
 JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package
 (also known as the JDBC 2.0 Standard Extension). These features have since been included in the core JDBC 3 API.
 

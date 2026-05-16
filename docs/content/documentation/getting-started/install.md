@@ -109,7 +109,8 @@ The SSL-related connection properties:
 - **Connection pooling.** Use HikariCP, Tomcat JDBC, or your container's
   pool. Do not call `DriverManager.getConnection` per request — the
   driver was built for pool usage and the cost of opening a connection
-  is significant.
+  is significant. See [Connection pooling](/documentation/connect/connection-pooling/)
+  for the recipes and sizing guidance.
 - **Authentication.** SCRAM-SHA-256 is handled transparently. See
   [Authentication](/documentation/security/authentication/) for the
   full method list, the `requireAuth` allow-list / deny-list,
