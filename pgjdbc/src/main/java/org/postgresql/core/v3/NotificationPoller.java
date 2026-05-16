@@ -31,7 +31,7 @@ class NotificationPoller extends Thread {
 
   private static final Logger LOGGER = Logger.getLogger(NotificationPoller.class.getName());
 
-  private volatile NIOInputStream nioInput;
+  private volatile @org.checkerframework.checker.nullness.qual.Nullable NIOInputStream nioInput;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private volatile boolean dataAvailable;
   private final ReentrantLock lock = new ReentrantLock();
