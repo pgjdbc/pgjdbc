@@ -2,6 +2,39 @@
 // Buttons carry data-tab-target="<index>"; panels carry data-active="true|false".
 // A single .code-tabs__copy button per container reads the currently-active
 // panel's text and writes it to the clipboard.
+//
+// Copy uses navigator.clipboard.writeText() where available (secure
+// context: https://, localhost, 127.0.0.1) and falls back to a hidden
+// <textarea> + document.execCommand('copy') for non-secure contexts
+// (the dev server bound to a LAN IP, file://). The legacy path is
+// deprecated but still works in every current browser.
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (e) {
+      // fall through to legacy path
+    }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.top = '-9999px';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand('copy');
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
 
 document.querySelectorAll('[data-code-tabs]').forEach((root) => {
   const buttons = root.querySelectorAll('.code-tabs__btn');
@@ -30,20 +63,21 @@ document.querySelectorAll('[data-code-tabs]').forEach((root) => {
     const active = root.querySelector('.code-tabs__panel[data-active="true"]');
     if (!active) return;
 
-    // Prefer the <code> element's text — that strips highlight-span wrappers
-    // and gives just the snippet.
+    // textContent is preferred over innerText: it ignores CSS visibility
+    // and returns the source text verbatim. Chroma's per-line span
+    // wrappers (<span class="line"><span class="cl">...</span>\n</span>)
+    // keep the original newlines as text nodes, so textContent reads
+    // back the same snippet the user sees.
     const codeEl = active.querySelector('code');
-    const text = (codeEl ? codeEl.innerText : active.innerText).trimEnd();
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      label.textContent = 'Copied';
-      copyBtn.classList.add('is-copied');
-    } catch (e) {
-      label.textContent = 'Copy failed';
-      copyBtn.classList.add('is-failed');
+    const text = (codeEl ? codeEl.textContent : active.textContent || '').replace(/\s+$/, '');
+    if (!text) {
+      console.warn('code-tabs: empty snippet, nothing to copy');
+      return;
     }
+
+    const ok = await copyText(text);
+    label.textContent = ok ? 'Copied' : 'Copy failed';
+    copyBtn.classList.add(ok ? 'is-copied' : 'is-failed');
 
     if (resetTimer) clearTimeout(resetTimer);
     resetTimer = setTimeout(() => {
