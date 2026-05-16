@@ -22,5 +22,5 @@ ques = "What is 'transaction interleaving'?"
 [[faq]]
 title = "Problems"
 [[faq.item]]
-ans = "This is related to batched queries and synchronous TCP. The thing to look at is setting the network buffer sizes to use to large values to avoid the deadlock. The default values are machine dependent which also explains it working or not on different machines (credit to Kris Jurka)"
+ans = "See <a href=\"/documentation/troubleshooting/executebatch-hangs/\">Troubleshooting → executeBatch hangs without an error</a> — the page covers the underlying synchronous-TCP deadlock, the driver's own 64&nbsp;KB-threshold mitigation, and the connection properties (<code>sendBufferSize</code>, <code>receiveBufferSize</code>, <code>reWriteBatchedInserts</code>) you can tune."
 ques = "executeBatch hangs without error Possible solutions"
