@@ -33,5 +33,21 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 > **Important**
 > 
 > Any reserved characters for URLs (for example, /, :, @, (, ), [, ], &, #, =, ?, and space) that appear in any part of the connection URL must be percent encoded. See [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2) for details.
+
+### Passing server `options` in the URL
+
+The [`options`](/documentation/reference/connection-properties/#prop-options) connection property is forwarded to the backend as the `options` startup parameter, so the value follows the [Client Connection Defaults](https://www.postgresql.org/docs/current/runtime-config-client.html) syntax — multiple `-c name=value` flags separated by spaces, with `\` escaping a literal space and `\\` a literal backslash.
+
+When passed via a `Properties` object the value is taken verbatim:
+
+```java
+props.setProperty("options", "-c search_path=test,public,pg_catalog -c statement_timeout=90000");
+```
+
+When the same value is embedded in a JDBC URL, every space must be percent-encoded as `%20`, otherwise the URL parser will treat the second `-c` as a separate connection parameter:
+
+```
+jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000
+```
 </content>
 </invoke>

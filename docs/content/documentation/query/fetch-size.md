@@ -61,3 +61,35 @@ rs.close();
 // Close the statement.
 st.close();
 ```
+
+## Bounding the result set by buffer size
+
+When the right fetch size is hard to predict — wide rows, mixed
+queries, JVMs with varying heap budgets — the
+[`maxResultBuffer`](/documentation/reference/connection-properties/#prop-maxresultbuffer)
+property caps how many bytes a single `ResultSet` may accumulate
+before the driver raises an error. The value can be expressed in
+two styles:
+
+- **Byte sizes** with an optional unit suffix: `100` (bytes),
+  `150M`, `300K`, `400G`, `1T`.
+- **A percentage of the max heap**: `10p`, `15pct`, `20percent`.
+
+Regardless of how it is written, the effective ceiling is 90 % of
+the JVM's maximum heap — values above that are silently clamped to
+the cap. The default is unset, meaning result-set reads are
+unbounded.
+
+### Adaptive fetch
+
+[`adaptiveFetch`](/documentation/reference/connection-properties/#prop-adaptivefetch)
+turns `maxResultBuffer` into a dynamic fetch sizer: the driver
+divides the remaining buffer by the largest row it has seen so far
+and uses that as the next round-trip's fetch size. The first
+round-trip still uses `defaultRowFetchSize`, and the computed value
+is clamped by
+[`adaptiveFetchMinimum`](/documentation/reference/connection-properties/#prop-adaptivefetchminimum)
+and
+[`adaptiveFetchMaximum`](/documentation/reference/connection-properties/#prop-adaptivefetchmaximum).
+Both `maxResultBuffer` and `defaultRowFetchSize` must be set for
+adaptive fetch to take effect.

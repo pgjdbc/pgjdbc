@@ -95,6 +95,8 @@ package, but you can use your own decoding plugin. There are a few on github whi
 In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection
 is not available to execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL®.
 
+The [`replication`](/documentation/reference/connection-properties/#prop-replication) property should be paired with [`assumeMinServerVersion`](/documentation/reference/connection-properties/#prop-assumeminserverversion) set to `9.4` or higher (the backend version that introduced logical replication). Without it the driver issues extra version-probing round-trips before entering walsender mode, which can fail on connections that only accept replication commands.
+
 ##### Example 9.4. Create replication connection.
 
 ```java

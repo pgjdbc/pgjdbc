@@ -65,3 +65,7 @@ org.postgresql.level = FINEST
 And when you run your application you pass the system property:
 
 `java -jar -Djava.util.logging.config.file=logging.properties run.jar`
+
+## Deprecated properties
+
+The connection properties `loggerLevel` and `loggerFile` are no longer used by the driver and are silently ignored if present. All logging configuration is handled by `java.util.logging` as described above; configure handlers and levels through a `logging.properties` file (or programmatically via `LogManager`) instead of the old URL parameters.

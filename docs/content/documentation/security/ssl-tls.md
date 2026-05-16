@@ -97,6 +97,24 @@ must be ".p12" (supported since 42.2.9) or ".pfx" (since 42.2.16). (In this case
 > When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
 There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
 
+### Bringing your own client key
+
+The `sslkey` file **must** be in [PKCS-12](https://en.wikipedia.org/wiki/PKCS_12) or in [PKCS-8](https://en.wikipedia.org/wiki/PKCS_8) [DER format](https://wiki.openssl.org/index.php/DER). A PEM key, which is what most tooling produces, has to be converted first:
+
+```sh
+openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES
+```
+
+If your key has a password, supply it via the `sslpassword` connection parameter. If the key has no password, add `-nocrypt` to the command above so the driver does not prompt for one. For a PKCS-12 export the `alias`/`name` field on the key must be `user` (matching the certificate's CN), for example:
+
+```sh
+openssl pkcs12 -export -in client.crt -inkey client.key -out client.p12 -name user -CAfile root.crt -caname local -passout pass:<password>
+```
+
+> **NOTE**
+>
+> The `-v1 PBE-MD5-DES` cipher used in the PEM→DER conversion above may be inadequate in environments with high security requirements, especially if the key file is not otherwise protected (OS access control) or is transmitted over untrusted channels. The driver relies on the cryptography providers shipped with the Java runtime; the recipe above is known to work at the time of writing. For stricter requirements, see this [Stack Overflow discussion](https://stackoverflow.com/questions/58488774/configure-tomcat-hibernate-to-have-a-cryptographic-provider-supporting-1-2-840-1) on selecting a stronger cipher suite.
+
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and currently implements the
 following

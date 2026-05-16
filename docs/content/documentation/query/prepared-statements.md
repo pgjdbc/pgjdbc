@@ -120,6 +120,29 @@ The threshold can be set per-URL, per-`Connection` via
 `PGStatement.setPrepareThreshold(int)`. Smaller scopes override
 larger ones.
 
+#### `preferQueryMode` — the master switch
+
+Everything above assumes the driver is using the extended query
+protocol (Parse / Bind / Execute). The
+[`preferQueryMode`](/documentation/reference/connection-properties/#prop-preferquerymode)
+property selects which protocol shape the driver uses at all, and
+therefore whether `prepareThreshold` even applies:
+
+- **`extended`** (default) — Parse / Bind / Execute for
+  `PreparedStatement`; `prepareThreshold` controls when the
+  statement is named on the server.
+- **`extendedForPrepared`** — same as `extended` but only for
+  explicitly prepared statements; `Statement.execute(String)`
+  takes the simple-protocol path.
+- **`extendedCacheEverything`** — extends the prepared-statement
+  cache to *every* SQL the connection runs, including
+  `Statement.execute(String)`. Mostly a diagnostic / debugging mode
+  (see the [corner case below](#use-of-server-prepared-statements-for-concreatestatement)).
+- **`simple`** — single-message `'Q'` execute, no Parse, no Bind,
+  text format only. Disables server-prepare, binary transfer and
+  parameter typing; useful when something in the path (a pooler,
+  a wire-level proxy) cannot cope with the extended protocol.
+
 #### Binary transfer and its activation
 
 By default ([`binaryTransfer=true`](/documentation/reference/connection-properties/#prop-binarytransfer))
@@ -184,6 +207,35 @@ A long-lived connection accumulates statements until the cache fills;
 a connection from a pool stays warm for the lifetime of that pooled
 slot. A backend restart (failover, OOM kill) drops the whole
 catalog, surfacing as the lifetime-end errors above.
+
+#### `autosave` — auto-rollback around invalidation errors
+
+When a cached plan goes stale mid-transaction (the
+`cached plan must not change result type` / `prepared statement "S_X" does not exist`
+errors above), the failed statement poisons the whole transaction
+unless something rolls back to a savepoint first. The
+[`autosave`](/documentation/reference/connection-properties/#prop-autosave)
+property controls whether the driver places that savepoint for you:
+
+- **`never`** (default) — no savepoint is set, no rollback is
+  attempted. A stale-plan error fails the transaction as usual.
+- **`conservative`** — the driver sets a savepoint before each
+  query and rolls back to it only for the specific class of errors
+  caused by stale prepared statements; after the rollback the
+  driver re-parses and retries the statement. This is the
+  recommended setting when long-lived connections (especially
+  pooled ones) coexist with schema migrations.
+- **`always`** — set a savepoint before every query and roll back
+  to it on *any* failure. Useful when porting code that expects
+  PostgreSQL to behave like databases without transaction-level
+  failure semantics, but every query pays for an extra
+  savepoint/release round-trip.
+
+The companion property
+[`cleanupSavepoints`](/documentation/reference/connection-properties/#prop-cleanupsavepoints)
+releases the savepoint immediately after the statement succeeds,
+which avoids running the backend out of shared buffers when a
+long-lived `autosave` transaction issues thousands of queries.
 
 ### Activation
 
