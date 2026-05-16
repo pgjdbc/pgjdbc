@@ -1,0 +1,58 @@
+{{/*
+  Quick install block. Reuses the `code-tabs` / `code-tabs__*` markup
+  the documentation shortcodes already emit, so the existing
+  components/_code-tabs.scss styling and static/js/code-tabs.js
+  switching logic pick this up without modification.
+
+  The version string is read from the latest entry of
+  docs/data/homepagedata.toml[[info]]; that table is sorted by
+  release date descending, so index 0 is the current release.
+  When homepagedata.toml grows a dedicated `[release]` block in a
+  later commit, swap the lookup over to a named field.
+*/}}
+{{- $version := (index .Site.Data.homepagedata.info 0).version -}}
+{{- $maven := printf `<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>%s</version>
+</dependency>` $version -}}
+{{- $gradleKotlin := printf `implementation("org.postgresql:postgresql:%s")` $version -}}
+{{- $gradleGroovy := printf `implementation 'org.postgresql:postgresql:%s'` $version -}}
+
+<section class="quick-install">
+    <h2 class="quick-install__head">Add it to your build</h2>
+    <p class="quick-install__lead">
+        Latest release: <strong>{{ $version }}</strong> ·
+        <a href="/documentation/getting-started/install/">Full Quick Start →</a>
+    </p>
+    <div class="code-tabs" data-code-tabs id="qi-ct">
+        <ul class="code-tabs__list" role="tablist">
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-ct-panel-0" aria-selected="true"
+                        data-tab-target="0">Maven</button>
+            </li>
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-ct-panel-1" aria-selected="false"
+                        data-tab-target="1">Gradle (Kotlin)</button>
+            </li>
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-ct-panel-2" aria-selected="false"
+                        data-tab-target="2">Gradle (Groovy)</button>
+            </li>
+        </ul>
+        <div class="code-tabs__panels">
+            <div id="qi-ct-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
+                {{ transform.Highlight $maven "xml" "" }}
+            </div>
+            <div id="qi-ct-panel-1" class="code-tabs__panel" role="tabpanel" data-active="false">
+                {{ transform.Highlight $gradleKotlin "kotlin" "" }}
+            </div>
+            <div id="qi-ct-panel-2" class="code-tabs__panel" role="tabpanel" data-active="false">
+                {{ transform.Highlight $gradleGroovy "groovy" "" }}
+            </div>
+        </div>
+    </div>
+</section>

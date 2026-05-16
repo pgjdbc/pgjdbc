@@ -156,6 +156,40 @@
     }
 }
 
+// Quick install — pgJDBC dependency snippet, right under the hero.
+// The inner `.code-tabs` carries its own styling from
+// components/_code-tabs.scss; this rule only sets up the wrapper.
+
+.quick-install {
+    &__head {
+        font-size: 1.75rem;
+        margin-bottom: 0.5em;
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    &__lead {
+        margin: 0 0 0.75em;
+        color: var(--clr-neutral-600);
+        font-weight: 400;
+        letter-spacing: normal;
+
+        strong { color: var(--clr-neutral-700); }
+
+        a { white-space: nowrap; }
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    .code-tabs {
+        margin-block: 0;
+    }
+}
+
 // Info Section
 
 .info {
