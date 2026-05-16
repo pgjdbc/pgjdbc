@@ -10,20 +10,29 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.DumperOptions.FlowStyle;
+import org.yaml.snakeyaml.DumperOptions.ScalarStyle;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.nodes.MappingNode;
+import org.yaml.snakeyaml.nodes.Node;
+import org.yaml.snakeyaml.nodes.NodeTuple;
+import org.yaml.snakeyaml.nodes.ScalarNode;
+import org.yaml.snakeyaml.nodes.SequenceNode;
+import org.yaml.snakeyaml.nodes.Tag;
+
 /**
- * Hand-rolled YAML writer for the connection-properties data file
- * consumed by the {@code param-table} Hugo shortcode. The output shape
- * is fixed and narrow (one flat list of dicts with known keys) so we
- * spell it out by hand rather than dragging snakeyaml onto the build
- * classpath.
- *
- * <p>Strings are emitted quoted only when necessary (when they contain
- * characters that YAML treats specially or could be ambiguously parsed
- * as numbers/booleans/nulls). Multi-line descriptions use the
- * {@code >-} folded-and-stripped block scalar.
+ * Emits the connection-properties YAML data file consumed by the
+ * {@code param-table} Hugo shortcode. The output shape is a flat list
+ * of dicts with known keys; we build the snakeyaml node tree directly
+ * so that key order, scalar styles (folded descriptions, flow-style
+ * tag lists, always-quoted default strings) and the wrap width are all
+ * controlled explicitly.
  */
 final class YamlEmitter {
 
@@ -38,10 +47,19 @@ final class YamlEmitter {
         Files.createDirectories(output.getParent());
         try (Writer w = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
             writeHeader(w);
-            for (PropertyRecord r : records) {
-                writeRecord(r, w);
-            }
+            new Yaml(dumperOptions()).serialize(buildSequence(records), w);
         }
+    }
+
+    private static DumperOptions dumperOptions() {
+        DumperOptions o = new DumperOptions();
+        o.setDefaultFlowStyle(FlowStyle.BLOCK);
+        o.setIndent(2);
+        o.setIndicatorIndent(0);
+        o.setWidth(WRAP);
+        o.setSplitLines(true);
+        o.setLineBreak(DumperOptions.LineBreak.UNIX);
+        return o;
     }
 
     private static void writeHeader(Writer w) throws IOException {
@@ -52,139 +70,104 @@ final class YamlEmitter {
         w.write("\n");
     }
 
-    private static void writeRecord(PropertyRecord r, Writer w) throws IOException {
-        w.write("- name:         " + scalar(r.name) + "\n");
-        w.write("  type:         " + r.type + "\n");
-        w.write("  default:      " + defaultScalar(r.defaultValue) + "\n");
-        w.write("  introducedIn: " + scalar(r.introducedIn) + "\n");
-        w.write("  status:       " + r.status + "\n");
+    private static SequenceNode buildSequence(List<PropertyRecord> records) {
+        List<Node> nodes = new ArrayList<>(records.size());
+        for (PropertyRecord r : records) {
+            nodes.add(buildMapping(r));
+        }
+        return new SequenceNode(Tag.SEQ, true, nodes, null, null, FlowStyle.BLOCK);
+    }
+
+    private static MappingNode buildMapping(PropertyRecord r) {
+        List<NodeTuple> tuples = new ArrayList<>();
+        tuples.add(tuple("name", str(r.name)));
+        tuples.add(tuple("type", str(r.type)));
+        tuples.add(tuple("default", defaultNode(r.defaultValue)));
+        tuples.add(tuple("introducedIn", str(r.introducedIn)));
+        tuples.add(tuple("status", str(r.status)));
         if (!r.deprecatedIn.isEmpty()) {
-            w.write("  deprecatedIn: " + scalar(r.deprecatedIn) + "\n");
+            tuples.add(tuple("deprecatedIn", str(r.deprecatedIn)));
         }
         if (!r.hiddenIn.isEmpty()) {
-            w.write("  hiddenIn:     " + scalar(r.hiddenIn) + "\n");
+            tuples.add(tuple("hiddenIn", str(r.hiddenIn)));
         }
-        w.write("  tags:         " + flowList(toLowerCase(r.tags)) + "\n");
+        tuples.add(tuple("tags", flowList(toLowerCase(r.tags))));
         if (r.choices != null && r.choices.length > 0) {
-            w.write("  choices:      " + flowList(java.util.Arrays.asList(r.choices)) + "\n");
+            tuples.add(tuple("choices", flowList(Arrays.asList(r.choices))));
         }
         if (r.required) {
-            w.write("  required:     true\n");
+            tuples.add(tuple("required", bool(true)));
         }
-        w.write("  description: " + foldedDescription(r.description) + "\n");
-        w.write("\n");
+        tuples.add(tuple("description", folded(r.description)));
+        return new MappingNode(Tag.MAP, true, tuples, null, null, FlowStyle.BLOCK);
     }
 
-    /* ----- Scalar quoting -------------------------------------------------- */
+    /* ----- Node helpers --------------------------------------------------- */
 
-    /** Quote a string only when it would otherwise be ambiguous to a YAML parser. */
-    private static String scalar(String s) {
-        if (s == null) {
-            return "\"\"";
-        }
-        if (s.isEmpty()) {
-            return "\"\"";
-        }
-        if (needsQuoting(s)) {
-            return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
-        }
-        return s;
+    private static NodeTuple tuple(String key, Node value) {
+        return new NodeTuple(scalar(Tag.STR, key, ScalarStyle.PLAIN), value);
     }
 
-    /** Defaults need special handling: null is rendered as YAML null
-     *  (omitted value), the empty string as a quoted empty string. */
-    private static String defaultScalar(String d) {
+    /**
+     * Plain string scalar. snakeyaml's emitter promotes the value to a
+     * quoted style on its own when a plain rendering would round-trip as
+     * a non-string (e.g. "false", "null", "9.4").
+     */
+    private static Node str(String s) {
+        if (s == null || s.isEmpty()) {
+            return scalar(Tag.STR, "", ScalarStyle.DOUBLE_QUOTED);
+        }
+        return scalar(Tag.STR, s, ScalarStyle.PLAIN);
+    }
+
+    /**
+     * Defaults need special handling: a {@code null} default is rendered as
+     * the YAML {@code null} scalar; every other default is forced to a
+     * double-quoted string so numeric/boolean-looking values stay strings
+     * on the consumer side (consistent with how PGProperty stores them).
+     */
+    private static Node defaultNode(String d) {
         if (d == null) {
-            return "null";
+            return scalar(Tag.NULL, "null", ScalarStyle.PLAIN);
         }
-        if (d.isEmpty()) {
-            return "\"\"";
-        }
-        // Always quote numeric/boolean-looking defaults so the consumer
-        // treats them as strings consistently with how PGProperty stores them.
-        return "\"" + d.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return scalar(Tag.STR, d, ScalarStyle.DOUBLE_QUOTED);
     }
 
-    private static boolean needsQuoting(String s) {
-        if (s.contains(":") || s.contains("#") || s.contains("\n")
-            || s.contains("'") || s.contains("\"") || s.startsWith(" ")
-            || s.endsWith(" ")) {
-            return true;
-        }
-        // YAML reserves a set of indicator characters when they appear at
-        // the start of a plain scalar: they trigger tags, anchors, aliases,
-        // flow collections, block scalars, directives, reserved sigils, or
-        // (for `-`) a block-sequence entry. Quote in that case.
-        char first = s.charAt(0);
-        if (first == '!' || first == '&' || first == '*' || first == '['
-            || first == ']' || first == '{' || first == '}' || first == ','
-            || first == '|' || first == '>' || first == '%' || first == '@'
-            || first == '`' || first == '?' || first == '-') {
-            return true;
-        }
-        if (isYamlReservedScalar(s)) {
-            return true;
-        }
-        return false;
+    private static Node bool(boolean v) {
+        return scalar(Tag.BOOL, Boolean.toString(v), ScalarStyle.PLAIN);
     }
 
-    private static boolean isYamlReservedScalar(String s) {
-        String l = s.toLowerCase(Locale.ROOT);
-        return l.equals("null") || l.equals("true") || l.equals("false")
-            || l.equals("yes")  || l.equals("no")
-            || l.equals("on")   || l.equals("off");
+    /**
+     * Render the (possibly long, possibly multi-line) description as a
+     * folded-and-stripped block scalar ({@code >-}). All embedded whitespace
+     * is normalised to single spaces so the emitter re-wraps cleanly at
+     * {@link #WRAP}.
+     */
+    private static Node folded(String text) {
+        if (text == null || text.isEmpty()) {
+            return scalar(Tag.STR, "", ScalarStyle.DOUBLE_QUOTED);
+        }
+        String normalised = text.replaceAll("\\s+", " ").trim();
+        return scalar(Tag.STR, normalised, ScalarStyle.FOLDED);
     }
 
-    /* ----- List rendering -------------------------------------------------- */
-
-    private static String flowList(List<String> items) {
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < items.size(); i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
-            sb.append(scalar(items.get(i)));
+    private static Node flowList(List<String> items) {
+        List<Node> nodes = new ArrayList<>(items.size());
+        for (String s : items) {
+            nodes.add(str(s));
         }
-        sb.append(']');
-        return sb.toString();
+        return new SequenceNode(Tag.SEQ, true, nodes, null, null, FlowStyle.FLOW);
+    }
+
+    private static ScalarNode scalar(Tag tag, String value, ScalarStyle style) {
+        return new ScalarNode(tag, value, null, null, style);
     }
 
     private static List<String> toLowerCase(List<String> source) {
-        List<String> out = new java.util.ArrayList<>(source.size());
+        List<String> out = new ArrayList<>(source.size());
         for (String s : source) {
             out.add(s.toLowerCase(Locale.ROOT));
         }
         return out;
-    }
-
-    /* ----- Description block scalar --------------------------------------- */
-
-    /**
-     * Render the (possibly long, possibly multi-line) description as a
-     * folded-and-stripped block scalar ({@code >-}) so the YAML stays
-     * readable in source form and the consumer gets a single-line value.
-     */
-    private static String foldedDescription(String text) {
-        if (text == null || text.isEmpty()) {
-            return "\"\"";
-        }
-        // Normalise whitespace and any embedded newlines into single spaces;
-        // the folded scalar will re-wrap them at WRAP for display.
-        String normalised = text.replaceAll("\\s+", " ").trim();
-        StringBuilder sb = new StringBuilder(">-");
-        int col = WRAP + 1;
-        for (String word : normalised.split(" ")) {
-            int next = col + 1 + word.length();
-            if (next > WRAP) {
-                sb.append("\n    ");
-                col = 4;
-                sb.append(word);
-                col += word.length();
-            } else {
-                sb.append(' ').append(word);
-                col = next;
-            }
-        }
-        return sb.toString();
     }
 }
