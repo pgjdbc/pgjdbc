@@ -24,6 +24,158 @@ Server side prepared statements can improve execution speed as
 1. It enables the reuse server-side execution plan
 1. The client can reuse result set column definition, so it does not have to receive and parse metadata on each execution
 
+### Execution model
+
+The driver does not jump straight to "named, cached, binary" on the
+first execution. The first few `executeQuery()` / `executeUpdate()`
+calls on a given SQL go through the **unnamed extended-protocol**
+path (Parse + Bind + Execute, re-parsed each time, text-format
+results). Once an internal counter passes `prepareThreshold`, the
+driver names the statement (`S_1`, `S_2`, ...), parses it once on
+the server, and from then on sends only Bind + Execute against the
+cached name — and switches to binary transfer for the OIDs that
+support it.
+
+This warm-up is normal. It is also the answer to most "why was the
+first run so much slower than the rest?" questions.
+
+#### When server-prepared statements activate
+
+The counter is tracked per **SQL text** within a `Connection`, not
+per `PreparedStatement` object — calling
+`connection.prepareStatement("SELECT ?")` twice and executing each
+once still counts as two executions of the same query. With the
+default `prepareThreshold=5`:
+
+- executions 1–4 use the unnamed prepared statement;
+- execution 5 names the statement and sends a one-time `PARSE`;
+- executions 6+ reuse the named statement, sending only
+  `BIND`/`EXECUTE`.
+
+The driver's `PGStatement.isUseServerPrepare()` returns the live
+state — see the worked example at the bottom of this page for an
+execution-by-execution trace.
+
+#### Why the first executions may be slower
+
+Three things change at once when the threshold is crossed:
+
+- **Parsing moves from per-execution to per-statement.** Before the
+  threshold, each execute pays a fresh `PARSE` on the server; after
+  it, parsing is a one-time cost amortised over every subsequent
+  execute.
+- **Result format flips from text to binary.** Until the statement
+  is named, results come back as ASCII strings the driver has to
+  decode. Once binary transfer activates, `int4` is 4 raw bytes,
+  `timestamp` is 8, and the driver skips most of the
+  string-to-Java-object pipeline (see below).
+- **Server-side planning stabilises.** PostgreSQL plans the first
+  few executions of a named statement with the actual parameter
+  values it sees (custom plans). After a few iterations it picks a
+  parameter-independent generic plan if that is not noticeably
+  worse — controlled server-side by
+  [`plan_cache_mode`](https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-PLAN-CACHE-MODE).
+  In a default installation, latency stabilises around execution 10
+  rather than execution 5.
+
+A benchmark that measures throughput on the first execution and then
+extrapolates will overestimate the cost of a steady-state query, in
+the same way a benchmark of a single class load overestimates the
+cost of a JVM method call.
+
+#### What `prepareThreshold` changes
+
+`prepareThreshold` is the only knob that affects when the transition
+happens. The relevant values:
+
+- **`prepareThreshold > 0`** (default `5`) — wait N executions
+  before naming. Trade-off: the first N executes are cheaper in
+  steady state (no named statement to maintain) but more expensive
+  per call (Parse repeated).
+- **`prepareThreshold = 1`** — name immediately. Useful when the
+  application knows the statement will be hot; every execute is a
+  fast Bind/Execute, but every `prepareStatement(sql)` call pays
+  the one-time `PARSE` cost up front.
+- **`prepareThreshold = 0`** — never name. Server-prepare is off
+  entirely; binary transfer is also off, since binary transfer
+  needs a named statement to anchor the column-format descriptors.
+  Use this when a pooler or other middleware in the path cannot
+  cope with named statements (see also the
+  [PgBouncer note in `prepared-statement-cannot-change`](/documentation/troubleshooting/prepared-statement-cannot-change/#make-pgbouncer-keep-server-prepared-statements)).
+- **`prepareThreshold = -1`** — a corner-case value that forces
+  binary transfer for the OIDs the driver knows how to encode
+  without otherwise changing the prepare path.
+
+The threshold can be set per-URL, per-`Connection` via
+`PGConnection.setPrepareThreshold(int)`, or per-statement via
+`PGStatement.setPrepareThreshold(int)`. Smaller scopes override
+larger ones.
+
+#### Binary transfer and its activation
+
+By default ([`binaryTransfer=true`](/documentation/reference/connection-properties/#prop-binarytransfer))
+the driver advertises that it can both send parameters and receive
+columns in PostgreSQL's binary representation for ~30 built-in
+types — `int2` / `int4` / `int8`, `float4` / `float8`, `numeric`,
+`uuid`, `timestamp` / `timestamptz`, `date`, `bytea`, the array
+variants of those, and so on. Binary skips the ASCII detour: a 64-bit
+integer is 8 wire bytes instead of up to 20 ASCII characters, plus
+no `Long.parseLong` on the client.
+
+Binary transfer **piggybacks on server-prepare**. Until the statement
+is named, the driver cannot pin which OIDs will be in the result, so
+it falls back to text format. Once the threshold is crossed and the
+statement is named, the driver pins the per-column format from the
+cached `Describe` response and binary transfer activates.
+
+Two narrower knobs override the per-OID defaults:
+
+- [`binaryTransferEnable`](/documentation/reference/connection-properties/#prop-binarytransferenable)
+  — comma-separated OID names or numbers added to the binary set.
+- [`binaryTransferDisable`](/documentation/reference/connection-properties/#prop-binarytransferdisable)
+  — comma-separated OID names or numbers removed from the binary
+  set. Wins over `binaryTransferEnable` and over the driver default.
+
+`binaryTransfer=false` switches the driver to text-only mode
+regardless of `prepareThreshold` — primarily useful for debugging.
+
+#### Prepared statement lifetime and invalidation
+
+A server-prepared statement lives on a single backend connection
+until one of:
+
+- **The connection closes.** All server-side state is dropped.
+- **The client-side cache evicts it.** pgJDBC caps the per-connection
+  cache via
+  [`preparedStatementCacheQueries`](/documentation/reference/connection-properties/#prop-preparedstatementcachequeries)
+  (default `256` entries) and
+  [`preparedStatementCacheSizeMiB`](/documentation/reference/connection-properties/#prop-preparedstatementcachesizemib)
+  (default `5` MiB). When a new statement crosses either threshold,
+  the LRU entry is evicted from the cache *and* a `DEALLOCATE` is
+  sent to free the backend memory.
+- **The application issues `DEALLOCATE ALL` / `DISCARD ALL`.** The
+  driver watches the command tags and invalidates the client-side
+  cache so the next execute re-parses.
+- **`SET search_path` changes.** Object lookups in cached plans
+  could now resolve differently. The driver detects top-level `SET`
+  on `search_path` and invalidates accordingly. (Caveat: a SET
+  buried inside a PL/pgSQL function or a server-side trigger is
+  *not* detected — see the Corner cases section for the workaround.)
+- **A schema migration invalidates the plan.** ALTER TABLE adding,
+  dropping or retyping a column makes the cached plan stale. The
+  next execute raises `cached plan must not change result type`
+  (`SQLState 0A000`) or `prepared statement "S_X" does not exist`
+  (`SQLState 26000`). See
+  [Troubleshooting → cached plan must not change result type](/documentation/troubleshooting/prepared-statement-cannot-change/)
+  for the recovery options (`autosave=conservative`, prepared-cache
+  eviction).
+
+In short: the cache is per-connection, per-SQL-text, soft-bounded.
+A long-lived connection accumulates statements until the cache fills;
+a connection from a pool stays warm for the lifetime of that pooled
+slot. A backend restart (failover, OOM kill) drops the whole
+catalog, surfacing as the lifetime-end errors above.
+
 ### Activation
 
 Previous versions of the driver used PREPARE and EXECUTE to implement server-prepared statements.  
