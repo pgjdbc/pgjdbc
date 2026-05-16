@@ -3,8 +3,12 @@
  * See the LICENSE file in the project root for more information.
  */
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("build-logic.java-library")
+    id("build-logic.test-junit5")
+    id("org.jetbrains.kotlin.jvm")
 }
 
 // docs-tools is a build-time-only utility module. It is NOT shipped with
@@ -14,10 +18,13 @@ plugins {
 // and emits a YAML data file consumed by the Hugo docs build.
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+
     // ASM reads CLASS-retention annotations directly from the compiled
     // .class file (these are not visible to reflection at runtime).
-    implementation("org.ow2.asm:asm:9.9.1")
-    implementation("org.ow2.asm:asm-tree:9.9.1")
+    implementation(platform("org.ow2.asm:asm-bom:9.9.1"))
+    implementation("org.ow2.asm:asm")
+    implementation("org.ow2.asm:asm-tree")
 
     // Plain runtime metadata of PGProperty (name, default, description,
     // choices, required) lives in normal Java fields, so we read those via
@@ -30,9 +37,7 @@ dependencies {
     // REL42.* tags). JGit 7.x has first-class git-worktree support
     // (commondir indirection) and a typed API — preferable to shelling
     // out to `git`. JGit 7.x bytecode targets Java 17; pgjdbc builds on
-    // JDK 21, so the runtime is fine. docs-tools sources stay at Java 8
-    // — we only call JGit method signatures that exist in pre-9 types,
-    // so javac --release 8 is satisfied.
+    // JDK 21, so the runtime is fine.
     implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
 
     // SLF4J binding for JGit. Without one, SLF4J 2.x prints a per-JVM
@@ -41,11 +46,19 @@ dependencies {
     // file; tune via -Dorg.slf4j.simpleLogger.defaultLogLevel=warn.
     runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
 
-    // snakeyaml is used only to parse the small hand-maintained
-    // release-history-overlay.yaml. Output YAML is still hand-rolled
-    // (see ReleaseHistoryYamlEmitter / YamlEmitter) so the on-disk shape
-    // stays stable and reviewable.
+    // snakeyaml drives both YAML emitters (connection-properties output
+    // and release-history output) and parses the hand-maintained
+    // release-history-overlay.yaml.
     implementation("org.yaml:snakeyaml:2.2")
+}
+
+// pgjdbc targets Java 8 bytecode via --release 8; pin Kotlin to the same
+// jvmTarget so the two compilers agree (Gradle aborts on a mismatch).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
 }
 
 // Compiled bytecode of :postgresql, where PGProperty.class lives.
@@ -61,17 +74,25 @@ val connectionPropertiesYaml =
 // Shared configuration for the strict and the allow-incomplete variants.
 fun JavaExec.configureGenerator(allowIncomplete: Boolean) {
     group = "documentation"
-    dependsOn(project(":postgresql").tasks.named("classes"))
+    // :postgresql:classes builds PGProperty.class we read by ASM;
+    // :docs-tools:classes (implicit via runtimeClasspath) builds our own
+    // Kotlin entrypoint plus the jandex index that Gradle 9 expects on
+    // the classpath but cannot infer as a dependency on its own.
+    dependsOn(":postgresql:classes")
+    dependsOn("classes")
+    dependsOn("processJandexIndex")
 
     mainClass.set("org.postgresql.tools.docs.GenerateProperties")
     classpath = sourceSets.main.get().runtimeClasspath
 
     argumentProviders.add(CommandLineArgumentProvider {
-        val a = mutableListOf<String>()
-        if (allowIncomplete) a.add("--allow-incomplete")
-        a.add(postgresqlMainClasses.singleFile.absolutePath)
-        a.add(connectionPropertiesYaml.asFile.absolutePath)
-        a
+        buildList {
+            if (allowIncomplete) {
+                add("--allow-incomplete")
+            }
+            add(postgresqlMainClasses.singleFile.absolutePath)
+            add(connectionPropertiesYaml.asFile.absolutePath)
+        }
     })
 
     inputs.files(postgresqlMainClasses).withPropertyName("pgPropertyClasses")
@@ -127,12 +148,15 @@ val generateReleaseHistory by tasks.registering(JavaExec::class) {
 
     mainClass.set("org.postgresql.tools.docs.GenerateReleaseHistory")
     classpath = sourceSets.main.get().runtimeClasspath
+    // See configureGenerator for the rationale on these dependencies.
+    dependsOn(tasks.named("classes"))
+    dependsOn(tasks.named("processJandexIndex"))
 
     argumentProviders.add(CommandLineArgumentProvider {
         listOf(
             projectRoot.absolutePath,
             releaseHistoryOverlay.asFile.absolutePath,
-            releaseHistoryYaml.asFile.absolutePath,
+            releaseHistoryYaml.asFile.absolutePath
         )
     })
 
