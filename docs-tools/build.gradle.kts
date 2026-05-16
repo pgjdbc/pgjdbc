@@ -61,6 +61,17 @@ kotlin {
     }
 }
 
+// docs-tools runs at build time on the project's buildJdk (Java 17+ in
+// practice — JGit 7.x already requires Java 17 at runtime). Its tests
+// freely use post-Java-8 APIs (e.g. ByteArrayOutputStream#toString(Charset),
+// since Java 10), so they cannot run on a Java 8 test toolchain even though
+// the produced bytecode is JVM 1.8.
+tasks.test {
+    onlyIf("docs-tools tests use post-Java-8 APIs (e.g. ByteArrayOutputStream#toString(Charset))") {
+        buildParameters.testJdkVersion > 8
+    }
+}
+
 // Compiled bytecode of :postgresql, where PGProperty.class lives.
 val postgresqlMainClasses = files(
     project(":postgresql").layout.buildDirectory.dir("classes/java/main")
