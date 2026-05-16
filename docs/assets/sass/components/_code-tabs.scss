@@ -1,5 +1,14 @@
 .code-tabs {
   margin-block: var(--space-m);
+  /* Shrink the container to the widest tab's content rather than
+     filling the parent column. On the homepage this keeps the copy
+     button (absolute-positioned to the right edge of the panels)
+     glued to the snippet instead of stranding it at the page edge.
+     On docs pages it gives the same visual: snippets sit at their
+     natural width, not stretched. Long lines still cap at parent
+     width via max-width and overflow horizontally inside <pre>. */
+  width: max-content;
+  max-width: 100%;
   border: var(--border-subtle);
   border-radius: var(--radius-m);
   background: var(--clr-neutral-100);
@@ -54,7 +63,17 @@
 
     &[data-active="true"] { display: block; }
 
-    pre { margin: 0; border-radius: 0; }
+    /* Reserve room on the right for the absolute-positioned
+       `__copy` button so a single-line snippet (Gradle Kotlin /
+       Groovy on the homepage) does not run under it. The
+       container's `width: max-content` then sizes to
+       `widest-line + 5rem`, keeping the button glued to the
+       block edge rather than overlapping the code. */
+    pre {
+      margin: 0;
+      border-radius: 0;
+      padding-inline-end: 5rem;
+    }
   }
 
   &__copy {
