@@ -2,7 +2,7 @@
 title: "Security"
 weight: 30
 toc: false
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-16"
 description: "TLS, authentication mechanisms, and the recommended security baseline for production connections."
 ---
 

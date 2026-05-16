@@ -123,6 +123,11 @@ are ever sent under the unwanted method.
 
 ## Related
 
+- [Authentication](/documentation/security/authentication/) — the
+  conceptual companion to this page: which methods the driver
+  supports, how the server-driven negotiation resolves, and the
+  levers (`requireAuth`, `channelBinding`, `scramMaxIterations`,
+  `AuthenticationPlugin`) that bound it.
 - [Quick Start § 3 — TLS](/documentation/getting-started/install/#3-configure-ssltls)
   — the recommended-default combination of `sslmode=verify-full`,
   `sslrootcert`, and `channelBinding=require`.

@@ -110,9 +110,11 @@ The SSL-related connection properties:
   pool. Do not call `DriverManager.getConnection` per request — the
   driver was built for pool usage and the cost of opening a connection
   is significant.
-- **Authentication.** SCRAM-SHA-256 is handled transparently. For
-  Kerberos / GSSAPI / SSPI see the corresponding connection properties
-  below; for plug-in based authentication see `authenticationPluginClassName`.
+- **Authentication.** SCRAM-SHA-256 is handled transparently. See
+  [Authentication](/documentation/security/authentication/) for the
+  full method list, the `requireAuth` allow-list / deny-list,
+  channel-binding semantics, and the `AuthenticationPlugin` SPI
+  for IAM / Vault / token-based credentials.
 - **Performance.** Server-side prepared statements activate after
   `prepareThreshold` executions (default 5) — see
   [Server-prepared statements](/documentation/query/prepared-statements/)
