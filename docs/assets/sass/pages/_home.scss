@@ -170,21 +170,6 @@
         }
     }
 
-    &__lead {
-        margin: 0 0 0.75em;
-        color: var(--clr-neutral-600);
-        font-weight: 400;
-        letter-spacing: normal;
-
-        strong { color: var(--clr-neutral-700); }
-
-        a { white-space: nowrap; }
-
-        @include mq-max(medium) {
-            text-align: center;
-        }
-    }
-
     .code-tabs {
         margin-block: 0;
     }

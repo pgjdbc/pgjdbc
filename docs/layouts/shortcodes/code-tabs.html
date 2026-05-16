@@ -35,6 +35,10 @@
     {{- end -}}
   </ul>
   <div class="code-tabs__panels">
+    <button class="code-tabs__copy" type="button"
+            aria-label="Copy snippet to clipboard">
+      <span class="code-tabs__copy-label">Copy</span>
+    </button>
     {{- range $i, $t := $tabs -}}
       <div id="{{ $id }}-panel-{{ $i }}"
            class="code-tabs__panel"

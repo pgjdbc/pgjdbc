@@ -63,13 +63,33 @@
     inset-inline-end:  var(--space-2xs);
     z-index: 1;
 
-    padding: var(--space-3xs) var(--space-2xs);
+    padding: var(--space-3xs) var(--space-xs);
     border: var(--border-subtle);
     border-radius: var(--radius-s);
     background: var(--clr-white);
     cursor: pointer;
+    font: inherit;
     font-size: var(--fs-300);
+    color: var(--clr-neutral-600);
+    line-height: 1;
 
-    &:hover { background: var(--clr-neutral-100); }
+    &:hover  { background: var(--clr-neutral-100); color: var(--clr-primary-400); }
+    &:focus-visible {
+      outline: 2px solid var(--clr-primary-300);
+      outline-offset: 1px;
+    }
+
+    /* JS swaps the label text to "Copied" and adds .is-copied for the
+       brief confirmation window; mirror with a green tint so the
+       feedback is unmissable without an icon swap. */
+    &.is-copied {
+      color: var(--clr-success-400, #1f7a3d);
+      border-color: var(--clr-success-300, #2d9d57);
+    }
+
+    &.is-failed {
+      color: var(--clr-danger-400, #b3261e);
+      border-color: var(--clr-danger-300, #d9534f);
+    }
   }
 }

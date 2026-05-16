@@ -21,10 +21,6 @@
 
 <section class="quick-install">
     <h2 class="quick-install__head">Add it to your build</h2>
-    <p class="quick-install__lead">
-        Latest release: <strong>{{ $version }}</strong> ·
-        <a href="/documentation/getting-started/install/">Full Quick Start →</a>
-    </p>
     <div class="code-tabs" data-code-tabs id="qi-ct">
         <ul class="code-tabs__list" role="tablist">
             <li class="code-tabs__tab" role="presentation">
@@ -44,6 +40,10 @@
             </li>
         </ul>
         <div class="code-tabs__panels">
+            <button class="code-tabs__copy" type="button"
+                    aria-label="Copy snippet to clipboard">
+                <span class="code-tabs__copy-label">Copy</span>
+            </button>
             <div id="qi-ct-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
                 {{ transform.Highlight $maven "xml" "" }}
             </div>
