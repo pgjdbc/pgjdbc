@@ -56,6 +56,15 @@ The driver's `PGStatement.isUseServerPrepare()` returns the live
 state — see the worked example at the bottom of this page for an
 execution-by-execution trace.
 
+Crucially, the named server statement is anchored to the
+`Connection`, not to the `PreparedStatement` object — calling
+`PreparedStatement.close()` does **not** drop the server-side plan
+or reset the counter. The most common shape that bites readers is
+a per-iteration `prepareStatement` / `execute` / `close` loop on
+the same SQL: it looks like five independent statements but the
+fifth iteration still server-prepares, and every subsequent
+iteration reuses the cached plan.
+
 #### Why the first executions may be slower
 
 Three things change at once when the threshold is crossed:
