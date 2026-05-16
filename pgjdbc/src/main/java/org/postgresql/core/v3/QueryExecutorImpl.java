@@ -255,9 +255,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void enableNIO() {
-    if (!pipelineMode) {
-      return; // NIO only needed for pipeline mode
-    }
     try {
       pgStream.enableNIO();
     } catch (IOException e) {

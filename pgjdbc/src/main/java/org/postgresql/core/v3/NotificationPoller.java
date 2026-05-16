@@ -31,7 +31,7 @@ class NotificationPoller extends Thread {
 
   private static final Logger LOGGER = Logger.getLogger(NotificationPoller.class.getName());
 
-  private final NIOInputStream nioInput;
+  private volatile NIOInputStream nioInput;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private volatile boolean dataAvailable;
   private final ReentrantLock lock = new ReentrantLock();
@@ -66,7 +66,10 @@ class NotificationPoller extends Thread {
 
   void shutdown() {
     running.set(false);
-    nioInput.wakeup();
+    NIOInputStream input = nioInput;
+    if (input != null) {
+      input.wakeup();
+    }
     lock.lock();
     try {
       signalCondition.signalAll();
@@ -78,30 +81,37 @@ class NotificationPoller extends Thread {
   @Override
   public void run() {
     LOGGER.log(Level.FINEST, "NotificationPoller started");
-    while (running.get()) {
-      try {
-        // Block until data is available (no CPU waste)
-        if (nioInput.waitForData(500)) {
-          dataAvailable = true;
-          // Wait until main thread clears the flag
-          lock.lock();
-          try {
-            while (dataAvailable && running.get()) {
-              signalCondition.await();
-            }
-          } finally {
-            lock.unlock();
-          }
-        }
-      } catch (InterruptedException e) {
-        // shutdown or wakeup
-      } catch (IOException e) {
-        if (running.get()) {
-          LOGGER.log(Level.FINE, "NotificationPoller I/O error", e);
+    try {
+      while (running.get()) {
+        NIOInputStream input = nioInput;
+        if (input == null) {
           break;
         }
+        try {
+          if (input.waitForData(500)) {
+            dataAvailable = true;
+            lock.lock();
+            try {
+              while (dataAvailable && running.get()) {
+                signalCondition.await();
+              }
+            } finally {
+              lock.unlock();
+            }
+          }
+        } catch (InterruptedException e) {
+          // shutdown or wakeup
+        } catch (IOException e) {
+          if (running.get()) {
+            LOGGER.log(Level.FINE, "NotificationPoller I/O error", e);
+            break;
+          }
+        }
       }
+    } finally {
+      // Clear references to allow ClassLoader garbage collection
+      nioInput = null;
+      LOGGER.log(Level.FINEST, "NotificationPoller stopped");
     }
-    LOGGER.log(Level.FINEST, "NotificationPoller stopped");
   }
 }
