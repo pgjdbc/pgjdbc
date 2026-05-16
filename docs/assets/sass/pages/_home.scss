@@ -425,10 +425,46 @@
     }
 }
 
-.example {
-    pre code {
+// Why pgJDBC? — short reassurance block under Common tasks. Four
+// strong-lead bullets, each with one short expansion line. No
+// marketing prose; if a fact isn't reachable from the surrounding
+// context (hero subtitle, badge bar, release card), put it here.
+
+.why {
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: 0.6em;
+        line-height: 1.15;
+
         @include mq-max(medium) {
-            display: block;
+            text-align: center;
+        }
+    }
+
+    &__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-s) var(--space-l);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        @include mq-max(medium) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        li {
+            margin: 0;
+            font-weight: 400;
+            letter-spacing: normal;
+            line-height: 1.5;
+
+            strong {
+                display: block;
+                font-weight: 600;
+                color: var(--clr-primary-400);
+                margin-bottom: 0.15em;
+            }
         }
     }
 }
