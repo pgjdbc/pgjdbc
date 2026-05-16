@@ -18,10 +18,7 @@
         margin: 1em 0;
     }
 
-    .hero,
-    .info,
-    .feature {
-
+    .hero {
         @include mq-min(medium) {
             display: flex;
             justify-content: space-between;
@@ -344,20 +341,87 @@
     }
 }
 
-// Feature Section
+// Common tasks. 6-card grid linking into the relevant topical
+// documentation pages. Each card is one CSS Grid cell; the link
+// covers the whole card so the click target is the entire visual
+// box rather than just the title.
 
-.feature {
-    column-gap: 5rem;
+.tasks {
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: 0.6em;
+        line-height: 1.15;
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    &__grid {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-m);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+
+        @include mq-max(medium) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @include mq-max(small) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
 
     &__item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
+        margin: 0;
+        padding: 0;
+    }
 
-        &__media {
-            width: 4rem;
-            aspect-ratio: 1;
+    /* Card-as-link: the whole tile is the click target. No underline
+       on the static state; a quiet border colour shift + slight lift
+       on hover/focus gives the affordance without competing with the
+       cards' role as scannable navigation. */
+    &__link {
+        display: block;
+        height: 100%;
+        padding: var(--space-m);
+        border: var(--border-subtle);
+        border-radius: var(--radius-m);
+        background: var(--clr-white);
+        color: inherit;
+        text-decoration: none;
+        transition: border-color 0.2s, transform 0.2s;
+
+        &:hover,
+        &:focus-visible {
+            border-color: var(--clr-primary-300);
+            transform: translateY(-1px);
+            text-decoration: none;
         }
+
+        &:focus-visible {
+            outline: 2px solid var(--clr-primary-300);
+            outline-offset: 2px;
+        }
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--clr-primary-400);
+        line-height: 1.3;
+    }
+
+    &__desc {
+        margin: 0.4em 0 0;
+        font-size: 0.95rem;
+        font-weight: 400;
+        letter-spacing: normal;
+        color: var(--clr-neutral-700);
+        line-height: 1.45;
     }
 }
 

@@ -1,16 +1,41 @@
-# Features
+# Common tasks. Each card on the homepage grid links to the relevant
+# topical page in the documentation. Phrasing is "as a Java developer
+# I want to …" — task-driven, not section-mirror; the homepage does
+# not duplicate the sidebar.
+#
+# Card descriptions are deliberately short — one short line,
+# ideally never more than two. The page below the homepage gives
+# the depth; the homepage gives scanability.
 
-[[feature]]
-desc = "pgJDBC allows Java programs to connect to a PostgreSQL database using standard, database independent Java code."
-path = "/icons/java-icon.svg"
+[[task]]
+title = "Open a connection"
+desc  = "Install pgJDBC and connect to PostgreSQL."
+url   = "/documentation/getting-started/install/"
 
-[[feature]]
-desc = "pgJDBC provides a reasonably complete implementation of the JDBC specification in addition to some PostgreSQL specific extensions."
-path = "/icons/api-icon.svg"
+[[task]]
+title = "Configure SSL / TLS"
+desc  = "Choose sslmode, set up trust, and enable channel binding."
+url   = "/documentation/security/ssl-tls/"
 
-[[feature]]
-desc = "The current development driver supports eleven server versions and three java environments."
-path = "/icons/driver-icon.svg"
+[[task]]
+title = "Pool connections"
+desc  = "HikariCP, Tomcat JDBC, c3p0, and related tuning."
+url   = "/documentation/connect/datasource/"
+
+[[task]]
+title = "Pick a version"
+desc  = "Find the right release line for your Java and PostgreSQL versions."
+url   = "/documentation/getting-started/compatibility/"
+
+[[task]]
+title = "Diagnose errors"
+desc  = "Troubleshooting pages keyed by error message and symptom."
+url   = "/documentation/troubleshooting/"
+
+[[task]]
+title = "Connection properties"
+desc  = "Browse every tunable the driver exposes."
+url   = "/documentation/reference/connection-properties/"
 
 # Releases Info
 # `summary` is optional — when present the homepage release card

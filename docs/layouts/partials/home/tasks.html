@@ -1,0 +1,21 @@
+{{/*
+  Common tasks grid. Replaces the old feature.html (which carried
+  three generic marketing-paragraph cards with icons). Data lives in
+  docs/data/homepagedata.toml[[task]].
+
+  The grid is 3 × 2 on desktop, 2 × 3 on tablet, single column on
+  phones — handled by CSS, not by template.
+*/}}
+<section class="tasks">
+    <h2 class="tasks__head">Common tasks</h2>
+    <ul class="tasks__grid" role="list">
+        {{- range .Site.Data.homepagedata.task }}
+        <li class="tasks__item">
+            <a class="tasks__link" href="{{ .url }}">
+                <h3 class="tasks__title">{{ .title }}</h3>
+                <p class="tasks__desc">{{ .desc }}</p>
+            </a>
+        </li>
+        {{- end }}
+    </ul>
+</section>
