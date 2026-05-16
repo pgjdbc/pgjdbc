@@ -37,6 +37,17 @@
     }
 }
 
+.home__decision {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    align-items: start;
+
+    @include mq-min(medium) {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+}
+
 // Hero Section
 
 .hero {
@@ -161,9 +172,12 @@
 // components/_code-tabs.scss; this rule only sets up the wrapper.
 
 .quick-install {
+    min-width: 0;
+
     &__head {
-        font-size: 1.75rem;
-        margin-bottom: 0.5em;
+        font-size: 1.6rem;
+        margin-bottom: 0.4em;
+        line-height: 1.15;
 
         @include mq-max(medium) {
             text-align: center;
@@ -175,47 +189,148 @@
     }
 }
 
-// Info Section
+// Release & compatibility card. Single primary card under
+// Quick-install. Two type sizes total: a display-sized version
+// number, and body-sized everything else (heading, date, pills,
+// summary, actions, recent list). Hierarchy is carried by weight
+// and colour, not by piling on font-size steps.
 
-.info {
+.release {
+    min-width: 0;
 
-    ul {
-        margin: 0;
-        padding: 0;
-
-        li {
-            padding-inline: 0.5em;
-        }
-
-        li:nth-child(even) {
-            background-color: var(--clr-neutral-200);
-        }
-    }
-
-    &__about {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        max-width: 45%;
+    &__head {
+        font-size: 1.6rem;
+        font-weight: 600;
+        margin-bottom: 0.4em;
+        letter-spacing: normal;
+        line-height: 1.15;
 
         @include mq-max(medium) {
-            max-width: 100%
-        }
-    }
-
-    &__release {
-        display: flex;
-        flex-direction: column;
-        max-width: 45%;
-
-        h2 {
             text-align: center;
         }
+    }
+
+    /* No box around the release card. The Quick-install block on the
+       left already carries the bordered + filled visual treatment
+       (its inner code-tabs container), and matching it here forced
+       two heavy containers side-by-side with different content
+       densities (mono-code vs proportional text) — read messy. The
+       release block now flows as open text under its heading; the
+       grid spacing on .home__decision still separates it from the
+       neighbour. */
+    &__card {
+        padding: 0;
+    }
+
+    /* Version (left) and date (right), baseline-aligned. On phones
+       the row collapses to centred stack. */
+    &__primary {
+        margin: 0;
+        font-weight: 400;
+        letter-spacing: normal;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.4em 1em;
 
         @include mq-max(medium) {
-            max-width: 100%
+            justify-content: center;
+        }
+    }
+
+    &__version {
+        font-size: 2.15rem;
+        font-weight: 600;
+        color: var(--clr-primary-400);
+        line-height: 1.1;
+    }
+
+    &__date {
+        color: var(--clr-neutral-600);
+    }
+
+    /* Java / PostgreSQL pills. Both compat facts share one visual
+       register so the card carries no third type element. */
+    &__pills {
+        list-style: none;
+        margin: 0.7em 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4em 0.6em;
+
+        li {
+            display: inline-block;
+            padding: 0.25em 0.8em;
+            border: 1px solid var(--clr-primary-200);
+            border-radius: 100vmax;
+            background: var(--clr-white);
+            color: var(--clr-primary-400);
+            font-weight: 500;
+            font-size: 0.95rem;
+            line-height: 1.3;
         }
 
+        @include mq-max(medium) {
+            justify-content: center;
+        }
+    }
+
+    &__summary {
+        margin: 0.85em 0 0;
+        font-weight: 400;
+        letter-spacing: normal;
+        color: var(--clr-neutral-700);
+        line-height: 1.45;
+    }
+
+    &__sep {
+        color: var(--clr-neutral-400);
+        margin-inline: 0.15em;
+    }
+
+    &__actions {
+        list-style: none;
+        margin: 0.9em 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3em 1.25em;
+        font-weight: 400;
+        letter-spacing: normal;
+
+        a {
+            color: var(--clr-primary-400);
+            text-decoration: none;
+
+            &:hover { text-decoration: underline; }
+        }
+
+        @include mq-max(medium) {
+            justify-content: center;
+        }
+    }
+
+    &__recent {
+        margin: 0.9em 0 0 0;
+        padding-top: 0.85em;
+        border-top: 1px solid var(--clr-neutral-300);
+        color: var(--clr-neutral-600);
+        font-weight: 400;
+        letter-spacing: normal;
+
+        a {
+            color: var(--clr-primary-400);
+            text-decoration: none;
+            font-weight: 500;
+
+            &:hover { text-decoration: underline; }
+        }
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
     }
 }
 

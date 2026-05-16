@@ -1,0 +1,55 @@
+{{/*
+  Current release & compatibility card.
+
+  Pulls two data sources:
+  - docs/data/homepagedata.toml[[info]][0]  — latest version + date +
+                                              URL + optional summary.
+  - docs/data/release-history.yaml.rows[0]  — Java / PostgreSQL
+                                              floors for the active line.
+
+  The card collapses both into one block. Status word ("Current") is
+  not rendered — it carries no information beyond "this is the
+  latest release" which is already what the surrounding "Latest
+  release" heading says. The compatibility floors are rendered as
+  pills next to the version.
+*/}}
+{{- $latest := index .Site.Data.homepagedata.info 0 -}}
+{{- $compat := index (index .Site.Data "release-history").rows 0 -}}
+{{- $recent := first 3 (after 1 .Site.Data.homepagedata.info) -}}
+
+<section class="release">
+    <h2 class="release__head">Latest release</h2>
+
+    <div class="release__card">
+        <div class="release__primary">
+            <strong class="release__version">{{ $latest.version }}</strong>
+            <span class="release__date">{{ $latest.date }}</span>
+        </div>
+
+        <ul class="release__pills" role="list">
+            <li>Java&nbsp;{{ $compat.min_java }}+</li>
+            <li>PostgreSQL&nbsp;{{ $compat.min_postgresql }}+</li>
+        </ul>
+
+        {{- with $latest.summary }}
+        <p class="release__summary">{{ . }}</p>
+        {{- end }}
+
+        <ul class="release__actions" role="list">
+            <li><a href="{{ $latest.url }}">Release notes &rarr;</a></li>
+            <li><a href="/documentation/getting-started/compatibility/">Compatibility &rarr;</a></li>
+            <li><a href="/security/">Security &rarr;</a></li>
+            <li><a href="/changelogs/">All changelogs &rarr;</a></li>
+        </ul>
+    </div>
+
+    {{- if $recent }}
+    <p class="release__recent">
+        Recent:
+        {{- range $i, $r := $recent }}
+            {{ if $i }}<span class="release__sep">·</span>{{ end }}
+            <a href="{{ $r.url }}">{{ $r.version }}</a>
+        {{- end }}
+    </p>
+    {{- end }}
+</section>

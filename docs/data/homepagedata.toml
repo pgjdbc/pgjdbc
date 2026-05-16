@@ -13,10 +13,15 @@ desc = "The current development driver supports eleven server versions and three
 path = "/icons/driver-icon.svg"
 
 # Releases Info
+# `summary` is optional — when present the homepage release card
+# renders it as a short paragraph under the version line. Keep it
+# to one or two sentences; the full changelog lives behind the
+# Release notes link.
 [[info]]
 date = "28 April 2026"
 url = "/changelogs/2026-04-28-42/"
 version = "42.7.11"
+summary = "Maintenance release on the 42.7.x line."
 
 [[info]]
 date = "15 January 2026"
