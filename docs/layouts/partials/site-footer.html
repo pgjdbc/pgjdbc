@@ -1,6 +1,6 @@
 <footer class="footer" role="contentinfo">
     <div class="footer__item">
-        {{ range $.Site.Data.footer.external }}
+        {{ range hugo.Data.footer.external }}
         <ul role="list" class="list">
             <li class="list__head">{{ .title }}</li>
             {{/*  <br />  */}}

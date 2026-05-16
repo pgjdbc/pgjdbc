@@ -13,9 +13,9 @@
   release" heading says. The compatibility floors are rendered as
   pills next to the version.
 */}}
-{{- $latest := index .Site.Data.homepagedata.info 0 -}}
-{{- $compat := index (index .Site.Data "release-history").rows 0 -}}
-{{- $recent := first 3 (after 1 .Site.Data.homepagedata.info) -}}
+{{- $latest := index hugo.Data.homepagedata.info 0 -}}
+{{- $compat := index (index hugo.Data "release-history").rows 0 -}}
+{{- $recent := first 3 (after 1 hugo.Data.homepagedata.info) -}}
 
 <section class="release">
     <h2 class="release__head">Latest release</h2>

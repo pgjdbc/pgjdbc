@@ -7,7 +7,7 @@ toc: false
 last_reviewed: "2026-05-13"
 # Hidden from sidebar / section listings; the page still resolves at the
 # old URL and serves as a hub + JS redirector for legacy deep links.
-_build:
+build:
   list: never
 ---
 

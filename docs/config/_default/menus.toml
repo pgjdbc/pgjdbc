@@ -43,7 +43,7 @@ weight = 6
 # ordering comes from `weight:` in each section's `_index.md`. Page
 # ordering within a section comes from each page's own `weight:`.
 #
-# Pages with `_build.list: never` in frontmatter (the four legacy-URL
+# Pages with `build.list: never` in frontmatter (the four legacy-URL
 # hub pages: use.md, query.md, setup.md, server-prepare.md) are
 # excluded from the sidebar automatically.
 #

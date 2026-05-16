@@ -9,7 +9,7 @@
 <section class="tasks">
     <h2 class="tasks__head">Common tasks</h2>
     <ul class="tasks__grid" role="list">
-        {{- range .Site.Data.homepagedata.task }}
+        {{- range hugo.Data.homepagedata.task }}
         <li class="tasks__item">
             <a class="tasks__link" href="{{ .url }}">
                 <h3 class="tasks__title">{{ .title }}</h3>

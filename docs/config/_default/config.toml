@@ -1,7 +1,7 @@
 # Production BaseURL
 #baseURL = "https://pgjdbc.github.io/pgjdbcdocs/"
 baseURL = "https://jdbc.postgresql.org/"
-languageCode = "en-us"
+locale = "en-US"
 title = "pgJDBC"
 
 # Used by partials/docs/page-meta.html to render "Edit this page on GitHub".

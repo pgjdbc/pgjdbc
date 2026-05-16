@@ -10,7 +10,7 @@
   When homepagedata.toml grows a dedicated `[release]` block in a
   later commit, swap the lookup over to a named field.
 */}}
-{{- $version := (index .Site.Data.homepagedata.info 0).version -}}
+{{- $version := (index hugo.Data.homepagedata.info 0).version -}}
 {{- $maven := printf `<dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>

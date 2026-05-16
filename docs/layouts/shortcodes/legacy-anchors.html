@@ -30,7 +30,7 @@
          property as a `### <name>` heading (Hugo auto-slug = lowercased
          camelCase name). The new reference page emits `id=prop-<slug>`
          per row, where slug is `anchorize <name>`. Map both. */ -}}
-  {{- range (index .Site.Data "connection-properties") -}}
+  {{- range (index hugo.Data "connection-properties") -}}
     {{- $name := .name -}}
     {{- $slug := anchorize $name -}}
     {{- $target := printf "/documentation/reference/connection-properties/#prop-%s" $slug -}}

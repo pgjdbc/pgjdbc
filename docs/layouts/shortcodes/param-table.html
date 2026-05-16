@@ -1,7 +1,7 @@
 {{/*
   param-table: reference table for connection / system / driver properties.
 
-  Reads .Site.Data.<data> as a list of dicts. Expected keys per entry:
+  Reads hugo.Data.<data> as a list of dicts. Expected keys per entry:
     name           string, required (PGProperty.getName())
     type           string, one of BOOLEAN INT LONG STRING ENUM CLASS
                    DURATION_SECONDS DURATION_MILLIS SIZE_BYTES
@@ -27,7 +27,7 @@
 {{- $dataKey := .Get "data" -}}
 {{- $filterTag := lower (.Get "tag" | default "") -}}
 {{- $showSearch := ne (.Get "search" | default "true") "false" -}}
-{{- $all := index .Site.Data $dataKey -}}
+{{- $all := index hugo.Data $dataKey -}}
 {{- $rows := slice -}}
 {{- range $all -}}
   {{- $include := true -}}

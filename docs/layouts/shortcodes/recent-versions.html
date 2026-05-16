@@ -1,5 +1,5 @@
 <div class="card">
-    {{ range $ind, $ver := $.Site.Data.versions.recent }}
+    {{ range $ind, $ver := hugo.Data.versions.recent }}
     <div class="card__item">
         <div class="card__title">{{$ver.j_name}}</div>
         <div class="card__subtitle">{{$ver.version}}</div>

@@ -1,7 +1,7 @@
 {{ define "main" }}
 <section class="faq container">
     <h2>Frequently Asked Questions</h2>
-    {{ range $.Site.Data.faqs.faq }}
+    {{ range hugo.Data.faqs.faq }}
     <div class="accordion">
         <h4>{{ .title }}</h4>
         {{ range $ind, $item := .item}}

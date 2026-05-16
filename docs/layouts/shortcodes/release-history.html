@@ -1,7 +1,7 @@
 {{/*
   release-history: compatibility matrix for pgJDBC release lines.
 
-  Reads .Site.Data.release-history (emitted by
+  Reads hugo.Data.release-history (emitted by
   :docs-tools:generateReleaseHistory). Each entry under `rows` is one
   "compatibility segment" — a contiguous run of tagged versions in a
   release branch with the same (min Java, min PostgreSQL) — or one
@@ -23,7 +23,7 @@
 */}}
 {{/* Data file's name contains a hyphen, so dot-access isn't usable;
      `index` looks up the map entry by string key. */}}
-{{- $data := index .Site.Data "release-history" -}}
+{{- $data := index hugo.Data "release-history" -}}
 {{- if not $data -}}
 <p><em>release-history: <code>data/release-history.yaml</code> not found.
 Run <code>./gradlew :docs-tools:generateReleaseHistory</code> to generate it.</em></p>
