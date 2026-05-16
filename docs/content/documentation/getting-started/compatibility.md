@@ -13,20 +13,22 @@ runs on and the PostgreSQL server it connects to.
 
 ## Release lines
 
-The table is generated from `git` refs (release tags and branches)
-merged with hand-curated minimum-Java / minimum-PostgreSQL breakpoints.
-Each row is one **compatibility segment** — a contiguous range of
-patch versions on a release line that share the same `Min Java` and
-`Min PostgreSQL`. A line accumulates a new segment every time a patch
-raises one of those floors; for `42.7.x` the first segment is
-`42.7.0-42.7.4` (PostgreSQL 8.4+) and the second is `42.7.5-42.7.11`
-(PostgreSQL 9.1+).
+For most users, install from the **Current** row of the table below.
+Consult the other rows only if you are pinned to an older Java or
+PostgreSQL version, or are reproducing an old environment:
+
+- Avoid **Superseded** and **EOL** ranges unless you have a concrete
+  reason — start with a row whose Status is `Current` or
+  `Security until YYYY-MM`.
+- The `.jre6` and `.jre7` classifier builds are archival compatibility
+  artefacts for Java 6 / 7; do not pick them for new deployments.
 
 {{< release-history >}}
 
-- **Version range** is the closed interval of patch versions covered
-  by the row; the **Released** date is the commit date of the last
-  release in that range.
+- **Version range** is the closed interval of patch versions sharing
+  the same Java / PostgreSQL floor; a new row opens every time a
+  patch raises one of those minimums. The **Released** date is the
+  commit date of the last release in that range.
 - **Java** and **PostgreSQL** show the lowest supported version with
   a trailing `+` — `9.1+` means "9.1 or newer". Releases past a
   breakpoint intentionally drop support for older servers, not just
