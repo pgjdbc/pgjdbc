@@ -41,33 +41,39 @@
 
 .hero {
     align-items: center;
-    column-gap: 5em;
+    column-gap: 4em;
 
+    /* Elephant illustration stays but no longer dominates the fold;
+       the content side is the primary task-flow target. */
     &__img {
-        width: 45%;
+        width: 28%;
 
         @include mq-max(medium) {
-            width: 70%
+            width: 50%;
         }
 
     }
 
     &__content {
-        width: 45%;
+        width: 62%;
 
         @include mq-max(medium) {
             width: 100%
         }
 
+        /* Title kept under one viewport-line on a typical desktop so
+           the install path stays visible above the fold. Previous
+           5.4rem forced wrap on most widths. */
         &__head {
-            font-size: 5.4rem;
+            font-size: 3.5rem;
+            line-height: 1.15;
 
             @include mq-max(medium) {
-                font-size: 4.5rem;
+                font-size: 2.8rem;
             }
 
             @include mq-max(small) {
-                font-size: 3.5rem;
+                font-size: 2.2rem;
             }
         }
 
@@ -93,6 +99,55 @@
             a {
                 text-decoration: none;
             }
+
+            @include mq-max(medium) {
+                justify-content: center;
+            }
+        }
+
+        /* Tertiary links: a quiet row of three text links under the
+           CTAs, separated by middots. They are not the primary task
+           but should be reachable in one click. */
+        &__links {
+            list-style: none;
+            margin: 0;
+            padding: 1em 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25em 1em;
+            font-size: 0.95rem;
+            color: var(--clr-neutral-600);
+
+            li + li::before {
+                content: "·";
+                margin-inline-end: 1em;
+                color: var(--clr-neutral-400);
+            }
+
+            a {
+                color: var(--clr-primary-400);
+                text-decoration: none;
+
+                &:hover { text-decoration: underline; }
+            }
+
+            @include mq-max(medium) {
+                justify-content: center;
+            }
+        }
+
+        /* Badge bar: shields.io-style badges. Each one is an
+           actionable signal (Maven Central version, license, CI
+           health, OpenSSF Scorecard) — not decoration. */
+        &__badges {
+            list-style: none;
+            margin: 0;
+            padding: 1.25em 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4em 0.6em;
+
+            img { display: block; }
 
             @include mq-max(medium) {
                 justify-content: center;
