@@ -1,0 +1,134 @@
+---
+title: "SCRAM authentication failed"
+date: 2026-05-16T00:00:00Z
+draft: false
+weight: 3
+toc: true
+last_reviewed: "2026-05-16"
+description: "SCRAM-SHA-256 and channel-binding failures — what each error message means and which server or property change resolves it."
+---
+
+SCRAM-SHA-256 has been the default `password_encryption` since
+PostgreSQL&nbsp;14 and is the only authentication method on which
+channel binding works. This page lists the failures specific to that
+exchange — what each user-visible error means and which property
+or server change fixes it.
+
+For the recommended-default posture (`sslmode=verify-full`,
+`channelBinding=require`), see
+[Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls).
+
+## `Channel Binding is required, but SSL is not in use`
+
+Raised by `ScramAuthenticator.getChannelBindingData` when
+`channelBinding=require` is combined with `sslmode=disable` (or any
+configuration that never negotiates TLS). Channel binding ties the
+SCRAM exchange to the TLS session — without TLS there is no channel
+to bind to.
+
+Resolution: pick one or the other.
+
+- The intended posture is `sslmode=verify-full` + `channelBinding=require`.
+  This is the combination [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls)
+  recommends, and the only one that defends against an attacker who can
+  terminate-and-replay the TLS handshake.
+- If TLS is genuinely impossible (a local Unix-domain socket bridge,
+  a closed dev loop) drop channel binding too: `channelBinding=prefer`
+  or `disable`.
+
+## `Channel Binding is required, but server did not offer an authentication method that supports channel binding`
+
+The server completed startup negotiation but selected an
+authentication method other than SCRAM-SHA-256-PLUS (the `-PLUS`
+suffix is the channel-binding variant). Three common causes, in
+decreasing order of frequency:
+
+- **The user is stored with `md5` password encryption on the server.**
+  Channel binding only works for SCRAM-SHA-256-PLUS, which in turn
+  requires the password to be stored as SCRAM. Re-set the user
+  password while `password_encryption = scram-sha-256` is in effect
+  in `postgresql.conf` (the default since PG&nbsp;14):
+
+  ```sql
+  ALTER USER alice WITH PASSWORD 'plaintext';  -- gets stored as scram-sha-256
+  ```
+
+  `\\password` in psql works too. Confirm with
+  `SELECT rolname, rolpassword FROM pg_authid WHERE rolname = 'alice'`
+  — the value should start with `SCRAM-SHA-256$`.
+
+- **`pg_hba.conf` is matching a non-SCRAM rule first.** A `trust` or
+  `md5` entry earlier in the file wins and the server never offers
+  SCRAM. Reorder so that the SCRAM rule (`hostssl … scram-sha-256`)
+  matches first for the network you connect from.
+
+- **The server is older than PostgreSQL&nbsp;11.** Channel binding
+  needs the `scram-sha-256-plus` SASL mechanism, added in PG&nbsp;11.
+  On older servers `channelBinding=require` will always fail; use
+  `prefer` instead and pin the server upgrade in your roadmap.
+
+## `Channel Binding is required, but could not extract channel binding data from SSL session`
+
+The TLS handshake succeeded but the JSSE session does not expose the
+server certificate that pgJDBC needs for the `tls-server-end-point`
+binding. Happens when:
+
+- A non-X509 cipher suite was negotiated (rare with PostgreSQL but
+  possible if a custom SSL socket factory drops to anonymous DH).
+- A custom `SSLSocketFactory` returns a session whose `peerCertificates`
+  array is empty. Inspect the factory implementation; the stock
+  `org.postgresql.ssl.LibPQFactory` works correctly.
+
+There is no client-side property to bypass — channel binding cannot
+work without a server certificate.
+
+## `Server requested N SCRAM PBKDF2 iterations, which exceeds the client-side limit of M`
+
+A safety cap. pgJDBC accepts at most `scramMaxIterations` PBKDF2
+rounds from the server (default 100,000); higher counts are rejected
+before the expensive PBKDF2 computation runs. Without the cap, a
+malicious or compromised server could force the client to burn CPU
+on an attacker-controlled iteration count.
+
+Resolution depends on context:
+
+- **You trust the server and it legitimately uses a high count.**
+  Raise [`scramMaxIterations`](/documentation/reference/connection-properties/#prop-scrammaxiterations).
+  Set to `0` to disable the check entirely (not recommended).
+- **You do not trust the server.** Do not raise the limit — the
+  default is the protection, not the problem.
+
+## `Authentication method is not allowed by requireAuth`
+
+You configured an explicit allow-list of authentication methods via
+[`requireAuth`](/documentation/reference/connection-properties/#prop-requireauth)
+and the server offered something else. The property accepts a
+comma-separated list of `password, md5, gss, sspi, scram-sha-256,
+none`, with a `!` prefix for negative entries
+(`requireAuth=!password,!md5` forbids cleartext and MD5).
+
+Resolution:
+
+- **Add the offered method to the list,** if it was an oversight.
+- **Fix the server** — if the server offers `md5` and you wrote
+  `requireAuth=scram-sha-256`, the password is stored under a weaker
+  scheme. Migrate to SCRAM (see the first case above).
+
+The error fires before authentication completes, so no credentials
+are ever sent under the unwanted method.
+
+## Authentication-related connection properties
+
+{{< param-table data="connection-properties" tag="authentication" >}}
+
+## Related
+
+- [Quick Start § 3 — TLS](/documentation/getting-started/install/#3-configure-ssltls)
+  — the recommended-default combination of `sslmode=verify-full`,
+  `sslrootcert`, and `channelBinding=require`.
+- [SSL / TLS connection errors](/documentation/troubleshooting/ssl-errors/)
+  — failure modes on the TLS layer underneath SCRAM. Channel binding
+  cannot succeed if the TLS handshake itself doesn't.
+- [Compatibility](/documentation/getting-started/compatibility/) —
+  channel binding requires PostgreSQL&nbsp;11+; SCRAM-SHA-256 is the
+  default password encoding from PG&nbsp;14.
