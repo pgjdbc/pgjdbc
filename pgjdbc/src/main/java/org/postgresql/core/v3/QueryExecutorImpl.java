@@ -255,12 +255,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void enableNIO() {
+    if (!pipelineMode) {
+      return; // Only pipeline mode uses NIO to avoid ClassLoader retention
+    }
     try {
       pgStream.enableNIO();
     } catch (IOException e) {
       // Non-fatal — fall back to traditional I/O
     }
-    // Start notification poller with NIO available
+    // Start notification poller
     NIOInputStream nioInput = pgStream.getNIOInput();
     if (nioInput != null) {
       this.notificationPoller = new NotificationPoller(nioInput, pgStream);
