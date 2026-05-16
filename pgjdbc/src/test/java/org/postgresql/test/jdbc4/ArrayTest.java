@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -236,6 +237,30 @@ public class ArrayTest extends BaseTest4 {
     assertEquals("", out[0][1]);
     assertEquals("\\", out[1][0]);
     assertEquals("\"\\'z", out[1][1]);
+  }
+
+  @Test
+  public void testCreateArrayOfMultidimensionalInt() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int4[][]");
+    int[][] in = new int[][]{{1, 2}, {3, 4}};
+    pstmt.setArray(1, conn.createArrayOf("int4", in));
+
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Array arr = rs.getArray(1);
+    Integer[][] out = (Integer[][]) arr.getArray();
+
+    assertEquals(2, out.length);
+    assertArrayEquals(new Integer[]{1, 2}, out[0]);
+    assertArrayEquals(new Integer[]{3, 4}, out[1]);
+  }
+
+  @Test
+  public void testCreateArrayOfRejectsInvalidMultidimensionalShape() {
+    assertThrows(SQLException.class,
+        () -> conn.createArrayOf("int4", new Integer[][]{{1}, {2, 3}}));
+    assertThrows(SQLException.class,
+        () -> conn.createArrayOf("int4", new Integer[][]{{1}, null}));
   }
 
   @Test

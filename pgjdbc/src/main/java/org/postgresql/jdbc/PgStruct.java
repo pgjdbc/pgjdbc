@@ -80,6 +80,9 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
     if (map == null || map.isEmpty()) {
       return getAttributes();
     }
+    if (connection != null) {
+      map = IdentifierNormalizingTypeMap.of(map, connection.getTypeInfo());
+    }
 
     // Apply type mapping to nested types in the attributes
     // Note: The map entry for this struct's own type (if present) is ignored here

@@ -465,6 +465,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (map == null || map.isEmpty()) {
       return getObject(i);
     }
+    map = IdentifierNormalizingTypeMap.of(map, connection.getTypeInfo());
 
     Object result = getCallResult(i);
     if (result == null) {

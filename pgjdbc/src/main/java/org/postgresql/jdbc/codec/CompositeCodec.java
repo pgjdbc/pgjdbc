@@ -6,6 +6,8 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.StreamingBinaryCodec;
+import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
@@ -24,6 +26,8 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.SQLData;
@@ -43,7 +47,7 @@ import java.util.List;
  * retrieved from TypeInfoCache. Full composite support is handled via
  * PgStruct and SQLInput/SQLOutput implementations.</p>
  */
-public final class CompositeCodec implements BinaryCodec, TextCodec {
+public final class CompositeCodec implements StreamingBinaryCodec, StreamingTextCodec {
 
   public static final CompositeCodec INSTANCE = new CompositeCodec();
 
@@ -269,45 +273,12 @@ public final class CompositeCodec implements BinaryCodec, TextCodec {
       @Nullable Object[] attributes,
       PgType compositeType,
       CodecContext ctx) throws SQLException {
-    List<PgField> fields = compositeType.getFields();
-    if (fields == null) {
-      // Lazily load fields from the type cache.
-      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
-    }
-    if (fields.size() != attributes.length) {
-      throw new PSQLException(
-          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
-              compositeType.getTypeName(), fields.size(), attributes.length),
-          PSQLState.DATA_ERROR);
-    }
-
-    CodecRegistry codecs = ctx.getCodecs();
     StringBuilder sb = new StringBuilder();
-    sb.append('(');
-    for (int i = 0; i < attributes.length; i++) {
-      if (i > 0) {
-        sb.append(',');
-      }
-      Object attr = attributes[i];
-      if (attr == null) {
-        // SQL NULL inside a composite is rendered as an empty slot.
-        continue;
-      }
-      PgField field = fields.get(i);
-      int fieldOid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
-      TextCodec codec = codecs.getTextCodec(fieldOid, fieldType);
-      if (codec == null) {
-        // CodecRegistry guarantees FallbackCodec for unknown OIDs, so this is unreachable.
-        throw new PSQLException(
-            GT.tr("No text codec registered for type OID {0} (field {1} of {2})",
-                fieldOid, field.getName(), compositeType.getTypeName()),
-            PSQLState.SYSTEM_ERROR);
-      }
-      String value = codec.encodeText(attr, fieldType, ctx);
-      appendQuotedField(sb, value);
+    try {
+      streamAttributesAsText(attributes, compositeType, ctx, sb);
+    } catch (IOException e) {
+      throw new AssertionError(e); // StringBuilder never throws
     }
-    sb.append(')');
     return sb.toString();
   }
 
@@ -331,39 +302,13 @@ public final class CompositeCodec implements BinaryCodec, TextCodec {
       @Nullable Object[] attributes,
       PgType compositeType,
       CodecContext ctx) throws SQLException {
-    List<PgField> fields = compositeType.getFields();
-    if (fields == null) {
-      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
+    BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
+    try {
+      streamAttributesAsBinary(attributes, compositeType, ctx, out);
+    } catch (IOException e) {
+      throw new AssertionError(e); // BackpatchByteArrayOutputStream never throws
     }
-    if (fields.size() != attributes.length) {
-      throw new PSQLException(
-          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
-              compositeType.getTypeName(), fields.size(), attributes.length),
-          PSQLState.DATA_ERROR);
-    }
-
-    CodecRegistry codecs = ctx.getCodecs();
-    byte[] @Nullable [] datas = new byte[fields.size()][];
-    for (int i = 0; i < fields.size(); i++) {
-      Object attr = attributes[i];
-      if (attr == null) {
-        datas[i] = null;
-        continue;
-      }
-      PgField field = fields.get(i);
-      int fieldOid = field.getTypeOid();
-      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
-      BinaryCodec codec = codecs.getBinaryCodec(fieldOid, fieldType);
-      if (codec == null) {
-        // CodecRegistry guarantees FallbackCodec for unknown OIDs, so this is unreachable.
-        throw new PSQLException(
-            GT.tr("No binary codec registered for type OID {0} (field {1} of {2})",
-                fieldOid, field.getName(), compositeType.getTypeName()),
-            PSQLState.SYSTEM_ERROR);
-      }
-      datas[i] = codec.encodeBinary(attr, fieldType, ctx);
-    }
-    return encodeBinaryFields(fields, datas);
+    return out.toByteArray();
   }
 
   /**
@@ -401,6 +346,23 @@ public final class CompositeCodec implements BinaryCodec, TextCodec {
       sb.append('"');
     } else {
       sb.append(value);
+    }
+  }
+
+  /** {@link Appendable} overload used by the streaming text path. */
+  private static void appendQuotedField(Appendable out, String value) throws IOException {
+    if (needsQuoting(value)) {
+      out.append('"');
+      for (int i = 0; i < value.length(); i++) {
+        char c = value.charAt(i);
+        if (c == '"' || c == '\\') {
+          out.append('\\');
+        }
+        out.append(c);
+      }
+      out.append('"');
+    } else {
+      out.append(value);
     }
   }
 
@@ -661,6 +623,157 @@ public final class CompositeCodec implements BinaryCodec, TextCodec {
     throw new PSQLException(
         GT.tr("Cannot convert {0} to composite", value.getClass().getName()),
         PSQLState.INVALID_PARAMETER_TYPE);
+  }
+
+  /**
+   * Streaming variant: writes the composite text representation directly into
+   * {@code out}. For the {@link Struct} path this avoids the intermediate
+   * String produced by {@link #encodeText(Object, PgType, CodecContext)} —
+   * worthwhile when the composite is itself an element of an array, because
+   * the array codec then wraps {@code out} in an
+   * {@link EscapingAppendable} and array-level escaping happens char-by-char
+   * during the write rather than as a second pass over a buffered String.
+   *
+   * <p>{@link SQLData} path still falls through to the non-streaming form —
+   * the user-provided {@code writeSQL} is fundamentally batch-oriented via
+   * {@link PgSQLOutputText}.</p>
+   */
+  @Override
+  public void encodeText(Object value, PgType type, CodecContext ctx, Appendable out)
+      throws SQLException, IOException {
+    if (value instanceof Struct && !(value instanceof SQLData)) {
+      streamAttributesAsText(((Struct) value).getAttributes(), type, ctx, out);
+      return;
+    }
+    if (value instanceof PGobject) {
+      String strValue = ((PGobject) value).getValue();
+      if (strValue != null) {
+        out.append(strValue);
+      }
+      return;
+    }
+    // SQLData and anything else: defer to the non-streaming path.
+    out.append(encodeText(value, type, ctx));
+  }
+
+  /** Streaming counterpart of {@link #encodeAttributesAsText}. */
+  private static void streamAttributesAsText(
+      @Nullable Object[] attributes,
+      PgType compositeType,
+      CodecContext ctx,
+      Appendable out) throws SQLException, IOException {
+    List<PgField> fields = compositeType.getFields();
+    if (fields == null) {
+      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
+    }
+    if (fields.size() != attributes.length) {
+      throw new PSQLException(
+          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
+              compositeType.getTypeName(), fields.size(), attributes.length),
+          PSQLState.DATA_ERROR);
+    }
+    CodecRegistry codecs = ctx.getCodecs();
+    out.append('(');
+    for (int i = 0; i < attributes.length; i++) {
+      if (i > 0) {
+        out.append(',');
+      }
+      Object attr = attributes[i];
+      if (attr == null) {
+        continue;
+      }
+      PgField field = fields.get(i);
+      int fieldOid = field.getTypeOid();
+      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
+      TextCodec codec = codecs.getTextCodec(fieldOid, fieldType);
+      if (codec == null) {
+        throw new PSQLException(
+            GT.tr("No text codec registered for type OID {0} (field {1} of {2})",
+                fieldOid, field.getName(), compositeType.getTypeName()),
+            PSQLState.SYSTEM_ERROR);
+      }
+      if (codec instanceof StreamingTextCodec) {
+        // Stream the field straight into out with composite-level escaping
+        // (always quote — we don't have a way to look ahead and decide).
+        out.append('"');
+        EscapingAppendable esc = new EscapingAppendable(out);
+        ((StreamingTextCodec) codec).encodeText(attr, fieldType, ctx, esc);
+        out.append('"');
+      } else {
+        String value = codec.encodeText(attr, fieldType, ctx);
+        appendQuotedField(out, value);
+      }
+    }
+    out.append(')');
+  }
+
+  /** Streaming variant of {@link #encodeBinary(Object, PgType, CodecContext)}. */
+  @Override
+  public void encodeBinary(Object value, PgType type, CodecContext ctx, OutputStream out)
+      throws SQLException, IOException {
+    if (value instanceof Struct && !(value instanceof SQLData)
+        && out instanceof BackpatchByteArrayOutputStream) {
+      streamAttributesAsBinary(((Struct) value).getAttributes(), type, ctx,
+          (BackpatchByteArrayOutputStream) out);
+      return;
+    }
+    // Fallback: defer to the non-streaming path that materializes a byte[].
+    out.write(encodeBinary(value, type, ctx));
+  }
+
+  /** Streaming counterpart of {@link #encodeAttributesAsBinary}. */
+  private static void streamAttributesAsBinary(
+      @Nullable Object[] attributes,
+      PgType compositeType,
+      CodecContext ctx,
+      BackpatchByteArrayOutputStream out) throws SQLException, IOException {
+    List<PgField> fields = compositeType.getFields();
+    if (fields == null) {
+      fields = ctx.getTypeInfo().getFields(compositeType.getOid());
+    }
+    if (fields.size() != attributes.length) {
+      throw new PSQLException(
+          GT.tr("Composite type {0} expects {1} attribute(s), but {2} were provided",
+              compositeType.getTypeName(), fields.size(), attributes.length),
+          PSQLState.DATA_ERROR);
+    }
+    CodecRegistry codecs = ctx.getCodecs();
+    byte[] buf = new byte[4];
+    // field count
+    org.postgresql.util.ByteConverter.int4(buf, 0, fields.size());
+    out.write(buf);
+    for (int i = 0; i < attributes.length; i++) {
+      PgField field = fields.get(i);
+      int fieldOid = field.getTypeOid();
+      // type oid
+      org.postgresql.util.ByteConverter.int4(buf, 0, fieldOid);
+      out.write(buf);
+      Object attr = attributes[i];
+      if (attr == null) {
+        org.postgresql.util.ByteConverter.int4(buf, 0, -1);
+        out.write(buf);
+        continue;
+      }
+      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
+      BinaryCodec codec = codecs.getBinaryCodec(fieldOid, fieldType);
+      if (codec == null) {
+        throw new PSQLException(
+            GT.tr("No binary codec registered for type OID {0} (field {1} of {2})",
+                fieldOid, field.getName(), compositeType.getTypeName()),
+            PSQLState.SYSTEM_ERROR);
+      }
+      if (codec instanceof StreamingBinaryCodec) {
+        int lengthSlot = out.reserveInt32();
+        int startPos = out.position();
+        ((StreamingBinaryCodec) codec).encodeBinary(attr, fieldType, ctx, out);
+        out.setInt32At(lengthSlot, out.position() - startPos);
+      } else {
+        byte[] bytes = codec.encodeBinary(attr, fieldType, ctx);
+        org.postgresql.util.ByteConverter.int4(buf, 0, bytes.length);
+        out.write(buf);
+        out.write(bytes);
+      }
+    }
   }
 
   @Override

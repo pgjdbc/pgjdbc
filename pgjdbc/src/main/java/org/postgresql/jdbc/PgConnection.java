@@ -30,6 +30,7 @@ import org.postgresql.core.TypeInfo;
 import org.postgresql.core.Utils;
 import org.postgresql.core.Version;
 import org.postgresql.fastpath.Fastpath;
+import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.CompositeCodec;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
@@ -1588,7 +1589,6 @@ public class PgConnection implements BaseConnection {
     return new PgStruct(typeName, attributes, this);
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   @Override
   public Array createArrayOf(String typeName, @Nullable Object elements) throws SQLException {
     checkClosed();
@@ -1601,7 +1601,6 @@ public class PgConnection implements BaseConnection {
     PgType elementType = typeInfo.getPgTypeByPgName(typeName);
     final int elementOid = elementType.getOid();
     final int arrayOid = elementType.getArrayOid();
-    final char delim = elementType.getDelimiter();
 
     if (elementOid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("Unable to find server array type for provided name {0}.", typeName),
@@ -1612,15 +1611,8 @@ public class PgConnection implements BaseConnection {
       return makeArray(arrayOid, null);
     }
 
-    final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(elements);
-    if (arraySupport.supportBinaryRepresentation(elementOid)
-        && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      return new PgArray(this, arrayOid,
-          arraySupport.toBinaryRepresentation(this, elements, elementOid));
-    }
-
-    final String arrayString = arraySupport.toArrayString(delim, elements);
-    return makeArray(arrayOid, arrayString);
+    ArrayCodec.validateJavaArray(elements);
+    return new PgArray(this, arrayOid, elements);
   }
 
   @Override

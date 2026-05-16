@@ -128,7 +128,8 @@ public final class CodecContext {
     this.javaTypes = javaTypes;
     this.typeMap = typeMap == null || typeMap.isEmpty()
         ? Collections.emptyMap()
-        : Collections.unmodifiableMap(typeMap);
+        : Collections.unmodifiableMap(
+            IdentifierNormalizingTypeMap.of(typeMap, this.typeInfo));
     this.encoding = connection.getEncoding();
     this.charset = Charset.forName(encoding.name());
     this.timestampUtils = null;

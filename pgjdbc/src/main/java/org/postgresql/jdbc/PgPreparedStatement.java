@@ -18,6 +18,7 @@ import org.postgresql.core.ResultHandler;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.BatchedQuery;
+import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.DateCodec;
 import org.postgresql.jdbc.codec.TimeCodec;
 import org.postgresql.jdbc.codec.TimestampCodec;
@@ -39,7 +40,6 @@ import org.postgresql.util.ReaderInputStream;
 
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.checkerframework.common.value.qual.IntRange;
 
@@ -697,31 +697,63 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     return type;
   }
 
-  @SuppressWarnings("deprecation")
-  private <A extends @NonNull Object> void setObjectArray(int parameterIndex, A in) throws SQLException {
-    ArrayEncoding.ArrayEncoder<A> arraySupport = ArrayEncoding.getArrayEncoder(in);
-    int oid = arraySupport.getDefaultArrayTypeOid();
+  private static Class<?> getArrayElementType(Class<?> arrayClass) {
+    Class<?> arrayType = getArrayType(arrayClass);
+    if (!arrayType.isPrimitive()) {
+      return arrayType;
+    }
+    if (arrayType == int.class) {
+      return Integer.class;
+    }
+    if (arrayType == long.class) {
+      return Long.class;
+    }
+    if (arrayType == short.class) {
+      return Short.class;
+    }
+    if (arrayType == double.class) {
+      return Double.class;
+    }
+    if (arrayType == float.class) {
+      return Float.class;
+    }
+    if (arrayType == boolean.class) {
+      return Boolean.class;
+    }
+    if (arrayType == byte.class) {
+      return byte[].class;
+    }
+    return arrayType;
+  }
 
-    if (arraySupport.supportBinaryRepresentation(oid) && connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
-      bindBytes(parameterIndex, arraySupport.toBinaryRepresentation(connection, in, oid), oid);
-      return;
+  @SuppressWarnings("deprecation")
+  private void setObjectArray(int parameterIndex, Object in) throws SQLException {
+    ArrayCodec.validateJavaArray(in);
+    TypeInfo typeInfo = connection.getTypeInfo();
+    Class<?> arrayType = getArrayElementType(in.getClass());
+    int oid = typeInfo.getJavaArrayType(arrayType);
+    if (oid == Oid.UNSPECIFIED) {
+      throw new SQLFeatureNotSupportedException();
     }
 
-    TypeInfo typeInfo = connection.getTypeInfo();
-
-    if (oid == Oid.UNSPECIFIED) {
-      // E.g. it could be `Object[]`
-      Class<?> arrayType = getArrayType(in.getClass());
-      oid = typeInfo.getJavaArrayType(arrayType);
-      if (oid == Oid.UNSPECIFIED) {
-        throw new SQLFeatureNotSupportedException();
+    PgType arrayTypeInfo = typeInfo.getPgTypeByOid(oid);
+    CodecContext ctx = connection.getCodecContext();
+    CodecRegistry codecs = ctx.getCodecs();
+    if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      BinaryCodec codec = codecs.getBinaryCodec(oid, arrayTypeInfo);
+      if (codec != null) {
+        bindBytes(parameterIndex, codec.encodeBinary(in, arrayTypeInfo, ctx), oid);
+        return;
       }
     }
-    int baseOid = typeInfo.getPgTypeByOid(oid).getTypelem();
-    String baseType = typeInfo.getPgTypeByOid(baseOid).getFullName();
 
-    Array array = getPGConnection().createArrayOf(baseType, in);
-    this.setArray(parameterIndex, array);
+    TextCodec codec = codecs.getTextCodec(oid, arrayTypeInfo);
+    if (codec == null) {
+      throw new PSQLException(
+          GT.tr("No text codec registered for type {0}", arrayTypeInfo.getTypeName()),
+          PSQLState.SYSTEM_ERROR);
+    }
+    bindString(parameterIndex, codec.encodeText(in, arrayTypeInfo, ctx), oid);
   }
 
   private static int castToInt(final Object in) throws SQLException {

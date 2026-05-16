@@ -15,8 +15,8 @@ import org.postgresql.core.Oid;
 import org.postgresql.core.Tuple;
 import org.postgresql.core.TypeInfo;
 import org.postgresql.jdbc.ArrayDecoding.PgArrayList;
+import org.postgresql.jdbc.codec.ArrayCodec;
 import org.postgresql.jdbc.codec.CompositeCodec;
-import org.postgresql.jdbc2.ArrayAssistantRegistry;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
@@ -47,11 +47,6 @@ import java.util.Map;
  */
 public class PgArray implements Array {
 
-  static {
-    ArrayAssistantRegistry.register(Oid.UUID, new UUIDArrayAssistant());
-    ArrayAssistantRegistry.register(Oid.UUID_ARRAY, new UUIDArrayAssistant());
-  }
-
   /**
    * A database connection.
    */
@@ -80,6 +75,12 @@ public class PgArray implements Array {
   protected ArrayDecoding.@Nullable PgArrayList arrayList;
 
   protected byte @Nullable [] fieldBytes;
+
+  /**
+   * Original Java array supplied via {@link PgConnection#createArrayOf}.
+   * It is serialized lazily when the value is bound to a statement.
+   */
+  protected @Nullable Object fieldArray;
 
   private final ResourceLock lock = new ResourceLock();
 
@@ -115,6 +116,20 @@ public class PgArray implements Array {
       throws SQLException {
     this(connection, oid);
     this.fieldBytes = fieldBytes;
+  }
+
+  /**
+   * Create a new Array backed by a Java array.
+   *
+   * @param connection a database connection
+   * @param oid the oid of the array datatype
+   * @param fieldArray Java array value
+   * @throws SQLException if something wrong happens
+   */
+  public PgArray(BaseConnection connection, int oid, Object fieldArray)
+      throws SQLException {
+    this(connection, oid);
+    this.fieldArray = fieldArray;
   }
 
   /**
@@ -178,8 +193,21 @@ public class PgArray implements Array {
         throw new PSQLException(GT.tr("The array index is out of range: {0}", index),
             PSQLState.DATA_ERROR);
       }
+      if (map != null && !map.isEmpty()) {
+        map = IdentifierNormalizingTypeMap.of(map, codecContext.getTypeInfo());
+      }
 
-      if (fieldBytes != null) {
+      boolean useTextRepresentation = false;
+      Object javaArray = fieldArray;
+      if (javaArray != null) {
+        if ((map == null || map.isEmpty()) && index == 1 && count == 0) {
+          return javaArray;
+        }
+        fieldString = ArrayCodec.INSTANCE.encodeText(javaArray, getPgType(), codecContext);
+        useTextRepresentation = true;
+      }
+
+      if (fieldBytes != null && !useTextRepresentation) {
         // Binary format - maps not supported for binary arrays yet
         if (map != null && !map.isEmpty()) {
           throw Driver.notImplemented(this.getClass(), "getArrayImpl(long,int,Map) for binary arrays");
@@ -460,6 +488,11 @@ public class PgArray implements Array {
         return readBinaryResultSet(fieldBytes, (int) index, count);
       }
 
+      Object array = fieldArray;
+      if (fieldString == null && array != null) {
+        fieldString = ArrayCodec.INSTANCE.encodeText(array, getPgType(), codecContext);
+      }
+
       final PgArrayList arrayList = buildArrayList(castNonNull(fieldString));
 
       if (count == 0) {
@@ -519,13 +552,18 @@ public class PgArray implements Array {
   @Override
   @SuppressWarnings("nullness")
   public @Nullable String toString() {
+    Object javaArray = fieldArray;
+    if (fieldString == null && javaArray != null) {
+      try {
+        fieldString = ArrayCodec.INSTANCE.encodeText(javaArray, getPgType(), codecContext);
+      } catch (SQLException e) {
+        fieldString = "NULL"; // punt
+      }
+    }
     if (fieldString == null && fieldBytes != null) {
       try {
         Object array = readBinaryArray(fieldBytes, 1, 0);
-
-        final ArrayEncoding.ArrayEncoder arraySupport = ArrayEncoding.getArrayEncoder(array);
-        assert arraySupport != null;
-        fieldString = arraySupport.toArrayString(getPgType().getDelimiter(), array);
+        fieldString = ArrayCodec.INSTANCE.encodeText(array, getPgType(), codecContext);
       } catch (SQLException e) {
         fieldString = "NULL"; // punt
       }
@@ -583,7 +621,12 @@ public class PgArray implements Array {
     return fieldBytes != null;
   }
 
-  public byte @Nullable [] toBytes() {
+  public byte @Nullable [] toBytes() throws SQLException {
+    Object array = fieldArray;
+    if (fieldBytes == null && array != null
+        && getConnection().getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+      fieldBytes = ArrayCodec.INSTANCE.encodeBinary(array, getPgType(), codecContext);
+    }
     return fieldBytes;
   }
 
@@ -592,6 +635,7 @@ public class PgArray implements Array {
     connection = null;
     fieldString = null;
     fieldBytes = null;
+    fieldArray = null;
     arrayList = null;
   }
 }
