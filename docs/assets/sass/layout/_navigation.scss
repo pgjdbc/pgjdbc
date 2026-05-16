@@ -20,12 +20,18 @@
   &__item {
     display: flex;
 
+    // Lightened in the styling pass: the navbar is supporting
+    // chrome, not the page's primary task. 1.25rem / weight 600
+    // read as heading-class on small screens and crowded the
+    // homepage hero on wide ones; 1.05rem / weight 500 sits
+    // quietly enough to let the hero CTA stay the loudest
+    // element on the page.
     &__link {
       color: var(--clr-indigo);
       text-decoration: none;
-      font-size: 1.25rem;
+      font-size: 1.05rem;
       position: relative;
-      font-weight: 600;
+      font-weight: 500;
       margin-inline: var(--primary-spacing);
 
       &--active {
