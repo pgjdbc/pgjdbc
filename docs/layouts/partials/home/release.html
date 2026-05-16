@@ -39,17 +39,16 @@
             <li><a href="{{ $latest.url }}">Release notes &rarr;</a></li>
             <li><a href="/documentation/getting-started/compatibility/">Compatibility &rarr;</a></li>
             <li><a href="/security/">Security &rarr;</a></li>
-            <li><a href="/changelogs/">All changelogs &rarr;</a></li>
         </ul>
-    </div>
 
-    {{- if $recent }}
-    <p class="release__recent">
-        Recent:
-        {{- range $i, $r := $recent }}
-            {{ if $i }}<span class="release__sep">·</span>{{ end }}
-            <a href="{{ $r.url }}">{{ $r.version }}</a>
+        {{- if $recent }}
+        <p class="release__recent">
+            Recent:
+            {{- range $i, $r := $recent }}
+                {{ if $i }}<span class="release__sep">·</span>{{ end }}
+                <a href="{{ $r.url }}">{{ $r.version }}</a>
+            {{- end }}
+        </p>
         {{- end }}
-    </p>
-    {{- end }}
+    </div>
 </section>

@@ -1,8 +1,10 @@
 {{ define "main" }}
 <div class="home flow">
     {{ partial "home/hero.html" . }}
-    {{ partial "home/quick-install.html" . }}
-    {{ partial "home/release.html" . }}
+    <section class="home__decision">
+        {{ partial "home/quick-install.html" . }}
+        {{ partial "home/release.html" . }}
+    </section>
     {{ partial "home/feature.html" . }}
     {{ partial "home/example.html" . }}
     {{ partial "home/report.html" . }}
