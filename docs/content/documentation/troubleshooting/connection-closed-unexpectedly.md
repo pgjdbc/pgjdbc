@@ -144,6 +144,10 @@ recipe above.
 
 ## Related
 
+- [Timeouts](/documentation/connect/timeouts/) — the configuration
+  companion to this page: which timeout caps each phase of a
+  connection, and the JDBC-spec `setQueryTimeout` /
+  `setLoginTimeout` layer on top of the driver knobs.
 - [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/)
   — the different "I/O stuck" failure mode where the TCP socket is
   *not* dead but both ends are deadlocked on full buffers.
