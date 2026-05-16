@@ -23,7 +23,7 @@ For specific error messages on this path — `Channel Binding is required, but S
 | `sspi` | `pg_hba.conf` `sspi` method | Windows native single-sign-on via SSPI. Requires `waffle-jna` on the classpath. |
 | `none` | `pg_hba.conf` `trust` method | No credentials. Reasonable for a Unix-domain-socket dev loop, dangerous over the network. |
 
-The two extension-style methods — `gss` and `sspi` — are dispatched to the Kerberos stack and are tuned by `gsslib`, `gssEncMode`, `kerberosServerName`, `jaasApplicationName`, `jaasLogin`, `gssUseDefaultCreds`, `useSpnego`, and `sspiServiceClass`. A dedicated Kerberos / GSSAPI page is in progress; in the meantime, see the [reference](/documentation/reference/connection-properties/) (filter by the `kerberos_gss` tag).
+The two extension-style methods — `gss` and `sspi` — are dispatched to the Kerberos stack and are tuned by `gsslib`, `gssEncMode`, `kerberosServerName`, `jaasApplicationName`, `jaasLogin`, `gssUseDefaultCreds`, `useSpnego`, and `sspiServiceClass`. See [Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/) for the dispatch model, JAAS configuration, the `waffle-jna` compatibility matrix, and `gssEncMode` for GSS-encrypted connections.
 
 ## How the negotiation resolves
 
@@ -111,6 +111,7 @@ The plugin is not consulted for `trust` auth — the server never asks for a pas
 
 ## Related
 
+- [Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/) — the GSS/SSPI dispatch model, JAAS configuration, the `waffle-jna` compatibility matrix, and `gssEncMode` for GSS-encrypted connections.
 - [SCRAM authentication failed](/documentation/troubleshooting/scram-failed/) — error-message decoding for the SCRAM and channel-binding paths.
 - [SSL / TLS](/documentation/security/ssl-tls/) — the layer underneath; without it, channel binding cannot apply and cleartext-password traffic is in the clear.
 - [Quick Start § 3 — TLS](/documentation/getting-started/install/#3-configure-ssltls) — the recommended-default combination.

@@ -6,9 +6,12 @@ last_reviewed: "2026-05-16"
 description: "TLS, authentication mechanisms, and the recommended security baseline for production connections."
 ---
 
-TLS configuration, authentication mechanisms (SCRAM, channel binding,
-`requireAuth`, `AuthenticationPlugin`), and Kerberos / GSSAPI / SSPI
-integration.
+TLS configuration ([SSL / TLS](/documentation/security/ssl-tls/)),
+authentication mechanisms — SCRAM-SHA-256, MD5, cleartext password,
+the `requireAuth` allow-list and `channelBinding` posture, the
+`AuthenticationPlugin` SPI ([Authentication](/documentation/security/authentication/)),
+and Kerberos via JSSE GSSAPI or Windows-native SSPI
+([Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/)).
 
 For the connection-level security baseline a deployment should adopt,
 see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls).
