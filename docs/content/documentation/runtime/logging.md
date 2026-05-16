@@ -69,3 +69,5 @@ And when you run your application you pass the system property:
 ## Deprecated properties
 
 The connection properties `loggerLevel` and `loggerFile` are no longer used by the driver and are silently ignored if present. All logging configuration is handled by `java.util.logging` as described above; configure handlers and levels through a `logging.properties` file (or programmatically via `LogManager`) instead of the old URL parameters.
+
+`loggerFile` was disabled in 42.3.3 after an advisory showed that exposing it to attacker-controlled connection strings allows arbitrary file writes — see [Arbitrary File Write Vulnerability](/security/#arbitrary-file-write-vulnerability) for the impact and the broader caveat about treating JDBC URLs / connection properties as untrusted input.

@@ -4,6 +4,14 @@ date: 2024-02-21T11:58:00-05:00
 draft: false
 ---
 
+This page is the driver's release-disclosure surface — PGP signing
+keys and historic advisories. For TLS / authentication / Kerberos
+**configuration** see the documentation's
+[Security section](/documentation/security/).
+
+To report a new vulnerability privately, use GitHub's
+[security advisory form](https://github.com/pgjdbc/pgjdbc/security/advisories/new).
+
 ## Release verification
 
 For security purposes, we sign our releases with these PGP keys:
