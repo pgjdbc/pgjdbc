@@ -10,6 +10,8 @@ import org.postgresql.core.PGStream;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -32,7 +34,8 @@ class NotificationPoller extends Thread {
   private final NIOInputStream nioInput;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private volatile boolean dataAvailable;
-  private final Object signal = new Object();
+  private final ReentrantLock lock = new ReentrantLock();
+  private final Condition signalCondition = lock.newCondition();
 
   NotificationPoller(NIOInputStream nioInput, PGStream pgStream) {
     super("pgjdbc-notify-" + pgStream.getHostSpec());
@@ -52,17 +55,23 @@ class NotificationPoller extends Thread {
    * Clear the flag and wake the poller to resume checking.
    */
   void clearDataAvailable() {
-    synchronized (signal) {
+    lock.lock();
+    try {
       dataAvailable = false;
-      signal.notifyAll();
+      signalCondition.signalAll();
+    } finally {
+      lock.unlock();
     }
   }
 
   void shutdown() {
     running.set(false);
     nioInput.wakeup();
-    synchronized (signal) {
-      signal.notifyAll();
+    lock.lock();
+    try {
+      signalCondition.signalAll();
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -75,10 +84,13 @@ class NotificationPoller extends Thread {
         if (nioInput.waitForData(500)) {
           dataAvailable = true;
           // Wait until main thread clears the flag
-          synchronized (signal) {
+          lock.lock();
+          try {
             while (dataAvailable && running.get()) {
-              signal.wait();
+              signalCondition.await();
             }
+          } finally {
+            lock.unlock();
           }
         }
       } catch (InterruptedException e) {
