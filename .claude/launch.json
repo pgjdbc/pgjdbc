@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "hugo",
+      "runtimeExecutable": "hugo",
+      "runtimeArgs": ["server", "--source", "docs", "--port", "1313", "--bind", "127.0.0.1", "--disableFastRender"],
+      "port": 1313
+    }
+  ]
+}

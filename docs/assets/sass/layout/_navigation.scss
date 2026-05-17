@@ -112,7 +112,19 @@
 
   @include mq-min(medium) {
     display: none;
+  }
+}
 
+// The bottom-fixed `.nav-mob` covers the last ~5rem of the viewport
+// on every page below the `medium` breakpoint. Without compensating
+// padding the page's footer (and the tail of any long article) sits
+// behind it and is unreachable. The padding-bottom matches the
+// nav-mob's intrinsic height (1em + 1em padding + ~3em of button row
+// ≈ 5rem) with a small buffer so the last content line is fully
+// visible above the bar.
+@include mq-max(medium) {
+  body {
+    padding-bottom: 5.5rem;
   }
 }
 
