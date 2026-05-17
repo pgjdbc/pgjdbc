@@ -565,10 +565,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     // attempt to acquire a GSS encrypted connection
     LOGGER.log(Level.FINEST, " FE=> GSSENCRequest");
 
-    int gssTimeout = PGProperty.SSL_RESPONSE_TIMEOUT.getInt(info);
+    int gssTimeout = PGProperty.GSS_RESPONSE_TIMEOUT.getInt(info);
     int currentTimeout = pgStream.getNetworkTimeout();
 
-    // if the current timeout is less than sslTimeout then
+    // if the current timeout is less than gssTimeout then
     // use the smaller timeout. We could do something tricky
     // here to not set it in that case but this is pretty readable
     if (currentTimeout > 0 && currentTimeout < gssTimeout) {
