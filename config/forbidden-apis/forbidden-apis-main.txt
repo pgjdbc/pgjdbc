@@ -1,0 +1,2 @@
+@defaultMessage Not available on Android ART runtime — wrap usage in a dedicated class loaded lazily by callers (see org.postgresql.util.internal.JvmHeapAccess)
+java.lang.management.**
