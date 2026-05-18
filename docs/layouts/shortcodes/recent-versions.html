@@ -1,20 +1,53 @@
+{{/*
+  Recent download cards — top patch for Java 8+, Java 7, Java 6.
+
+  Sources of truth:
+   * Java 8+ → newest /changelogs/*-release.md whose `version`
+     frontmatter starts with a digit. Same pick as the homepage
+     release card and quick-install snippet.
+   * Java 7 / Java 6 → release-history.yaml classifier rows
+     (`version_range: "42.2.29.jre7"` etc.), generated from git
+     tags + release-history-overlay.yaml.
+
+  When a new version ships, only the changelog file needs to land
+  — this shortcode refreshes automatically.
+*/}}
+{{- $latest := "" -}}
+{{- range (where site.RegularPages "Section" "changelogs").ByDate.Reverse -}}
+  {{- if and (not $latest) (findRE "^[0-9]" (.Params.version | default "")) -}}
+    {{- $latest = .Params.version -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $cards := slice (dict "version" $latest "suffix" "" "java" "8") -}}
+{{- range (index hugo.Data "release-history").rows -}}
+  {{- $vr := .version_range -}}
+  {{- if findRE "\\.jre[0-9]+$" $vr -}}
+    {{- $suf  := replaceRE "^.*\\.(jre[0-9]+)$" "$1" $vr -}}
+    {{- $base := replaceRE "\\.jre[0-9]+$" "" $vr -}}
+    {{- $cards = $cards | append (dict "version" $base "suffix" $suf "java" .min_java) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $jdbcByJava := dict "8" "JDBC 4.2" "7" "JDBC 4.1" "6" "JDBC 4.0" -}}
 <div class="card">
-    {{ range $ind, $ver := hugo.Data.versions.recent }}
+    {{- range $ind, $c := $cards }}
+    {{- $full := $c.version }}{{ if $c.suffix }}{{ $full = printf "%s.%s" $c.version $c.suffix }}{{ end }}
     <div class="card__item">
-        <div class="card__title">{{$ver.j_name}}</div>
-        <div class="card__subtitle">{{$ver.version}}</div>
-        <p class="card__desc">{{$ver.description}}</p>
+        <div class="card__title">Java {{ $c.java }}</div>
+        <div class="card__subtitle">{{ $c.version }}</div>
+        <p class="card__desc">If you are using Java {{ $c.java }}{{ if eq $c.java "8" }} or newer{{ end }} then you should use the {{ index $jdbcByJava $c.java }} version.</p>
         <button class="card__btn__left">
-            <a href="{{$ver.url}}" class="card__btn__left__link">Download</a>
+            <a href="/download/postgresql-{{ $full }}.jar" class="card__btn__left__link">Download</a>
         </button>
-        <script class="maven" id="coordinates-{{$ind}}" type="application/xml">
+        <script class="maven" id="coordinates-{{ $ind }}" type="application/xml">
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
-                <version>{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</version>
+                <version>{{ $full }}</version>
             </dependency>
         </script>
-        <button class="card__btn__right" id="copyBtn-{{$ind}}" data="{{$ind}}">Copy Maven</button>
+        <button class="card__btn__right" id="copyBtn-{{ $ind }}" data="{{ $ind }}">Copy Maven</button>
     </div>
-    {{ end }}
+    {{- end }}
 </div>

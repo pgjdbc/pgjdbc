@@ -1,5 +1,79 @@
+{{/*
+  Older download links, curated by release line:
+   * Current line (the latest changelog's X.Y.x) — every patch
+     except the newest one, which lives in the "recent versions"
+     card above.
+   * Each older non-classifier line (42.6.x, 42.5.x, 42.4.x,
+     42.3.x) — only its latest patch.
+   * 42.2.x line — the most recent prior .jre7 patch (the current
+     .jre7 lives in the "recent" card; the unclassified 42.2.x
+     build hasn't shipped since the line went JRE-7-only).
+
+  Sources of truth:
+   * /changelogs/*-release.md for tagged versions and ordering.
+   * release-history.yaml (generated from git tags + the overlay)
+     for per-line latest patches and the .jre7 cutoff.
+  No data file needs to be touched when a new version ships.
+*/}}
+{{- $changelogs := where site.RegularPages "Section" "changelogs" -}}
+
+{{- /* Latest Java-8+ release: top of /changelogs/. */ -}}
+{{- $latest := "" -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- if and (not $latest) (findRE "^[0-9]" (.Params.version | default "")) -}}
+    {{- $latest = .Params.version -}}
+  {{- end -}}
+{{- end -}}
+{{- $parts := split $latest "." -}}
+{{- $currentLine := printf "%s.%s." (index $parts 0) (index $parts 1) -}}
+
+{{- /* .jre7 cutoff from release-history.yaml. */ -}}
+{{- $jre7Last := "" -}}
+{{- range (index hugo.Data "release-history").rows -}}
+  {{- if hasSuffix .version_range ".jre7" -}}
+    {{- $jre7Last = replaceRE "\\.jre7$" "" .version_range -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Assemble the past list in display order. */ -}}
+{{- $past := slice -}}
+
+{{- /* 1. Current-line patches, newest first. */ -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- $v := .Params.version | default "" -}}
+  {{- if and (hasPrefix $v $currentLine) (ne $v $latest) -}}
+    {{- $past = $past | append (dict "version" $v "suffix" "") -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 2. Latest patch of each older non-classifier line. Skip the
+       current line (already covered) and 42.2.x (handled via jre7). */ -}}
+{{- range (index hugo.Data "release-history").rows -}}
+  {{- $vr := .version_range -}}
+  {{- $rl := .release_line -}}
+  {{- $linePrefix := replaceRE "x$" "" $rl -}}
+  {{- if and (not (findRE "\\.jre[0-9]+$" $vr)) (ne $linePrefix $currentLine) (ne $rl "42.2.x") -}}
+    {{- $rangeParts := split $vr "-" -}}
+    {{- $lastPatch := index $rangeParts (sub (len $rangeParts) 1) -}}
+    {{- $past = $past | append (dict "version" $lastPatch "suffix" "") -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 3. Most recent prior .jre7 patch. */ -}}
+{{- $jre7Past := "" -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- $v := .Params.version | default "" -}}
+  {{- if and (not $jre7Past) (hasPrefix $v "42.2.") (ne $v $jre7Last) -}}
+    {{- $jre7Past = $v -}}
+  {{- end -}}
+{{- end -}}
+{{- with $jre7Past -}}
+  {{- $past = $past | append (dict "version" . "suffix" "jre7") -}}
+{{- end -}}
+
 <ul class="custom-marker">
-    {{ range $ind, $ver := hugo.Data.versions.past }}
-    <li><a href="/download/postgresql-{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}.jar">{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</a></li>
-    {{end}}
+    {{- range $past }}
+    {{- $full := .version }}{{ if .suffix }}{{ $full = printf "%s.%s" .version .suffix }}{{ end }}
+    <li><a href="/download/postgresql-{{ $full }}.jar">{{ $full }}</a></li>
+    {{- end }}
 </ul>
