@@ -1,5 +1,5 @@
 ---
-title: "Using Java 8 Date and Time classes"
+title: "Date and time"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 25

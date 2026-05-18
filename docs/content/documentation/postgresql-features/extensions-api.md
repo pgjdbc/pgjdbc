@@ -1,5 +1,5 @@
 ---
-title: "Accessing the Extensions"
+title: "Driver extensions API"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1

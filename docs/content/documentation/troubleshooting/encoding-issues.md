@@ -166,7 +166,7 @@ The driver exposes a single encoding-related knob,
 everything else on the JDBC side is fixed at startup or determined
 by the server. The relevant external references:
 
-- [Server preparation § Database encoding](/documentation/getting-started/server-prep/#3-database-encoding-is-utf-8)
+- [Server preparation: Database encoding](/documentation/getting-started/server-prep/#database-encoding-is-utf-8)
   — why `CREATE DATABASE … WITH ENCODING 'UTF8'` is the only sane
   starting point.
 - [PostgreSQL — Character Set Support](https://www.postgresql.org/docs/current/multibyte.html)

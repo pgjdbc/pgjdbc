@@ -1,5 +1,5 @@
 ---
-title: "Timestamp Infinity"
+title: "Timestamp infinity"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 30

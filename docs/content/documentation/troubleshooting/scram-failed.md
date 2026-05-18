@@ -16,7 +16,7 @@ or server change fixes it.
 
 For the recommended-default posture (`sslmode=verify-full`,
 `channelBinding=require`), see
-[Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls).
+[Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## `Channel Binding is required, but SSL is not in use`
 
@@ -29,7 +29,7 @@ to bind to.
 Resolution: pick one or the other.
 
 - The intended posture is `sslmode=verify-full` + `channelBinding=require`.
-  This is the combination [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls)
+  This is the combination [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)
   recommends, and the only one that defends against an attacker who can
   terminate-and-replay the TLS handshake.
 - If TLS is genuinely impossible (a local Unix-domain socket bridge,
@@ -128,7 +128,7 @@ are ever sent under the unwanted method.
   supports, how the server-driven negotiation resolves, and the
   levers (`requireAuth`, `channelBinding`, `scramMaxIterations`,
   `AuthenticationPlugin`) that bound it.
-- [Quick Start § 3 — TLS](/documentation/getting-started/install/#3-configure-ssltls)
+- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)
   — the recommended-default combination of `sslmode=verify-full`,
   `sslrootcert`, and `channelBinding=require`.
 - [SSL / TLS connection errors](/documentation/troubleshooting/ssl-errors/)

@@ -8,7 +8,7 @@ description: "Running pgJDBC under HikariCP, Tomcat JDBC, or c3p0 — pool sizin
 
 The driver was built to be checked out from a pool, used briefly, and returned. Opening a fresh connection is expensive — TCP handshake, optional TLS / GSS upgrade, authentication round-trips, startup packet, several internal `SET` queries — and the per-connection state the driver builds up (prepared-statement cache, metadata cache, server-side prepared statements) only pays off when the connection lives long enough to be reused. Every modern Java stack uses a connection pool in front of pgJDBC; the question is which one and how to configure it.
 
-This page is the *configuration* counterpart to two neighbouring pages: [Connection Pools and Data Sources](/documentation/connect/datasource/) covers the JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and pgJDBC's bundled implementations, while [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/) is the operational recipe for connections that die between checkouts (LB idle timeouts, server-side terminators, network blips). This page sits between them: how to spin up HikariCP / Tomcat JDBC / c3p0 around pgJDBC, what to set on the driver side under pool ownership, and which behaviour is per-pool vs per-connection.
+This page is the *configuration* counterpart to two neighbouring pages: [DataSource and JNDI](/documentation/connect/datasource/) covers the JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and pgJDBC's bundled implementations, while [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/) is the operational recipe for connections that die between checkouts (LB idle timeouts, server-side terminators, network blips). This page sits between them: how to spin up HikariCP / Tomcat JDBC / c3p0 around pgJDBC, what to set on the driver side under pool ownership, and which behaviour is per-pool vs per-connection.
 
 ## Pool sizing: fewer than you think
 
@@ -40,7 +40,7 @@ cfg.addDataSourceProperty("ApplicationName", "api-write");
 cfg.addDataSourceProperty("tcpKeepAlive", "true");
 cfg.addDataSourceProperty("socketTimeout", "30");       // seconds
 cfg.addDataSourceProperty("loginTimeout", "10");        // seconds
-// Optional: sslmode/sslrootcert for TLS — see Quick Start §3
+// Optional: sslmode/sslrootcert for TLS — see "Configure SSL/TLS" in Quick start
 cfg.addDataSourceProperty("sslmode", "verify-full");
 cfg.addDataSourceProperty("sslrootcert", "/etc/ssl/rds-ca.pem");
 cfg.addDataSourceProperty("channelBinding", "require");
@@ -182,11 +182,11 @@ pgJDBC ships its own `org.postgresql.ds.PGPoolingDataSource` in `connect/datasou
 | [`loginTimeout`](/documentation/reference/connection-properties/#prop-logintimeout) | non-zero seconds | Caps pool growth attempts against a hung server (see [Timeouts](/documentation/connect/timeouts/)). |
 | [`prepareThreshold`](/documentation/reference/connection-properties/#prop-preparethreshold) | default `5`, or `0` behind transaction-pooling PgBouncer < 1.21 | Trades CPU for memory; the default is good for most workloads. |
 | [`preparedStatementCacheQueries`](/documentation/reference/connection-properties/#prop-preparedstatementcachequeries) | default 256 | Scale-down if the app has thousands of distinct queries and pool is large. |
-| `sslmode`, `sslrootcert`, `channelBinding` | `verify-full`, full path, `require` | The recommended security baseline; see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls). |
+| `sslmode`, `sslrootcert`, `channelBinding` | `verify-full`, full path, `require` | The recommended security baseline; see [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls). |
 
 ## Related
 
-- [Connection Pools and Data Sources](/documentation/connect/datasource/) — JDBC `DataSource` / `ConnectionPoolDataSource` API and pgJDBC's bundled implementations.
+- [DataSource and JNDI](/documentation/connect/datasource/) — JDBC `DataSource` / `ConnectionPoolDataSource` API and pgJDBC's bundled implementations.
 - [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/) — the operational recipe for connections that die between checkouts; `tcpKeepAlive` + sysctl, `socketTimeout`, pool validation.
 - [Timeouts](/documentation/connect/timeouts/) — per-phase budgets for `getConnection()` and steady-state reads under a pool.
 - [Server-prepared statements](/documentation/query/prepared-statements/) — when `prepareThreshold` activates the cache and why per-connection cache size matters.

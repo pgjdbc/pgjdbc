@@ -1,5 +1,5 @@
 ---
-title: "Physical and Logical replication"
+title: "Physical and logical replication"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20
@@ -12,7 +12,7 @@ aliases:
     - "/documentation/server-prepare/#physical-replication/"
 ---
 
-## Physical and Logical replication API
+## Physical and logical replication API
 
 Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
 changes from a database to be streamed in real-time to an external system. The difference between physical replication and

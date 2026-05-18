@@ -72,11 +72,11 @@ for the full report template.
 
 ## What's next
 
-- [Quick Start](/documentation/getting-started/install/) — Maven /
+- [Quick start](/documentation/getting-started/install/) — Maven /
   Gradle dependency for the version you picked here.
 - [Server preparation](/documentation/getting-started/server-prep/) —
   TCP listener, `pg_hba.conf`, and database encoding checks before the
   first connection.
-- [Connection Properties reference](/documentation/reference/connection-properties/) —
+- [Connection properties](/documentation/reference/connection-properties/) —
   every tunable, with the `introducedIn` badge showing which release
   added it.

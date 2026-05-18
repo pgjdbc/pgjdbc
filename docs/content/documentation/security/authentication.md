@@ -8,7 +8,7 @@ description: "Authentication methods pgJDBC supports — SCRAM-SHA-256, MD5, cle
 
 The authentication step of a pgJDBC connection runs after the optional TLS / GSS upgrade and before the connection is handed back to the application. The server, not the client, picks the authentication method — based on the `pg_hba.conf` rule that matches the connection's source — and the driver responds to whatever message arrives. This page describes the methods the driver supports, how the negotiation resolves, and the connection properties that bound it (allow-list which methods are acceptable, require channel binding, swap in a custom credential source).
 
-For specific error messages on this path — `Channel Binding is required, but SSL is not in use`, `Authentication method is not allowed by requireAuth`, and friends — see [SCRAM authentication failed](/documentation/troubleshooting/scram-failed/). For the TLS layer that sits underneath, see [SSL / TLS](/documentation/security/ssl-tls/). For the recommended-default posture, see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls).
+For specific error messages on this path — `Channel Binding is required, but SSL is not in use`, `Authentication method is not allowed by requireAuth`, and friends — see [SCRAM authentication failed](/documentation/troubleshooting/scram-failed/). For the TLS layer that sits underneath, see [SSL / TLS](/documentation/security/ssl-tls/). For the recommended-default posture, see [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## Methods the driver supports
 
@@ -46,7 +46,7 @@ sslrootcert=/path/to/ca.crt  # what we validate the chain against
 channelBinding=require       # tie the SCRAM exchange to the TLS channel
 ```
 
-This is the combination [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls) recommends. It defends against the credible attacker — one who can intercept and re-negotiate the TLS handshake but does not have the server's private key — by ensuring (a) the certificate presented is the one we expect, and (b) the SCRAM exchange is bound to that TLS session.
+This is the combination [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls) recommends. It defends against the credible attacker — one who can intercept and re-negotiate the TLS handshake but does not have the server's private key — by ensuring (a) the certificate presented is the one we expect, and (b) the SCRAM exchange is bound to that TLS session.
 
 For an extra notch of defense in depth, add an explicit `requireAuth=scram-sha-256` so the driver refuses MD5 even if `pg_hba.conf` is later relaxed; see the next section.
 
@@ -114,6 +114,6 @@ The plugin is not consulted for `trust` auth — the server never asks for a pas
 - [Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/) — the GSS/SSPI dispatch model, JAAS configuration, the `waffle-jna` compatibility matrix, and `gssEncMode` for GSS-encrypted connections.
 - [SCRAM authentication failed](/documentation/troubleshooting/scram-failed/) — error-message decoding for the SCRAM and channel-binding paths.
 - [SSL / TLS](/documentation/security/ssl-tls/) — the layer underneath; without it, channel binding cannot apply and cleartext-password traffic is in the clear.
-- [Quick Start § 3 — TLS](/documentation/getting-started/install/#3-configure-ssltls) — the recommended-default combination.
+- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls) — the recommended-default combination.
 - [Security advisories](/security/#security-advisories) — driver-level CVE / GHSA history including authentication-related ones.
 - [Connection properties reference](/documentation/reference/connection-properties/) — every property in one place.

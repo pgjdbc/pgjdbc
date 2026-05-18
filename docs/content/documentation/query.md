@@ -15,7 +15,7 @@ build:
 
 This page was split into focused topical pages:
 
-- **[Query basics](/documentation/query/basics/)** — Statement,
+- **[Issuing a query](/documentation/query/basics/)** — Statement,
   PreparedStatement, ResultSet, updates, DDL.
 - **[Cursor-based fetching](/documentation/query/fetch-size/)** —
   controlling per-fetch row count for large result sets.

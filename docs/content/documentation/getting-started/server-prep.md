@@ -16,7 +16,7 @@ connect. None of them are pgJDBC-specific — they are PostgreSQL
 configuration tasks — but each one is a common reason for an otherwise
 correct application to fail at startup.
 
-## 1. The server listens on TCP
+## The server listens on TCP
 
 Java cannot connect over a Unix-domain socket without an extra
 library (see [Unix sockets](/documentation/connect/unix-sockets/)). For
@@ -31,7 +31,7 @@ The default is `localhost`, which is fine for an application running on
 the same host as the database; for anything else, broaden the address
 or list specific interfaces. Restart PostgreSQL after editing.
 
-## 2. pg_hba.conf allows the connection
+## pg_hba.conf allows the connection
 
 Even with the listener open, PostgreSQL refuses authentication for
 client/database/host combinations that are not explicitly permitted.
@@ -49,9 +49,9 @@ The full reference is the PostgreSQL
 [`pg_hba.conf` documentation](https://www.postgresql.org/docs/current/auth-pg-hba-conf.html).
 Use `hostssl` (not `host`) for any non-local rule so plaintext rows
 never apply over the network; pair it with `sslmode=verify-full` on
-the client side (see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls)).
+the client side (see [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)).
 
-## 3. Database encoding is UTF-8
+## Database encoding is UTF-8
 
 ```sql
 CREATE DATABASE mydb WITH ENCODING 'UTF8';
@@ -68,5 +68,5 @@ time the application stores a character outside seven-bit ASCII.
 ## Next step
 
 With those three boxes ticked, return to the
-[Quick Start](/documentation/getting-started/install/) and open the
+[Quick start](/documentation/getting-started/install/) and open the
 first connection.

@@ -1,5 +1,5 @@
 ---
-title: "Geometric Data Types"
+title: "Geometric types"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 40

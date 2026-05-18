@@ -155,7 +155,7 @@ recipe above.
   — HikariCP / Tomcat JDBC / c3p0 production recipes (validation
   defaults, idle eviction, `tcpKeepAlive` under pool ownership),
   pool sizing, and `ApplicationName` per pool.
-- [Connection Pools and Data Sources](/documentation/connect/datasource/)
+- [DataSource and JNDI](/documentation/connect/datasource/)
   — the JDBC `DataSource` / `ConnectionPoolDataSource` API
   contracts and pgJDBC's bundled implementations.
 - [Connection properties reference](/documentation/reference/connection-properties/)

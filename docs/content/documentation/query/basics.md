@@ -1,5 +1,5 @@
 ---
-title: "Issuing a Query and Processing the Result"
+title: "Issuing a query"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1
@@ -9,7 +9,7 @@ aliases:
     - "/documentation/query/"
 ---
 
-Any time you want to issue SQL statements to the database, you require a `Statement` or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement` , you can use issue a query. This will return a `ResultSet` instance, which contains the entire result (see the section called [Getting results based on a cursor](/documentation/query/fetch-size/) here for how to alter this behaviour). [Example 5.1, “Processing a Simple Query in JDBC”](#example-51-processing-a-simple-query-in-jdbc) illustrates this process.
+Any time you want to issue SQL statements to the database, you require a `Statement` or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement` , you can use issue a query. This will return a `ResultSet` instance, which contains the entire result (see [Cursor-based fetching](/documentation/query/fetch-size/) for how to alter this behaviour). [Example 5.1, “Processing a Simple Query in JDBC”](#example-51-processing-a-simple-query-in-jdbc) illustrates this process.
 
 ##### Example 5.1. Processing a Simple Query in JDBC
 
@@ -52,7 +52,7 @@ per `Statement` or `PreparedStatement` at a given time.
 * If you need to perform a query while processing a `ResultSet`, you can simply create and use another `Statement` .
 
 * If you are using threads, and several are using the database, you must use a separate `Statement` for each thread.
-Refer to [Connection Pools and Data Sources § Thread safety](/documentation/connect/datasource/#thread-safety) if you
+Refer to [DataSource and JNDI § Thread safety](/documentation/connect/datasource/#thread-safety) if you
 are thinking of using threads, as it covers some important points.
 
 * When you are done using the `Statement` or `PreparedStatement` you should close it.
@@ -76,7 +76,7 @@ it prepares the row for processing.
 is closed automatically.
 
 * When PreparedStatement API is used,  `ResultSet` switches to binary mode after five query executions (this default is 
-set by the `prepareThreshold` connection property, see [Server Prepared Statements](/documentation/query/prepared-statements/). 
+set by the `prepareThreshold` connection property, see [Server-prepared statements](/documentation/query/prepared-statements/). 
 This may cause unexpected behaviour when some methods are called. For example, results on method calls such as `getString()` 
 on non-string data types, while logically equivalent, may be formatted differently after execution exceeds the set 
 `prepareThreshold` when conversion to object method switches to the method with a return type matching the return mode.

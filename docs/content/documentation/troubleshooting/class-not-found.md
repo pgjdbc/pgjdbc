@@ -31,7 +31,7 @@ mechanism — every JAR carrying a `META-INF/services/java.sql.Driver`
 file is registered automatically when the JAR is on the classpath.
 pgJDBC ships that file (containing `org.postgresql.Driver`) in every
 release. The
-[Quick Start ServiceLoader note](/documentation/getting-started/install/)
+[Quick start ServiceLoader note](/documentation/getting-started/install/)
 spells this out next to the modern connection example.
 
 Old tutorials, copy-pasted boilerplate from the Java 1.4 era, and
@@ -94,9 +94,9 @@ those of [`No suitable driver found`](/documentation/troubleshooting/no-suitable
 - [No suitable driver found](/documentation/troubleshooting/no-suitable-driver/)
   — the `DriverManager`-side variant of the same root issue, with
   more detail on shaded JARs and classloader visibility.
-- [Quick Start](/documentation/getting-started/install/) — the
+- [Quick start](/documentation/getting-started/install/) — the
   Maven / Gradle dependency declaration and the
   `ServiceLoader`-vs-`Class.forName` note.
-- [Connection Pools and Data Sources](/documentation/connect/datasource/)
+- [DataSource and JNDI](/documentation/connect/datasource/)
   — `PGSimpleDataSource` avoids both this error and the
   `DriverManager` classloader filter that drives it.

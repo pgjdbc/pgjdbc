@@ -1,5 +1,5 @@
 ---
-title: "Calling Stored Functions and Procedures"
+title: "Stored functions and procedures"
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 20
@@ -66,7 +66,7 @@ When calling a function that returns a refcursor you must cast the return type o
 >
 > One notable limitation of the current support for a `ResultSet` created from a refcursor is that even though it is a
 > cursor backed `ResultSet` , all data will be retrieved and cached on the client. The `Statement` fetch size parameter
-> described in the section called [Getting results based on a cursor](/documentation/query/fetch-size/)
+> described in [Cursor-based fetching](/documentation/query/fetch-size/)
 > is ignored. This limitation is a deficiency of the JDBC driver, not the server, and it is technically possible to remove
 > it, we just haven't found the time.
 

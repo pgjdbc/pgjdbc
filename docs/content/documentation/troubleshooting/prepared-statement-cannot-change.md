@@ -158,7 +158,7 @@ the deployment also blocks the extended protocol for other reasons.
   — how the `prepareThreshold`, `preparedStatementCacheQueries`,
   `preparedStatementCacheSizeMiB`, and `binaryTransfer` properties
   interact in a working configuration.
-- [Connection Pools and Data Sources](/documentation/connect/datasource/)
+- [DataSource and JNDI](/documentation/connect/datasource/)
   — where PgBouncer and pool-eviction strategies fit in.
 - [Connection properties reference](/documentation/reference/connection-properties/)
   — `autosave`, `prepareThreshold`, `preferQueryMode`,

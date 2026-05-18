@@ -144,7 +144,7 @@ Common typos and slips:
 - An empty URL or `null` after a property-lookup mishap
 
 The full URL grammar is documented at
-[Connecting to the Database](/documentation/connect/url-syntax/);
+[JDBC URL](/documentation/connect/url-syntax/);
 the simplest valid form is:
 
 ```
@@ -171,7 +171,7 @@ Workarounds, in decreasing order of cleanliness:
   (or any pooled `DataSource`) instantiates the driver class itself
   — it bypasses `DriverManager`'s classloader filter entirely. This
   is the recommended path for application servers anyway; see
-  [Connection Pools and Data Sources](/documentation/connect/datasource/).
+  [DataSource and JNDI](/documentation/connect/datasource/).
 - **Explicitly register from the caller's classloader.** Calling
   `org.postgresql.Driver.register()` (or `Class.forName(...)` on the
   driver class, loaded by your classloader) re-registers the driver
@@ -179,11 +179,11 @@ Workarounds, in decreasing order of cleanliness:
 
 ## Related
 
-- [Quick Start](/documentation/getting-started/install/) — the
+- [Quick start](/documentation/getting-started/install/) — the
   Maven / Gradle dependency declaration for the supported release
   lines.
-- [Connecting to the Database](/documentation/connect/url-syntax/) —
+- [JDBC URL](/documentation/connect/url-syntax/) —
   full JDBC URL grammar.
-- [Connection Pools and Data Sources](/documentation/connect/datasource/)
+- [DataSource and JNDI](/documentation/connect/datasource/)
   — the `PGSimpleDataSource` path that bypasses the
   `DriverManager` classloader filter.

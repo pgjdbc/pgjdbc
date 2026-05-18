@@ -19,7 +19,7 @@ For the underlying setup — picking an `sslmode`, where keys and
 certificates live on disk, how to provide a custom socket factory —
 see [SSL / TLS](/documentation/security/ssl-tls/). For the safest
 defaults on a fresh project, see the
-[Quick Start TLS section](/documentation/getting-started/install/#3-configure-ssltls).
+[Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## `PKIX path building failed`
 
@@ -44,7 +44,7 @@ trusts. Two paths to a fix:
   [SSL / TLS § Configuring the Client](/documentation/security/ssl-tls/).
 
 `sslmode=require` does **not** validate the chain — see [the install
-page's callout](/documentation/getting-started/install/#3-configure-ssltls)
+page's callout](/documentation/getting-started/install/#configure-ssltls)
 — so the error only fires under `verify-ca` and `verify-full`. If
 you see it under `require`, the JVM is enforcing validation through
 some other path (a `SocketFactory`, a security provider, an
@@ -131,6 +131,6 @@ All TLS knobs grouped together:
 
 - [SSL / TLS](/documentation/security/ssl-tls/) — setup-side
   documentation; this page is the diagnostic complement.
-- [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls)
+- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)
   — the recommended-default combination of `sslmode=verify-full`,
   `sslrootcert`, and `channelBinding=require`.

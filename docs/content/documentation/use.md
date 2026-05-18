@@ -14,9 +14,9 @@ build:
 This page was split into focused topical pages. If you arrived here
 from an external link, you're probably looking for one of these:
 
-- **[Quick Start](/documentation/install/)** — add the dependency and
+- **[Quick start](/documentation/install/)** — add the dependency and
   open your first connection.
-- **[JDBC URL syntax](/documentation/connect/url-syntax/)** — host/port,
+- **[JDBC URL](/documentation/connect/url-syntax/)** — host/port,
   multi-host URLs, percent-encoding.
 - **[Unix sockets](/documentation/connect/unix-sockets/)** — connecting
   via a filesystem path with `junixsocket`.

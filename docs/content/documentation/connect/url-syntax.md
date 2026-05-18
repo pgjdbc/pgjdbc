@@ -1,5 +1,5 @@
 ---
-title: "Connecting to the Database"
+title: "JDBC URL"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 5

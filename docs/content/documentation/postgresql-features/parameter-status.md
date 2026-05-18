@@ -1,5 +1,5 @@
 ---
-title: "Parameter Status Messages"
+title: "Parameter status"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 3

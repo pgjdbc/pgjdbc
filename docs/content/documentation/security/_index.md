@@ -14,7 +14,7 @@ and Kerberos via JSSE GSSAPI or Windows-native SSPI
 ([Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/)).
 
 For the connection-level security baseline a deployment should adopt,
-see [Quick Start § 3](/documentation/getting-started/install/#3-configure-ssltls).
+see [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## See also
 

@@ -17,15 +17,15 @@ Each topic now has its own page:
 - **[Server-prepared statements](/documentation/query/prepared-statements/)** —
   the `prepareThreshold` model, deactivation, debugging, binary transfer.
 - **[LISTEN / NOTIFY](/documentation/postgresql-features/listen-notify/)**
-- **[Parameter Status messages](/documentation/postgresql-features/parameter-status/)**
-- **[PGConnection extensions API](/documentation/postgresql-features/extensions-api/)** —
+- **[Parameter status](/documentation/postgresql-features/parameter-status/)**
+- **[Driver extensions API](/documentation/postgresql-features/extensions-api/)** —
   accessing PostgreSQL-specific functionality via `unwrap`.
 - **[Timestamp infinity](/documentation/data-types/infinity/)**
 - **[Geometric types](/documentation/data-types/geometric/)**
 - **[Large objects](/documentation/data-types/large-objects/)**
 - **[Arrays](/documentation/data-types/arrays/)**
 - **[COPY (CopyManager)](/documentation/postgresql-features/copy/)**
-- **[Physical and Logical replication](/documentation/postgresql-features/replication/)**
+- **[Physical and logical replication](/documentation/postgresql-features/replication/)**
 
 Deep links to the old in-page sections are redirected automatically.
 

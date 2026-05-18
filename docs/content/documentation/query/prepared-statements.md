@@ -1,5 +1,5 @@
 ---
-title: "Server Prepared Statements"
+title: "Server-prepared statements"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 5

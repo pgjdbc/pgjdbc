@@ -1,5 +1,5 @@
 ---
-title: "Connection Fail-over"
+title: "Connection fail-over"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20

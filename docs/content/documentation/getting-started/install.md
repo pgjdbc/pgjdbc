@@ -1,5 +1,5 @@
 ---
-title: "Quick Start"
+title: "Quick start"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1
@@ -14,7 +14,7 @@ Add pgJDBC to your build, open a TLS-protected connection, run a query.
 This page is the minimum viable path to a working application; the rest
 of the documentation fills in the edges.
 
-## 1. Add the dependency
+## Add the dependency
 
 {{< code-tabs >}}
 {{< code-tab name="Maven" lang="xml" >}}
@@ -41,7 +41,7 @@ Driver loading is automatic via the Java `ServiceLoader`. You do not need
 Java&nbsp;6.
 {{< /callout >}}
 
-## 2. Open a connection
+## Open a connection
 
 ```java
 String url = "jdbc:postgresql://db.example.com:5432/mydb";
@@ -50,7 +50,7 @@ Properties props = new Properties();
 props.setProperty("user", "alice");
 props.setProperty("password", System.getenv("PGPASSWORD"));
 
-// TLS + channel-bound SCRAM. See § 3 for the rationale.
+// TLS + channel-bound SCRAM. See "Configure SSL/TLS" for the rationale.
 props.setProperty("sslmode",        "verify-full");
 props.setProperty("sslrootcert",    "/etc/postgresql/ssl/ca.pem");
 props.setProperty("channelBinding", "require");
@@ -73,7 +73,7 @@ ends up in logs and error messages. Use a `Properties` object (as shown
 above) or a secrets manager instead.
 {{< /callout >}}
 
-## 3. Configure SSL/TLS
+## Configure SSL/TLS
 
 For any non-local server, use **both** of these together:
 
@@ -104,7 +104,7 @@ The SSL-related connection properties:
 
 {{< param-table data="connection-properties" tag="ssl" >}}
 
-## 4. Common follow-ups
+## Common follow-ups
 
 - **Connection pooling.** Use HikariCP, Tomcat JDBC, or your container's
   pool. Do not call `DriverManager.getConnection` per request — the
@@ -127,9 +127,9 @@ The authentication-related connection properties:
 
 ## What's next
 
-- [Connection Properties reference](/documentation/reference/connection-properties/) — the full set of
+- [Connection properties](/documentation/reference/connection-properties/) — the full set of
   tunables.
 - [SSL / TLS](/documentation/security/ssl-tls/) — certificate setup, custom socket
   factories, CRL/OCSP.
-- [Connection Pools and Data Sources](/documentation/connect/datasource/) — how
+- [DataSource and JNDI](/documentation/connect/datasource/) — how
   to integrate with HikariCP and friends.

@@ -1,5 +1,5 @@
 ---
-title: "Getting results based on a cursor"
+title: "Cursor-based fetching"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 30
