@@ -5,6 +5,9 @@
 
 package org.postgresql;
 
+import org.postgresql.annotations.PgApi;
+import org.postgresql.annotations.PgPropertyType;
+import org.postgresql.annotations.PgTags;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -32,6 +35,9 @@ public enum PGProperty {
    * adaptiveFetchMaximum. Requires declaring of maxResultBuffer and defaultRowFetchSize to work.
    * Default value is false.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.11")
+  @PgTags({PgTags.Tag.FETCH, PgTags.Tag.NETWORK})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   ADAPTIVE_FETCH(
       "adaptiveFetch",
       "false",
@@ -41,6 +47,9 @@ public enum PGProperty {
    * Specifies the highest number of rows which can be calculated by adaptiveFetch. Requires
    * adaptiveFetch set to true to work. Default value is -1 (used as infinity).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.11")
+  @PgTags({PgTags.Tag.FETCH, PgTags.Tag.NETWORK})
+  @PgPropertyType(PgPropertyType.Kind.INT)
   ADAPTIVE_FETCH_MAXIMUM(
       "adaptiveFetchMaximum",
       "-1",
@@ -50,6 +59,9 @@ public enum PGProperty {
    * Specifies the lowest number of rows which can be calculated by adaptiveFetch. Requires
    * adaptiveFetch set to true to work. Default value is 0.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.11")
+  @PgTags({PgTags.Tag.FETCH, PgTags.Tag.NETWORK})
+  @PgPropertyType(PgPropertyType.Kind.INT)
   ADAPTIVE_FETCH_MINIMUM(
       "adaptiveFetchMinimum",
       "0",
@@ -61,6 +73,9 @@ public enum PGProperty {
    * by the driver and should not be altered. If the driver detects a change it will abort the
    * connection.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.COMPATIBILITY)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   ALLOW_ENCODING_CHANGES(
       "allowEncodingChanges",
       "false",
@@ -69,6 +84,9 @@ public enum PGProperty {
   /**
    * The application name (require server version &gt;= 9.0).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.CONNECTION, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   APPLICATION_NAME(
       "ApplicationName",
       DriverInfo.DRIVER_NAME,
@@ -77,6 +95,9 @@ public enum PGProperty {
   /**
    * Assume the server is at least that version.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.REPLICATION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   ASSUME_MIN_SERVER_VERSION(
       "assumeMinServerVersion",
       null,
@@ -85,7 +106,9 @@ public enum PGProperty {
   /**
    * AuthenticationPluginClass
    */
-
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.25")
+  @PgTags(PgTags.Tag.AUTHENTICATION)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   AUTHENTICATION_PLUGIN_CLASS_NAME(
       "authenticationPluginClassName",
       null,
@@ -98,6 +121,9 @@ public enum PGProperty {
    * In {@code autosave=conservative} mode, savepoint is set for each query, however the rollback is done only for rare cases
    * like 'cached statement cannot change return type' or 'statement XXX is not valid' so JDBC driver rollsback and retries
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4-1206")
+  @PgTags(PgTags.Tag.TRANSACTION)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   AUTOSAVE(
       "autosave",
       "never",
@@ -111,6 +137,9 @@ public enum PGProperty {
   /**
    * Use binary format for sending and receiving data if possible.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.BINARY_TRANSFER)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   BINARY_TRANSFER(
       "binaryTransfer",
       "true",
@@ -122,6 +151,9 @@ public enum PGProperty {
    * Comma separated list of types to disable binary transfer. Either OID numbers or names.
    * Overrides values in the driver default set and values set with binaryTransferEnable.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.BINARY_TRANSFER)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   BINARY_TRANSFER_DISABLE(
       "binaryTransferDisable",
       "",
@@ -131,6 +163,9 @@ public enum PGProperty {
   /**
    * Comma separated list of types to enable binary transfer. Either OID numbers or names
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.BINARY_TRANSFER)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   BINARY_TRANSFER_ENABLE(
       "binaryTransferEnable",
       "",
@@ -142,6 +177,9 @@ public enum PGProperty {
    * This property controls "connect timeout" and "socket timeout" used for cancel commands.
    * The timeout is specified in seconds. Default value is 10 seconds.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.TIMEOUT, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   CANCEL_SIGNAL_TIMEOUT(
       "cancelSignalTimeout",
       "10",
@@ -152,6 +190,9 @@ public enum PGProperty {
    * client. It is only supported over SSL connections with PostgreSQL 11 or later
    * servers using the SCRAM authentication method.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.0")
+  @PgTags({PgTags.Tag.SSL, PgTags.Tag.AUTHENTICATION, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   CHANNEL_BINDING(
       "channelBinding",
       "prefer",
@@ -162,6 +203,9 @@ public enum PGProperty {
   /**
    * Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.9")
+  @PgTags(PgTags.Tag.TRANSACTION)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   CLEANUP_SAVEPOINTS(
       "cleanupSavepoints",
       "false",
@@ -175,6 +219,9 @@ public enum PGProperty {
    *
    * <p>The timeout is specified in seconds and a value of zero means that it is disabled.</p>
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.TIMEOUT, PgTags.Tag.NETWORK, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   CONNECT_TIMEOUT(
       "connectTimeout",
       "10",
@@ -186,6 +233,9 @@ public enum PGProperty {
    * will convert 't' to 1 and 'f' to 0 instead of throwing a conversion exception.
    * Default is false to maintain backward compatibility.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.TYPE_HANDLING)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   CONVERT_BOOLEAN_TO_NUMERIC(
       "convertBooleanToNumeric",
       "false",
@@ -195,6 +245,9 @@ public enum PGProperty {
    * Specify the schema (or several schema separated by commas) to be set in the search-path. This schema will be used to resolve
    * unqualified object names used in statements over this connection.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   CURRENT_SCHEMA(
       "currentSchema",
       null,
@@ -203,6 +256,9 @@ public enum PGProperty {
   /**
    * Specifies the maximum number of fields to be cached per connection. A value of {@code 0} disables the cache.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.METADATA)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   DATABASE_METADATA_CACHE_FIELDS(
       "databaseMetadataCacheFields",
       "65536",
@@ -211,6 +267,9 @@ public enum PGProperty {
   /**
    * Specifies the maximum size (in megabytes) of fields to be cached per connection. A value of {@code 0} disables the cache.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.METADATA)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   DATABASE_METADATA_CACHE_FIELDS_MIB(
       "databaseMetadataCacheFieldsMiB",
       "5",
@@ -220,6 +279,9 @@ public enum PGProperty {
    * Default parameter for {@link java.sql.Statement#getFetchSize()}. A value of {@code 0} means
    * that need fetch all rows at once
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.FETCH)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   DEFAULT_ROW_FETCH_SIZE(
       "defaultRowFetchSize",
       "0",
@@ -228,6 +290,9 @@ public enum PGProperty {
   /**
    * Enable optimization that disables column name sanitiser.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.METADATA)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   DISABLE_COLUMN_SANITISER(
       "disableColumnSanitiser",
       "false",
@@ -239,6 +304,9 @@ public enum PGProperty {
    * In {@code escapeSyntaxCallMode=callIfNoReturn} mode, the driver uses a CALL statement (allowing procedure invocation) if there is no return parameter specified, otherwise the driver uses a SELECT statement.
    * In {@code escapeSyntaxCallMode=call} mode, the driver always uses a CALL statement (allowing procedure invocation only).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.9")
+  @PgTags(PgTags.Tag.TRANSACTION)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   ESCAPE_SYNTAX_CALL_MODE(
       "escapeSyntaxCallMode",
       "select",
@@ -258,6 +326,9 @@ public enum PGProperty {
    * behaviour (the error is propagated and transparent recovery requires
    * {@code autosave=ALWAYS}).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.12")
+  @PgTags(PgTags.Tag.PREPARED_STATEMENTS)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   FLUSH_CACHE_ON_DDL(
       "flushCacheOnDdl",
       "true",
@@ -273,6 +344,9 @@ public enum PGProperty {
    * Note this is off by default as pgbouncer in statement mode
    * @deprecated since we can send the startup parameters as a multistatment transaction
    */
+  @PgApi(status = PgApi.Status.DEPRECATED, introducedIn = "42.7.0", deprecatedIn = "42.7.6")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   @Deprecated
   GROUP_STARTUP_PARAMETERS(
       "groupStartupParameters",
@@ -281,6 +355,9 @@ public enum PGProperty {
           + "the statements reaches the same connection that is being initialized."
   ),
 
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.17")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   GSS_ENC_MODE(
       "gssEncMode",
       "allow",
@@ -297,6 +374,9 @@ public enum PGProperty {
    * </ul>
    * to be used when the server requests Kerberos or SSPI authentication.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   GSS_LIB(
       "gsslib",
       "auto",
@@ -309,6 +389,9 @@ public enum PGProperty {
    * without a timeout here, the client can wait forever. The pattern for requesting a GSS encrypted connection is the same so we provide the same
    * timeout mechanism This timeout will be set before the request and reset after
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.5.2")
+  @PgTags({PgTags.Tag.KERBEROS_GSS, PgTags.Tag.TIMEOUT})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_MILLIS)
   GSS_RESPONSE_TIMEOUT(
       "gssResponseTimeout",
       "5000",
@@ -323,6 +406,9 @@ public enum PGProperty {
    * fetching the default credential are supported.  Currently, JAAS is pure java on Linux, and
    * does not support the use of KCM (and only supports file-based ccaches and keytabs).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   GSS_USE_DEFAULT_CREDS(
       "gssUseDefaultCreds",
       "false",
@@ -332,11 +418,17 @@ public enum PGProperty {
    * Enable mode to filter out the names of database objects for which the current user has no privileges
    * granted from appearing in the DatabaseMetaData returned by the driver.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.METADATA)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   HIDE_UNPRIVILEGED_OBJECTS(
       "hideUnprivilegedObjects",
       "false",
       "Enable hiding of database objects for which the current user has no privileges granted from the DatabaseMetaData"),
 
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.0")
+  @PgTags({PgTags.Tag.FAILOVER, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   HOST_RECHECK_SECONDS(
       "hostRecheckSeconds",
       "10",
@@ -345,6 +437,9 @@ public enum PGProperty {
   /**
    * Specifies the name of the JAAS system or application login configuration.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   JAAS_APPLICATION_NAME(
       "jaasApplicationName",
       "pgjdbc",
@@ -355,6 +450,9 @@ public enum PGProperty {
    * Useful if setting system property javax.security.auth.useSubjectCredsOnly=false
    * or using native GSS with system property sun.security.jgss.native=true
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.0")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   JAAS_LOGIN(
       "jaasLogin",
       "true",
@@ -364,11 +462,17 @@ public enum PGProperty {
    * The Kerberos service name to use when authenticating with GSSAPI. This is equivalent to libpq's
    * PGKRBSRVNAME environment variable.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   KERBEROS_SERVER_NAME(
       "kerberosServerName",
       null,
       "The Kerberos service name to use when authenticating with GSSAPI."),
 
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.0")
+  @PgTags({PgTags.Tag.FAILOVER, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   LOAD_BALANCE_HOSTS(
       "loadBalanceHosts",
       "false",
@@ -378,6 +482,9 @@ public enum PGProperty {
    * If this is set then the client side will bind to this address. This is useful if you need
    * to choose which interface to connect to.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   LOCAL_SOCKET_ADDRESS(
       "localSocketAddress",
       null,
@@ -387,6 +494,9 @@ public enum PGProperty {
    * This property is no longer used by the driver and will be ignored.
    * @deprecated Logging is configured via java.util.logging.
    */
+  @PgApi(status = PgApi.Status.DEPRECATED, introducedIn = "9.4", deprecatedIn = "42.0.0")
+  @PgTags(PgTags.Tag.LOGGING)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   @Deprecated
   LOGGER_FILE(
       "loggerFile",
@@ -397,6 +507,9 @@ public enum PGProperty {
    * This property is no longer used by the driver and will be ignored.
    * @deprecated Logging is configured via java.util.logging.
    */
+  @PgApi(status = PgApi.Status.DEPRECATED, introducedIn = "9.4", deprecatedIn = "42.0.0")
+  @PgTags(PgTags.Tag.LOGGING)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   @Deprecated
   LOGGER_LEVEL(
       "loggerLevel",
@@ -409,6 +522,9 @@ public enum PGProperty {
    * Specify how long to wait for establishment of a database connection. The timeout is specified
    * in seconds.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.TIMEOUT, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   LOGIN_TIMEOUT(
       "loginTimeout",
       "0",
@@ -417,6 +533,9 @@ public enum PGProperty {
   /**
    * Whether to include full server error detail in exception messages.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.24")
+  @PgTags({PgTags.Tag.LOGGING, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   LOG_SERVER_ERROR_DETAIL(
       "logServerErrorDetail",
       "true",
@@ -426,6 +545,9 @@ public enum PGProperty {
    * When connections that are not explicitly closed are garbage collected, log the stacktrace from
    * the opening of the connection to trace the leak source.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.LOGGING, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   LOG_UNCLOSED_CONNECTIONS(
       "logUnclosedConnections",
       "false",
@@ -435,6 +557,9 @@ public enum PGProperty {
    * Specifies size of buffer during fetching result set. Can be specified as specified size or
    * percent of heap memory.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.10")
+  @PgTags(PgTags.Tag.FETCH)
+  @PgPropertyType(PgPropertyType.Kind.SIZE_EXPRESSION)
   MAX_RESULT_BUFFER(
       "maxResultBuffer",
       null,
@@ -443,6 +568,9 @@ public enum PGProperty {
   /**
    * Maximum amount of bytes buffered before sending to the backend, default is 8192.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.SIZE_BYTES)
   MAX_SEND_BUFFER_SIZE(
       "maxSendBufferSize",
       "8192",
@@ -452,6 +580,9 @@ public enum PGProperty {
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   OPTIONS(
       "options",
       null,
@@ -460,6 +591,9 @@ public enum PGProperty {
   /**
    * Password to use when authenticating.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.CONNECTION, PgTags.Tag.AUTHENTICATION})
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   PASSWORD(
       "password",
       null,
@@ -469,11 +603,17 @@ public enum PGProperty {
   /**
    * Algorithm for the PEM key.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.9")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   PEM_KEY_ALGORITHM("pemKeyAlgorithm", "RSA", "Algorithm of the PEM key"),
 
   /**
    * Database name to connect to (may be specified directly in the JDBC URL).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   PG_DBNAME(
       "PGDBNAME",
       null,
@@ -483,6 +623,9 @@ public enum PGProperty {
   /**
    * Hostname of the PostgreSQL server (may be specified directly in the JDBC URL).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   PG_HOST(
       "PGHOST",
       "localhost",
@@ -492,6 +635,9 @@ public enum PGProperty {
   /**
    * Port of the PostgreSQL server (may be specified directly in the JDBC URL).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   PG_PORT(
       "PGPORT",
       "5432",
@@ -504,6 +650,9 @@ public enum PGProperty {
    *
    * <p>This mode is meant for debugging purposes and/or for cases when extended protocol cannot be used (e.g. logical replication protocol)</p>
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.1.2")
+  @PgTags(PgTags.Tag.PREPARED_STATEMENTS)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   PREFER_QUERY_MODE(
       "preferQueryMode",
       "extended",
@@ -516,6 +665,9 @@ public enum PGProperty {
    * Specifies the maximum number of entries in cache of prepared statements. A value of {@code 0}
    * disables the cache.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.PREPARED_STATEMENTS)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   PREPARED_STATEMENT_CACHE_QUERIES(
       "preparedStatementCacheQueries",
       "256",
@@ -525,6 +677,9 @@ public enum PGProperty {
    * Specifies the maximum size (in megabytes) of the prepared statement cache. A value of {@code 0}
    * disables the cache.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.PREPARED_STATEMENTS)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   PREPARED_STATEMENT_CACHE_SIZE_MIB(
       "preparedStatementCacheSizeMiB",
       "5",
@@ -534,6 +689,9 @@ public enum PGProperty {
    * Sets the default threshold for enabling server-side prepare. A value of {@code -1} stands for
    * forceBinary
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.PREPARED_STATEMENTS)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   PREPARE_THRESHOLD(
       "prepareThreshold",
       "5",
@@ -543,6 +701,9 @@ public enum PGProperty {
    * Force use of a particular protocol version when connecting, if set, disables protocol version
    * fallback.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.COMPATIBILITY)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   PROTOCOL_VERSION(
       "protocolVersion",
       "3",
@@ -553,6 +714,9 @@ public enum PGProperty {
   /**
    * Parameter for {@link java.sql.Statement#getQueryTimeout()}. A value of {@code 0} means no timeout.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.TIMEOUT, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   QUERY_TIMEOUT(
       "queryTimeout",
       "0",
@@ -564,6 +728,9 @@ public enum PGProperty {
    * If we quote them, then we end up sending ""colname"" to the backend
    * which will not be found
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.9")
+  @PgTags(PgTags.Tag.METADATA)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   QUOTE_RETURNING_IDENTIFIERS(
     "quoteReturningIdentifiers",
     "true",
@@ -572,6 +739,9 @@ public enum PGProperty {
   /**
    * Puts this connection in read-only mode.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.TRANSACTION)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   READ_ONLY(
       "readOnly",
       "false",
@@ -581,6 +751,9 @@ public enum PGProperty {
    * Connection parameter to control behavior when
    * {@link Connection#setReadOnly(boolean)} is set to {@code true}.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.15")
+  @PgTags(PgTags.Tag.TRANSACTION)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   READ_ONLY_MODE(
       "readOnlyMode",
       "transaction",
@@ -596,6 +769,9 @@ public enum PGProperty {
    * Socket read buffer size (SO_RECVBUF). A value of {@code -1}, which is the default, means system
    * default.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.SIZE_BYTES)
   RECEIVE_BUFFER_SIZE(
       "receiveBufferSize",
       "-1",
@@ -612,6 +788,9 @@ public enum PGProperty {
    * <p>Parameter should be use together with {@link PGProperty#ASSUME_MIN_SERVER_VERSION} with
    * parameter &gt;= 9.4 (backend &gt;= 9.4)</p>
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.REPLICATION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   REPLICATION(
       "replication",
       null,
@@ -628,6 +807,9 @@ public enum PGProperty {
   /**
    * Comma-separated list of acceptable authentication methods.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.0")
+  @PgTags({PgTags.Tag.AUTHENTICATION, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   REQUIRE_AUTH(
       "requireAuth",
       null,
@@ -642,6 +824,9 @@ public enum PGProperty {
   /**
    * Configure optimization to enable batch insert re-writing.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.1")
+  @PgTags(PgTags.Tag.BATCH)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   REWRITE_BATCHED_INSERTS(
       "reWriteBatchedInserts",
       "false",
@@ -656,6 +841,9 @@ public enum PGProperty {
    * only if you know you are connecting to a trusted server that legitimately uses a higher
    * iteration count. A value of zero disables this check.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.11")
+  @PgTags({PgTags.Tag.AUTHENTICATION, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.INT)
   SCRAM_MAX_ITERATIONS(
       "scramMaxIterations",
       "100000",
@@ -665,6 +853,9 @@ public enum PGProperty {
    * Socket write buffer size (SO_SNDBUF). A value of {@code -1}, which is the default, means system
    * default.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.SIZE_BYTES)
   SEND_BUFFER_SIZE(
       "sendBufferSize",
       "-1",
@@ -675,6 +866,9 @@ public enum PGProperty {
    * .conf" that holds additional connection parameters. This allows applications to specify only
    * a service name so connection parameters can be centrally maintained.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.0")
+  @PgTags(PgTags.Tag.CONNECTION)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SERVICE(
       "service",
       null,
@@ -683,6 +877,9 @@ public enum PGProperty {
   /**
    * Socket factory used to create socket. A null value, which is the default, means system default.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   SOCKET_FACTORY(
       "socketFactory",
       null,
@@ -691,6 +888,9 @@ public enum PGProperty {
   /**
    * The String argument to give to the constructor of the Socket Factory.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.NETWORK)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SOCKET_FACTORY_ARG(
       "socketFactoryArg",
       null,
@@ -702,6 +902,9 @@ public enum PGProperty {
    * timeout and a method of detecting network problems. The timeout is specified in seconds and a
    * value of zero means that it is disabled.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.TIMEOUT, PgTags.Tag.NETWORK, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_SECONDS)
   SOCKET_TIMEOUT(
       "socketTimeout",
       "0",
@@ -710,6 +913,9 @@ public enum PGProperty {
   /**
    * Control use of SSL: empty or {@code true} values imply {@code sslmode==verify-full}
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL(
       "ssl",
       null,
@@ -719,6 +925,9 @@ public enum PGProperty {
    * File containing the SSL Certificate. Default will be the file {@code postgresql.crt} in {@code
    * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL_CERT(
       "sslcert",
       null,
@@ -727,6 +936,9 @@ public enum PGProperty {
   /**
    * Classname of the SSL Factory to use (instance of {@link javax.net.ssl.SSLSocketFactory}).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   SSL_FACTORY(
       "sslfactory",
       "org.postgresql.ssl.LibPQFactory",
@@ -735,6 +947,9 @@ public enum PGProperty {
   /**
    * The String argument to give to the constructor of the SSL Factory.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL_FACTORY_ARG(
       "sslfactoryarg",
       null,
@@ -743,6 +958,9 @@ public enum PGProperty {
   /**
    * Classname of the SSL HostnameVerifier to use (instance of {@link javax.net.ssl.HostnameVerifier}).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   SSL_HOSTNAME_VERIFIER(
       "sslhostnameverifier",
       null,
@@ -752,6 +970,9 @@ public enum PGProperty {
    * File containing the SSL Key. Default will be the file {@code postgresql.pk8} in {@code $HOME/.postgresql} (*nix)
    * or {@code %APPDATA%\postgresql} (windows).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL_KEY(
       "sslkey",
       null,
@@ -763,6 +984,9 @@ public enum PGProperty {
    * If {@code ssl} property is empty or set to {@code true} it implies {@code verify-full}.
    * Default mode is "require"
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4-1200")
+  @PgTags({PgTags.Tag.SSL, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   SSL_MODE(
       "sslmode",
       null,
@@ -774,6 +998,9 @@ public enum PGProperty {
    * Normally a GSS connection is attempted first. If this is set to {@code direct}
    * then the GSS connection attempt will not be made
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   SSL_NEGOTIATION(
       "sslNegotiation",
       "postgres",
@@ -791,6 +1018,9 @@ public enum PGProperty {
   /**
    * The SSL password to use in the default CallbackHandler.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL_PASSWORD(
       "sslpassword",
       null,
@@ -799,6 +1029,9 @@ public enum PGProperty {
   /**
    * The classname instantiating {@link javax.security.auth.callback.CallbackHandler} to use.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   SSL_PASSWORD_CALLBACK(
       "sslpasswordcallback",
       null,
@@ -808,6 +1041,9 @@ public enum PGProperty {
    * After requesting an upgrade to SSL from the server there are reports of the server not responding due to a failover
    * without a timeout here, the client can wait forever. This timeout will be set before the request and reset after
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.5.2")
+  @PgTags({PgTags.Tag.SSL, PgTags.Tag.TIMEOUT})
+  @PgPropertyType(PgPropertyType.Kind.DURATION_MILLIS)
   SSL_RESPONSE_TIMEOUT(
       "sslResponseTimeout",
       "5000",
@@ -818,6 +1054,9 @@ public enum PGProperty {
    * verify-ca} or {@code verify-full}). Default will be the file {@code root.crt} in {@code
    * $HOME/.postgresql} (*nix) or {@code %APPDATA%\postgresql} (windows).
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.SSL)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSL_ROOT_CERT(
       "sslrootcert",
       null,
@@ -827,6 +1066,9 @@ public enum PGProperty {
    * Specifies the name of the SSPI service class that forms the service class part of the SPN. The
    * default, {@code POSTGRES}, is almost always correct.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   SSPI_SERVICE_CLASS(
       "sspiServiceClass",
       "POSTGRES",
@@ -836,6 +1078,9 @@ public enum PGProperty {
    * Bind String to either {@code unspecified} or {@code varchar}. Default is {@code varchar} for
    * 8.0+ backends.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.TYPE_HANDLING)
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   STRING_TYPE(
       "stringtype",
       null,
@@ -843,6 +1088,9 @@ public enum PGProperty {
       false,
       new String[]{"unspecified", "varchar"}),
 
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.2.0")
+  @PgTags({PgTags.Tag.FAILOVER, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.ENUM)
   TARGET_SERVER_TYPE(
       "targetServerType",
       "any",
@@ -853,11 +1101,17 @@ public enum PGProperty {
   /**
    * Enable or disable TCP keep-alive. The default is {@code false}.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.NETWORK, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   TCP_KEEP_ALIVE(
       "tcpKeepAlive",
       "false",
       "Enable or disable TCP keep-alive. The default is {@code false}."),
 
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.NETWORK, PgTags.Tag.OPERATIONS})
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   TCP_NO_DELAY(
       "tcpNoDelay",
       "true",
@@ -866,6 +1120,9 @@ public enum PGProperty {
   /**
    * Specifies the length to return for types of unknown length.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.TYPE_HANDLING)
+  @PgPropertyType(PgPropertyType.Kind.INT)
   UNKNOWN_LENGTH(
       "unknownLength",
       Integer.toString(Integer.MAX_VALUE),
@@ -874,6 +1131,9 @@ public enum PGProperty {
   /**
    * Username to connect to the database as.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags({PgTags.Tag.CONNECTION, PgTags.Tag.AUTHENTICATION})
+  @PgPropertyType(PgPropertyType.Kind.STRING)
   USER(
       "user",
       null,
@@ -883,6 +1143,9 @@ public enum PGProperty {
   /**
    * Use SPNEGO in SSPI authentication requests.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "9.4")
+  @PgTags(PgTags.Tag.KERBEROS_GSS)
+  @PgPropertyType(PgPropertyType.Kind.BOOLEAN)
   USE_SPNEGO(
       "useSpnego",
       "false",
@@ -894,6 +1157,9 @@ public enum PGProperty {
    * Legacy behavior with external entity processing can be enabled by specifying a value of LEGACY_INSECURE.
    * Or specify a custom class that implements {@link org.postgresql.xml.PGXmlFactoryFactory}.
    */
+  @PgApi(status = PgApi.Status.STABLE, introducedIn = "42.7.8")
+  @PgTags(PgTags.Tag.TYPE_HANDLING)
+  @PgPropertyType(PgPropertyType.Kind.CLASS)
   XML_FACTORY_FACTORY(
       "xmlFactoryFactory",
       "",
