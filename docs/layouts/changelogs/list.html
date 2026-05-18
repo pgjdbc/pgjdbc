@@ -1,15 +1,36 @@
 {{ define "main" }}
-<article class="container">
+<article class="container changelogs">
     <h1>
-        <img src="{{"/icons/changelogs.svg" | relURL}}" alt="changelogs">
+        <img src="{{"/icons/changelogs.svg" | relURL}}" alt="" aria-hidden="true">
         {{ .Title }}
     </h1>
-    {{ range .Data.Pages.ByDate.Reverse }}
-    <ul>
-        <li>
-            <a href="{{.Permalink}}"> {{.Params.Version}}</a>
+
+    {{- with .Content }}{{ . }}{{ end }}
+
+    {{/*
+      One line per release in reverse chronological order. The
+      .Date is taken from each entry's YAML front-matter, which we
+      cross-checked against the REL42.x.y git-tag dates so it's
+      authoritative. ISO date format keeps the date column the
+      same width on every row so the eye can scan vertically.
+
+      Non-release pages historically filed under /changelogs/ (e.g.
+      the Log4j CVE-2021-44228 status notice) have a `version`
+      field that does not start with a digit. Filter those out of
+      the listing — they remain reachable via their own URL.
+    */}}
+    <ul class="changelogs__list" role="list">
+        {{- range .Data.Pages.ByDate.Reverse }}
+        {{- if findRE "^[0-9]" .Params.version }}
+        <li class="changelogs__entry">
+            <a class="changelogs__version" href="{{ .Permalink }}">REL{{ .Params.Version }}</a>
+            <time class="changelogs__date" datetime="{{ .Date.Format "2006-01-02" }}">{{ .Date.Format "2006-01-02" }}</time>
+            {{- with .Params.summary }}
+            <span class="changelogs__summary">{{ . }}</span>
+            {{- end }}
         </li>
+        {{- end }}
+        {{- end }}
     </ul>
-    {{ end }}
 </article>
 {{ end }}
