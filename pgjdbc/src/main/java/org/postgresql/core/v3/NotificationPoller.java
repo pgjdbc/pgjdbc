@@ -9,6 +9,9 @@ import org.postgresql.core.NIOInputStream;
 import org.postgresql.core.PGStream;
 
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,21 +20,18 @@ import java.util.logging.Logger;
 
 /**
  * Background thread that detects incoming async data on the connection using
- * NIO Selector. Never reads from the socket — only checks readability and
- * sets a flag for the main thread to process.
+ * its own NIO Selector. Never reads from the socket — only checks readability
+ * and sets a flag for the main thread to process.
  *
- * <p>Uses {@link NIOInputStream#waitForData(long)} which calls
- * {@code Selector.select(timeout)} — blocks efficiently without CPU waste.
- *
- * <p>Thread safety: the poller only calls waitForData() when dataAvailable is
- * false (i.e., the main thread is not reading). When the main thread is executing
- * a query, the poller is parked waiting for clearDataAvailable() to be called.
+ * <p>Uses a <em>separate</em> Selector from the one in NIOInputStream to avoid
+ * thread-safety issues with concurrent select()/selectNow() calls and the
+ * shared selectedKeys() set.
  */
 class NotificationPoller extends Thread {
 
   private static final Logger LOGGER = Logger.getLogger(NotificationPoller.class.getName());
 
-  private volatile @org.checkerframework.checker.nullness.qual.Nullable NIOInputStream nioInput;
+  private volatile @org.checkerframework.checker.nullness.qual.Nullable Selector pollerSelector;
   private final AtomicBoolean running = new AtomicBoolean(true);
   private volatile boolean dataAvailable;
   private final ReentrantLock lock = new ReentrantLock();
@@ -40,12 +40,18 @@ class NotificationPoller extends Thread {
   NotificationPoller(NIOInputStream nioInput, PGStream pgStream) {
     super("pgjdbc-notify-" + pgStream.getHostSpec());
     setDaemon(true);
-    this.nioInput = nioInput;
+    try {
+      SocketChannel channel = nioInput.getChannel();
+      this.pollerSelector = Selector.open();
+      channel.register(this.pollerSelector, SelectionKey.OP_READ);
+    } catch (IOException e) {
+      LOGGER.log(Level.FINE, "Failed to create poller Selector", e);
+      this.pollerSelector = null;
+    }
   }
 
   /**
    * Returns true if the Selector detected incoming data.
-   * Main thread should check this and process async messages.
    */
   boolean hasDataAvailable() {
     return dataAvailable;
@@ -66,9 +72,9 @@ class NotificationPoller extends Thread {
 
   void shutdown() {
     running.set(false);
-    NIOInputStream input = nioInput;
-    if (input != null) {
-      input.wakeup();
+    Selector sel = pollerSelector;
+    if (sel != null) {
+      sel.wakeup();
     }
     lock.lock();
     try {
@@ -81,14 +87,17 @@ class NotificationPoller extends Thread {
   @Override
   public void run() {
     LOGGER.log(Level.FINEST, "NotificationPoller started");
+    Selector sel = pollerSelector;
+    if (sel == null) {
+      return;
+    }
     try {
       while (running.get()) {
-        NIOInputStream input = nioInput;
-        if (input == null) {
-          break;
-        }
         try {
-          if (input.waitForData(500)) {
+          // Block until data arrives or timeout — own Selector, no contention
+          int ready = sel.select(500);
+          sel.selectedKeys().clear();
+          if (ready > 0) {
             dataAvailable = true;
             lock.lock();
             try {
@@ -100,7 +109,7 @@ class NotificationPoller extends Thread {
             }
           }
         } catch (InterruptedException e) {
-          // shutdown or wakeup
+          // shutdown
         } catch (IOException e) {
           if (running.get()) {
             LOGGER.log(Level.FINE, "NotificationPoller I/O error", e);
@@ -109,8 +118,12 @@ class NotificationPoller extends Thread {
         }
       }
     } finally {
-      // Clear references to allow ClassLoader garbage collection
-      nioInput = null;
+      try {
+        sel.close();
+      } catch (IOException e) {
+        // best effort
+      }
+      pollerSelector = null;
       LOGGER.log(Level.FINEST, "NotificationPoller stopped");
     }
   }

@@ -52,13 +52,13 @@ public class NIOInputStream extends InputStream {
 
   /**
    * Check if data is available without blocking or consuming bytes.
-   * Thread-safe — can be called from a background notification poller.
+   * NOTE: Only safe to call from the same thread that calls ensureBytes().
+   * For cross-thread readability checks, use a separate Selector on getChannel().
    */
   public boolean isReadable() throws IOException {
     if (buffer.hasRemaining()) {
       return true;
     }
-    // selectNow is thread-safe
     int ready = selector.selectNow();
     selector.selectedKeys().clear();
     return ready > 0;
@@ -66,7 +66,8 @@ public class NIOInputStream extends InputStream {
 
   /**
    * Block until data is available or timeout expires.
-   * Thread-safe — uses Selector.select(timeout) which blocks efficiently.
+   * NOTE: Only safe to call from the same thread that calls ensureBytes().
+   * For cross-thread waiting, use a separate Selector on getChannel().
    *
    * @param timeoutMillis max time to wait (0 = indefinite)
    * @return true if data is available
@@ -218,19 +219,27 @@ public class NIOInputStream extends InputStream {
 
   /**
    * Scan for the length of a C-style null-terminated string starting at current position.
+   * Returns the number of bytes before the null terminator (not including it).
    */
   public int scanCStringLength() throws IOException {
-    int startPos = buffer.position();
+    int scanned = 0;
     while (true) {
-      for (int i = buffer.position(); i < buffer.limit(); i++) {
+      for (int i = buffer.position() + scanned; i < buffer.limit(); i++) {
         if (buffer.get(i) == 0) {
-          return i - startPos;
+          return i - buffer.position();
         }
       }
-      // Need more data — ensure at least one more byte beyond what we have
-      int needed = buffer.limit() - startPos + 1;
-      ensureBytes(needed);
+      scanned = buffer.remaining();
+      // Need more data — ensure we have at least one more byte than currently buffered
+      ensureBytes(scanned + 1);
     }
+  }
+
+  /**
+   * Returns the underlying channel for creating separate Selectors (e.g., NotificationPoller).
+   */
+  public SocketChannel getChannel() {
+    return channel;
   }
 
   @Override
