@@ -28,7 +28,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      # Hugo (extended) goes on PATH; the :docs-tools:docsBuild Gradle task
+      # Hugo (extended) goes on PATH; the :docs-tools:buildDocs Gradle task
       # invokes it via Exec after the property generator has produced the
       # YAML data file. Keeping the dedicated Hugo install step (instead of
       # e.g. `brew install hugo`) lets us pin a tested release without
@@ -51,7 +51,7 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
-      # :docs-tools:docsBuild = :docs-tools:generateProperties (strict —
+      # :docs-tools:buildDocs = :docs-tools:generateProperties (strict —
       # fails on any missing or inconsistent @PgApi / @PgTags /
       # @PgPropertyType annotation) then `hugo --gc --minify` in docs/.
       # See docs-tools/build.gradle.kts.
@@ -62,7 +62,7 @@ jobs:
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
           job-id: docs-build
-          arguments: --no-parallel --no-daemon --scan :docs-tools:docsBuild
+          arguments: --no-parallel --no-daemon --scan :docs-tools:buildDocs
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5

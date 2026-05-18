@@ -115,7 +115,7 @@ fun JavaExec.configureGenerator(allowIncomplete: Boolean) {
 }
 
 // Strict: fails the build on any incomplete or inconsistent annotation.
-// Wired into the production `docsBuild` task and CI.
+// Wired into the production `buildDocs` task and CI.
 val generateProperties by tasks.registering(JavaExec::class) {
     description = "Generate docs/data/connection-properties.yaml from " +
         "PGProperty annotations (@PgApi / @PgTags / @PgPropertyType). Strict mode."
@@ -123,7 +123,7 @@ val generateProperties by tasks.registering(JavaExec::class) {
 }
 
 // Lenient: emits YAML for whatever IS fully annotated, prints the fail
-// report for the rest. Wired into `docsServe` so contributors can keep
+// report for the rest. Wired into `serveDocs` so contributors can keep
 // previewing the site while annotating more properties.
 val generatePropertiesPartial by tasks.registering(JavaExec::class) {
     description = "Like `generateProperties` but emits YAML for fully-" +
@@ -221,11 +221,11 @@ val fetchKnownCves by tasks.registering(JavaExec::class) {
 
 // ----- Hugo wrappers -------------------------------------------------------
 //
-// docsBuild  — strict production build: regenerate connection-properties.yaml
+// buildDocs  — strict production build: regenerate connection-properties.yaml
 //              and release-history.yaml, then run a one-shot Hugo build.
 //              Fails if any PGProperty value has incomplete annotations.
 //
-// docsServe  — local dev server: regenerate with --allow-incomplete (so
+// serveDocs  — local dev server: regenerate with --allow-incomplete (so
 //              the preview works mid-mass-annotation), then start the Hugo
 //              dev server with hot-reload.
 //
@@ -253,7 +253,7 @@ fun Exec.ensureHugoOnPath() {
     }
 }
 
-val docsBuild by tasks.registering(Exec::class) {
+val buildDocs by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Regenerate connection-properties.yaml and " +
         "release-history.yaml, then run a production Hugo build into " +
@@ -266,7 +266,7 @@ val docsBuild by tasks.registering(Exec::class) {
     ensureHugoOnPath()
 }
 
-val docsServe by tasks.registering(Exec::class) {
+val serveDocs by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Start the Hugo dev server with hot-reload " +
         "(connection-properties.yaml regenerated in allow-incomplete mode; " +
