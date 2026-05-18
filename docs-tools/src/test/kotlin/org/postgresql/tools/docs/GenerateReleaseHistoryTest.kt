@@ -155,6 +155,122 @@ class GenerateReleaseHistoryTest {
         assertEquals("Superseded by 42.7.5+", rows[1].status)
     }
 
+    /* ----- VersionRange parsing ------------------------------------------ */
+
+    @Test fun `VersionRange parses single less-than constraint`() {
+        val r = VersionRange.parse("< 42.7.2")
+        assertTrue(r.contains("42.7.0"))
+        assertTrue(r.contains("42.7.1"))
+        assertEquals(false, r.contains("42.7.2"))
+        assertEquals(false, r.contains("42.7.3"))
+    }
+
+    @Test fun `VersionRange parses composite range`() {
+        val r = VersionRange.parse(">= 42.7.4, < 42.7.7")
+        assertEquals(false, r.contains("42.7.3"))
+        assertTrue(r.contains("42.7.4"))
+        assertTrue(r.contains("42.7.5"))
+        assertTrue(r.contains("42.7.6"))
+        assertEquals(false, r.contains("42.7.7"))
+    }
+
+    @Test fun `VersionRange accepts no-space syntax`() {
+        // GHSA sometimes emits `>42.2.0` with no space — observed in real data.
+        val r = VersionRange.parse(">42.2.0")
+        assertTrue(r.contains("42.7.10"))
+        assertEquals(false, r.contains("42.2.0"))
+    }
+
+    @Test fun `VersionRange treats empty input as matches-nothing`() {
+        val r = VersionRange.parse("")
+        assertEquals(false, r.contains("42.7.5"))
+    }
+
+    /* ----- SecurityAdvisoryFetcher.parse --------------------------------- */
+
+    @Test fun `parse handles the single-array GHSA response shape`() {
+        val json = """
+            [
+              {
+                "cve_id": "CVE-2026-42198",
+                "ghsa_id": "GHSA-98qh-xjc8-98pq",
+                "severity": "high",
+                "vulnerabilities": [
+                  {
+                    "vulnerable_version_range": "< 42.7.11",
+                    "patched_versions": "42.7.11"
+                  }
+                ]
+              }
+            ]
+        """.trimIndent()
+        val advisories = SecurityAdvisoryFetcher.parse(json)
+        assertEquals(1, advisories.size)
+        val a = advisories.single()
+        assertEquals("CVE-2026-42198", a.cveId)
+        assertEquals("GHSA-98qh-xjc8-98pq", a.ghsaId)
+        assertEquals(1, a.vulnerabilities.size)
+        assertEquals("42.7.11", a.vulnerabilities.single().patchedVersion)
+        assertTrue(a.vulnerabilities.single().vulnerableRange.contains("42.7.10"))
+    }
+
+    @Test fun `parse joins paginated arrays emitted back-to-back by gh --paginate`() {
+        // `gh api --paginate` concatenates page JSON arrays without an outer wrapper.
+        val json = """
+            [{"cve_id": "CVE-A", "ghsa_id": "GHSA-A", "severity": "low",
+              "vulnerabilities": [{"vulnerable_version_range": "< 1.0.0", "patched_versions": "1.0.0"}]}]
+            [{"cve_id": "CVE-B", "ghsa_id": "GHSA-B", "severity": "high",
+              "vulnerabilities": [{"vulnerable_version_range": "< 2.0.0", "patched_versions": "2.0.0"}]}]
+        """.trimIndent()
+        val advisories = SecurityAdvisoryFetcher.parse(json)
+        assertEquals(listOf("CVE-A", "CVE-B"), advisories.map { it.cveId })
+    }
+
+    @Test fun `parse picks the first patched_versions entry when comma-separated`() {
+        // CVE-2024-1597's entries list two patches per branch, e.g. "42.2.28, 42.2.28.jre7".
+        val json = """
+            [{"cve_id": "CVE-2024-1597", "ghsa_id": "GHSA-24rp-q3w6-vc56", "severity": "critical",
+              "vulnerabilities": [
+                {"vulnerable_version_range": "< 42.2.28", "patched_versions": "42.2.28, 42.2.28.jre7"}
+              ]}]
+        """.trimIndent()
+        val a = SecurityAdvisoryFetcher.parse(json).single()
+        assertEquals("42.2.28", a.vulnerabilities.single().patchedVersion)
+    }
+
+    @Test fun `parse tolerates empty input`() {
+        assertEquals(emptyList<SecurityAdvisory>(), SecurityAdvisoryFetcher.parse(""))
+    }
+
+    @Test fun `parse extracts CVSS score from cvss-dot-score`() {
+        // Real GHSA payload has `cvss: { score: 7.5, vector_string: "..." }`.
+        val json = """
+            [{"cve_id": "CVE-X", "ghsa_id": "GHSA-X", "severity": "high",
+              "cvss": {"score": 7.5, "vector_string": "CVSS:3.1/AV:N/..."},
+              "vulnerabilities": [{"vulnerable_version_range": "< 1.0.0", "patched_versions": "1.0.0"}]}]
+        """.trimIndent()
+        assertEquals("7.5", SecurityAdvisoryFetcher.parse(json).single().cvssScore)
+    }
+
+    @Test fun `parse formats whole-number CVSS without a trailing zero`() {
+        // CVSS 9.0 and 7.0 happen — render as "9" / "7", not "9.0" / "7.0".
+        val json = """
+            [{"cve_id": "CVE-X", "ghsa_id": "GHSA-X", "severity": "high",
+              "cvss": {"score": 9.0, "vector_string": ""},
+              "vulnerabilities": []}]
+        """.trimIndent()
+        assertEquals("9", SecurityAdvisoryFetcher.parse(json).single().cvssScore)
+    }
+
+    @Test fun `parse leaves CVSS empty when the advisory carries no cvss block`() {
+        // Older advisories were sometimes published without a CVSS rating.
+        val json = """
+            [{"cve_id": "CVE-X", "ghsa_id": "GHSA-X", "severity": "high",
+              "vulnerabilities": [{"vulnerable_version_range": "< 1.0.0", "patched_versions": "1.0.0"}]}]
+        """.trimIndent()
+        assertEquals("", SecurityAdvisoryFetcher.parse(json).single().cvssScore)
+    }
+
     @Test fun `classifier row inherits parent line status`() {
         val facts = GitFacts(
             branchIds = listOf("42.2.x"),

@@ -33,8 +33,6 @@ class OverlayLoaderTest {
               - {pgjdbc: 42.0.0, postgresql: 8.4}
             classifiers:
               - {id: jre7, branch: 42.2.x, last_version: 42.2.29, min_java: 7}
-            security_releases:
-              - 42.7.4
             tested_java:
               42.7.x: [8, 11, 17]
             tested_postgresql:
@@ -55,7 +53,6 @@ class OverlayLoaderTest {
             listOf(Classifier("jre7", "42.2.x", "42.2.29", "7")),
             overlay.classifiers,
         )
-        assertEquals(listOf("42.7.4"), overlay.securityReleases)
         assertEquals(mapOf("42.7.x" to listOf("8", "11", "17")), overlay.testedJava)
         assertEquals(
             mapOf("42.7.x" to listOf("9.1", "10", "11", "12", "13")),

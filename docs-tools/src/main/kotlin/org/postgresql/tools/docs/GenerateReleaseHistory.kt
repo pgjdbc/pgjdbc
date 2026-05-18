@@ -102,7 +102,6 @@ internal data class Overlay(
     val minJava: List<Breakpoint> = emptyList(),
     val minPostgresql: List<Breakpoint> = emptyList(),
     val classifiers: List<Classifier> = emptyList(),
-    val securityReleases: List<String> = emptyList(),
     val testedJava: Map<String, List<String>> = emptyMap(),
     val testedPostgresql: Map<String, List<String>> = emptyMap(),
     val branchNotes: Map<String, String> = emptyMap(),
@@ -118,6 +117,28 @@ internal data class Row(
     val notes: String = "",
 )
 
+/** One published GHSA, possibly with multiple branch-specific fixes. */
+internal data class SecurityAdvisory(
+    /** CVE-XXXX-XXXX, or empty string for advisories without an assigned CVE. */
+    val cveId: String,
+    /** GHSA-xxxx-xxxx-xxxx — used as fallback display when cveId is empty. */
+    val ghsaId: String,
+    val severity: String,
+    /** CVSS v3 base score (0.0..10.0), formatted as the GHSA payload
+     *  delivers it (e.g. "9.8"). Empty string when the advisory has no
+     *  CVSS attached. */
+    val cvssScore: String,
+    val vulnerabilities: List<VulnerabilityEntry>,
+)
+
+/** One affected-range + fix entry within an advisory (one per release branch). */
+internal data class VulnerabilityEntry(
+    val vulnerableRange: VersionRange,
+    /** First version listed in `patched_versions`, e.g. "42.7.2". May be empty
+     *  for advisories with no fix yet (state=published but unresolved). */
+    val patchedVersion: String,
+)
+
 internal data class Segment(
     val firstVersion: String,
     val lastVersion: String,
@@ -129,7 +150,7 @@ internal data class Segment(
 
 /* ===== Git scan ======================================================== */
 
-private fun collectGitFacts(projectRoot: Path): GitFacts =
+internal fun collectGitFacts(projectRoot: Path): GitFacts =
     Git.open(projectRoot.toFile()).use { scanRefs(it.repository) }
 
 private fun scanRefs(repo: Repository): GitFacts {
@@ -177,7 +198,11 @@ private fun formatCommitDate(epochSecond: Int): String =
 
 /* ===== Row building =================================================== */
 
-internal fun buildRows(facts: GitFacts, overlay: Overlay, today: LocalDate): List<Row> {
+internal fun buildRows(
+    facts: GitFacts,
+    overlay: Overlay,
+    today: LocalDate,
+): List<Row> {
     val jBp = overlay.minJava.sortedBy { versionKey(it.pgjdbc) }
     val pgBp = overlay.minPostgresql.sortedBy { versionKey(it.pgjdbc) }
     val classifiersByBranch = overlay.classifiers.groupBy { it.branch }
@@ -355,7 +380,6 @@ internal object OverlayLoader {
                     minJava = it["min_java"].toString(),
                 )
             },
-            securityReleases = (root["security_releases"] as? List<Any?>).orEmpty().map { it.toString() },
             testedJava = (root["tested_java"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> toStringList(v) },
             testedPostgresql = (root["tested_postgresql"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> toStringList(v) },
             branchNotes = (root["branch_notes"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> v.toString() },
@@ -364,6 +388,137 @@ internal object OverlayLoader {
 
     private fun toStringList(raw: Any?): List<String> =
         (raw as? List<*>)?.map { it.toString() }.orEmpty()
+}
+
+/* ===== Version range (subset of GHSA range syntax) ===================== */
+
+/**
+ * Predicate over pgjdbc version strings, derived from GHSA's
+ * `vulnerable_version_range` syntax: a comma-separated list of
+ * constraints (`<`, `<=`, `>`, `>=`) AND'd together.
+ *
+ * The "exact equality" form (`= X` or bare `X`) is not currently emitted
+ * by pgjdbc advisories and is not supported. An empty range matches
+ * nothing (safer than matching everything if GHSA ever returns empty).
+ */
+internal class VersionRange private constructor(
+    private val constraints: List<Constraint>,
+) {
+    fun contains(version: String): Boolean {
+        if (constraints.isEmpty()) return false
+        val k = versionKey(version)
+        return constraints.all { it.matches(k) }
+    }
+
+    internal data class Constraint(val op: String, val versionKey: Long) {
+        fun matches(target: Long): Boolean = when (op) {
+            "<" -> target < versionKey
+            "<=" -> target <= versionKey
+            ">" -> target > versionKey
+            ">=" -> target >= versionKey
+            else -> false
+        }
+    }
+
+    companion object {
+        /** Recognises `<`, `<=`, `>`, `>=` followed by a version, optionally separated by whitespace. */
+        private val CONSTRAINT = Regex("""\s*(<=|>=|<|>)\s*([0-9A-Za-z.\-]+)\s*""")
+
+        fun parse(raw: String): VersionRange {
+            if (raw.isBlank()) return VersionRange(emptyList())
+            val parts = mutableListOf<Constraint>()
+            for (chunk in raw.split(',')) {
+                val m = CONSTRAINT.matchEntire(chunk) ?: continue
+                parts += Constraint(m.groupValues[1], versionKey(m.groupValues[2]))
+            }
+            return VersionRange(parts)
+        }
+    }
+}
+
+/* ===== Security advisory fetcher ======================================= */
+
+/**
+ * Lists published security advisories of a GitHub repo by shelling out to
+ * `gh api`. The fetcher is best-effort: if `gh` is missing or the call
+ * fails (offline, rate-limited, unauthenticated for a private repo), it
+ * logs a warning and returns an empty list.
+ *
+ * Currently unused by the matrix generator — the compatibility page
+ * deliberately does NOT surface per-segment CVE info because a single
+ * `version_range` row mixes vulnerable and patched releases, which reads
+ * misleadingly. Kept here (with [VersionRange] and [SecurityAdvisory]
+ * for parsing the GHSA payload) as the building block for a future
+ * dedicated `/security/` page that lists each advisory with its full
+ * affected/patched range, rather than crammed into a Notes cell.
+ */
+internal object SecurityAdvisoryFetcher {
+
+    fun fetch(repo: String): List<SecurityAdvisory> {
+        val raw = invokeGh(repo) ?: return emptyList()
+        return parse(raw)
+    }
+
+    private fun invokeGh(repo: String): String? {
+        return try {
+            val proc = ProcessBuilder(
+                "gh", "api", "--paginate",
+                "repos/$repo/security-advisories?state=published&per_page=100",
+            ).redirectErrorStream(false).start()
+            val out = proc.inputStream.bufferedReader(StandardCharsets.UTF_8).readText()
+            val err = proc.errorStream.bufferedReader(StandardCharsets.UTF_8).readText()
+            val exit = proc.waitFor()
+            if (exit != 0) {
+                System.err.println("gh api exited with $exit; CVE column will be empty. stderr: ${err.trim()}")
+                null
+            } else out
+        } catch (e: Exception) {
+            System.err.println("Could not invoke gh CLI (${e.javaClass.simpleName}: ${e.message}); CVE column will be empty.")
+            null
+        }
+    }
+
+    /**
+     * GHSA pagination concatenates several JSON arrays — `gh --paginate`
+     * emits them back-to-back like `[...][...]`. Split on the boundary,
+     * parse each independently, flatten.
+     */
+    @Suppress("UNCHECKED_CAST")
+    internal fun parse(raw: String): List<SecurityAdvisory> {
+        // Replace `][` page-boundary marker with `,` so the whole stream
+        // parses as a single JSON array; tolerates whitespace between pages.
+        val joined = raw.replace(Regex("""]\s*\["""), ",")
+        val parsed = Yaml().load<Any?>(joined) as? List<Map<String, Any?>> ?: return emptyList()
+        return parsed.map { adv ->
+            val cveId = (adv["cve_id"] as? String).orEmpty()
+            val ghsaId = (adv["ghsa_id"] as? String).orEmpty()
+            val severity = (adv["severity"] as? String).orEmpty()
+            // `cvss.score` is a Number in the JSON; toString turns Double `9.8`
+            // into "9.8" without trailing zeros. CVSS v4 lives under
+            // cvss_severities.cvss_v4.score but most advisories only fill v3,
+            // so we stick to the canonical top-level `cvss.score` field.
+            val cvssScore = ((adv["cvss"] as? Map<String, Any?>)?.get("score") as? Number)
+                ?.let(::formatCvss)
+                .orEmpty()
+            val vulns = (adv["vulnerabilities"] as? List<Map<String, Any?>>).orEmpty().map { v ->
+                val range = VersionRange.parse((v["vulnerable_version_range"] as? String).orEmpty())
+                val patched = (v["patched_versions"] as? String)
+                    .orEmpty()
+                    .split(',')
+                    .map { it.trim() }
+                    .firstOrNull { it.isNotEmpty() }
+                    .orEmpty()
+                VulnerabilityEntry(range, patched)
+            }
+            SecurityAdvisory(cveId, ghsaId, severity, cvssScore, vulns)
+        }
+    }
+
+    /** Strip a trailing ".0" so a whole-number CVSS reads as "9", "7" etc. */
+    internal fun formatCvss(n: Number): String {
+        val s = n.toDouble().toString()
+        return if (s.endsWith(".0")) s.dropLast(2) else s
+    }
 }
 
 /* ===== YAML emitter (snakeyaml) ======================================= */

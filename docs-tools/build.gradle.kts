@@ -182,6 +182,43 @@ val generateReleaseHistory by tasks.registering(JavaExec::class) {
     errorOutput = System.err
 }
 
+// ===== fetchKnownCves ====================================================
+//
+// Cross-references local git tags with `gh api repos/<repo>/security-advisories`
+// and emits docs/data/known-cves.yaml, keyed by pgjdbc version. The
+// `layouts/changelogs/single.html` Hugo template looks up the current
+// page's `version` in that data file and renders a "known CVEs" banner
+// at the top of the changelog body when any apply.
+//
+// Network-dependent (calls `gh`). The fetcher is best-effort and degrades
+// to an empty advisory list on offline / unauthenticated / rate-limited
+// runs, so the build does not break — the banner just won't appear for
+// affected versions until the file is regenerated.
+val knownCvesYaml =
+    isolated.rootProject.projectDirectory.dir("docs/data")
+        .file("known-cves.yaml")
+
+val fetchKnownCves by tasks.registering(JavaExec::class) {
+    group = "documentation"
+    description = "Generate docs/data/known-cves.yaml: per-version known " +
+        "CVE list cross-referenced against GitHub Security Advisories."
+
+    mainClass.set("org.postgresql.tools.docs.FetchKnownCves")
+    classpath = sourceSets.main.get().runtimeClasspath
+    dependsOn(tasks.named("classes"))
+    dependsOn(tasks.named("processJandexIndex"))
+
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf(projectRoot.absolutePath, knownCvesYaml.asFile.absolutePath)
+    })
+
+    outputs.file(knownCvesYaml).withPropertyName("knownCvesYaml")
+    outputs.upToDateWhen { false }
+
+    standardOutput = System.out
+    errorOutput = System.err
+}
+
 // ----- Hugo wrappers -------------------------------------------------------
 //
 // docsBuild  — strict production build: regenerate connection-properties.yaml
@@ -223,6 +260,7 @@ val docsBuild by tasks.registering(Exec::class) {
         "docs/public."
     dependsOn(generateProperties)
     dependsOn(generateReleaseHistory)
+    dependsOn(fetchKnownCves)
     workingDir = docsDir
     commandLine("hugo", "--gc", "--minify")
     ensureHugoOnPath()
@@ -235,6 +273,7 @@ val docsServe by tasks.registering(Exec::class) {
         "release-history.yaml regenerated from git refs)."
     dependsOn(generatePropertiesPartial)
     dependsOn(generateReleaseHistory)
+    dependsOn(fetchKnownCves)
     workingDir = docsDir
 
     // -PdocsPort=NNNN overrides the default 1313.

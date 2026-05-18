@@ -1,0 +1,84 @@
+/* known-cves: two-variant banner at the top of /changelogs/<release>/
+   pages (see `:docs-tools:fetchKnownCves`).
+     --fixes    — green, "this release patched X CVE(s)"
+     --affected — red, "this release is still vulnerable to X CVE(s)"
+   Visual register matches `.callout`. A release can show both banners,
+   one above the other (e.g. 42.7.7 fixes CVE-A while still affected by
+   the not-yet-patched CVE-B). */
+
+.known-cves {
+  --known-cves-bg:     var(--clr-danger-100);
+  --known-cves-border: var(--clr-danger-300);
+  --known-cves-title:  var(--clr-danger-300);
+
+  margin-block: var(--space-m);
+  padding: var(--space-s) var(--space-m);
+
+  background: var(--known-cves-bg);
+  border-inline-start: 4px solid var(--known-cves-border);
+  border-radius: var(--radius-s);
+  color: var(--clr-neutral-700);
+
+  &--fixes {
+    --known-cves-bg:     var(--clr-success-100);
+    --known-cves-border: var(--clr-success-300);
+    --known-cves-title:  var(--clr-success-300);
+  }
+
+  &__title {
+    color: var(--known-cves-title);
+    margin-block-end: var(--space-3xs);
+  }
+
+  &__list {
+    margin: 0;
+    padding-inline-start: var(--space-m);
+
+    > li + li { margin-block-start: var(--space-3xs); }
+  }
+
+  /* Severity pills. Matched against the `severity` field of the GHSA
+     payload (critical / high / medium / low). Unknown values fall back
+     to the medium look so we never render an unstyled bare span. */
+  &__sev {
+    display: inline-block;
+    margin-inline: var(--space-3xs);
+    padding-inline: var(--space-2xs);
+    border-radius: var(--radius-xs);
+    font-size: 0.78em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--clr-warning-200);
+    color: var(--clr-neutral-700);
+
+    &--critical {
+      background: var(--clr-danger-300);
+      color: var(--clr-neutral-100);
+    }
+
+    &--high {
+      background: var(--clr-warning-300);
+      color: var(--clr-neutral-100);
+    }
+
+    &--low {
+      background: var(--clr-neutral-200);
+    }
+  }
+
+  /* EPSS placeholder. Until the JS in static/js/known-cves-epss.js fills
+     it in, the text reads "EPSS …" — a thin loading indicator. Monospace
+     keeps the score column visually aligned across rows. On rows with
+     unqueryable ids (GHSA-only, no CVE) the JS hides the span entirely.
+     `cursor: help` and a dotted underline hint at the title= tooltip
+     that explains the metric. */
+  &__epss {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.9em;
+    color: var(--clr-neutral-500);
+    cursor: help;
+    text-decoration: underline dotted var(--clr-neutral-300);
+    text-underline-offset: 0.2em;
+  }
+}

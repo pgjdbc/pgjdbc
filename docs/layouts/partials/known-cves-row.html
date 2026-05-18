@@ -1,0 +1,37 @@
+{{/*
+  One <li> row inside a known-cves banner (fixes or affected_by).
+
+  Receives a single entry from data/known-cves.yaml:
+    .id            display id (CVE-XXXX-YYYY or GHSA-…)
+    .ghsa          GHSA-…, used to build the global advisory URL
+    .severity      pill color: critical / high / medium / low
+    .cvss_score    "9.8" etc.; empty when GHSA carries no CVSS
+    .fixed_in      branch-specific fix version (empty in `fixes` rows
+                   — the page IS the fix — and in "no fix on this line"
+                   cross-line entries)
+    .advisory_url  project-specific advisory page on this repo
+
+  Click targets:
+    CVE-id   → project advisory (this repo's `/security/advisories/…`),
+               for the discussion thread and project-specific patch commits.
+    fixed in → that version's /changelogs/<release>/ page when one exists
+               in the Hugo site (every tagged release has one).
+  EPSS itself is not a link — it would duplicate the CVE-id destination
+  (the GitHub global advisory page is the only public surface that
+  renders the live score, and the project advisory's "Identifiers"
+  section already cross-links there). The interpretation hint lives in
+  the `title=` tooltip instead.
+*/}}
+<a href="{{ .advisory_url }}"><code>{{ .id }}</code></a>
+<span class="known-cves__sev known-cves__sev--{{ .severity }}">{{ .severity }}</span>
+{{- with .cvss_score }} &middot; CVSS {{ . }}{{ end }}
+&middot; <span class="known-cves__epss"
+        data-epss-cve="{{ .id }}"
+        title="EPSS = probability this CVE will be exploited in the next 30 days (live data from FIRST.org). Percentile is the rank among all scored CVEs; ≥88th is the standard prioritisation threshold.">EPSS &hellip;</span>
+{{- with .fixed_in }}
+  &mdash; fixed in
+  {{- $version := . }}
+  {{- range first 1 (where site.Pages "Params.version" $version) }} <a href="{{ .Permalink }}"><code>{{ $version }}</code></a>
+  {{- else }} <code>{{ $version }}</code>
+  {{- end }}
+{{- end }}
