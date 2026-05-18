@@ -823,6 +823,9 @@ public class PGStream implements Closeable, Flushable {
   }
 
   public int getNetworkTimeout() throws IOException {
+    if (connection.isClosed()) {
+      return 0;
+    }
     return connection.getSoTimeout();
   }
 
