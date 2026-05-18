@@ -64,6 +64,7 @@ class PipelineResponseReader {
    * If {@link #readAvailableResponses} was previously called with the same slot list,
    * this resumes from where it left off. Otherwise starts fresh.
    */
+  @SuppressWarnings("ReferenceEquality") // intentional identity check — same list object means resume
   void readResponses(List<ResponseSlot> slots) throws SQLException {
     if (this.slots != slots) {
       begin(slots);
