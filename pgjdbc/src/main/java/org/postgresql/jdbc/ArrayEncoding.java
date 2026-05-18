@@ -436,9 +436,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<long[]> LONG_ARRAY = new FixedSizePrimitiveArrayEncoder<long[]>(8, Oid.INT8,
       Oid.INT8_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, long[] array) {
       sb.append('{');
@@ -451,9 +448,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(long[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -477,9 +471,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<int[]> INT_ARRAY = new FixedSizePrimitiveArrayEncoder<int[]>(4, Oid.INT4,
       Oid.INT4_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, int[] array) {
       sb.append('{');
@@ -492,9 +483,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(int[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -518,9 +506,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<short[]> SHORT_ARRAY = new FixedSizePrimitiveArrayEncoder<short[]>(2,
       Oid.INT2, Oid.INT2_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, short[] array) {
       sb.append('{');
@@ -533,9 +518,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(short[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -550,9 +532,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<Short[]> SHORT_OBJ_ARRAY = new NumberArrayEncoder<Short>(2, Oid.INT2,
       Oid.INT2_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(Short number, byte[] bytes, int offset) {
       ByteConverter.int2(bytes, offset, number.shortValue());
@@ -562,9 +541,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<double[]> DOUBLE_ARRAY = new FixedSizePrimitiveArrayEncoder<double[]>(8,
       Oid.FLOAT8, Oid.FLOAT8_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, double[] array) {
       sb.append('{');
@@ -580,9 +556,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(double[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -597,9 +570,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<Double[]> DOUBLE_OBJ_ARRAY = new NumberArrayEncoder<Double>(8, Oid.FLOAT8,
       Oid.FLOAT8_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(Double number, byte[] bytes, int offset) {
       ByteConverter.float8(bytes, offset, number.doubleValue());
@@ -609,9 +579,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<float[]> FLOAT_ARRAY = new FixedSizePrimitiveArrayEncoder<float[]>(4,
       Oid.FLOAT4, Oid.FLOAT4_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, float[] array) {
       sb.append('{');
@@ -627,9 +594,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(float[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -644,9 +608,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<Float[]> FLOAT_OBJ_ARRAY = new NumberArrayEncoder<Float>(4, Oid.FLOAT4,
       Oid.FLOAT4_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(Float number, byte[] bytes, int offset) {
       ByteConverter.float4(bytes, offset, number.floatValue());
@@ -656,9 +617,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<boolean[]> BOOLEAN_ARRAY = new FixedSizePrimitiveArrayEncoder<boolean[]>(1,
       Oid.BOOL, Oid.BOOL_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, boolean[] array) {
       sb.append('{');
@@ -671,9 +629,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void write(boolean[] array, byte[] bytes, int offset) {
       int idx = offset;
@@ -688,9 +643,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<Boolean[]> BOOLEAN_OBJ_ARRAY = new AbstractArrayEncoder<Boolean[]>(Oid.BOOL,
       Oid.BOOL_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public byte[] toBinaryRepresentation(BaseConnection connection, Boolean[] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
@@ -738,9 +690,6 @@ final class ArrayEncoding {
       ByteConverter.bool(bytes, idx, bool.booleanValue());
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, Boolean[] array)
         throws SQLException, SQLFeatureNotSupportedException {
@@ -748,9 +697,6 @@ final class ArrayEncoding {
       return writeBytes(array, nullCount, 0);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, Boolean[] array) {
       sb.append('{');
@@ -771,9 +717,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<String[]> STRING_ARRAY = new AbstractArrayEncoder<String[]>(Oid.VARCHAR,
       Oid.VARCHAR_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     int countNulls(String[] array) {
       int count = 0;
@@ -785,17 +728,11 @@ final class ArrayEncoding {
       return count;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean supportBinaryRepresentation(int oid) {
       return oid == Oid.VARCHAR_ARRAY || oid == Oid.TEXT_ARRAY;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     int getTypeOID(int arrayOid) {
       if (arrayOid == Oid.VARCHAR_ARRAY) {
@@ -811,9 +748,6 @@ final class ArrayEncoding {
       throw new IllegalStateException("Invalid array oid: " + arrayOid);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, String[] array) {
       sb.append('{');
@@ -830,9 +764,6 @@ final class ArrayEncoding {
       sb.append('}');
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public byte[] toBinaryRepresentation(BaseConnection connection, String[] array, int oid) throws SQLException {
       final ByteArrayOutputStream baos = new ByteArrayOutputStream(Math.min(1024, (array.length * 32) + 20));
@@ -887,9 +818,6 @@ final class ArrayEncoding {
       }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, String[] array)
         throws SQLException, SQLFeatureNotSupportedException {
@@ -928,9 +856,6 @@ final class ArrayEncoding {
   private static final AbstractArrayEncoder<byte[][]> BYTEA_ARRAY = new AbstractArrayEncoder<byte[][]>(Oid.BYTEA,
       Oid.BYTEA_ARRAY) {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public byte[] toBinaryRepresentation(BaseConnection connection, byte[][] array, int oid)
         throws SQLException, SQLFeatureNotSupportedException {
@@ -962,9 +887,6 @@ final class ArrayEncoding {
       return bytes;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     byte[] toSingleDimensionBinaryRepresentation(BaseConnection connection, byte[][] array)
         throws SQLException, SQLFeatureNotSupportedException {
@@ -981,9 +903,6 @@ final class ArrayEncoding {
       return bytes;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     int countNulls(byte[][] array) {
       int nulls = 0;
@@ -1010,9 +929,6 @@ final class ArrayEncoding {
       }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void appendArray(StringBuilder sb, char delim, byte[][] array) {
       sb.append('{');
@@ -1040,9 +956,6 @@ final class ArrayEncoding {
       return 0;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean supportBinaryRepresentation(int oid) {
       return false;

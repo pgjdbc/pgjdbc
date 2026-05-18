@@ -666,7 +666,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
    *
    * @return true
    *
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean supportsIntegrityEnhancementFacility() throws SQLException {
