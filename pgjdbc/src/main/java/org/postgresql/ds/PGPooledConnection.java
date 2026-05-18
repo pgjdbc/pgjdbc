@@ -141,22 +141,20 @@ public class PGPooledConnection implements PooledConnection {
       ConnectionHandler last = this.last;
       if (last != null) {
         last.close();
-        if (con != null) {
-          if (!con.getAutoCommit()) {
-            try {
-              con.rollback();
-            } catch (SQLException ignored) {
-              // TODO: should we rethrow it?
-            }
+        if (!con.getAutoCommit()) {
+          try {
+            con.rollback();
+          } catch (SQLException ignored) {
+            // TODO: should we rethrow it?
           }
-          con.clearWarnings();
         }
+        con.clearWarnings();
       }
       /*
        * In XA-mode, autocommit is handled in PGXAConnection, because it depends on whether an
        * XA-transaction is open or not
        */
-      if (!isXA && con != null) {
+      if (!isXA) {
         con.setAutoCommit(autoCommit);
       }
     } catch (SQLException sqlException) {

@@ -737,7 +737,7 @@ public class PgConnection implements BaseConnection {
    *
    * @return PGobject for this type, and set to value
    *
-   * @exception SQLException if value is not correct for this type
+   * @throws SQLException if value is not correct for this type
    */
   @Override
   public Object getObject(String type, @Nullable String value, byte @Nullable [] byteValue)

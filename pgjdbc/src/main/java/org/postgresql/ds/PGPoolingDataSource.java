@@ -440,7 +440,7 @@ public class PGPoolingDataSource extends BaseDataSource implements DataSource {
       }
     }
 
-    /**
+    /*
      * This is only called for fatal errors, where the physical connection is useless afterward and
      * should be removed from the pool.
      */

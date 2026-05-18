@@ -58,7 +58,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return true if so
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isAutoIncrement(int column) throws SQLException {
@@ -76,7 +76,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return true if so
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
@@ -94,7 +94,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return true if they can be used in a WHERE clause
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isSearchable(int column) throws SQLException {
@@ -109,7 +109,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return true if its a cash column
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isCurrency(int column) throws SQLException {
@@ -134,7 +134,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return true if so
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isSigned(int column) throws SQLException {
@@ -329,7 +329,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2...
    * @return catalog name, or "" if not applicable
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public String getCatalogName(int column) throws SQLException {
@@ -371,7 +371,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2, etc.*
    * @return true if so*
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isReadOnly(int column) throws SQLException {
@@ -387,7 +387,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2, etc.
    * @return true if so
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isWritable(int column) throws SQLException {
@@ -403,7 +403,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param column the first column is 1, the second is 2, etc..
    * @return true if so
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public boolean isDefinitelyWritable(int column) throws SQLException {
@@ -420,7 +420,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
    *
    * @param columnIndex the first column is 1, the second is 2...
    * @return the Field description
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   protected Field getField(int columnIndex) throws SQLException {
     if (columnIndex < 1 || columnIndex > fields.length) {

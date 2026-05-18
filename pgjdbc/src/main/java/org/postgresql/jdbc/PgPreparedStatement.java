@@ -132,7 +132,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
    *
    * @return a ResultSet that contains the data produced by the * query - never null
    *
-   * @exception SQLException if a database access error occurs
+   * @throws SQLException if a database access error occurs
    */
   @Override
   public ResultSet executeQuery() throws SQLException {
