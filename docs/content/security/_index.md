@@ -2,6 +2,8 @@
 title: "Security"
 date: 2024-02-21T11:58:00-05:00
 draft: false
+aliases:
+  - /changelogs/2021-12-22-log4j/
 ---
 
 This page is the driver's release-disclosure surface — PGP signing
@@ -168,3 +170,32 @@ DriverManager.getConnection("jdbc:postgresql://node1/test?socketFactory=org.spri
 ```
 
 The first impacted version is REL9.4.1208 (it introduced `socketFactory` connection property)
+
+## Third-party CVE status statements
+
+Public statements about high-profile vulnerabilities in adjacent
+libraries that the security community asked us to confirm the
+driver's exposure to. New entries are added when a CVE in the
+surrounding ecosystem prompts user questions; absence of an entry
+is not itself a statement.
+
+### CVE-2021-44228 (Log4Shell)
+
+#### Status
+
+pgJDBC is **not affected** by CVE-2021-44228 ("Log4Shell").
+
+#### Reason
+
+The driver has no runtime dependency on `log4j-core`. Its runtime
+dependency surface is intentionally minimal, and the
+JNDI-via-log-message attack path that Log4Shell opened in
+log4j&nbsp;2.x is not reachable through pgJDBC at any version.
+
+If your application bundles `log4j-core` for its own logging
+purposes, that exposure is yours to remediate; pgJDBC does not
+emit log records through log4j and cannot be used as a vector
+for the exploit even when log4j is present elsewhere on the
+classpath.
+
+Statement first published 2021-12-22 by the pgJDBC team.

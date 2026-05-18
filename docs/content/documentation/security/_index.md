@@ -28,3 +28,6 @@ documentation tree, on the site's top-level
 - [Known vulnerabilities](/security/#security-advisories) — the
   driver's CVE / GHSA history with impact, patched-in versions
   and workarounds.
+- [Third-party CVE status statements](/security/#third-party-cve-status-statements)
+  — public statements about high-profile CVEs in adjacent libraries
+  (e.g. Log4Shell) and whether pgJDBC is exposed.
