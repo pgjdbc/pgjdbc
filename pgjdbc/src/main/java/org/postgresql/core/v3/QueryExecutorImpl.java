@@ -481,6 +481,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
+      // Clear any stale entries from pipeline execution before synchronous processing
+      if (pipelineMode) {
+        clearPipelinePendingQueues();
+      }
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, "  simple execute, handler={0}, maxRows={1}, fetchSize={2}, flags={3}",
             new Object[]{handler, maxRows, fetchSize, flags});
