@@ -4,13 +4,16 @@
   components/_code-tabs.scss styling and static/js/code-tabs.js
   switching logic pick this up without modification.
 
-  The version string is read from the latest entry of
-  docs/data/homepagedata.toml[[info]]; that table is sorted by
-  release date descending, so index 0 is the current release.
-  When homepagedata.toml grows a dedicated `[release]` block in a
-  later commit, swap the lookup over to a named field.
+  The version string is the same "latest release" the release card
+  shows, read from /changelogs/*-release.md sorted reverse-
+  chronological. Single source of truth shared with release.html.
 */}}
-{{- $version := (index hugo.Data.homepagedata.info 0).version -}}
+{{- $version := "" -}}
+{{- range (where site.RegularPages "Section" "changelogs").ByDate.Reverse -}}
+  {{- if and (not $version) (findRE "^[0-9]" (.Params.version | default "")) -}}
+    {{- $version = .Params.version -}}
+  {{- end -}}
+{{- end -}}
 {{- $maven := printf `<dependency>
     <groupId>org.postgresql</groupId>
     <artifactId>postgresql</artifactId>
