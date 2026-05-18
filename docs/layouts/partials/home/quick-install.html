@@ -1,11 +1,18 @@
 {{/*
-  Quick install block. Reuses the `code-tabs` / `code-tabs__*` markup
-  the documentation shortcodes already emit, so the existing
-  components/_code-tabs.scss styling and static/js/code-tabs.js
-  switching logic pick this up without modification.
+  Quick install block — Maven + Gradle examples stacked rather
+  than tabbed. The previous tab UI hid two of three snippets
+  behind clicks; this layout shows both Maven and Gradle in one
+  scan. Only Kotlin DSL is shown for Gradle — the Groovy DSL
+  differs by `()` vs `''` quoting, which Groovy-DSL users adapt
+  trivially.
 
-  The version string is the same "latest release" the release card
-  shows, read from /changelogs/*-release.md sorted reverse-
+  Both blocks reuse the `code-tabs` markup (with a single tab
+  acting as the label) so the existing components/_code-tabs.scss
+  styling and static/js/code-tabs.js copy-button handling pick
+  this up unchanged.
+
+  The version string is the same "latest release" the release
+  card shows, read from /changelogs/*-release.md sorted reverse-
   chronological. Single source of truth shared with release.html.
 */}}
 {{- $version := "" -}}
@@ -20,26 +27,16 @@
     <version>%s</version>
 </dependency>` $version -}}
 {{- $gradleKotlin := printf `implementation("org.postgresql:postgresql:%s")` $version -}}
-{{- $gradleGroovy := printf `implementation 'org.postgresql:postgresql:%s'` $version -}}
 
 <section class="quick-install">
     <h2 class="quick-install__head">Add it to your build</h2>
-    <div class="code-tabs" data-code-tabs id="qi-ct">
+
+    <div class="code-tabs" data-code-tabs id="qi-maven">
         <ul class="code-tabs__list" role="tablist">
             <li class="code-tabs__tab" role="presentation">
                 <button class="code-tabs__btn" role="tab" type="button"
-                        aria-controls="qi-ct-panel-0" aria-selected="true"
+                        aria-controls="qi-maven-panel-0" aria-selected="true"
                         data-tab-target="0">Maven</button>
-            </li>
-            <li class="code-tabs__tab" role="presentation">
-                <button class="code-tabs__btn" role="tab" type="button"
-                        aria-controls="qi-ct-panel-1" aria-selected="false"
-                        data-tab-target="1">Gradle (Kotlin)</button>
-            </li>
-            <li class="code-tabs__tab" role="presentation">
-                <button class="code-tabs__btn" role="tab" type="button"
-                        aria-controls="qi-ct-panel-2" aria-selected="false"
-                        data-tab-target="2">Gradle (Groovy)</button>
             </li>
         </ul>
         <div class="code-tabs__panels">
@@ -47,14 +44,27 @@
                     aria-label="Copy snippet to clipboard">
                 <span class="code-tabs__copy-label">Copy</span>
             </button>
-            <div id="qi-ct-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
+            <div id="qi-maven-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
                 {{ transform.Highlight $maven "xml" "" }}
             </div>
-            <div id="qi-ct-panel-1" class="code-tabs__panel" role="tabpanel" data-active="false">
+        </div>
+    </div>
+
+    <div class="code-tabs" data-code-tabs id="qi-gradle">
+        <ul class="code-tabs__list" role="tablist">
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-gradle-panel-0" aria-selected="true"
+                        data-tab-target="0">Gradle</button>
+            </li>
+        </ul>
+        <div class="code-tabs__panels">
+            <button class="code-tabs__copy" type="button"
+                    aria-label="Copy snippet to clipboard">
+                <span class="code-tabs__copy-label">Copy</span>
+            </button>
+            <div id="qi-gradle-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
                 {{ transform.Highlight $gradleKotlin "kotlin" "" }}
-            </div>
-            <div id="qi-ct-panel-2" class="code-tabs__panel" role="tabpanel" data-active="false">
-                {{ transform.Highlight $gradleGroovy "groovy" "" }}
             </div>
         </div>
     </div>

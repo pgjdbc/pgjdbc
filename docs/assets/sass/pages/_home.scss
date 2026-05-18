@@ -187,13 +187,19 @@
         }
     }
 
+    /* Two stacked code-tabs blocks (Maven, Gradle). Override the
+       component's default `margin-block` so the spacing between
+       them is set here instead, keeping the heading-to-first-block
+       gap consistent with the between-blocks gap. */
     .code-tabs {
         margin-block: 0;
-        border: 0;
-        background: transparent;
 
         @include mq-max(medium) {
             margin-inline: auto;
+        }
+
+        + .code-tabs {
+            margin-block-start: var(--space-m);
         }
     }
 }
