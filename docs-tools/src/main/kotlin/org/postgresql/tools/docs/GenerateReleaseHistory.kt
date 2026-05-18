@@ -90,6 +90,13 @@ internal data class GitFacts(
 
 internal data class Breakpoint(val pgjdbc: String, val value: String)
 
+/** Sparse-breakpoint entry whose payload is a list of versions (rather than
+ *  a single scalar like [Breakpoint]). Used by `tested_java` /
+ *  `tested_postgresql` so the overlay does not need to repeat a matrix
+ *  that did not change from the previous breakpoint. Resolved with the
+ *  same "largest pgjdbc ≤ target" rule as [Breakpoint]. */
+internal data class TestedVersions(val pgjdbc: String, val values: List<String>)
+
 internal data class Classifier(
     val id: String,
     val branch: String,
@@ -102,8 +109,8 @@ internal data class Overlay(
     val minJava: List<Breakpoint> = emptyList(),
     val minPostgresql: List<Breakpoint> = emptyList(),
     val classifiers: List<Classifier> = emptyList(),
-    val testedJava: Map<String, List<String>> = emptyMap(),
-    val testedPostgresql: Map<String, List<String>> = emptyMap(),
+    val testedJava: List<TestedVersions> = emptyList(),
+    val testedPostgresql: List<TestedVersions> = emptyList(),
     val branchNotes: Map<String, String> = emptyMap(),
 )
 
@@ -205,6 +212,8 @@ internal fun buildRows(
 ): List<Row> {
     val jBp = overlay.minJava.sortedBy { versionKey(it.pgjdbc) }
     val pgBp = overlay.minPostgresql.sortedBy { versionKey(it.pgjdbc) }
+    val testedJBp = overlay.testedJava.sortedBy { versionKey(it.pgjdbc) }
+    val testedPgBp = overlay.testedPostgresql.sortedBy { versionKey(it.pgjdbc) }
     val classifiersByBranch = overlay.classifiers.groupBy { it.branch }
     val latestLine = facts.branchIds.firstOrNull().orEmpty()
 
@@ -253,24 +262,27 @@ internal fun buildRows(
                 minJava = seg.minJava,
                 minPostgresql = seg.minPg,
                 status = status,
-                notes = composeNotes(isCurrent, branchId, overlay),
+                notes = composeNotes(branchId, seg.lastVersion, testedJBp, testedPgBp, overlay),
             )
         }
 
-        // Classifier rows piggy-back on the parent line's status.
+        // Classifier rows piggy-back on the parent line's status and
+        // resolve `tested_*` at their full classifier-qualified label
+        // (e.g. "42.2.29.jre7"). An exact-match entry in `tested_java`
+        // wins as a per-classifier override; otherwise the entry falls
+        // back to the parent line's breakpoint.
         for (c in classifiersByBranch[branchId].orEmpty()) {
             val date = tags.firstOrNull { it.version == c.lastVersion }?.commitDate.orEmpty()
+            val classifierVersion = "${c.lastVersion}.${c.id}"
             branchRows += Row(
                 releaseLine = branchId,
-                versionRange = "${c.lastVersion}.${c.id}",
+                versionRange = classifierVersion,
                 released = date,
                 minJava = c.minJava,
                 minPostgresql = resolve(pgBp, c.lastVersion),
-                // No per-classifier note: the Java column ("6+" / "7+")
-                // and the version range column already convey that this
-                // row is the latest jreN build of the line.
                 status = if (today.isBefore(supportEnd)) "Security until $supportEndYm"
                 else "EOL since $supportEndYm",
+                notes = composeNotes(branchId, classifierVersion, testedJBp, testedPgBp, overlay),
             )
         }
 
@@ -283,20 +295,55 @@ internal fun buildRows(
     return out
 }
 
-private fun composeNotes(isCurrent: Boolean, branchId: String, overlay: Overlay): String {
+private fun composeNotes(
+    branchId: String,
+    segmentLastVersion: String,
+    testedJava: List<TestedVersions>,
+    testedPostgresql: List<TestedVersions>,
+    overlay: Overlay,
+): String {
     val fallback = overlay.branchNotes[branchId].orEmpty()
-    if (!isCurrent) return fallback
-    val jv = overlay.testedJava[branchId].orEmpty()
-    val pgv = overlay.testedPostgresql[branchId].orEmpty()
+    val jv = resolveTested(testedJava, segmentLastVersion)
+    val pgv = resolveTested(testedPostgresql, segmentLastVersion)
     if (jv.isEmpty() && pgv.isEmpty()) return fallback
     return "CI: Java ${jv.joinToString(", ")}; PostgreSQL ${collapsedPgList(pgv)}."
 }
 
+/** Sparse-breakpoint resolver for `tested_*` lists. Two layers:
+ *
+ *  1. Exact-string override — an entry whose `pgjdbc` matches `target`
+ *     verbatim wins outright. This is how classifier rows pick their own
+ *     CI matrix: `target` for `.jre7` resolves at `"42.2.29.jre7"`, which
+ *     matches an override entry with the same key.
+ *  2. Otherwise, breakpoint resolution (largest `pgjdbc` ≤ `target` by
+ *     [versionKey]) — same rule as [resolve]. Entries whose pgjdbc carries
+ *     a classifier suffix (`.jreN`) are skipped here: they are per-version
+ *     overrides, not line-wide breakpoints, and would otherwise shadow
+ *     adjacent segment rows (`versionKey` treats `"jre7"` as 0, so
+ *     `"42.2.29.jre7"` sorts identically to `"42.2.29"`).
+ *
+ *  Inputs MUST be pre-sorted by pgjdbc-ascending — see [buildRows]. */
+internal fun resolveTested(ascending: List<TestedVersions>, target: String): List<String> {
+    ascending.firstOrNull { it.pgjdbc == target }?.let { return it.values }
+    val targetKey = versionKey(target)
+    var resolved: List<String> = emptyList()
+    for (tv in ascending) {
+        if (CLASSIFIER_SUFFIX in tv.pgjdbc) continue
+        if (versionKey(tv.pgjdbc) <= targetKey) resolved = tv.values
+        else break
+    }
+    return resolved
+}
+
+private const val CLASSIFIER_SUFFIX = ".jre"
+
 /** Render PG list as "first–last" when it has at least five entries (the
  *  only realistic case is "every supported version in the modern Postgres
- *  line"); otherwise comma-separated. */
+ *  line"); otherwise comma-separated. The range separator is an en dash
+ *  (U+2013) so that entries carrying an ASCII-dash suffix (`13-head`,
+ *  `17-rc1`, …) stay readable. */
 private fun collapsedPgList(values: List<String>): String =
-    if (values.size >= 5) "${values.first()}-${values.last()}" else values.joinToString(", ")
+    if (values.size >= 5) "${values.first()}–${values.last()}" else values.joinToString(", ")
 
 /* ===== Segment computation ============================================ */
 
@@ -380,8 +427,12 @@ internal object OverlayLoader {
                     minJava = it["min_java"].toString(),
                 )
             },
-            testedJava = (root["tested_java"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> toStringList(v) },
-            testedPostgresql = (root["tested_postgresql"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> toStringList(v) },
+            testedJava = (root["tested_java"] as? List<Map<String, Any?>>).orEmpty().map {
+                TestedVersions(it["pgjdbc"].toString(), toStringList(it["java"]))
+            },
+            testedPostgresql = (root["tested_postgresql"] as? List<Map<String, Any?>>).orEmpty().map {
+                TestedVersions(it["pgjdbc"].toString(), toStringList(it["postgresql"]))
+            },
             branchNotes = (root["branch_notes"] as? Map<String, Any?>).orEmpty().mapValues { (_, v) -> v.toString() },
         )
     }

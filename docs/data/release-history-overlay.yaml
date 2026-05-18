@@ -53,33 +53,76 @@ classifiers:
     last_version: "42.2.29"
     min_java: 7
 
-# CI matrix as currently configured on the line's HEAD (or its latest
-# release for already-frozen lines). Reflects what the project tests
-# against — older Java / PostgreSQL versions may still load the JAR
-# but are not part of regression coverage.
+# CI matrix as configured on each release line's HEAD (or its latest
+# tagged release for already-frozen lines). Reflects what the project
+# tests against — older Java / PostgreSQL versions may still load the
+# JAR but are not part of regression coverage.
 #
-# Currently only the active 42.7.x line is populated. Other lines will
-# be filled in as their matrices are audited (or auto-extracted from
-# .github/workflows/matrix.mjs at each branch head — future work).
+# Sparse-breakpoint resolver (same semantics as `min_java` /
+# `min_postgresql`): for a given pgjdbc version, the chosen row is the
+# one with the LARGEST `pgjdbc` still ≤ the target. Add a new entry
+# only when the matrix actually changes — adjacent lines that ran the
+# same axes inherit from the earlier breakpoint.
+#
+# Each list reflects values directly extracted from the matrix
+# definition at the line's latest tag. Floating identifiers — the
+# Travis `HEAD` server build and the matrix's `eaJava` token — are
+# rewritten as `<concrete-number>-head` / `<concrete-number>-ea` so a
+# reader can tell at a glance which PG dev branch / which Java EA was
+# being tracked, while the leading number keeps the entries sortable.
+# Pre-release Postgres labels (e.g. matrix.js's `17beta3`, `17rc1`)
+# are collapsed to the eventual GA number, since the axis was tracking
+# the upcoming GA and got renamed to `17` once it shipped.
+#
+#   - 42.2.0  → REL42.2.29 .travis.yml. Java 6/7 are covered by the
+#               .jre6 / .jre7 classifier rows below and intentionally
+#               omitted from the main row. `PG_VERSION=HEAD` becomes
+#               `13-head` — PG 13 was on master through the bulk of
+#               42.2.x's Travis lifetime (2018–2020).
+#   - 42.3.0  → REL42.3.10 .github/workflows/omni.yml (JDK_OPTIONS +
+#               PG_VERSIONS arrays).
+#   - 42.4.0  → REL42.4.4 matrix.js. The 42.5.x and 42.6.x lines ran
+#               the identical axes; no separate breakpoint needed.
+#   - 42.7.0  → REL42.7.4 matrix.js. `eaJava` at that tag was 22, so
+#               the trailing Java entry is `22-ea`. The matrix's
+#               `17beta3` Postgres entry collapses to `17`.
+#   - 42.7.5  → REL42.7.11 matrix.mjs (covers REL42.7.5..REL42.7.11).
+#               `eaJava` drifted across patches (23→24→25→26); the
+#               trailing Java entry is `26-ea` as of the line's latest
+#               tag. The standalone `'25'` entry was added in
+#               REL42.7.9; recording it here keeps the row consistent
+#               with the line's final state.
+#
+# Entries whose `pgjdbc` carries a `.jreN` classifier suffix are
+# exact-match overrides for the matching classifier row — they win
+# outright when the classifier row resolves at its full label (e.g.
+# `42.2.29.jre7`) and are otherwise skipped, so they cannot shadow
+# adjacent segment rows.
 tested_java:
-  "42.7.x": ["8", "11", "17", "21", "25", "EA"]
+  - pgjdbc: "42.2.0"
+    java:   ["8", "11", "12", "14"]
+  - pgjdbc: "42.2.27.jre6"
+    java:   ["6", "8", "11", "12", "14"]
+  - pgjdbc: "42.2.29.jre7"
+    java:   ["7", "8", "11", "12", "14"]
+  - pgjdbc: "42.3.0"
+    java:   ["8", "11", "15"]
+  - pgjdbc: "42.4.0"
+    java:   ["8", "11", "17"]
+  - pgjdbc: "42.7.0"
+    java:   ["8", "11", "17", "21", "22-ea"]
+  - pgjdbc: "42.7.5"
+    java:   ["8", "11", "17", "21", "25", "26-ea"]
 
 tested_postgresql:
-  "42.7.x":
-    - "9.1"
-    - "9.2"
-    - "9.3"
-    - "9.4"
-    - "9.5"
-    - "9.6"
-    - "10"
-    - "11"
-    - "12"
-    - "13"
-    - "14"
-    - "15"
-    - "16"
-    - "17"
+  - pgjdbc: "42.2.0"
+    postgresql: ["8.4", "9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "10", "11", "13-head"]
+  - pgjdbc: "42.3.0"
+    postgresql: ["8.4", "9.0", "9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "10", "11", "12", "13"]
+  - pgjdbc: "42.4.0"
+    postgresql: ["8.4", "9.0", "9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "10", "11", "12", "13", "14"]
+  - pgjdbc: "42.7.0"
+    postgresql: ["9.1", "9.2", "9.3", "9.4", "9.5", "9.6", "10", "11", "12", "13", "14", "15", "16", "17"]
 
 # Per-branch one-liner shown in the Notes column when no other note
 # applies. Reserve this slot for caveats that the Java / PostgreSQL
