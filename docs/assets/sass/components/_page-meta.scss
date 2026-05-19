@@ -37,8 +37,6 @@
 
   &__edit a {
     color: var(--clr-primary-400);
-    text-decoration: none;
-
-    &:hover { text-decoration: underline; }
+    text-decoration: underline;
   }
 }

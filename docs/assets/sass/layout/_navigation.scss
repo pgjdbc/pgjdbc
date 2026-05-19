@@ -28,9 +28,8 @@
     // element on the page.
     &__link {
       color: var(--clr-indigo);
-      text-decoration: none;
+      text-decoration: underline;
       font-size: 1.05rem;
-      position: relative;
       font-weight: 500;
       margin-inline: var(--primary-spacing);
 
@@ -38,26 +37,8 @@
         color: var(--clr-primary-400);
       }
 
-      &::after {
-        content: '';
-        position: absolute;
-        width: 100%;
-        transform: scaleX(0);
-        height: 2px;
-        bottom: 0;
-        left: 0;
-        background-color: var(--clr-primary-100);
-        transform-origin: bottom right;
-        transition: transform 0.25s ease-out;
-      }
-
       &:hover {
         color: var(--clr-indigo);
-      }
-
-      &:hover::after {
-        transform: scaleX(1);
-        transform-origin: bottom left;
       }
     }
 
@@ -102,7 +83,7 @@
   }
 
   a {
-    text-decoration: none;
+    text-decoration: underline;
     color: var(--clr-white);
 
 

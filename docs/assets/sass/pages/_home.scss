@@ -140,9 +140,7 @@
 
             a {
                 color: var(--clr-primary-400);
-                text-decoration: none;
-
-                &:hover { text-decoration: underline; }
+                text-decoration: underline;
             }
 
             @include mq-max(medium) {
@@ -325,9 +323,7 @@
 
         a {
             color: var(--clr-primary-400);
-            text-decoration: none;
-
-            &:hover { text-decoration: underline; }
+            text-decoration: underline;
         }
 
         @include mq-max(medium) {
@@ -344,10 +340,8 @@
 
         a {
             color: var(--clr-primary-400);
-            text-decoration: none;
+            text-decoration: underline;
             font-weight: 500;
-
-            &:hover { text-decoration: underline; }
         }
 
         @include mq-max(medium) {
@@ -523,7 +517,6 @@
 
         &:hover strong,
         &:focus-visible strong {
-            text-decoration: underline;
             color: var(--clr-primary-400);
         }
 
@@ -543,6 +536,7 @@
             font-weight: 600;
             color: var(--clr-neutral-700);
             line-height: 1.3;
+            text-decoration: underline;
             transition: color 0.15s;
         }
 

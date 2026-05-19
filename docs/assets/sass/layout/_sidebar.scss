@@ -24,7 +24,7 @@
       display: block;
       color: var(--clr-indigo);
       font-weight: 700;
-      text-decoration: none;
+      text-decoration: underline;
       padding-block: var(--space-3xs);
 
       &:hover { color: var(--clr-primary-400); }
@@ -61,7 +61,7 @@
 
     &__link {
       color: var(--clr-indigo);
-      text-decoration: none;
+      text-decoration: underline;
 
       &:hover { color: var(--clr-primary-400); }
 

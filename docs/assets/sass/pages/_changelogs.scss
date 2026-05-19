@@ -34,13 +34,8 @@
         font-weight: 600;
         font-size: 0.95rem;
         color: var(--clr-primary-400);
-        text-decoration: none;
+        text-decoration: underline;
         white-space: nowrap;
-
-        &:hover,
-        &:focus-visible {
-            text-decoration: underline;
-        }
     }
 
     /* ISO date — tabular-nums keeps each digit the same advance
