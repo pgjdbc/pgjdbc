@@ -49,10 +49,13 @@ import kotlin.system.exitProcess
  *    42.2.x line, surfaced as a separate row under the same release-line
  *    label.
  *
- * The `Status` column is derived from each line's `.0` commit date plus
- * the overlay's `support_window_years`: rows older than the window are
- * "EOL since YYYY-MM", rows still inside are "Security until YYYY-MM",
- * and the latest segment of the latest release line is "Current".
+ * The `Status` column anchors to the NEXT minor line's `.0` commit
+ * date plus the overlay's `support_window_years`: a line keeps
+ * receiving proactive backports for `support_window_years` past the
+ * moment a successor ships, so the clock only starts once the line
+ * is superseded. Rows past that window become "EOL since YYYY-MM";
+ * rows still inside are "Security until YYYY-MM". The latest line
+ * has no successor and stays "Current" without an end date.
  */
 
 /** `refs/heads/release/42.X.x` or `refs/remotes/origin/release/42.X.x`. */
@@ -216,6 +219,23 @@ internal fun buildRows(
     val testedPgBp = overlay.testedPostgresql.sortedBy { versionKey(it.pgjdbc) }
     val classifiersByBranch = overlay.classifiers.groupBy { it.branch }
     val latestLine = facts.branchIds.firstOrNull().orEmpty()
+    // Per-branch support end, anchored to the NEXT minor's .0 commit
+    // date plus support_window_years. The latest line has no successor
+    // and so has no entry — its rows fall through to "Current". A line
+    // with a successor that has not yet shipped a release (no tags)
+    // gets no entry either; status falls back to "Current" until the
+    // successor's first tag lands.
+    //
+    // branchIds is sorted descending, so zipWithNext yields (successor,
+    // predecessor) pairs — the first element is the higher-version line.
+    val supportEndByBranch: Map<String, LocalDate> = facts.branchIds
+        .zipWithNext()
+        .mapNotNull { (successor, branch) ->
+            val anchor = facts.tagsByBranch[successor].orEmpty()
+                .firstOrNull()?.let { LocalDate.parse(it.commitDate) }
+            anchor?.let { branch to it.plusYears(overlay.supportWindowYears.toLong()) }
+        }
+        .toMap()
 
     val out = mutableListOf<Row>()
     for (branchId in facts.branchIds) {
@@ -230,12 +250,8 @@ internal fun buildRows(
             continue
         }
 
-        // Compute the line's support window from its .0 (or earliest)
-        // tag plus support_window_years. Used in the Status column for
-        // every row of this line.
-        val lineStart = LocalDate.parse(tags.first().commitDate)
-        val supportEnd = lineStart.plusYears(overlay.supportWindowYears.toLong())
-        val supportEndYm = DateTimeFormatter.ofPattern("yyyy-MM").format(supportEnd)
+        val supportEnd = supportEndByBranch[branchId]
+        val supportEndYm = supportEnd?.let { DateTimeFormatter.ofPattern("yyyy-MM").format(it) }
 
         // Group consecutive tags by (min_java, min_pg). Each group is one
         // "segment" — one row in the rendered matrix.
@@ -251,7 +267,7 @@ internal fun buildRows(
             val isCurrent = isLastSegment && branchId == latestLine
             val status = when {
                 !isLastSegment -> "Superseded by ${segments[i + 1].firstVersion}+"
-                isCurrent -> "Current"
+                isCurrent || supportEnd == null -> "Current"
                 today.isBefore(supportEnd) -> "Security until $supportEndYm"
                 else -> "EOL since $supportEndYm"
             }
@@ -280,8 +296,15 @@ internal fun buildRows(
                 released = date,
                 minJava = c.minJava,
                 minPostgresql = resolve(pgBp, c.lastVersion),
-                status = if (today.isBefore(supportEnd)) "Security until $supportEndYm"
-                else "EOL since $supportEndYm",
+                // supportEnd is null only when the parent line is the
+                // latest one — pgjdbc never ships classifiers there, but
+                // we fall back to "Current" defensively so the row stays
+                // consistent with its (non-classifier) sibling.
+                status = when {
+                    supportEnd == null -> "Current"
+                    today.isBefore(supportEnd) -> "Security until $supportEndYm"
+                    else -> "EOL since $supportEndYm"
+                },
                 notes = composeNotes(branchId, classifierVersion, testedJBp, testedPgBp, overlay),
             )
         }

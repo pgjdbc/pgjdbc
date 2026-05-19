@@ -33,10 +33,13 @@ PostgreSQL version, or are reproducing an old environment:
   a trailing `+` — `9.1+` means "9.1 or newer". Releases past a
   breakpoint intentionally drop support for older servers, not just
   CI coverage.
-- **Status** is derived from the line's `.0` commit date plus a
-  five-year window:
-  - **Current** — the latest segment of the latest release line. This
-    is the row to choose for a new project.
+- **Status** is anchored to the **next** minor line's `.0` commit
+  date plus a five-year window — a line keeps receiving proactive
+  backports for five years past the moment its successor ships,
+  not five years past its own `.0`:
+  - **Current** — the latest segment of the latest release line.
+    No successor yet, so no end date attached; this is the row to
+    choose for a new project.
   - **Superseded by&nbsp;X.Y+** — an earlier segment of an active
     line where a later patch raised the Java or PostgreSQL floor;
     new installs should pick the indicated successor.

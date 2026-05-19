@@ -14,11 +14,13 @@
 # security release does not require touching this file.
 
 # Drives the Status column. For each release line we compute
-#   support_end = first_release_date + support_window_years
+#   support_end = next_minor.first_release_date + support_window_years
 # and label the row "Security until YYYY-MM" while today < support_end,
-# "EOL since YYYY-MM" once support_end has passed. Matches the project
-# policy of proactive security backports for branches younger than five
-# years (see SECURITY.md for the wording).
+# "EOL since YYYY-MM" once support_end has passed. The anchor is the
+# successor's .0, not the line's own .0, so a line keeps receiving
+# proactive backports for five years past the moment it is superseded
+# — and the latest line, which has no successor, stays "Current" with
+# no end date. Matches the project policy in SECURITY.md.
 support_window_years: 5
 #
 # Sparse-breakpoint resolver semantics (applies to `min_java` and

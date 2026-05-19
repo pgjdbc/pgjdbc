@@ -95,6 +95,8 @@ class GenerateReleaseHistoryTest {
     }
 
     @Test fun `older line within support window gets Security until status`() {
+        // 42.5.x's support window is anchored to the SUCCESSOR (42.7.x)
+        // .0 + 5y = 2024-01-01 + 5y = 2029-01.
         val facts = GitFacts(
             branchIds = listOf("42.7.x", "42.5.x"),
             tagsByBranch = mapOf(
@@ -109,17 +111,19 @@ class GenerateReleaseHistoryTest {
         )
         val rows = buildRows(facts, overlay, LocalDate.of(2025, 6, 1))
         assertEquals("Current", rows[0].status)
-        assertTrue(rows[1].status.startsWith("Security until 2028-01"), rows[1].status)
+        assertTrue(rows[1].status.startsWith("Security until 2029-01"), rows[1].status)
     }
 
     @Test fun `expired line gets EOL since status`() {
-        // 42.7.x must exist as the latest line so 42.2.x is not treated as
-        // the "current" one even though it's the only line with tags here.
+        // 42.2.x's support window is anchored to 42.7.x's .0 (2019-01-01)
+        // + 5y = 2024-01-01. Today (2025-06-01) is past that → EOL.
+        // 42.7.x must exist as the latest line so 42.2.x is not treated
+        // as the "current" one.
         val facts = GitFacts(
             branchIds = listOf("42.7.x", "42.2.x"),
             tagsByBranch = mapOf(
-                "42.7.x" to listOf(TaggedRelease("42.7.0", "2024-01-01")),
-                "42.2.x" to listOf(TaggedRelease("42.2.0", "2018-01-01")),
+                "42.7.x" to listOf(TaggedRelease("42.7.0", "2019-01-01")),
+                "42.2.x" to listOf(TaggedRelease("42.2.0", "2017-01-01")),
             ),
         )
         val overlay = Overlay(
@@ -129,7 +133,49 @@ class GenerateReleaseHistoryTest {
         )
         val rows = buildRows(facts, overlay, LocalDate.of(2025, 6, 1))
         val row22 = rows.single { it.releaseLine == "42.2.x" }
-        assertTrue(row22.status.startsWith("EOL since 2023-01"), row22.status)
+        assertTrue(row22.status.startsWith("EOL since 2024-01"), row22.status)
+    }
+
+    @Test fun `support window anchors to the successor's first tag, not the line's own first tag`() {
+        // 42.5.x shipped its .0 in 2018; the 42.7.x successor only landed
+        // five years later. Under the next-minor anchor, 42.5.x's clock
+        // starts ticking at 42.7.0's date (2023), not at 42.5.0's date —
+        // so 42.5.x is still well inside the support window in 2025.
+        val facts = GitFacts(
+            branchIds = listOf("42.7.x", "42.5.x"),
+            tagsByBranch = mapOf(
+                "42.7.x" to listOf(TaggedRelease("42.7.0", "2023-01-01")),
+                "42.5.x" to listOf(TaggedRelease("42.5.0", "2018-01-01")),
+            ),
+        )
+        val overlay = Overlay(
+            supportWindowYears = 5,
+            minJava = listOf(Breakpoint("42.0.0", "8")),
+            minPostgresql = listOf(Breakpoint("42.0.0", "8.4")),
+        )
+        val rows = buildRows(facts, overlay, LocalDate.of(2025, 6, 1))
+        val row5 = rows.single { it.releaseLine == "42.5.x" }
+        // .0 + 5y would have been 2023-01 (EOL); the next-minor anchor
+        // shifts that to 2028-01.
+        assertTrue(row5.status.startsWith("Security until 2028-01"), row5.status)
+    }
+
+    @Test fun `Current line stays Current even past its own first tag plus window`() {
+        // The latest line has no successor, so no clock is ever started
+        // for it — even five years past its own .0 it is still "Current".
+        val facts = GitFacts(
+            branchIds = listOf("42.7.x"),
+            tagsByBranch = mapOf("42.7.x" to listOf(
+                TaggedRelease("42.7.0", "2018-01-01"),
+            )),
+        )
+        val overlay = Overlay(
+            supportWindowYears = 5,
+            minJava = listOf(Breakpoint("42.0.0", "8")),
+            minPostgresql = listOf(Breakpoint("42.0.0", "8.4")),
+        )
+        val rows = buildRows(facts, overlay, LocalDate.of(2025, 6, 1))
+        assertEquals("Current", rows.single().status)
     }
 
     @Test fun `intermediate segment is marked Superseded by next floor`() {
@@ -289,11 +335,15 @@ class GenerateReleaseHistoryTest {
     }
 
     @Test fun `classifier row inherits parent line status`() {
+        // 42.7.x must exist as a successor so 42.2.x picks up a real
+        // support-end date (anchored to 42.7.0 + 5y = 2029-01); the
+        // classifier row must match the parent line's status.
         val facts = GitFacts(
-            branchIds = listOf("42.2.x"),
-            tagsByBranch = mapOf("42.2.x" to listOf(
-                TaggedRelease("42.2.29", "2023-06-01"),
-            )),
+            branchIds = listOf("42.7.x", "42.2.x"),
+            tagsByBranch = mapOf(
+                "42.7.x" to listOf(TaggedRelease("42.7.0", "2024-01-01")),
+                "42.2.x" to listOf(TaggedRelease("42.2.29", "2023-06-01")),
+            ),
         )
         val overlay = Overlay(
             supportWindowYears = 5,
@@ -302,8 +352,9 @@ class GenerateReleaseHistoryTest {
             classifiers = listOf(Classifier("jre7", "42.2.x", "42.2.29", "7")),
         )
         val rows = buildRows(facts, overlay, LocalDate.of(2025, 6, 1))
-        assertEquals(2, rows.size)
-        assertTrue(rows.any { it.versionRange == "42.2.29.jre7" && it.minJava == "7" },
-            "expected classifier row, got: $rows")
+        val parent = rows.single { it.releaseLine == "42.2.x" && it.versionRange == "42.2.29" }
+        val classifier = rows.single { it.versionRange == "42.2.29.jre7" }
+        assertEquals(parent.status, classifier.status)
+        assertEquals("7", classifier.minJava)
     }
 }
