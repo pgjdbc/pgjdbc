@@ -187,20 +187,29 @@
         }
     }
 
-    /* Two stacked code-tabs blocks (Maven, Gradle). Override the
-       component's default `margin-block` so the spacing between
-       them is set here instead, keeping the heading-to-first-block
-       gap consistent with the between-blocks gap. */
-    .code-tabs {
-        margin-block: 0;
+    /* Two stacked code-tabs blocks (Maven, Gradle) share one grid
+       track sized to the widest block (Maven XML). Without this,
+       Gradle hugs its single-line snippet and the right edges step
+       — visually noisy under a shared heading. minmax(0, max-content)
+       lets the track shrink on narrow viewports (inner <pre>
+       overflow-scrolls) while still capping at the natural width. */
+    &__snippets {
+        display: grid;
+        grid-template-columns: minmax(0, max-content);
+        gap: var(--space-m);
+        max-width: 100%;
 
         @include mq-max(medium) {
-            margin-inline: auto;
+            justify-content: center;
         }
+    }
 
-        + .code-tabs {
-            margin-block-start: var(--space-m);
-        }
+    /* Override the component's default `margin-block` and intrinsic
+       `width: max-content` so the children stretch to fill the
+       shared grid track instead of sizing to their own content. */
+    .code-tabs {
+        margin-block: 0;
+        width: auto;
     }
 }
 

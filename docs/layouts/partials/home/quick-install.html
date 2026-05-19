@@ -31,6 +31,10 @@
 <section class="quick-install">
     <h2 class="quick-install__head">Add it to your build</h2>
 
+    {{/* Snippets share a single grid track sized to the widest
+         block (Maven XML), so the Gradle one-liner stretches to
+         match instead of leaving a stepped right edge. */}}
+    <div class="quick-install__snippets">
     <div class="code-tabs" data-code-tabs id="qi-maven">
         <ul class="code-tabs__list" role="tablist">
             <li class="code-tabs__tab" role="presentation">
@@ -67,5 +71,6 @@
                 {{ transform.Highlight $gradleKotlin "kotlin" "" }}
             </div>
         </div>
+    </div>
     </div>
 </section>
