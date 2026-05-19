@@ -262,6 +262,23 @@ class GenerateReleaseHistoryTest {
         assertEquals("9", SecurityAdvisoryFetcher.parse(json).single().cvssScore)
     }
 
+    @Test fun `parse drops withdrawn advisories despite state=published`() {
+        // GHSA keeps withdrawn advisories with state=published; only the
+        // non-empty `withdrawn_at` distinguishes them. Such entries must not
+        // surface on release pages.
+        val json = """
+            [
+              {"cve_id": "CVE-LIVE", "ghsa_id": "GHSA-LIVE", "severity": "high",
+               "withdrawn_at": null,
+               "vulnerabilities": [{"vulnerable_version_range": "< 1.0.0", "patched_versions": "1.0.0"}]},
+              {"cve_id": "CVE-GONE", "ghsa_id": "GHSA-GONE", "severity": "high",
+               "withdrawn_at": "2025-01-01T00:00:00Z",
+               "vulnerabilities": [{"vulnerable_version_range": "< 1.0.0", "patched_versions": "1.0.0"}]}
+            ]
+        """.trimIndent()
+        assertEquals(listOf("CVE-LIVE"), SecurityAdvisoryFetcher.parse(json).map { it.cveId })
+    }
+
     @Test fun `parse leaves CVSS empty when the advisory carries no cvss block`() {
         // Older advisories were sometimes published without a CVSS rating.
         val json = """

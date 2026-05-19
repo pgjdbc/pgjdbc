@@ -540,7 +540,9 @@ internal object SecurityAdvisoryFetcher {
         // parses as a single JSON array; tolerates whitespace between pages.
         val joined = raw.replace(Regex("""]\s*\["""), ",")
         val parsed = Yaml().load<Any?>(joined) as? List<Map<String, Any?>> ?: return emptyList()
-        return parsed.map { adv ->
+        // Drop withdrawn advisories: GHSA keeps them with state=published but
+        // sets `withdrawn_at`, so `?state=published` alone doesn't exclude them.
+        return parsed.filter { (it["withdrawn_at"] as? String).isNullOrEmpty() }.map { adv ->
             val cveId = (adv["cve_id"] as? String).orEmpty()
             val ghsaId = (adv["ghsa_id"] as? String).orEmpty()
             val severity = (adv["severity"] as? String).orEmpty()
