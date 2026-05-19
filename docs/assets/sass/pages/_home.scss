@@ -151,8 +151,8 @@
         }
 
         /* Badge bar: shields.io-style badges. Each one is an
-           actionable signal (Maven Central version, license, CI
-           health, OpenSSF Scorecard) — not decoration. */
+           actionable signal (Maven Central version, Javadoc,
+           license, OpenSSF Scorecard) — not decoration. */
         &__badges {
             list-style: none;
             margin: 0;
