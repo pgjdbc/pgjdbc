@@ -13,19 +13,22 @@
   — this shortcode refreshes automatically.
 */}}
 {{- $latest := "" -}}
+{{- $latestDate := "" -}}
 {{- range (where site.RegularPages "Section" "changelogs").ByDate.Reverse -}}
   {{- if and (not $latest) (findRE "^[0-9]" (.Params.version | default "")) -}}
     {{- $latest = .Params.version -}}
+    {{- $latestDate = .Date.Format "2 January 2006" -}}
   {{- end -}}
 {{- end -}}
 
-{{- $cards := slice (dict "version" $latest "suffix" "" "java" "8") -}}
+{{- $cards := slice (dict "version" $latest "suffix" "" "java" "8" "date" $latestDate) -}}
 {{- range (index hugo.Data "release-history").rows -}}
   {{- $vr := .version_range -}}
   {{- if findRE "\\.jre[0-9]+$" $vr -}}
     {{- $suf  := replaceRE "^.*\\.(jre[0-9]+)$" "$1" $vr -}}
     {{- $base := replaceRE "\\.jre[0-9]+$" "" $vr -}}
-    {{- $cards = $cards | append (dict "version" $base "suffix" $suf "java" .min_java) -}}
+    {{- $date := dateFormat "2 January 2006" .released -}}
+    {{- $cards = $cards | append (dict "version" $base "suffix" $suf "java" .min_java "date" $date) -}}
   {{- end -}}
 {{- end -}}
 
@@ -35,11 +38,9 @@
     {{- $full := $c.version }}{{ if $c.suffix }}{{ $full = printf "%s.%s" $c.version $c.suffix }}{{ end }}
     <div class="card__item">
         <div class="card__title">Java {{ $c.java }}</div>
-        <div class="card__subtitle">{{ $c.version }}</div>
+        <div class="card__subtitle">{{ $full }}<span class="card__date">{{ $c.date }}</span></div>
         <p class="card__desc">If you are using Java {{ $c.java }}{{ if eq $c.java "8" }} or newer{{ end }} then you should use the {{ index $jdbcByJava $c.java }} version.</p>
-        <button class="card__btn__left">
-            <a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}" class="card__btn__left__link">Download</a>
-        </button>
+        <a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}" class="card__download">Download</a>
         <script class="maven" id="coordinates-{{ $ind }}" type="application/xml">
             <dependency>
                 <groupId>org.postgresql</groupId>

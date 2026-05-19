@@ -29,23 +29,20 @@
         font-size: .875rem;
     }
 
+    &__date {
+        margin-left: 0.5em;
+        font-weight: 400;
+        color: var(--clr-neutral-600);
+        font-size: 0.8125rem;
+    }
+
     &__desc {
         font-size: .875rem;
     }
 
-    &__btn__left {
-        border: 0;
-        background-color: transparent;
-
-        &__link,
-        &__link:hover {
-            color: var(--clr-secondary-500);
-            text-decoration: none;
-        }
-
-        &:hover {
-            background-color: var(--clr-secondary-100);
-        }
+    &__download {
+        display: inline-block;
+        line-height: 24px;
     }
 
     &__btn__right {

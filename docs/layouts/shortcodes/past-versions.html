@@ -10,9 +10,12 @@
      build hasn't shipped since the line went JRE-7-only).
 
   Sources of truth:
-   * /changelogs/*-release.md for tagged versions and ordering.
+   * /changelogs/*-release.md for tagged versions, ordering, and
+     the per-release date shown next to each link (from the
+     changelog's `date` front-matter).
    * release-history.yaml (generated from git tags + the overlay)
-     for per-line latest patches and the .jre7 cutoff.
+     for per-line latest patches, the .jre7 cutoff, and the
+     `Released` date of each older line's latest patch.
   No data file needs to be touched when a new version ships.
 */}}
 {{- $changelogs := where site.RegularPages "Section" "changelogs" -}}
@@ -42,7 +45,7 @@
 {{- range $changelogs.ByDate.Reverse -}}
   {{- $v := .Params.version | default "" -}}
   {{- if and (hasPrefix $v $currentLine) (ne $v $latest) -}}
-    {{- $past = $past | append (dict "version" $v "suffix" "") -}}
+    {{- $past = $past | append (dict "version" $v "suffix" "" "date" (.Date.Format "2 January 2006")) -}}
   {{- end -}}
 {{- end -}}
 
@@ -55,25 +58,30 @@
   {{- if and (not (findRE "\\.jre[0-9]+$" $vr)) (ne $linePrefix $currentLine) (ne $rl "42.2.x") -}}
     {{- $rangeParts := split $vr "-" -}}
     {{- $lastPatch := index $rangeParts (sub (len $rangeParts) 1) -}}
-    {{- $past = $past | append (dict "version" $lastPatch "suffix" "") -}}
+    {{- $past = $past | append (dict "version" $lastPatch "suffix" "" "date" (dateFormat "2 January 2006" .released)) -}}
   {{- end -}}
 {{- end -}}
 
 {{- /* 3. Most recent prior .jre7 patch. */ -}}
 {{- $jre7Past := "" -}}
+{{- $jre7PastDate := "" -}}
 {{- range $changelogs.ByDate.Reverse -}}
   {{- $v := .Params.version | default "" -}}
   {{- if and (not $jre7Past) (hasPrefix $v "42.2.") (ne $v $jre7Last) -}}
     {{- $jre7Past = $v -}}
+    {{- $jre7PastDate = .Date.Format "2 January 2006" -}}
   {{- end -}}
 {{- end -}}
 {{- with $jre7Past -}}
-  {{- $past = $past | append (dict "version" . "suffix" "jre7") -}}
+  {{- $past = $past | append (dict "version" . "suffix" "jre7" "date" $jre7PastDate) -}}
 {{- end -}}
 
-<ul class="custom-marker">
+<ul class="past-versions">
     {{- range $past }}
     {{- $full := .version }}{{ if .suffix }}{{ $full = printf "%s.%s" .version .suffix }}{{ end }}
-    <li><a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}">{{ $full }}</a></li>
+    <li>
+        <a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}">{{ $full }}</a>
+        <span class="past-versions__date">{{ .date }}</span>
+    </li>
     {{- end }}
 </ul>
