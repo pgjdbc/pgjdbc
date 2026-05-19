@@ -247,9 +247,27 @@
         }
     }
 
+    // Build the destination URL for a result: keep any `#anchor` fragment
+    // but inject `?q=<term>` before it. search-highlight.js reads `?q` on
+    // page load and marks matching words in the body so the user lands with
+    // visible context, not just a scrolled-to row.
+    function withQueryParam(uri, q) {
+        if (!q) return uri;
+        const hashIdx = uri.indexOf("#");
+        const path = hashIdx === -1 ? uri : uri.slice(0, hashIdx);
+        const hash = hashIdx === -1 ? "" : uri.slice(hashIdx);
+        const sep = path.indexOf("?") === -1 ? "?" : "&";
+        return path + sep + "q=" + encodeURIComponent(q) + hash;
+    }
+
     function renderResults(term, results) {
         currentResults = results.map(function (r) {
-            return Object.assign({ uri: r.ref, matchData: r.matchData }, lookup[r.ref]);
+            const doc = lookup[r.ref];
+            return Object.assign(
+                { matchData: r.matchData },
+                doc,
+                { uri: withQueryParam(doc.uri, term) }
+            );
         });
         activeIndex = -1;
 

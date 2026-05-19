@@ -194,3 +194,17 @@
     border-radius: 2px;
   }
 }
+
+/* Body-level search-term highlights left behind by search-highlight.js
+   after a click from the dropdown. Same hue as the dropdown mark for
+   visual continuity, slightly lighter so the underlying prose still reads
+   comfortably across whole paragraphs. */
+mark.search-hit {
+  background: hsl(43, 100%, 86%);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
