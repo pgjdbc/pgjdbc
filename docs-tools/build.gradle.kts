@@ -312,3 +312,182 @@ val serveDocs by tasks.registering(Exec::class) {
     commandLine("hugo")
     ensureHugoOnPath()
 }
+
+// Lints source files for site-internal links that bypass Hugo's
+// BasePath. Three categories of mistake, all of which produce HTML
+// that breaks on a project-page deploy (https://<owner>.github.io/<repo>/)
+// but happens to "work" on https://jdbc.postgresql.org/ because the
+// BasePath is empty there:
+//
+//   1. Raw `href="/foo"` / `src="/foo"` in templates, not wrapped in
+//      `| relURL`. Hugo emits the path verbatim, missing `/<repo>/`.
+//
+//   2. `{{ "/foo" | relURL }}` with a leading slash. Hugo's relURL
+//      deliberately treats `/`-prefixed inputs as "you already know
+//      the absolute path" and does NOT prepend BasePath — so the
+//      result is identical to (1).
+//
+//   3. `url = "/foo"` in TOML / `url: "/foo"` in YAML data. The
+//      consumer template pipes the value through `| relURL`, but
+//      because the data still starts with `/`, the relURL is a no-op
+//      (same trap as (2)) — and the data file is then a quiet failure
+//      mode that's invisible from the template.
+//
+// Markdown content (`docs/content/**/*.md`) is intentionally NOT
+// linted: root-relative markdown links like `[text](/foo)` are the
+// idiomatic source-of-truth shape, and the `_default/_markup/render-link.html`
+// hook re-runs them through relURL at render time. We're betting that
+// no contributor will hand-write `<a href="/foo">` as raw HTML inside
+// a .md file; if that bet breaks, add a fourth check here.
+val lintDocsLinks by tasks.registering {
+    group = "verification"
+    description = "Lint docs sources for site-internal links that " +
+            "bypass Hugo's BasePath (root-relative href/src, leading-slash " +
+            "relURL arguments, `/`-prefixed URLs in data files). Run as a " +
+            "dependency of :docs-tools:buildDocs."
+    dependsOn(buildDocs)
+
+    val rootDirAbs = isolated.rootProject.projectDirectory
+    val layoutsDir = rootDirAbs.dir("docs/layouts").asFile
+    val dataDir = rootDirAbs.dir("docs/data").asFile
+    val menusFile = rootDirAbs.file("docs/config/_default/menus.toml").asFile
+    val repoRoot = rootDirAbs.asFile
+
+    inputs.dir(layoutsDir).withPropertyName("layouts")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(dataDir).withPropertyName("data")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.file(menusFile).withPropertyName("menus")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+
+    val stamp = layout.buildDirectory.file("lint-docs-links.stamp")
+    outputs.file(stamp)
+
+    doLast {
+        val problems = mutableListOf<String>()
+
+        // Anchor on the literal `"` that opens the attribute value: if
+        // the very next char is `/` and the one after isn't `/` (so
+        // protocol-relative `//host` doesn't match), the value Hugo
+        // emits will start with `/` verbatim. Crucially this does NOT
+        // match `href="{{ $repo }}/edit/…"` — the first char inside
+        // the quotes is `{`, not `/` — so multi-piece templates that
+        // happen to interpolate a `/`-prefixed tail stay clean.
+        val rawRootAttr = Regex("""\b(href|src)\s*=\s*"(/[a-zA-Z0-9_\-][^"]*)"""")
+        // `{{ "/foo" | relURL }}` — leading `/` in the relURL arg
+        // makes Hugo skip BasePath.
+        val relURLLeadingSlash = Regex(
+            """\{\{[^}]*"\s*/[a-zA-Z0-9_\-][^"]*"[^}]*\|\s*[^}]*relURL[^}]*\}\}"""
+        )
+        // Multi-line Hugo comments: `{{- /* … */ -}}`. The single-line
+        // strip can't cover these; track open/close across lines and
+        // blank out the spanning region before matching.
+        val commentOpen = Regex("""\{\{-?\s*/\*""")
+        val commentClose = Regex("""\*/\s*-?\}\}""")
+
+        // render-link.html itself analyzes `/`-prefixed strings as its
+        // input, so the linter has to skip it (otherwise it'd flag the
+        // hook that fixes the very problem we're guarding against).
+        val renderLinkRelative = "_default/_markup/render-link.html"
+
+        layoutsDir.walkTopDown()
+            .filter { it.isFile && it.extension == "html" }
+            .filter {
+                !it.toRelativeString(layoutsDir).replace(File.separatorChar, '/')
+                    .equals(renderLinkRelative)
+            }
+            .forEach { f ->
+                val rel = f.relativeTo(repoRoot).invariantSeparatorsPath
+                var inComment = false
+                f.useLines { lines ->
+                    lines.forEachIndexed { idx, rawLine ->
+                        var line = rawLine
+                        if (inComment) {
+                            val close = commentClose.find(line)
+                            if (close != null) {
+                                line = line.substring(close.range.last + 1)
+                                inComment = false
+                            } else {
+                                return@forEachIndexed
+                            }
+                        }
+                        commentOpen.find(line)?.let { open ->
+                            val tail = line.substring(open.range.first)
+                            val close = commentClose.find(tail)
+                            if (close != null) {
+                                line = line.substring(0, open.range.first) +
+                                        tail.substring(close.range.last + 1)
+                            } else {
+                                line = line.substring(0, open.range.first)
+                                inComment = true
+                            }
+                        }
+
+                        rawRootAttr.findAll(line).forEach { m ->
+                            val attr = m.groupValues[1]
+                            val path = m.groupValues[2]
+                            problems += "$rel:${idx + 1}: ${m.value} — " +
+                                    "root-relative `$attr` bypasses Hugo's BasePath. " +
+                                    "Wrap in `{{ \"${path.trimStart('/')}\" | relURL }}`."
+                        }
+                        relURLLeadingSlash.findAll(line).forEach { m ->
+                            problems += "$rel:${idx + 1}: ${m.value} — " +
+                                    "leading `/` in relURL arg; strip it so Hugo " +
+                                    "prepends BasePath."
+                        }
+                    }
+                }
+            }
+
+        // Data files: bare `/foo` in `url = …` (TOML) / `url: …` (YAML).
+        val tomlRootURL = Regex("""^\s*url\s*=\s*"(/[a-zA-Z0-9_\-][^"]*)"""")
+        val yamlRootURL = Regex("""^\s*url\s*:\s*"?(/[a-zA-Z0-9_\-][^"\s]*)""")
+        val dataFiles = sequence {
+            yield(menusFile)
+            dataDir.walkTopDown().filter { it.isFile }.forEach { yield(it) }
+        }
+        dataFiles.filter { it.exists() }.forEach { f ->
+            val rel = f.relativeTo(repoRoot).invariantSeparatorsPath
+            val re = when (f.extension.lowercase()) {
+                "toml" -> tomlRootURL
+                "yaml", "yml" -> yamlRootURL
+                else -> return@forEach
+            }
+            f.useLines { lines ->
+                lines.forEachIndexed { idx, line ->
+                    re.find(line)?.let { m ->
+                        problems += "$rel:${idx + 1}: ${m.value.trim()} — " +
+                                "strip leading `/` so the consumer's `| relURL` " +
+                                "prepends BasePath."
+                    }
+                }
+            }
+        }
+
+        val stampFile = stamp.get().asFile
+        if (problems.isNotEmpty()) {
+            stampFile.delete()
+            throw GradleException(buildString {
+                appendLine(
+                    "Found ${problems.size} root-relative link(s) that " +
+                            "bypass Hugo's BasePath:"
+                )
+                problems.forEach { appendLine("  $it") }
+                appendLine()
+                appendLine(
+                    "Site-internal links must go through `relURL` so they " +
+                            "include the repo prefix on project-page deploys " +
+                            "(e.g. https://<owner>.github.io/<repo>/). Markdown " +
+                            "content is handled by the render-link hook; " +
+                            "templates and data files need the fix at the source."
+                )
+            })
+        }
+        stampFile.parentFile.mkdirs()
+        stampFile.writeText("OK\n")
+    }
+}
+
+tasks.check {
+    dependsOn(lintDocsLinks)
+}
