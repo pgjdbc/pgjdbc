@@ -70,6 +70,12 @@ tasks.test {
     onlyIf("docs-tools tests use post-Java-8 APIs (e.g. ByteArrayOutputStream#toString(Charset))") {
         buildParameters.testJdkVersion > 8
     }
+    // Karaf's generateKar declares the :postgresql jar as one of its outputs,
+    // and docs-tools tests have that jar on the runtime classpath via
+    // `implementation(projects.postgresql)`. Without this, Gradle 9 fails
+    // configuration with "uses this output of task ':postgresql:generateKar'
+    // without declaring an explicit or implicit dependency."
+    mustRunAfter(":postgresql:generateKar")
 }
 
 // Compiled bytecode of :postgresql, where PGProperty.class lives.
