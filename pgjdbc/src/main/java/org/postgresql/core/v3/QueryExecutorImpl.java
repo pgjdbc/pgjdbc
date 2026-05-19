@@ -81,6 +81,7 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.PgMessageType;
+import org.postgresql.core.ProtocolMessage;
 import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
@@ -228,6 +229,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean inExtendedProtocol;
 
+  private final boolean asyncReadingEnabled;
+  private @Nullable AsyncMessageReader asyncReader;
+  private @Nullable MessageQueue messageQueue;
+
+  /**
+   * When async reading is active and a full message has been pulled from the queue,
+   * this holds the current message being processed. The payload is consumed via
+   * {@link #asyncPayloadOffset}.
+   */
+  private @Nullable ProtocolMessage currentAsyncMessage;
+  private int asyncPayloadOffset;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -239,9 +252,23 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.asyncReadingEnabled = PGProperty.ASYNC_READING.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
+
+    if (asyncReadingEnabled) {
+      this.messageQueue = new MessageQueue(1024);
+      this.asyncReader = new AsyncMessageReader(pgStream, this.messageQueue);
+    }
+  }
+
+  @Override
+  public void close() {
+    if (asyncReader != null) {
+      asyncReader.shutdown();
+    }
+    super.close();
   }
 
   @Override
@@ -2348,6 +2375,33 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  /**
+   * Reads the next message type byte, either from the async message queue or directly
+   * from the stream. When async reading is active, the full message payload is buffered
+   * in {@link #currentAsyncMessage} for subsequent field reads.
+   *
+   * @return the message type byte
+   * @throws IOException if an I/O error occurs
+   */
+  private int nextMessageType() throws IOException {
+    if (asyncReadingEnabled && messageQueue != null) {
+      MessageQueue.Entry entry;
+      try {
+        entry = messageQueue.take();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("Interrupted while waiting for protocol message", e);
+      }
+      if (entry.isError()) {
+        throw castNonNull(entry.getError());
+      }
+      currentAsyncMessage = castNonNull(entry.getMessage());
+      asyncPayloadOffset = 0;
+      return currentAsyncMessage.getType();
+    }
+    return pgStream.receiveChar();
+  }
+
   protected void processResults(ResultHandler handler, int flags) throws IOException {
     processResults(handler, flags, false);
   }
@@ -2370,7 +2424,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = nextMessageType();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();

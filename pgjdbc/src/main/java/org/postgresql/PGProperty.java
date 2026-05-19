@@ -75,12 +75,27 @@ public enum PGProperty {
       "Name of the Application (backend >= 9.0)"),
 
   /**
+   * Enable asynchronous reading of protocol messages from the server using a dedicated reader
+   * thread. When enabled, a background thread continuously reads messages from the socket and
+   * buffers them, decoupling the send and receive paths for improved pipelining performance.
+   */
+  /**
    * Assume the server is at least that version.
    */
   ASSUME_MIN_SERVER_VERSION(
       "assumeMinServerVersion",
       null,
       "Assume the server is at least that version"),
+
+  /**
+   * Enable asynchronous reading of protocol messages from the server using a dedicated reader
+   * thread. When enabled, a background thread continuously reads messages from the socket and
+   * buffers them, decoupling the send and receive paths for improved pipelining performance.
+   */
+  ASYNC_READING(
+      "asyncReading",
+      "false",
+      "Enable async protocol message reading via a dedicated reader thread"),
 
   /**
    * AuthenticationPluginClass
