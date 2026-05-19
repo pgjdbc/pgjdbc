@@ -84,6 +84,13 @@ jobs:
           HUGO_BASEURL: ${{ vars.WEBSITE_BASE_URL || steps.pages.outputs.base_url }}
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+          # :docs-tools:fetchKnownCves shells out to `gh api
+          # repos/<repo>/security-advisories` from a JVM ProcessBuilder; the
+          # CLI refuses to run in Actions without GH_TOKEN. The default
+          # `github.token` is enough: published advisories on a public repo
+          # only need `contents: read` (already granted at workflow scope),
+          # and the token is auto-rotated per job and scoped to this repo.
+          GH_TOKEN: ${{ github.token }}
         with:
           job-id: docs-build
           arguments: --no-parallel --no-daemon --scan :docs-tools:buildDocs
