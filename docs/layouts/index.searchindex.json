@@ -1,10 +1,66 @@
+{{- /*
+  Search index consumed by static/js/lunr-search.js.
+
+  Two kinds of entries are emitted:
+    1. One entry per regular page (title, plain text body, description, categories).
+    2. One entry per connection property from data/connection-properties.yaml,
+       so the search picks up property names directly and deep-links into the
+       reference table via #prop-<anchor>.
+*/ -}}
 [
-    {{- range $index, $page := .Site.RegularPages -}}
-      {{- if gt $index 0 -}} , {{- end -}}
-      {{- $entry := dict "uri" $page.RelPermalink "title" $page.Title -}}
-      {{- $entry = merge $entry (dict "content" ($page.Plain | htmlUnescape)) -}}
-      {{- $entry = merge $entry (dict "description" $page.Description) -}}
-      {{- $entry = merge $entry (dict "categories" $page.Params.categories) -}}
-      {{- $entry | jsonify -}}
+{{- $first := true -}}
+{{- range .Site.RegularPages -}}
+  {{- if not $first -}},{{- end -}}{{- $first = false -}}
+  {{- $entry := dict
+      "uri"         .RelPermalink
+      "title"       .Title
+      "content"     (.Plain | htmlUnescape)
+      "description" .Description
+      "categories"  .Params.categories
+  -}}
+  {{- $entry | jsonify -}}
+{{- end -}}
+{{/* Resolve the connection-properties reference page through Hugo so its
+     URL carries the configured basePath (e.g. /pgjdbc/ on GitHub Pages
+     forks). RelPermalink is `/documentation/.../` for the production site
+     and `/pgjdbc/documentation/.../` for forks — and updates automatically
+     if the page is ever moved. */}}
+{{- $propsPage := .Site.GetPage "/documentation/reference/connection-properties" -}}
+{{- $propsRef  := $propsPage.RelPermalink -}}
+{{- range index .Site.Data "connection-properties" -}}
+  {{- $status := upper (.status | default "STABLE") -}}
+  {{/* Skip HIDDEN properties: the reference table renders them but they're
+       deliberately not advertised to users, so they don't belong in search. */}}
+  {{- if ne $status "HIDDEN" -}}
+    {{- if not $first -}},{{- end -}}{{- $first = false -}}
+    {{- $anchor      := anchorize .name -}}
+    {{- $desc        := .description | default "" | plainify | htmlUnescape -}}
+    {{- $tags        := .tags | default slice -}}
+    {{- $versionBits := slice -}}
+    {{- with .introducedIn -}}{{- $versionBits = $versionBits | append (printf "since %s" .) -}}{{- end -}}
+    {{- with .deprecatedIn -}}{{- $versionBits = $versionBits | append (printf "deprecated in %s" .) -}}{{- end -}}
+    {{- $statusPhrase := "" -}}
+    {{- if and (ne $status "STABLE") (ne $status "") -}}
+      {{- $statusPhrase = lower $status -}}
     {{- end -}}
+    {{/* Content packs the property name (so partial matches light up the body
+         field too), description, tags, version markers, default value and
+         status into one string. camelCase splitting is done by the JS-side
+         identifier-aware tokenizer in lunr-search.js, so no Hugo-side
+         n-gram expansion is needed here. */}}
+    {{- $contentBits := slice .name $desc -}}
+    {{- with $tags -}}{{- $contentBits = $contentBits | append (delimit . " ") -}}{{- end -}}
+    {{- with $versionBits -}}{{- $contentBits = $contentBits | append (delimit . " ") -}}{{- end -}}
+    {{- with .default -}}{{- $contentBits = $contentBits | append (printf "default %s" .) -}}{{- end -}}
+    {{- with $statusPhrase -}}{{- $contentBits = $contentBits | append . -}}{{- end -}}
+    {{- $entry := dict
+        "uri"         (printf "%s#prop-%s" $propsRef $anchor)
+        "title"       .name
+        "content"     (delimit $contentBits " — ")
+        "description" $desc
+        "categories"  $tags
+    -}}
+    {{- $entry | jsonify -}}
+  {{- end -}}
+{{- end -}}
 ]

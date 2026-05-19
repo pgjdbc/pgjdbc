@@ -44,6 +44,19 @@
     box-shadow: inset 0 -1px 0 var(--clr-neutral-300);
   }
 
+  /* Sentinel that owns the `#prop-<name>` anchor id (see param-table.html).
+     When the user lands on a deep-linked property from the search dropdown
+     or a cross-link, leave room above the row for both sticky bands so the
+     target is visible: the page navbar (--navbar-height) plus the sticky
+     thead. The thead is a single text row with --space-2xs vertical padding
+     and a border; 3rem is a generous static estimate that covers it on
+     every viewport without needing JS measurement. */
+  &__row-anchor {
+    display: block;
+    height: 0;
+    scroll-margin-top: calc(var(--navbar-height) + 3rem);
+  }
+
   &__name {
     font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
     font-weight: 600;

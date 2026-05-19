@@ -93,13 +93,18 @@
       {{- else -}}
         {{- $typeLabel = lower $rawType -}}
       {{- end -}}
-      <tr id="prop-{{ $anchor }}"
-          data-param-row
+      <tr data-param-row
           data-param-name="{{ .name }}"
           data-param-haystack="{{ $haystack }}"
           {{- with .tags }} data-param-tags="{{ delimit . "," }}"{{ end }}
           data-param-status="{{ lower $status }}">
         <td class="param-table__name">
+          {{/* Zero-height sentinel that owns the `#prop-…` anchor id. The id
+               used to live on the <tr>, but browsers don't reliably honor
+               `scroll-margin-top` on table rows, which left the linked row
+               hidden behind the sticky thead. A <span> inside the first cell
+               is fine for scroll-margin and visually identical. */}}
+          <span id="prop-{{ $anchor }}" class="param-table__row-anchor" aria-hidden="true"></span>
           <a href="#prop-{{ $anchor }}"><code>{{ .name }}</code></a>
         </td>
         <td class="param-table__type">
