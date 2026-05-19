@@ -1,17 +1,33 @@
 # Security Policy
 
-1) We value backward compatibility, so we expect that upgrading pgjdbc versions should not involve code changes nor it should it require configuration changes.
-2) In the event that you are unable to upgrade, you might expect or ask for security fixes for the past versions as well. However, please raise the reason you unable to upgrade in the mailing list or in the issues
+We value backward compatibility — upgrading pgJDBC should not require
+code or configuration changes. If you cannot upgrade and need a fix
+backported, please open an issue or write to the mailing list with the
+reason you're stuck.
 
-| Version  | Supported          |
-| -------- | ------------------ |
-| latest 42.x | security fixes, features, bug fixes |
-| 42.2.x   | (the latest branch that supports Java 6, and 7): security fixes, critical bug fixes only. |
-| all the other versions | security fixes (upon request) |
+## Supported versions
 
-The intention is to separate «we are eager fixing bugs» from «we can roll security releases».
-It would not be impossible for us to roll security fixes even for 9.4 versions if necessary.
+| Version | Supported |
+| ------- | --------- |
+| latest 42.x line | security fixes, features, bug fixes |
+| every older 42.x line within the proactive-security window | security fixes |
+| 42.2.x (latest line supporting Java 6 / 7) | security fixes, critical bug fixes |
+| every other version (past the window) | security fixes on request |
+
+The **proactive-security window** is five years past the moment a
+release line is superseded — i.e., a line gets security backports
+until five years after the `.0` of the *next* minor ships. The
+[Compatibility page](https://pgjdbc.github.io/documentation/getting-started/compatibility/)
+shows the resolved date for every release line; rows still inside
+the window are labelled `Security until YYYY-MM`.
+
+The latest line has no successor yet and stays in full support
+indefinitely. The intent is to separate "we are eager fixing bugs"
+from "we can roll security releases": every line within the window
+ships fixes for new CVEs; everything else stays eligible on request
+— we have rolled security backports as far back as 9.4 when the need
+was real.
 
 ## Reporting a Vulnerability
 
-Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org
+Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org.
