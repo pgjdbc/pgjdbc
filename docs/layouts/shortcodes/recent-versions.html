@@ -38,7 +38,7 @@
         <div class="card__subtitle">{{ $c.version }}</div>
         <p class="card__desc">If you are using Java {{ $c.java }}{{ if eq $c.java "8" }} or newer{{ end }} then you should use the {{ index $jdbcByJava $c.java }} version.</p>
         <button class="card__btn__left">
-            <a href="/download/postgresql-{{ $full }}.jar" class="card__btn__left__link">Download</a>
+            <a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}" class="card__btn__left__link">Download</a>
         </button>
         <script class="maven" id="coordinates-{{ $ind }}" type="application/xml">
             <dependency>

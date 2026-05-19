@@ -77,8 +77,20 @@
   ) -}}
 
 {{- end -}}
+{{/* Rewrite each target through relURL so the JSON map carries the
+     site BasePath. Without this, the runtime JS would redirect to
+     `/documentation/foo/` and skip the `/<repo>/` prefix when the
+     site is served from a project page (e.g. <user>.github.io/<repo>/).
+     Strip the leading `/` first — Hugo's relURL deliberately doesn't
+     prepend BasePath when the input already starts with `/`. The
+     `#prop-<slug>` fragment survives the transform; relURL leaves the
+     `#…` tail intact. */}}
+{{- $relMap := dict -}}
+{{- range $k, $v := $map -}}
+  {{- $relMap = merge $relMap (dict $k (relURL (strings.TrimPrefix "/" $v))) -}}
+{{- end -}}
 {{/* Emit as JSON using a custom MIME type. With type="application/json",
      Hugo's HTML minifier parses the body and re-emits it as a JSON-encoded
      string (doubly quoting the content). A non-recognised type makes the
      minifier leave the body alone. */}}
-<script type="text/plain" data-legacy-anchors>{{- jsonify $map -}}</script>
+<script type="text/plain" data-legacy-anchors>{{- jsonify $relMap -}}</script>

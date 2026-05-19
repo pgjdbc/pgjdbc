@@ -49,8 +49,8 @@
 
         <ul class="release__actions" role="list">
             <li><a href="{{ $latest.RelPermalink }}">Release notes &rarr;</a></li>
-            <li><a href="/documentation/getting-started/compatibility/">Compatibility &rarr;</a></li>
-            <li><a href="/security/">Security &rarr;</a></li>
+            <li><a href="{{ "documentation/getting-started/compatibility/" | relURL }}">Compatibility &rarr;</a></li>
+            <li><a href="{{ "security/" | relURL }}">Security &rarr;</a></li>
         </ul>
 
         {{- if $recent }}

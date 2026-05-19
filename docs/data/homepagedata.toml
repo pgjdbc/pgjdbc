@@ -10,32 +10,32 @@
 [[task]]
 title = "Open a connection"
 desc  = "Install pgJDBC and connect to PostgreSQL."
-url   = "/documentation/getting-started/install/"
+url   = "documentation/getting-started/install/"
 
 [[task]]
 title = "Configure SSL / TLS"
 desc  = "Choose sslmode, set up trust, and enable channel binding."
-url   = "/documentation/security/ssl-tls/"
+url   = "documentation/security/ssl-tls/"
 
 [[task]]
 title = "Pool connections"
 desc  = "HikariCP, Tomcat JDBC, c3p0, and related tuning."
-url   = "/documentation/connect/datasource/"
+url   = "documentation/connect/datasource/"
 
 [[task]]
 title = "Pick a version"
 desc  = "Find the right release line for your Java and PostgreSQL versions."
-url   = "/documentation/getting-started/compatibility/"
+url   = "documentation/getting-started/compatibility/"
 
 [[task]]
 title = "Diagnose errors"
 desc  = "Troubleshooting pages keyed by error message and symptom."
-url   = "/documentation/troubleshooting/"
+url   = "documentation/troubleshooting/"
 
 [[task]]
 title = "Connection properties"
 desc  = "Browse every tunable the driver exposes."
-url   = "/documentation/reference/connection-properties/"
+url   = "documentation/reference/connection-properties/"
 
 # Homepage release data is no longer mirrored here. The release
 # card (`partials/home/release.html`) and the "Recent:" line both

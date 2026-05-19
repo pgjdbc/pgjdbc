@@ -268,7 +268,26 @@ val buildDocs by tasks.registering(Exec::class) {
     dependsOn(generateReleaseHistory)
     dependsOn(fetchKnownCves)
     workingDir = docsDir
-    commandLine("hugo", "--gc", "--minify")
+
+    // -PhugoBaseURL=… (or env HUGO_BASEURL) → `hugo --baseURL <value>`.
+    // The CLI flag wins over both config.toml and Hugo's env-override
+    // machinery, which has been unreliable for top-level keys since the
+    // 0.123 config rewrite. CI uses this to point a fork's deploy at
+    // <owner>.github.io/<repo>/ without editing config.toml; locally it
+    // can be set with `./gradlew :docs-tools:buildDocs -PhugoBaseURL=…`.
+    val hugoBaseUrl = providers.gradleProperty("hugoBaseURL")
+        .orElse(providers.environmentVariable("HUGO_BASEURL"))
+    argumentProviders.add(CommandLineArgumentProvider {
+        buildList {
+            add("--gc")
+            add("--minify")
+            if (hugoBaseUrl.isPresent) {
+                add("--baseURL")
+                add(hugoBaseUrl.get())
+            }
+        }
+    })
+    commandLine("hugo")
     ensureHugoOnPath()
 }
 

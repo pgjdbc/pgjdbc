@@ -3,37 +3,37 @@
 [[global]]
 identifier = "download"
 name = "Download"
-url = "/download/"
+url = "download/"
 weight = 1
 
 [[global]]
 identifier = "document"
 name = "Documentation"
-url = "/documentation/"
+url = "documentation/"
 weight = 2
 
 [[global]]
 identifier = "community"
 name = "Community"
-url = "/community/"
+url = "community/"
 weight = 3
 
 [[global]]
 identifier = "development"
 name = "Development"
-url = "/development/"
+url = "development/"
 weight = 4
 
 [[global]]
 identifier = "changelogs"
 name = "Changelogs"
-url = "/changelogs/"
+url = "changelogs/"
 weight = 5
 
 [[global]]
 identifier = "security"
 name = "Security"
-url = "/security/"
+url = "security/"
 weight = 6
 
 ### DOCS ITEMS

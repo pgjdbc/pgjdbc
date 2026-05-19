@@ -11,7 +11,7 @@
     <ul class="tasks__grid" role="list">
         {{- range hugo.Data.homepagedata.task }}
         <li class="tasks__item">
-            <a class="tasks__link" href="{{ .url }}">
+            <a class="tasks__link" href="{{ .url | relURL }}">
                 <h3 class="tasks__title">{{ .title }}</h3>
                 <p class="tasks__desc">{{ .desc }}</p>
             </a>

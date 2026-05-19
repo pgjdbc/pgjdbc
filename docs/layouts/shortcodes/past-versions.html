@@ -74,6 +74,6 @@
 <ul class="custom-marker">
     {{- range $past }}
     {{- $full := .version }}{{ if .suffix }}{{ $full = printf "%s.%s" .version .suffix }}{{ end }}
-    <li><a href="/download/postgresql-{{ $full }}.jar">{{ $full }}</a></li>
+    <li><a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}">{{ $full }}</a></li>
     {{- end }}
 </ul>
