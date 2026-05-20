@@ -243,6 +243,15 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'async_reading',
+  title: x => x.value === 'yes' ? 'async_reading' : '',
+  values: [
+      {value: 'yes', weight: 30},
+      {value: 'no', weight: 70},
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -252,7 +261,7 @@ matrix.setNamePattern([
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
-    'autosave', 'cleanupSavepoints'
+    'autosave', 'cleanupSavepoints', 'async_reading'
 ]);
 
 // We take EA builds from Oracle
@@ -304,6 +313,8 @@ matrix.ensureAllAxisValuesCovered('replication');
 matrix.ensureAllAxisValuesCovered('os');
 // Ensure at least one job with autosave=always
 matrix.generateRow({autosave: {value: 'always'}});
+// Ensure at least one job with async reading enabled
+matrix.generateRow({async_reading: {value: 'yes'}});
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
@@ -352,6 +363,7 @@ include.forEach(v => {
   v.query_timeout = v.query_timeout.value;
   v.autosave = v.autosave.value;
   v.cleanupSavepoints = v.cleanupSavepoints.value;
+  v.async_reading = v.async_reading.value;
 
   let includeTestTags = [];
   // See https://junit.org/junit5/docs/current/user-guide/#running-tests-tag-expressions
@@ -425,6 +437,9 @@ include.forEach(v => {
   }
   if (v.cleanupSavepoints === 'true') {
       testJvmArgs.push('-DcleanupSavepoints=true');
+  }
+  if (v.async_reading === 'yes') {
+      testJvmArgs.push('-Dtest.url.asyncReading=true');
   }
   if (v.gss === 'no') {
       testJvmArgs.push('-DskipGssEncryption=true');
