@@ -1742,6 +1742,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
       final int flags) throws IOException {
+    // When async reading is enabled, the reader thread drains the server's send buffer
+    // into an unbounded queue. The reader never blocks, so the server can always send,
+    // which means the server can always read, preventing TCP deadlock.
+    if (asyncReadingEnabled) {
+      return;
+    }
+
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;

@@ -10,8 +10,8 @@ import org.postgresql.core.ProtocolMessage;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -30,7 +30,7 @@ final class MessageQueue {
    * @param capacity maximum number of buffered messages before the reader blocks
    */
   MessageQueue(int capacity) {
-    this.queue = new ArrayBlockingQueue<>(capacity);
+    this.queue = new LinkedBlockingQueue<>();
   }
 
   /**
