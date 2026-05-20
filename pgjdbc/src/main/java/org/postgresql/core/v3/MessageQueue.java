@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
  */
 final class MessageQueue {
   private final BlockingQueue<Entry> queue;
+  private volatile @Nullable AsyncMessageReader reader;
 
   /**
    * Creates a new message queue with the given capacity.
@@ -30,6 +31,15 @@ final class MessageQueue {
    */
   MessageQueue(int capacity) {
     this.queue = new ArrayBlockingQueue<>(capacity);
+  }
+
+  /**
+   * Sets the reader reference so take() can detect a dead reader.
+   *
+   * @param reader the async message reader
+   */
+  void setReader(AsyncMessageReader reader) {
+    this.reader = reader;
   }
 
   /**
@@ -54,12 +64,35 @@ final class MessageQueue {
 
   /**
    * Takes the next entry from the queue, blocking until one is available.
+   * If the reader thread is dead and the queue is empty, throws IOException
+   * instead of blocking forever.
    *
    * @return the next entry
    * @throws InterruptedException if the thread is interrupted while waiting
+   * @throws IOException if the reader thread is dead and no entries remain
    */
-  Entry take() throws InterruptedException {
-    return queue.take();
+  Entry take() throws InterruptedException, IOException {
+    // Fast path: entry already available
+    Entry entry = queue.poll();
+    if (entry != null) {
+      return entry;
+    }
+    // Check if reader is dead before blocking
+    AsyncMessageReader r = this.reader;
+    if (r != null && !r.isAlive()) {
+      throw new IOException("Connection is broken — async reader thread has stopped");
+    }
+    // Poll with timeout so we can re-check reader liveness
+    while (true) {
+      entry = queue.poll(1000, TimeUnit.MILLISECONDS);
+      if (entry != null) {
+        return entry;
+      }
+      r = this.reader;
+      if (r != null && !r.isAlive()) {
+        throw new IOException("Connection is broken — async reader thread has stopped");
+      }
+    }
   }
 
   /**
