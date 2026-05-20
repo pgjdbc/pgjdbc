@@ -1,8 +1,8 @@
 ---
 title: "Reference"
-weight: 70
+weight: 15
 toc: false
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-20"
 description: "Generated catalogue of every connection property, with defaults, types, and the version each was introduced."
 ---
 

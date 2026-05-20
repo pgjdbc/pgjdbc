@@ -8,6 +8,16 @@
 # the depth; the homepage gives scanability.
 
 [[task]]
+title = "Connection properties"
+desc  = "Every tunable the driver exposes — defaults, types, versions."
+url   = "documentation/reference/connection-properties/"
+
+[[task]]
+title = "Recommended properties"
+desc  = "Non-default settings worth turning on in production."
+url   = "documentation/connect/recommended-properties/"
+
+[[task]]
 title = "Open a connection"
 desc  = "Install pgJDBC and connect to PostgreSQL."
 url   = "documentation/getting-started/install/"
@@ -23,19 +33,14 @@ desc  = "HikariCP, Tomcat JDBC, c3p0, and related tuning."
 url   = "documentation/connect/datasource/"
 
 [[task]]
-title = "Pick a version"
-desc  = "Find the right release line for your Java and PostgreSQL versions."
-url   = "documentation/getting-started/compatibility/"
-
-[[task]]
 title = "Diagnose errors"
 desc  = "Troubleshooting pages keyed by error message and symptom."
 url   = "documentation/troubleshooting/"
 
-[[task]]
-title = "Connection properties"
-desc  = "Browse every tunable the driver exposes."
-url   = "documentation/reference/connection-properties/"
+# "Pick a version" removed from the grid: Compatibility already lives
+# in the hero __links list, so a homepage card was a duplicate. The
+# new "Recommended properties" card takes its slot — the grid is still
+# 3 × 2 / 2 × 3 / 1.
 
 # Homepage release data is no longer mirrored here. The release
 # card (`partials/home/release.html`) and the "Recent:" line both
