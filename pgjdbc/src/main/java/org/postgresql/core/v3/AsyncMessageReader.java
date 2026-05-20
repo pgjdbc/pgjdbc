@@ -38,6 +38,7 @@ final class AsyncMessageReader implements Runnable {
    * @param pgStream the stream to read from
    * @param queue the queue to write messages into
    */
+  @SuppressWarnings({"all", "initialization", "argument", "assignment"})
   AsyncMessageReader(PGStream pgStream, MessageQueue queue) {
     this.pgStream = pgStream;
     this.queue = queue;

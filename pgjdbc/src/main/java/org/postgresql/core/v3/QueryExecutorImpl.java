@@ -968,14 +968,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         while (timeoutMillis >= 0 || hasMessagePending()) {
           if (asyncReadingEnabled && messageQueue != null) {
             // In async mode, use timed poll on the queue instead of socket timeout
+            MessageQueue queue = messageQueue;
             MessageQueue.Entry entry;
             try {
               if (timeoutMillis > 0) {
-                entry = messageQueue.poll(timeoutMillis);
+                entry = queue.poll(timeoutMillis);
               } else if (timeoutMillis == 0) {
-                entry = messageQueue.take();
+                entry = queue.take();
               } else {
-                entry = messageQueue.poll();
+                entry = queue.poll();
               }
             } catch (InterruptedException e) {
               Thread.currentThread().interrupt();
@@ -988,8 +989,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               throw castNonNull(entry.getError());
             }
             currentAsyncMessage = castNonNull(entry.getMessage());
-            currentPayload = new PayloadReader(currentAsyncMessage.getPayload(), pgStream.getEncoding());
-            int c = currentAsyncMessage.getType();
+            ProtocolMessage msg = currentAsyncMessage;
+            currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+            int c = msg.getType();
             switch (c) {
               case 'A':
                 receiveAsyncNotify();
@@ -2523,10 +2525,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private EncodingPredictor.DecodeResult readErrorString(int len) throws IOException {
     if (currentPayload != null) {
-      byte[] data = currentPayload.getData();
-      int pos = currentPayload.getPos();
+      PayloadReader payload = currentPayload;
+      byte[] data = payload.getData();
+      int pos = payload.getPos();
       EncodingPredictor.DecodeResult res = pgStream.decodeErrorString(data, pos, len);
-      currentPayload.advance(len);
+      payload.advance(len);
       return res;
     }
     return pgStream.receiveErrorString(len);
@@ -2549,7 +2552,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private boolean hasMessagePending() throws IOException {
     if (asyncReadingEnabled && messageQueue != null) {
-      return messageQueue.size() > 0;
+      MessageQueue queue = messageQueue;
+      return queue.size() > 0;
     }
     return pgStream.hasMessagePending();
   }
@@ -2561,11 +2565,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private int peekNextMessageType() throws IOException {
     if (asyncReadingEnabled && messageQueue != null) {
+      MessageQueue queue = messageQueue;
       // In async mode, we must consume from the queue — store it for nextMessageType
       MessageQueue.Entry entry;
       try {
         while (true) {
-          entry = messageQueue.poll(1000);
+          entry = queue.poll(1000);
           if (entry != null) {
             break;
           }
@@ -2580,9 +2585,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (entry.isError()) {
         throw castNonNull(entry.getError());
       }
-      currentAsyncMessage = castNonNull(entry.getMessage());
-      currentPayload = new PayloadReader(currentAsyncMessage.getPayload(), pgStream.getEncoding());
-      peekedMessageType = currentAsyncMessage.getType();
+      ProtocolMessage msg = castNonNull(entry.getMessage());
+      currentAsyncMessage = msg;
+      currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+      peekedMessageType = msg.getType();
       return peekedMessageType;
     }
     return pgStream.peekChar();
@@ -2617,12 +2623,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         peekedMessageType = -1;
         return type;
       }
+      MessageQueue queue = messageQueue;
       MessageQueue.Entry entry;
       try {
         long waitStart = System.nanoTime();
         int socketTimeout = pgStream.getNetworkTimeout();
         while (true) {
-          entry = messageQueue.poll(1000);
+          entry = queue.poll(1000);
           if (entry != null) {
             break;
           }
@@ -2645,9 +2652,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       if (entry.isError()) {
         throw castNonNull(entry.getError());
       }
-      currentAsyncMessage = castNonNull(entry.getMessage());
-      currentPayload = new PayloadReader(currentAsyncMessage.getPayload(), pgStream.getEncoding());
-      return currentAsyncMessage.getType();
+      ProtocolMessage msg = castNonNull(entry.getMessage());
+      currentAsyncMessage = msg;
+      currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+      return msg.getType();
     }
     currentPayload = null;
     return pgStream.receiveChar();
@@ -2900,10 +2908,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           Tuple tuple = null;
           try {
             if (currentPayload != null) {
+              PayloadReader payload = currentPayload;
               // Compute data size for adaptive fetch: payload minus 2-byte field count
               // minus 4 bytes per field for the length prefix
-              int payloadLen = currentPayload.getLength();
-              tuple = currentPayload.receiveTupleV3();
+              int payloadLen = payload.getLength();
+              tuple = payload.receiveTupleV3();
               // dataToReadSize = total payload - 2 (nf) - 4*nf (length ints)
               int nf = tuple.fieldCount();
               int dataToReadSize = payloadLen - 2 - 4 * nf;
