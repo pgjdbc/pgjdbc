@@ -18,10 +18,7 @@ The **proactive-security window** is five years past the `.0` of the
 next minor. While a line is in the window, every CVE gets a dedicated
 patch release on that same line — applying the fix never requires
 moving to a newer minor. The latest line has no successor yet and
-stays in full support indefinitely. The
-[Compatibility page](https://pgjdbc.github.io/documentation/getting-started/compatibility/)
-resolves the dates: every in-window row is labelled
-`Security until YYYY-MM`.
+stays in full support indefinitely.
 
 Lines past the window remain eligible for a backport on request —
 open an issue with the reason you're stuck. We have rolled patches
