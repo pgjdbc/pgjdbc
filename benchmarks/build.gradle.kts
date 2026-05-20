@@ -41,6 +41,12 @@ tasks.withType<JavaExec>().configureEach {
     }
 }
 
+// The jandex plugin creates processJmhJandexIndex which writes to build/resources/jmh.
+// The JMH plugin's tasks also use that directory, so we must declare the dependency explicitly.
+tasks.matching { it.name == "jmhCompileGeneratedClasses" || it.name == "jmhRunBytecodeGenerator" }.configureEach {
+    dependsOn(tasks.matching { it.name == "processJmhJandexIndex" })
+}
+
 if ("style" in tasks.names) {
     tasks.style {
         // This enables running `./gradlew style` or `./gradlew -PenableErrorprone` to verify
