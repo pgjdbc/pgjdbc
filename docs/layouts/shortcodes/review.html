@@ -1,0 +1,135 @@
+{{/*
+  review: compact section-level source review metadata.
+
+  Required params:
+    date   review date, e.g. 2026-05-21
+    rev    default full git SHA used for GitHub permalinks unless overridden per entry
+
+  Optional params:
+    repo   default GitHub repository in owner/name form; defaults to pgjdbc/pgjdbc
+
+  Inner content:
+    one entry per line in the form:
+      - Label | repo/path/to/file | 67-74
+      - Label | repo/path/to/file | 226
+
+    Or, for external repositories:
+      - Label | owner/name | path/to/file | 67-74
+
+    Or, with per-entry revision override:
+      - Label | repo/path/to/file | FULL_GIT_SHA | 67-74
+      - Label | owner/name | path/to/file | FULL_GIT_SHA | 67-74
+
+  Supported forms summary:
+    3 fields: Label | repo/path/to/file | lines
+      Uses shortcode-level repo/rev defaults.
+    4 fields: Label | owner/name | path/to/file | lines
+      Uses shortcode-level rev.
+    4 fields: Label | repo/path/to/file | FULL_GIT_SHA | lines
+      Uses shortcode-level repo/default repo.
+    5 fields: Label | owner/name | path/to/file | FULL_GIT_SHA | lines
+      Fully explicit repo + rev per entry.
+*/}}
+{{- $date := .Get "date" -}}
+{{- if not $date -}}
+  {{- errorf "review shortcode requires date at %s" .Position -}}
+{{- end -}}
+{{- $rev := .Get "rev" -}}
+{{- if and $rev (not (findRE "^[0-9a-f]{40}$" $rev)) -}}
+  {{- errorf "review shortcode rev must be a full 40-char lowercase git SHA at %s: %q" .Position $rev -}}
+{{- end -}}
+{{- $defaultRepo := .Get "repo" | default "pgjdbc/pgjdbc" -}}
+{{- if not (findRE "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" $defaultRepo) -}}
+  {{- errorf "review shortcode repo must be owner/name at %s: %q" .Position $defaultRepo -}}
+{{- end -}}
+
+{{- $entries := slice -}}
+{{- $rawLines := split (trim .Inner "\r\n\t ") "\n" -}}
+{{- range $idx, $rawLine := $rawLines -}}
+  {{- $line := trim $rawLine " \t\r" -}}
+  {{- if ne $line "" -}}
+    {{- $line = replaceRE "^[-*]\\s+" "" $line -}}
+    {{- $parts := split $line "|" -}}
+    {{- if and (ne (len $parts) 3) (ne (len $parts) 4) (ne (len $parts) 5) -}}
+      {{- errorf "review shortcode malformed entry %d at %s; expected 3, 4, or 5 fields, got %q" (add $idx 1) $.Position $rawLine -}}
+    {{- end -}}
+    {{- $label := trim (index $parts 0) " \t" -}}
+    {{- $repo := $defaultRepo -}}
+    {{- $path := "" -}}
+    {{- $lines := "" -}}
+    {{- $entryRev := $rev -}}
+    {{- if eq (len $parts) 3 -}}
+      {{- $path = trim (index $parts 1) " \t" -}}
+      {{- $lines = trim (index $parts 2) " \t" -}}
+    {{- else if eq (len $parts) 4 -}}
+      {{- $part1 := trim (index $parts 1) " \t" -}}
+      {{- $part2 := trim (index $parts 2) " \t" -}}
+      {{- $part3 := trim (index $parts 3) " \t" -}}
+      {{- if findRE "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" $part1 -}}
+        {{- $repo = $part1 -}}
+        {{- $path = $part2 -}}
+        {{- $lines = $part3 -}}
+      {{- else if findRE "^[0-9a-f]{40}$" $part2 -}}
+        {{- $path = $part1 -}}
+        {{- $entryRev = $part2 -}}
+        {{- $lines = $part3 -}}
+      {{- else -}}
+        {{- errorf "review shortcode malformed 4-field entry %d at %s; expected either 'Label | owner/name | path/to/file | lines' or 'Label | repo/path/to/file | FULL_GIT_SHA | lines', got %q" (add $idx 1) $.Position $rawLine -}}
+      {{- end -}}
+    {{- else -}}
+      {{- $repo = trim (index $parts 1) " \t" -}}
+      {{- $path = trim (index $parts 2) " \t" -}}
+      {{- $entryRev = trim (index $parts 3) " \t" -}}
+      {{- $lines = trim (index $parts 4) " \t" -}}
+    {{- end -}}
+    {{- if eq $label "" -}}
+      {{- errorf "review shortcode missing label in entry %d at %s" (add $idx 1) $.Position -}}
+    {{- end -}}
+    {{- if not (findRE "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$" $repo) -}}
+      {{- errorf "review shortcode invalid repo in entry %d at %s: %q" (add $idx 1) $.Position $repo -}}
+    {{- end -}}
+    {{- if not $entryRev -}}
+      {{- errorf "review shortcode entry %d at %s requires rev either on the shortcode or in the entry itself" (add $idx 1) $.Position -}}
+    {{- end -}}
+    {{- if not (findRE "^[0-9a-f]{40}$" $entryRev) -}}
+      {{- errorf "review shortcode invalid rev in entry %d at %s: %q" (add $idx 1) $.Position $entryRev -}}
+    {{- end -}}
+    {{- if not (findRE "^[A-Za-z0-9._/-]+$" $path) -}}
+      {{- errorf "review shortcode invalid path in entry %d at %s: %q" (add $idx 1) $.Position $path -}}
+    {{- end -}}
+    {{- if not (findRE "^\\d+(-\\d+)?$" $lines) -}}
+      {{- errorf "review shortcode invalid line spec in entry %d at %s: %q" (add $idx 1) $.Position $lines -}}
+    {{- end -}}
+    {{- $anchor := printf "#L%s" $lines -}}
+    {{- if in $lines "-" -}}
+      {{- $bounds := split $lines "-" -}}
+      {{- if ne (len $bounds) 2 -}}
+        {{- errorf "review shortcode invalid line range in entry %d at %s: %q" (add $idx 1) $.Position $lines -}}
+      {{- end -}}
+      {{- $start := index $bounds 0 -}}
+      {{- $end := index $bounds 1 -}}
+      {{- if lt (int $end) (int $start) -}}
+        {{- errorf "review shortcode line range end before start in entry %d at %s: %q" (add $idx 1) $.Position $lines -}}
+      {{- end -}}
+      {{- $anchor = printf "#L%s-L%s" $start $end -}}
+    {{- end -}}
+    {{- $url := printf "https://github.com/%s/blob/%s/%s%s" $repo $entryRev $path $anchor -}}
+    {{- $entries = $entries | append (dict
+      "label" $label
+      "lines" $lines
+      "url" $url
+    ) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- if eq (len $entries) 0 -}}
+  {{- errorf "review shortcode requires at least one source entry at %s" .Position -}}
+{{- end -}}
+
+<p class="review-meta">
+  <span class="review-meta__prefix">Reviewed {{ $date }} against source:</span>
+  {{- range $idx, $entry := $entries -}}
+    {{- if gt $idx 0 }}, {{ end -}}
+    <a class="review-meta__link" href="{{ index $entry "url" }}">{{ index $entry "label" }}:{{ index $entry "lines" }}</a>
+  {{- end -}}
+</p>

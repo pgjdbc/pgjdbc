@@ -1,0 +1,23 @@
+.review-meta {
+  margin-block: var(--space-2xs) var(--space-m);
+  font-size: var(--fs-200);
+  line-height: 1.5;
+  color: var(--clr-neutral-600);
+
+  &__prefix {
+    color: inherit;
+  }
+
+  &__link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--clr-neutral-400);
+    text-underline-offset: 0.12em;
+  }
+
+  &__link:hover,
+  &__link:focus-visible {
+    color: var(--clr-primary-400);
+    text-decoration-color: currentColor;
+  }
+}
