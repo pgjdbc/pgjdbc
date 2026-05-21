@@ -16,6 +16,10 @@ on:
     branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
+  # Scheduled runs are opt-in: they only execute when the repository defines
+  # the `ENABLE_SCHEDULED_JOBS` variable with the value `true`. This keeps
+  # forks (which inherit the workflow but rarely want the recurring runs)
+  # from burning CI minutes and producing failure notifications by default.
   schedule:
     - cron: '22 13 * * 6'
 
@@ -25,6 +29,7 @@ permissions: read-all
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true'
     # Runner size impacts CodeQL analysis time. To learn more, please see:
     #   - https://gh.io/recommended-hardware-resources-for-running-codeql
     #   - https://gh.io/supported-runners-and-hardware-resources

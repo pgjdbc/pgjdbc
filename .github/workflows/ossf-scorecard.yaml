@@ -10,6 +10,10 @@ on:
     types: [created, deleted]
   # To guarantee Maintained check is occasionally updated. See
   # https://github.com/ossf/scorecard/blob/main/docs/checks.md#maintained
+  # Scheduled runs are opt-in: they only execute when the repository defines
+  # the `ENABLE_SCHEDULED_JOBS` variable with the value `true`. This keeps
+  # forks (which inherit the workflow but rarely want the recurring runs)
+  # from burning CI minutes and producing failure notifications by default.
   schedule:
     - cron: '26 20 * * 5'
   push:
@@ -24,7 +28,10 @@ jobs:
     name: Scorecard analysis
     runs-on: ubuntu-latest
     # `publish_results: true` only works when run from the default branch. conditional can be removed if disabled.
-    if: github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request'
+    # Skip scheduled runs unless the repo opts in via `ENABLE_SCHEDULED_JOBS=true`.
+    if: |
+      (github.event.repository.default_branch == github.ref_name || github.event_name == 'pull_request')
+      && (github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true')
     permissions:
       # Needed to upload the results to code-scanning dashboard.
       security-events: write

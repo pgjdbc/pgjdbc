@@ -32,6 +32,10 @@ on:
         description: Default test group (fast | slow | all)
         required: false
         default: fast
+  # Scheduled runs are opt-in: they only execute when the repository defines
+  # the `ENABLE_SCHEDULED_JOBS` variable with the value `true`. This keeps
+  # forks (which inherit the workflow but rarely want the recurring runs)
+  # from burning CI minutes and producing failure notifications by default.
   schedule:
     - cron: "0 6 * * *"
 
@@ -42,6 +46,7 @@ jobs:
   matrix_prep:
     name: Matrix Preparation
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true'
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     env:
@@ -372,6 +377,7 @@ jobs:
   test-pg-head:
     name: Zulu 17 x PG HEAD
     runs-on: ubuntu-latest
+    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true'
     continue-on-error: true
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
