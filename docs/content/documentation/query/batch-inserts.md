@@ -70,14 +70,14 @@ offers.
 
 ## When the rewriter applies
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - SqlCommand.java | pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java | 64-74
 - ParserTest.java | pgjdbc/src/test/java/org/postgresql/core/ParserTest.java | 216-239
 {{< /review >}}
 
 The rewriter is conservative — it activates only when **all** of the
 following hold (see
-[`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java#L67-L74)):
+[`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java#L67-L74)):
 
 1. The statement is an **`INSERT`**. `UPDATE`, `DELETE`, `SELECT`,
    `MERGE` (and other PostgreSQL-15 forms) are not rewritten.
@@ -99,7 +99,7 @@ the update side uses constants only, the rewrite still applies.
 
 ## How rows are grouped
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - BatchedQuery.java | pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java | 47-66
 - PgPreparedStatement.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgPreparedStatement.java | 1816-1848
 {{< /review >}}
@@ -109,7 +109,7 @@ Doing so would create a fresh prepared statement text for every batch
 size, blowing up the server-side plan cache. Instead, it builds
 prepared statements for **power-of-two batch sizes** (2, 4, 8, 16, 32,
 64, 128 — seven rewritten sizes in total, see
-[`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java#L47-L69))
+[`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java#L47-L69))
 and packs the requested rows into the smallest set of those, plus the
 original 1-row statement when needed.
 
@@ -121,9 +121,9 @@ For example, a batch of 50 rows is split into:
  2-row INSERT   (one execution)
 ```
 
-— three server-side prepared statements, three `CommandComplete`
+That is three server-side prepared statements and three `CommandComplete`
 responses. For low-bind INSERTs, a batch of 200 rows splits into
-`128 + 64 + 8` — three executions; a batch of 1024 rows splits into
+`128 + 64 + 8` (three executions); a batch of 1024 rows splits into
 eight 128-row executions. The largest group size is capped at 128, and
 for statements with many bind parameters the effective cap can be lower
 because the rewritten SQL still has to fit under the driver's maximum
@@ -135,7 +135,7 @@ forms in `pg_stat_statements`.
 
 ## What `executeBatch()` returns
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - BatchResultHandler.java | pgjdbc/src/main/java/org/postgresql/jdbc/BatchResultHandler.java | 231-252
 {{< /review >}}
 
@@ -182,8 +182,8 @@ Concrete examples, with the parameter sets and the resulting `int[]`:
 // int[] = [-2, -2, -2, -2]
 ```
 
-Code that inspects the array — to count inserts, detect partial
-failures, or pair counts back with input rows — has to either:
+Code that inspects the array (to count inserts, detect partial
+failures, or pair counts back with input rows) has to either:
 
 - handle `SUCCESS_NO_INFO` and `0` as the only outcomes for any
   row in a rewritten group, or
@@ -192,12 +192,12 @@ failures, or pair counts back with input rows — has to either:
   way to scope it).
 
 The driver's helper for the un-rewritten case,
-[`BatchResultHandler.uncompressUpdateCount`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/jdbc/BatchResultHandler.java#L223),
+[`BatchResultHandler.uncompressUpdateCount`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/jdbc/BatchResultHandler.java#L223),
 shows where the propagation happens.
 
 ## The `pg_stat_statements` trade-off
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - BatchedQuery.java | pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java | 47-66
 - PgPreparedStatement.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgPreparedStatement.java | 1816-1848
 {{< /review >}}
@@ -219,8 +219,8 @@ fan-out of up to eight rows whose `calls` and `total_exec_time` each tell a
 different fraction of the story. To get aggregate behaviour for a
 logical INSERT, you have to group on the table / column list rather
 than the statement text. This is mostly an inconvenience for
-operations dashboards — the throughput win is much larger than the
-analytics cost — but it is worth knowing about before you start
+operations dashboards (the throughput win is much larger than the
+analytics cost), but it is worth knowing about before you start
 chasing "why did this query suddenly show up in our slow log".
 
 ## Migration checklist
@@ -230,8 +230,8 @@ change with two non-trivial things to verify:
 
 1. **Audit `executeBatch()` callers.** Any caller that inspects the
    returned `int[]` for per-row counts needs to tolerate
-   `SUCCESS_NO_INFO` and `0`. Frameworks that wrap JDBC — Spring's
-   `JdbcTemplate.batchUpdate`, MyBatis batch executors — typically
+   `SUCCESS_NO_INFO` and `0`. Frameworks that wrap JDBC (Spring's
+   `JdbcTemplate.batchUpdate`, MyBatis batch executors) typically
    pass the array through unchanged, so the check is at the
    application-code layer.
 2. **Decide on `pg_stat_statements` scope.** If you rely on it for
@@ -258,7 +258,7 @@ batch runs at the un-accelerated speed.
 - [Server-prepared statements](/documentation/query/prepared-statements/)
   — how the rewritten power-of-two statement texts interact with the
   driver's prepared-statement cache.
-- [`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java)
-  / [`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java)
+- [`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java)
+  / [`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java)
   — the driver code that enforces the activation conditions and the
   power-of-two grouping.

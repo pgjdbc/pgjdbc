@@ -3,12 +3,12 @@ title: "Timeouts"
 weight: 12
 toc: true
 last_reviewed: "2026-05-21"
-description: "The driver-side timeouts that bound the distinct phases of a connection — TCP connect, SSL / GSS upgrade, wall-clock login, socket reads, query cancel — and the JDBC-spec timeouts that layer on top. How they interact with a connection pool, where defaults leave gaps, and the operational pitfalls."
+description: "The driver-side timeouts that bound the distinct phases of a connection (TCP connect, SSL / GSS upgrade, wall-clock login, socket reads, query cancel), and the JDBC-spec timeouts that layer on top. How they interact with a connection pool, where defaults leave gaps, and the operational pitfalls."
 ---
 
 A pgJDBC connection walks through a handful of distinct phases, and each phase is bounded by its own timeout: the TCP handshake, the optional SSL or GSS upgrade, the authentication round-trips, individual socket reads once the connection is steady-state, individual query executions, and the out-of-band cancel side-channel. The defaults are not aligned with each other; misconfigured, the knobs overlap or leave gaps that hang threads for minutes.
 
-This page maps each timeout to the phase it controls. For the **operational** side — why an idle connection dies between checkout and use and which fix actually applies — see [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/).
+This page maps each timeout to the phase it controls. For the **operational** side (why an idle connection dies between checkout and use and which fix actually applies), see [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/).
 
 ## A timeline of one connection
 
@@ -30,7 +30,7 @@ Phases 1–4 are additionally wrapped by `loginTimeout` (default `0` = unlimited
 
 ### `connectTimeout`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 193-206
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 321-389
 {{< /review >}}
@@ -43,7 +43,7 @@ This shared-budget behaviour was introduced in **pgJDBC 42.7.7** ([commit `2a877
 
 ### `loginTimeout`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - Driver.java | pgjdbc/src/main/java/org/postgresql/Driver.java | 288-305
 - Driver.java | pgjdbc/src/main/java/org/postgresql/Driver.java | 341-376
 {{< /review >}}
@@ -61,7 +61,7 @@ If neither the `loginTimeout` URL property nor a `Properties` entry is set, the 
 
 ### `sslResponseTimeout` and `gssResponseTimeout`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 568-587
 - MakeSSL.java | pgjdbc/src/main/java/org/postgresql/ssl/MakeSSL.java | 37-54
 {{< /review >}}
@@ -78,23 +78,23 @@ The broader GSS-encryption story (when it runs, how it interacts with `sslmode`)
 
 This is the load-bearing timeout for the **steady-state** of an open connection, and it also bounds startup/authentication reads if you set it before connect. A connection that survives `loginTimeout`, then sits idle in a pool while a load balancer kills the underlying TCP, then is checked out and used, only notices the kill if `socketTimeout` is set — otherwise the application waits indefinitely on the first read of the dead socket.
 
-The operational details — what value to pick, interaction with pool validation and `tcpKeepAlive`, kernel keepalive defaults — are in [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/).
+The operational details (what value to pick, interaction with pool validation and `tcpKeepAlive`, kernel keepalive defaults) are in [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/).
 
 ### `cancelSignalTimeout`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - QueryExecutorBase.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java | 193-218
 {{< /review >}}
 
 [`cancelSignalTimeout`](/documentation/reference/connection-properties/#prop-cancelsignaltimeout) (seconds, default `10`) is used as **both** the connect timeout and the socket timeout for the *out-of-band cancel command*. A `Statement.cancel()` (or a query-timeout fire — see below) opens a fresh TCP connection to the same PostgreSQL `host:port`, sends a `CancelRequest` message, and closes the socket; that whole flow is bounded by this property.
 
-If the cancel side-channel cannot be reached — the server port is unreachable, the backend has crashed, or the network path for the second TCP connection is broken — the cancel attempt itself times out without affecting the original connection. The query continues to run on the server until it finishes naturally or until some other timeout (`socketTimeout` on the client, `statement_timeout` on the server) intervenes.
+If the cancel side-channel cannot be reached (the server port is unreachable, the backend has crashed, or the network path for the second TCP connection is broken), the cancel attempt itself times out without affecting the original connection. The query continues to run on the server until it finishes naturally or until some other timeout (`socketTimeout` on the client, `statement_timeout` on the server) intervenes.
 
 ## JDBC-spec timeouts
 
 ### `Statement.setQueryTimeout(int seconds)`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - PgStatement.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgStatement.java | 616-645
 - PgStatement.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgStatement.java | 1038-1058
 - QueryExecutorBase.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java | 193-218
@@ -102,7 +102,7 @@ If the cancel side-channel cannot be reached — the server port is unreachable,
 
 When you call `setQueryTimeout(N)`, the driver schedules a `StatementCancelTimerTask` on a shared `Timer`. If the query has not completed after `N` seconds, the task fires `Statement.cancel()`, which opens a cancel side-channel subject to `cancelSignalTimeout`.
 
-The key thing to understand: `setQueryTimeout` is a **cancel request**, not a read deadline. The original connection's read is still blocked on the server's response. If the server is willing and able to cancel, the read unblocks with a `PSQLException` (`ERROR: canceling statement due to user request`). If the server is unreachable for the cancel — or the cancel side-channel itself times out — the read continues until `socketTimeout` fires, the server replies on its own, or the connection is otherwise closed or aborted.
+The key thing to understand: `setQueryTimeout` is a **cancel request**, not a read deadline. The original connection's read is still blocked on the server's response. If the server is willing and able to cancel, the read unblocks with a `PSQLException` (`ERROR: canceling statement due to user request`). If the server is unreachable for the cancel (or the cancel side-channel itself times out), the read continues until `socketTimeout` fires, the server replies on its own, or the connection is otherwise closed or aborted.
 
 For belt-and-braces, layer `setQueryTimeout` with the server-side [`statement_timeout`](https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-STATEMENT-TIMEOUT) GUC: the server enforces the latter unconditionally, independent of the client's ability to deliver a cancel.
 
@@ -112,7 +112,7 @@ The JDBC-spec API for "how long to wait for `getConnection()`". pgJDBC reads `Dr
 
 ## Interaction with a connection pool (HikariCP)
 
-A pool layers a *client-side* wait — "how long the application thread will block in `pool.getConnection()`" — on top of the driver-side timeouts. The two are not the same knob, and on HikariCP the pool feeds its own `connectionTimeout` into the driver's login-timeout machinery differently depending on configuration style. That difference in scope and precedence is a common source of "why didn't my timeout fire" tickets.
+A pool layers a *client-side* wait ("how long the application thread will block in `pool.getConnection()`") on top of the driver-side timeouts. The two are not the same knob, and on HikariCP the pool feeds its own `connectionTimeout` into the driver's login-timeout machinery differently depending on configuration style. That difference in scope and precedence is a common source of "why didn't my timeout fire" tickets.
 
 ### HikariCP sets `loginTimeout` differently in its two configuration styles
 {{< review date="2026-05-21" rev="bba167f0a28905e8e63083cd7b5cbf479263271a" >}}
@@ -141,7 +141,7 @@ The key point is not that the two settings are equal; it is that they control di
 
 ## Host status tracker and `hostRecheckSeconds`
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - GlobalHostStatusTracker.java | pgjdbc/src/main/java/org/postgresql/hostchooser/GlobalHostStatusTracker.java | 32-41
 - GlobalHostStatusTracker.java | pgjdbc/src/main/java/org/postgresql/hostchooser/GlobalHostStatusTracker.java | 53-60
 - MultiHostChooser.java | pgjdbc/src/main/java/org/postgresql/hostchooser/MultiHostChooser.java | 30-36
@@ -157,7 +157,7 @@ On the next `getConnection()`, hosts cached as `ConnectFail` are skipped until t
 ## Common pitfalls
 
 - **Default `socketTimeout=0` plus default `loginTimeout=0` means a non-responsive server hangs the calling thread indefinitely.** A production checklist should set both to non-zero values consistent with the SLAs around the call site.
-- **`loginTimeout` shorter than `connectTimeout`** is a usable pattern (the wall-clock budget caps the whole attempt regardless of per-phase configuration). The inverse — `loginTimeout` much longer than `connectTimeout + sslResponseTimeout + auth` — typically means `loginTimeout` never fires and the individual phase timeouts do all the work. Either is fine; just be deliberate about which is the load-bearing knob.
+- **`loginTimeout` shorter than `connectTimeout`** is a usable pattern (the wall-clock budget caps the whole attempt regardless of per-phase configuration). The inverse, `loginTimeout` much longer than `connectTimeout + sslResponseTimeout + auth`, typically means `loginTimeout` never fires and the individual phase timeouts do all the work. Either is fine; just be deliberate about which is the load-bearing knob.
 - **`setQueryTimeout` without verifying the cancel path** is a quiet failure. The timeout fires, the cancel is sent, but if the second TCP connection cannot reach the server's normal listener the original query keeps running on the server. Either confirm the cancel path is open in your network, or rely on the server-side `statement_timeout` instead.
 - **Multi-host URLs share the `connectTimeout` budget.** With three unreachable hosts and `connectTimeout=10`, the third host may get only the leftover milliseconds. There is no driver-side switch for per-host budgets; retry from a higher layer if you need that. On pre-42.7.7 drivers the opposite was true (a fresh `connectTimeout` per host), and the safe sizing was `loginTimeout ≥ #hosts × connectTimeout + ε`.
 - **`hostRecheckSeconds` is host-status TTL, not an attempt timeout.** It controls how long a failed host is skipped on subsequent connection attempts. With the default `10`, the driver will usually re-probe a dead host after about ten seconds. Tune it based on how aggressively you want to revisit recently-failed nodes. See [Host status tracker and `hostRecheckSeconds`](#host-status-tracker-and-hostrecheckseconds).

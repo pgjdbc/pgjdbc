@@ -5,7 +5,7 @@ draft: false
 weight: 7
 toc: true
 last_reviewed: "2026-05-21"
-description: "A short list of non-default connection properties that are off by default for backward-compatibility reasons but pay back almost everywhere — batch insert rewriting, TCP keep-alive, tagging the backend session, an early-bound server version assumption, and load-balancing across replicas."
+description: "Connection properties worth turning on in production: batch INSERT rewriting, TCP keep-alive, application_name tagging, skipping the startup version round-trip, and load-balancing across replicas."
 ---
 
 The driver ships with conservative defaults — every behaviour change that
@@ -15,8 +15,8 @@ JDBC 1, but it also means a fresh install leaves several big wins on
 the table.
 
 The properties below are the ones worth setting deliberately on most
-production deployments. Each comes with one specific caveat — what is
-holding it back from being on by default — so you can decide rather
+production deployments. Each comes with one specific caveat (what is
+holding it back from being on by default), so you can decide rather
 than copy-paste.
 
 ## `reWriteBatchedInserts=true` — batch INSERT throughput
@@ -33,17 +33,22 @@ offers.
 jdbc.url=jdbc:postgresql://db.example/app?reWriteBatchedInserts=true
 ```
 
-**Why it is off by default.** The per-statement counts returned by
-`PreparedStatement.executeBatch()` change shape — the rewritten
-multi-row INSERT returns one aggregate update count to the server,
-and the driver propagates
+**Why it is off by default.** The `int[]` returned by
+`PreparedStatement.executeBatch()` still complies with the JDBC
+specification; however, application code may need updates if it
+relied on accurate per-row update counts. With the rewrite, the
+server returns a single aggregated row count for the whole multi-row
+INSERT, which cannot be attributed back to the individual statements
+in the batch. The driver therefore reports
 [`Statement.SUCCESS_NO_INFO`](https://docs.oracle.com/en/java/javase/17/docs/api/java.sql/java/sql/Statement.html#SUCCESS_NO_INFO)
-(`-2`) to entries in the returned `int[]` instead of per-row counts.
-Code that inspects the array to count inserted rows or detect partial
-failures needs to handle `SUCCESS_NO_INFO` first. The full mechanics
-— when the rewriter applies, how it groups rows, what the
-`executeBatch()` array looks like in practice, and the
-`pg_stat_statements` trade-off — are on
+(`-2`) for each entry in the returned `int[]` instead of `1`. Code
+that inspects the array to detect partial failures, count inserted
+rows, or pair counts back with input rows needs to handle
+`SUCCESS_NO_INFO` first (see
+[`BatchResultHandler.uncompressUpdateCount`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/jdbc/BatchResultHandler.java#L223)).
+The full mechanics (when the rewriter applies, how it groups rows,
+what the `executeBatch()` array looks like in practice, and the
+`pg_stat_statements` trade-off) are covered in
 [Batch INSERT rewriting](/documentation/query/batch-inserts/).
 INSERTs the rewriter cannot handle (e.g. `RETURNING`) fall back to
 one round-trip per row automatically, so the property is safe to
@@ -51,7 +56,7 @@ enable globally even for code paths that do not benefit.
 
 ## `tcpKeepAlive=true` — survive NAT and load balancers
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 225-233
 {{< /review >}}
 
@@ -78,7 +83,7 @@ driver. On Linux the defaults are `net.ipv4.tcp_keepalive_time=7200`
 (two hours of idle before the first probe), which is longer than most
 NAT timeouts; tune the sysctls or set the per-socket variants in your
 container if you need a tighter bound. The companion topic of how
-sockets actually die behind a load balancer — and which fix applies —
+sockets actually die behind a load balancer, and which fix applies,
 lives in [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/).
 
 ## `ApplicationName=my-service` — name the session for operators
@@ -105,7 +110,7 @@ a no-op fallback.
 
 ## `assumeMinServerVersion=9.0` — skip a startup round-trip
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 464-479
 - ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 1096-1118
 {{< /review >}}
@@ -113,7 +118,7 @@ a no-op fallback.
 [`assumeMinServerVersion`](/documentation/reference/connection-properties/#prop-assumeminserverversion)
 tells the driver that the server is at least the given version. When
 the value is `9.0` or higher, the driver bundles version-gated
-startup parameters — most notably `application_name` — into the
+startup parameters (most notably `application_name`) into the
 initial startup message instead of issuing them later as separate
 `SET` commands.
 
@@ -142,7 +147,7 @@ server.
 
 ## `loadBalanceHosts=true` — spread reads across replicas
 
-{{< review date="2026-05-21" rev="c006c7c35c6cb377c4a80c63a65141b2dd365ea2" >}}
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
 - MultiHostChooser.java | pgjdbc/src/main/java/org/postgresql/hostchooser/MultiHostChooser.java | 42-54
 - MultiHostChooser.java | pgjdbc/src/main/java/org/postgresql/hostchooser/MultiHostChooser.java | 57-93
 {{< /review >}}
