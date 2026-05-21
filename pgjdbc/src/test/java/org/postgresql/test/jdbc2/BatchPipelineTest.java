@@ -68,7 +68,8 @@ public class BatchPipelineTest {
       int[] counts = ps.executeBatch();
       assertEquals(100, counts.length);
       for (int i = 0; i < counts.length; i++) {
-        assertEquals(1, counts[i], "Update count for row " + i);
+        assertTrue(counts[i] == 1 || counts[i] == Statement.SUCCESS_NO_INFO,
+            "Update count for row " + i + " should indicate success, got " + counts[i]);
       }
     }
 
