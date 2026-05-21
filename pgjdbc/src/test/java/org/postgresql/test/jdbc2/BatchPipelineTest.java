@@ -9,8 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.jdbc.AutoSave;
+import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.AfterEach;
@@ -247,6 +251,14 @@ public class BatchPipelineTest {
 
   @Test
   void autocommitBatchErrorIsAtomic() throws SQLException {
+    // Atomicity only applies in extended protocol without autosave (simple query mode
+    // commits each statement individually, and autosave uses savepoints for partial progress)
+    PGConnection pgCon = con.unwrap(PGConnection.class);
+    assumeTrue(pgCon.getPreferQueryMode() != PreferQueryMode.SIMPLE,
+        "Simple query mode commits each statement individually");
+    assumeTrue(pgCon.getAutosave() == AutoSave.NEVER,
+        "Autosave allows partial batch progress via savepoints");
+
     con.setAutoCommit(true);
     try (Statement s = con.createStatement()) {
       s.execute("INSERT INTO pipeline_test(val) VALUES ('existing')");

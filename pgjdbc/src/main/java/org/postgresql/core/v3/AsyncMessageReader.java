@@ -10,7 +10,6 @@ import org.postgresql.core.ProtocolMessage;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.net.SocketTimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -52,12 +51,8 @@ final class AsyncMessageReader implements Runnable {
   public void run() {
     try {
       while (running && !Thread.currentThread().isInterrupted()) {
-        try {
-          ProtocolMessage msg = pgStream.readFullMessage();
-          queue.put(msg);
-        } catch (SocketTimeoutException e) {
-          // SO_TIMEOUT fired — no data available yet, retry
-        }
+        ProtocolMessage msg = pgStream.readFullMessage();
+        queue.put(msg);
       }
     } catch (EOFException e) {
       if (running) {

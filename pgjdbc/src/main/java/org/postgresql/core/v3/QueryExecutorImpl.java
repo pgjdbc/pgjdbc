@@ -230,6 +230,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private boolean inExtendedProtocol;
 
   private final boolean asyncReadingEnabled;
+  private volatile int networkTimeoutRequested;
   private @Nullable AsyncMessageReader asyncReader;
   private @Nullable MessageQueue messageQueue;
 
@@ -269,6 +270,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     readStartupMessages();
 
     if (asyncReadingEnabled) {
+      // Clear SO_TIMEOUT so the reader thread blocks indefinitely waiting for data.
+      // Timeouts are handled at the consumer side via MessageQueue.take() polling.
+      pgStream.setNetworkTimeout(0);
       this.messageQueue = new MessageQueue(1024);
       this.asyncReader = new AsyncMessageReader(pgStream, this.messageQueue);
       this.messageQueue.setReader(this.asyncReader);
@@ -286,6 +290,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public boolean isAsyncReadingEnabled() {
     return asyncReadingEnabled;
+  }
+
+  @Override
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    if (asyncReadingEnabled) {
+      // When async reading is active, the reader thread requires SO_TIMEOUT=0 to block
+      // indefinitely. Store the requested timeout for consumer-side enforcement but do
+      // not change the socket.
+      this.networkTimeoutRequested = milliseconds;
+      return;
+    }
+    super.setNetworkTimeout(milliseconds);
+  }
+
+  @Override
+  public int getNetworkTimeout() throws IOException {
+    if (asyncReadingEnabled) {
+      return networkTimeoutRequested;
+    }
+    return super.getNetworkTimeout();
   }
 
   @Override
@@ -1070,6 +1094,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void setSocketTimeout(int millis) throws PSQLException {
+    if (asyncReadingEnabled) {
+      networkTimeoutRequested = millis;
+      return;
+    }
     try {
       Socket s = pgStream.getSocket();
       if (!s.isClosed()) { // Is this check required?
@@ -2641,9 +2669,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       MessageQueue.Entry entry;
       try {
         long waitStart = System.nanoTime();
-        int socketTimeout = pgStream.getNetworkTimeout();
+        int socketTimeout = networkTimeoutRequested;
+        long pollMs = socketTimeout > 0 ? Math.min(socketTimeout, 1000) : 1000;
         while (true) {
-          entry = queue.poll(1000);
+          entry = queue.poll(pollMs);
           if (entry != null) {
             break;
           }
@@ -2655,6 +2684,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (socketTimeout > 0) {
             long elapsed = (System.nanoTime() - waitStart) / 1_000_000;
             if (elapsed >= socketTimeout) {
+              throw new SocketTimeoutException("Async read timed out after " + elapsed + "ms");
+            }
+            pollMs = Math.min(socketTimeout - elapsed, 1000);
+            if (pollMs <= 0) {
               throw new SocketTimeoutException("Async read timed out after " + elapsed + "ms");
             }
           }
