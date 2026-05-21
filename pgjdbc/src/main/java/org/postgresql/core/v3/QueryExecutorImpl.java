@@ -270,8 +270,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     readStartupMessages();
 
     if (asyncReadingEnabled) {
-      // Clear SO_TIMEOUT so the reader thread blocks indefinitely waiting for data.
-      // Timeouts are handled at the consumer side via MessageQueue.take() polling.
+      // Preserve the configured socket timeout for consumer-side enforcement, then clear
+      // SO_TIMEOUT so the reader thread blocks indefinitely waiting for data.
+      this.networkTimeoutRequested = pgStream.getNetworkTimeout();
       pgStream.setNetworkTimeout(0);
       this.messageQueue = new MessageQueue(1024);
       this.asyncReader = new AsyncMessageReader(pgStream, this.messageQueue);
