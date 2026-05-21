@@ -30,7 +30,7 @@ final class MessageQueue {
    * @param capacity maximum number of buffered messages before the reader blocks
    */
   MessageQueue(int capacity) {
-    this.queue = new LinkedBlockingQueue<>();
+    this.queue = new LinkedBlockingQueue<>(capacity);
   }
 
   /**
