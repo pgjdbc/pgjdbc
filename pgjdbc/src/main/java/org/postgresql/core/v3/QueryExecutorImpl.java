@@ -284,6 +284,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   @Override
+  public boolean isAsyncReadingEnabled() {
+    return asyncReadingEnabled;
+  }
+
+  @Override
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
   }
@@ -698,10 +703,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         for (int i = 0; i < queries.length; i++) {
           SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
+          if (!asyncReadingEnabled) {
+            if (i == 0) {
+              estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
+            } else {
+              flushIfDeadlockRisk(query, handler, batchHandler, flags);
+            }
           }
 
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
@@ -711,12 +718,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
 
-          if (handler.getException() != null) {
+          if (!asyncReadingEnabled && handler.getException() != null) {
             break;
           }
         }
 
-        if (handler.getException() == null) {
+        if (asyncReadingEnabled || handler.getException() == null) {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
@@ -1777,8 +1784,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     SimpleParameterList[] subparams = parameters.getSubparams();
 
     if (subqueries == null) {
-      // If we saw errors, don't send anything more.
-      if (resultHandler.getException() == null) {
+      if (asyncReadingEnabled || resultHandler.getException() == null) {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
@@ -1788,13 +1794,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
+        if (!asyncReadingEnabled) {
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
+          } else {
+            flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+            if (resultHandler.getException() != null) {
+              break;
+            }
           }
         }
 

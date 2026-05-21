@@ -446,6 +446,11 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void abort();
 
   /**
+   * Returns true if async protocol message reading is enabled for this connection.
+   */
+  boolean isAsyncReadingEnabled();
+
+  /**
    * Close this connection cleanly.
    */
   void close();
