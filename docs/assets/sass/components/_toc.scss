@@ -30,7 +30,7 @@
     }
 
     a {
-        text-decoration: none;
+        text-decoration: underline;
     }
 
     @include mq-max(medium) {

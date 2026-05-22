@@ -5,7 +5,9 @@
 
   position: sticky;
   top: 0;
-  z-index: 1;
+  /* Above .param-table thead (z-index: 1) so the navbar always covers the
+     parking band even if --navbar-height under-estimates actual height. */
+  z-index: 2;
   padding: var(--primary-spacing) var(--container-spacing);
   box-shadow: 0px 3px 3px hsla(0, 0%, 0%, 0.15);
   background-color: var(--clr-white);
@@ -18,38 +20,25 @@
   &__item {
     display: flex;
 
+    // Lightened in the styling pass: the navbar is supporting
+    // chrome, not the page's primary task. 1.25rem / weight 600
+    // read as heading-class on small screens and crowded the
+    // homepage hero on wide ones; 1.05rem / weight 500 sits
+    // quietly enough to let the hero CTA stay the loudest
+    // element on the page.
     &__link {
       color: var(--clr-indigo);
-      text-decoration: none;
-      font-size: 1.25rem;
-      position: relative;
-      font-weight: 600;
+      text-decoration: underline;
+      font-size: 1.05rem;
+      font-weight: 500;
       margin-inline: var(--primary-spacing);
 
       &--active {
         color: var(--clr-primary-400);
       }
 
-      &::after {
-        content: '';
-        position: absolute;
-        width: 100%;
-        transform: scaleX(0);
-        height: 2px;
-        bottom: 0;
-        left: 0;
-        background-color: var(--clr-primary-100);
-        transform-origin: bottom right;
-        transition: transform 0.25s ease-out;
-      }
-
       &:hover {
         color: var(--clr-indigo);
-      }
-
-      &:hover::after {
-        transform: scaleX(1);
-        transform-origin: bottom left;
       }
     }
 
@@ -94,17 +83,64 @@
   }
 
   a {
-    text-decoration: none;
+    text-decoration: underline;
     color: var(--clr-white);
 
 
   }
 
+  /* Indent the sub-page rows of the Docs Menu via list-item padding
+     rather than `&nbsp;&nbsp;` inside the link text. Padding belongs
+     to the `<li>` so it does not get caught by the link's underline,
+     which would otherwise put a visible underline in front of the
+     title text. */
+  .docsmenu__subpage {
+    padding-inline-start: 2.5em;
+  }
+
   padding: 1em 2em;
+
+  /* When a mobile dropdown is opened (the toggle removes `.dn`), cap
+     its height to the space between the sticky top navbar and the
+     fixed button row, and let the inner list scroll. Without the cap
+     the Docs Menu with ~25 entries overflows the viewport upward;
+     because the parent `.nav-mob` is position: fixed the user cannot
+     scroll to reach the top of the list (the page body scrolls
+     underneath instead, which moves nothing visible). Without the
+     `--navbar-height` term the top of the menu sits under the sticky
+     `.navbar` at the top of the viewport and hides the first entries.
+
+     `100dvh` follows the dynamic viewport on mobile so the cap stays
+     correct when the browser's address bar shows or hides; `100vh`
+     is a fallback for engines that do not yet implement dvh. The
+     5rem subtracted matches the intrinsic height of the button row
+     below (the same constant used by the body's padding-bottom).
+     `--navbar-height` is the measured height of the sticky `.navbar`
+     (published by static/js/navbar-height.js, with a 5rem default in
+     abstracts/_constants.scss). */
+  .mobilemenu:not(.dn) {
+    max-height: calc(100vh - 5rem - var(--navbar-height));
+    max-height: calc(100dvh - 5rem - var(--navbar-height));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
 
   @include mq-min(medium) {
     display: none;
+  }
+}
 
+// The bottom-fixed `.nav-mob` covers the last ~5rem of the viewport
+// on every page below the `medium` breakpoint. Without compensating
+// padding the page's footer (and the tail of any long article) sits
+// behind it and is unreachable. The padding-bottom matches the
+// nav-mob's intrinsic height (1em + 1em padding + ~3em of button row
+// ≈ 5rem) with a small buffer so the last content line is fully
+// visible above the bar.
+@include mq-max(medium) {
+  body {
+    padding-bottom: 5.5rem;
   }
 }
 

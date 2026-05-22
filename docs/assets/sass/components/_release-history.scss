@@ -1,0 +1,58 @@
+.release-history-wrap {
+  margin-block: var(--space-m);
+
+  /* On narrow viewports the seven columns push past the viewport;
+     wrap-scroll keeps row-by-row reading intact without forcing
+     line breaks inside individual cells. */
+  @include mq-max(medium) {
+    overflow-x: auto;
+  }
+}
+
+.release-history {
+  display: table;
+  overflow: visible;
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: var(--fs-300);
+
+  th, td {
+    padding: var(--space-2xs) var(--space-s);
+    border-block-end: var(--border-subtle);
+    vertical-align: top;
+    text-align: start;
+  }
+
+  thead th {
+    background: var(--clr-neutral-100);
+    font-weight: 600;
+    color: var(--clr-neutral-700);
+    position: sticky;
+    inset-block-start: var(--navbar-height);
+    z-index: 1;
+    box-shadow: inset 0 -1px 0 var(--clr-neutral-300);
+  }
+
+  /* The line label, version range, ISO release date and the status
+     phrase ("Security until 2028-11" etc.) must never wrap: an ISO
+     date breaking on a hyphen is jarring, and "42.2.27.jre6" or
+     "42.7.0-42.7.4" sliced mid-token is unreadable. */
+  &__line,
+  &__range,
+  &__date,
+  &__status {
+    white-space: nowrap;
+  }
+
+  &__line code,
+  &__range code {
+    font-family: ui-monospace, "JetBrains Mono", Menlo, Consolas, monospace;
+  }
+
+  /* The active recommended segment of the active line — gets a quiet
+     tint so a reader scanning the table lands on it first. */
+  &__current {
+    background: var(--clr-primary-50, var(--clr-neutral-100));
+  }
+}

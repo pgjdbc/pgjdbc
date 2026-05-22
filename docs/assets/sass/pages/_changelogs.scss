@@ -1,0 +1,69 @@
+// Changelogs landing page. Renders as a vertically scannable list:
+// one row per release, columns are REL-version | ISO date | summary.
+// Grid lets the version and date stay in fixed columns so the eye
+// can run down them without saccading. On narrow viewports the
+// row collapses to a two-line block (version+date together, then
+// the summary on its own line).
+
+.changelogs {
+    &__list {
+        list-style: none;
+        margin: var(--space-l) 0 0;
+        padding: 0;
+    }
+
+    &__entry {
+        display: grid;
+        grid-template-columns: max-content max-content 1fr;
+        gap: var(--space-s) var(--space-m);
+        align-items: baseline;
+        padding: 0.55em 0;
+        border-bottom: 1px solid var(--clr-neutral-200);
+
+        &:last-child {
+            border-bottom: 0;
+        }
+    }
+
+    /* REL42.x.y — the link target. Monospace + weight 600 makes
+       the version column scan as a column even when summary text
+       wraps to multiple lines. Link blue per the styling-pass
+       discipline (links and CTAs only). */
+    &__version {
+        font-family: 'JetBrainsMono', monospace;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--clr-primary-400);
+        text-decoration: underline;
+        white-space: nowrap;
+    }
+
+    /* ISO date — tabular-nums keeps each digit the same advance
+       width, so dates column-align even though the font is
+       proportional. */
+    &__date {
+        color: var(--clr-neutral-600);
+        font-size: 0.95rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    &__summary {
+        color: var(--clr-neutral-700);
+        line-height: 1.45;
+    }
+
+    @include mq-max(small) {
+        &__entry {
+            grid-template-columns: max-content 1fr;
+            gap: 0.2em var(--space-s);
+        }
+
+        /* On narrow screens the summary drops onto its own row
+           below the version+date pair so it doesn't squeeze the
+           date column. */
+        &__summary {
+            grid-column: 1 / -1;
+        }
+    }
+}
