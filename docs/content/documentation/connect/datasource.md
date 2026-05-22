@@ -6,6 +6,7 @@ weight: 10
 toc: true
 aliases:
     - "/documentation/head/ds-ds.html"
+    - "/documentation/datasource/"
 ---
 
 JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package

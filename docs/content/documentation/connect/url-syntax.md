@@ -1,5 +1,8 @@
 ---
 title: "Connecting to the Database"
+aliases:
+    - "/documentation/use/"
+    - "/documentation/head/connect.html"
 ---
 
 

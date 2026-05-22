@@ -1,5 +1,7 @@
 ---
 title: "Accessing the Extensions"
+aliases:
+    - "/documentation/server-prepare/"
 ---
 
 

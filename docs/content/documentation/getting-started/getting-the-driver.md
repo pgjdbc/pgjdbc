@@ -1,5 +1,8 @@
 ---
 title: "Getting the Driver"
+aliases:
+    - "/documentation/setup/"
+    - "/documentation/head/setup.html"
 ---
 
 This section describes the steps you need to take before you can write or run programs that use the JDBC interface.

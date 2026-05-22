@@ -1,5 +1,7 @@
 ---
 title: "Using the Statement or PreparedStatement Interface"
+aliases:
+    - "/documentation/head/query.html"
 ---
 
 Any time you want to issue SQL statements to the database, you require a `Statement` or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement` , you can use issue a query. This will return a `ResultSet` instance, which contains the entire result (see the section called [Getting results based on a cursor](/documentation/query/#getting-results-based-on-a-cursor) here for how to alter this behaviour). [Example 5.1, “Processing a Simple Query in JDBC”](/documentation/query/#example51processing-a-simple-query-in-jdbc) illustrates this process.

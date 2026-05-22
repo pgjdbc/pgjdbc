@@ -6,6 +6,7 @@ weight: 3
 toc: true
 aliases:
     - "/documentation/head/ssl-client.html"
+    - "/documentation/ssl/"
 ---
 
 Configuring the PostgreSQL® server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
