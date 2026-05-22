@@ -4,7 +4,7 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 2
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "Common TLS failure messages — PKIX path building failed, hostname mismatch, sslmode confusion, key-file format issues — with their cause and the exact connection-property fix."
 ---
 
@@ -22,6 +22,12 @@ defaults on a fresh project, see the
 [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## `PKIX path building failed`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- SslMode.java | pgjdbc/src/main/java/org/postgresql/jdbc/SslMode.java | 55-60
+- LibPQFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/LibPQFactory.java | 147-201
+- MakeSSL.java | pgjdbc/src/main/java/org/postgresql/ssl/MakeSSL.java | 49-54
+{{< /review >}}
 
 Full message, from the JDK (not pgJDBC):
 
@@ -52,6 +58,11 @@ some other path (a `SocketFactory`, a security provider, an
 
 ## `The hostname X could not be verified by hostnameverifier Y`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- MakeSSL.java | pgjdbc/src/main/java/org/postgresql/ssl/MakeSSL.java | 60-95
+- PGjdbcHostnameVerifier.java | pgjdbc/src/main/java/org/postgresql/ssl/PGjdbcHostnameVerifier.java | 80-222
+{{< /review >}}
+
 pgJDBC's `MakeSSL` wraps the JDK's hostname check; the underlying
 message in the log will be one of:
 
@@ -80,6 +91,11 @@ JDBC URL. Three resolutions, in decreasing preference:
 
 ## `The server does not support SSL`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- SslMode.java | pgjdbc/src/main/java/org/postgresql/jdbc/SslMode.java | 51-52
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 644-718
+{{< /review >}}
+
 Raised by `ConnectionFactoryImpl` when the client requires SSL
 (`sslmode=require` or stricter) but the server has no SSL listener.
 Likely causes:
@@ -97,23 +113,38 @@ provider). If `psql` also fails, it is genuinely a server-side issue.
 
 ## SSL key file errors
 
-Three messages, all from the pgJDBC SSL key loaders:
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- LibPQFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/LibPQFactory.java | 74-145
+- LibPQFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/LibPQFactory.java | 220-235
+- LazyKeyManager.java | pgjdbc/src/main/java/org/postgresql/ssl/LazyKeyManager.java | 142-286
+- PKCS12KeyManager.java | pgjdbc/src/main/java/org/postgresql/ssl/PKCS12KeyManager.java | 47-85
+- PEMKeyManager.java | pgjdbc/src/main/java/org/postgresql/ssl/PEMKeyManager.java | 42-101
+- BaseX509KeyManager.java | pgjdbc/src/main/java/org/postgresql/ssl/BaseX509KeyManager.java | 60-67
+- certdir/Makefile | certdir/Makefile | 19-21
+{{< /review >}}
+
+Common messages from the pgJDBC SSL key loaders include:
 
 - `Could not open SSL certificate file <path>`
 - `Could not read SSL key file <path>`
 - `Loading the SSL certificate <path> into a KeyManager failed.`
+- `Could not initialize PEMKeyManager.`
+- `Could not load the private key`
+- `Could not load cert chain`
 
 Together they cover the disk / format problem space:
 
 - **File not found / unreadable.** Path is wrong or the JVM lacks
   read permission. The defaults are
   `${user.home}/.postgresql/postgresql.crt`,
-  `…/postgresql.p12`, `…/root.crt`; override with `sslcert`,
+  `…/postgresql.pk8`, `…/root.crt`; override with `sslcert`,
   `sslkey`, `sslrootcert` to be explicit.
-- **Wrong key format.** Modern pgJDBC expects a **PKCS-12** key
-  (`.p12` or `.pfx` extension). PKCS-8 (`.pk8`) is still recognised
-  but recent OpenSSL versions can no longer generate it. See
-  [SSL / TLS](/documentation/security/ssl-tls/) for the
+- **Wrong key format.** pgJDBC selects the key loader from the
+  `sslkey` filename: `.p12` / `.pfx` use the PKCS-12 loader,
+  `.key` / `.pem` use the PEM loader, and other extensions use the
+  PKCS-8 DER loader. Recent OpenSSL versions no longer support the
+  older PKCS-8 conversion recipe, so PKCS-12 is the most portable
+  choice. See [SSL / TLS](/documentation/security/ssl-tls/) for the
   `openssl pkcs12 -export` recipe.
 - **PKCS-12 alias mismatch.** When generating the bundle, the alias
   passed to `openssl pkcs12 -export -name <alias>` must be `user`,

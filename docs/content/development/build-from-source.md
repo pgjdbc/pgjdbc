@@ -4,36 +4,78 @@ date: 2026-05-13T00:00:00Z
 draft: false
 weight: 10
 toc: true
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-22"
 aliases:
     - "/documentation/setup/#getting-the-driver/"
 ---
 
-Alternatively you can build the driver from source, but you should only need to do this if you are making changes to the source code. To build the JDBC driver, you need gradle and a JDK (currently at least jdk1.8).
+You normally do not need to build pgJDBC yourself — released jars are available on [Maven Central](https://repo1.maven.org/maven2/org/postgresql/postgresql/). Build from source if you are modifying the driver, packaging it for a Linux distribution, or reproducing a specific commit.
 
-If you have several Java compilers installed, maven will use the first one on the path. To use a different one set `JAVA_HOME` to the Java version you wish to use. For example, to use a different JDK than the default, this may work:
+The build is driven by the bundled Gradle Wrapper (`./gradlew` or `gradlew.bat`), so a separate Gradle installation is not required.
 
-```java
- JAVA_HOME=/usr/local/jdk1.8.0_45
- ```
+## Requirements
 
-To compile the driver simply run **`gradlew assemble`** or **`gradlew build`** if you want to run the tests in the top level directory.
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- settings.gradle.kts | settings.gradle.kts | 28-30
+- build-parameters | build-logic/build-parameters/build.gradle.kts | 19-44
+- Java compiler release | build-logic/jvm/src/main/kotlin/build-logic.java.gradle.kts | 54-66
+{{< /review >}}
 
-> **NOTE**
->
-> If you want to skip test execution, add the option `-DskipTests`. The compiled driver will be placed in `pgjdbc/build/libs/postgresql-MM.nn.pp.jar`
+* A Git client.
+* **Java 17 or newer** to launch Gradle itself — `settings.gradle.kts` rejects older JDKs.
+* For the actual compilation pgJDBC uses [Gradle toolchains](https://docs.gradle.org/current/userguide/toolchains.html); by default the build expects JDK 21 (`jdkBuildVersion=21`) and Gradle will auto-provision it if not found locally.
+* The produced jar targets **Java 8** by default (`targetJavaVersion=8`), so the artifact runs on Java 8 and above.
 
-Where MM is the major version, nn is the minor version and pp is the patch version. Versions for JDBC3 and lower can be found [here](https://repo1.maven.org/maven2/org/postgresql/postgresql/9.2-1003-jdbc3/)
+To override the build or test JDK, pass `-PjdkBuildVersion=...` / `-PjdkTestVersion=...`. See [CONTRIBUTING.md — Build requirements](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md#build-requirements) for the full list of build parameters.
 
-This is a very brief outline of how to build the driver. Much more detailed information can be found on the [github repo](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md)
+## Building the driver
 
-Even though the JDBC driver should be built with Gradle, for situations, where use of Gradle is not possible, e.g.,
-when building pgJDBC for distributions, the pgJDBC Gradle build provides a convenience source release artifact `*-src.tar.gz` - a Maven-based project.
-The Maven-based project contains a version of the JDBC driver with complete functionality, which can be used in production and is still validly buildable
-within the Maven build environment.
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- Gradle build workflow | CONTRIBUTING.md | 104-127
+- project version | build.gradle.kts | 31-35
+- pgjdbc project directory | settings.gradle.kts | 48-52
+- release version property | gradle.properties | 14-17
+{{< /review >}}
 
-The Maven-based project is created with **`gradlew -d :postgresql:sourceDistribution -Prelease -Psigning.gpg.enabled=OFF`**.
-The produced `*-src.tar.gz` can be then found in `pgjdbc/build/distributions/` directory. JDBC driver can be built from the Maven-based project with **mvn package** or,
-when the tests are to be skipped, with **`mvn -DskipTests package`**.
+To compile pgJDBC and run the tests:
 
-Source files `*-src.tar.gz`'s are released in the [Maven central repository](https://repo1.maven.org/maven2/org/postgresql/postgresql/).
+```
+./gradlew build
+```
+
+To assemble the jars without running tests:
+
+```
+./gradlew assemble          # build the artifacts only
+./gradlew build -x test     # build, verify code style, skip tests
+```
+
+The compiled jar is placed in `pgjdbc/build/libs/postgresql-<version>.jar` — for example, `postgresql-42.7.12.jar` for a release build, or `postgresql-42.7.12-SNAPSHOT.jar` while developing against an unreleased version.
+
+For the full Gradle workflow — running selected tests, code-style checks, ErrorProne / CheckerFramework, translations, the release procedure — see [CONTRIBUTING.md](https://github.com/pgjdbc/pgjdbc/blob/master/CONTRIBUTING.md).
+
+## Building with Maven from the source distribution
+
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- sourceDistribution | pgjdbc/build.gradle.kts | 334-421
+- Maven source build verification | pgjdbc/build.gradle.kts | 423-443
+- source distribution publication | pgjdbc/build.gradle.kts | 452-455
+- reduced Maven build | pgjdbc/reduced-pom.xml | 29-42
+{{< /review >}}
+
+Where Gradle is not available — typically when packaging pgJDBC for a Linux distribution — the Gradle build can emit a convenience Maven-based source release. The Maven project is a **trimmed** variant of pgJDBC: OSGi metadata generation, the native Windows SSPI sources, and the OSGi / SSPI / replication test suites are excluded so that the project can be built with stock Maven. The resulting jar is suitable for runtime use as a JDBC driver.
+
+Produce the archive with:
+
+```
+./gradlew :postgresql:sourceDistribution -Prelease -Psigning.pgp.enabled=OFF
+```
+
+The archive `postgresql-<version>-jdbc-src.tar.gz` is placed in `pgjdbc/build/distributions/`. After extracting it, build the driver with Maven:
+
+```
+mvn package                # or, to skip tests:
+mvn -DskipTests package
+```
+
+The `*-jdbc-src.tar.gz` archives are also published to [Maven Central](https://repo1.maven.org/maven2/org/postgresql/postgresql/) alongside each release.

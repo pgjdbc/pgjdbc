@@ -4,18 +4,22 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 8
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "pgJDBC hard-requires client_encoding=UTF8. Errors that surface when the server tries to change that, when the database itself is SQL_ASCII, and when the byte stream is not what UTF-8 expects — with the real fix and the workaround."
 ---
 
 The driver hard-requires `client_encoding = UTF8` on every connection.
-That's not a default — it's pinned in the startup message at
-[`ConnectionFactoryImpl.java:460`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java#L460)
-— and the [`QueryExecutorImpl`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java#L3072)
-parameter-status handler enforces it for the lifetime of the
-connection. Java strings are UTF-16 internally; pgJDBC converts to
-UTF-8 at the wire, and any other client encoding breaks that
-contract.
+That's not a default: it is pinned in the startup message, and the
+`QueryExecutorImpl` parameter-status handler enforces it for the
+lifetime of the connection. Java strings are Unicode text; pgJDBC
+converts them to UTF-8 at the wire, and any other client encoding
+breaks that contract.
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 456-463
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 3113-3125
+- PGStream.java | pgjdbc/src/main/java/org/postgresql/core/PGStream.java | 126-135
+{{< /review >}}
 
 Three failure shapes follow from this:
 
@@ -34,12 +38,17 @@ ERROR: character with byte sequence … in encoding "UTF8" has no equivalent
 ```
 
 The first comes from the driver and `SQLState 08006`
-(`CONNECTION_FAILURE`); the second from `HStoreConverter`-style code
-paths with `SQLState 22000` (`DATA_ERROR`); the third pair is from
-the PostgreSQL server itself and arrives via the normal error
-channel.
+(`CONNECTION_FAILURE`); the second is the generic driver-side wrapper
+used around text decoding paths with `SQLState 22000` (`DATA_ERROR`);
+the third pair is from the PostgreSQL server itself and arrives via
+the normal error channel.
 
 ## `client_encoding` was changed to X
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 3113-3128
+- ClientEncodingTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/ClientEncodingTest.java | 55-71
+{{< /review >}}
 
 A `SET client_encoding = LATIN1` was issued somewhere — directly by
 the application, by an `ALTER ROLE … SET client_encoding`, by an
@@ -72,6 +81,11 @@ per-database overrides exist for libpq compatibility, not for pgJDBC.
 
 ### Workaround: `allowEncodingChanges=true`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 70-82
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 3113-3121
+{{< /review >}}
+
 [`allowEncodingChanges=true`](/documentation/reference/connection-properties/#prop-allowencodingchanges)
 suppresses the connection-close. The driver downgrades the rejection
 to a `Level.FINE` log line, swaps its internal `Encoding` to the new
@@ -89,17 +103,33 @@ through `String` (you only operate on `bytea`).
 
 ## SQL_ASCII databases
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- Encoding.java | pgjdbc/src/main/java/org/postgresql/core/Encoding.java | 39-45
+- Encoding.java | pgjdbc/src/main/java/org/postgresql/core/Encoding.java | 158-183
+- ParameterStatusTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/ParameterStatusTest.java | 47-56
+{{< /review >}}
+
 `SQL_ASCII` is not an encoding. PostgreSQL treats it as "no
 validation, any byte sequence is accepted and stored verbatim." Two
 applications writing to the same `SQL_ASCII` database with different
 encodings will mix their bytes silently; the bytes come back out as
 they went in, and only their producer knows what they meant.
 
-pgJDBC on a `SQL_ASCII` database operates as if the encoding were
-`ASCII` / `US-ASCII` (see `Encoding.canonicalize`). Any text column
-that contains an 8-bit byte (most of Latin-1, all UTF-8 multi-byte
-sequences, any other 8-bit encoding) fails to decode and surfaces
-as `Invalid character data was found …`.
+pgJDBC does not switch to ASCII just because `server_encoding` is
+`SQL_ASCII`: it still starts each connection with `client_encoding =
+UTF8` and the initial parameter status is expected to remain `UTF8`.
+The driver's `Encoding.getDatabaseEncoding("SQL_ASCII")` mapping to
+`ASCII` / `US-ASCII` is relevant only when that database-encoding name
+is explicitly used as the client stream encoding, for example after
+`allowEncodingChanges=true` permits a mid-session
+`SET client_encoding = SQL_ASCII`.
+
+In practice this means: if a `text` column in a `SQL_ASCII` database
+holds bytes that are not valid UTF-8 (Latin-1 stored without
+transcoding, mixed encodings from multiple writers, opaque binary
+blobs in text), the driver fails on decode with
+`Invalid character data was found …` from the same wrapper described
+above.
 
 ### Fix: migrate the database to UTF-8
 
@@ -124,6 +154,11 @@ per-application reasoning.
 
 ### Workaround: `bytea` for the affected columns
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- TypeInfoCache.java | pgjdbc/src/main/java/org/postgresql/jdbc/TypeInfoCache.java | 93-99
+- PgResultSet.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgResultSet.java | 2938-2955
+{{< /review >}}
+
 When the bytes in a `SQL_ASCII` table cannot be safely transcoded
 (binary blobs, encrypted strings, opaque tokens that happen to be
 stored in a `text` column), change the column type to `bytea`. The
@@ -132,6 +167,12 @@ The application becomes responsible for any decoding that does
 happen.
 
 ## Server-side encoding errors
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 456-463
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 3068-3070
+- PSQLException.java | pgjdbc/src/main/java/org/postgresql/util/PSQLException.java | 29-35
+{{< /review >}}
 
 The two messages that come from the server, not from pgJDBC, are
 distinct from the cases above:
@@ -160,6 +201,10 @@ mid-session `SET client_encoding = X` moved the wire to a narrower
 encoding. In that case, return to UTF-8.
 
 ## Related
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 70-82
+{{< /review >}}
 
 The driver exposes a single encoding-related knob,
 [`allowEncodingChanges`](/documentation/reference/connection-properties/#prop-allowencodingchanges);

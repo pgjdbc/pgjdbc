@@ -4,7 +4,7 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 6
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "Idle connections die between checkout and use — load balancer timeouts, server-side idle limits, OS keepalive defaults. What each error message means and which mitigation (pool validation, tcpKeepAlive, socketTimeout, server tcp_user_timeout) actually applies."
 ---
 
@@ -76,6 +76,11 @@ Both are worth combining.
 
 ### Connection-pool validation (most impactful)
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PgConnection.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgConnection.java | 1560-1601
+- IsValidTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc4/IsValidTest.java | 23-64
+{{< /review >}}
+
 A pool that hands out connections without validating them is the
 single biggest source of this error in modern stacks. HikariCP,
 Tomcat JDBC, and c3p0 all support pre-checkout validation — turn it
@@ -97,6 +102,12 @@ on.
 
 ### `tcpKeepAlive`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 1101-1110
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 230-232
+- PGStream.java | pgjdbc/src/main/java/org/postgresql/core/PGStream.java | 169-177
+{{< /review >}}
+
 The property [`tcpKeepAlive=true`](/documentation/reference/connection-properties/#prop-tcpkeepalive)
 enables the OS-level keepalive on the socket. It is a noticeable
 improvement but **does not by itself defend against a 5-minute LB
@@ -114,6 +125,13 @@ defaults apply to the socket. Containers inherit the host's sysctl
 unless explicitly overridden.
 
 ### `socketTimeout`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 900-911
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 221-225
+- PGStream.java | pgjdbc/src/main/java/org/postgresql/core/PGStream.java | 752-755
+- SocketTimeoutTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/SocketTimeoutTest.java | 23-39
+{{< /review >}}
 
 [`socketTimeout`](/documentation/reference/connection-properties/#prop-sockettimeout)
 sets `SO_TIMEOUT` on the socket — any read longer than this surfaces

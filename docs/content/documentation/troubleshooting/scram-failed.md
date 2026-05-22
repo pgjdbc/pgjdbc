@@ -4,21 +4,27 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 3
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "SCRAM-SHA-256 and channel-binding failures — what each error message means and which server or property change resolves it."
 ---
 
 SCRAM-SHA-256 has been the default `password_encryption` since
 PostgreSQL&nbsp;14 and is the only authentication method on which
-channel binding works. This page lists the failures specific to that
-exchange — what each user-visible error means and which property
-or server change fixes it.
+channel binding works. This page lists the SCRAM and channel-binding
+failures on that path: what each user-visible error means and which
+property or server change fixes it.
 
 For the recommended-default posture (`sslmode=verify-full`,
 `channelBinding=require`), see
 [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
 
 ## `Channel Binding is required, but SSL is not in use`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ChannelBinding.java | pgjdbc/src/main/java/org/postgresql/core/v3/ChannelBinding.java | 16-43
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 99-131
+- SslTest.java | pgjdbc/src/test/java/org/postgresql/test/ssl/SslTest.java | 539-575
+{{< /review >}}
 
 Raised by `ScramAuthenticator.getChannelBindingData` when
 `channelBinding=require` is combined with `sslmode=disable` (or any
@@ -38,51 +44,98 @@ Resolution: pick one or the other.
 
 ## `Channel Binding is required, but server did not offer an authentication method that supports channel binding`
 
-The server completed startup negotiation but selected an
-authentication method other than SCRAM-SHA-256-PLUS (the `-PLUS`
-suffix is the channel-binding variant). Three common causes, in
-decreasing order of frequency:
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 75-96
+{{< /review >}}
 
-- **The user is stored with `md5` password encryption on the server.**
-  Channel binding only works for SCRAM-SHA-256-PLUS, which in turn
-  requires the password to be stored as SCRAM. Re-set the user
-  password while `password_encryption = scram-sha-256` is in effect
-  in `postgresql.conf` (the default since PG&nbsp;14):
+The server selected SASL/SCRAM, but the SASL mechanism list did not
+include a `-PLUS` mechanism. pgJDBC raises this after it receives
+`AuthenticationSASL` and finds no advertised mechanism whose name ends
+with `-PLUS`.
+
+The usual cause is an older server that supports SCRAM-SHA-256 but
+not SCRAM-SHA-256-PLUS. Channel binding needs the
+`scram-sha-256-plus` SASL mechanism, added in PostgreSQL&nbsp;11. On
+older servers, use `channelBinding=prefer` until you can upgrade.
+
+## `Channel binding is required, but server requested 'md5' authentication`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 758-779
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 845-859
+- SslTest.java | pgjdbc/src/test/java/org/postgresql/test/ssl/SslTest.java | 578-593
+{{< /review >}}
+
+With `channelBinding=require`, pgJDBC rejects any non-SASL
+authentication request before responding to it. The method name in
+the message is whatever the server selected: `md5`, `password`,
+`gss`, `sspi`, or a numeric code for an unsupported method.
+
+Common causes:
+
+- **`pg_hba.conf` matched a non-SCRAM rule.** Reorder or replace the
+  matching rule so this client uses `hostssl ... scram-sha-256`.
+- **The user is stored with MD5 password encryption and `pg_hba.conf`
+  matched `md5`.** Re-set the user password while
+  `password_encryption = scram-sha-256` is in effect in
+  `postgresql.conf` (the default since PostgreSQL&nbsp;14):
 
   ```sql
   ALTER USER alice WITH PASSWORD 'plaintext';  -- gets stored as scram-sha-256
   ```
 
-  `\\password` in psql works too. Confirm with
-  `SELECT rolname, rolpassword FROM pg_authid WHERE rolname = 'alice'`
-  — the value should start with `SCRAM-SHA-256$`.
+  `\\password` in psql works too. Confirm with:
 
-- **`pg_hba.conf` is matching a non-SCRAM rule first.** A `trust` or
-  `md5` entry earlier in the file wins and the server never offers
-  SCRAM. Reorder so that the SCRAM rule (`hostssl … scram-sha-256`)
-  matches first for the network you connect from.
+  ```sql
+  SELECT rolname, rolpassword FROM pg_authid WHERE rolname = 'alice';
+  ```
 
-- **The server is older than PostgreSQL&nbsp;11.** Channel binding
-  needs the `scram-sha-256-plus` SASL mechanism, added in PG&nbsp;11.
-  On older servers `channelBinding=require` will always fail; use
-  `prefer` instead and pin the server upgrade in your roadmap.
+  The value should start with `SCRAM-SHA-256$`.
+
+## `Channel binding is required, but server skipped authentication`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 845-859
+{{< /review >}}
+
+The server accepted the connection without running SCRAM, usually
+because the matching `pg_hba.conf` rule uses `trust`. Channel binding
+can only be completed after a SCRAM-SHA-256-PLUS exchange, so pgJDBC
+rejects this before the connection is handed back to the application.
+
+Resolution: replace or reorder the matching `trust` rule so this
+client uses `hostssl ... scram-sha-256`. If you intentionally rely on
+`trust` for a closed local development loop, set
+`channelBinding=prefer` or `disable` for that connection.
 
 ## `Channel Binding is required, but could not extract channel binding data from SSL session`
 
-The TLS handshake succeeded but the JSSE session does not expose the
-server certificate that pgJDBC needs for the `tls-server-end-point`
-binding. Happens when:
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 99-131
+{{< /review >}}
 
-- A non-X509 cipher suite was negotiated (rare with PostgreSQL but
-  possible if a custom SSL socket factory drops to anonymous DH).
-- A custom `SSLSocketFactory` returns a session whose `peerCertificates`
-  array is empty. Inspect the factory implementation; the stock
-  `org.postgresql.ssl.LibPQFactory` works correctly.
+The TLS handshake succeeded, but pgJDBC could not read or encode the
+peer certificate from the JSSE session while building the
+`tls-server-end-point` binding. In current code this message is raised
+when `SSLSession.getPeerCertificates()` reports an unverified peer or
+when the peer certificate cannot be encoded.
+
+This normally points at the TLS socket/session implementation rather
+than a pgJDBC property. Inspect a custom `SSLSocketFactory` first; the
+stock `org.postgresql.ssl.LibPQFactory` is expected to expose the
+server's X.509 certificate.
 
 There is no client-side property to bypass — channel binding cannot
 work without a server certificate.
 
 ## `Server requested N SCRAM PBKDF2 iterations, which exceeds the client-side limit of M`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 835-850
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 997-1021
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 151-171
+- ScramTest.java | pgjdbc/src/test/java/org/postgresql/jdbc/ScramTest.java | 126-195
+{{< /review >}}
 
 A safety cap. pgJDBC accepts at most `scramMaxIterations` PBKDF2
 rounds from the server (default 100,000); higher counts are rejected
@@ -99,6 +152,14 @@ Resolution depends on context:
   default is the protection, not the problem.
 
 ## `Authentication method is not allowed by requireAuth`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 807-821
+- AuthMethod.java | pgjdbc/src/main/java/org/postgresql/core/AuthMethod.java | 34-75
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 794-798
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 864-1042
+- RequireAuthTest.java | pgjdbc/src/test/java/org/postgresql/test/core/RequireAuthTest.java | 129-210
+{{< /review >}}
 
 You configured an explicit allow-list of authentication methods via
 [`requireAuth`](/documentation/reference/connection-properties/#prop-requireauth)

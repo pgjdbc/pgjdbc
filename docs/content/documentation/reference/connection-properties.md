@@ -17,5 +17,3 @@ pages in [Connect](/documentation/connect/) and
 [Security](/documentation/security/).
 
 {{< param-table data="connection-properties" >}}
-</content>
-</invoke>

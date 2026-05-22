@@ -4,7 +4,7 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 1
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "A large PreparedStatement.executeBatch() blocks indefinitely with no exception — both client and server are waiting on a full TCP buffer to drain. Tune the socket buffers or break the batch into smaller chunks."
 ---
 
@@ -15,6 +15,11 @@ the JDBC thread in `SocketOutputStream.write`; the database side shows
 the backend in `pq_putmessage` / send-side wait.
 
 ## Why it happens
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 574-622
+- BatchDeadlockTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/BatchDeadlockTest.java | 43-52
+{{< /review >}}
 
 The pgJDBC protocol is single-threaded. It writes batched messages to
 the socket and then reads responses, in that order. Both directions
@@ -39,11 +44,17 @@ its receive buffer, two things happen at once:
 Both ends are waiting for the other to read. No-one will. The
 backend itself is healthy; nothing logs anything; the JVM thread is
 parked. The full reasoning lives in
-[QueryExecutorImpl.java's "Deadlock avoidance" block](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java#L567),
+[QueryExecutorImpl.java's "Deadlock avoidance" block](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java#L567),
 with historical detail in issues [#194](https://github.com/pgjdbc/pgjdbc/issues/194)
 and [#195](https://github.com/pgjdbc/pgjdbc/issues/195).
 
 ## What the driver already does
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 621-622
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 1598-1665
+- BatchDeadlockTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/BatchDeadlockTest.java | 221-233
+{{< /review >}}
 
 To keep the obvious case from biting, pgJDBC estimates how much
 response data the server will buffer up while reading the in-flight
@@ -53,10 +64,11 @@ The per-query estimate is coarse — 250 bytes for a "no data" query
 plus the described row size — so it works for most workloads but
 breaks down in edge cases:
 
-- queries whose response size cannot be bounded (statements with
-  unknown row counts get batching disabled for that query);
-- async notifications, NOTICE / WARNING messages, large parameter
-  data that the estimate doesn't account for;
+- queries whose response size cannot be bounded (for described
+  statements, an unbounded row size disables batching for that query;
+  unknown row count is approximated as one row);
+- async notifications, NOTICE / WARNING messages, and other server
+  messages that the estimate doesn't account for;
 - very small OS TCP buffers (containers, embedded systems) that fill
   before the driver has written enough to trigger a Sync.
 
@@ -66,6 +78,10 @@ In order of preference:
 
 ### Break the batch into smaller chunks
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 653-684
+{{< /review >}}
+
 The cleanest fix. A batch of 100,000 inserts hits this; a loop of
 100 batches of 1,000 does not. The Sync the driver issues at the end
 of each `executeBatch()` resets the estimate. Throughput is usually
@@ -73,10 +89,20 @@ unaffected if the per-chunk overhead is small.
 
 ### Raise the socket buffers
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 569-577
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 772-778
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 852-862
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 239-263
+- PGStream.java | pgjdbc/src/main/java/org/postgresql/core/PGStream.java | 305-307
+{{< /review >}}
+
 Both connection properties accept a byte count and call into the
 underlying `Socket.set{Send,Receive}BufferSize`. The default `-1`
-means "leave it at the OS default" (typically 16–64 KB on Linux,
-larger on macOS).
+means "leave it at the OS default". On current Linux that is roughly
+128 KB on the receive side and 16 KB on the send side, with autotuning
+up to a RAM-dependent ceiling ([Linux IP sysctl docs](https://docs.kernel.org/networking/ip-sysctl.html#tcp-rmem-vector-of-3-integers-min-default-max)).
+macOS defaults differ and are typically larger.
 
 {{< param-table data="connection-properties" tag="network" >}}
 
@@ -91,6 +117,13 @@ with `ss -i` on an open connection rather than trusting the property
 alone.
 
 ### Enable `reWriteBatchedInserts`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 827-833
+- SqlCommand.java | pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java | 64-74
+- BatchedQuery.java | pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java | 47-69
+- PgPreparedStatement.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgPreparedStatement.java | 1816-1848
+{{< /review >}}
 
 For batches of simple `INSERT INTO t VALUES (?, ?, ...)` statements,
 [`reWriteBatchedInserts=true`](/documentation/reference/connection-properties/#prop-rewritebatchedinserts)

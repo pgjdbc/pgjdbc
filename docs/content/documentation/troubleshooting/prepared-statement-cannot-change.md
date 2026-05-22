@@ -4,8 +4,8 @@ date: 2026-05-16T00:00:00Z
 draft: false
 weight: 7
 toc: true
-last_reviewed: "2026-05-16"
-description: "The two server-prepared-statement errors a JDBC client sees when the catalog moves under a cached plan — and the autosave / prepareThreshold / PgBouncer settings that resolve them."
+last_reviewed: "2026-05-21"
+description: "The two server-prepared-statement errors a JDBC client sees when the catalog or backend session moves under a cached plan — and the flushCacheOnDdl / autosave / prepareThreshold / PgBouncer settings that resolve them."
 ---
 
 Two server-side errors hit the same nerve in a JDBC application that
@@ -22,29 +22,45 @@ or session state. The first is `SQLState = 0A000`
 (`FEATURE_NOT_SUPPORTED`); the second is `SQLState = 26000`
 (`INVALID_SQL_STATEMENT_NAME`). The driver recognises both as
 "reparse-and-retry" candidates — see
-[`QueryExecutorBase.willHealViaReparse`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java#L417)
+[`QueryExecutorBase.willHealViaReparse`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java#L418)
 for the exact decision.
 
 ## What server-prepared statements are
 
-A `PreparedStatement` that executes more than
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 688-698
+- Server-prepared statements | docs/content/documentation/query/prepared-statements.md | 42-66
+{{< /review >}}
+
+A `PreparedStatement` that reaches
 [`prepareThreshold`](/documentation/reference/connection-properties/#prop-preparethreshold)
-times (default 5) gets a real `PARSE` on the backend; subsequent
-executions only `BIND` and `EXECUTE`. The server holds onto the parsed
-plan under a generated name (`S_1`, `S_2`, …), and so does the
-driver, in `org.postgresql.core.v3.SimpleQuery.statementName`. The
-plan now has a lifecycle: it can be invalidated by anything that
-changes the catalog it was parsed against.
+executions (default 5) gets a real named `PARSE` on the backend;
+subsequent executions only `BIND` and `EXECUTE` against that name.
+The server holds onto the parsed plan under a generated name (`S_1`,
+`S_2`, …), and the driver tracks the same name. The plan now has a
+lifecycle: it can be invalidated by catalog changes, backend-session
+state changes, or the backend connection disappearing.
 
 ## When the cached plan no longer matches
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 2493-2538
+- Connection pooling | docs/content/documentation/connect/connection-pooling.md | 178-185
+- AutoRollbackTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/AutoRollbackTest.java | 154-166
+{{< /review >}}
 
 In rough order of frequency:
 
 - **Schema migration mid-flight.** `ALTER TABLE … ADD COLUMN`,
   `ALTER TABLE … ALTER COLUMN TYPE`, dropping a view and recreating
-  it, renaming a column — anything that changes the result columns
-  of a `SELECT` the application has already prepared makes the next
-  execute fail with `cached plan must not change result type`.
+  it, renaming a column — anything that changes the result columns of
+  a `SELECT` the application has already prepared can make an old
+  plan fail with `cached plan must not change result type`. In this
+  branch the default [`flushCacheOnDdl`](#flushcacheonddl-default-true)
+  setting invalidates the driver's prepared-statement cache when the
+  same session observes a top-level `CREATE`, `DROP`, or `ALTER`
+  command tag, so the next execute re-prepares instead of using the
+  stale plan.
 - **`SEARCH_PATH` change.** The first execution resolved table
   `users` to `myapp.users`; a later `SET search_path = …` makes the
   same query resolve to a different relation. The driver detects
@@ -57,7 +73,7 @@ In rough order of frequency:
   mechanism: the driver watches the command tag, bumps the epoch,
   re-PARSEs on next execute. Useful when the application itself
   doesn't issue these, but a pool's `reset query` does.
-- **PgBouncer in transaction or statement pooling mode.** A
+- **PgBouncer in transaction (or statement) pooling mode.** A
   connection returned to the pool can be re-checked-out by a
   different session backed by a *different* server connection. The
   server-prepared statements live on the backend connection, not on
@@ -68,9 +84,30 @@ In rough order of frequency:
 
 ## Fixes
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 320-337
+- PgConnection.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgConnection.java | 307-310
+- QueryExecutor.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutor.java | 574-594
+{{< /review >}}
+
 These address the cause: either the prepared statement is not being
 preserved across the pooling boundary, or the application is mutating
 the catalog without telling its pool.
+
+### `flushCacheOnDdl` (default `true`)
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 2493-2510
+- AutoRollbackTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/AutoRollbackTest.java | 388-400
+{{< /review >}}
+
+For DDL issued through the same pgJDBC connection, the default fix is
+already enabled. When the backend returns a `CREATE`, `DROP`, or
+`ALTER` command tag, pgJDBC invalidates its prepared-statement cache
+so subsequent executions are re-parsed against the current catalog.
+Set `flushCacheOnDdl=false` only when you intentionally need the
+legacy behavior, where `cached plan must not change result type` can
+surface and transparent recovery depends on `autosave`.
 
 ### Make PgBouncer keep server-prepared statements
 
@@ -85,12 +122,11 @@ guaranteed to fire under load.
 
 ### Schema-migration hygiene
 
-When the application is the one doing the migration, the cleanest
-recovery is to **close and re-open the affected connections**. A
-connection pool's `evictionPolicy` can be triggered manually after
-the migration finishes; HikariCP exposes `softEvict()` for this.
-The pool then rebuilds connections that never saw the pre-migration
-catalog, so no cached plan exists to invalidate.
+When DDL can happen outside the pgJDBC connection that owns the
+prepared statements, close and re-open the affected connections after
+the migration finishes. The pool then rebuilds connections that never
+saw the pre-migration catalog, so no cached plan exists to
+invalidate.
 
 ## Workarounds
 
@@ -98,19 +134,26 @@ When the root cause is out of reach — a third-party application
 issues the migration, the PgBouncer upgrade is pending, the
 deployment cannot evict pool connections — these driver-side knobs
 let the driver tolerate the invalidation instead of resolving it.
-They are not free: each pays a measurable cost on every statement,
-not just the ones that would have failed.
+They are not free: each pays a cost beyond the statements that would
+have failed.
 
 ### `autosave=conservative`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 49-54
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 480-571
+- QueryExecutorBase.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java | 418-454
+{{< /review >}}
+
 The most surgical of the three. With
 [`autosave=conservative`](/documentation/reference/connection-properties/#prop-autosave),
-the driver wraps every statement in a `SAVEPOINT`. When the next
+the driver places an automatic savepoint before statements that can
+hit this class of failure while a transaction is active. When the
 statement fails with one of the recoverable errors (`cached plan must
 not change result type`, `prepared statement "S_X" does not exist`),
-the driver rolls back to the savepoint, re-PARSEs, and re-executes
-transparently. From the application's perspective the statement
-simply succeeds.
+the driver rolls back to the savepoint so the statement can be
+reparsed and retried transparently. From the application's
+perspective the statement simply succeeds.
 
 `willHealViaReparse` is the gate: it checks for either
 `SQLState 26000` *or* `SQLState 0A000` paired with the
@@ -119,12 +162,17 @@ Random `0A000` errors that are not cached-plan invalidations are
 **not** retried — savepoint overhead is paid, but unrelated failures
 still surface to the application.
 
-The CONSERVATIVE mode pays one round trip per statement to set up the
-savepoint. `autosave=always` rolls back unconditionally on any error
-(broader recovery, same per-statement cost); `autosave=never` (the
-default) gives no recovery.
+The CONSERVATIVE mode sends extra savepoint traffic for statements
+that might fail this way in an active transaction. `autosave=always`
+uses automatic savepoints more broadly and rolls back on any error;
+`autosave=never` (the default) gives no savepoint-based recovery.
 
 ### `prepareThreshold=0`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- Server-prepared statements | docs/content/documentation/query/prepared-statements.md | 95-116
+- Connection pooling | docs/content/documentation/connect/connection-pooling.md | 182-185
+{{< /review >}}
 
 [`prepareThreshold=0`](/documentation/reference/connection-properties/#prop-preparethreshold)
 disables server-side preparation altogether. Every statement is
@@ -138,6 +186,11 @@ pays full parse and plan cost on every execute. Benchmark before
 flipping.
 
 ### `preferQueryMode=simple`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 646-662
+- Server-prepared statements | docs/content/documentation/query/prepared-statements.md | 129-144
+{{< /review >}}
 
 The most blunt option:
 [`preferQueryMode=simple`](/documentation/reference/connection-properties/#prop-preferquerymode)

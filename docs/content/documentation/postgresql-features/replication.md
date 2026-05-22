@@ -1,10 +1,10 @@
 ---
-title: "Physical and logical replication"
+title: "Physical replication and logical decoding"
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20
 toc: true
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-22"
 aliases:
     - "/documentation/server-prepare/#physical-and-logical-replication-api/"
     - "/documentation/server-prepare/#configure-database/"
@@ -12,16 +12,23 @@ aliases:
     - "/documentation/server-prepare/#physical-replication/"
 ---
 
-## Physical and logical replication API
+## Physical replication and logical decoding API
 
-Postgres 9.4 (released in December 2014) introduced a new feature called logical replication. Logical replication allows
+{{< review date="2026-05-22" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGConnection.java | pgjdbc/src/main/java/org/postgresql/PGConnection.java | 268-271
+- PGReplicationConnection.java | pgjdbc/src/main/java/org/postgresql/replication/PGReplicationConnection.java | 14-44
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 780-805
+- BaseDataSource.java | pgjdbc/src/main/java/org/postgresql/ds/common/BaseDataSource.java | 1323-1352
+{{< /review >}}
+
+PostgreSQL® 9.4 (released in December 2014) introduced a new feature called logical decoding. Logical decoding allows
 changes from a database to be streamed in real-time to an external system. The difference between physical replication and
-logical replication is that logical replication sends data over in a logical format whereas physical replication sends data
-over in a binary format. Additionally logical replication can send over a single table, or database. Binary replication
-replicates the entire cluster in an all or nothing fashion; which is to say there is no way to get a specific table or
-database using binary replication
+logical decoding is that logical decoding sends data over in a logical format whereas physical replication sends WAL data
+over in a binary format. Logical decoding output is scoped to a database, and table-level filtering depends on the output
+plugin or on higher-level PostgreSQL® logical replication features. Binary replication replicates the entire cluster in an
+all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication
 
-Prior to logical replication keeping an external system synchronized in real time was problematic. The application would
+Prior to logical decoding keeping an external system synchronized in real time was problematic. The application would
 have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics
 system, and so on.
 
@@ -49,9 +56,9 @@ Your database should be configured to enable logical or physical replication
 ### postgresql.conf
 
 * Property `max_wal_senders` should be at least equal to the number of replication consumers
-* Property `wal_keep_segments` should contain count wal segments that can't be removed from database.
-* Property `wal_level` for logical replication should be equal to `logical`.
-* Property `max_replication_slots` should be greater than zero for logical replication, because logical replication can't
+* Property `wal_keep_size` should specify the minimum amount of past WAL files kept in `pg_wal`.
+* Property `wal_level` for logical decoding should be equal to `logical`.
+* Property `max_replication_slots` should be greater than zero for logical decoding, because logical decoding can't
  work without replication slot.
 
 ### pg_hba.conf
@@ -70,7 +77,7 @@ host    replication   all   ::1/128         md5
 
 ```ini
 max_wal_senders = 4             # max number of walsender processes
-wal_keep_segments = 4           # in logfile segments, 16MB each; 0 disables
+wal_keep_size = 64MB            # minimum size of past WAL files kept in pg_wal; 0 disables
 wal_level = logical             # minimal, replica, or logical
 max_replication_slots = 4       # max number of replication slots
 ```
@@ -85,17 +92,26 @@ host    replication   all   127.0.0.1/32    md5
 host    replication   all   ::1/128         md5
 ```
 
-## Logical replication
+## Logical decoding
 
-Logical replication uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to
+{{< review date="2026-05-22" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- LogicalCreateSlotBuilder.java | pgjdbc/src/main/java/org/postgresql/replication/fluent/logical/LogicalCreateSlotBuilder.java | 40-88
+- ChainedLogicalCreateSlotBuilder.java | pgjdbc/src/main/java/org/postgresql/replication/fluent/logical/ChainedLogicalCreateSlotBuilder.java | 16-26
+- LogicalStreamBuilder.java | pgjdbc/src/main/java/org/postgresql/replication/fluent/logical/LogicalStreamBuilder.java | 40-94
+- V3ReplicationProtocol.java | pgjdbc/src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java | 40-118
+- V3PGReplicationStream.java | pgjdbc/src/main/java/org/postgresql/core/v3/replication/V3PGReplicationStream.java | 72-123
+- LogicalReplicationTest.java | pgjdbc/src/test/java/org/postgresql/replication/LogicalReplicationTest.java | 44-68
+{{< /review >}}
+
+Logical decoding uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to
 use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate
 how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is included in the `postgresql-contrib`
 package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
 
-In order to use the replication API, the Connection has to be created in replication mode, in this mode the connection
-is not available to execute SQL commands, and can only be used with replication API. This is a restriction imposed by PostgreSQL®.
+In order to use the replication API, the Connection has to be created in replication mode. In this mode the connection
+is not available to execute normal SQL commands, and can only be used with replication-protocol commands. This is a restriction imposed by PostgreSQL®.
 
-The [`replication`](/documentation/reference/connection-properties/#prop-replication) property should be paired with [`assumeMinServerVersion`](/documentation/reference/connection-properties/#prop-assumeminserverversion) set to `9.4` or higher (the backend version that introduced logical replication). Without it the driver issues extra version-probing round-trips before entering walsender mode, which can fail on connections that only accept replication commands.
+The [`replication`](/documentation/reference/connection-properties/#prop-replication) property should be paired with [`assumeMinServerVersion`](/documentation/reference/connection-properties/#prop-assumeminserverversion) set to `9.4` or higher (the backend version that introduced logical decoding). Without it the driver issues extra version-probing round-trips before entering walsender mode, which can fail on connections that only accept replication commands.
 
 ##### Example 9.4. Create replication connection.
 
@@ -130,7 +146,7 @@ replConnection.getReplicationAPI()
 
 Once we have the replication slot, we can create a ReplicationStream.
 
-##### Example 9.6. Create logical replication stream.
+##### Example 9.6. Create logical decoding stream.
 
 ```java
 PGReplicationStream stream =
@@ -147,7 +163,7 @@ The replication stream will send all changes since the creation of the replicati
 restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position,
 in that case LSN position should be specified when you create the replication stream.
 
-##### Example 9.7. Create logical replication stream from particular position.
+##### Example 9.7. Create logical decoding stream from particular position.
 
 ```java
 LogSequenceNumber waitLSN = LogSequenceNumber.valueOf("6F/E3C53568");
@@ -276,7 +292,7 @@ while (true) {
 }
 ```
 
-##### Example 9.14. Full example of logical replication
+##### Example 9.14. Full example of logical decoding
 
 ```java
 String url = "jdbc:postgresql://localhost:5432/test";
@@ -357,10 +373,17 @@ COMMIT
 
 ## Physical replication
 
-API for physical replication looks like the API for logical replication. Physical replication does not require a replication
+{{< review date="2026-05-22" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PhysicalStreamBuilder.java | pgjdbc/src/main/java/org/postgresql/replication/fluent/physical/PhysicalStreamBuilder.java | 34-57
+- V3ReplicationProtocol.java | pgjdbc/src/main/java/org/postgresql/core/v3/replication/V3ReplicationProtocol.java | 48-87
+- PhysicalReplicationTest.java | pgjdbc/src/test/java/org/postgresql/replication/PhysicalReplicationTest.java | 58-80
+- PhysicalReplicationTest.java | pgjdbc/src/test/java/org/postgresql/replication/PhysicalReplicationTest.java | 83-104
+{{< /review >}}
+
+API for physical replication looks like the API for logical decoding. Physical replication does not require a replication
 slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change
 from version to version. That is why replication between different major PostgreSQL® versions is not possible. But physical
-replication can contain many important data, that is not available via logical replication. That is why pgJDBC contains an
+replication can contain many important data, that is not available via logical decoding. That is why pgJDBC contains an
 implementation for both.
 
 **Example 9.15. Use physical replication**
@@ -382,4 +405,3 @@ PGReplicationStream stream =
 
 ByteBuffer read = stream.read();
 ```
-

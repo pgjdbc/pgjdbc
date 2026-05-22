@@ -49,5 +49,3 @@ When the same value is embedded in a JDBC URL, every space must be percent-encod
 ```
 jdbc:postgresql://localhost:5432/postgres?options=-c%20search_path=test,public,pg_catalog%20-c%20statement_timeout=90000
 ```
-</content>
-</invoke>

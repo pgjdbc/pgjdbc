@@ -4,7 +4,7 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 7
 toc: true
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-22"
 aliases:
     - "/documentation/escapes/"
 ---
@@ -37,8 +37,15 @@ ResultSet rs = st.executeQuery("SELECT extract(week from DATE '2005-01-24')");
 
 ## Escape for like escape character
 
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- escape processing | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1260-1300
+- escape character parsing | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1377-1414
+- parser coverage | pgjdbc/src/test/java/org/postgresql/core/ParserTest.java | 131-134
+{{< /review >}}
+
 You can specify which escape character to use in strings comparison (with `LIKE` ) to protect wildcards characters ('%' and '_')
-by adding the following escape : `{escape 'escape-character'}` . The driver supports this only at the end of the comparison expression.
+by adding the following escape : `{escape 'escape-character'}` . The escape sequence must follow the SQL syntax for
+`ESCAPE`: place it immediately after the `LIKE` pattern.
 
 For example, you can compare string values using '|' as escape character to protect '_' :
 
@@ -47,6 +54,12 @@ rs = stmt.executeQuery("select str2 from comparisontest where str1 like '|_abcd'
 ```
 
 ## Escape for outer joins
+
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- outer join parsing | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1377-1414
+- escape keywords | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1513-1521
+- parser coverage | pgjdbc/src/test/java/org/postgresql/core/ParserTest.java | 131-132
+{{< /review >}}
 
 You can specify outer joins using the following syntax: `{oj table (LEFT|RIGHT|FULL) OUTER JOIN (table | outer-join) ON search-condition}`
 
@@ -58,6 +71,12 @@ ResultSet rs = stmt.executeQuery("select * from {oj a left outer join b on (a.i=
 
 ## Date-time escapes
 
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- date/time parsing | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1377-1414
+- escape keywords | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1513-1521
+- parser coverage | pgjdbc/src/test/java/org/postgresql/core/ParserTest.java | 120-125
+{{< /review >}}
+
 The JDBC specification defines escapes for specifying date, time and timestamp values which are supported by the driver.
 
 * **date** :  `{d 'yyyy-mm-dd'}` which is translated to `DATE 'yyyy-mm-dd'`
@@ -67,6 +86,13 @@ seconds (.f...) portion of the TIMESTAMP can be omitted.
 
 ## Escaped scalar functions
 
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- function escape parser | pgjdbc/src/main/java/org/postgresql/core/Parser.java | 1439-1504
+- scalar function translations | pgjdbc/src/main/java/org/postgresql/jdbc/EscapedFunctions2.java | 42-620
+- metadata reporting | pgjdbc/src/main/java/org/postgresql/jdbc/PgDatabaseMetaData.java | 385-438
+- nativeSQL coverage | pgjdbc/src/test/java/org/postgresql/test/jdbc2/ReplaceProcessingTest.java | 27-47
+{{< /review >}}
+
 The JDBC specification defines functions with an escape call syntax : `{fn function_name(arguments)}` . The following tables
 show which functions are supported by the PostgreSQL® driver. The driver supports the nesting and the mixing of escaped
 functions and escaped values. The appendix C of the JDBC specification describes the functions.
@@ -75,6 +101,9 @@ Some functions in the following tables are translated but reported as not suppor
 their order of the arguments. While this is harmless for literal values or columns, it will cause problems when using prepared
 statements. For example " `{fn right(?,?)}` " will be translated to " `substring(? from (length(?)+1-?))` ". As you can
 see the translated SQL requires more parameters than before the translation but the driver will not automatically handle this.
+
+If a function has no driver-specific translation, the driver passes the function call through unchanged. The server then
+executes it if a matching PostgreSQL function exists, or reports an error if it does not.
 
 ##### Table 8.1. Supported escaped numeric functions
 
@@ -94,11 +123,9 @@ see the translated SQL requires more parameters than before the translation but 
 |log(arg1)|yes|ln(arg1)||
 |log10(arg1)|yes|log(arg1)||
 |mod(arg1, arg2)|yes|mod(arg1, arg2)||
-|pi(arg1)|yes|pi(arg1)||
+|pi()|yes|pi()||
 |power(arg1, arg2)|yes|pow(arg1, arg2)||
 |radians(arg1)|yes|radians(arg1)||
-|rand()|yes|random()||
-|rand(arg1)|yes|setseed(arg1)*0+random()|The seed is initialized with the given argument and a new random value is returned.|
 |round(arg1, arg2)|yes|round(arg1, arg2)||
 |sign(arg1)|yes|sign(arg1)||
 |sin(arg1)|yes|sin(arg1)||
@@ -112,24 +139,24 @@ see the translated SQL requires more parameters than before the translation but 
 |---|-----------------------|---|---|
 |ascii(arg1)| yes                   |ascii(arg1)||
 |char(arg1)| yes                   |chr(arg1)||
-|concat(arg1, arg2...)| yes                   |(arg1||arg2...)|The JDBC specification only require the two arguments version, but supporting more arguments was so easy...|
+|concat(arg1, arg2...)| yes                   |(arg1\|\|arg2...)|The JDBC specification only require the two arguments version, but supporting more arguments was so easy...|
 |insert(arg1, arg2, arg3, arg4)| no                    |overlay(arg1 placing arg4 from arg2 for arg3)|This function is not supported since it changes the order of the arguments which can be a problem (for prepared statements by example).|
 |lcase(arg1)| yes                   |lower(arg1)||
 |left(arg1, arg2)| yes                   |substring(arg1 for arg2)||
 |length(arg1)| yes                   |length(trim(trailing from arg1))||
 |locate(arg1, arg2)| no                    |position(arg1 in arg2)||
-|locate(arg1, arg2, arg3)| no                    |(arg2*sign(position(arg1 in substring(arg2 from arg3)+position(arg1 in substring(arg2 from arg3))|Not supported since the three arguments version duplicate and change the order of the arguments.|
+|locate(arg1, arg2, arg3)| no                    |(arg3*sign(position(arg1 in substring(arg2 from arg3)))+position(arg1 in substring(arg2 from arg3)))|Not supported since the three arguments version duplicates arguments and changes their order.|
 |ltrim(arg1)| yes                   |trim(leading from arg1)||
 |repeat(arg1, arg2)| yes                   |repeat(arg1, arg2)||
-|replace(arg1, arg2, arg3)| yes                   |replace(arg1, arg2, arg3)|Only reported as supported by 7.3 and above servers.|
+|replace(arg1, arg2, arg3)| yes                   |replace(arg1, arg2, arg3)||
 |right(arg1, arg2)| no                    |substring(arg1 from (length(arg1)+1-arg2))|Not supported since arg2 is duplicated.|
 |rtrim(arg1)| yes                   |trim(trailing from arg1)||
 |space(arg1)| yes                   |repeat(' ', arg1)||
 |substring(arg1, arg2)| yes                   |substr(arg1, arg2)||
 |substring(arg1, arg2, arg3)| yes                   |substr(arg1, arg2, arg3)||
 |ucase(arg1)| yes                   |upper(arg1)||
-|soundex(arg1)| no                    |soundex(arg1)|Not supported since it requires the fuzzystrmatch contrib module.|
-|difference(arg1, arg2)| no                    |difference(arg1, arg2)|Not supported since it requires the fuzzystrmatch contrib module.|
+|soundex(arg1)| no                    |soundex(arg1)|No driver-specific translation. Passed through unchanged; requires a server-side `soundex` function, such as the one provided by the fuzzystrmatch extension.|
+|difference(arg1, arg2)| no                    |difference(arg1, arg2)|No driver-specific translation. Passed through unchanged; requires a server-side `difference` function, such as the one provided by the fuzzystrmatch extension.|
 
 ##### Table 8.3. Supported escaped date/time functions
 
@@ -150,13 +177,13 @@ see the translated SQL requires more parameters than before the translation but 
 |second(arg1)|yes| extract(second from arg1)                                          ||
 |week(arg1)|yes| extract(week from arg1)                                            ||
 |year(arg1)|yes| extract(year from arg1)                                            ||
-|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is not implemented since backend does not support it |
-|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | only an argIntervalType value of SQL_TSI_FRAC_SECOND, SQL_TSI_FRAC_MINUTE, SQL_TSI_FRAC_HOUR or SQL_TSI_FRAC_DAY is supported |
+|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| Supports SQL_TSI_DAY, SQL_TSI_SECOND, SQL_TSI_HOUR, SQL_TSI_MINUTE, SQL_TSI_MONTH, SQL_TSI_QUARTER, SQL_TSI_WEEK, and SQL_TSI_YEAR. SQL_TSI_FRAC_SECOND is not implemented. |
+|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | Supports SQL_TSI_DAY, SQL_TSI_SECOND, SQL_TSI_HOUR, and SQL_TSI_MINUTE. |
 
 ##### Table 8.4. Supported escaped misc functions
 
 |function|reported as supported|translation|comments|
 |---|---|---|---|
-|database()|yes|current_database()|Only reported as supported by 7.3 and above servers.|
+|database()|yes|current_database()||
 |ifnull(arg1, arg2)|yes|coalesce(arg1, arg2)||
 |user()|yes|user||

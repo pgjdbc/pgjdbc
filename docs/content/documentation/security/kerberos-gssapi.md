@@ -30,7 +30,7 @@ If `requireAuth` is set and does not allow `gss` or `sspi`, the driver refuses *
 | `gssapi` | JSSE GSSAPI | JSSE GSSAPI (forced even on Windows) |
 | `sspi` | SSPI (or fail with `SSPI forced with gsslib=sspi, but SSPI not available`) | SSPI (same caveat) |
 
-pgJDBC's default deliberately differs from libpq, which prefers Windows SSPI when available. The pgJDBC choice is to keep JSSE system properties (`java.security.krb5.conf`, JAAS configuration, `sun.security.jgss.*` debug flags) working uniformly — opting into SSPI is a conscious choice, not a side-effect of running on Windows. The trade-off is named in [`ConnectionFactoryImpl`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java) (search for "slightly different to libpq").
+pgJDBC's default deliberately differs from libpq, which prefers Windows SSPI when available. The pgJDBC choice is to keep JSSE system properties (`java.security.krb5.conf`, JAAS configuration, `sun.security.jgss.*` debug flags) working uniformly — opting into SSPI is a conscious choice, not a side-effect of running on Windows. The trade-off is named in [`ConnectionFactoryImpl`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java) (search for "slightly different to libpq").
 
 ## JSSE GSSAPI configuration
 

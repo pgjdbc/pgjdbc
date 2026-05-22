@@ -21,9 +21,22 @@ have to guess what the current value is and whether some server-side function co
 no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.
 pgJDBC uses many of these reports internally.
 
-As of pgJDBC 42.2.6, it also exposes the parameter status information to user applications via the PGConnection extensions interface.
+As of pgJDBC 42.2.7, it also exposes the parameter status information to user applications via the PGConnection extensions interface.
+
+{{< review date="2026-05-22" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- 42.2.7 changelog | docs/content/changelogs/2019-09-10-42.2.7-release.md | 10-12
+- CHANGELOG.md | CHANGELOG.md | 876-881
+{{< /review >}}
 
 ## Methods
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGConnection.java | pgjdbc/src/main/java/org/postgresql/PGConnection.java | 315-385
+- PgConnection.java | pgjdbc/src/main/java/org/postgresql/jdbc/PgConnection.java | 1958-1966
+- QueryExecutorBase.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java | 71-73
+- QueryExecutorBase.java | pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java | 480-488
+- QueryExecutorImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java | 3095-3112
+{{< /review >}}
 
 Two methods on `org.postgresql.PGConnection` provide the client interface to reported parameters. Parameter names are
 case-insensitive and case-preserving.

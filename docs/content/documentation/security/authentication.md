@@ -2,7 +2,7 @@
 title: "Authentication"
 weight: 10
 toc: true
-last_reviewed: "2026-05-16"
+last_reviewed: "2026-05-21"
 description: "Authentication methods pgJDBC supports — SCRAM-SHA-256, MD5, cleartext password, Kerberos / GSSAPI / SSPI — how the server-driven negotiation works, and the levers that harden it: requireAuth, channelBinding, scramMaxIterations, and the AuthenticationPlugin SPI for custom credentials."
 ---
 
@@ -12,12 +12,18 @@ For specific error messages on this path — `Channel Binding is required, but S
 
 ## Methods the driver supports
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- AuthMethod.java | pgjdbc/src/main/java/org/postgresql/core/AuthMethod.java | 16-30
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 807-820
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 758-779
+{{< /review >}}
+
 `org.postgresql.core.AuthMethod` enumerates the six methods the server may request:
 
-| Method | Server config | Notes |
+| Method | Server-side trigger | Notes |
 |---|---|---|
-| `scram-sha-256` | `password_encryption = scram-sha-256` (default since PG&nbsp;14) | Recommended. Salted, iterated PBKDF2. The only method that supports channel binding. |
-| `md5` | `password_encryption = md5` (legacy default) | Hashed but weak by modern standards; offers no channel binding. Migrate the user's password to SCRAM by re-setting it while `password_encryption = scram-sha-256` is in effect. |
+| `scram-sha-256` | `pg_hba.conf` `scram-sha-256`, or `md5` with a SCRAM-stored password | Recommended. Salted, iterated PBKDF2. The only password method that supports channel binding. New passwords are stored as SCRAM by default since PostgreSQL&nbsp;14. |
+| `md5` | `pg_hba.conf` `md5` with an MD5-stored password | Hashed but weak by modern standards; offers no channel binding. Migrate the user's password to SCRAM by re-setting it while `password_encryption = scram-sha-256` is in effect. |
 | `password` (cleartext) | `pg_hba.conf` `password` method | The password is sent verbatim in the startup exchange. Only safe over TLS (and even then SCRAM is strictly better). |
 | `gss` | `pg_hba.conf` `gss` method | Kerberos via GSSAPI on \*nix (and on Windows when `gsslib=gssapi`). |
 | `sspi` | `pg_hba.conf` `sspi` method | Windows native single-sign-on via SSPI. Requires `waffle-jna` on the classpath. |
@@ -26,6 +32,12 @@ For specific error messages on this path — `Channel Binding is required, but S
 The two extension-style methods — `gss` and `sspi` — are dispatched to the Kerberos stack and are tuned by `gsslib`, `gssEncMode`, `kerberosServerName`, `jaasApplicationName`, `jaasLogin`, `gssUseDefaultCreds`, `useSpnego`, and `sspiServiceClass`. See [Kerberos, GSSAPI, SSPI](/documentation/security/kerberos-gssapi/) for the dispatch model, JAAS configuration, the `waffle-jna` compatibility matrix, and `gssEncMode` for GSS-encrypted connections.
 
 ## How the negotiation resolves
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 781-1046
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 134-194
+- AuthenticationPluginManager.java | pgjdbc/src/main/java/org/postgresql/core/v3/AuthenticationPluginManager.java | 38-88
+{{< /review >}}
 
 After the startup packet, the server sends an `AuthenticationRequest` message naming the method to use, picked by matching the connection against `pg_hba.conf`. The driver routes the message to a handler:
 
@@ -52,6 +64,13 @@ For an extra notch of defense in depth, add an explicit `requireAuth=scram-sha-2
 
 ## `requireAuth` — allow-list / deny-list
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 807-820
+- AuthMethod.java | pgjdbc/src/main/java/org/postgresql/core/AuthMethod.java | 34-75
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 794-798
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 864-1042
+{{< /review >}}
+
 [`requireAuth`](/documentation/reference/connection-properties/#prop-requireauth) (introduced in 42.7.0) accepts a comma-separated list of method names matching the table above, with optional `!` prefix to flip each entry into a negative. The driver evaluates the list in one of two modes:
 
 - **Allow-list** — entries have no `!`. The driver only accepts a method that appears in the list. Example: `requireAuth=scram-sha-256` rejects MD5, cleartext password, and trust.
@@ -63,17 +82,31 @@ The check fires *before* the driver responds to the `AuthenticationRequest`, so 
 
 ## `channelBinding`
 
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 188-201
+- ChannelBinding.java | pgjdbc/src/main/java/org/postgresql/core/v3/ChannelBinding.java | 16-43
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 845-859
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 52-131
+- SslTest.java | pgjdbc/src/test/java/org/postgresql/test/ssl/SslTest.java | 539-596
+{{< /review >}}
+
 [`channelBinding`](/documentation/reference/connection-properties/#prop-channelbinding) (introduced in 42.7.0, default `prefer`) controls whether the SCRAM exchange is tied to the TLS channel:
 
 - **`require`** — refuse SCRAM-SHA-256 without `-PLUS`; refuse the connection entirely if the server doesn't offer a `-PLUS` mechanism or if no TLS session is in use. This is the production posture.
 - **`prefer`** (default) — use channel binding when both client and server support it, otherwise fall back to plain SCRAM-SHA-256. Suitable for mixed environments where some servers are too old for `-PLUS`.
 - **`disable`** — never request channel binding, even if available.
 
-Channel binding works *only* with SCRAM-SHA-256 (the `tls-server-end-point` binding hashes the server's TLS certificate into the SCRAM exchange). It is silently inapplicable for MD5, cleartext password, GSS, SSPI, and trust. Before 42.7.7 the driver allowed `channelBinding=require` to silently pass when the server selected a non-SASL method — a downgrade attack vector that was fixed via [CVE-2025-49146](/security/#security-advisories); pair `channelBinding=require` with `requireAuth=scram-sha-256` on older driver versions, or upgrade to 42.7.7+.
+Channel binding works *only* with SCRAM-SHA-256 (the `tls-server-end-point` binding hashes the server's TLS certificate into the SCRAM exchange). With `prefer` or `disable`, MD5, cleartext password, GSS, SSPI, and trust proceed without a binding; with `require`, current drivers reject non-SASL authentication before credentials are sent. Before 42.7.7 the driver allowed `channelBinding=require` to silently pass when the server selected a non-SASL method — a downgrade attack vector that was fixed via [CVE-2025-49146](/security/#security-advisories); pair `channelBinding=require` with `requireAuth=scram-sha-256` on older driver versions, or upgrade to 42.7.7+.
 
 For the specific channel-binding error strings, see [SCRAM authentication failed](/documentation/troubleshooting/scram-failed/).
 
 ## `scramMaxIterations`
+
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 835-850
+- ConnectionFactoryImpl.java | pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java | 997-1021
+- ScramAuthenticator.java | pgjdbc/src/main/java/org/postgresql/core/v3/ScramAuthenticator.java | 151-171
+{{< /review >}}
 
 [`scramMaxIterations`](/documentation/reference/connection-properties/#prop-scrammaxiterations) (default `100000`, introduced in 42.7.11) caps the PBKDF2 iteration count the driver will accept from the server. Without it, a malicious or compromised server could pick an arbitrarily high iteration count and force the client to burn CPU before the connection even completes — a quiet denial-of-service vector.
 
@@ -81,7 +114,15 @@ The cap is checked *before* PBKDF2 runs. A server advertising more than `scramMa
 
 ## `AuthenticationPlugin` — custom credentials
 
-When the password belongs to a credential source that isn't a string in the URL — IAM-generated short-lived tokens, Vault, a hardware token, a keyring — implement [`org.postgresql.plugin.AuthenticationPlugin`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/plugin/AuthenticationPlugin.java) and name the class in [`authenticationPluginClassName`](/documentation/reference/connection-properties/#prop-authenticationpluginclassname).
+{{< review date="2026-05-21" rev="bd1af18230371879fb4127ae28800cf9a8a8c77d" >}}
+- PGProperty.java | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 106-116
+- AuthenticationPlugin.java | pgjdbc/src/main/java/org/postgresql/plugin/AuthenticationPlugin.java | 12-31
+- AuthenticationRequestType.java | pgjdbc/src/main/java/org/postgresql/plugin/AuthenticationRequestType.java | 8-13
+- AuthenticationPluginManager.java | pgjdbc/src/main/java/org/postgresql/core/v3/AuthenticationPluginManager.java | 38-128
+- ObjectFactory.java | pgjdbc/src/main/java/org/postgresql/util/ObjectFactory.java | 20-69
+{{< /review >}}
+
+When the password belongs to a credential source that isn't a string in the URL — IAM-generated short-lived tokens, Vault, a hardware token, a keyring — implement [`org.postgresql.plugin.AuthenticationPlugin`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/plugin/AuthenticationPlugin.java) and name the class in [`authenticationPluginClassName`](/documentation/reference/connection-properties/#prop-authenticationpluginclassname).
 
 The contract is short:
 
@@ -96,7 +137,7 @@ public interface AuthenticationPlugin {
 Three contract points to honour:
 
 1. **Return a fresh `char[]` on every call.** The driver overwrites the array with zeroes after use (see `AuthenticationPluginManager.withPassword`); reusing a cached array would leave the buffer wiped on the next call.
-2. **The class must have a public no-arg constructor.** The driver instantiates it via `ObjectFactory` — see the `Unable to load Authentication Plugin` exception if instantiation fails. (The constructor *is allowed* to fail with `PSQLException`; the driver propagates that as a `CONNECTION_REJECTED` error.)
+2. **The class must have a public constructor that `ObjectFactory` can use.** For authentication plugins the driver first looks for a public `Properties` constructor, then falls back to a public no-arg constructor. If instantiation fails, the driver raises `Unable to load Authentication Plugin ...` with SQLState `22023` (`INVALID_PARAMETER_VALUE`).
 3. **Don't perform unbounded work in `getPassword`.** The method runs on the connection-establishing thread; a hang here looks identical to a server-side hang and is bounded by `loginTimeout` (see [Timeouts](/documentation/connect/timeouts/)) rather than by anything in the plugin.
 
 The plugin is not consulted for `trust` auth — the server never asks for a password and the driver never invokes the plugin. For SCRAM, the plugin returns the cleartext password, which the driver feeds into the SCRAM client; the password leaves the JVM in salted/iterated form, not as cleartext.

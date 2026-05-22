@@ -4,7 +4,7 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 20
 toc: true
-last_reviewed: "2026-05-13"
+last_reviewed: "2026-05-22"
 aliases:
     - "/documentation/callproc/"
 ---
@@ -19,6 +19,14 @@ only. This is required to invoke a function returning void.
 
 For new applications, use `escapeSyntaxCallMode=callIfNoReturn` to map `CallableStatements` with return values to stored
 functions and `CallableStatements` without return values to stored procedures.
+
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- escapeSyntaxCallMode property | pgjdbc/src/main/java/org/postgresql/PGProperty.java | 301-318
+- EscapeSyntaxCallMode enum | pgjdbc/src/main/java/org/postgresql/jdbc/EscapeSyntaxCallMode.java | 8-18
+- callIfNoReturn tests | pgjdbc/src/test/java/org/postgresql/test/jdbc3/EscapeSyntaxCallModeCallIfNoReturnTest.java | 24-85
+- void function fixture | pgjdbc/src/test/java/org/postgresql/test/jdbc3/Jdbc3CallableStatementTest.java | 44-60
+- void function call test | pgjdbc/src/test/java/org/postgresql/test/jdbc3/Jdbc3CallableStatementTest.java | 1077-1088
+{{< /review >}}
 
 ##### Example 6.1. Calling a built-in stored function
 
@@ -60,15 +68,23 @@ stmt.close();
 
 ## From a Function Returning a refcursor
 
-When calling a function that returns a refcursor you must cast the return type of `getObject` to a ResultSet`
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- refcursor getObject handling | pgjdbc/src/main/java/org/postgresql/jdbc/PgResultSet.java | 279-305
+- default fetch size inheritance | pgjdbc/src/main/java/org/postgresql/jdbc/PgStatement.java | 170-182
+- cursor fetch-size gate | pgjdbc/src/main/java/org/postgresql/jdbc/PgStatement.java | 469-480
+- refcursor fetch behavior test | pgjdbc/src/test/java/org/postgresql/test/jdbc2/RefCursorFetchTest.java | 118-164
+{{< /review >}}
+
+When calling a function that returns a refcursor you must cast the return type of `getObject` to a `ResultSet`.
 
 > **NOTE**
 >
-> One notable limitation of the current support for a `ResultSet` created from a refcursor is that even though it is a
-> cursor backed `ResultSet` , all data will be retrieved and cached on the client. The `Statement` fetch size parameter
-> described in [Cursor-based fetching](/documentation/query/fetch-size/)
-> is ignored. This limitation is a deficiency of the JDBC driver, not the server, and it is technically possible to remove
-> it, we just haven't found the time.
+> A `ResultSet` created from a refcursor is itself cursor-backed. The connection-level
+> [`defaultRowFetchSize`](/documentation/query/fetch-size/) is honored; the driver executes
+> `FETCH ALL IN <cursor>` with a statement that inherits that size, so the entire set is not eagerly materialized on
+> the client. `Statement.setFetchSize()` and `ResultSet.setFetchSize()` set on the calling
+> `CallableStatement` are **not** yet propagated through to the inner fetch; the open work is tracked
+> by the `TODO` in `RefCursorFetchTest.java`.
 
 ##### Example 6.3. Getting refcursor Value From a Function
 
@@ -100,7 +116,7 @@ func.close();
 ```
 
 It is also possible to treat the refcursor return value as a cursor name directly.
-To do this, use the `getString` of `ResultSet` . With the underlying cursor name,
+To do this, use the `getString` of `CallableStatement` . With the underlying cursor name,
 you are free to directly use cursor commands on it, such as `FETCH` and `MOVE` .
 
 ##### Example 6.4. Treating refcursor as a cursor name
@@ -115,6 +131,11 @@ func.close();
 ```
 
 ##### Example 6.5. Calling a stored procedure
+
+{{< review date="2026-05-22" rev="01359fa950b5f176a7cf4036c40c2532ec95392d" >}}
+- procedure transaction setup | pgjdbc/src/test/java/org/postgresql/test/jdbc3/ProcedureTransactionTest.java | 38-56
+- procedure transaction behavior | pgjdbc/src/test/java/org/postgresql/test/jdbc3/ProcedureTransactionTest.java | 131-160
+{{< /review >}}
 
 This example shows how to call a PostgreSQL® procedure that uses transaction control.
 
