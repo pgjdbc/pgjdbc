@@ -8,7 +8,7 @@ last_reviewed: "2026-05-21"
 description: "Connection properties worth turning on in production: batch INSERT rewriting, TCP keep-alive, application_name tagging, skipping the startup version round-trip, and load-balancing across replicas."
 ---
 
-The driver ships with conservative defaults: every behavior change that
+The driver ships with conservative defaults: every behaviour change that
 could surprise an existing application is off until you ask for it.
 That is the right default for a library that has been around since
 JDBC 1, but it also means a fresh install leaves several big wins on
@@ -72,7 +72,7 @@ jdbc.url=jdbc:postgresql://db.example/app?tcpKeepAlive=true
 
 **Why it is off by default.** Historical compatibility: JDBC has had
 this property since 9.4, and turning it on by default would be a
-silent behavior change for very old deployments. There is no real
+silent behaviour change for very old deployments. There is no real
 downside to enabling it: keepalive traffic is negligible, and any
 network path that breaks under keepalive packets is broken in more
 fundamental ways.
@@ -97,7 +97,7 @@ the database?" question much harder than it needs to be.
 jdbc.url=jdbc:postgresql://db.example/app?ApplicationName=orders-api
 ```
 
-It does not affect driver behavior or performance; it is purely an
+It does not affect driver behaviour or performance; it is purely an
 observability tag. Pick a name that maps cleanly to a service in your
 deployment (the value of `ApplicationName` shows up in server logs
 with `log_line_prefix = '%a'`, in `pg_stat_activity.application_name`,
@@ -152,7 +152,7 @@ server.
 {{< /review >}}
 
 [`loadBalanceHosts`](/documentation/reference/connection-properties/#prop-loadbalancehosts)
-randomizes the order in which the driver walks the host list in a
+randomises the order in which the driver walks the host list in a
 multi-host URL. With `targetServerType=preferSecondary` (or
 `secondary`), this is the difference between every read connection
 landing on the first replica and reads being spread across all
@@ -165,7 +165,7 @@ jdbc.url=jdbc:postgresql://node1,node2,node3/app?targetServerType=preferSecondar
 At the start of each `getConnection()` the driver calls
 [`Collections.shuffle`](https://docs.oracle.com/en/java/javase/17/docs/api/java.base/java/util/Collections.html#shuffle\(java.util.List\))
 on the candidate list. In `preferSecondary` / `preferPrimary` mode, the
-preferred and fallback lists are shuffled separately. The randomization
+preferred and fallback lists are shuffled separately. The randomisation
 is not weighted, not aware of replica lag, and not aware of node load.
 It is "good enough" load shedding, not a replacement for a real routing
 proxy.
@@ -201,7 +201,7 @@ live with the rest of those topics: see
 ## Related
 
 - [Connection properties reference](/documentation/reference/connection-properties/):
-  every property the driver recognizes.
+  every property the driver recognises.
 - [Batch INSERT rewriting](/documentation/query/batch-inserts/): the
   mechanics behind `reWriteBatchedInserts`, namely when it applies, how
   rows are grouped, what `executeBatch()` returns, and the trade-off

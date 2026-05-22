@@ -113,7 +113,7 @@ pgJDBC **does not bundle** `waffle-jna` in its jar; every distribution declares 
 
 PostgreSQL 12 added GSSAPI-encrypted connections as a parallel to TLS: the wire is encrypted using the GSS session key established during authentication, no certificates required. [`gssEncMode`](/documentation/reference/connection-properties/#prop-gssencmode) (default `allow`) controls whether the driver requests this upgrade:
 
-| Mode | Behavior |
+| Mode | Behaviour |
 |---|---|
 | `disable` | Never request GSS encryption. |
 | `allow` (default) | Connect without GSS encryption. Equivalent to `disable` on outbound: pgJDBC does not send `GSSENCRequest` and the PostgreSQL protocol has no server-initiated path to flip the connection to GSS mid-flight, so this mode never produces a GSS-encrypted connection. |

@@ -10,7 +10,7 @@ aliases:
     - "/documentation/query/"
 ---
 
-Any time you want to issue SQL statements to the database, you need a `Statement` or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement`, you can issue a query. This will return a `ResultSet` instance, which contains the result rows fetched by the driver (see [Cursor-based fetching](/documentation/query/fetch-size/) for how to alter this behavior). [Example 5.1, “Processing a Simple Query in JDBC”](#example-51-processing-a-simple-query-in-jdbc) illustrates this process.
+Any time you want to issue SQL statements to the database, you need a `Statement` or `PreparedStatement` instance. Once you have a `Statement` or `PreparedStatement`, you can issue a query. This will return a `ResultSet` instance, which contains the result rows fetched by the driver (see [Cursor-based fetching](/documentation/query/fetch-size/) for how to alter this behaviour). [Example 5.1, “Processing a Simple Query in JDBC”](#example-51-processing-a-simple-query-in-jdbc) illustrates this process.
 
 ## Example 5.1. Processing a Simple Query in JDBC
 
@@ -95,7 +95,7 @@ is closed automatically.
 * When the `PreparedStatement` API is used, the driver can switch supported column types to binary transfer once a statement
 reaches the `prepareThreshold` execution count. The default threshold is five query executions, and the default
 `binaryTransfer` setting enables binary transfer for supported built-in types when possible. See
-[Server-prepared statements](/documentation/query/prepared-statements/) for details. This may cause unexpected behavior
+[Server-prepared statements](/documentation/query/prepared-statements/) for details. This may cause unexpected behaviour
 when some methods are called. For example, `getString()` on non-string data types can be formatted differently once binary
 transfer is used.
 

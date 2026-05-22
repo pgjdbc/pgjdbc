@@ -1,6 +1,6 @@
 ---
 title: "Connection properties"
-description: "Generated catalog of every connection property the driver recognizes, with its default, type, status, and the pgjdbc version it was introduced in. Use the filter box to narrow by name or description."
+description: "Generated catalogue of every connection property the driver recognises, with its default, type, status, and the pgjdbc version it was introduced in. Use the filter box to narrow by name or description."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 10
@@ -11,7 +11,7 @@ aliases:
     - "/documentation/use/#system-properties/"
 ---
 
-Every property the driver recognizes, with its default, type, and the
+Every property the driver recognises, with its default, type, and the
 pgjdbc version that introduced it. Filter the table by name to narrow
 down to a specific topic; for in-context discussions see the topical
 pages in [Connect](/documentation/connect/) and

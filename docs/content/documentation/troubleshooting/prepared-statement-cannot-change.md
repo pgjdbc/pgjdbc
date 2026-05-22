@@ -5,7 +5,7 @@ draft: false
 weight: 7
 toc: true
 last_reviewed: "2026-05-21"
-description: "The two server-prepared-statement errors a JDBC client sees when the catalog or backend session moves under a cached plan, with the `flushCacheOnDdl`, `autosave`, `prepareThreshold`, and PgBouncer settings that resolve them."
+description: "The two server-prepared-statement errors a JDBC client sees when the catalogue or backend session moves under a cached plan, with the `flushCacheOnDdl`, `autosave`, `prepareThreshold`, and PgBouncer settings that resolve them."
 ---
 
 Two server-side errors hit the same nerve in a JDBC application that
@@ -17,10 +17,10 @@ ERROR: prepared statement "S_2" does not exist
 ```
 
 Both arise when the **server-side prepared statement** stored against
-a name (e.g., `S_2`) is no longer valid against the current catalog
+a name (e.g., `S_2`) is no longer valid against the current catalogue
 or session state. The first is `SQLState = 0A000`
 (`FEATURE_NOT_SUPPORTED`); the second is `SQLState = 26000`
-(`INVALID_SQL_STATEMENT_NAME`). The driver recognizes both as
+(`INVALID_SQL_STATEMENT_NAME`). The driver recognises both as
 "reparse-and-retry" candidates; see
 [`QueryExecutorBase.willHealViaReparse`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java#L418)
 for the exact decision.
@@ -38,7 +38,7 @@ executions (default 5) gets a real named `PARSE` on the backend;
 subsequent executions only `BIND` and `EXECUTE` against that name.
 The server holds onto the parsed plan under a generated name (`S_1`,
 `S_2`, …), and the driver tracks the same name. The plan now has a
-lifecycle: it can be invalidated by catalog changes, backend-session
+lifecycle: it can be invalidated by catalogue changes, backend-session
 state changes, or the backend connection disappearing.
 
 ## When the cached plan no longer matches
@@ -92,7 +92,7 @@ In rough order of frequency:
 
 These address the cause: either the prepared statement is not being
 preserved across the pooling boundary, or the application is mutating
-the catalog without telling its pool.
+the catalogue without telling its pool.
 
 ### `flushCacheOnDdl` (default `true`)
 
@@ -104,9 +104,9 @@ the catalog without telling its pool.
 For DDL issued through the same pgJDBC connection, the default fix is
 already enabled. When the backend returns a `CREATE`, `DROP`, or
 `ALTER` command tag, pgJDBC invalidates its prepared-statement cache
-so subsequent executions are re-parsed against the current catalog.
+so subsequent executions are re-parsed against the current catalogue.
 Set `flushCacheOnDdl=false` only when you intentionally need the
-legacy behavior, where `cached plan must not change result type` can
+legacy behaviour, where `cached plan must not change result type` can
 surface and transparent recovery depends on `autosave`.
 
 ### Make PgBouncer keep server-prepared statements
@@ -125,7 +125,7 @@ guaranteed to fire under load.
 When DDL can happen outside the pgJDBC connection that owns the
 prepared statements, close and re-open the affected connections after
 the migration finishes. The pool then rebuilds connections that never
-saw the pre-migration catalog, so no cached plan exists to
+saw the pre-migration catalogue, so no cached plan exists to
 invalidate.
 
 ## Workarounds

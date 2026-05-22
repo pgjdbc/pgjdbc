@@ -81,8 +81,8 @@ When calling a function that returns a refcursor you must cast the return type o
 > **NOTE**
 >
 > A `ResultSet` created from a refcursor is itself cursor-backed. The connection-level
-> [`defaultRowFetchSize`](/documentation/query/fetch-size/) is honored; the driver executes
-> `FETCH ALL IN <cursor>` with a statement that inherits that size, so the entire set is not eagerly materialized on
+> [`defaultRowFetchSize`](/documentation/query/fetch-size/) is honoured; the driver executes
+> `FETCH ALL IN <cursor>` with a statement that inherits that size, so the entire set is not eagerly materialised on
 > the client. `Statement.setFetchSize()` and `ResultSet.setFetchSize()` set on the calling
 > `CallableStatement` are **not** yet propagated through to the inner fetch; the open work is tracked
 > by the `TODO` in `RefCursorFetchTest.java`.

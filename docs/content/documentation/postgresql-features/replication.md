@@ -29,7 +29,7 @@ over in a binary format. Logical decoding output is scoped to a database, and ta
 plugin or on higher-level PostgreSQL® logical replication features. Binary replication replicates the entire cluster in an
 all-or-nothing fashion; there is no way to get a specific table or database using binary replication.
 
-Prior to logical decoding, keeping an external system synchronized in real time was problematic. The application would
+Prior to logical decoding, keeping an external system synchronised in real time was problematic. The application would
 have to update or invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics
 system, and so on.
 
@@ -180,7 +180,7 @@ PGReplicationStream stream =
         .start();
 ```
 
-Via `withSlotOption` we can also specify options that will be sent to our output plugin; this allows the user to customize decoding.
+Via `withSlotOption` we can also specify options that will be sent to our output plugin; this allows the user to customise decoding.
 For example, I have my own output plugin that has a property `sensitive=true` that will include changes from sensitive columns in
 the change event.
 

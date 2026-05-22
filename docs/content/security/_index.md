@@ -43,12 +43,12 @@ There is no vulnerability in the driver when using the default query mode. Users
 
 #### Exploitation
 
-To exploit this behavior the following conditions must be met:
+To exploit this behaviour the following conditions must be met:
 
 A placeholder for a numeric value must be immediately preceded by a minus (i.e. -)
 There must be a second placeholder for a string value after the first placeholder on the same line.
 Both parameters must be user controlled.
-The prior behavior of the driver when operating in simple query mode would inline the negative value of the first parameter and cause the resulting line to be treated as a -- SQL comment. That would extend to the beginning of the next parameter and cause the quoting of that parameter to be consumed by the comment line. If that string parameter includes a newline, the resulting text would appear unescaped in the resulting SQL.
+The prior behaviour of the driver when operating in simple query mode would inline the negative value of the first parameter and cause the resulting line to be treated as a -- SQL comment. That would extend to the beginning of the next parameter and cause the quoting of that parameter to be consumed by the comment line. If that string parameter includes a newline, the resulting text would appear unescaped in the resulting SQL.
 
 When operating in the default extended query mode this would not be an issue as the parameter values are sent separately to the server. Only in simple query mode the parameter values are inlined into the executed SQL causing this issue.
 

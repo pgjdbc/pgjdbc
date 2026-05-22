@@ -91,7 +91,7 @@ those of [`No suitable driver found`](/documentation/troubleshooting/no-suitable
     visibility because `BaseDataSource` explicitly loads
     `org.postgresql.Driver`, but its connection path still goes
     through `DriverManager`.
-- **The class was stripped by a shading minimizer.** Maven Shade
+- **The class was stripped by a shading minimiser.** Maven Shade
   Plugin's `minimizeJar` and similar tools may decide that
   `org.postgresql.Driver` is unreachable (there are no direct
   byte-code references to it; `ServiceLoader` finds it via reflection)

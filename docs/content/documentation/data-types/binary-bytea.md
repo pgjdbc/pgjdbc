@@ -25,7 +25,7 @@ Large Object storage, access control, and APIs, see the
 [PostgreSQL Large Objects documentation](https://www.postgresql.org/docs/current/largeobjects.html).
 
 Version 7.2 was the first release of the JDBC driver that supports the BYTEA data type. The introduction of this functionality
-in 7.2 has introduced a change in behavior as compared to previous releases. Since 7.2, the methods
+in 7.2 has introduced a change in behaviour as compared to previous releases. Since 7.2, the methods
 `getBytes()`, `setBytes()`, `getBinaryStream()`, and `setBinaryStream()` operate on the BYTEA data type. In 7.1 and
 earlier, these methods operated on the OID data type associated with Large Objects.
 

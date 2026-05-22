@@ -18,7 +18,7 @@ java.sql.SQLException: No suitable driver found for jdbc:postgresql://…
 `java.sql.Driver` and asks each one to `connect(url, …)`. The
 exception fires when every driver returns `null`. Either there are no
 pgJDBC drivers registered, or one is registered but does not
-recognize the URL you passed. The four sections below cover those
+recognise the URL you passed. The four sections below cover those
 cases in order of diagnostic value. `DriverManager.getDriver(url)` is
 slightly different: that lookup uses `acceptsURL(url)`, but it is not
 the path that throws the longer `No suitable driver found for ...`
@@ -201,7 +201,7 @@ Workarounds, in decreasing order of cleanliness:
   JPMS module's transitive dependencies, the OSGi system bundle.
 - **Use a `DataSource` instead of `DriverManager`.** `PGSimpleDataSource`
   loads `org.postgresql.Driver` in `BaseDataSource`'s static
-  initializer before it asks `DriverManager` for a connection. That
+  initialiser before it asks `DriverManager` for a connection. That
   can fix ServiceLoader visibility problems, but the connection path
   still uses `DriverManager`, so the driver class must be visible to
   the code calling `getConnection()`. This is the recommended path

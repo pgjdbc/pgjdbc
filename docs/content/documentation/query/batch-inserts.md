@@ -20,7 +20,7 @@ rewriter expects and provided you can live with the change in
 If you are willing to change application code, the
 PostgreSQL-specific [COPY (CopyManager)](/documentation/postgresql-features/copy/)
 API is faster still for bulk loads: it streams rows in the COPY
-protocol rather than as parameterized INSERTs, sidestepping the per-row
+protocol rather than as parameterised INSERTs, sidestepping the per-row
 parse / plan / bind overhead entirely. The trade-off is exactly that:
 you stop using `PreparedStatement` and write to a `CopyManager`
 stream. `reWriteBatchedInserts` is the "I want a faster batch without
@@ -129,8 +129,8 @@ for statements with many bind parameters the effective cap can be lower
 because the rewritten SQL still has to fit under the driver's maximum
 parameter count.
 
-This grouping is the mechanism behind two observable behaviors: the
-`executeBatch()` return shape, and the proliferation of normalized
+This grouping is the mechanism behind two observable behaviours: the
+`executeBatch()` return shape, and the proliferation of normalised
 forms in `pg_stat_statements`.
 
 ## What `executeBatch()` returns
@@ -203,7 +203,7 @@ shows where the propagation happens.
 {{< /review >}}
 
 A side effect of the power-of-two grouping is that
-`pg_stat_statements` can now store up to **eight** normalized forms of
+`pg_stat_statements` can now store up to **eight** normalised forms of
 the same logical INSERT: the original 1-row form plus the seven
 rewritten power-of-two forms.
 
@@ -216,7 +216,7 @@ INSERT INTO t (a, b) VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8)
 
 A query that was a single row in `pg_stat_statements` becomes a
 fan-out of up to eight rows whose `calls` and `total_exec_time` each tell a
-different fraction of the story. To get aggregate behavior for a
+different fraction of the story. To get aggregate behaviour for a
 logical INSERT, you have to group on the table / column list rather
 than the statement text. This is mostly an inconvenience for
 operations dashboards (the throughput win is much larger than the

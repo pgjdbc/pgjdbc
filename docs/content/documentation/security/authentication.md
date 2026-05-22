@@ -60,7 +60,7 @@ channelBinding=require       # tie the SCRAM exchange to the TLS channel
 
 This is the combination [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls) recommends. It defends against the credible attacker (one who can intercept and re-negotiate the TLS handshake but does not have the server's private key) by ensuring (a) the certificate presented is the one we expect, and (b) the SCRAM exchange is bound to that TLS session.
 
-For an extra notch of defense in depth, add an explicit `requireAuth=scram-sha-256` so the driver refuses MD5 even if `pg_hba.conf` is later relaxed; see the next section.
+For an extra notch of defence in depth, add an explicit `requireAuth=scram-sha-256` so the driver refuses MD5 even if `pg_hba.conf` is later relaxed; see the next section.
 
 ## `requireAuth`: allow-list / deny-list
 
@@ -78,7 +78,7 @@ For an extra notch of defense in depth, add an explicit `requireAuth=scram-sha-2
 
 Mixing the two (`requireAuth=scram-sha-256,!md5`) fails parsing with `requireAuth cannot mix positive and negative authentication methods` (see `AuthMethod.parseRequireAuth`). Pick a stance.
 
-The check fires *before* the driver responds to the `AuthenticationRequest`, so no credentials are ever transmitted under a rejected method. A mismatch raises `PSQLException` with `SQLState 08004` (`CONNECTION_REJECTED`) and the message `Authentication method is not allowed by requireAuth`. See [SCRAM authentication failed § Authentication method is not allowed by requireAuth](/documentation/troubleshooting/scram-failed/#authentication-method-is-not-allowed-by-requireauth) for the runtime behavior.
+The check fires *before* the driver responds to the `AuthenticationRequest`, so no credentials are ever transmitted under a rejected method. A mismatch raises `PSQLException` with `SQLState 08004` (`CONNECTION_REJECTED`) and the message `Authentication method is not allowed by requireAuth`. See [SCRAM authentication failed § Authentication method is not allowed by requireAuth](/documentation/troubleshooting/scram-failed/#authentication-method-is-not-allowed-by-requireauth) for the runtime behaviour.
 
 ## `channelBinding`
 
@@ -134,7 +134,7 @@ public interface AuthenticationPlugin {
 
 `type` is one of `CLEARTEXT_PASSWORD`, `MD5_PASSWORD`, `SASL` (SCRAM), `GSS`. Returning `null` refuses the request, useful for per-type policy ("we never serve cleartext").
 
-Three contract points to honor:
+Three contract points to honour:
 
 1. **Return a fresh `char[]` on every call.** The driver overwrites the array with zeroes after use (see `AuthenticationPluginManager.withPassword`); reusing a cached array would leave the buffer wiped on the next call.
 2. **The class must have a public constructor that `ObjectFactory` can use.** For authentication plugins the driver first looks for a public `Properties` constructor, then falls back to a public no-arg constructor. If instantiation fails, the driver raises `Unable to load Authentication Plugin ...` with SQLState `22023` (`INVALID_PARAMETER_VALUE`).
@@ -144,7 +144,7 @@ The plugin is not consulted for `trust` auth: the server never asks for a passwo
 
 ## Security history
 
-- **CVE-2025-49146 (fixed in 42.7.7)**: `channelBinding=require` was silently honored even when the server selected a non-SASL authentication method (e.g. MD5 or trust), allowing a server-side downgrade to defeat the binding. Pre-42.7.7 driver versions should pair `channelBinding=require` with `requireAuth=scram-sha-256`; alternatively upgrade. The advisory is at [GHSA-hq9p-pm7w-8p54](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54); see the [Security page](/security/#security-advisories) for the project's full disclosure history.
+- **CVE-2025-49146 (fixed in 42.7.7)**: `channelBinding=require` was silently honoured even when the server selected a non-SASL authentication method (e.g. MD5 or trust), allowing a server-side downgrade to defeat the binding. Pre-42.7.7 driver versions should pair `channelBinding=require` with `requireAuth=scram-sha-256`; alternatively upgrade. The advisory is at [GHSA-hq9p-pm7w-8p54](https://github.com/pgjdbc/pgjdbc/security/advisories/GHSA-hq9p-pm7w-8p54); see the [Security page](/security/#security-advisories) for the project's full disclosure history.
 
 ## Related connection properties
 

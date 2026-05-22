@@ -17,7 +17,7 @@ Please do not contact the maintainers directly unless you have a specific need t
 
 ## Previous Maintainers
 
-The original JDBC driver was written by Adrian Hall. Peter Mount and Barry Lind have maintained it in the past, but have since moved on to other things. We would also like to recognize the work previously done by the following
+The original JDBC driver was written by Adrian Hall. Peter Mount and Barry Lind have maintained it in the past, but have since moved on to other things. We would also like to recognise the work previously done by the following
 
 * Kris Jurka ([@kjurka](https://github.com/kjurka))
 * Oliver Jowett

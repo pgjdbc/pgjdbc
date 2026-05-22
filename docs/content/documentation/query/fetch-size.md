@@ -1,6 +1,6 @@
 ---
 title: "Cursor-based fetching"
-description: "Streaming large result sets row-by-row instead of buffering everything: `Statement.setFetchSize(n)` opens a server-side cursor, the auto-commit-must-be-off requirement, and the per-batch network behavior."
+description: "Streaming large result sets row-by-row instead of buffering everything: `Statement.setFetchSize(n)` opens a server-side cursor, the auto-commit-must-be-off requirement, and the per-batch network behaviour."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 30
@@ -36,7 +36,7 @@ retrieved by repositioning the cursor.
 ## Example 5.2. Setting fetch size to turn cursors on and off
 
 Changing the code to use cursor mode is as simple as setting the fetch size of the `Statement` to the appropriate size.
-Setting the fetch size back to 0 will cause all rows to be cached (the default behavior).
+Setting the fetch size back to 0 will cause all rows to be cached (the default behaviour).
 
 ```java
 // make sure autocommit is off

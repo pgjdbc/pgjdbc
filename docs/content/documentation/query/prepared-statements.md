@@ -16,7 +16,7 @@ The PostgreSQL® server allows clients to compile SQL statements that are expect
 
 > **NOTE**
 >
-> PostgreSQL® 9.2 release notes: prepared statements used to be optimized once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
+> PostgreSQL® 9.2 release notes: prepared statements used to be optimised once, without any knowledge of the parameters' values. With 9.2, the planner will use specific plans regarding to the parameters sent (the query will be planned at execution), except if the query is executed several times and the planner decides that the generic plan is not too much more expensive than the specific plans.
 
 Server side prepared statements can improve execution speed as
 
@@ -72,20 +72,20 @@ Three things change at once when the threshold is crossed:
 
 - **Parsing moves from per-execution to per-statement.** Before the
   threshold, each execute pays a fresh `PARSE` on the server; after
-  it, parsing is a one-time cost amortized over every subsequent
+  it, parsing is a one-time cost amortised over every subsequent
   execute.
 - **Result format flips from text to binary.** Until the statement
   is named, results come back as ASCII strings the driver has to
   decode. Once binary transfer activates, `int4` is 4 raw bytes,
   `timestamp` is 8, and the driver skips most of the
   string-to-Java-object pipeline (see below).
-- **Server-side planning stabilizes.** PostgreSQL plans the first
+- **Server-side planning stabilises.** PostgreSQL plans the first
   few executions of a named statement with the actual parameter
   values it sees (custom plans). After a few iterations it picks a
   parameter-independent generic plan if that is not noticeably
   worse, controlled server-side by
   [`plan_cache_mode`](https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-PLAN-CACHE-MODE).
-  In a default installation, latency stabilizes around execution 10
+  In a default installation, latency stabilises around execution 10
   rather than execution 5.
 
 A benchmark that measures throughput on the first execution and then
@@ -207,7 +207,7 @@ In short: the cache is per-connection, per-SQL-text, soft-bounded.
 A long-lived connection accumulates statements until the cache fills;
 a connection from a pool stays warm for the lifetime of that pooled
 slot. A backend restart (failover, OOM kill) drops the whole
-catalog, surfacing as the lifetime-end errors above.
+catalogue, surfacing as the lifetime-end errors above.
 
 #### `autosave`: auto-rollback around invalidation errors
 
@@ -333,7 +333,7 @@ The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalid
 
 #### set search_path = ...
 
-PostgreSQL® allows to customize `search_path` , and it provides great power to the developer. With great power the 
+PostgreSQL® allows to customise `search_path` , and it provides great power to the developer. With great power the 
 following case could happen:
 
 ```sql
@@ -344,7 +344,7 @@ SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable her
 ```
 
 Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table.
-It is hard to tell which behavior is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
+It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
 prepare cache accordingly.
 
 The recommendation is:
@@ -362,12 +362,12 @@ could re-execute the statement automatically in certain cases.
 `cached plan...` error), then pgJDBC re-executes the statement automatically. This makes the application happy, and avoids
 unnecessary errors.
 2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgJDBC does have "automatic savepoint"
-feature, and it could automatically rollback and retry the statement. The behavior is controlled via `autosave` property
+feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property
 (default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
 
 > **Note**
 >
-> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL® backend is not optimized
+> `autosave` might result in **severe** performance issues for long transactions, as PostgreSQL® backend is not optimised
 > for the case of long transactions and lots of savepoints.
 
 #### Replication connection
@@ -391,7 +391,7 @@ You can do that by setting `preferQueryMode` to `extendedCacheEverything`.
 
 #### Bind placeholder datatypes
 
-The database optimizes the execution plan for given parameter types.
+The database optimises the execution plan for given parameter types.
 Consider the below case:
 
 ```sql

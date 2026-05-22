@@ -35,7 +35,7 @@ used in an application server environment unless the application server does not
 
 A single `Connection` is **not** thread-safe. Each PostgreSQL backend
 serves exactly one client connection at a time, so the driver does not
-internally synchronize calls on a `Connection`, `Statement`,
+internally synchronise calls on a `Connection`, `Statement`,
 `PreparedStatement`, or `ResultSet`. If two application threads issue
 overlapping calls on the same `Connection`, results are undefined.
 
@@ -140,7 +140,7 @@ The pooling implementation requires some additional configuration properties, wh
 |Property|Type|Description|
 |---|---|---|
 |dataSourceName|STRING|Every pooling DataSource must have a unique name.|
-|initialConnections|INT|The number of database connections to be created when the pool is initialized.|
+|initialConnections|INT|The number of database connections to be created when the pool is initialised.|
 |maxConnections|INT|The maximum number of open database connections to allow. When more connections are requested, the caller will hang until a connection is returned to the pool.|
 
 [Example 11.1, “`DataSource` Code Example”](/documentation/connect/datasource/#example111-datasource-code-example) shows an example
@@ -148,7 +148,7 @@ of typical application code using a pooling `DataSource`.
 
 ##### Example 11.1.  `DataSource` Code Example
 
-Code to initialize a pooling `DataSource` might look like this:
+Code to initialise a pooling `DataSource` might look like this:
 
 ```java
 PGPoolingDataSource source = new PGPoolingDataSource();
@@ -164,7 +164,7 @@ source.setMaxConnections(10);
 
 > **Note**
 >
-> setServerName has been deprecated in favor of setServerNames. This was done to support multiple hosts.
+> setServerName has been deprecated in favour of setServerNames. This was done to support multiple hosts.
 
 Then code to use a connection from the pool might look like this.
 
@@ -197,7 +197,7 @@ to the `DataSource` available to all application components that may need to use
 
 ##### Example 11.2.  `DataSource` JNDI Code Example
 
-Application code to initialize a pooling `DataSource` and add it to JNDI might look like this:
+Application code to initialise a pooling `DataSource` and add it to JNDI might look like this:
 
 ```java
 PGPoolingDataSource source = new PGPoolingDataSource();

@@ -35,7 +35,7 @@ postgres=#
 - NonValidatingFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/NonValidatingFactory.java | 15-36
 {{< /review >}}
 
-PostgreSQL® provides a way for developers to customize how an SSL connection is established. This may be used to provide
+PostgreSQL® provides a way for developers to customise how an SSL connection is established. This may be used to provide
 a custom certificate source or other extensions by allowing the developer to create their own `SSLContext` instance.
 The connection URL parameter `sslfactory` allows the user to specify which custom class to use for creating the
 `SSLSocketFactory`. The class name specified by `sslfactory` must extend `javax.net.ssl.SSLSocketFactory` and be
@@ -64,7 +64,7 @@ and the source to the `NonValidatingFactory` provided by the JDBC driver.
 There are a number of connection parameters for configuring the client for SSL. See [SSL Connection parameters](/documentation/reference/connection-properties/)
 
 The simplest is `ssl=true`; passing this into the driver causes the driver to validate the SSL certificate
-and verify the hostname (the same behavior as `sslmode=verify-full`).
+and verify the hostname (the same behaviour as `sslmode=verify-full`).
 
 > **Note**
 >
@@ -77,7 +77,7 @@ and that the host you are connecting to is the same as the hostname in the certi
 If you **require** encryption and want the connection to fail if it can't be encrypted, set `sslmode=require`.
 This ensures that the server accepts SSL connections for this Host/IP address. If the server does not accept SSL
 connections, the connection will fail. If the server is configured to authenticate clients with certificates, then
-the client certificate must also be recognized for authentication to succeed.
+the client certificate must also be recognised for authentication to succeed.
 
 > **Note**
 >
@@ -92,7 +92,7 @@ security-sensitive environments.
 
 
 There is a property `sslNegotiation`. This defaults to `postgres`, but if set to `direct` it enables a second way to initiate
-SSL encryption. The server will recognize connections which immediately begin SSL negotiation
+SSL encryption. The server will recognise connections which immediately begin SSL negotiation
 without any previous SSLRequest packets. See [Protocol Flow](https://www.postgresql.org/docs/17/protocol-flow.html#PROTOCOL-FLOW-SSL) for more details.
 
 The default SSL socket factory is `LibPQFactory`. If the server rejects the client certificate, pass `sslcert=`
@@ -109,7 +109,7 @@ The location of the client certificate, client key and root certificate can be o
 `${user.home}/.postgresql/` in *nix systems and `%appdata%/postgresql/` on Windows.
 
 PKCS-12 is also supported. In this archive format the client key and the client certificate are in one file, which
-needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognized, the file extension must be
+needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recognised, the file extension must be
 `.p12` (supported since 42.2.9) or `.pfx` (since 42.2.16). In this case the `sslcert` parameter is ignored.
 
 > **NOTE**
@@ -192,7 +192,7 @@ In the event of problems extra debugging information is available by adding `-Dj
 - LibPQFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/LibPQFactory.java | 147-152
 {{< /review >}}
 
-In some situations it may not be possible to configure your Java environment to make the server certificate available, for example in an applet. For a large-scale deployment it would be best to get a certificate signed by a recognized
+In some situations it may not be possible to configure your Java environment to make the server certificate available, for example in an applet. For a large-scale deployment it would be best to get a certificate signed by a recognised
 certificate authority, but that is not always an option. The JDBC driver provides an option to establish an SSL connection without doing any validation, but please understand the risk involved before enabling this option.
 
 A non-validating connection is established via a custom `SSLSocketFactory` class that is provided with the driver. Setting the connection URL parameter `sslfactory=org.postgresql.ssl.NonValidatingFactory` turns off all SSL validation.

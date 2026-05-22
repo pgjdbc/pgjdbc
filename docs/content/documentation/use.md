@@ -1,6 +1,6 @@
 ---
-title: "Initializing the Driver (moved)"
-description: "Legacy driver-initialization hub, now split into Quick start, JDBC URL syntax, Unix sockets, connection fail-over, and the connection-properties reference."
+title: "Initialising the Driver (moved)"
+description: "Legacy driver-initialisation hub, now split into Quick start, JDBC URL syntax, Unix sockets, connection fail-over, and the connection-properties reference."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 2
@@ -24,7 +24,7 @@ from an external link, you're probably looking for one of these:
 - **[Failover and load balancing](/documentation/connect/failover/)**:
   multi-host fail-over, `targetServerType`, host-state cache.
 - **[Connection properties reference](/documentation/reference/connection-properties/)**:
-  the complete table of every property the driver recognizes, with
+  the complete table of every property the driver recognises, with
   defaults, types, and the version each was introduced.
 
 For deep links that pointed at a specific property anchor
