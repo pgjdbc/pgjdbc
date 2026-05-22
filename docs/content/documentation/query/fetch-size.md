@@ -9,15 +9,15 @@ aliases:
     - "/documentation/query/#getting-results-based-on-a-cursor/"
 ---
 
-By default, the driver collects all the results for the query at once. This can be inconvenient for large data sets so 
+By default, the driver collects all the results for the query at once. This can be inconvenient for large data sets, so
 the JDBC driver provides a means of basing a `ResultSet` on a database cursor and only fetching a small number of rows.
 
-A small number of rows are cached on the client side of the connection and when exhausted the next block of rows is 
+A small number of rows are cached on the client side of the connection; when these are exhausted, the next block of rows is
 retrieved by repositioning the cursor.
 
 > **NOTE**
 >
-> Cursor based `ResultSets` cannot be used in all situations. There a number of restrictions which will make the driver 
+> Cursor-based `ResultSets` cannot be used in all situations. There are a number of restrictions that will make the driver
 > silently fall back to fetching the whole `ResultSet` at once.
 >
 > * The connection to the server must be using the V3 protocol. This is the default for (and is only supported by) 
@@ -32,10 +32,10 @@ retrieved by repositioning the cursor.
 >
 > * The query given must be a single statement, not multiple statements strung together with semicolons.
 
-##### Example 5.2. Setting fetch size to turn cursors on and off.
+## Example 5.2. Setting fetch size to turn cursors on and off
 
-Changing the code to use cursor mode is as simple as setting the fetch size of the `Statement` to the appropriate size. 
-Setting the fetch size back to 0 will cause all rows to be cached (the default behaviour).
+Changing the code to use cursor mode is as simple as setting the fetch size of the `Statement` to the appropriate size.
+Setting the fetch size back to 0 will cause all rows to be cached (the default behavior).
 
 ```java
 // make sure autocommit is off
@@ -64,8 +64,8 @@ st.close();
 
 ## Bounding the result set by buffer size
 
-When the right fetch size is hard to predict — wide rows, mixed
-queries, JVMs with varying heap budgets — the
+When the right fetch size is hard to predict (wide rows, mixed
+queries, JVMs with varying heap budgets), the
 [`maxResultBuffer`](/documentation/reference/connection-properties/#prop-maxresultbuffer)
 property caps how many bytes a single `ResultSet` may accumulate
 before the driver raises an error. The value can be expressed in
@@ -76,7 +76,7 @@ two styles:
 - **A percentage of the max heap**: `10p`, `15pct`, `20percent`.
 
 Regardless of how it is written, the effective ceiling is 90 % of
-the JVM's maximum heap — values above that are silently clamped to
+the JVM's maximum heap. Values above that are silently clamped to
 the cap. The default is unset, meaning result-set reads are
 unbounded.
 

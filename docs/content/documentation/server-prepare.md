@@ -5,20 +5,20 @@ draft: false
 weight: 8
 toc: false
 last_reviewed: "2026-05-13"
-# Hidden from sidebar / section listings; hub + JS redirector for legacy
-# deep links continues to serve at the old URL.
+# Hidden from sidebar / section listings; this page still serves as a hub
+# and JS redirector for legacy deep links at the old URL.
 build:
   list: never
 ---
 
-This page covered seven loosely-related extension topics under one URL.
+This page covered several loosely related extension topics under one URL.
 Each topic now has its own page:
 
-- **[Server-prepared statements](/documentation/query/prepared-statements/)** —
+- **[Server-prepared statements](/documentation/query/prepared-statements/)**:
   the `prepareThreshold` model, deactivation, debugging, binary transfer.
 - **[LISTEN / NOTIFY](/documentation/postgresql-features/listen-notify/)**
 - **[Parameter status](/documentation/postgresql-features/parameter-status/)**
-- **[Driver extensions API](/documentation/postgresql-features/extensions-api/)** —
+- **[Driver extensions API](/documentation/postgresql-features/extensions-api/)**:
   accessing PostgreSQL-specific functionality via `unwrap`.
 - **[Timestamp infinity](/documentation/data-types/infinity/)**
 - **[Geometric types](/documentation/data-types/geometric/)**

@@ -9,9 +9,9 @@ aliases:
     - "/documentation/server-prepare/#copymanager/"
 ---
 
-The driver provides an extension for accessing `COPY`. Copy is an extension that PostreSQL provides. see [Copy](https://www.postgresql.org/docs/current/sql-copy.html)
+`COPY` is a PostgreSQL extension to standard SQL; see the [`COPY` command reference](https://www.postgresql.org/docs/current/sql-copy.html) for the underlying SQL command. The driver exposes it through `CopyManager`, accessed via `PGConnection.getCopyAPI()`.
 
-#### Example 9.15 Copying Data in
+## Example 9.15 Copying Data in
 ```java
 
 /*
@@ -47,7 +47,7 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
 
 ``` 
 
-#### Example 9.16 Copying Data out
+## Example 9.16 Copying Data out
 
 ```java
 String sql = "COPY copytest TO STDOUT";
@@ -65,4 +65,4 @@ try (Connection con = DriverManager.getConnection(url, "postgres", "somepassword
 }
 ```
 
-More examples can be found in the [Copy Test Code](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test/java/org/postgresql/test/jdbc2/CopyTest.java)
+More examples can be found in the [Copy Test Code](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/test/java/org/postgresql/test/jdbc2/CopyTest.java).

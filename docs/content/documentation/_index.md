@@ -9,12 +9,12 @@ aliases:
 ---
 
 pgJDBC is the official JDBC driver for PostgreSQL®: pure Java, JDBC&nbsp;4.2,
-production-grade. This documentation is organised by task — start with the
+production-grade. This documentation is organized by task: start with the
 section that matches what you need to do.
 
 If you already know your way around JDBC and just want the knobs, jump
 straight to [Connection properties](/documentation/reference/connection-properties/)
-for the complete catalogue, or to
+for the complete catalog, or to
 [Recommended properties](/documentation/connect/recommended-properties/)
 for the short list of non-default settings worth turning on in
 production.
