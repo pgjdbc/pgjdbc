@@ -1,0 +1,58 @@
+---
+title: "Getting results based on a cursor"
+---
+
+
+By default, the driver collects all the results for the query at once. This can be inconvenient for large data sets so 
+the JDBC driver provides a means of basing a `ResultSet` on a database cursor and only fetching a small number of rows.
+
+A small number of rows are cached on the client side of the connection and when exhausted the next block of rows is 
+retrieved by repositioning the cursor.
+
+> **NOTE**
+>
+> Cursor based `ResultSets` cannot be used in all situations. There a number of restrictions which will make the driver 
+> silently fall back to fetching the whole `ResultSet` at once.
+>
+> * The connection to the server must be using the V3 protocol. This is the default for (and is only supported by) 
+> server versions 7.4 and later.
+>
+> * The `Connection` must not be in autocommit mode. The backend closes cursors at the end of transactions, so in 
+> autocommit mode the backend will have closed the cursor before anything can be fetched from it.
+>
+> * The `Statement` must be created with a `ResultSet` type of `ResultSet.TYPE_FORWARD_ONLY`. This is the default,
+> so no code will need to be rewritten to take advantage of this, but it also means that you cannot scroll backwards or 
+> otherwise jump around in the `ResultSet`.
+>
+> * The query given must be a single statement, not multiple statements strung together with semicolons.
+
+##### Example 5.2. Setting fetch size to turn cursors on and off.
+
+Changing the code to use cursor mode is as simple as setting the fetch size of the `Statement` to the appropriate size. 
+Setting the fetch size back to 0 will cause all rows to be cached (the default behaviour).
+
+```java
+// make sure autocommit is off
+conn.setAutoCommit(false);
+Statement st = conn.createStatement();
+
+// Turn use of the cursor on.
+st.setFetchSize(50);
+ResultSet rs = st.executeQuery("SELECT * FROM mytable");
+while (rs.next()) {
+    System.out.print("a row was returned.");
+}
+rs.close();
+
+// Turn the cursor off.
+st.setFetchSize(0);
+rs = st.executeQuery("SELECT * FROM mytable");
+while (rs.next()) {
+    System.out.print("many rows were returned.");
+}
+rs.close();
+
+// Close the statement.
+st.close();
+```
+
