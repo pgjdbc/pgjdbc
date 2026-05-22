@@ -1,6 +1,6 @@
 # Security Policy
 
-We value backward compatibility — upgrading pgJDBC, including across
+We value backward compatibility. Upgrading pgJDBC, including across
 minor versions, should not require code or configuration changes. If
 you cannot upgrade and need a fix backported, open an issue or write
 to the mailing list with the reason you're stuck.
@@ -16,14 +16,14 @@ to the mailing list with the reason you're stuck.
 
 The **proactive-security window** is five years past the `.0` of the
 next minor. While a line is in the window, every CVE gets a dedicated
-patch release on that same line — applying the fix never requires
+patch release on that same line; applying the fix never requires
 moving to a newer minor. The latest line has no successor yet and
 stays in full support indefinitely.
 
-Lines past the window remain eligible for a backport on request —
-open an issue with the reason you're stuck. We have rolled patches
+Lines past the window remain eligible for a backport on request.
+Open an issue with the reason you're stuck. We have rolled patches
 as far back as 9.4 when the need was real.
 
-## Reporting a Vulnerability
+## Reporting a vulnerability
 
 Please send reports of security issues to pgsql-jdbc-security@lists.postgresql.org.
