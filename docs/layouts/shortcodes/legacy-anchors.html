@@ -1,0 +1,96 @@
+{{/*
+  legacy-anchors: emits an inline JSON map of legacy-anchor → new-URL
+  pairs for a hub page. Runtime JS (static/js/legacy-anchors.js) reads
+  the script tag on page load and redirects the browser when a known
+  legacy hash is present.
+
+  Params:
+    hub  required, one of "use" | "query" | "server-prepare" | "setup".
+
+  Used by the four Phase 1a hub pages whose content was split into
+  multiple topical successors. We can't rely on Hugo's `aliases:`
+  mechanism for this because aliases drop the URL fragment, so a deep
+  link like `/documentation/use/#sslmode` lands at
+  `/documentation/reference/connection-properties/` with no anchor.
+  The JSON map + JS preserves the deep link.
+*/}}
+{{- $hub := .Get "hub" -}}
+{{- $map := dict -}}
+
+{{- if eq $hub "use" -}}
+  {{- /* Section anchors that the original `use.md` defined. */ -}}
+  {{- $map = merge $map (dict
+      "#connecting-to-the-database" "/documentation/connect/url-syntax/"
+      "#system-properties"          "/documentation/reference/connection-properties/"
+      "#connection-parameters"      "/documentation/reference/connection-properties/"
+      "#unix-sockets"               "/documentation/connect/unix-sockets/"
+      "#connection-fail-over"       "/documentation/connect/failover/"
+  ) -}}
+  {{- /* Per-property anchors. The original `use.md` rendered each
+         property as a `### <name>` heading (Hugo auto-slug = lowercased
+         camelCase name). The new reference page emits `id=prop-<slug>`
+         per row, where slug is `anchorize <name>`. Map both. */ -}}
+  {{- range (index hugo.Data "connection-properties") -}}
+    {{- $name := .name -}}
+    {{- $slug := anchorize $name -}}
+    {{- $target := printf "/documentation/reference/connection-properties/#prop-%s" $slug -}}
+    {{/* legacy plain anchor (lowercased name): */}}
+    {{- $map = merge $map (dict (printf "#%s" (lower $name)) $target) -}}
+    {{/* anchorized: */}}
+    {{- $map = merge $map (dict (printf "#%s" $slug) $target) -}}
+  {{- end -}}
+
+{{- else if eq $hub "query" -}}
+  {{- $map = merge $map (dict
+      "#getting-results-based-on-a-cursor"      "/documentation/query/fetch-size/"
+      "#using-the-statement-or-preparedstatement-interface" "/documentation/query/basics/"
+      "#using-the-resultset-interface"          "/documentation/query/basics/"
+      "#performing-updates"                     "/documentation/query/basics/"
+      "#creating-and-modifying-database-objects" "/documentation/query/basics/"
+      "#using-java-8-date-and-time-classes"     "/documentation/data-types/date-time/"
+  ) -}}
+
+{{- else if eq $hub "server-prepare" -}}
+  {{- $map = merge $map (dict
+      "#accessing-the-extensions"                 "/documentation/postgresql-features/extensions-api/"
+      "#timestamp-infinity"                       "/documentation/data-types/infinity/"
+      "#geometric-data-types"                     "/documentation/data-types/geometric/"
+      "#large-objects"                            "/documentation/data-types/large-objects/"
+      "#listen--notify"                           "/documentation/postgresql-features/listen-notify/"
+      "#server-prepared-statements"               "/documentation/query/prepared-statements/"
+      "#parameter-status-messages"                "/documentation/postgresql-features/parameter-status/"
+      "#methods"                                  "/documentation/postgresql-features/parameter-status/"
+      "#physical-and-logical-replication-api"     "/documentation/postgresql-features/replication/"
+      "#configure-database"                       "/documentation/postgresql-features/replication/"
+      "#logical-replication"                      "/documentation/postgresql-features/replication/"
+      "#physical-replication"                     "/documentation/postgresql-features/replication/"
+      "#arrays"                                   "/documentation/data-types/arrays/"
+      "#copymanager"                              "/documentation/postgresql-features/copy/"
+  ) -}}
+
+{{- else if eq $hub "setup" -}}
+  {{- $map = merge $map (dict
+      "#getting-the-driver"                "/documentation/install/"
+      "#setting-up-the-class-path"         "/documentation/install/"
+      "#preparing-the-database-server-for-jdbc" "/documentation/getting-started/server-prep/"
+      "#creating-a-database"               "/documentation/getting-started/server-prep/"
+  ) -}}
+
+{{- end -}}
+{{/* Rewrite each target through relURL so the JSON map carries the
+     site BasePath. Without this, the runtime JS would redirect to
+     `/documentation/foo/` and skip the `/<repo>/` prefix when the
+     site is served from a project page (e.g. <user>.github.io/<repo>/).
+     Strip the leading `/` first — Hugo's relURL deliberately doesn't
+     prepend BasePath when the input already starts with `/`. The
+     `#prop-<slug>` fragment survives the transform; relURL leaves the
+     `#…` tail intact. */}}
+{{- $relMap := dict -}}
+{{- range $k, $v := $map -}}
+  {{- $relMap = merge $relMap (dict $k (relURL (strings.TrimPrefix "/" $v))) -}}
+{{- end -}}
+{{/* Emit as JSON using a custom MIME type. With type="application/json",
+     Hugo's HTML minifier parses the body and re-emits it as a JSON-encoded
+     string (doubly quoting the content). A non-recognised type makes the
+     minifier leave the body alone. */}}
+<script type="text/plain" data-legacy-anchors>{{- jsonify $relMap -}}</script>

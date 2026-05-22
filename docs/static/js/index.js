@@ -1,4 +1,7 @@
 import './accordion.js'
 import './copyToClipboard.js'
+import './legacy-anchors.js'
 import './lunr-search.js'
+import './search-highlight.js'
 import './menutoggle.js'
+import './navbar-height.js'
