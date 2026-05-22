@@ -1,5 +1,91 @@
-<ul class="custom-marker">
-    {{ range $ind, $ver := $.Site.Data.versions.past }}
-    <li><a href="/download/postgresql-{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}.jar">{{$ver.version}}{{if $ver.suffix}}.{{$ver.suffix}}{{end}}</a></li>
-    {{end}}
+{{/*
+  Older download links, curated by release line:
+   * Current line (the latest changelog's X.Y.x) — every patch
+     except the newest one, which lives in the "recent versions"
+     card above.
+   * Each older non-classifier line (42.6.x, 42.5.x, 42.4.x,
+     42.3.x) — only its latest patch.
+   * 42.2.x line — the most recent prior .jre7 patch (the current
+     .jre7 lives in the "recent" card; the unclassified 42.2.x
+     build hasn't shipped since the line went JRE-7-only).
+
+  Sources of truth:
+   * /changelogs/*-release.md for tagged versions, ordering, and
+     the per-release date shown next to each link (from the
+     changelog's `date` front-matter).
+   * release-history.yaml (generated from git tags + the overlay)
+     for per-line latest patches, the .jre7 cutoff, and the
+     `Released` date of each older line's latest patch.
+  No data file needs to be touched when a new version ships.
+*/}}
+{{- $changelogs := where site.RegularPages "Section" "changelogs" -}}
+
+{{- /* Latest Java-8+ release: top of /changelogs/. */ -}}
+{{- $latest := "" -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- if and (not $latest) (findRE "^[0-9]" (.Params.version | default "")) -}}
+    {{- $latest = .Params.version -}}
+  {{- end -}}
+{{- end -}}
+{{- $parts := split $latest "." -}}
+{{- $currentLine := printf "%s.%s." (index $parts 0) (index $parts 1) -}}
+
+{{- /* .jre7 cutoff from release-history.yaml. */ -}}
+{{- $jre7Last := "" -}}
+{{- range (index hugo.Data "release-history").rows -}}
+  {{- if hasSuffix .version_range ".jre7" -}}
+    {{- $jre7Last = replaceRE "\\.jre7$" "" .version_range -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* Assemble the past list in display order. */ -}}
+{{- $past := slice -}}
+
+{{- /* 1. Current-line patches, newest first. */ -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- $v := .Params.version | default "" -}}
+  {{- if and (hasPrefix $v $currentLine) (ne $v $latest) -}}
+    {{- $past = $past | append (dict "version" $v "suffix" "" "date" (.Date.Format "2 January 2006")) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 2. Latest patch of each older non-classifier line. Skip the
+       current line (already covered) and 42.2.x (handled via jre7).
+       The `released >= "2018-01-01"` cut-off keeps the pre-42.2.x
+       lines (42.0.x and 42.1.x, both 2017) off the download page;
+       they shipped before pgJDBC settled into its current support
+       model and are not surfaced to users any more. */ -}}
+{{- range (index hugo.Data "release-history").rows -}}
+  {{- $vr := .version_range -}}
+  {{- $rl := .release_line -}}
+  {{- $linePrefix := replaceRE "x$" "" $rl -}}
+  {{- if and (not (findRE "\\.jre[0-9]+$" $vr)) (ne $linePrefix $currentLine) (ne $rl "42.2.x") (ge .released "2018-01-01") -}}
+    {{- $rangeParts := split $vr "-" -}}
+    {{- $lastPatch := index $rangeParts (sub (len $rangeParts) 1) -}}
+    {{- $past = $past | append (dict "version" $lastPatch "suffix" "" "date" (dateFormat "2 January 2006" .released)) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- /* 3. Most recent prior .jre7 patch. */ -}}
+{{- $jre7Past := "" -}}
+{{- $jre7PastDate := "" -}}
+{{- range $changelogs.ByDate.Reverse -}}
+  {{- $v := .Params.version | default "" -}}
+  {{- if and (not $jre7Past) (hasPrefix $v "42.2.") (ne $v $jre7Last) -}}
+    {{- $jre7Past = $v -}}
+    {{- $jre7PastDate = .Date.Format "2 January 2006" -}}
+  {{- end -}}
+{{- end -}}
+{{- with $jre7Past -}}
+  {{- $past = $past | append (dict "version" . "suffix" "jre7" "date" $jre7PastDate) -}}
+{{- end -}}
+
+<ul class="past-versions">
+    {{- range $past }}
+    {{- $full := .version }}{{ if .suffix }}{{ $full = printf "%s.%s" .version .suffix }}{{ end }}
+    <li>
+        <a href="{{ printf "download/postgresql-%s.jar" $full | relURL }}">{{ $full }}</a>
+        <span class="past-versions__date">{{ .date }}</span>
+    </li>
+    {{- end }}
 </ul>

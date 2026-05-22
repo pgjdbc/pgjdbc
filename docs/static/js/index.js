@@ -1,4 +1,5 @@
 import './accordion.js'
+import './code-tabs.js'
 import './copyToClipboard.js'
 import './legacy-anchors.js'
 import './lunr-search.js'

@@ -1,21 +1,41 @@
 <section class="hero">
-    <img class="hero__img" src="{{"/images/elephants.png" | relURL}}" alt="elephant"/>
+    <img class="hero__img" src="{{"images/elephants.png" | relURL}}" alt=""/>
     <article class="hero__content">
         <h1 class="hero__content__head">
             PostgreSQL JDBC Driver
         </h1>
-        <h3 class="hero__content__desc">
-            An Open source JDBC driver written in Pure Java (Type 4), which communicates using the PostgreSQL native
-            network protocol
-        </h3>
+        <p class="hero__content__desc">
+            The official JDBC driver for PostgreSQL® &mdash; pure Java, JDBC&nbsp;4.2.
+        </p>
         <div class="hero__content__actions">
-            <button class="btn btn--contained">
-                <img src="{{"/icons/download2.svg" | relURL}}" alt="download2">
-                <a href="/download">Download</a>
-            </button>
-            <button class="btn btn--outlined">
-                <a href="/documentation">Go To Docs</a>
-            </button>
+            <a class="btn btn--contained" href="{{ "documentation/" | relURL }}">Documentation</a>
+            <a class="btn btn--outlined" href="{{ "download/" | relURL }}">Download</a>
         </div>
+        <ul class="hero__content__links" role="list">
+            <li><a href="{{ "changelogs/" | relURL }}">Changelog</a></li>
+            <li><a href="{{ "security/" | relURL }}">Security</a></li>
+        </ul>
+        <ul class="hero__content__badges" role="list">
+            <li>
+                <a href="https://central.sonatype.com/artifact/org.postgresql/postgresql" aria-label="View pgJDBC on Maven Central">
+                    <img src="https://img.shields.io/maven-central/v/org.postgresql/postgresql?label=Maven%20Central" alt="Maven Central"/>
+                </a>
+            </li>
+            <li>
+                <a href="https://javadoc.io/doc/org.postgresql/postgresql" aria-label="View pgJDBC Javadoc">
+                    <img src="https://javadoc.io/badge/org.postgresql/postgresql.svg" alt="Javadoc"/>
+                </a>
+            </li>
+            <li>
+                <a href="https://opensource.org/licenses/BSD-2-Clause" aria-label="BSD-2-Clause license">
+                    <img src="https://img.shields.io/badge/License-BSD--2--Clause-blue.svg" alt="License: BSD-2-Clause"/>
+                </a>
+            </li>
+            <li>
+                <a href="https://scorecard.dev/viewer/?uri=github.com/pgjdbc/pgjdbc" aria-label="OpenSSF Scorecard">
+                    <img src="https://api.scorecard.dev/projects/github.com/pgjdbc/pgjdbc/badge" alt="OpenSSF Scorecard"/>
+                </a>
+            </li>
+        </ul>
     </article>
 </section>
