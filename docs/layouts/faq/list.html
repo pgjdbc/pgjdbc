@@ -1,7 +1,7 @@
 {{ define "main" }}
 <section class="faq container">
     <h2>Frequently Asked Questions</h2>
-    {{ range $.Site.Data.faqs.faq }}
+    {{ range hugo.Data.faqs.faq }}
     <div class="accordion">
         <h4>{{ .title }}</h4>
         {{ range $ind, $item := .item}}
@@ -11,7 +11,24 @@
                 <span class="accordion__btn__icon" aria-hidden="true"></span>
             </button>
             <div class="accordion__content">
-                <div class="accordion__content__inner">{{ $item.ans | safeHTML }}</div>
+                {{- /*
+                  FAQ entries historically embed anchors as raw HTML
+                  (`<a href="/foo">`) rather than markdown, and the
+                  `safeHTML` pipe skips Goldmark — so the render-link
+                  hook never sees them. Rewrite root-relative hrefs to
+                  include the site BasePath so the links don't break
+                  on a project-page deployment. `relURL ""` returns the
+                  BasePath with trailing slash; on prod it's just `/`
+                  and the loop becomes a no-op (no matches replaced).
+                */ -}}
+                {{- $ans := $item.ans -}}
+                {{- range findRE `href="/[^/"][^"]*"` $ans -}}
+                    {{- $orig := . -}}
+                    {{- $path := . | strings.TrimPrefix `href="/` | strings.TrimSuffix `"` -}}
+                    {{- $rel := relURL $path -}}
+                    {{- $ans = replace $ans $orig (printf `href="%s"` $rel) -}}
+                {{- end -}}
+                <div class="accordion__content__inner">{{ $ans | safeHTML }}</div>
             </div>
         </div>
         {{ end }}

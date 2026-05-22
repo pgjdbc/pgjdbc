@@ -1,0 +1,33 @@
+{{- /*
+  Markdown link render hook.
+
+  Source-of-truth links in markdown content are written as root-relative
+  paths (e.g. `[Compatibility](/documentation/getting-started/compatibility/)`)
+  because that's what production https://jdbc.postgresql.org/ has always
+  served. On a project-page deployment (https://<owner>.github.io/<repo>/),
+  the same path lands the reader on the *wrong* host root instead of the
+  repo prefix.
+
+  Goldmark's default link hook emits .Destination verbatim, so we
+  intercept it and run any root-relative URL through relURL, which
+  prepends the site BasePath. Hugo's relURL deliberately does NOT
+  prepend BasePath when the input already starts with `/` (it treats
+  that as "you already know the absolute path"), so we trim the leading
+  slash first. The query/fragment tail (`?foo=1#bar`) survives the
+  transform untouched — relURL only manipulates the path portion.
+
+  External links, anchor-only links, mailto:, and relative ./foo paths
+  are passed through unchanged.
+*/ -}}
+{{- /*
+  A simple prefix check is enough here — and more robust than
+  urls.Parse, which throws on the malformed-but-historically-tolerated
+  destinations a few legacy changelog entries carry. Root-relative
+  links start with exactly one `/`; protocol-relative (`//host/...`)
+  and external (`https://...`) links don't match the condition.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- if and (hasPrefix $dest "/") (not (hasPrefix $dest "//")) -}}
+  {{- $dest = $dest | strings.TrimPrefix "/" | relURL -}}
+{{- end -}}
+<a href="{{ $dest | safeURL }}"{{ with .Title }} title="{{ . | safeHTML }}"{{ end }}>{{ .Text | safeHTML }}</a>

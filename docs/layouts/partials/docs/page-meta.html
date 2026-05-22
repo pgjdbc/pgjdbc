@@ -1,0 +1,56 @@
+{{/*
+  page-meta: renders a thin band above the article body containing
+  breadcrumbs, last_reviewed date, and an "Edit this page on GitHub" link.
+
+  Reads frontmatter fields:
+    last_reviewed   string (ISO date), optional
+
+  Reads Site.Params:
+    docsRepo         (string)  github repo URL, e.g. "https://github.com/pgjdbc/pgjdbc"
+    docsBranch       (string)  branch name on the repo
+    docsContentRoot  (string)  path within the repo where the Hugo content/ lives
+
+  Breadcrumbs walk up Section -> Section.Parent -> ... -> home.
+*/}}
+{{- $home := .Site.Home -}}
+{{- $crumbs := slice -}}
+{{- $section := .CurrentSection -}}
+{{- range seq 8 -}}{{/* bounded loop to climb up the section tree */}}
+  {{- if and $section (ne $section.RelPermalink "/") -}}
+    {{- $crumbs = $crumbs | append $section -}}
+    {{- $section = $section.Parent -}}
+  {{- end -}}
+{{- end -}}
+{{- $reversed := slice -}}
+{{- range $i, $c := $crumbs -}}
+  {{- $reversed = $reversed | append (index $crumbs (sub (sub (len $crumbs) 1) $i)) -}}
+{{- end -}}
+<div class="page-meta">
+  <ol class="page-meta__breadcrumbs" aria-label="Breadcrumb">
+    <li><a href="{{ $home.RelPermalink }}">Home</a></li>
+    {{- range $reversed }}
+      <li><a href="{{ .RelPermalink }}">{{ .Title }}</a></li>
+    {{- end }}
+    {{- if and .CurrentSection (ne .RelPermalink .CurrentSection.RelPermalink) }}
+      <li aria-current="page">{{ .Title }}</li>
+    {{- end }}
+  </ol>
+
+  {{- with .Params.last_reviewed }}
+    <span class="page-meta__reviewed" title="Date this page was last reviewed for accuracy">
+      Last reviewed <time datetime="{{ . }}">{{ . }}</time>
+    </span>
+  {{- end }}
+
+  {{- $repo := .Site.Params.docsRepo -}}
+  {{- $branch := .Site.Params.docsBranch | default "master" -}}
+  {{- $root := .Site.Params.docsContentRoot | default "docs/content" -}}
+  {{- with .File }}
+    {{- if $repo }}
+      <span class="page-meta__edit">
+        <a href="{{ $repo }}/edit/{{ $branch }}/{{ $root }}/{{ .Path }}"
+           target="_blank" rel="noopener">Edit this page on GitHub</a>
+      </span>
+    {{- end }}
+  {{- end }}
+</div>
