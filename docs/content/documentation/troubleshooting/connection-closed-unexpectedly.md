@@ -34,7 +34,7 @@ an idle socket has **no signal** that the remote endpoint is gone
 until it tries to send or receive. There is no heartbeat on a vanilla
 TCP socket. SO_KEEPALIVE exists, but the Linux defaults are
 `tcp_keepalive_time = 7200` (2 hours of idle before the first probe)
-plus 9 probes at 75 s apart — a full ~2 h 11 min before the kernel
+plus 9 probes at 75 s apart, a full ~2 h 11 min before the kernel
 declares a connection dead. Most failure modes that bite production
 fire well below that ceiling.
 
@@ -46,8 +46,8 @@ In rough order of how often it shows up in real incidents:
   to 350 s of TCP idle (TLS terminates differently); GCP TCP LB
   defaults to 600 s; Kubernetes Service of type LoadBalancer
   inherits from the cloud provider; on-prem firewalls often sit at
-  300–900 s. The middleware drops the connection silently — no RST
-  is forwarded, sometimes nothing is — and both ends are left
+  300–900 s. The middleware drops the connection silently (no RST
+  is forwarded, sometimes nothing is), and both ends are left
   thinking the socket is still good.
 - **Server-side idle terminator.** PostgreSQL's
   [`idle_session_timeout`](https://www.postgresql.org/docs/current/runtime-config-client.html#GUC-IDLE-SESSION-TIMEOUT)
@@ -83,13 +83,13 @@ Both are worth combining.
 
 A pool that hands out connections without validating them is the
 single biggest source of this error in modern stacks. HikariCP,
-Tomcat JDBC, and c3p0 all support pre-checkout validation — turn it
+Tomcat JDBC, and c3p0 all support pre-checkout validation; turn it
 on.
 
 - **HikariCP.** Validation is on by default; the pool calls
   `Connection.isValid()` on checkout. The optional
   `connectionTestQuery` (e.g., `SELECT 1`) is needed only for
-  drivers older than JDBC 4.0 — pgJDBC since 9.x implements
+  drivers older than JDBC 4.0, and pgJDBC since 9.x implements
   `isValid()` natively. Leave `connectionTestQuery` unset and trust
   `isValid`.
 - **Tomcat JDBC.** Set `testOnBorrow=true` together with
@@ -120,7 +120,7 @@ net.ipv4.tcp_keepalive_intvl = 10     # probe every 10 s
 net.ipv4.tcp_keepalive_probes = 6     # ≈ 60 s of probing before declaring dead
 ```
 
-JVM-level overrides are not possible for these on Linux — the kernel
+JVM-level overrides are not possible for these on Linux; the kernel
 defaults apply to the socket. Containers inherit the host's sysctl
 unless explicitly overridden.
 
@@ -134,11 +134,11 @@ unless explicitly overridden.
 {{< /review >}}
 
 [`socketTimeout`](/documentation/reference/connection-properties/#prop-sockettimeout)
-sets `SO_TIMEOUT` on the socket — any read longer than this surfaces
+sets `SO_TIMEOUT` on the socket: any read longer than this surfaces
 as `SocketTimeoutException`. Useful for bounding the wait when the
 server stops responding **mid-query** (so requests do not hang
-indefinitely), but it does not help with **idle pooled connections**
-— there is no read in progress on those to time out.
+indefinitely), but it does not help with **idle pooled connections**,
+since there is no read in progress on those to time out.
 
 A common safe pairing: `socketTimeout` long enough to cover the
 slowest legitimate query, plus pool validation to catch idle
@@ -152,7 +152,7 @@ Since PostgreSQL 12, the server respects the Linux
 GUC. Setting it (e.g., `60000` ms) makes the **server side** of the
 TCP stack give up after the configured time when it cannot get an
 ACK from the client, even if SO_KEEPALIVE is off. The client side
-remains a separate concern — set
+remains a separate concern: set
 `net.ipv4.tcp_user_timeout` via sysctl, or rely on the keepalive
 recipe above.
 
@@ -162,20 +162,20 @@ recipe above.
 
 ## Related
 
-- [Timeouts](/documentation/connect/timeouts/) — the configuration
-  companion to this page: which timeout caps each phase of a
+- [Timeouts](/documentation/connect/timeouts/): the configuration
+  companion to this page covers which timeout caps each phase of a
   connection, and the JDBC-spec `setQueryTimeout` /
   `setLoginTimeout` layer on top of the driver knobs.
-- [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/)
-  — the different "I/O stuck" failure mode where the TCP socket is
+- [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/):
+  the different "I/O stuck" failure mode where the TCP socket is
   *not* dead but both ends are deadlocked on full buffers.
-- [Connection pooling](/documentation/connect/connection-pooling/)
-  — HikariCP / Tomcat JDBC / c3p0 production recipes (validation
+- [Connection pooling](/documentation/connect/connection-pooling/):
+  HikariCP / Tomcat JDBC / c3p0 production recipes (validation
   defaults, idle eviction, `tcpKeepAlive` under pool ownership),
   pool sizing, and `ApplicationName` per pool.
-- [DataSource and JNDI](/documentation/connect/datasource/)
-  — the JDBC `DataSource` / `ConnectionPoolDataSource` API
+- [DataSource and JNDI](/documentation/connect/datasource/):
+  the JDBC `DataSource` / `ConnectionPoolDataSource` API
   contracts and pgJDBC's bundled implementations.
-- [Connection properties reference](/documentation/reference/connection-properties/)
-  — `tcpKeepAlive`, `socketTimeout`, `loginTimeout`,
+- [Connection properties reference](/documentation/reference/connection-properties/):
+  `tcpKeepAlive`, `socketTimeout`, `loginTimeout`,
   `cancelSignalTimeout`.

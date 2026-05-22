@@ -18,7 +18,7 @@ java.sql.SQLException: No suitable driver found for jdbc:postgresql://…
 `java.sql.Driver` and asks each one to `connect(url, …)`. The
 exception fires when every driver returns `null`. Either there are no
 pgJDBC drivers registered, or one is registered but does not
-recognise the URL you passed. The four sections below cover those
+recognize the URL you passed. The four sections below cover those
 cases in order of diagnostic value. `DriverManager.getDriver(url)` is
 slightly different: that lookup uses `acceptsURL(url)`, but it is not
 the path that throws the longer `No suitable driver found for ...`
@@ -55,7 +55,7 @@ If it does, jump to [The URL does not match the driver's pattern](#the-url-does-
 
 A common cause. `DriverManager` discovers drivers via
 the [`ServiceLoader`](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html)
-mechanism — it reads files named `META-INF/services/java.sql.Driver`
+mechanism: it reads files named `META-INF/services/java.sql.Driver`
 from every JAR on the classpath and loads the classes named there. If
 the postgresql JAR is not present, `ServiceLoader` finds nothing and
 the registration never happens.
@@ -82,9 +82,9 @@ java -cp postgresql-42.7.11.jar:myapp.jar com.example.Main
 ```
 
 `Class.forName("org.postgresql.Driver")` does **not** rescue this
-case — the class still needs to be on the classpath to be loadable.
+case; the class still needs to be on the classpath to be loadable.
 See the install page's
-[ServiceLoader note](/documentation/getting-started/install/) — that
+[ServiceLoader note](/documentation/getting-started/install/): that
 call has been redundant since Java&nbsp;6 and is not a substitute for
 a real dependency.
 
@@ -94,8 +94,8 @@ a real dependency.
 - ServiceLoader entry | pgjdbc/src/main/resources/META-INF/services/java.sql.Driver | 1
 {{< /review >}}
 
-When an application is repackaged into a single "fat" JAR — Maven
-Shade Plugin, Gradle Shadow, `mvn-assembly`, `spring-boot:repackage` —
+When an application is repackaged into a single "fat" JAR (Maven
+Shade Plugin, Gradle Shadow, `mvn-assembly`, `spring-boot:repackage`),
 the service-loader file at `META-INF/services/java.sql.Driver` from
 each dependency must be merged into the final JAR. Many shading
 defaults silently drop these files when they collide across
@@ -107,7 +107,7 @@ Symptoms specific to this case:
   runtime even though `org.postgresql.Driver.class.getResource(...)`
   finds the class.
 - The app works when run from the IDE (raw classpath) but fails when
-  launched from the shaded artefact.
+  launched from the shaded artifact.
 
 Fix per build system:
 
@@ -140,10 +140,10 @@ tasks.shadowJar {
 ### Spring Boot
 
 `spring-boot-maven-plugin` and `spring-boot-gradle-plugin` produce a
-**nested** fat JAR — dependencies stay as JARs inside
-`BOOT-INF/lib/`, the service-loader files are not collapsed and
+**nested** fat JAR: dependencies stay as JARs inside
+`BOOT-INF/lib/`, the service-loader files are not collapsed, and
 nothing breaks. If you are seeing this error with a Spring Boot
-artefact, the build is producing a flat shaded JAR (custom packaging,
+artifact, the build is producing a flat shaded JAR (custom packaging,
 or `spring-boot:repackage` was overridden); switch back to the
 default repackaging.
 
@@ -196,7 +196,7 @@ drivers whose `Class` is not visible from the caller's classloader.
 
 Workarounds, in decreasing order of cleanliness:
 
-- **Move the JAR up to a classloader visible to the caller** — the
+- **Move the JAR up to a classloader visible to the caller:** the
   application classloader, the container's shared classloader, the
   JPMS module's transitive dependencies, the OSGi system bundle.
 - **Use a `DataSource` instead of `DriverManager`.** `PGSimpleDataSource`
@@ -214,11 +214,11 @@ Workarounds, in decreasing order of cleanliness:
 
 ## Related
 
-- [Quick start](/documentation/getting-started/install/) — the
+- [Quick start](/documentation/getting-started/install/): the
   Maven / Gradle dependency declaration for the supported release
   lines.
-- [JDBC URL](/documentation/connect/url-syntax/) —
+- [JDBC URL](/documentation/connect/url-syntax/):
   full JDBC URL grammar.
-- [DataSource and JNDI](/documentation/connect/datasource/)
-  — the `PGSimpleDataSource` path, including how it loads the pgJDBC
+- [DataSource and JNDI](/documentation/connect/datasource/):
+  the `PGSimpleDataSource` path, including how it loads the pgJDBC
   driver before requesting a connection.

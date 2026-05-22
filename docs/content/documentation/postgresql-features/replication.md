@@ -26,44 +26,44 @@ changes from a database to be streamed in real-time to an external system. The d
 logical decoding is that logical decoding sends data over in a logical format whereas physical replication sends WAL data
 over in a binary format. Logical decoding output is scoped to a database, and table-level filtering depends on the output
 plugin or on higher-level PostgreSQL® logical replication features. Binary replication replicates the entire cluster in an
-all or nothing fashion; which is to say there is no way to get a specific table or database using binary replication
+all-or-nothing fashion; there is no way to get a specific table or database using binary replication.
 
-Prior to logical decoding keeping an external system synchronized in real time was problematic. The application would
-have to update/invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics
+Prior to logical decoding, keeping an external system synchronized in real time was problematic. The application would
+have to update or invalidate the appropriate cache entries, reindex the data in your search engine, send it to your analytics
 system, and so on.
 
-This suffers from race conditions and reliability problems. For example if slightly different data gets written to two
+This suffers from race conditions and reliability problems. For example, if slightly different data gets written to two
 different datastores (perhaps due to a bug or a race condition), the contents of the datastores will gradually drift
-apart — they will become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.
+apart and become more and more inconsistent over time. Recovering from such gradual data corruption is difficult.
 
-Logical decoding takes the database’s write-ahead log (WAL), and gives us access to row-level change events:
-every time a row in a table is inserted, updated or deleted, that’s an event. Those events are grouped by transaction,
-and appear in the order in which they were committed to the database. Aborted/rolled-back transactions
+Logical decoding takes the database's write-ahead log (WAL) and gives us access to row-level change events:
+every time a row in a table is inserted, updated, or deleted, that's an event. Those events are grouped by transaction,
+and appear in the order in which they were committed to the database. Aborted or rolled-back transactions
 do not appear in the stream. Thus, if you apply the change events in the same order, you end up with an exact,
-transactionally consistent copy of the database. It's looks like the Event Sourcing pattern that you previously implemented
+transactionally consistent copy of the database. It looks like the Event Sourcing pattern that you previously implemented
 in your application, but now it's available out of the box from the PostgreSQL® database.
 
-For access to real-time changes PostgreSQL® provides the streaming replication protocol. Replication protocol can be physical
-or logical. Physical replication protocol is used for Master/Secondary replication. Logical replication protocol can be used
-to stream changes to an external system.
+For access to real-time changes, PostgreSQL® provides the streaming replication protocol. The replication protocol can be
+physical or logical. The physical replication protocol is used for primary/standby replication. The logical replication
+protocol can be used to stream changes to an external system.
 
-Since the JDBC API does not include replication `PGConnection` implements the PostgreSQL® API
+Since the JDBC API does not include replication, `PGConnection` implements the PostgreSQL® API.
 
 ## Configure database
 
-Your database should be configured to enable logical or physical replication
+Your database should be configured to enable logical or physical replication.
 
 ### postgresql.conf
 
-* Property `max_wal_senders` should be at least equal to the number of replication consumers
+* Property `max_wal_senders` should be at least equal to the number of replication consumers.
 * Property `wal_keep_size` should specify the minimum amount of past WAL files kept in `pg_wal`.
 * Property `wal_level` for logical decoding should be equal to `logical`.
 * Property `max_replication_slots` should be greater than zero for logical decoding, because logical decoding can't
- work without replication slot.
+ work without a replication slot.
 
 ### pg_hba.conf
 
-Enable connect user with replication privileges to replication stream.
+Allow a user with replication privileges to connect to the replication stream.
 
 ```sql
 local   replication   all                   trust
@@ -103,12 +103,12 @@ host    replication   all   ::1/128         md5
 - LogicalReplicationTest.java | pgjdbc/src/test/java/org/postgresql/replication/LogicalReplicationTest.java | 44-68
 {{< /review >}}
 
-Logical decoding uses a replication slot to reserve WAL logs on the server and also defines which decoding plugin to
-use to decode the WAL logs to the required format, for example you can decode changes as json, protobuf, etc. To demonstrate
-how to  use the pgJDBC replication API we will use the `test_decoding` plugin that is included in the `postgresql-contrib`
-package, but you can use your own decoding plugin. There are a few on github which can be used as examples.
+Logical decoding uses a replication slot to reserve WAL logs on the server, and it also defines which decoding plugin to
+use to decode the WAL logs to the required format. For example, you can decode changes as JSON, protobuf, etc. To demonstrate
+how to use the pgJDBC replication API we will use the `test_decoding` plugin that is included in the `postgresql-contrib`
+package, but you can use your own decoding plugin. There are a few on GitHub that can be used as examples.
 
-In order to use the replication API, the Connection has to be created in replication mode. In this mode the connection
+In order to use the replication API, the connection has to be created in replication mode. In this mode the connection
 is not available to execute normal SQL commands, and can only be used with replication-protocol commands. This is a restriction imposed by PostgreSQL®.
 
 The [`replication`](/documentation/reference/connection-properties/#prop-replication) property should be paired with [`assumeMinServerVersion`](/documentation/reference/connection-properties/#prop-assumeminserverversion) set to `9.4` or higher (the backend version that introduced logical decoding). Without it the driver issues extra version-probing round-trips before entering walsender mode, which can fail on connections that only accept replication commands.
@@ -129,9 +129,9 @@ PGConnection replConnection = con.unwrap(PGConnection.class);
 ```
 
 The entire replication API is grouped in `org.postgresql.replication.PGReplicationConnection` and is available via
-`org.postgresql.PGConnection#getReplicationAPI` .
+`org.postgresql.PGConnection#getReplicationAPI`.
 
-Before you can start replication protocol, you need to have replication slot, which can be also created via pgJDBC API.
+Before you can start the replication protocol, you need to have a replication slot, which can also be created via the pgJDBC API.
 
 ##### Example 9.5. Create replication slot via pgJDBC API
 
@@ -159,9 +159,9 @@ PGReplicationStream stream =
         .start();
 ```
 
-The replication stream will send all changes since the creation of the replication slot or from replication slot
-restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position,
-in that case LSN position should be specified when you create the replication stream.
+The replication stream will send all changes since the creation of the replication slot, or from the replication slot's
+restart LSN if the slot was already used for replication. You can also start streaming changes from a particular LSN position;
+in that case the LSN position should be specified when you create the replication stream.
 
 ##### Example 9.7. Create logical decoding stream from particular position.
 
@@ -179,9 +179,9 @@ PGReplicationStream stream =
         .start();
 ```
 
-Via `withSlotOption` we also can specify options that will be sent to our output plugin, this allows the user to customize decoding.
-For example, I have my own output plugin that has a property `sensitive=true` which will include changes by sensitive columns to change
-event.
+Via `withSlotOption` we can also specify options that will be sent to our output plugin; this allows the user to customize decoding.
+For example, I have my own output plugin that has a property `sensitive=true` that will include changes from sensitive columns in
+the change event.
 
 ##### Example 9.8. Example output with include-xids=true
 
@@ -199,13 +199,13 @@ table public.test_logic_table: INSERT: pk[integer]:1 name[character varying]:'pr
 COMMIT
 ```
 
-During replication the database and consumer periodically exchange ping messages. When the database or client do not receive
-ping message within the configured timeout, replication has been deemed to have stopped and an exception will be thrown and
+During replication the database and consumer periodically exchange ping messages. When the database or client does not receive
+a ping message within the configured timeout, replication is deemed to have stopped, an exception will be thrown, and
 the database will free resources. In PostgreSQL® the ping timeout is configured by the property `wal_sender_timeout`
-(default = 60 seconds). Replication stream in pgjdc can be configured to send feedback(ping) when required or by time interval.
-It is recommended to send feedback(ping) to the database more often than configured `wal_sender_timeout` . In production systems
-I use value equal to `wal_sender_timeout / 3` . It's avoids a potential problems with networks and changes to be
-streamed without disconnects by timeout. To specify the feedback interval use `withStatusInterval` method.
+(default = 60 seconds). The replication stream in pgJDBC can be configured to send feedback (ping) when required or at a time interval.
+It is recommended to send feedback (ping) to the database more often than the configured `wal_sender_timeout`. In production systems
+I use a value equal to `wal_sender_timeout / 3`. This avoids potential problems with networks and allows changes to be
+streamed without disconnects by timeout. To specify the feedback interval, use the `withStatusInterval` method.
 
 ##### Example 9.10. Replication stream with configured feedback interval equal to 20 sec
 
@@ -221,13 +221,13 @@ PGReplicationStream stream =
         .start();
 ```
 
-After create `PGReplicationStream` , it's time to start receive changes in real-time.
+After creating `PGReplicationStream`, it's time to start receiving changes in real time.
 
-Changes can be received from stream as blocking( `org.postgresql.replication.PGReplicationStream#read` ) or as
-non-blocking (`org.postgresql.replication.PGReplicationStream#readPending` ).
-Both methods receive changes as a `java.nio.ByteBuffer` with the payload from the send output plugin. We can't receive
-part of message, only the full message that was sent by the output plugin. ByteBuffer contains message in format that is
-defined by the decoding output plugin, it can be simple String, json, or whatever the plugin determines. That's why
+Changes can be received from the stream as blocking (`org.postgresql.replication.PGReplicationStream#read`) or as
+non-blocking (`org.postgresql.replication.PGReplicationStream#readPending`).
+Both methods receive changes as a `java.nio.ByteBuffer` with the payload from the output plugin. We can't receive
+part of a message, only the full message that was sent by the output plugin. The ByteBuffer contains the message in a format
+defined by the decoding output plugin; it can be a simple String, JSON, or whatever the plugin determines. That's why
 pgJDBC returns the raw ByteBuffer instead of making assumptions.
 
 ##### Example 9.11. Example send message from output plugin.
@@ -257,17 +257,17 @@ while (true) {
 }
 ```
 
-As mentioned previously, replication stream should periodically send feedback to the database to prevent disconnect via
+As mentioned previously, the replication stream should periodically send feedback to the database to prevent disconnect by
 timeout. Feedback is automatically sent when `read` or `readPending` are called if it's time to send feedback. Feedback
 can also be sent via `org.postgresql.replication.PGReplicationStream#forceUpdateStatus()` regardless of the timeout. Another
-important duty of feedback is to provide the  server with the Logical Sequence Number (LSN) that has been successfully received
-and applied to consumer, it is necessary for monitoring and to truncate/archive WAL's that that are no longer needed. In the
-event that replication has been restarted, it's will start from last successfully processed LSN that was sent via feedback to database.
+important duty of feedback is to provide the server with the Logical Sequence Number (LSN) that has been successfully received
+and applied to the consumer; this is necessary for monitoring and to truncate or archive WALs that are no longer needed. In the
+event that replication is restarted, it will start from the last successfully processed LSN that was sent via feedback to the database.
 
-The API provides the following feedback mechanism to indicate the successfully applied LSN by the current consumer. LSN's
-before this can be truncated or archived. `org.postgresql.replication.PGReplicationStream#setFlushedLSN` and
-`org.postgresql.replication.PGReplicationStream#setAppliedLSN` . You always can get last receive LSN via
-`org.postgresql.replication.PGReplicationStream#getLastReceiveLSN` .
+The API provides the following feedback mechanism to indicate the LSN successfully applied by the current consumer. LSNs
+before this can be truncated or archived: `org.postgresql.replication.PGReplicationStream#setFlushedLSN` and
+`org.postgresql.replication.PGReplicationStream#setAppliedLSN`. You can always get the last received LSN via
+`org.postgresql.replication.PGReplicationStream#getLastReceiveLSN`.
 
 ##### Example 9.13. Add feedback indicating a successfully process LSN
 
@@ -380,10 +380,10 @@ COMMIT
 - PhysicalReplicationTest.java | pgjdbc/src/test/java/org/postgresql/replication/PhysicalReplicationTest.java | 83-104
 {{< /review >}}
 
-API for physical replication looks like the API for logical decoding. Physical replication does not require a replication
-slot. And ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low level API, and can change
-from version to version. That is why replication between different major PostgreSQL® versions is not possible. But physical
-replication can contain many important data, that is not available via logical decoding. That is why pgJDBC contains an
+The API for physical replication looks like the API for logical decoding. Physical replication does not require a replication
+slot, and the ByteBuffer will contain the binary form of WAL logs. The binary WAL format is a very low-level API, and can change
+from version to version. That is why replication between different major PostgreSQL® versions is not possible. However, physical
+replication can carry important data that is not available via logical decoding. That is why pgJDBC contains an
 implementation for both.
 
 **Example 9.15. Use physical replication**

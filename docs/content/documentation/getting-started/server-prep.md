@@ -12,8 +12,8 @@ aliases:
 ---
 
 Three things to verify on the server side before a Java application can
-connect. None of them are pgJDBC-specific — they are PostgreSQL
-configuration tasks — but each one is a common reason for an otherwise
+connect. None of them are pgJDBC-specific (they are PostgreSQL
+configuration tasks), but each one is a common reason for an otherwise
 correct application to fail at startup.
 
 ## The server listens on TCP
@@ -85,8 +85,8 @@ is lossless except for two cases:
 - Java strings with unpaired UTF-16 surrogates have no valid UTF-8
   encoding and cannot be sent.
 
-Avoid `SQL_ASCII`. It is not a real encoding — it accepts any byte
-sequence without validation — and you will hit corruption the first
+Avoid `SQL_ASCII`. It is not a real encoding (it accepts any byte
+sequence without validation), and you will hit corruption the first
 time the application stores a character outside seven-bit ASCII.
 
 ## Next step

@@ -9,7 +9,7 @@ description: "A large PreparedStatement.executeBatch() blocks indefinitely with 
 ---
 
 The symptom is a `PreparedStatement.executeBatch()` (or
-`Statement.executeBatch()`) call that never returns — no exception, no
+`Statement.executeBatch()`) call that never returns: no exception, no
 log line, just a thread parked on `socket.write`. Thread dumps show
 the JDBC thread in `SocketOutputStream.write`; the database side shows
 the backend in `pq_putmessage` / send-side wait.
@@ -37,7 +37,7 @@ its receive buffer, two things happen at once:
    responses to its send buffer to keep the loop moving, eventually
    the server's send buffer fills too. The server now blocks on
    `write()`, waiting for the driver to read.
-2. The driver is still writing the rest of the batch — it can't
+2. The driver is still writing the rest of the batch and can't
    start reading until it's done. Its send buffer fills against the
    server that has stopped reading. The driver blocks on `write()`.
 
@@ -60,8 +60,8 @@ To keep the obvious case from biting, pgJDBC estimates how much
 response data the server will buffer up while reading the in-flight
 batch, and forces a `Sync` + read whenever that estimate exceeds
 **64,000 bytes** (`MAX_BUFFERED_RECV_BYTES` in `QueryExecutorImpl`).
-The per-query estimate is coarse — 250 bytes for a "no data" query
-plus the described row size — so it works for most workloads but
+The per-query estimate is coarse (250 bytes for a "no data" query
+plus the described row size), so it works for most workloads but
 breaks down in edge cases:
 
 - queries whose response size cannot be bounded (for described
@@ -134,9 +134,9 @@ statement shapes.
 
 ## Related
 
-- [Connection properties reference](/documentation/reference/connection-properties/)
-  — `sendBufferSize`, `receiveBufferSize`, `maxSendBufferSize`,
+- [Connection properties reference](/documentation/reference/connection-properties/):
+  `sendBufferSize`, `receiveBufferSize`, `maxSendBufferSize`,
   `reWriteBatchedInserts`.
-- [Server-prepared statements](/documentation/query/prepared-statements/)
-  — when the cached plan / binary transfer setup happens to coincide
+- [Server-prepared statements](/documentation/query/prepared-statements/):
+  when the cached plan / binary transfer setup happens to coincide
   with a batch boundary.

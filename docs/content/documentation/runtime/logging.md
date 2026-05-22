@@ -10,20 +10,20 @@ aliases:
 ---
 
 The PostgreSQL® JDBC Driver supports the use of logging (or tracing) to help resolve issues with the
-pgJDBC Driver when is used in your application.
+pgJDBC Driver when it is used in your application.
 
-The pgJDBC Driver uses the logging APIs of `java.util.logging` that is part of Java since JDK 1.4, which makes it a good
+The pgJDBC Driver uses the logging APIs of `java.util.logging` that have been part of Java since JDK 1.4, which makes it a good
 choice for the driver since it doesn't add any external dependency for a logging framework. `java.util.logging` is a very
-rich and powerful tool, it's beyond the scope of these docs to explain how to use it to it's full potential, for that
+rich and powerful tool, and it's beyond the scope of these docs to explain how to use it to its full potential. For that,
 please refer to [Java Logging Overview](https://docs.oracle.com/javase/8/docs/technotes/guides/logging/overview.html).
 
-This logging support was added since version 42.0.0 of the pgJDBC Driver, and previous versions uses a custom mechanism
-to enable logging that it is replaced by the use of `java.util.logging` in current versions, the old mechanism is no longer available.
+This logging support was added in version 42.0.0 of the pgJDBC Driver. Previous versions used a custom mechanism
+to enable logging that has been replaced by `java.util.logging` in current versions; the old mechanism is no longer available.
 
 > **NOTE**
 >
-> Please note that while most people asked the use of a Logging Framework for a long time, this support is mainly to
-> debug the driver itself and not for general SQL query debug.
+> Please note that while many users asked for a logging framework for a long time, this support is mainly to
+> debug the driver itself and not for general SQL query debugging.
 
 ## Configuration
 
@@ -31,16 +31,16 @@ The Logging APIs offer both static and dynamic configuration control. Static con
 up a particular configuration and then re-launch the application with the new logging settings. Dynamic control allows
 for updates to the logging configuration within a currently running program.
 
-The root logger used by the pgJDBC driver is `org.postgresql` .
+The root logger used by the pgJDBC driver is `org.postgresql`.
 
 ## Enable logging by using logging.properties file
 
-The default Java logging framework stores its configuration in a file called `logging.properties` . Settings are stored
+The default Java logging framework stores its configuration in a file called `logging.properties`. Settings are stored
 per line using a dot notation format. Java installs a global configuration file in the `lib` folder of the Java installation
 directory, although you can use a separate configuration file by specifying the `java.util.logging.config.file` property
 when starting a Java program. `logging.properties` files can also be created and stored with individual projects.
 
-The following is an example of setting that you can make in the `logging.properties` :
+The following is an example of settings that you can make in `logging.properties`:
 
 ```properties
 # Specify the handler, the handlers will be installed during VM startup.
@@ -70,4 +70,4 @@ And when you run your application you pass the system property:
 
 The connection properties `loggerLevel` and `loggerFile` are no longer used by the driver and are silently ignored if present. All logging configuration is handled by `java.util.logging` as described above; configure handlers and levels through a `logging.properties` file (or programmatically via `LogManager`) instead of the old URL parameters.
 
-`loggerFile` was disabled in 42.3.3 after an advisory showed that exposing it to attacker-controlled connection strings allows arbitrary file writes — see [Arbitrary File Write Vulnerability](/security/#arbitrary-file-write-vulnerability) for the impact and the broader caveat about treating JDBC URLs / connection properties as untrusted input.
+`loggerFile` was disabled in 42.3.3 after an advisory showed that exposing it to attacker-controlled connection strings allows arbitrary file writes. See [Arbitrary File Write Vulnerability](/security/#arbitrary-file-write-vulnerability) for the impact and the broader caveat about treating JDBC URLs and connection properties as untrusted input.

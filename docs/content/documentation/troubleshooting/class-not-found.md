@@ -18,8 +18,8 @@ java.lang.NoClassDefFoundError: org/postgresql/Driver
 The first is raised by `Class.forName("org.postgresql.Driver")` when
 the JVM cannot resolve the name; the second is raised by the verifier
 when *some other class* references `org.postgresql.Driver` and the
-class is not available at link time. Both have the same root cause —
-the driver class is not visible to the calling classloader — and the
+class is not available at link time. Both have the same root cause
+(the driver class is not visible to the calling classloader) and the
 same fix in modern code.
 
 ## First: do you actually need `Class.forName`?
@@ -33,7 +33,7 @@ same fix in modern code.
 Almost certainly not. Since JDBC&nbsp;4.0 / Java&nbsp;6, the
 `DriverManager` discovers drivers via the
 [`ServiceLoader`](https://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html)
-mechanism — every JAR carrying a `META-INF/services/java.sql.Driver`
+mechanism: every JAR carrying a `META-INF/services/java.sql.Driver`
 file is registered automatically when the JAR is on the classpath.
 Every pgJDBC release ships that file in its JAR, containing
 `org.postgresql.Driver`. The
@@ -52,7 +52,7 @@ Connection c = DriverManager.getConnection(url, props);
 Delete the `Class.forName` line. If the driver was already loaded by
 the `ServiceLoader`, this changes nothing. If it was not, you'll get
 [`No suitable driver found`](/documentation/troubleshooting/no-suitable-driver/)
-instead — a more actionable error that points at the real problem
+instead, a more actionable error that points at the real problem
 (classpath, shaded JAR, classloader visibility) rather than at the
 absent `Class.forName` call.
 
@@ -93,10 +93,10 @@ those of [`No suitable driver found`](/documentation/troubleshooting/no-suitable
     through `DriverManager`.
 - **The class was stripped by a shading minimizer.** Maven Shade
   Plugin's `minimizeJar` and similar tools may decide that
-  `org.postgresql.Driver` is unreachable — there are no direct
-  byte-code references to it; `ServiceLoader` finds it via reflection
-  — and drop it from the final artefact. Either disable
-  `minimizeJar` for this artefact or add an explicit keep rule
+  `org.postgresql.Driver` is unreachable (there are no direct
+  byte-code references to it; `ServiceLoader` finds it via reflection)
+  and drop it from the final artifact. Either disable
+  `minimizeJar` for this artifact or add an explicit keep rule
   (`<filter><artifact>org.postgresql:postgresql</artifact><includes><include>**</include></includes></filter>`).
 - **A `NoClassDefFoundError` on a different class.** If the message
   is `NoClassDefFoundError: org/postgresql/util/...` (anything other
@@ -108,12 +108,12 @@ those of [`No suitable driver found`](/documentation/troubleshooting/no-suitable
 
 ## Related
 
-- [No suitable driver found](/documentation/troubleshooting/no-suitable-driver/)
-  — the `DriverManager`-side variant of the same root issue, with
+- [No suitable driver found](/documentation/troubleshooting/no-suitable-driver/):
+  the `DriverManager`-side variant of the same root issue, with
   more detail on shaded JARs and classloader visibility.
-- [Quick start](/documentation/getting-started/install/) — the
+- [Quick start](/documentation/getting-started/install/): the
   Maven / Gradle dependency declaration and the
   `ServiceLoader`-vs-`Class.forName` note.
-- [DataSource and JNDI](/documentation/connect/datasource/)
-  — `PGSimpleDataSource` explicitly loads the pgJDBC driver before
+- [DataSource and JNDI](/documentation/connect/datasource/):
+  `PGSimpleDataSource` explicitly loads the pgJDBC driver before
   requesting a connection through `DriverManager`.

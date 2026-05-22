@@ -6,10 +6,9 @@ aliases:
   - /changelogs/2021-12-22-log4j/
 ---
 
-This page is the driver's release-disclosure surface — PGP signing
-keys and historic advisories. For TLS / authentication / Kerberos
-**configuration** see the documentation's
-[Security section](/documentation/security/).
+This page lists PGP signing keys and historic advisories. For TLS
+/ authentication / Kerberos **configuration** see the
+documentation's [Security section](/documentation/security/).
 
 To report a new vulnerability privately, use GitHub's
 [security advisory form](https://github.com/pgjdbc/pgjdbc/security/advisories/new).
@@ -70,7 +69,7 @@ The contents of the second parameter get injected into the command. Note how bot
 
 #### Workarounds
 
-Do not use the connection `propertypreferQueryMode=simple`. 
+Do not use the connection property `preferQueryMode=simple`.
 (NOTE: If you do not explicitly specify a query mode then you are using the default of extended and are not impacted by this issue.)
 
 #### Patched
@@ -91,7 +90,7 @@ The PGJDBC implementation of the `java.sql.ResultRow.refreshRow()` method is not
 
 User applications that do not invoke the `ResultSet.refreshRow()` method are not impacted.
 
-User application that do invoke that method are impacted if the underlying database that they are querying via their JDBC application may be under the control of an attacker. The attack requires the attacker to trick the user into executing SQL against a table name who's column names would contain the malicious SQL and subsequently invoke the `refreshRow()` method on the ResultSet.
+User applications that do invoke that method are impacted if the underlying database that they are querying via their JDBC application may be under the control of an attacker. The attack requires the attacker to trick the user into executing SQL against a table whose column names would contain the malicious SQL and subsequently invoke the `refreshRow()` method on the ResultSet.
 
 For example:
 

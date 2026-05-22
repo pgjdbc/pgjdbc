@@ -11,7 +11,7 @@ aliases:
 
 ### Motivation
 
-The PostgreSQL® server allows clients to compile sql statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution. This functionality is available at the SQL level via PREPARE and EXECUTE beginning with server version 7.3, and at the protocol level beginning with server version 7.4, but as Java developers we really just want to use the standard `PreparedStatement` interface.
+The PostgreSQL® server allows clients to compile SQL statements that are expected to be reused to avoid the overhead of parsing and planning the statement for every execution. This functionality is available at the SQL level via PREPARE and EXECUTE beginning with server version 7.3, and at the protocol level beginning with server version 7.4, but as Java developers we really just want to use the standard `PreparedStatement` interface.
 
 > **NOTE**
 >
@@ -33,7 +33,7 @@ path (Parse + Bind + Execute, re-parsed each time, text-format
 results). Once an internal counter passes `prepareThreshold`, the
 driver names the statement (`S_1`, `S_2`, ...), parses it once on
 the server, and from then on sends only Bind + Execute against the
-cached name — and switches to binary transfer for the OIDs that
+cached name, and switches to binary transfer for the OIDs that
 support it.
 
 This warm-up is normal. It is also the answer to most "why was the
@@ -42,7 +42,7 @@ first run so much slower than the rest?" questions.
 #### When server-prepared statements activate
 
 The counter is tracked per **SQL text** within a `Connection`, not
-per `PreparedStatement` object — calling
+per `PreparedStatement` object. Calling
 `connection.prepareStatement("SELECT ?")` twice and executing each
 once still counts as two executions of the same query. With the
 default `prepareThreshold=5`:
@@ -53,11 +53,11 @@ default `prepareThreshold=5`:
   `BIND`/`EXECUTE`.
 
 The driver's `PGStatement.isUseServerPrepare()` returns the live
-state — see the worked example at the bottom of this page for an
+state; see the worked example at the bottom of this page for an
 execution-by-execution trace.
 
 Crucially, the named server statement is anchored to the
-`Connection`, not to the `PreparedStatement` object — calling
+`Connection`, not to the `PreparedStatement` object. Calling
 `PreparedStatement.close()` does **not** drop the server-side plan
 or reset the counter. The most common shape that bites readers is
 a per-iteration `prepareStatement` / `execute` / `close` loop on
@@ -71,20 +71,20 @@ Three things change at once when the threshold is crossed:
 
 - **Parsing moves from per-execution to per-statement.** Before the
   threshold, each execute pays a fresh `PARSE` on the server; after
-  it, parsing is a one-time cost amortised over every subsequent
+  it, parsing is a one-time cost amortized over every subsequent
   execute.
 - **Result format flips from text to binary.** Until the statement
   is named, results come back as ASCII strings the driver has to
   decode. Once binary transfer activates, `int4` is 4 raw bytes,
   `timestamp` is 8, and the driver skips most of the
   string-to-Java-object pipeline (see below).
-- **Server-side planning stabilises.** PostgreSQL plans the first
+- **Server-side planning stabilizes.** PostgreSQL plans the first
   few executions of a named statement with the actual parameter
   values it sees (custom plans). After a few iterations it picks a
   parameter-independent generic plan if that is not noticeably
-  worse — controlled server-side by
+  worse, controlled server-side by
   [`plan_cache_mode`](https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-PLAN-CACHE-MODE).
-  In a default installation, latency stabilises around execution 10
+  In a default installation, latency stabilizes around execution 10
   rather than execution 5.
 
 A benchmark that measures throughput on the first execution and then
@@ -97,21 +97,21 @@ cost of a JVM method call.
 `prepareThreshold` is the only knob that affects when the transition
 happens. The relevant values:
 
-- **`prepareThreshold > 0`** (default `5`) — wait N executions
+- **`prepareThreshold > 0`** (default `5`): wait N executions
   before naming. Trade-off: the first N executes are cheaper in
   steady state (no named statement to maintain) but more expensive
   per call (Parse repeated).
-- **`prepareThreshold = 1`** — name immediately. Useful when the
+- **`prepareThreshold = 1`**: name immediately. Useful when the
   application knows the statement will be hot; every execute is a
   fast Bind/Execute, but every `prepareStatement(sql)` call pays
   the one-time `PARSE` cost up front.
-- **`prepareThreshold = 0`** — never name. Server-prepare is off
+- **`prepareThreshold = 0`**: never name. Server-prepare is off
   entirely; binary transfer is also off, since binary transfer
   needs a named statement to anchor the column-format descriptors.
   Use this when a pooler or other middleware in the path cannot
   cope with named statements (see also the
   [PgBouncer note in `prepared-statement-cannot-change`](/documentation/troubleshooting/prepared-statement-cannot-change/#make-pgbouncer-keep-server-prepared-statements)).
-- **`prepareThreshold = -1`** — a corner-case value that forces
+- **`prepareThreshold = -1`**: a corner-case value that forces
   binary transfer for the OIDs the driver knows how to encode
   without otherwise changing the prepare path.
 
@@ -120,7 +120,7 @@ The threshold can be set per-URL, per-`Connection` via
 `PGStatement.setPrepareThreshold(int)`. Smaller scopes override
 larger ones.
 
-#### `preferQueryMode` — the master switch
+#### `preferQueryMode`: the top-level switch
 
 Everything above assumes the driver is using the extended query
 protocol (Parse / Bind / Execute). The
@@ -128,17 +128,17 @@ protocol (Parse / Bind / Execute). The
 property selects which protocol shape the driver uses at all, and
 therefore whether `prepareThreshold` even applies:
 
-- **`extended`** (default) — Parse / Bind / Execute for
+- **`extended`** (default): Parse / Bind / Execute for
   `PreparedStatement`; `prepareThreshold` controls when the
   statement is named on the server.
-- **`extendedForPrepared`** — same as `extended` but only for
+- **`extendedForPrepared`**: same as `extended` but only for
   explicitly prepared statements; `Statement.execute(String)`
   takes the simple-protocol path.
-- **`extendedCacheEverything`** — extends the prepared-statement
+- **`extendedCacheEverything`**: extends the prepared-statement
   cache to *every* SQL the connection runs, including
   `Statement.execute(String)`. Mostly a diagnostic / debugging mode
   (see the [corner case below](#use-of-server-prepared-statements-for-concreatestatement)).
-- **`simple`** — single-message `'Q'` execute, no Parse, no Bind,
+- **`simple`**: single-message `'Q'` execute, no Parse, no Bind,
   text format only. Disables server-prepare, binary transfer and
   parameter typing; useful when something in the path (a pooler,
   a wire-level proxy) cannot cope with the extended protocol.
@@ -148,9 +148,9 @@ therefore whether `prepareThreshold` even applies:
 By default ([`binaryTransfer=true`](/documentation/reference/connection-properties/#prop-binarytransfer))
 the driver advertises that it can both send parameters and receive
 columns in PostgreSQL's binary representation for ~30 built-in
-types — `int2` / `int4` / `int8`, `float4` / `float8`, `numeric`,
+types (`int2` / `int4` / `int8`, `float4` / `float8`, `numeric`,
 `uuid`, `timestamp` / `timestamptz`, `date`, `bytea`, the array
-variants of those, and so on. Binary skips the ASCII detour: a 64-bit
+variants of those, and so on). Binary skips the ASCII detour: a 64-bit
 integer is 8 wire bytes instead of up to 20 ASCII characters, plus
 no `Long.parseLong` on the client.
 
@@ -162,14 +162,14 @@ cached `Describe` response and binary transfer activates.
 
 Two narrower knobs override the per-OID defaults:
 
-- [`binaryTransferEnable`](/documentation/reference/connection-properties/#prop-binarytransferenable)
-  — comma-separated OID names or numbers added to the binary set.
-- [`binaryTransferDisable`](/documentation/reference/connection-properties/#prop-binarytransferdisable)
-  — comma-separated OID names or numbers removed from the binary
+- [`binaryTransferEnable`](/documentation/reference/connection-properties/#prop-binarytransferenable):
+  comma-separated OID names or numbers added to the binary set.
+- [`binaryTransferDisable`](/documentation/reference/connection-properties/#prop-binarytransferdisable):
+  comma-separated OID names or numbers removed from the binary
   set. Wins over `binaryTransferEnable` and over the driver default.
 
 `binaryTransfer=false` switches the driver to text-only mode
-regardless of `prepareThreshold` — primarily useful for debugging.
+regardless of `prepareThreshold`, primarily useful for debugging.
 
 #### Prepared statement lifetime and invalidation
 
@@ -183,7 +183,7 @@ until one of:
   (default `256` entries) and
   [`preparedStatementCacheSizeMiB`](/documentation/reference/connection-properties/#prop-preparedstatementcachesizemib)
   (default `5` MiB). When a new statement crosses either threshold,
-  the LRU entry is evicted from the cache *and* a `DEALLOCATE` is
+  the LRU entry is evicted from the cache, and a `DEALLOCATE` is
   sent to free the backend memory.
 - **The application issues `DEALLOCATE ALL` / `DISCARD ALL`.** The
   driver watches the command tags and invalidates the client-side
@@ -192,13 +192,13 @@ until one of:
   could now resolve differently. The driver detects top-level `SET`
   on `search_path` and invalidates accordingly. (Caveat: a SET
   buried inside a PL/pgSQL function or a server-side trigger is
-  *not* detected — see the Corner cases section for the workaround.)
+  *not* detected; see the Corner cases section for the workaround.)
 - **A schema migration invalidates the plan.** ALTER TABLE adding,
   dropping or retyping a column makes the cached plan stale. The
   next execute raises `cached plan must not change result type`
   (`SQLState 0A000`) or `prepared statement "S_X" does not exist`
   (`SQLState 26000`). See
-  [Troubleshooting → cached plan must not change result type](/documentation/troubleshooting/prepared-statement-cannot-change/)
+  [Troubleshooting: cached plan must not change result type](/documentation/troubleshooting/prepared-statement-cannot-change/)
   for the recovery options (`autosave=conservative`, prepared-cache
   eviction).
 
@@ -208,7 +208,7 @@ a connection from a pool stays warm for the lifetime of that pooled
 slot. A backend restart (failover, OOM kill) drops the whole
 catalog, surfacing as the lifetime-end errors above.
 
-#### `autosave` — auto-rollback around invalidation errors
+#### `autosave`: auto-rollback around invalidation errors
 
 When a cached plan goes stale mid-transaction (the
 `cached plan must not change result type` / `prepared statement "S_X" does not exist`
@@ -217,15 +217,15 @@ unless something rolls back to a savepoint first. The
 [`autosave`](/documentation/reference/connection-properties/#prop-autosave)
 property controls whether the driver places that savepoint for you:
 
-- **`never`** (default) — no savepoint is set, no rollback is
+- **`never`** (default): no savepoint is set, no rollback is
   attempted. A stale-plan error fails the transaction as usual.
-- **`conservative`** — the driver sets a savepoint before each
+- **`conservative`**: the driver sets a savepoint before each
   query and rolls back to it only for the specific class of errors
   caused by stale prepared statements; after the rollback the
   driver re-parses and retries the statement. This is the
   recommended setting when long-lived connections (especially
   pooled ones) coexist with schema migrations.
-- **`always`** — set a savepoint before every query and roll back
+- **`always`**: set a savepoint before every query and roll back
   to it on *any* failure. Useful when porting code that expects
   PostgreSQL to behave like databases without transaction-level
   failure semantics, but every query pays for an extra
@@ -242,7 +242,7 @@ long-lived `autosave` transaction issues thousands of queries.
 Previous versions of the driver used PREPARE and EXECUTE to implement server-prepared statements.  
 This is supported on all server versions beginning with 7.3, but produced application-visible changes in query results, 
 such as missing ResultSet metadata and row update counts. The current driver uses the V3 protocol-level equivalents 
-which avoid these changes in query results. The Extended Query protocol prepares a temporary "unnamed statement". 
+that avoid these changes in query results. The Extended Query protocol prepares a temporary "unnamed statement". 
 See [Extended Query](https://www.postgresql.org/docs/current/protocol-flow.html) Section 53.2.3 for details.
 
 The driver uses the Extended Protocol **by default** when the `PreparedStatement` API is used. 
@@ -343,7 +343,7 @@ SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable her
 ```
 
 Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table.
-It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
+It is hard to tell which behavior is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
 prepare cache accordingly.
 
 The recommendation is:
@@ -361,7 +361,7 @@ could re-execute the statement automatically in certain cases.
 `cached plan...` error), then pgJDBC re-executes the statement automatically. This makes the application happy, and avoids
 unnecessary errors.
 2. In case the transaction is in a failed state, there's nothing to do but rollback it. pgJDBC does have "automatic savepoint"
-feature, and it could automatically rollback and retry the statement. The behaviour is controlled via `autosave` property
+feature, and it could automatically rollback and retry the statement. The behavior is controlled via `autosave` property
 (default `never` ). The value of `conservative` would auto-rollback for the errors related to invalid server-prepared statements.
 
 > **Note**

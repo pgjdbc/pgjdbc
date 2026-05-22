@@ -15,17 +15,17 @@ build:
 
 This page was split:
 
-- **[Quick start](/documentation/install/)** — adding pgJDBC to a Maven
+- **[Quick start](/documentation/install/)**: adding pgJDBC to a Maven
   or Gradle project, opening a TLS-protected connection.
-- **[Server preparation](/documentation/getting-started/server-prep/)** —
+- **[Server preparation](/documentation/getting-started/server-prep/)**:
   configuring `listen_addresses`, `pg_hba.conf`, and database encoding
   before connecting from JDBC.
-- **[Building from source](/development/build-from-source/)** — Gradle
+- **[Building from source](/development/build-from-source/)**: Gradle
   build of the driver itself; only relevant if you are modifying
   pgJDBC.
 
 The historic "Setting up the Class Path" section (CLASSPATH and
-`java -cp` patterns) is no longer documented separately — modern
+`java -cp` patterns) is no longer documented separately. Modern
 applications declare a Maven or Gradle dependency and have the
 classpath handled by the build tool, which is covered in the
 [Quick start](/documentation/install/).

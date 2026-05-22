@@ -17,7 +17,7 @@ For a subset of these variables the server will *automatically report changes to
 These variables are known internally as `GUC_REPORT` variables after the name of the flag that enables the functionality.
 
 The server keeps track of all the variable scopes and reports when a variable reverts to a prior value, so the client doesn't
-have to guess what the current value is and whether some server-side function could've changed it.  Whenever the value changes,
+have to guess what the current value is and whether some server-side function could have changed it. Whenever the value changes,
 no matter why or how it changes, the server reports the new effective value in a *Parameter Status* protocol message to the client.
 pgJDBC uses many of these reports internally.
 
@@ -49,7 +49,7 @@ See the `PGConnection` JavaDoc for details.
 
 ## Example
 
-If you're working directly with a `java.sql.Connection` you can
+If you're working directly with a `java.sql.Connection`, you can:
 
 ```java
 import org.postgresql.PGConnection;

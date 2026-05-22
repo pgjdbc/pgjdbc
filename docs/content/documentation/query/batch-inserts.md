@@ -13,25 +13,25 @@ naive form, an N-round-trip operation: N executions of the same
 prepared INSERT, each with its own protocol round-trip. Setting
 [`reWriteBatchedInserts=true`](/documentation/reference/connection-properties/#prop-rewritebatchedinserts)
 turns that into a handful of multi-row INSERTs **without any
-application changes** — provided the statements look the way the
+application changes**, provided the statements look the way the
 rewriter expects and provided you can live with the change in
 `executeBatch()`'s return shape.
 
 If you are willing to change application code, the
 PostgreSQL-specific [COPY (CopyManager)](/documentation/postgresql-features/copy/)
 API is faster still for bulk loads: it streams rows in the COPY
-protocol rather than as parameterised INSERTs, sidestepping the per-row
-parse / plan / bind overhead entirely. The trade-off is exactly that —
+protocol rather than as parameterized INSERTs, sidestepping the per-row
+parse / plan / bind overhead entirely. The trade-off is exactly that:
 you stop using `PreparedStatement` and write to a `CopyManager`
 stream. `reWriteBatchedInserts` is the "I want a faster batch without
 touching the code" knob; COPY is the "I am loading enough rows that
 restructuring the load path is worth it" path.
 
-This page is the explanation that backs the
+The sections below cover what the rewriter actually does, when it
+kicks in, what `executeBatch()` returns after enabling it, and the
+`pg_stat_statements` trade-off. The
 [Recommended properties](/documentation/connect/recommended-properties/#rewritebatchedinsertstrue--batch-insert-throughput)
-entry: what the rewriter actually does, when it kicks in, what
-`executeBatch()` returns after enabling it, and the
-`pg_stat_statements` trade-off.
+entry points here for the mechanics.
 
 ## The naive batch path
 
@@ -75,7 +75,7 @@ offers.
 - ParserTest.java | pgjdbc/src/test/java/org/postgresql/core/ParserTest.java | 216-239
 {{< /review >}}
 
-The rewriter is conservative — it activates only when **all** of the
+The rewriter is conservative; it activates only when **all** of the
 following hold (see
 [`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java#L67-L74)):
 
@@ -108,7 +108,7 @@ The driver does not concatenate all K rows into a single statement.
 Doing so would create a fresh prepared statement text for every batch
 size, blowing up the server-side plan cache. Instead, it builds
 prepared statements for **power-of-two batch sizes** (2, 4, 8, 16, 32,
-64, 128 — seven rewritten sizes in total, see
+64, 128; seven rewritten sizes in total, see
 [`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java#L47-L69))
 and packs the requested rows into the smallest set of those, plus the
 original 1-row statement when needed.
@@ -129,8 +129,8 @@ for statements with many bind parameters the effective cap can be lower
 because the rewritten SQL still has to fit under the driver's maximum
 parameter count.
 
-This grouping is the mechanism behind two observable behaviours: the
-`executeBatch()` return shape, and the proliferation of normalised
+This grouping is the mechanism behind two observable behaviors: the
+`executeBatch()` return shape, and the proliferation of normalized
 forms in `pg_stat_statements`.
 
 ## What `executeBatch()` returns
@@ -153,7 +153,7 @@ values:
 - `Statement.SUCCESS_NO_INFO` (`-2`) when the aggregate is positive,
   meaning "this group executed, but per-row counts are not available."
 - `0` when the aggregate is zero, meaning "definitely no rows from
-  this group were affected" — this works because the count is summed
+  this group were affected." This works because the count is summed
   across the group, so a `0` aggregate uniquely implies all-zero
   per-row counts.
 
@@ -203,7 +203,7 @@ shows where the propagation happens.
 {{< /review >}}
 
 A side effect of the power-of-two grouping is that
-`pg_stat_statements` can now store up to **eight** normalised forms of
+`pg_stat_statements` can now store up to **eight** normalized forms of
 the same logical INSERT: the original 1-row form plus the seven
 rewritten power-of-two forms.
 
@@ -216,7 +216,7 @@ INSERT INTO t (a, b) VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8)
 
 A query that was a single row in `pg_stat_statements` becomes a
 fan-out of up to eight rows whose `calls` and `total_exec_time` each tell a
-different fraction of the story. To get aggregate behaviour for a
+different fraction of the story. To get aggregate behavior for a
 logical INSERT, you have to group on the table / column list rather
 than the statement text. This is mostly an inconvenience for
 operations dashboards (the throughput win is much larger than the
@@ -240,25 +240,25 @@ change with two non-trivial things to verify:
 
 `RETURNING`, generated-key retrieval, and statements that mix multiple
 commands in one `PreparedStatement` will silently keep using the
-naive path. There is no warning — the driver just falls back, and the
+naive path. There is no warning; the driver just falls back, and the
 batch runs at the un-accelerated speed.
 
 ## Related
 
-- [Recommended properties](/documentation/connect/recommended-properties/#rewritebatchedinsertstrue--batch-insert-throughput)
-  — the short-form recommendation that points here for the mechanics.
-- [COPY (CopyManager)](/documentation/postgresql-features/copy/) — the
+- [Recommended properties](/documentation/connect/recommended-properties/#rewritebatchedinsertstrue--batch-insert-throughput):
+  the short-form recommendation that points here for the mechanics.
+- [COPY (CopyManager)](/documentation/postgresql-features/copy/): the
   bulk-load alternative for code paths you are willing to restructure;
   faster than `reWriteBatchedInserts`, at the cost of leaving the
   `PreparedStatement` API behind.
-- [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/)
-  — the TCP-buffer deadlock that very large batches can hit and how
+- [executeBatch hangs without an error](/documentation/troubleshooting/executebatch-hangs/):
+  the TCP-buffer deadlock that very large batches can hit and how
   `reWriteBatchedInserts` reduces the per-row response volume the
   deadlock estimator has to account for.
-- [Server-prepared statements](/documentation/query/prepared-statements/)
-  — how the rewritten power-of-two statement texts interact with the
+- [Server-prepared statements](/documentation/query/prepared-statements/):
+  how the rewritten power-of-two statement texts interact with the
   driver's prepared-statement cache.
 - [`SqlCommand.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/SqlCommand.java)
-  / [`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java)
-  — the driver code that enforces the activation conditions and the
+  / [`BatchedQuery.java`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/BatchedQuery.java):
+  the driver code that enforces the activation conditions and the
   power-of-two grouping.

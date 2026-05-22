@@ -18,9 +18,9 @@ The server, not the client, picks the authentication method. Three concrete sign
 - `pg_hba.conf` line is `host ... sspi` (server-side: PG built with `--with-gssapi` *and* runs on Windows).
 - `gssEncMode` requested an encrypted GSS connection at startup (covered below).
 
-If `requireAuth` is set and does not allow `gss` or `sspi`, the driver refuses *before* responding — see [Authentication § `requireAuth`](/documentation/security/authentication/#requireauth--allow-list--deny-list).
+If `requireAuth` is set and does not allow `gss` or `sspi`, the driver refuses *before* responding; see [Authentication § `requireAuth`](/documentation/security/authentication/#requireauth-allow-list--deny-list).
 
-## `gsslib` — GSSAPI vs SSPI dispatch
+## `gsslib`: GSSAPI vs SSPI dispatch
 
 [`gsslib`](/documentation/reference/connection-properties/#prop-gsslib) (default `auto`) controls which stack handles the request, with three values:
 
@@ -30,7 +30,7 @@ If `requireAuth` is set and does not allow `gss` or `sspi`, the driver refuses *
 | `gssapi` | JSSE GSSAPI | JSSE GSSAPI (forced even on Windows) |
 | `sspi` | SSPI (or fail with `SSPI forced with gsslib=sspi, but SSPI not available`) | SSPI (same caveat) |
 
-pgJDBC's default deliberately differs from libpq, which prefers Windows SSPI when available. The pgJDBC choice is to keep JSSE system properties (`java.security.krb5.conf`, JAAS configuration, `sun.security.jgss.*` debug flags) working uniformly — opting into SSPI is a conscious choice, not a side-effect of running on Windows. The trade-off is named in [`ConnectionFactoryImpl`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java) (search for "slightly different to libpq").
+pgJDBC's default deliberately differs from libpq, which prefers Windows SSPI when available. The pgJDBC choice is to keep JSSE system properties (`java.security.krb5.conf`, JAAS configuration, `sun.security.jgss.*` debug flags) working uniformly; opting into SSPI is a conscious choice, not a side-effect of running on Windows. The trade-off is named in [`ConnectionFactoryImpl`](https://github.com/pgjdbc/pgjdbc/blob/bd1af18230371879fb4127ae28800cf9a8a8c77d/pgjdbc/src/main/java/org/postgresql/core/v3/ConnectionFactoryImpl.java) (search for "slightly different to libpq").
 
 ## JSSE GSSAPI configuration
 
@@ -38,7 +38,7 @@ JSSE GSSAPI is the cross-platform path; it works on \*nix, macOS, and Windows wh
 
 ### JAAS login (`jaasLogin=true`, default)
 
-The driver creates a `LoginContext` named after [`jaasApplicationName`](/documentation/reference/connection-properties/#prop-jaasapplicationname) (default `pgjdbc`) and calls `lc.login()`. The application's JAAS configuration file (selected by the `java.security.auth.login.config` system property or installed in `~/.java.login.config`) supplies the login modules — typically `com.sun.security.auth.module.Krb5LoginModule`.
+The driver creates a `LoginContext` named after [`jaasApplicationName`](/documentation/reference/connection-properties/#prop-jaasapplicationname) (default `pgjdbc`) and calls `lc.login()`. The application's JAAS configuration file (selected by the `java.security.auth.login.config` system property or installed in `~/.java.login.config`) supplies the login modules, typically `com.sun.security.auth.module.Krb5LoginModule`.
 
 A minimal `jaas.conf`:
 
@@ -55,7 +55,7 @@ Run with `-Djava.security.auth.login.config=/path/to/jaas.conf`. The entry name 
 
 ### Using the system credential (`gssUseDefaultCreds=true`)
 
-[`gssUseDefaultCreds`](/documentation/reference/connection-properties/#prop-gssusedefaultcreds) (default `false`) changes how the driver obtains the GSS credential inside the GSS context: with `true` the driver asks `GSSManager` for `INITIATE_ONLY` credentials without naming a principal, so JGSS pulls the JVM's *default* credential — typically the JAAS-provided Subject if JAAS ran, the system ccache when `-Dsun.security.jgss.native=true` is set (delegating to MIT Kerberos or Heimdal), or KCM on macOS. With `false` the driver constructs a `GSSName` from JAAS's principal and asks for a credential bound to that name explicitly.
+[`gssUseDefaultCreds`](/documentation/reference/connection-properties/#prop-gssusedefaultcreds) (default `false`) changes how the driver obtains the GSS credential inside the GSS context: with `true` the driver asks `GSSManager` for `INITIATE_ONLY` credentials without naming a principal, so JGSS pulls the JVM's *default* credential. That is typically the JAAS-provided Subject if JAAS ran, the system ccache when `-Dsun.security.jgss.native=true` is set (delegating to MIT Kerberos or Heimdal), or KCM on macOS. With `false` the driver constructs a `GSSName` from JAAS's principal and asks for a credential bound to that name explicitly.
 
 `gssUseDefaultCreds=true` is the right setting when the default principal differs from `user@DEFAULT_REALM`, when ccache lives somewhere pure-Java JAAS doesn't reach, or when you want JGSS to negotiate the mechanism with the system Kerberos library.
 
@@ -66,7 +66,7 @@ Run with `-Djava.security.auth.login.config=/path/to/jaas.conf`. The entry name 
 - The calling thread already runs inside a `Subject.doAs(...)` block (for example a Java EE container that completed JAAS login at deployment time), so the driver should reuse the current Subject rather than re-run JAAS.
 - The application is configured for native GSS via `-Dsun.security.jgss.native=true` and `-Djavax.security.auth.useSubjectCredsOnly=false`, so JAAS is not the credential source.
 
-To use the system ccache *exclusively*, combine `jaasLogin=false` with `gssUseDefaultCreds=true` — the first skips JAAS, the second tells JGSS to pull the default credential rather than one bound to a JAAS-supplied principal.
+To use the system ccache *exclusively*, combine `jaasLogin=false` with `gssUseDefaultCreds=true`: the first skips JAAS, the second tells JGSS to pull the default credential rather than one bound to a JAAS-supplied principal.
 
 ### `kerberosServerName`
 
@@ -84,7 +84,7 @@ Without all three, the driver falls back to JSSE GSSAPI. With `gsslib=sspi` forc
 
 ### Adding `waffle-jna`
 
-pgJDBC **does not bundle** `waffle-jna` in its jar — every distribution declares it as an optional dependency and applications opt in by adding it. Maven:
+pgJDBC **does not bundle** `waffle-jna` in its jar; every distribution declares it as an optional dependency and applications opt in by adding it. Maven:
 
 ```xml
 <dependency>
@@ -109,14 +109,14 @@ pgJDBC **does not bundle** `waffle-jna` in its jar — every distribution declar
 - [`useSpnego`](/documentation/reference/connection-properties/#prop-usespnego) (default `false`) wraps the SSPI exchange in SPNEGO. Set this to `true` when the SSPI authentication request originates from a setup that negotiates the mechanism (e.g., interop with a non-Kerberos SSPI provider).
 - [`sspiServiceClass`](/documentation/reference/connection-properties/#prop-sspiserviceclass) (default `POSTGRES`) is the service-class part of the SPN that SSPI requests. The default is correct for standard PostgreSQL builds; change it only if the server registers under a non-standard SPN. Ignored on non-Windows platforms.
 
-## `gssEncMode` — GSS-encrypted connections (PG 12+)
+## `gssEncMode`: GSS-encrypted connections (PG 12+)
 
 PostgreSQL 12 added GSSAPI-encrypted connections as a parallel to TLS: the wire is encrypted using the GSS session key established during authentication, no certificates required. [`gssEncMode`](/documentation/reference/connection-properties/#prop-gssencmode) (default `allow`) controls whether the driver requests this upgrade:
 
-| Mode | Behaviour |
+| Mode | Behavior |
 |---|---|
 | `disable` | Never request GSS encryption. |
-| `allow` (default) | Connect without GSS encryption. Equivalent to `disable` on outbound — pgJDBC does not send `GSSENCRequest` and the PostgreSQL protocol has no server-initiated path to flip the connection to GSS mid-flight, so this mode never produces a GSS-encrypted connection. |
+| `allow` (default) | Connect without GSS encryption. Equivalent to `disable` on outbound: pgJDBC does not send `GSSENCRequest` and the PostgreSQL protocol has no server-initiated path to flip the connection to GSS mid-flight, so this mode never produces a GSS-encrypted connection. |
 | `prefer` | Send `GSSENCRequest`; use GSS encryption if the server accepts, fall back to plain text if it refuses. |
 | `require` | Send `GSSENCRequest`; fail the connection if the server refuses or errors. |
 
@@ -150,8 +150,8 @@ For SSPI, set the standard `waffle-jna` logger to `TRACE`. Common failure shapes
 
 ## Related
 
-- [Authentication](/documentation/security/authentication/) — the conceptual umbrella over all auth methods (SCRAM, MD5, password, GSS, SSPI, trust) and the levers (`requireAuth`, `channelBinding`, `AuthenticationPlugin`).
-- [Timeouts](/documentation/connect/timeouts/) — `gssResponseTimeout` and how it fits the rest of the per-phase timeout budget.
-- [SSL / TLS](/documentation/security/ssl-tls/) — the alternative transport when GSS encryption is not in play.
-- [Driver logging](/documentation/runtime/logging/) — enabling the FINEST-level driver trace alongside the JVM Kerberos debug flags.
-- [Connection properties reference](/documentation/reference/connection-properties/) — every property in one place.
+- [Authentication](/documentation/security/authentication/): the conceptual umbrella over all auth methods (SCRAM, MD5, password, GSS, SSPI, trust) and the levers (`requireAuth`, `channelBinding`, `AuthenticationPlugin`).
+- [Timeouts](/documentation/connect/timeouts/): `gssResponseTimeout` and how it fits the rest of the per-phase timeout budget.
+- [SSL / TLS](/documentation/security/ssl-tls/): the alternative transport when GSS encryption is not in play.
+- [Driver logging](/documentation/runtime/logging/): enabling the FINEST-level driver trace alongside the JVM Kerberos debug flags.
+- [Connection properties reference](/documentation/reference/connection-properties/): every property in one place.

@@ -15,7 +15,7 @@ a special escape syntax is used to specify the generic commands the developer wa
 these escape sequences into native syntax for its specific database. For more information consult the
 [Java DB Technical Documentation](http://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html).
 
-The parsing of the sql statements for these escapes can be disabled using `Statement.setEscapeProcessing(false)` .
+The parsing of the SQL statements for these escapes can be disabled using `Statement.setEscapeProcessing(false)` .
 
 `Connection.nativeSQL(String sql)` provides another way to have escapes processed. It translates the given SQL to SQL
 suitable for the PostgreSQL® backend.

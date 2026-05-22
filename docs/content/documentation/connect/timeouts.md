@@ -37,9 +37,9 @@ Phases 1–4 are additionally wrapped by `loginTimeout` (default `0` = unlimited
 
 [`connectTimeout`](/documentation/reference/connection-properties/#prop-connecttimeout) (seconds, default `10`) is the timeout passed to the TCP `connect()` syscall on each candidate host. A value of `0` leaves the connect timeout to the platform socket defaults.
 
-For a multi-host URL the budget is **shared across hosts**. The driver tracks time elapsed since the start of `getConnection()`. The timeout passed to the next host is `max(0, connectTimeout − elapsed)`. With `connectTimeout=10` against three unreachable hosts, the first attempt gets up to 10 s, the second gets the remainder, and the third may get 0 s and fail immediately. There is no built-in way to get a fresh budget per host — `loginTimeout` is a separate wall-clock cap on the whole call, not a reset point. If per-host budgets matter, drive retries from a higher layer (a connection-pool retry policy, or your application's own `getConnection` loop) rather than relying on the driver to redistribute the time.
+For a multi-host URL the budget is **shared across hosts**. The driver tracks time elapsed since the start of `getConnection()`. The timeout passed to the next host is `max(0, connectTimeout − elapsed)`. With `connectTimeout=10` against three unreachable hosts, the first attempt gets up to 10 s, the second gets the remainder, and the third may get 0 s and fail immediately. There is no built-in way to get a fresh budget per host; `loginTimeout` is a separate wall-clock cap on the whole call, not a reset point. If per-host budgets matter, drive retries from a higher layer (a connection-pool retry policy, or your application's own `getConnection` loop) rather than relying on the driver to redistribute the time.
 
-This shared-budget behaviour was introduced in **pgJDBC 42.7.7** ([commit `2a8772f0e`](https://github.com/pgjdbc/pgjdbc/commit/2a8772f0e)). Earlier versions started a fresh `connectTimeout` per host, so two unreachable hosts in a row would burn `2 × connectTimeout` before the driver gave up. On those drivers the wall-clock cap of the whole `getConnection()` call was `loginTimeout` only, and the standard remedy was to set `loginTimeout ≥ #hosts × connectTimeout + ε`. That value is still safe on 42.7.7+, and only becomes redundant once `connectTimeout` itself caps the whole TCP phase.
+This shared-budget behavior was introduced in **pgJDBC 42.7.7** ([commit `2a8772f0e`](https://github.com/pgjdbc/pgjdbc/commit/2a8772f0e)). Earlier versions started a fresh `connectTimeout` per host, so two unreachable hosts in a row would burn `2 × connectTimeout` before the driver gave up. On those drivers the wall-clock cap of the whole `getConnection()` call was `loginTimeout` only, and the standard remedy was to set `loginTimeout ≥ #hosts × connectTimeout + ε`. That value is still safe on 42.7.7+, and only becomes redundant once `connectTimeout` itself caps the whole TCP phase.
 
 ### `loginTimeout`
 
@@ -48,7 +48,7 @@ This shared-budget behaviour was introduced in **pgJDBC 42.7.7** ([commit `2a877
 - Driver.java | pgjdbc/src/main/java/org/postgresql/Driver.java | 341-376
 {{< /review >}}
 
-[`loginTimeout`](/documentation/reference/connection-properties/#prop-logintimeout) (seconds, default `0` = unlimited) is the wall-clock cap on the *entire* `getConnection()` call — TCP, SSL/GSS upgrade, authentication, and the startup packet exchange.
+[`loginTimeout`](/documentation/reference/connection-properties/#prop-logintimeout) (seconds, default `0` = unlimited) is the wall-clock cap on the *entire* `getConnection()` call: TCP, SSL/GSS upgrade, authentication, and the startup packet exchange.
 
 Enforcement is structural rather than cooperative: the driver spawns a daemon `Thread` that performs the actual connection work while the calling thread waits on a condition variable with the timeout. When the timeout fires:
 
@@ -129,7 +129,7 @@ The practical rule is still: **set `loginTimeout` explicitly as a driver propert
 
 ### Initial connectivity checks are outside the borrow timeout
 
-`HikariConfig.connectionTimeout` is the client-side wait for `pool.getConnection()` — it bounds how long an application thread blocks waiting to **borrow** a pooled connection. It does **not** directly wrap a single physical JDBC connect attempt. HikariCP's fail-fast check (`initializationFailTimeout >= 0`, the default) and background pool-fill path create physical connections outside that borrow-timeout path. Those attempts are bounded by the driver-side timeouts (`connectTimeout`, `loginTimeout`), plus any translation HikariCP has already performed via `setLoginTimeout`. If those leave the driver waiting indefinitely on a half-open multi-host URL, application startup or refill can still hang irrespective of the pool's borrow timeout.
+`HikariConfig.connectionTimeout` is the client-side wait for `pool.getConnection()`: it bounds how long an application thread blocks waiting to **borrow** a pooled connection. It does **not** directly wrap a single physical JDBC connect attempt. HikariCP's fail-fast check (`initializationFailTimeout >= 0`, the default) and background pool-fill path create physical connections outside that borrow-timeout path. Those attempts are bounded by the driver-side timeouts (`connectTimeout`, `loginTimeout`), plus any translation HikariCP has already performed via `setLoginTimeout`. If those leave the driver waiting indefinitely on a half-open multi-host URL, application startup or refill can still hang irrespective of the pool's borrow timeout.
 
 ### Sizing `connectionTimeout` against `loginTimeout`
 
@@ -169,6 +169,6 @@ On the next `getConnection()`, hosts cached as `ConnectFail` are skipped until t
 
 ## Related
 
-- [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/) — the operational side: idle connections being killed by network or server-side limits, and the recipe that combines `socketTimeout` with `tcpKeepAlive` and pool validation.
-- [Connection fail-over](/documentation/connect/failover/) — multi-host URLs, `targetServerType`, `loadBalanceHosts`, and what the host status tracker actually caches.
-- [Connection properties reference](/documentation/reference/connection-properties/) — every property in one place.
+- [Connection closed unexpectedly](/documentation/troubleshooting/connection-closed-unexpectedly/): the operational side, idle connections being killed by network or server-side limits, and the recipe that combines `socketTimeout` with `tcpKeepAlive` and pool validation.
+- [Connection fail-over](/documentation/connect/failover/): multi-host URLs, `targetServerType`, `loadBalanceHosts`, and what the host status tracker actually caches.
+- [Connection properties reference](/documentation/reference/connection-properties/): every property in one place.

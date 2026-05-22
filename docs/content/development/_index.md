@@ -6,7 +6,7 @@ draft: false
 
 ## About the Driver
 
-The PostgreSQL JDBC driver has some unique properties that you should be aware of before starting to develop any code for it. The current development driver supports a number of server versions.  This doesn't mean that every feature must work in every combination, but a reasonable behaviour must be provided for non-supported versions.  While this extra compatibility sounds like a lot of work, the actual  goal is to reduce the amount of work by maintaining only one code base.
+The PostgreSQL JDBC driver has some unique properties that you should be aware of before starting to develop any code for it. The current development driver supports a number of server versions.  This doesn't mean that every feature must work in every combination, but a reasonable behavior must be provided for non-supported versions.  While this extra compatibility sounds like a lot of work, the actual  goal is to reduce the amount of work by maintaining only one code base.
 
 ## Tools
 

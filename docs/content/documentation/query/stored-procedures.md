@@ -9,7 +9,7 @@ aliases:
     - "/documentation/callproc/"
 ---
 
-PostgreSQL® supports two types of stored objects, functions that can return a result value and - starting from v11 - procedures
+PostgreSQL® supports two types of stored objects: functions that can return a result value and (starting from v11) procedures
 that can perform transaction control. Both types of stored objects are invoked using `CallableStatement` and the standard
 JDBC escape call syntax `{call storedobject(?)}` . The `escapeSyntaxCallMode` connection property controls how the driver
 transforms the call syntax to invoke functions or procedures.
@@ -45,7 +45,7 @@ upperFunc.close();
 ## Obtaining a `ResultSet` from a stored function
 
 PostgreSQL's™ stored functions can return results in two different ways. The function may return either a refcursor value
-or a `SETOF` some datatype. Depending on which of these return methods are used determines how the function should be called.
+or a `SETOF` some datatype. Which of these return methods is used determines how the function should be called.
 
 ### From a Function Returning `SETOF` type
 

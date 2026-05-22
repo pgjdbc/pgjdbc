@@ -21,7 +21,7 @@ With JDBC, a database is represented by a URL (Uniform Resource Locator). With P
 
 The parameters have the following meanings:
 
-* **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address your must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
+* **`host`** = The host name of the server. Defaults to `localhost` . To specify an IPv6 address you must enclose the `host` parameter with square brackets, for example: `jdbc:postgresql://[::1]:5740/accounting`
 
 * **`port`** = The port number the server is listening on. Defaults to the PostgreSQL® standard port number (5432).
 
@@ -36,7 +36,7 @@ To connect, you need to get a `Connection` instance from JDBC. To do this, you u
 
 ### Passing server `options` in the URL
 
-The [`options`](/documentation/reference/connection-properties/#prop-options) connection property is forwarded to the backend as the `options` startup parameter, so the value follows the [Client Connection Defaults](https://www.postgresql.org/docs/current/runtime-config-client.html) syntax — multiple `-c name=value` flags separated by spaces, with `\` escaping a literal space and `\\` a literal backslash.
+The [`options`](/documentation/reference/connection-properties/#prop-options) connection property is forwarded to the backend as the `options` startup parameter, so the value follows the [Client Connection Defaults](https://www.postgresql.org/docs/current/runtime-config-client.html) syntax: multiple `-c name=value` flags separated by spaces, with `\` escaping a literal space and `\\` a literal backslash.
 
 When passed via a `Properties` object the value is taken verbatim:
 

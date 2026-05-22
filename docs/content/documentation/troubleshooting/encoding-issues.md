@@ -50,7 +50,7 @@ the normal error channel.
 - ClientEncodingTest.java | pgjdbc/src/test/java/org/postgresql/test/jdbc2/ClientEncodingTest.java | 55-71
 {{< /review >}}
 
-A `SET client_encoding = LATIN1` was issued somewhere — directly by
+A `SET client_encoding = LATIN1` was issued somewhere: directly by
 the application, by an `ALTER ROLE … SET client_encoding`, by an
 `ALTER DATABASE … SET client_encoding`, or by a connection-pool
 "init SQL" that copied a server-side recipe. The driver detects the
@@ -149,7 +149,7 @@ pg_restore -d myapp_utf8 myapp.dump
 The `--encoding=UTF8` flag on `pg_dump` may transcode 8-bit data on
 the way out; if the source database mixes encodings, you need to
 identify which rows are in which encoding before the dump. There is
-no automated tool for this — it usually requires per-table or
+no automated tool for this; it usually requires per-table or
 per-application reasoning.
 
 ### Workaround: `bytea` for the affected columns
@@ -193,7 +193,7 @@ The fix lives on whichever side is producing the non-UTF-8 bytes.
 
 ### `character … has no equivalent in encoding "X"`
 
-The reverse — the server has a character that does not map to the
+The reverse: the server has a character that does not map to the
 requested `client_encoding`. With pgJDBC this shouldn't occur (we
 ask for UTF-8 and every Unicode code point has a UTF-8
 representation), unless `allowEncodingChanges=true` was set AND a
@@ -211,9 +211,9 @@ The driver exposes a single encoding-related knob,
 everything else on the JDBC side is fixed at startup or determined
 by the server. The relevant external references:
 
-- [Server preparation: Database encoding](/documentation/getting-started/server-prep/#database-encoding-is-utf-8)
-  — why `CREATE DATABASE … WITH ENCODING 'UTF8'` is the only sane
+- [Server preparation: Database encoding](/documentation/getting-started/server-prep/#database-encoding-is-utf-8):
+  why `CREATE DATABASE … WITH ENCODING 'UTF8'` is the only sane
   starting point.
-- [PostgreSQL — Character Set Support](https://www.postgresql.org/docs/current/multibyte.html)
-  — the server-side reference for encodings, conversion, and the
+- [PostgreSQL — Character Set Support](https://www.postgresql.org/docs/current/multibyte.html):
+  the server-side reference for encodings, conversion, and the
   full table of supported pairs.

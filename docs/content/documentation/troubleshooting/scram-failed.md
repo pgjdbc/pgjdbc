@@ -29,7 +29,7 @@ For the recommended-default posture (`sslmode=verify-full`,
 Raised by `ScramAuthenticator.getChannelBindingData` when
 `channelBinding=require` is combined with `sslmode=disable` (or any
 configuration that never negotiates TLS). Channel binding ties the
-SCRAM exchange to the TLS session — without TLS there is no channel
+SCRAM exchange to the TLS session; without TLS there is no channel
 to bind to.
 
 Resolution: pick one or the other.
@@ -125,7 +125,7 @@ than a pgJDBC property. Inspect a custom `SSLSocketFactory` first; the
 stock `org.postgresql.ssl.LibPQFactory` is expected to expose the
 server's X.509 certificate.
 
-There is no client-side property to bypass — channel binding cannot
+There is no client-side property to bypass: channel binding cannot
 work without a server certificate.
 
 ## `Server requested N SCRAM PBKDF2 iterations, which exceeds the client-side limit of M`
@@ -148,7 +148,7 @@ Resolution depends on context:
 - **You trust the server and it legitimately uses a high count.**
   Raise [`scramMaxIterations`](/documentation/reference/connection-properties/#prop-scrammaxiterations).
   Set to `0` to disable the check entirely (not recommended).
-- **You do not trust the server.** Do not raise the limit — the
+- **You do not trust the server.** Do not raise the limit; the
   default is the protection, not the problem.
 
 ## `Authentication method is not allowed by requireAuth`
@@ -171,7 +171,7 @@ none`, with a `!` prefix for negative entries
 Resolution:
 
 - **Add the offered method to the list,** if it was an oversight.
-- **Fix the server** — if the server offers `md5` and you wrote
+- **Fix the server.** If the server offers `md5` and you wrote
   `requireAuth=scram-sha-256`, the password is stored under a weaker
   scheme. Migrate to SCRAM (see the first case above).
 
@@ -184,17 +184,17 @@ are ever sent under the unwanted method.
 
 ## Related
 
-- [Authentication](/documentation/security/authentication/) — the
-  conceptual companion to this page: which methods the driver
+- [Authentication](/documentation/security/authentication/): the
+  conceptual companion to this page covers which methods the driver
   supports, how the server-driven negotiation resolves, and the
   levers (`requireAuth`, `channelBinding`, `scramMaxIterations`,
   `AuthenticationPlugin`) that bound it.
-- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)
-  — the recommended-default combination of `sslmode=verify-full`,
+- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls):
+  the recommended-default combination of `sslmode=verify-full`,
   `sslrootcert`, and `channelBinding=require`.
-- [SSL / TLS connection errors](/documentation/troubleshooting/ssl-errors/)
-  — failure modes on the TLS layer underneath SCRAM. Channel binding
+- [SSL / TLS connection errors](/documentation/troubleshooting/ssl-errors/):
+  failure modes on the TLS layer underneath SCRAM. Channel binding
   cannot succeed if the TLS handshake itself doesn't.
-- [Compatibility](/documentation/getting-started/compatibility/) —
+- [Compatibility](/documentation/getting-started/compatibility/):
   channel binding requires PostgreSQL&nbsp;11+; SCRAM-SHA-256 is the
   default password encoding from PG&nbsp;14.

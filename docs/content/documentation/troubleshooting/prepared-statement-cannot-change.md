@@ -20,8 +20,8 @@ Both arise when the **server-side prepared statement** stored against
 a name (e.g., `S_2`) is no longer valid against the current catalog
 or session state. The first is `SQLState = 0A000`
 (`FEATURE_NOT_SUPPORTED`); the second is `SQLState = 26000`
-(`INVALID_SQL_STATEMENT_NAME`). The driver recognises both as
-"reparse-and-retry" candidates — see
+(`INVALID_SQL_STATEMENT_NAME`). The driver recognizes both as
+"reparse-and-retry" candidates; see
 [`QueryExecutorBase.willHealViaReparse`](https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/core/QueryExecutorBase.java#L418)
 for the exact decision.
 
@@ -53,7 +53,7 @@ In rough order of frequency:
 
 - **Schema migration mid-flight.** `ALTER TABLE … ADD COLUMN`,
   `ALTER TABLE … ALTER COLUMN TYPE`, dropping a view and recreating
-  it, renaming a column — anything that changes the result columns of
+  it, renaming a column: anything that changes the result columns of
   a `SELECT` the application has already prepared can make an old
   plan fail with `cached plan must not change result type`. In this
   branch the default [`flushCacheOnDdl`](#flushcacheonddl-default-true)
@@ -65,7 +65,7 @@ In rough order of frequency:
   `users` to `myapp.users`; a later `SET search_path = …` makes the
   same query resolve to a different relation. The driver detects
   `SET … search_path …` and bumps an internal `deallocateEpoch` so
-  fresh PARSE messages are emitted — but only for the connection
+  fresh PARSE messages are emitted, but only for the connection
   that issued the SET. A SET applied via a server-side trigger or by
   another session sharing the same prepared statement (rare) does
   not trigger the invalidation.
@@ -130,12 +130,12 @@ invalidate.
 
 ## Workarounds
 
-When the root cause is out of reach — a third-party application
+Sometimes the root cause is out of reach: a third-party application
 issues the migration, the PgBouncer upgrade is pending, the
-deployment cannot evict pool connections — these driver-side knobs
-let the driver tolerate the invalidation instead of resolving it.
-They are not free: each pays a cost beyond the statements that would
-have failed.
+deployment cannot evict pool connections. The driver-side knobs
+below let the driver tolerate the invalidation instead of resolving
+it. They are not free: each pays a cost beyond the statements that
+would have failed.
 
 ### `autosave=conservative`
 
@@ -159,7 +159,7 @@ perspective the statement simply succeeds.
 `SQLState 26000` *or* `SQLState 0A000` paired with the
 `RevalidateCachedQuery` / `RevalidateCachedPlan` server routine.
 Random `0A000` errors that are not cached-plan invalidations are
-**not** retried — savepoint overhead is paid, but unrelated failures
+**not** retried. Savepoint overhead is paid, but unrelated failures
 still surface to the application.
 
 The CONSERVATIVE mode sends extra savepoint traffic for statements
@@ -194,8 +194,8 @@ flipping.
 
 The most blunt option:
 [`preferQueryMode=simple`](/documentation/reference/connection-properties/#prop-preferquerymode)
-uses the simple PostgreSQL protocol — no `PARSE` / `BIND` /
-`EXECUTE` cycle at all, parameters are interpolated on the client.
+uses the simple PostgreSQL protocol with no `PARSE` / `BIND` /
+`EXECUTE` cycle at all; parameters are interpolated on the client.
 Server-prepared statements aren't possible, so neither is this
 error. The trade-offs are larger than `prepareThreshold=0` (no
 binary transfer, weaker parameter typing); pick simple mode only if
@@ -207,12 +207,12 @@ the deployment also blocks the extended protocol for other reasons.
 
 ## Related
 
-- [Server-prepared statements](/documentation/query/prepared-statements/)
-  — how the `prepareThreshold`, `preparedStatementCacheQueries`,
+- [Server-prepared statements](/documentation/query/prepared-statements/):
+  how the `prepareThreshold`, `preparedStatementCacheQueries`,
   `preparedStatementCacheSizeMiB`, and `binaryTransfer` properties
   interact in a working configuration.
-- [DataSource and JNDI](/documentation/connect/datasource/)
-  — where PgBouncer and pool-eviction strategies fit in.
-- [Connection properties reference](/documentation/reference/connection-properties/)
-  — `autosave`, `prepareThreshold`, `preferQueryMode`,
+- [DataSource and JNDI](/documentation/connect/datasource/):
+  where PgBouncer and pool-eviction strategies fit in.
+- [Connection properties reference](/documentation/reference/connection-properties/):
+  `autosave`, `prepareThreshold`, `preferQueryMode`,
   `cleanupSavepoints`.

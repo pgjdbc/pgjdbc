@@ -15,13 +15,13 @@ build:
 
 This page was split into focused topical pages:
 
-- **[Issuing a query](/documentation/query/basics/)** — Statement,
+- **[Issuing a query](/documentation/query/basics/)**: Statement,
   PreparedStatement, ResultSet, updates, DDL.
-- **[Cursor-based fetching](/documentation/query/fetch-size/)** —
+- **[Cursor-based fetching](/documentation/query/fetch-size/)**:
   controlling per-fetch row count for large result sets.
-- **[Date and time](/documentation/data-types/date-time/)** — Java&nbsp;8
+- **[Date and time](/documentation/data-types/date-time/)**: Java&nbsp;8
   `java.time` mapping for PostgreSQL temporal types.
-- **[Server-prepared statements](/documentation/query/prepared-statements/)** —
+- **[Server-prepared statements](/documentation/query/prepared-statements/)**:
   the `prepareThreshold` model and binary transfer.
 
 Deep links to the old in-page sections are redirected automatically.

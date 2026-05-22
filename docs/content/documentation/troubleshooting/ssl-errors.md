@@ -15,8 +15,8 @@ pgJDBC's own validators and key loaders (which raise
 patterns you are most likely to see, paired with the property change
 that resolves each one.
 
-For the underlying setup — picking an `sslmode`, where keys and
-certificates live on disk, how to provide a custom socket factory —
+For the underlying setup (picking an `sslmode`, where keys and
+certificates live on disk, how to provide a custom socket factory),
 see [SSL / TLS](/documentation/security/ssl-tls/). For the safest
 defaults on a fresh project, see the
 [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls).
@@ -49,9 +49,9 @@ trusts. Two paths to a fix:
   processes need to trust the same CA. The recipe lives in
   [SSL / TLS § Configuring the Client](/documentation/security/ssl-tls/).
 
-`sslmode=require` does **not** validate the chain — see [the install
-page's callout](/documentation/getting-started/install/#configure-ssltls)
-— so the error only fires under `verify-ca` and `verify-full`. If
+`sslmode=require` does **not** validate the chain (see [the install
+page's callout](/documentation/getting-started/install/#configure-ssltls)),
+so the error only fires under `verify-ca` and `verify-full`. If
 you see it under `require`, the JVM is enforcing validation through
 some other path (a `SocketFactory`, a security provider, an
 `-Djavax.net.ssl.trustStore` system property).
@@ -70,8 +70,8 @@ message in the log will be one of:
 - `Server name validation failed: certificate for hostname X has no DNS subjectAltNames…`
 - `Hostname X is invalid`
 
-The server certificate's Subject Alternative Names — or, as a
-fallback, its Common Name — do not include the host you wrote in the
+The server certificate's Subject Alternative Names (or, as a
+fallback, its Common Name) do not include the host you wrote in the
 JDBC URL. Three resolutions, in decreasing preference:
 
 - **Fix the certificate.** Issue a new server certificate whose SAN
@@ -160,8 +160,8 @@ All TLS knobs grouped together:
 
 ## Related
 
-- [SSL / TLS](/documentation/security/ssl-tls/) — setup-side
+- [SSL / TLS](/documentation/security/ssl-tls/): setup-side
   documentation; this page is the diagnostic complement.
-- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls)
-  — the recommended-default combination of `sslmode=verify-full`,
+- [Configure SSL/TLS (in Quick start)](/documentation/getting-started/install/#configure-ssltls):
+  the recommended-default combination of `sslmode=verify-full`,
   `sslrootcert`, and `channelBinding=require`.

@@ -12,7 +12,7 @@ aliases:
     - "/documentation/query/multithreading/"
 ---
 
-This page covers the JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and the two `DataSource` implementations pgJDBC bundles (`PGSimpleDataSource`, `PGPoolingDataSource`). For the production-pool recipes — HikariCP / Tomcat JDBC / c3p0 with pool sizing, validation, `ApplicationName` per pool, and the per-connection state that matters for sizing — see [Connection pooling](/documentation/connect/connection-pooling/).
+This page covers the JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and the two `DataSource` implementations pgJDBC bundles (`PGSimpleDataSource`, `PGPoolingDataSource`). For the production-pool recipes (HikariCP / Tomcat JDBC / c3p0 with pool sizing, validation, `ApplicationName` per pool, and the per-connection state that matters for sizing), see [Connection pooling](/documentation/connect/connection-pooling/).
 
 JDBC 2 introduced standard connection pooling features in an add-on API known as the JDBC 2.0 Optional Package
 (also known as the JDBC 2.0 Standard Extension). These features have since been included in the core JDBC 3 API.
@@ -34,7 +34,7 @@ used in an application server environment unless the application server does not
 
 A single `Connection` is **not** thread-safe. Each PostgreSQL backend
 serves exactly one client connection at a time, so the driver does not
-internally synchronise calls on a `Connection`, `Statement`,
+internally synchronize calls on a `Connection`, `Statement`,
 `PreparedStatement`, or `ResultSet`. If two application threads issue
 overlapping calls on the same `Connection`, results are undefined.
 
@@ -48,7 +48,7 @@ The safe shape:
   `DataSource` everywhere; never share a `Connection`, `Statement`, or
   `ResultSet` across threads.
 - **Cancel from another thread is allowed.** `Statement.cancel()` is
-  explicitly thread-safe — it sends a cancel request out-of-band over
+  explicitly thread-safe: it sends a cancel request out-of-band over
   a fresh socket (controlled by `cancelSignalTimeout`). This is the
   one exception to "don't touch the connection from another thread".
 
@@ -163,7 +163,7 @@ source.setMaxConnections(10);
 
 > **Note**
 >
-> setServerName has been deprecated in favour of setServerNames. This was done to support multiple hosts.
+> setServerName has been deprecated in favor of setServerNames. This was done to support multiple hosts.
 
 Then code to use a connection from the pool might look like this.
 

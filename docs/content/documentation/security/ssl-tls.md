@@ -10,10 +10,10 @@ aliases:
     - "/documentation/head/ssl-client.html"
 ---
 
-Configuring the PostgreSQL® server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir)
+Configuring the PostgreSQL® server for SSL is covered in the [main documentation](https://www.postgresql.org/docs/current/ssl-tcp.html), so it will not be repeated here. There are also instructions in the source [certdir](https://github.com/pgjdbc/pgjdbc/tree/master/certdir).
 Before trying to access your SSL enabled server from Java, make sure
 you can get to it via **psql**. You should see output like the following
-if you have established a SSL  connection.
+if you have established an SSL connection.
 
 ```bash
 $ ./bin/psql -h localhost -U postgres
@@ -113,8 +113,8 @@ needs to be set with the `sslkey` parameter. For the PKCS-12 format to be recogn
 
 > **NOTE**
 >
-> When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
-There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
+> When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`.
+There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile.
 
 ### Bringing your own client key
 
@@ -172,7 +172,7 @@ From here the easiest thing to do is import this certificate into Java's system 
 
  `keytool -keystore $JAVA_HOME/lib/security/cacerts -alias postgresql -import -file server.crt.der`
 
-The default password for the cacerts keystore is `changeit` . Setting the alias to postgresql is not required.  You may apply any name you wish.
+The default password for the cacerts keystore is `changeit`. Setting the alias to postgresql is not required. You may apply any name you wish.
 
 If you do not have access to the system cacerts truststore you can create your own truststore.
 
@@ -191,7 +191,7 @@ In the event of problems extra debugging information is available by adding `-Dj
 - LibPQFactory.java | pgjdbc/src/main/java/org/postgresql/ssl/LibPQFactory.java | 147-152
 {{< /review >}}
 
-In some situations it may not be possible to configure your Java environment to make the server certificate available, for example in an applet. For a large scale deployment it would be best to get a certificate signed by recognized
-certificate authority, but that is not always an option. The JDBC driver provides an option to establish a SSL connection without doing any validation, but please understand the risk involved before enabling this option.
+In some situations it may not be possible to configure your Java environment to make the server certificate available, for example in an applet. For a large-scale deployment it would be best to get a certificate signed by a recognized
+certificate authority, but that is not always an option. The JDBC driver provides an option to establish an SSL connection without doing any validation, but please understand the risk involved before enabling this option.
 
-A non-validating connection is established via a custom `SSLSocketFactory` class that is provided with the driver. Setting the connection URL parameter `sslfactory=org.postgresql.ssl.NonValidatingFactory` will turn off all SSL validation.
+A non-validating connection is established via a custom `SSLSocketFactory` class that is provided with the driver. Setting the connection URL parameter `sslfactory=org.postgresql.ssl.NonValidatingFactory` turns off all SSL validation.

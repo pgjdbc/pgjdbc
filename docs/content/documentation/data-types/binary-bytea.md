@@ -24,18 +24,18 @@ Large Object storage, access control, and APIs, see the
 [PostgreSQL Large Objects documentation](https://www.postgresql.org/docs/current/largeobjects.html).
 
 Version 7.2 was the first release of the JDBC driver that supports the BYTEA data type. The introduction of this functionality
-in 7.2 has introduced a change in behaviour as compared to previous releases. Since 7.2, the methods
-`getBytes()` , `setBytes()` , `getBinaryStream()` , and `setBinaryStream()` operate on the BYTEA data type. In 7.1 and
+in 7.2 has introduced a change in behavior as compared to previous releases. Since 7.2, the methods
+`getBytes()`, `setBytes()`, `getBinaryStream()`, and `setBinaryStream()` operate on the BYTEA data type. In 7.1 and
 earlier, these methods operated on the OID data type associated with Large Objects.
 
-To use the BYTEA data type you should simply use the `getBytes()` , `setBytes()` , `getBinaryStream()` , or `setBinaryStream()` methods.
+To use the BYTEA data type you should simply use the `getBytes()`, `setBytes()`, `getBinaryStream()`, or `setBinaryStream()` methods.
 
 To use the Large Object functionality you can use either the `LargeObject` class provided by the PostgreSQL® JDBC driver,
 or by using the `getBlob()` and `setBlob()` methods.
 
 > **IMPORTANT**
 >
-> You must access Large Objects within an SQL transaction block.  You can start a transaction block by calling `setAutoCommit(false)` .
+> You must access Large Objects within an SQL transaction block.  You can start a transaction block by calling `setAutoCommit(false)`.
 
 [Example 7.1, “Processing Binary Data in JDBC”](/documentation/data-types/binary-bytea/#example71processing-binary-data-in-jdbc)
 contains some examples on how to process binary data using the PostgreSQL® JDBC driver.
@@ -76,7 +76,7 @@ try (FileInputStream fis = new FileInputStream(file);
 ```
 
 Here, `setBinaryStream()` transfers bytes from a stream into the column of type BYTEA. This also could
-have been done using the `setBytes()` method if the contents of the image was already in a `byte[]` .
+have been done using the `setBytes()` method if the contents of the image were already in a `byte[]`.
 
 > **NOTE**
 >
@@ -84,7 +84,7 @@ have been done using the `setBytes()` method if the contents of the image was al
 > required by JDBC. The length must match the number of bytes the driver can read from the stream. For streams whose
 > length is not known ahead of time, use the `setBinaryStream(int, InputStream)` overload.
 
-Retrieving an image is even easier. (We use `PreparedStatement` here, but the `Statement` class can equally be used.
+Retrieving an image is even easier. (We use `PreparedStatement` here, but the `Statement` class can equally be used.)
 
 ```java
 try (PreparedStatement ps = conn.prepareStatement("SELECT img FROM images WHERE imgname = ?"); ) {
