@@ -83,13 +83,13 @@ val generateReleaseHistory by tasks.registering(Exec::class) {
 
     commandLine("bash", projectRoot.resolve("docs-tools/bin/generate-release-history.sh").absolutePath)
     workingDir = projectRoot
-
     // The git directory's content drives the output, but Gradle cannot
     // track .git efficiently — declare the overlay as the only file input
     // and mark the task non-cacheable on the git side via outputs.upToDateWhen.
     inputs.file(releaseHistoryOverlay).withPropertyName("overlay")
     outputs.file(releaseHistoryYaml).withPropertyName("releaseHistoryYaml")
     outputs.upToDateWhen { false }
+
 }
 
 // ----- Hugo wrappers -------------------------------------------------------
