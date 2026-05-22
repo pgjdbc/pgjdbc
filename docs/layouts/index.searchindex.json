@@ -11,10 +11,15 @@
 {{- $first := true -}}
 {{- range .Site.RegularPages -}}
   {{- if not $first -}},{{- end -}}{{- $first = false -}}
+  {{/* Strip the {{< review >}} shortcode's output before plainifying so that
+       file paths and line numbers inside review entries (e.g. PGProperty.java)
+       don't match unrelated search queries and don't leak into result
+       snippets as "Reviewed YYYY-MM-DD against source: ...". */}}
+  {{- $body := replaceRE `<p class="review-meta">[\s\S]*?</p>\s*` "" .Content -}}
   {{- $entry := dict
       "uri"         .RelPermalink
       "title"       .Title
-      "content"     (.Plain | htmlUnescape)
+      "content"     ($body | plainify | htmlUnescape)
       "description" .Description
       "categories"  .Params.categories
   -}}

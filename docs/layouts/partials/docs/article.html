@@ -17,11 +17,20 @@
       {{- with .Pages.ByWeight }}
         <ul class="section-children">
           {{- range . }}
+            {{/* Fallback summary: strip the {{< review >}} shortcode's
+                 output before Hugo auto-truncates, otherwise pages that
+                 lead with a review block surface "Reviewed YYYY-MM-DD
+                 against source: ..." as their card description. */}}
+            {{- $desc := .Description -}}
+            {{- if not $desc -}}
+              {{- $cleaned := replaceRE `<p class="review-meta">[\s\S]*?</p>\s*` "" .Content -}}
+              {{- $desc = $cleaned | plainify | htmlUnescape | strings.TrimSpace | truncate 160 -}}
+            {{- end -}}
             <li>
               <a href="{{ .RelPermalink }}" class="section-children__link">
                 <span class="section-children__title">{{ .Title }}</span>
-                {{- with (or .Description .Summary) }}
-                  <span class="section-children__summary">{{ . | plainify | truncate 160 }}</span>
+                {{- with $desc }}
+                  <span class="section-children__summary">{{ . }}</span>
                 {{- end }}
               </a>
             </li>
