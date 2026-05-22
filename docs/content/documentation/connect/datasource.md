@@ -1,5 +1,6 @@
 ---
 title: "DataSource and JNDI"
+description: "The JDBC `DataSource` / `ConnectionPoolDataSource` API contracts and the two implementations pgJDBC bundles: `PGSimpleDataSource` for direct use and `PGPoolingDataSource` for the no-app-server case. JNDI binding for both."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 10

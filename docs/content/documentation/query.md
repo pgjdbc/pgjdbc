@@ -1,5 +1,6 @@
 ---
 title: "Issuing a Query (moved)"
+description: "Legacy query hub, now split into Issuing a query, Cursor-based fetching, Date / time mapping, and Server-prepared statements."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 4

@@ -1,5 +1,6 @@
 ---
 title: "Geometric types"
+description: "Reading and writing PostgreSQL geometric types (`point`, `line`, `box`, `path`, `polygon`, `circle`) through the `org.postgresql.geometric` classes, with an example `PGcircle` / `PGpoint` round-trip."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 40

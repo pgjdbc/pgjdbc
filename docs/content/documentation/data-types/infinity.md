@@ -1,5 +1,6 @@
 ---
 title: "Date and timestamp infinity"
+description: "How the driver represents PostgreSQL `-infinity` and `infinity` timestamps: `LocalDate.MIN` / `MAX` (and analogous sentinels) for `java.time`, and `PGStatement.DATE_NEGATIVE_INFINITY` / `DATE_POSITIVE_INFINITY` for legacy `Timestamp`."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 30

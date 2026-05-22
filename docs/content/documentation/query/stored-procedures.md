@@ -1,5 +1,6 @@
 ---
 title: "Stored functions and procedures"
+description: "Calling PostgreSQL functions and procedures from JDBC through `CallableStatement` and the `{call ...}` escape, including the `escapeSyntaxCallMode` property that picks between `SELECT`-style and v11+ `CALL`-style translation."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 20

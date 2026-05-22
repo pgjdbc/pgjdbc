@@ -1,5 +1,6 @@
 ---
 title: "Server-prepared statements"
+description: "How pgJDBC promotes a `PreparedStatement` to a server-prepared plan: the `prepareThreshold` counter, when binary transfer kicks in, the per-statement override, and how `autosave` and `flushCacheOnDdl` interact with cached plans."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 5

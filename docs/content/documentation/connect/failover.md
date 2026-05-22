@@ -1,5 +1,6 @@
 ---
 title: "Connection fail-over"
+description: "Multi-host JDBC URLs for HA: candidate iteration in URL order, `targetServerType` for primary or standby selection, the `loadBalanceHosts` shuffle, and the host-status cache that remembers failed nodes between attempts."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20

@@ -1,5 +1,6 @@
 ---
 title: "Download"
+description: "Binary JAR downloads of pgJDBC by release line: the current Java 8 / PostgreSQL 9.1+ build, the legacy Java 7 and Java 6 compatibility variants, and the latest patch of each prior 42.x line. Most projects pull from Maven Central instead."
 date: 2022-06-20T01:17:28+05:30
 draft: false
 ---

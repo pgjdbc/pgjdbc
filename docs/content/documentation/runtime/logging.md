@@ -1,5 +1,6 @@
 ---
 title: "Driver logging"
+description: "Routing pgJDBC diagnostics through `java.util.logging`: the `org.postgresql` root logger, the `loggerLevel` and `loggerFile` URL properties, what each level emits, and bridging into SLF4J / Log4j 2 with `jul-to-slf4j`."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 11

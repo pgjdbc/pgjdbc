@@ -1,5 +1,6 @@
 ---
 title: "Security"
+description: "PGP signing keys for pgJDBC releases, historic security advisories, and the GitHub security-advisory form for reporting new vulnerabilities privately. For TLS / authentication configuration see the documentation's Security section."
 date: 2024-02-21T11:58:00-05:00
 draft: false
 aliases:

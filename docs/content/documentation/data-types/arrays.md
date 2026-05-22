@@ -1,5 +1,6 @@
 ---
 title: "Arrays"
+description: "Working with PostgreSQL array columns from JDBC: `Connection.createArrayOf` and the `PGConnection` overload for primitive arrays, the Java-to-PG type mapping table, and which element types travel as binary in `PreparedStatement.setObject`."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20

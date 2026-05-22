@@ -1,5 +1,6 @@
 ---
 title: "Parameter status"
+description: "Reading `GUC_REPORT` server parameters that PostgreSQL pushes via Parameter Status protocol messages, through the `PGConnection.getParameterStatus*` extension methods added in pgJDBC 42.2.7."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 3

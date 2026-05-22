@@ -5,7 +5,7 @@ draft: false
 weight: 6
 toc: true
 last_reviewed: "2026-05-21"
-description: "Idle connections die between checkout and use — load balancer timeouts, server-side idle limits, OS keepalive defaults. What each error message means and which mitigation (pool validation, tcpKeepAlive, socketTimeout, server tcp_user_timeout) actually applies."
+description: "Idle connections die between checkout and use because of load-balancer timeouts, server idle limits, or OS keepalive defaults. Which mitigation (pool validation, `tcpKeepAlive`, `socketTimeout`, `tcp_user_timeout`) applies."
 ---
 
 The error usually surfaces from `Statement.execute*` or

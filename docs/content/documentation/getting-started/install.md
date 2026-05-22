@@ -1,5 +1,6 @@
 ---
 title: "Quick start"
+description: "The minimum viable path to a working pgJDBC application: add the Maven, Gradle, or SBT dependency, then open a TLS-protected connection with `DriverManager.getConnection`. The rest of the documentation fills in the edges."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1

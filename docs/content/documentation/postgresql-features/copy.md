@@ -1,5 +1,6 @@
 ---
 title: "COPY (CopyManager)"
+description: "Bulk-loading and bulk-extracting rows over the PostgreSQL `COPY` protocol through `CopyManager` (`PGConnection.getCopyAPI()`), in text or binary mode, with the `CopyIn` / `CopyOut` streaming interfaces."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 10

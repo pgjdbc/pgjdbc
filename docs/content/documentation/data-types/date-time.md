@@ -1,5 +1,6 @@
 ---
 title: "Date and time"
+description: "Mapping PostgreSQL temporal types (`DATE`, `TIME`, `TIMESTAMP`, with and without time zone) to Java 8 `java.time` types via JDBC 4.2, the UTC-normalized return of `OffsetDateTime`, and why `ZonedDateTime` and `Instant` are unsupported."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 25

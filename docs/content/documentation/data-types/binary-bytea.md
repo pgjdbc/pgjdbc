@@ -1,5 +1,6 @@
 ---
 title: "Binary data (BYTEA)"
+description: "Choosing between the `BYTEA` column type and the large-object API for binary payloads: 1 GB memory ceiling on `BYTEA`, separate ACLs and manual deletion on large objects, and which JDBC `getBytes` / `getBlob` methods target each."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 6

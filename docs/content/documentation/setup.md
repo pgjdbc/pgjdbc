@@ -1,5 +1,6 @@
 ---
 title: "Setting up the Driver (moved)"
+description: "Legacy setup hub, now split into Quick start (Maven / Gradle dependency, first TLS connection), Server preparation (`listen_addresses`, `pg_hba.conf`, encoding), and Building from source."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1

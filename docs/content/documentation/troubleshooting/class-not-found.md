@@ -5,7 +5,7 @@ draft: false
 weight: 5
 toc: true
 last_reviewed: "2026-05-21"
-description: "The classic ClassNotFoundException / NoClassDefFoundError on org.postgresql.Driver from legacy Class.forName code — what it means in 2026 and why the call almost always belongs in the bin."
+description: "The classic `ClassNotFoundException` / `NoClassDefFoundError` on `org.postgresql.Driver` from legacy `Class.forName` code: what it means in 2026 and why the call almost always belongs in the bin."
 ---
 
 The error usually surfaces in one of two forms:

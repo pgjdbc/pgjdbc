@@ -1,5 +1,6 @@
 ---
 title: "Documentation"
+description: "Connection setup, SQL execution, data-type mapping, PostgreSQL extensions, runtime concerns, troubleshooting recipes, and the full connection-property reference for pgJDBC."
 date: 2026-05-20T00:00:00Z
 draft: false
 last_reviewed: "2026-05-20"

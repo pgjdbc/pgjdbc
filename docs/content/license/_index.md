@@ -1,5 +1,6 @@
 ---
 title: "License"
+description: "pgJDBC is distributed under the PostgreSQL License, a permissive BSD-style license. Full text of the copyright notice, redistribution conditions, and warranty disclaimer."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 aliases:

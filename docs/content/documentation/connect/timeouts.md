@@ -3,7 +3,7 @@ title: "Timeouts"
 weight: 12
 toc: true
 last_reviewed: "2026-05-21"
-description: "The driver-side timeouts that bound the distinct phases of a connection (TCP connect, SSL / GSS upgrade, wall-clock login, socket reads, query cancel), and the JDBC-spec timeouts that layer on top. How they interact with a connection pool, where defaults leave gaps, and the operational pitfalls."
+description: "Driver-side timeouts that bound each phase of a connection (TCP connect, SSL / GSS upgrade, wall-clock login, socket reads, query cancel), the JDBC-spec timeouts layered on top, and where the defaults leave gaps under a pool."
 ---
 
 A pgJDBC connection walks through a handful of distinct phases, and each phase is bounded by its own timeout: the TCP handshake, the optional SSL or GSS upgrade, the authentication round-trips, individual socket reads once the connection is steady-state, individual query executions, and the out-of-band cancel side-channel. The defaults are not aligned with each other. Misconfigured, the knobs overlap or leave gaps that hang threads for minutes.

@@ -1,5 +1,6 @@
 ---
 title: "Building the Driver from Source"
+description: "Building pgJDBC locally with the bundled Gradle Wrapper: required JDK, the `assemble` and `build` tasks, and where the resulting `postgresql-<version>.jar` lands. Most users should pull the published artifact from Maven Central instead."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 10

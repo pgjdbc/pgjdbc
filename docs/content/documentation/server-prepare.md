@@ -1,5 +1,6 @@
 ---
 title: "PostgreSQL® Extensions to the JDBC API (moved)"
+description: "Legacy hub for PostgreSQL extension topics, now split across pages for server-prepared statements, LISTEN / NOTIFY, parameter status, the extensions API, infinity timestamps, geometric types, and large objects."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 8

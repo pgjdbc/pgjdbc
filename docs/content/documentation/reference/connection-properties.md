@@ -1,5 +1,6 @@
 ---
 title: "Connection properties"
+description: "Generated catalog of every connection property the driver recognizes, with its default, type, status, and the pgjdbc version it was introduced in. Use the filter box to narrow by name or description."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 10

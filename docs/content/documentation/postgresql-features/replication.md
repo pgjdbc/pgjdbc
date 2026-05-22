@@ -1,5 +1,6 @@
 ---
 title: "Physical replication and logical decoding"
+description: "JDBC access to PostgreSQL physical replication and logical decoding: opening a replication-mode connection (`replication=database` / `true`), the `PGReplicationConnection` API, and consuming WAL records or row-level change events."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 20

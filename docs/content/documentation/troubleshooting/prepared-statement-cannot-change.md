@@ -5,7 +5,7 @@ draft: false
 weight: 7
 toc: true
 last_reviewed: "2026-05-21"
-description: "The two server-prepared-statement errors a JDBC client sees when the catalog or backend session moves under a cached plan — and the flushCacheOnDdl / autosave / prepareThreshold / PgBouncer settings that resolve them."
+description: "The two server-prepared-statement errors a JDBC client sees when the catalog or backend session moves under a cached plan, with the `flushCacheOnDdl`, `autosave`, `prepareThreshold`, and PgBouncer settings that resolve them."
 ---
 
 Two server-side errors hit the same nerve in a JDBC application that

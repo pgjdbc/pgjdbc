@@ -1,5 +1,6 @@
 ---
 title: "Issuing a query"
+description: "Issuing SQL through `Statement` and `PreparedStatement`, iterating the returned `ResultSet`, and the small set of pgJDBC-specific things to know about updates, DDL, and try-with-resources cleanup."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1

@@ -1,5 +1,6 @@
 ---
 title: "JDBC escape syntax"
+description: "The vendor-portable JDBC escape sequences the driver translates into native PostgreSQL: `{call ...}` for stored objects, `{d}` / `{t}` / `{ts}` literals, scalar functions, `{escape}`, and outer-join forms."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 7

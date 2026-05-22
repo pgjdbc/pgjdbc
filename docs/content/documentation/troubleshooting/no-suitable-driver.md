@@ -5,7 +5,7 @@ draft: false
 weight: 4
 toc: true
 last_reviewed: "2026-05-21"
-description: "DriverManager.getConnection throws SQLException: No suitable driver found for jdbc:postgresql://… — the four ways the driver can be unreachable to DriverManager, with a one-line diagnostic for each."
+description: "`DriverManager.getConnection` throws `SQLException: No suitable driver found for jdbc:postgresql://…`. The four ways the driver can be unreachable to `DriverManager`, with a one-line diagnostic for each."
 ---
 
 The error, verbatim:

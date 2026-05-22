@@ -5,7 +5,7 @@ draft: false
 weight: 3
 toc: true
 last_reviewed: "2026-05-21"
-description: "SCRAM-SHA-256 and channel-binding failures — what each error message means and which server or property change resolves it."
+description: "SCRAM-SHA-256 and channel-binding failures: what each error message means, and which server or `channelBinding` / `requireAuth` change resolves it."
 ---
 
 SCRAM-SHA-256 has been the default `password_encryption` since

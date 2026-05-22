@@ -1,5 +1,6 @@
 ---
 title: "Large objects"
+description: "Reading and writing PostgreSQL large objects (LO / OID) through the `LargeObjectManager` and `LargeObject` extension classes, which give random access to the object's contents beyond what standard `Blob` / `Clob` allow."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 50

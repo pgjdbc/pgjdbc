@@ -1,5 +1,6 @@
 ---
 title: "Cursor-based fetching"
+description: "Streaming large result sets row-by-row instead of buffering everything: `Statement.setFetchSize(n)` opens a server-side cursor, the auto-commit-must-be-off requirement, and the per-batch network behavior."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 30

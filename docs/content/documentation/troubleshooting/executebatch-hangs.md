@@ -5,7 +5,7 @@ draft: false
 weight: 1
 toc: true
 last_reviewed: "2026-05-21"
-description: "A large PreparedStatement.executeBatch() blocks indefinitely with no exception — both client and server are waiting on a full TCP buffer to drain. Tune the socket buffers or break the batch into smaller chunks."
+description: "A large `PreparedStatement.executeBatch()` blocks indefinitely with no exception: both client and server are waiting on a full TCP buffer to drain. Tune the socket buffers or break the batch into smaller chunks."
 ---
 
 The symptom is a `PreparedStatement.executeBatch()` (or

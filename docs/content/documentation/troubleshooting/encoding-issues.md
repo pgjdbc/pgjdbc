@@ -5,7 +5,7 @@ draft: false
 weight: 8
 toc: true
 last_reviewed: "2026-05-21"
-description: "pgJDBC hard-requires client_encoding=UTF8. Errors that surface when the server tries to change that, when the database itself is SQL_ASCII, and when the byte stream is not what UTF-8 expects — with the real fix and the workaround."
+description: "pgJDBC hard-requires `client_encoding=UTF8`. Errors that surface when the server tries to change that, when the database is `SQL_ASCII`, or when the byte stream is not what UTF-8 expects, with the fix and workaround for each."
 ---
 
 The driver hard-requires `client_encoding = UTF8` on every connection.

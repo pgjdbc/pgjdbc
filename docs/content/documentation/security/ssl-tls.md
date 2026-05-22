@@ -1,5 +1,6 @@
 ---
 title: "SSL / TLS"
+description: "Configuring TLS for pgJDBC: `sslmode` levels (`disable` through `verify-full`), certificate and key file formats, the custom `SSLSocketFactory` SPI for application-managed key material, and the channel-binding interaction with SCRAM."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 3

@@ -1,5 +1,6 @@
 ---
 title: "Unix sockets"
+description: "Connecting to PostgreSQL via a Unix-domain socket by plugging the junixsocket `SocketFactory` into the `socketFactory` and `socketFactoryArg` connection properties, with the URL form and the typical `/tmp` vs `/var/run/postgresql` paths."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 15

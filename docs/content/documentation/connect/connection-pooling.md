@@ -3,7 +3,7 @@ title: "Connection pooling"
 weight: 13
 toc: true
 last_reviewed: "2026-05-21"
-description: "Running pgJDBC under HikariCP, Tomcat JDBC, or c3p0: pool sizing, validation, the per-connection state that survives checkouts (prepared-statement cache, metadata cache), tcpKeepAlive under pool ownership, and pgJDBC's interaction with server-side poolers like PgBouncer."
+description: "Running pgJDBC under HikariCP, Tomcat JDBC, or c3p0: pool sizing, validation, the per-connection state that survives checkouts (prepared-statement and metadata caches), and the interaction with server-side poolers like PgBouncer."
 ---
 
 pgJDBC connections are designed to be checked out from a pool, used briefly, and returned. Opening a fresh connection is expensive: TCP handshake, optional TLS / GSS upgrade, authentication round-trips, startup packet, and per-connection driver initialization. The state the driver builds up per connection (prepared-statement cache, metadata cache, server-side prepared statements) only pays off when the connection lives long enough to be reused. Production Java stacks normally put a connection pool in front of pgJDBC; the question is which one and how to configure it.

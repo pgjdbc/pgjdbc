@@ -1,5 +1,6 @@
 ---
 title: "Initializing the Driver (moved)"
+description: "Legacy driver-initialization hub, now split into Quick start, JDBC URL syntax, Unix sockets, connection fail-over, and the connection-properties reference."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 2

@@ -5,7 +5,7 @@ draft: false
 weight: 2
 toc: true
 last_reviewed: "2026-05-21"
-description: "Common TLS failure messages — PKIX path building failed, hostname mismatch, sslmode confusion, key-file format issues — with their cause and the exact connection-property fix."
+description: "Common TLS failure messages (PKIX path building failed, hostname mismatch, `sslmode` confusion, key-file format issues), with the cause and the exact connection-property fix for each."
 ---
 
 The error surface around TLS spans two layers: the JDK's certificate /

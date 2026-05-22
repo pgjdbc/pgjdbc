@@ -1,5 +1,6 @@
 ---
 title: "Listen / Notify"
+description: "Receiving PostgreSQL `LISTEN` / `NOTIFY` events through `PGConnection.getNotifications()`, the blocking and non-blocking variants, and the no-background-thread caveat: the application is responsible for draining the socket."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 2

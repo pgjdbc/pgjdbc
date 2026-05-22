@@ -1,5 +1,6 @@
 ---
 title: "Community"
+description: "Current and past pgJDBC maintainers and contributors, plus how to engage with the project: GitHub Discussions, mailing lists, and where to report bugs."
 date: 2022-06-19T22:46:55+05:30
 draft: false
 ---

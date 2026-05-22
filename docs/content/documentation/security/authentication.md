@@ -3,7 +3,7 @@ title: "Authentication"
 weight: 10
 toc: true
 last_reviewed: "2026-05-21"
-description: "Authentication methods pgJDBC supports (SCRAM-SHA-256, MD5, cleartext password, Kerberos / GSSAPI / SSPI), how the server-driven negotiation works, and the levers that harden it: requireAuth, channelBinding, scramMaxIterations, and the AuthenticationPlugin SPI for custom credentials."
+description: "Authentication methods pgJDBC supports (SCRAM-SHA-256, MD5, password, Kerberos / GSSAPI / SSPI), the server-driven negotiation, and the hardening levers: `requireAuth`, `channelBinding`, `scramMaxIterations`, `AuthenticationPlugin`."
 ---
 
 The authentication step of a pgJDBC connection runs after the optional TLS / GSS upgrade and before the connection is handed back to the application. The server, not the client, picks the authentication method based on the `pg_hba.conf` rule that matches the connection's source, and the driver responds to whatever message arrives. This page describes the methods the driver supports, how the negotiation resolves, and the connection properties that bound it (allow-list which methods are acceptable, require channel binding, swap in a custom credential source).

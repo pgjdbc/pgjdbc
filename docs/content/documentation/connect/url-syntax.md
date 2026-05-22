@@ -1,5 +1,6 @@
 ---
 title: "JDBC URL"
+description: "JDBC URL forms the driver accepts (`jdbc:postgresql:...`), host / port / database defaults, IPv6 bracket syntax, percent-encoding of reserved characters, and passing PostgreSQL startup `options` through the URL."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 5

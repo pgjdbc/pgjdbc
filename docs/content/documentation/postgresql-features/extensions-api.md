@@ -1,5 +1,6 @@
 ---
 title: "Driver extensions API"
+description: "Reaching PostgreSQL-only functionality from JDBC through `Connection.unwrap(PGConnection.class)`: the entry point for COPY, LISTEN / NOTIFY, large objects, fastpath, replication, and parameter-status APIs."
 date: 2026-05-13T00:00:00Z
 draft: false
 weight: 1

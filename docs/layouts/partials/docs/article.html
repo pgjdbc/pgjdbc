@@ -17,12 +17,23 @@
       {{- with .Pages.ByWeight }}
         <ul class="section-children">
           {{- range . }}
-            {{/* Fallback summary: strip the {{< review >}} shortcode's
-                 output before Hugo auto-truncates, otherwise pages that
-                 lead with a review block surface "Reviewed YYYY-MM-DD
-                 against source: ..." as their card description. */}}
-            {{- $desc := .Description -}}
+            {{/* Front-matter description may carry inline Markdown
+                 (`code` spans for type and property names). Render it
+                 through markdownify, then strip Hugo's wrapping <p>
+                 so the snippet stays inline inside <span>. */}}
+            {{- $desc := "" -}}
+            {{- $isMarkdown := false -}}
+            {{- with .Description -}}
+              {{- $desc = . | markdownify -}}
+              {{- $desc = replaceRE `^<p>` "" $desc -}}
+              {{- $desc = replaceRE `</p>\s*$` "" $desc -}}
+              {{- $isMarkdown = true -}}
+            {{- end -}}
             {{- if not $desc -}}
+              {{/* Fallback: strip the {{< review >}} shortcode's output
+                   before Hugo auto-truncates, otherwise pages that lead
+                   with a review block surface "Reviewed YYYY-MM-DD
+                   against source: ..." as their card description. */}}
               {{- $cleaned := replaceRE `<p class="review-meta">[\s\S]*?</p>\s*` "" .Content -}}
               {{- $desc = $cleaned | plainify | htmlUnescape | strings.TrimSpace | truncate 160 -}}
             {{- end -}}
@@ -30,7 +41,9 @@
               <a href="{{ .RelPermalink }}" class="section-children__link">
                 <span class="section-children__title">{{ .Title }}</span>
                 {{- with $desc }}
-                  <span class="section-children__summary">{{ . }}</span>
+                  <span class="section-children__summary">
+                    {{- if $isMarkdown }}{{ . | safeHTML }}{{ else }}{{ . }}{{ end -}}
+                  </span>
                 {{- end }}
               </a>
             </li>
