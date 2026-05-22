@@ -1,13 +1,60 @@
-{{ $currentPage := . }}
+{{/*
+  Two-level documentation sidebar driven by the actual page tree under
+  /documentation/, not by menus.toml.
 
-<nav role="navigation" class="sidebar">
+  Top level: each section (subdirectory with an _index.md), ordered by
+  `weight:` in the section's _index.md.
+
+  Second level: each page within the section, ordered by the page's
+  own `weight:`.
+
+  Pages with `build.list: never` (the legacy-URL hub pages) are
+  excluded from .Pages by Hugo automatically.
+*/}}
+{{- $currentPage := . -}}
+{{- $docsRoot := .Site.GetPage "/documentation" -}}
+
+<nav role="navigation" class="sidebar" aria-label="Documentation">
   <ul role="list" class="flow sidebar__wrapper">
-    {{ range .Site.Menus.docs.ByWeight }}
-    <li role="listitem" class="sidebar__links">
-      <a href="{{ .URL }}" class="sidebar__links__link{{ if eq $currentPage.RelPermalink .URL }}--active{{end}}">
-        {{.Name }}
-      </a>
-    </li>
-    {{- end}}
+
+    {{/* Top-level pages directly under /documentation/ (i.e. not in any
+         sub-section). With install.md moved into getting-started/, this
+         list is normally empty — but we render it defensively in case
+         a future page lives at the top level. */}}
+    {{- range $docsRoot.RegularPages.ByWeight }}
+      <li role="listitem" class="sidebar__links">
+        <a href="{{ .RelPermalink }}"
+           class="sidebar__links__link{{ if eq $currentPage.RelPermalink .RelPermalink }}--active{{ end }}">
+          {{ .Title }}
+        </a>
+      </li>
+    {{- end }}
+
+    {{/* Sections, ordered by _index.md weight. Each section is a
+         collapsible group with its pages underneath. */}}
+    {{- range $docsRoot.Sections.ByWeight }}
+      {{- $sectionActive := or
+            (eq $currentPage.RelPermalink .RelPermalink)
+            (strings.HasPrefix $currentPage.RelPermalink .RelPermalink) -}}
+      <li role="listitem" class="sidebar__section{{ if $sectionActive }} sidebar__section--active{{ end }}">
+        <a href="{{ .RelPermalink }}"
+           class="sidebar__section__title{{ if eq $currentPage.RelPermalink .RelPermalink }}--active{{ end }}">
+          {{ .Title }}
+        </a>
+        {{- with .RegularPages.ByWeight }}
+          <ul role="list" class="sidebar__section__pages">
+            {{- range . }}
+              <li role="listitem" class="sidebar__links">
+                <a href="{{ .RelPermalink }}"
+                   class="sidebar__links__link{{ if eq $currentPage.RelPermalink .RelPermalink }}--active{{ end }}">
+                  {{ .Title }}
+                </a>
+              </li>
+            {{- end }}
+          </ul>
+        {{- end }}
+      </li>
+    {{- end }}
+
   </ul>
 </nav>
