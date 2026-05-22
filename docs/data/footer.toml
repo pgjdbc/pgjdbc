@@ -26,10 +26,10 @@ url = "https://www.postgresql.org/list/pgsql-jdbc/"
 title = "More"
 [[external.links]]
 name = "FAQ"
-url = "/faq/"
+url = "faq/"
 [[external.links]]
 name = "Privacy"
 url = "https://www.postgresql.org/about/policies/privacy/"
 [[external.links]]
 name = "License"
-url = "/license/"
+url = "license/"
