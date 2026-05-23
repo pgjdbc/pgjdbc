@@ -1015,7 +1015,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (valueLen != -1) {
             if (valueLen < -1) {
               // Unconditional: the wire protocol assigns meaning only to -1 (NULL) and
-              // to non-negative values. Any other negative leaves no way to decode.
+              // to non-negative values. Any other negative leaves no way to decode the value.
               throw pgStream.poison(new IOException(GT.tr(
                   "Protocol error. FunctionCallResponse has negative value length {0}.",
                   valueLen)));

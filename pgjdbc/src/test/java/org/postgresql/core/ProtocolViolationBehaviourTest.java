@@ -160,7 +160,7 @@ class ProtocolViolationBehaviourTest {
   }
 
   @Test
-  void defaultBehaviorFollowsCurrent() throws IOException {
+  void defaultBehaviourFollowsCurrent() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
     assertSame(ProtocolViolationBehaviour.CURRENT, pgStream.getProtocolViolationBehaviour(),
         "Newly constructed PGStream should pick up the JVM-wide ProtocolViolationBehaviour.CURRENT");

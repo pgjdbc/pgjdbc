@@ -19,10 +19,12 @@ import java.util.logging.Logger;
  *
  * <p>Configured through the {@value #SYSTEM_PROPERTY} JVM system property
  * (e.g. {@code -Dpgjdbc.protocolViolationBehaviour=fail}). The setting is read
- * once at driver class-load time and applies to every connection opened by the
- * JVM, which matches how a fleet-wide SRE-side override is typically deployed.
- * Default: {@link #WARN}, which preserves the pre-#4015 read path while logging
- * any check failure so that a real desync remains visible in logs.</p>
+ * once at driver class-load time and applies to every connection opened by
+ * the JVM. The property is deliberately not exposed via the JDBC URL or
+ * {@code Properties} object: a URL-level override would let an attacker who
+ * controls the connection string disable the hardening checks. Default:
+ * {@link #WARN}, which preserves the pre-#4015 read path while logging any
+ * check failure so that a real desync remains visible in logs.</p>
  *
  * <p>The hardening checks were added to fail fast and tear the connection down
  * when a backend response looks corrupted (length field out of range, message
@@ -40,7 +42,7 @@ public enum ProtocolViolationBehaviour {
    * (best-effort close the socket and flag {@code isClosed()}) and throw a
    * connection-level error. A pooling layer that calls {@code isClosed()} on
    * borrow will discard the connection rather than hand a desynced reader to
-   * the next caller. Opt-in via {@value #SYSTEM_PROPERTY}{@code =fail} for the
+   * the next caller. Opt in via {@value #SYSTEM_PROPERTY}{@code =fail} for the
    * strictest safety profile against a desynced or hostile backend.
    */
   FAIL("fail"),
@@ -51,9 +53,9 @@ public enum ProtocolViolationBehaviour {
    * driver may still crash later (e.g. {@code NegativeArraySizeException},
    * {@code OutOfMemoryError}, or an indefinite socket read) if the underlying
    * data is genuinely corrupted, but the log breadcrumb lets the user confirm
-   * whether the check is firing on real or pathological-but-benign traffic.
+   * whether the check is firing on real or pathological but benign traffic.
    * Chosen as the default so that an upgrade to a pgjdbc release that carries
-   * #4015 cannot turn a previously-working (if mildly non-conformant) workload
+   * #4015 cannot turn a previously working (if mildly non-conformant) workload
    * into hard connection failures without warning.
    *
    * <p>The log record carries the exception that {@link #FAIL} would have
@@ -66,9 +68,9 @@ public enum ProtocolViolationBehaviour {
   /**
    * Silently skip the new hardening checks, restoring the pre-#4015 read path.
    * Discouraged: a real desync can exhaust memory or block on a socket read
-   * indefinitely, and a check that fires on benign traffic leaves no trace in
-   * logs to triage. Set this only as a temporary workaround while a bug report
-   * is being investigated; prefer {@link #WARN} so the symptom remains
+   * indefinitely, and a check that fires on benign traffic leaves nothing in
+   * the logs to triage. Set this only as a temporary workaround while a bug
+   * report is being investigated; prefer {@link #WARN} so the symptom remains
    * visible in logs.
    */
   DISABLE("disable");
@@ -89,9 +91,9 @@ public enum ProtocolViolationBehaviour {
 
   /**
    * Returns the lowercase token used to select this behaviour on the command
-   * line ({@code fail}, {@code warn}, {@code disable}). The token is what
-   * end-users type, so it appears in {@link #SYSTEM_PROPERTY}, in error
-   * messages directing users to the silence knob, and in the parser.
+   * line ({@code fail}, {@code warn}, {@code disable}). The token is the one
+   * end users type, so it appears in {@link #SYSTEM_PROPERTY}, in error
+   * messages that direct users to the silence knob, and in the parser.
    */
   public String getValue() {
     return value;
@@ -152,9 +154,9 @@ public enum ProtocolViolationBehaviour {
    * full string remains a single translation key in the gettext catalogue.</p>
    */
   public static final String SILENCE_HINT_FORMAT =
-      " If you are sure this is a false-positive, you can silence the error by setting"
-          + " -D{0}=warn (log only) or -D{0}=disable (no logging),"
-          + " and please consider filing a bug report at https://github.com/pgjdbc/pgjdbc/issues.";
+      " If you are sure this is a false positive, you can silence the error by setting"
+          + " -D{0}=warn (log only) or -D{0}=disable (no logging)."
+          + " Consider filing a bug report at https://github.com/pgjdbc/pgjdbc/issues.";
 
   /**
    * Appends the localised silence hint to {@code baseMessage} for use in

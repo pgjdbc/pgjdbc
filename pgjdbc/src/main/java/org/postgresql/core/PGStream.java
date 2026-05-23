@@ -104,7 +104,7 @@ public class PGStream implements Closeable, Flushable {
   private int maxRowSizeBytes = -1;
 
   /**
-   * Set to {@code true} the first time a protocol-level hardening check rejects a
+   * Becomes {@code true} the first time a protocol-level hardening check rejects a
    * backend message. Once poisoned the stream is permanently desynced: even if the
    * underlying socket happens to be open, no further bytes from it can be trusted. The
    * flag is consulted by {@link #isClosed()} so a connection pool that asks
@@ -204,9 +204,10 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Marks the stream as desynced and best-effort closes the underlying socket. Returns
-   * the supplied exception so call sites can write {@code throw pgStream.poison(new ...(...))}
-   * fluently. The generic signature supports both {@link IOException} thrown by
+   * Marks the stream as desynced and closes the underlying socket on a best-effort basis.
+   * Returns the supplied exception so call sites can write
+   * {@code throw pgStream.poison(new ...(...))} fluently. The generic signature
+   * supports both {@link IOException} thrown by
    * PGStream's internal hardening checks and {@link org.postgresql.util.PSQLException}
    * (e.g. {@link org.postgresql.util.PSQLState#PROTOCOL_VIOLATION}) thrown by the
    * higher layers (auth, cancel-key, startup negotiation, ...). After this call
@@ -230,7 +231,7 @@ public class PGStream implements Closeable, Flushable {
       }
       connection.close();
     } catch (IOException ignore) {
-      // best-effort: the socket may already be closed, or the close itself may fail.
+      // Best-effort: the socket may already be closed, or the close itself may fail.
       // Either way the stream is already marked as poisoned.
     }
     return reason;
@@ -261,7 +262,7 @@ public class PGStream implements Closeable, Flushable {
    * <ul>
    *   <li>{@link ProtocolViolationBehaviour#FAIL FAIL}: appends the
    *       silence-knob hint to {@code message}, builds an exception with
-   *       {@code factory}, poisons the stream and throws. Opt-in via
+   *       {@code factory}, poisons the stream and throws. Opt in via
    *       {@value ProtocolViolationBehaviour#SYSTEM_PROPERTY}{@code =fail}.</li>
    *   <li>{@link ProtocolViolationBehaviour#WARN WARN} (default): logs
    *       {@code message} at {@link Level#WARNING WARNING} together with the
@@ -996,7 +997,7 @@ public class PGStream implements Closeable, Flushable {
           // Unconditional: this is the exact scenario from issue #4015. A single field
           // claiming more bytes than the row envelope still holds is mathematically
           // impossible on any wire-compatible backend, so no protocolViolationBehaviour
-          // override should allow it through. Bypass failOnDesync and fail-fast even in
+          // override should allow it through. Bypass failOnDesync and fail fast even in
           // WARN and DISABLE modes; the original bug (~1.7 GB allocation, indefinite
           // socket-read hang) is otherwise reachable in DISABLE mode.
           throw poison(new IOException(GT.tr(

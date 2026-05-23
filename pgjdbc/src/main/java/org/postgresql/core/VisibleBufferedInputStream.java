@@ -56,15 +56,15 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Logical stream position of the byte at {@code buffer[0]}, in bytes consumed since
    * construction. The current logical position is {@code position + index} (exposed via
-   * {@link #getPosition()}), which means in-buffer reads (the hot path) advance the
-   * position implicitly via {@code index} and require no bookkeeping. Only events that
-   * shift or discard buffer contents touch this field: {@link #moveBufferTo(byte[])} (the
-   * compact/double path), the buffer-drain reset in {@link #readMore(int, boolean)},
-   * {@link #read(byte[], int, int)}, and {@link #skip(long)}, plus the bytes that those
-   * last two read or skip directly from the underlying stream without going through the
-   * buffer. Exposed so callers (notably {@code PGStream}) can compute envelope endpoints
-   * once per protocol message and verify exact consumption without instrumenting every
-   * receive site.
+   * {@link #getPosition()}), so in-buffer reads on the hot path advance the position
+   * implicitly via {@code index} and require no bookkeeping. The field is touched only
+   * when the buffer is shifted, drained, or bypassed: {@link #moveBufferTo(byte[])}
+   * (the compact/double path), the buffer-drain reset in
+   * {@link #readMore(int, boolean)}, {@link #read(byte[], int, int)}, and
+   * {@link #skip(long)}. The last two also bump {@code position} for bytes they read
+   * or skip directly from the wrapped stream, bypassing the buffer. Exposed so callers
+   * (notably {@code PGStream}) can compute envelope endpoints once per protocol message
+   * and verify exact consumption without instrumenting every receive site.
    */
   private long position;
 
@@ -309,7 +309,7 @@ public class VisibleBufferedInputStream extends InputStream {
         return read == 0 ? r : read;
       }
       // Bytes copied directly from the wrapped stream bypass the buffer, so they are not
-      // accounted for by the position += index reset above; track them explicitly.
+      // accounted for by the position += endIndex reset above; track them explicitly.
       position += r;
       read += r;
       off += r;
@@ -338,7 +338,7 @@ public class VisibleBufferedInputStream extends InputStream {
     index = 0;
     endIndex = 0;
     long skipped = wrapped.skip(n);
-    // Bytes skipped directly on the wrapped stream bypass the buffer, account for them.
+    // Bytes skipped directly on the wrapped stream bypass the buffer; account for them.
     position += skipped;
     return avail + skipped;
   }
