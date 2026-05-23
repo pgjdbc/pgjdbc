@@ -55,8 +55,8 @@ public class VisibleBufferedInputStream extends InputStream {
 
   /**
    * Logical stream position of the byte at {@code buffer[0]}, in bytes consumed since
-   * construction. The current logical position is {@code position + index} — exposed via
-   * {@link #getPosition()} — which means in-buffer reads (the hot path) advance the
+   * construction. The current logical position is {@code position + index} (exposed via
+   * {@link #getPosition()}), which means in-buffer reads (the hot path) advance the
    * position implicitly via {@code index} and require no bookkeeping. Only events that
    * shift or discard buffer contents touch this field: {@link #moveBufferTo(byte[])} (the
    * compact/double path), the buffer-drain reset in {@link #readMore(int, boolean)},
@@ -382,8 +382,8 @@ public class VisibleBufferedInputStream extends InputStream {
   /**
    * Returns the total number of bytes consumed from the logical stream since this
    * {@code VisibleBufferedInputStream} was constructed. Hot-path reads that draw from the
-   * buffer don't bump any counter — this is computed as the position of the buffer base
-   * plus the in-buffer index.
+   * buffer don't bump any counter; the value is computed as the position of the buffer
+   * base plus the in-buffer index.
    *
    * @return total bytes consumed from the logical stream
    */

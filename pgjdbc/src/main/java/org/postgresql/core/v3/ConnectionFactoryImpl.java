@@ -808,12 +808,19 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       int authIterations = 0;
+      boolean authCapReported = false;
       authloop: while (true) {
-        if (++authIterations > MAX_AUTH_ITERATIONS) {
-          throw pgStream.poison(new PSQLException(GT.tr(
-              "Protocol error. Authentication did not complete within {0} round-trips.",
-              MAX_AUTH_ITERATIONS),
-              PSQLState.PROTOCOL_VIOLATION));
+        if (++authIterations > MAX_AUTH_ITERATIONS && !authCapReported) {
+          // failOnDesync throws in FAIL mode; in WARN and DISABLE modes we log or
+          // skip exactly once and then let the loop continue uncapped, matching the
+          // pre-#4015 behaviour the user opted into (a hostile server is now free to
+          // spin us indefinitely; the FAIL-mode error message documented that trade-off).
+          authCapReported = true;
+          pgStream.failOnDesync(
+              msg -> new PSQLException(msg, PSQLState.PROTOCOL_VIOLATION),
+              GT.tr(
+                  "Protocol error. Authentication did not complete within {0} round-trips.",
+                  MAX_AUTH_ITERATIONS));
         }
         int beresp = pgStream.receiveChar();
 
@@ -824,13 +831,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
             if (numOptionsNotRecognized < 0) {
-              throw pgStream.poison(new PSQLException(GT.tr(
-                  "Protocol error. NegotiateProtocolVersion has negative option count {0}.",
-                  numOptionsNotRecognized),
-                  PSQLState.PROTOCOL_VIOLATION));
+              pgStream.failOnDesync(
+                  msg -> new PSQLException(msg, PSQLState.PROTOCOL_VIOLATION),
+                  GT.tr(
+                      "Protocol error. NegotiateProtocolVersion has negative option count {0}.",
+                      numOptionsNotRecognized));
             }
             // Each unrecognized option is at least a NUL byte; cap against the envelope.
             if (numOptionsNotRecognized > negotiateMsgLen - 12) {
+              // Unconditional: envelope arithmetic impossible (each option is at
+              // minimum one NUL byte, so the envelope cannot fit more options than
+              // it has bytes left).
               throw pgStream.poison(new PSQLException(GT.tr(
                   "Protocol error. NegotiateProtocolVersion option count {0} exceeds remaining message size {1}.",
                   numOptionsNotRecognized, negotiateMsgLen - 12),

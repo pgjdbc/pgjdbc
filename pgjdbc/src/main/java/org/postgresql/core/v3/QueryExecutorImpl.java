@@ -1014,14 +1014,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           if (valueLen != -1) {
             if (valueLen < -1) {
-              throw new IOException(GT.tr(
+              // Unconditional: the wire protocol assigns meaning only to -1 (NULL) and
+              // to non-negative values. Any other negative leaves no way to decode.
+              throw pgStream.poison(new IOException(GT.tr(
                   "Protocol error. FunctionCallResponse has negative value length {0}.",
-                  valueLen));
+                  valueLen)));
             }
             if (valueLen > msgLen - 8) {
-              throw new IOException(GT.tr(
+              // Unconditional: a single value cannot occupy more bytes than the
+              // FunctionCallResponse envelope itself holds (single-value variant of
+              // the issue-#4015 DataRow field-overrun).
+              throw pgStream.poison(new IOException(GT.tr(
                   "Protocol error. FunctionCallResponse value length {0} exceeds message size {1}.",
-                  valueLen, msgLen));
+                  valueLen, msgLen)));
             }
             byte[] buf = new byte[valueLen];
             pgStream.receive(buf, 0, valueLen);
@@ -1119,14 +1124,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int msgLen = pgStream.readMessageLength("CopyInResponse/CopyOutResponse", 7, 65541);
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
-      // Envelope is fully determined by numFields — enforce exact equality.
+      // Envelope is fully determined by numFields; enforce exact equality.
       if (numFields < 0) {
-        throw new IOException(GT.tr(
+        pgStream.failOnDesync(IOException::new, GT.tr(
             "Protocol error. Copy response has negative field count {0}.",
             numFields));
       }
       if (msgLen != 7 + 2 * numFields) {
-        throw new IOException(GT.tr(
+        pgStream.failOnDesync(IOException::new, GT.tr(
             "Protocol error. Copy response field count {0} requires message size {1}, got {2}.",
             numFields, 7 + 2 * numFields, msgLen));
       }
@@ -2397,15 +2402,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           String origStatementName = describeData.statementName;
 
           int numParams = pgStream.receiveInteger2();
-          // Envelope is fully determined by numParams — enforce exact equality so a desynced
+          // Envelope is fully determined by numParams; enforce exact equality so a desynced
           // stream cannot pass by claiming a too-large msgLen with a consistent-looking count.
           if (numParams < 0) {
-            throw new IOException(GT.tr(
+            pgStream.failOnDesync(IOException::new, GT.tr(
                 "Protocol error. ParameterDescription has negative parameter count {0}.",
                 numParams));
           }
           if (paramDescLen != 6 + 4 * numParams) {
-            throw new IOException(GT.tr(
+            pgStream.failOnDesync(IOException::new, GT.tr(
                 "Protocol error. ParameterDescription parameter count {0} requires message size {1}, got {2}.",
                 numParams, 6 + 4 * numParams, paramDescLen));
           }
@@ -2892,7 +2897,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int msgSize = pgStream.readMessageLength("RowDescription", 6);
     int size = pgStream.receiveInteger2();
     if (size < 0) {
-      throw new IOException(GT.tr(
+      pgStream.failOnDesync(IOException::new, GT.tr(
           "Protocol error. RowDescription has negative field count {0}.",
           size));
     }
@@ -2900,9 +2905,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // + 4 tableOid + 2 attnum + 4 typeOid + 2 typlen + 4 typmod + 2 format). This is the
     // tightest protocol-level lower bound and is fork-independent.
     if ((long) size * 19L > msgSize - 6L) {
-      throw new IOException(GT.tr(
+      // Unconditional: the 19-byte minimum is a wire-level invariant; envelope
+      // arithmetic cannot honour the protocolViolationBehaviour override here.
+      throw pgStream.poison(new IOException(GT.tr(
           "Protocol error. RowDescription field count {0} requires at least {1} bytes, but message size is only {2}.",
-          size, 6 + size * 19, msgSize));
+          size, 6 + size * 19, msgSize)));
     }
     Field[] fields = new Field[size];
 
@@ -2911,13 +2918,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     // Each column label C-string is bounded by the remaining envelope budget tracked by
-    // PGStream — naturally tightens after each field is consumed.
+    // PGStream, which naturally tightens after each field is consumed.
     for (int i = 0; i < fields.length; i++) {
       String columnLabel = pgStream.receiveCanonicalString();
       int tableOid = pgStream.receiveInteger4();
       // attnum is a signed protocol field. Backends are free to use any negative value for
-      // system columns, so don't second-guess it here — envelope-based bounds (size and the
-      // endMessage check below) already detect a desynced stream.
+      // system columns, so don't second-guess it here. The envelope-based bounds (size and
+      // the endMessage check below) already detect a desynced stream.
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
       int typeLength = pgStream.receiveInteger2();

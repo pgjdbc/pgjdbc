@@ -34,7 +34,7 @@ class VisibleBufferedInputStreamTest {
 
   @Test
   void scanCStringLengthBoundedAcrossPartialReads() throws IOException {
-    // application_name\0Driver Tests\0 — 30 bytes total, the first ParameterStatus body
+    // application_name\0Driver Tests\0: 30 bytes total, the first ParameterStatus body
     // size that triggered the original double-counting bug under partial-read conditions.
     byte[] body = ("application_name\0Driver Tests\0").getBytes(StandardCharsets.US_ASCII);
     assertEquals(30, body.length);
@@ -90,7 +90,7 @@ class VisibleBufferedInputStreamTest {
 
   @Test
   void getPositionTracksReadsSkipsAndCompaction() throws IOException {
-    // 64-byte payload — large enough to force readMore() and compaction with an 8-byte
+    // 64-byte payload, large enough to force readMore() and compaction with an 8-byte
     // buffer, exercising both the in-buffer and out-of-buffer branches that maintain
     // the position counter.
     byte[] data = new byte[64];
@@ -140,7 +140,7 @@ class VisibleBufferedInputStreamTest {
   @Test
   void getPositionUnchangedByScanCStringLength() throws IOException {
     // scanCStringLength only inspects the buffer (and may pull more bytes via readMore),
-    // but it must not advance the read cursor — the caller skips explicitly. This is the
+    // but it must not advance the read cursor; the caller skips explicitly. This is the
     // invariant PGStream's bounded-string helpers rely on.
     byte[] data = "name\0value\0".getBytes(StandardCharsets.US_ASCII);
     VisibleBufferedInputStream in =

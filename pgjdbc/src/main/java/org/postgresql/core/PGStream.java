@@ -35,6 +35,9 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.sql.SQLException;
+import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
 
@@ -46,6 +49,8 @@ import javax.net.SocketFactory;
  * at a time is accessing a particular PGStream instance.</p>
  */
 public class PGStream implements Closeable, Flushable {
+  private static final Logger LOGGER = Logger.getLogger(PGStream.class.getName());
+
   private final SocketFactory socketFactory;
   private final HostSpec hostSpec;
   private final int maxSendBufferSize;
@@ -100,7 +105,7 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Set to {@code true} the first time a protocol-level hardening check rejects a
-   * backend message. Once poisoned the stream is permanently desynced — even if the
+   * backend message. Once poisoned the stream is permanently desynced: even if the
    * underlying socket happens to be open, no further bytes from it can be trusted. The
    * flag is consulted by {@link #isClosed()} so a connection pool that asks
    * {@code isClosed()/isValid()} on borrow will discard the connection rather than
@@ -108,6 +113,16 @@ public class PGStream implements Closeable, Flushable {
    * subsequent forgotten {@code abort()} cannot leak the file descriptor either.
    */
   private volatile boolean poisoned;
+
+  /**
+   * Selects what happens when a #4015 hardening check trips. Defaults to the JVM-wide
+   * {@link ProtocolViolationBehaviour#CURRENT}, which is itself sourced from the
+   * {@value ProtocolViolationBehaviour#SYSTEM_PROPERTY} system property. Exposed via a
+   * setter ({@link #setProtocolViolationBehaviour}) primarily for tests that need to
+   * exercise the {@code warn} and {@code disable} code paths without touching the
+   * JVM-wide state.
+   */
+  private ProtocolViolationBehaviour protocolViolationBehaviour = ProtocolViolationBehaviour.CURRENT;
 
   /**
    * Name of the protocol message currently being parsed, captured by the most recent
@@ -182,9 +197,9 @@ public class PGStream implements Closeable, Flushable {
     }
     long actual = pgInput.getPosition();
     if (actual != expected) {
-      throw poison(new IOException(GT.tr(
+      failOnDesync(IOException::new, GT.tr(
           "Protocol error. {0} message has {1} unread bytes.",
-          name, expected - actual)));
+          name, expected - actual));
     }
   }
 
@@ -215,10 +230,84 @@ public class PGStream implements Closeable, Flushable {
       }
       connection.close();
     } catch (IOException ignore) {
-      // best-effort: the socket may already be closed, or the close itself may fail —
-      // either way the stream is already marked as poisoned.
+      // best-effort: the socket may already be closed, or the close itself may fail.
+      // Either way the stream is already marked as poisoned.
     }
     return reason;
+  }
+
+  /**
+   * Returns the current behaviour for #4015 hardening-check failures on this stream.
+   */
+  public ProtocolViolationBehaviour getProtocolViolationBehaviour() {
+    return protocolViolationBehaviour;
+  }
+
+  /**
+   * Overrides the {@link ProtocolViolationBehaviour} for this stream. Intended for
+   * tests that need to exercise non-default behaviours without altering the
+   * JVM-wide setting. Production code should rely on the system property
+   * ({@value ProtocolViolationBehaviour#SYSTEM_PROPERTY}) so that every connection
+   * the JVM opens picks up the same policy.
+   */
+  public void setProtocolViolationBehaviour(ProtocolViolationBehaviour behaviour) {
+    this.protocolViolationBehaviour = behaviour;
+  }
+
+  /**
+   * Reports a hardening-check failure detected by a v3 protocol reader. Routes the
+   * report according to {@link #getProtocolViolationBehaviour()}:
+   *
+   * <ul>
+   *   <li>{@link ProtocolViolationBehaviour#FAIL FAIL}: appends the
+   *       silence-knob hint to {@code message}, builds an exception with
+   *       {@code factory}, poisons the stream and throws. Opt-in via
+   *       {@value ProtocolViolationBehaviour#SYSTEM_PROPERTY}{@code =fail}.</li>
+   *   <li>{@link ProtocolViolationBehaviour#WARN WARN} (default): logs
+   *       {@code message} at {@link Level#WARNING WARNING} together with the
+   *       exception {@code factory} would have thrown, so the log record carries
+   *       a stack trace pointing at the reader site that detected the violation.
+   *       The caller then continues with the suspect value, restoring the
+   *       pre-#4015 read path. A genuinely corrupted stream may still crash later
+   *       ({@code NegativeArraySizeException}, hang on socket read, etc.). Whether
+   *       the stack trace appears in the rendered log line is controlled by the
+   *       logger configuration (handler/formatter), not by this method.</li>
+   *   <li>{@link ProtocolViolationBehaviour#DISABLE DISABLE}: silently returns,
+   *       same continuation as WARN but without the log breadcrumb.</li>
+   * </ul>
+   *
+   * <p>The {@code factory} parameter lets each call site decide the exception type
+   * and state. Most hardening sites build an {@link IOException} (so the upstream
+   * {@code processResults} loop treats the violation as fatal); some pre-auth
+   * sites build a {@link org.postgresql.util.PSQLException} with
+   * {@link org.postgresql.util.PSQLState#PROTOCOL_VIOLATION}.</p>
+   *
+   * <p>In WARN mode the silence hint is intentionally omitted from the exception's
+   * message: the user already configured the property, so re-advertising it would
+   * be noise. The hint is added only in FAIL mode, where the exception surfaces to
+   * the user for the first time.</p>
+   *
+   * @param factory constructs the exception from the (possibly hint-augmented) message
+   * @param message localised error message (already passed through {@code GT.tr})
+   * @param <T>     exception type the call site declares to throw
+   */
+  public <T extends Throwable> void failOnDesync(Function<String, T> factory, String message)
+      throws T {
+    switch (protocolViolationBehaviour) {
+      case DISABLE:
+        break;
+      case WARN:
+        // Guard the throwable construction behind isLoggable: building the exception
+        // captures the stack trace, which is the dominant cost in WARN mode. When the
+        // user has filtered WARNING out of their logger, skip the work entirely.
+        if (LOGGER.isLoggable(Level.WARNING)) {
+          LOGGER.log(Level.WARNING, message, factory.apply(message));
+        }
+        break;
+      case FAIL:
+      default:
+        throw poison(factory.apply(ProtocolViolationBehaviour.appendSilenceHint(message)));
+    }
   }
 
   /**
@@ -661,7 +750,7 @@ public class PGStream implements Closeable, Flushable {
    * so a desynced stream is detected as early as possible.
    *
    * <p>If the user has configured {@code maxResultBuffer}, lengths exceeding it are also
-   * rejected — the user has declared an upper bound on memory they are willing to spend
+   * rejected. The user has declared an upper bound on memory they are willing to spend
    * on a single result, and a single backend message larger than that bound cannot be
    * processed within the budget.</p>
    *
@@ -675,11 +764,17 @@ public class PGStream implements Closeable, Flushable {
   public int readMessageLength(String packetName, int minLength, int maxLength) throws IOException {
     int len = receiveInteger4();
     if (len < minLength || len > maxLength) {
-      throw poison(new IOException(GT.tr(
+      failOnDesync(IOException::new, GT.tr(
           "Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
-          packetName, len, minLength, maxLength)));
+          packetName, len, minLength, maxLength));
     }
     if (maxResultBuffer > 0 && len > maxResultBuffer) {
+      // Unconditional. The user explicitly set maxResultBuffer to declare a memory
+      // ceiling; honouring the protocolViolationBehaviour override would let a
+      // single backend message blow past that ceiling, which is what the user
+      // asked us never to allow. The same overrun is caught later by
+      // increaseByteCounter, but only after the over-sized buffer has already
+      // been allocated.
       throw poison(new IOException(GT.tr(
           "Protocol error. {0} message has length {1} which exceeds maxResultBuffer cap of {2} bytes.",
           packetName, len, maxResultBuffer)));
@@ -701,9 +796,9 @@ public class PGStream implements Closeable, Flushable {
   public void readFixedMessageLength(String packetName, int expectedLength) throws IOException {
     int len = receiveInteger4();
     if (len != expectedLength) {
-      throw poison(new IOException(GT.tr(
+      failOnDesync(IOException::new, GT.tr(
           "Protocol error. {0} message has length {1}, expected {2}.",
-          packetName, len, expectedLength)));
+          packetName, len, expectedLength));
     }
     beginMessage(packetName, expectedLength);
   }
@@ -782,16 +877,21 @@ public class PGStream implements Closeable, Flushable {
     }
     long remaining = messageEndPosition - pgInput.getPosition();
     if (remaining <= 0) {
+      // Unconditional. The envelope budget has already been spent; another C-string
+      // read can only come from outside the message that was declared, which is a
+      // protocol-level impossibility. Honouring the override would invite an
+      // unbounded scan that crosses the next message boundary.
       throw poison(new IOException(GT.tr(
           "Protocol error. {0} message of {1} bytes has no remaining envelope budget.",
           currentMessageNameForError(), currentMessageLength)));
     }
+    int budget = (int) Math.min(remaining, MAX_MESSAGE_SIZE);
     return pgInput.scanCStringLength(
-        (int) remaining, currentMessageNameForError(), currentMessageLength);
+        budget, currentMessageNameForError(), currentMessageLength);
   }
 
   /**
-   * Reads a NUL-terminated C-string from the backend. The scan is always bounded — see
+   * Reads a NUL-terminated C-string from the backend. The scan is always bounded; see
    * {@link #scanBoundedCStringLength()} for the budget selection rules.
    *
    * @return the decoded string
@@ -807,7 +907,7 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Receives a null-terminated string from the backend and attempts to decode to a
    * {@link Encoding#decodeCanonicalized(byte[], int, int) canonical} {@code String}.
-   * The scan is always bounded — see {@link #scanBoundedCStringLength()} for the budget
+   * The scan is always bounded; see {@link #scanBoundedCStringLength()} for the budget
    * selection rules.
    *
    * @return string from back end
@@ -824,7 +924,7 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Receives a null-terminated string from the backend and attempts to decode to a
    * {@link Encoding#decodeCanonicalizedIfPresent(byte[], int, int) canonical} {@code String}.
-   * The scan is always bounded — see {@link #scanBoundedCStringLength()} for the budget
+   * The scan is always bounded; see {@link #scanBoundedCStringLength()} for the budget
    * selection rules.
    *
    * @return string from back end
@@ -857,13 +957,16 @@ public class PGStream implements Closeable, Flushable {
     // continue reading. Throw IOException so the caller closes (aborts) the connection
     // instead of treating this as a per-query error and looping over garbage bytes.
     if (nf < 0) {
-      throw poison(new IOException(GT.tr(
+      failOnDesync(IOException::new, GT.tr(
           "Protocol error. DataRow has negative field count {0} (message size {1}).",
-          nf, messageSize)));
+          nf, messageSize));
     }
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;
     if (dataToReadSize < 0) {
+      // Unconditional. The envelope is too small to hold even the fixed per-field
+      // length prefixes the wire already promised; no wire-compatible backend can
+      // fit 4*nf bytes into fewer than 4*nf bytes of envelope space.
       throw poison(new IOException(GT.tr(
           "Protocol error. DataRow field count {0} requires at least {1} bytes for per-field length prefixes, but message size is only {2}.",
           nf, 4 * nf, messageSize)));
@@ -878,14 +981,24 @@ public class PGStream implements Closeable, Flushable {
     for (int i = 0; i < nf; i++) {
       int size = receiveInteger4();
       if (size != -1) {
-        // Field length is inconsistent with the row envelope — stream is desynced.
-        // See comment above: IOException triggers a connection abort upstream.
         if (size < -1) {
+          // Unconditional. The wire protocol assigns exactly two meanings to the
+          // per-field length: -1 means NULL, any non-negative value is the byte
+          // count. Any other negative value leaves no way for the driver to
+          // decode the field, so honouring the protocolViolationBehaviour
+          // override here would only swap an IOException for a less informative
+          // NegativeArraySizeException a few lines below.
           throw poison(new IOException(GT.tr(
               "Protocol error. DataRow field {0} has negative length {1}.",
               i, size)));
         }
         if (size > remaining) {
+          // Unconditional: this is the exact scenario from issue #4015. A single field
+          // claiming more bytes than the row envelope still holds is mathematically
+          // impossible on any wire-compatible backend, so no protocolViolationBehaviour
+          // override should allow it through. Bypass failOnDesync and fail-fast even in
+          // WARN and DISABLE modes; the original bug (~1.7 GB allocation, indefinite
+          // socket-read hang) is otherwise reachable in DISABLE mode.
           throw poison(new IOException(GT.tr(
               "Protocol error. DataRow field {0} length {1} exceeds remaining row bytes {2}.",
               i, size, remaining)));
