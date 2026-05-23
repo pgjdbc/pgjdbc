@@ -449,6 +449,52 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * OAuth client ID. Passed to the OAuthTokenProvider in the token request context.
+   */
+  OAUTH_CLIENT_ID(
+      "oauthClientId",
+      null,
+      "OAuth client ID passed to the token provider."),
+
+  /**
+   * OAuth issuer/discovery URL. Passed to the OAuthTokenProvider in the token request context.
+   * May also be populated from the server's authentication error response.
+   */
+  OAUTH_ISSUER_URL(
+      "oauthIssuerUrl",
+      null,
+      "OpenID Connect discovery URL passed to the token provider."),
+
+  /**
+   * OAuth scope. Passed to the OAuthTokenProvider in the token request context.
+   * May also be populated from the server's authentication error response.
+   */
+  OAUTH_SCOPE(
+      "oauthScope",
+      null,
+      "OAuth scope passed to the token provider."),
+
+  /**
+   * Static OAuth bearer token. If set, used directly for OAUTHBEARER authentication
+   * without invoking a token provider.
+   */
+  OAUTH_TOKEN(
+      "oauthToken",
+      null,
+      "Static OAuth bearer token for OAUTHBEARER authentication.",
+      false),
+
+  /**
+   * Fully-qualified class name of an {@link org.postgresql.plugin.OAuthTokenProvider}
+   * implementation. Called to acquire a bearer token when the server requests
+   * OAUTHBEARER authentication and no static {@code oauthToken} is set.
+   */
+  OAUTH_TOKEN_PROVIDER(
+      "oauthTokenProvider",
+      null,
+      "Class name of an OAuthTokenProvider implementation for acquiring bearer tokens."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
@@ -633,10 +679,10 @@ public enum PGProperty {
       null,
       "Comma-separated list of acceptable authentication methods. "
       + "Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). "
-      + "Supported: password, md5, gss, sspi, scram-sha-256, none",
+      + "Supported: password, md5, gss, sspi, scram-sha-256, oauth, none",
       false,
-      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "none",
-                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!none"}
+      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "oauth", "none",
+                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!oauth", "!none"}
   ),
 
   /**

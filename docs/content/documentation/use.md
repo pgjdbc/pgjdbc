@@ -462,9 +462,27 @@ If we quote them, then we end up sending ""colname"" to the backend instead of "
 Fully qualified class name of the class implementing the AuthenticationPlugin interface. If this is null, the password 
 value in the connection properties will be used.
 
+* **`oauthToken (`*String*`)`** *Default `null`*\
+Static OAuth bearer token for OAUTHBEARER authentication (PostgreSQL 18+). If set, used directly without invoking a token provider.
+See [OAuth Authentication](/documentation/oauth/) for details.
+
+* **`oauthTokenProvider (`*String*`)`** *Default `null`*\
+Fully-qualified class name of a class implementing the `OAuthTokenProvider` interface. Called to acquire a bearer token
+when the server requests OAUTHBEARER authentication and no static `oauthToken` is set.
+See [OAuth Authentication](/documentation/oauth/) for details.
+
+* **`oauthIssuerUrl (`*String*`)`** *Default `null`*\
+OpenID Connect discovery URL passed to the token provider in the request context.
+
+* **`oauthClientId (`*String*`)`** *Default `null`*\
+OAuth client ID passed to the token provider in the request context.
+
+* **`oauthScope (`*String*`)`** *Default `null`*\
+OAuth scope passed to the token provider in the request context.
+
 * **`requireAuth (`*String*`)`** *Default `null`*\
 Comma-separated list of acceptable authentication methods. Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). 
-Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `none`. Cannot mix positive and negative options.
+Supported methods: `password`, `md5`, `gss`, `sspi`, `scram-sha-256`, `oauth`, `none`. Cannot mix positive and negative options.
 Examples: `requireAuth=md5,scram-sha-256` (allow only MD5 or SCRAM-SHA-256), `requireAuth=!password,!none` (reject cleartext and trust authentication).
 
 * **`scramMaxIterations (`*int*`)`** *Default `100000`*\

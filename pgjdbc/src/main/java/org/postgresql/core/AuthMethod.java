@@ -17,7 +17,7 @@ import java.util.EnumSet;
  * Enumeration of PostgreSQL authentication methods.
  */
 public enum AuthMethod {
-  NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256;
+  NONE, PASSWORD, MD5, GSS, SSPI, SCRAM_SHA_256, OAUTH;
 
   public static AuthMethod fromString(String method) throws PSQLException {
     switch (method) {
@@ -27,6 +27,7 @@ public enum AuthMethod {
       case "gss": return GSS;
       case "sspi": return SSPI;
       case "scram-sha-256": return SCRAM_SHA_256;
+      case "oauth": return OAUTH;
       default: throw new PSQLException(GT.tr("Invalid authentication method: {0}", method), PSQLState.INVALID_PARAMETER_VALUE);
     }
   }

@@ -9,5 +9,6 @@ public enum AuthenticationRequestType {
     CLEARTEXT_PASSWORD,
     GSS,
     MD5_PASSWORD,
+    OAUTH,
     SASL,
 }

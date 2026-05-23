@@ -42,20 +42,27 @@ final class ScramAuthenticator {
   private final ScramClient scramClient;
   private final int maxIterations;
 
-  ScramAuthenticator(char[] password, PGStream pgStream, ChannelBinding channelBinding,
-      int maxIterations) throws PSQLException {
+  ScramAuthenticator(char[] password, PGStream pgStream, List<String> mechanisms,
+      ChannelBinding channelBinding, int maxIterations) throws PSQLException {
     this.pgStream = pgStream;
     this.maxIterations = maxIterations;
-    this.scramClient = initializeScramClient(password, pgStream, channelBinding);
+    this.scramClient = initializeScramClient(password, pgStream, mechanisms, channelBinding);
   }
 
-  private static ScramClient initializeScramClient(char[] password, PGStream stream, ChannelBinding channelBinding) throws PSQLException {
+  private static ScramClient initializeScramClient(char[] password, PGStream stream,
+      List<String> mechanisms, ChannelBinding channelBinding) throws PSQLException {
     try {
       LOGGER.log(Level.FINEST, "channelBinding( {0} )", channelBinding);
       final byte[] cbindData = getChannelBindingData(stream, channelBinding);
-      final List<String> advertisedMechanisms = advertisedMechanisms(stream, channelBinding);
+      if (channelBinding == ChannelBinding.REQUIRE
+          && mechanisms.stream().noneMatch(m -> m.endsWith("-PLUS"))) {
+        throw new PSQLException(
+            GT.tr("Channel Binding is required, but server did not offer an "
+                + "authentication method that supports channel binding"),
+            PSQLState.CONNECTION_REJECTED);
+      }
       ScramClient client = ScramClient.builder()
-          .advertisedMechanisms(advertisedMechanisms)
+          .advertisedMechanisms(mechanisms)
           .username("*") // username is ignored by server, startup message is used instead
           .password(password)
           .channelBinding(TlsServerEndpoint.TLS_SERVER_END_POINT, cbindData)
@@ -65,15 +72,19 @@ final class ScramAuthenticator {
       LOGGER.log(Level.FINEST, () -> " Using SCRAM mechanism: "
           + client.getScramMechanism().getName());
       return client;
-    } catch (IllegalArgumentException | IOException e) {
+    } catch (IllegalArgumentException e) {
       throw new PSQLException(
           GT.tr("Invalid SCRAM client initialization", e),
           PSQLState.CONNECTION_REJECTED);
     }
   }
 
-  private static List<String> advertisedMechanisms(PGStream stream, ChannelBinding channelBinding)
-      throws PSQLException, IOException {
+  /**
+   * Reads the SASL mechanism list from the authentication message. Must be
+   * called before constructing an authenticator so the mechanism list is
+   * available for routing.
+   */
+  static List<String> readMechanisms(PGStream stream) throws PSQLException, IOException {
     List<String> mechanisms = new ArrayList<>();
     do {
       mechanisms.add(stream.receiveString());
@@ -86,13 +97,6 @@ final class ScramAuthenticator {
           PSQLState.CONNECTION_REJECTED);
     }
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL( {0} )", mechanisms);
-    if (channelBinding == ChannelBinding.REQUIRE
-        && !mechanisms.stream().anyMatch(m -> m.endsWith("-PLUS"))) {
-      throw new PSQLException(
-          GT.tr("Channel Binding is required, but server did not offer an "
-              + "authentication method that supports channel binding"),
-          PSQLState.CONNECTION_REJECTED);
-    }
     return mechanisms;
   }
 

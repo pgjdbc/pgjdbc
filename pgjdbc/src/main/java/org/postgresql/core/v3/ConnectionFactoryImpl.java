@@ -32,11 +32,14 @@ import org.postgresql.jdbc.GSSEncMode;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.plugin.AuthenticationRequestType;
+import org.postgresql.plugin.OAuthTokenProvider;
+import org.postgresql.plugin.OAuthTokenRequest;
 import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
+import org.postgresql.util.ObjectFactory;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.ServerErrorMessage;
@@ -787,6 +790,10 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     /* SCRAM authentication state, if used */
     ScramAuthenticator scramAuthenticator = null;
+
+    /* OAuth authentication state, if used */
+    OAuthBearerAuthenticator oauthAuthenticator = null;
+
     // TODO: figure out how to deal with new protocols
     int protocol = 3 << 16;
 
@@ -995,39 +1002,58 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 break;
 
               case AUTH_REQ_SASL:
-                AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
-                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
-                if (scramMaxIterations < 0) {
-                  throw new PSQLException(
-                      GT.tr("{0} must be a non-negative integer, but was: {1}",
-                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
-                      PSQLState.INVALID_PARAMETER_VALUE);
+                List<String> mechanisms = ScramAuthenticator.readMechanisms(pgStream);
+
+                if (mechanisms.contains(OAuthBearerAuthenticator.MECHANISM)
+                    && hasOAuthConfig(info)) {
+                  AuthMethod.checkAuth(authMethods, AuthMethod.OAUTH);
+                  String token = resolveOAuthToken(info, host, user);
+                  oauthAuthenticator = new OAuthBearerAuthenticator(pgStream, token);
+                  oauthAuthenticator.handleAuthenticationSASL();
+                } else {
+                  AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
+                  int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                  if (scramMaxIterations < 0) {
+                    throw new PSQLException(
+                        GT.tr("{0} must be a non-negative integer, but was: {1}",
+                            PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                        PSQLState.INVALID_PARAMETER_VALUE);
+                  }
+                  scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
+                    if (password == null) {
+                      throw new PSQLException(
+                          GT.tr(
+                              "The server requested SCRAM-based authentication, but no password was provided."),
+                          PSQLState.CONNECTION_REJECTED);
+                    }
+                    if (password.length == 0) {
+                      throw new PSQLException(
+                          GT.tr(
+                              "The server requested SCRAM-based authentication, but the password is an empty string."),
+                          PSQLState.CONNECTION_REJECTED);
+                    }
+                    return new ScramAuthenticator(password, pgStream, mechanisms, channelBinding, scramMaxIterations);
+                  });
+                  scramAuthenticator.handleAuthenticationSASL();
                 }
-                scramAuthenticator = AuthenticationPluginManager.<ScramAuthenticator>withPassword(AuthenticationRequestType.SASL, info, password -> {
-                  if (password == null) {
-                    throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but no password was provided."),
-                        PSQLState.CONNECTION_REJECTED);
-                  }
-                  if (password.length == 0) {
-                    throw new PSQLException(
-                        GT.tr(
-                            "The server requested SCRAM-based authentication, but the password is an empty string."),
-                        PSQLState.CONNECTION_REJECTED);
-                  }
-                  return new ScramAuthenticator(password, pgStream, channelBinding, scramMaxIterations);
-                });
-                scramAuthenticator.handleAuthenticationSASL();
                 break;
 
               case AUTH_REQ_SASL_CONTINUE:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                if (oauthAuthenticator != null) {
+                  oauthAuthenticator.handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                } else {
+                  castNonNull(scramAuthenticator).handleAuthenticationSASLContinue(msgLen - 4 - 4);
+                }
                 break;
 
               case AUTH_REQ_SASL_FINAL:
-                castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
-                saslHandshakeCompleted = true;
+                if (oauthAuthenticator != null) {
+                  // OAuth success — no server-final verification needed
+                  saslHandshakeCompleted = true;
+                } else {
+                  castNonNull(scramAuthenticator).handleAuthenticationSASLFinal(msgLen - 4 - 4);
+                  saslHandshakeCompleted = true;
+                }
                 pgStream.setFinishedAuthenticationRequests();
                 break;
 
@@ -1069,6 +1095,65 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         }
       }
     }
+  }
+
+  private static boolean hasOAuthConfig(Properties info) {
+    String token = PGProperty.OAUTH_TOKEN.getOrDefault(info);
+    if (token != null && !token.isEmpty()) {
+      return true;
+    }
+    String provider = PGProperty.OAUTH_TOKEN_PROVIDER.getOrDefault(info);
+    return provider != null && !provider.isEmpty();
+  }
+
+  private static String resolveOAuthToken(Properties info, String host, String user)
+      throws PSQLException {
+    String token = PGProperty.OAUTH_TOKEN.getOrDefault(info);
+    if (token != null && !token.isEmpty()) {
+      return token;
+    }
+
+    String providerClassName = PGProperty.OAUTH_TOKEN_PROVIDER.getOrDefault(info);
+    if (providerClassName == null || providerClassName.isEmpty()) {
+      throw new PSQLException(
+          GT.tr("The server requested OAuth authentication, but no oauthToken or "
+              + "oauthTokenProvider was configured."),
+          PSQLState.CONNECTION_REJECTED);
+    }
+
+    OAuthTokenProvider provider;
+    try {
+      provider = ObjectFactory.instantiate(OAuthTokenProvider.class, providerClassName, info,
+          false, null);
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Unable to load OAuthTokenProvider {0}", providerClassName),
+          PSQLState.INVALID_PARAMETER_VALUE, ex);
+    }
+
+    String database = PGProperty.PG_DBNAME.getOrDefault(info);
+    String discoveryUrl = PGProperty.OAUTH_ISSUER_URL.getOrDefault(info);
+    String scope = PGProperty.OAUTH_SCOPE.getOrDefault(info);
+    String clientId = PGProperty.OAUTH_CLIENT_ID.getOrDefault(info);
+    int port = 5432;
+    String portStr = PGProperty.PG_PORT.getOrDefault(info);
+    if (portStr != null && !portStr.isEmpty()) {
+      try {
+        port = Integer.parseInt(portStr);
+      } catch (NumberFormatException e) {
+        // use default
+      }
+    }
+
+    OAuthTokenRequest request = new OAuthTokenRequest(host, port, user, database,
+        discoveryUrl, scope, clientId);
+    String result = provider.getToken(request);
+    if (result == null || result.isEmpty()) {
+      throw new PSQLException(
+          GT.tr("OAuthTokenProvider {0} returned a null or empty token.", providerClassName),
+          PSQLState.CONNECTION_REJECTED);
+    }
+    return result;
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)
