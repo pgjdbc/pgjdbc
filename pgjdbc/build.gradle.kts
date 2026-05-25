@@ -199,7 +199,7 @@ val update_pot_with_new_messages by tasks.registering(GettextTask::class) {
 val remove_obsolete_translations by tasks.registering(MsgAttribTask::class) {
     args.add("--no-obsolete") // remove obsolete messages
     // TODO: move *.po to resources?
-    poFiles.from(files(sourceSets.main.get().allSource).filter { it.path.endsWith(".po") })
+    poFiles.from(fileTree("src/main/java/org/postgresql/translation") { include("*.po") })
 }
 
 val add_new_messages_to_po by tasks.registering(MsgMergeTask::class) {
