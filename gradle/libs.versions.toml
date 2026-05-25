@@ -1,2 +1,2 @@
 [libraries]
-checkerframework = "org.checkerframework:checker:3.55.1"
+checkerframework = "org.checkerframework:checker:4.1.0"
