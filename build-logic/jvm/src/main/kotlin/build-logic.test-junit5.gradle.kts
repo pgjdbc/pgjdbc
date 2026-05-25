@@ -8,7 +8,7 @@ plugins {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.14.4"))
+    testImplementation(platform("org.junit:junit-bom:6.1.0"))
     testImplementation("org.junit.jupiter:junit-jupiter-api")
     if (buildParameters.testJdkVersion >= 11) {
         // system-stubs 2.0+ requires Java 11+
