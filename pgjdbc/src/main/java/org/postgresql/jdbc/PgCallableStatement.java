@@ -729,7 +729,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     if (type == ResultSet.class) {
       return type.cast(getObject(parameterIndex));
     }
-    throw new PSQLException(GT.tr("Unsupported type conversion to {1}.", type),
+    throw new PSQLException(GT.tr("Unsupported type conversion to {0}.", type),
             PSQLState.INVALID_PARAMETER_VALUE);
   }
 

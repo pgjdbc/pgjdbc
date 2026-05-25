@@ -26,7 +26,8 @@ msgid "Error loading default settings from driverconfig.properties"
 msgstr "Błąd podczas wczytywania ustawień domyślnych z driverconfig.properties"
 
 #: src/main/java/org/postgresql/Driver.java:271
-msgid "Properties for the driver contains a non-string value for the key "
+#, java-format
+msgid "Properties for the driver contains a non-string value for the key {0}"
 msgstr ""
 
 #: src/main/java/org/postgresql/Driver.java:281
@@ -340,7 +341,8 @@ msgid "CopyIn copy direction can't receive data"
 msgstr ""
 
 #: src/main/java/org/postgresql/core/v3/CopyOperationImpl.java:65
-msgid "CommandComplete expected COPY but got: "
+#, java-format
+msgid "CommandComplete expected COPY but got: {0}"
 msgstr ""
 
 #: src/main/java/org/postgresql/core/v3/QueryExecutorImpl.java:274
@@ -932,7 +934,7 @@ msgstr ""
 
 #: src/main/java/org/postgresql/jdbc/PgCallableStatement.java:732
 #, fuzzy, java-format
-msgid "Unsupported type conversion to {1}."
+msgid "Unsupported type conversion to {0}."
 msgstr "Nieznana wartość Types: {0}"
 
 #: src/main/java/org/postgresql/jdbc/PgConnection.java:353

@@ -38,10 +38,12 @@ public class messages_ko extends java.util.ResourceBundle {
     t[61] = "자동 커밋 모드에서는 세이브포인트를 설정할 수 없습니다.";
     t[62] = "Unsupported property name: {0}";
     t[63] = "지원되지 않는 속성 이름: {0}";
+    t[64] = "CommandComplete expected COPY but got: {0}";
+    t[65] = "CommandComplete는 COPY를 예상했으나 대신 다음을 받았습니다: {0}";
     t[66] = "Invalid UUID data.";
     t[67] = "잘못된 UUID 데이터입니다.";
-    t[74] = "Properties for the driver contains a non-string value for the key ";
-    t[75] = "드라이버의 속성에 문자열이 아닌 값이 포함되어 있습니다. 키: ";
+    t[74] = "Where: {0}";
+    t[75] = "위치: {0}";
     t[82] = "free() was called on this LOB previously";
     t[83] = "이 LOB에서 이전에 free()가 호출되었습니다.";
     t[94] = "Error committing prepared transaction. commit xid={0}, preparedXid={1}, currentXid={2}";
@@ -178,6 +180,8 @@ public class messages_ko extends java.util.ResourceBundle {
     t[427] = "드라이버가 실패하는 비정상적인 현상이 발생했습니다. 이 예외를 보고해 주세요.";
     t[430] = "Failed to set ClientInfo property: {0}";
     t[431] = "ClientInfo 속성 설정 실패: {0}";
+    t[432] = "Properties for the driver contains a non-string value for the key {0}";
+    t[433] = "드라이버의 속성에 문자열이 아닌 값이 포함되어 있습니다. 키: {0}";
     t[450] = "Unable to instantiate SecBufferDesc, so SSPI is unavailable";
     t[451] = "SecBufferDesc을 인스턴스화할 수 없어 SSPI를 사용할 수 없습니다.";
     t[458] = "The array index is out of range: {0}";
@@ -318,8 +322,6 @@ public class messages_ko extends java.util.ResourceBundle {
     t[805] = "CallableStatement가 실행되기 전에 결과를 검색할 수 없습니다.";
     t[806] = "Position: {0}";
     t[807] = "위치: {0}";
-    t[814] = "CommandComplete expected COPY but got: ";
-    t[815] = "CommandComplete는 COPY를 예상했으나 대신 다음을 받았습니다: ";
     t[816] = "Database connection failed when reading from copy";
     t[817] = "복사에서 읽는 동안 데이터베이스 연결 실패";
     t[820] = "This replication stream has been closed.";
@@ -410,8 +412,6 @@ public class messages_ko extends java.util.ResourceBundle {
     t[1027] = "데이터베이스에서 복사 실패: {0}";
     t[1034] = "Interrupted while attempting to connect.";
     t[1035] = "연결 시도 중 중단되었습니다.";
-    t[1040] = "Where: {0}";
-    t[1041] = "위치: {0}";
     t[1042] = "Transaction control methods setAutoCommit(true), commit, rollback and setSavePoint not allowed while an XA transaction is active.";
     t[1043] = "XA 트랜잭션이 활성 상태인 동안 트랜잭션 제어 메서드 setAutoCommit(true), commit, rollback 및 setSavePoint가 허용되지 않습니다.";
     t[1064] = "Truncation of large objects is only implemented in 8.3 and later servers.";
@@ -430,6 +430,8 @@ public class messages_ko extends java.util.ResourceBundle {
     t[1111] = "SSL 키 파일의 비밀번호를 읽을 수 없습니다. 콘솔을 사용할 수 없습니다.";
     t[1118] = "The connection attempt failed.";
     t[1119] = "연결 시도가 실패했습니다.";
+    t[1120] = "Unsupported type conversion to {0}.";
+    t[1121] = "{0} 으로의 지원되지 않는 유형 변환.";
     t[1130] = "Unable to translate data into the desired encoding.";
     t[1131] = "데이터를 원하는 인코딩으로 변환할 수 없습니다.";
     t[1132] = "The server''s client_encoding parameter was changed to {0}. The JDBC driver requires client_encoding to be UTF8 for correct operation.";
@@ -542,8 +544,8 @@ public class messages_ko extends java.util.ResourceBundle {
     t[1377] = "GSS 인코딩된 연결을 설정하는 동안 오류가 발생했습니다.";
     t[1380] = "Unknown Types value.";
     t[1381] = "알 수 없는 유형 값입니다.";
-    t[1384] = "Unsupported type conversion to {1}.";
-    t[1385] = "{1} 으로의 지원되지 않는 유형 변환.";
+    t[1384] = "Object is too large to send over the protocol.";
+    t[1385] = "객체가 프로토콜을 통해 보내기에는 너무 큽니다.";
     t[1386] = "Unable to create SAXResult for SQLXML.";
     t[1387] = "SQLXML에 대한 SAXResult를 생성할 수 없습니다.";
     t[1388] = "An I/O error occurred while sending to the backend.";
@@ -558,8 +560,6 @@ public class messages_ko extends java.util.ResourceBundle {
     t[1417] = "서버가 SCRAM 기반 인증을 요청했지만, 비밀번호가 제공되지 않았습니다.";
     t[1418] = "hstore key must not be null";
     t[1419] = "hstore 키는 null일 수 없습니다.";
-    t[1420] = "Object is too large to send over the protocol.";
-    t[1421] = "객체가 프로토콜을 통해 보내기에는 너무 큽니다.";
     t[1426] = "Could not open SSL certificate file {0}.";
     t[1427] = "SSL 인증서 파일 {0} 을(를) 열 수 없습니다.";
     t[1428] = "Bind message length {0} too long.  This can be caused by very large or incorrect length specifications on InputStream parameters.";

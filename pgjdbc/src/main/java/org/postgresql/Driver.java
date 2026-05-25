@@ -268,8 +268,8 @@ public class Driver implements java.sql.Driver {
         String propValue = info.getProperty(propName);
         if (propValue == null) {
           throw new PSQLException(
-              GT.tr("Properties for the driver contains a non-string value for the key ")
-                  + propName,
+              GT.tr("Properties for the driver contains a non-string value for the key {0}",
+                  propName),
               PSQLState.UNEXPECTED_ERROR);
         }
         props.setProperty(propName, propValue);
