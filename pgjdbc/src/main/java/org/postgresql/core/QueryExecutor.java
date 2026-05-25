@@ -446,6 +446,12 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void abort();
 
   /**
+   * Start the pipeline reader thread. Called after connection setup is complete.
+   */
+  default void startPipelineReaderThread() {
+  }
+
+  /**
    * Close this connection cleanly.
    */
   void close();

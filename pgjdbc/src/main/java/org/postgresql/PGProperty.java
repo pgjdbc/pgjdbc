@@ -498,6 +498,16 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
+   * Enable pipeline mode with a dedicated reader thread. When true, the driver uses a separate
+   * thread to read responses from the server, allowing send and receive to be decoupled.
+   * This enables true protocol-level pipelining for batch operations.
+   */
+  PIPELINE_MODE(
+      "pipelineMode",
+      "false",
+      "Enable pipeline mode with a dedicated reader thread for decoupled send/receive."),
+
+  /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
    * extended means always use bind/execute messages, extendedForPrepared means extended for prepared statements only,
    * extendedCacheEverything means use extended protocol and try cache every statement (including Statement.execute(String sql)) in a query cache.

@@ -1789,6 +1789,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return boolean indicating if pipeline mode is enabled.
+   * @see PGProperty#PIPELINE_MODE
+   */
+  public boolean getPipelineMode() {
+    return PGProperty.PIPELINE_MODE.getBoolean(properties);
+  }
+
+  /**
+   * @param pipelineMode boolean value to enable or disable pipeline mode
+   * @see PGProperty#PIPELINE_MODE
+   */
+  public void setPipelineMode(boolean pipelineMode) {
+    PGProperty.PIPELINE_MODE.set(properties, pipelineMode);
+  }
+
+  /**
    * @return boolean indicating property is enabled or not.
    * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
    */

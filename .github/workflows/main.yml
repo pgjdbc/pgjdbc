@@ -142,7 +142,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     env:
       ACTIONS_STEP_DEBUG: true
@@ -394,6 +394,25 @@ jobs:
       with:
         name: ${{ steps.artifact_name.outputs.name }}
         path: ${{ runner.temp }}/pg-server-logs.txt
+    - name: Sanitize test results artifact name
+      if: ${{ always() }}
+      id: test_artifact_name
+      shell: bash
+      env:
+        MATRIX_NAME: ${{ matrix.name }}
+      run: |
+        name="test-results-${MATRIX_NAME}"
+        name="${name//[\":<>|*?\\\/]/}"
+        echo "name=$name" >> "$GITHUB_OUTPUT"
+    - name: Upload test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: ${{ steps.test_artifact_name.outputs.name }}
+        path: |
+          pgjdbc/build/test-results/test/
+          pgjdbc-*.log
+        retention-days: 7
     - name: Test GSS
       if: ${{ matrix.gss == 'yes' }}
       # language=bash

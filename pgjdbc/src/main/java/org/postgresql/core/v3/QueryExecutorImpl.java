@@ -132,6 +132,7 @@ import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -239,9 +240,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.pipelineMode = PGProperty.PIPELINE_MODE.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
+
+    if (pipelineMode) {
+      this.pipelinePendingSlots = new ConcurrentLinkedDeque<>();
+      this.pipelineReaderThread = new PipelineReaderThread(pgStream, this, pipelinePendingSlots);
+      // Reader thread is started later via startPipelineReaderThread() after connection setup
+    } else {
+      this.pipelinePendingSlots = null;
+      this.pipelineReaderThread = null;
+    }
   }
 
   @Override
@@ -398,6 +409,28 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void execute(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler,
+      int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        executePipeline(query, parameters, handler, maxRows, fetchSize, flags);
+        return;
+      }
+      // Simple queries can't use pipeline protocol — pause reader thread
+      // so it doesn't consume responses meant for the synchronous path.
+      PipelineReaderThread reader = castNonNull(pipelineReaderThread);
+      reader.pause();
+      try {
+        executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+      } finally {
+        reader.unpause();
+      }
+      return;
+    }
+    executeSynchronous(query, parameters, handler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeSynchronous(Query query, @Nullable ParameterList parameters,
       ResultHandler handler,
       int maxRows, int fetchSize, int flags, boolean adaptiveFetch) throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -629,6 +662,26 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   @Override
   public void execute(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
+      throws SQLException {
+    if (pipelineMode) {
+      if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) != 0) {
+        PipelineReaderThread reader = castNonNull(pipelineReaderThread);
+        reader.pause();
+        try {
+          executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+        } finally {
+          reader.unpause();
+        }
+        return;
+      }
+      executeBatchPipeline(queries, parameterLists, batchHandler, maxRows, flags);
+      return;
+    }
+    executeBatchSynchronous(queries, parameterLists, batchHandler, maxRows, fetchSize, flags, adaptiveFetch);
+  }
+
+  private void executeBatchSynchronous(Query[] queries, @Nullable ParameterList[] parameterLists,
       BatchResultHandler batchHandler, int maxRows, int fetchSize, int flags, boolean adaptiveFetch)
       throws SQLException {
     try (ResourceLock ignore = lock.obtain()) {
@@ -2803,6 +2856,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public void fetch(ResultCursor cursor, ResultHandler handler, int fetchSize,
       boolean adaptiveFetch) throws SQLException {
+    if (pipelineMode) {
+      fetchPipeline(cursor, handler, fetchSize);
+      return;
+    }
     try (ResourceLock ignore = lock.obtain()) {
       waitOnLock();
       final Portal portal = (Portal) cursor;
@@ -2899,9 +2956,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int tableOid = pgStream.receiveInteger4();
       short positionInTable = (short) pgStream.receiveInteger2();
       int typeOid = pgStream.receiveInteger4();
-      short typeLength = (short) pgStream.receiveInteger2();
+      short typeLength = (short)pgStream.receiveInteger2();
       int typeModifier = pgStream.receiveInteger4();
-      int formatType = pgStream.receiveInteger2();
+      short formatType = (short)pgStream.receiveInteger2();
       fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
@@ -3335,4 +3392,379 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       new SimpleQuery(
           new NativeQuery("ROLLBACK TO SAVEPOINT PGJDBC_AUTOSAVE", null, false, SqlCommand.BLANK),
           null, false);
+
+  @Override
+  public void close() {
+    shutdownPipelineReader();
+    super.close();
+  }
+
+  @Override
+  public void abort() {
+    shutdownPipelineReader();
+    super.abort();
+  }
+
+  private void shutdownPipelineReader() {
+    PipelineReaderThread reader = pipelineReaderThread;
+    if (reader != null) {
+      reader.shutdown();
+    }
+  }
+
+  // --- Pipeline mode fields ---
+  private final boolean pipelineMode;
+  private final @Nullable ConcurrentLinkedDeque<ResponseSlot> pipelinePendingSlots;
+  private final @Nullable PipelineReaderThread pipelineReaderThread;
+
+  /**
+   * Start the pipeline reader thread. Must be called after connection setup is complete
+   * to avoid the reader thread consuming responses meant for synchronous setup queries.
+   */
+  @Override
+  public void startPipelineReaderThread() {
+    if (pipelineReaderThread != null) {
+      pipelineReaderThread.start();
+    }
+  }
+
+  private ConcurrentLinkedDeque<ResponseSlot> pipelineSlots() {
+    return castNonNull(pipelinePendingSlots);
+  }
+
+  /**
+   * Execute a single query in pipeline mode. Sends messages under sendLock,
+   * then waits for the reader thread to complete the ResponseSlot.
+   */
+  private void executePipeline(Query query, @Nullable ParameterList parameters,
+      ResultHandler handler, int maxRows, int fetchSize, int flags) throws SQLException {
+
+    // Handle CompositeQuery (multi-statement SQL) by executing each subquery
+    Query[] subqueries = query.getSubqueries();
+    if (subqueries != null) {
+      SimpleParameterList[] subparams = parameters != null
+          ? ((SimpleParameterList) parameters).getSubparams() : null;
+      for (int i = 0; i < subqueries.length; i++) {
+        ParameterList subparam = subparams != null ? subparams[i] : null;
+        executePipeline(subqueries[i], subparam, handler, maxRows, fetchSize, flags);
+        if (handler.getException() != null) {
+          break;
+        }
+      }
+      return;
+    }
+
+    if (parameters == null) {
+      parameters = SimpleQuery.NO_PARAMETERS;
+    }
+
+    flags = updateQueryMode(flags);
+    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
+    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
+    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+    boolean usePortal = (flags & QueryExecutor.QUERY_FORWARD_CURSOR) != 0 && !noResults && !noMeta
+        && fetchSize > 0;
+
+    SimpleQuery sq = (SimpleQuery) query;
+    SimpleParameterList params = (SimpleParameterList) parameters;
+    params.checkAllParametersSet();
+
+    int rows;
+    if (noResults) {
+      rows = 1;
+    } else if (usePortal) {
+      rows = fetchSize;
+    } else if (maxRows != 0) {
+      rows = maxRows;
+    } else {
+      rows = 0;
+    }
+
+    Portal portal = null;
+    if (usePortal) {
+      portal = new Portal(sq, "C_" + (nextUniqueID++));
+    }
+
+    ResponseSlot slot = new ResponseSlot(sq, portal, false, flags);
+
+    ConcurrentLinkedDeque<ResponseSlot> slots = pipelineSlots();
+    ResponseSlot beginSlot = null;
+
+    try (ResourceLock ignore = sendLock.obtain()) {
+      processDeadParsedQueries();
+      processDeadPortals();
+
+      // Send BEGIN if needed — as extended protocol so it shares our Sync
+      boolean needsBegin = (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+          && getTransactionState() == TransactionState.IDLE;
+      if (needsBegin) {
+        SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0
+            ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+        sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
+            QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_ONESHOT);
+        beginSlot = new ResponseSlot(beginQuery, null, false, 0);
+        slots.add(beginSlot);
+      }
+
+      sendParse(sq, params, oneShot);
+      sendBind(sq, params, portal, noBinaryTransfer);
+      if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline sendDescribePortal, portalDescribed={0}, fields={1}, query={2}",
+              new Object[]{sq.isPortalDescribed(), sq.getFields() != null, sq});
+        }
+        sendDescribePortal(sq, portal);
+      } else if (sq.getFields() != null) {
+        // Describe skipped — pre-populate slot fields from cached query metadata
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline skip Describe, using cached fields={0}, portalDescribed={1}, query={2}",
+              new Object[]{castNonNull(sq.getFields()).length, sq.isPortalDescribed(), sq});
+        }
+        slot.fields = castNonNull(sq.getFields());
+      } else {
+        if (LOGGER.isLoggable(Level.FINEST)) {
+          LOGGER.log(Level.FINEST, " FE=> pipeline skip Describe, noMeta={0}, portalDescribed={1}, fields=null, query={2}",
+              new Object[]{noMeta, sq.isPortalDescribed(), sq});
+        }
+      }
+      sendExecute(sq, portal, rows);
+      sendSync();
+
+      slots.add(slot);
+      slots.add(ResponseSlot.SYNC_MARKER);
+
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // If we sent BEGIN, await it and propagate any error
+    if (beginSlot != null) {
+      beginSlot.await(castNonNull(pipelineReaderThread));
+      if (beginSlot.error != null) {
+        handler.handleError(beginSlot.error);
+        handler.handleCompletion();
+        return;
+      }
+    }
+
+    // Wait for reader thread to complete the slot
+    try {
+      slot.await(castNonNull(pipelineReaderThread));
+    } catch (Exception e) {
+      handler.handleError(new PSQLException(
+          "Interrupted waiting for query response",
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Deliver results to handler
+    deliverSlotResults(slot, handler, sq);
+    handler.handleCompletion();
+  }
+
+  /**
+   * Execute a batch of queries in pipeline mode. Sends all queries under a single
+   * sendLock acquisition with one Sync at the end, then waits for all slots.
+   */
+  private void executeBatchPipeline(Query[] queries, @Nullable ParameterList[] parameterLists,
+      BatchResultHandler batchHandler, int maxRows, int flags) throws SQLException {
+
+    flags = updateQueryMode(flags);
+    boolean oneShot = (flags & QueryExecutor.QUERY_ONESHOT) != 0;
+    boolean noBinaryTransfer = (flags & QUERY_NO_BINARY_TRANSFER) != 0;
+    boolean noResults = (flags & QueryExecutor.QUERY_NO_RESULTS) != 0;
+    boolean noMeta = (flags & QueryExecutor.QUERY_NO_METADATA) != 0;
+
+    int rows;
+    if (noResults) {
+      rows = 1;
+    } else if (maxRows != 0) {
+      rows = maxRows;
+    } else {
+      rows = 0;
+    }
+
+    ResponseSlot[] slots = new ResponseSlot[queries.length];
+    ConcurrentLinkedDeque<ResponseSlot> pending = pipelineSlots();
+
+    ResultHandler handler = batchHandler;
+    try (ResourceLock ignore = sendLock.obtain()) {
+      processDeadParsedQueries();
+      processDeadPortals();
+
+      // Send BEGIN if needed — as extended protocol
+      boolean needsBegin = (flags & QueryExecutor.QUERY_SUPPRESS_BEGIN) == 0
+          && getTransactionState() == TransactionState.IDLE;
+      if (needsBegin) {
+        SimpleQuery beginQuery = (flags & QueryExecutor.QUERY_READ_ONLY_HINT) == 0
+            ? beginTransactionQuery : beginReadOnlyTransactionQuery;
+        sendOneQuery(beginQuery, SimpleQuery.NO_PARAMETERS, 0, 0,
+            QueryExecutor.QUERY_NO_METADATA | QueryExecutor.QUERY_ONESHOT);
+        ResponseSlot beginSlot = new ResponseSlot(beginQuery, null, false, 0);
+        pending.add(beginSlot);
+      }
+
+      for (int i = 0; i < queries.length; i++) {
+        SimpleQuery sq = (SimpleQuery) queries[i];
+        SimpleParameterList params = (SimpleParameterList) parameterLists[i];
+        if (params == null) {
+          params = SimpleQuery.NO_PARAMETERS;
+        }
+        params.checkAllParametersSet();
+
+        sendParse(sq, params, oneShot);
+        sendBind(sq, params, null, noBinaryTransfer);
+        if (!noMeta && !noResults && (!sq.isPortalDescribed() || sq.getFields() == null)) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " FE=> pipeline batch[{0}] sendDescribePortal, portalDescribed={1}, fields={2}",
+                new Object[]{i, sq.isPortalDescribed(), sq.getFields() != null});
+          }
+          sendDescribePortal(sq, null);
+        }
+        sendExecute(sq, null, rows);
+
+        slots[i] = new ResponseSlot(sq, null, false, flags);
+        if ((noMeta || sq.isPortalDescribed()) && sq.getFields() != null) {
+          if (LOGGER.isLoggable(Level.FINEST)) {
+            LOGGER.log(Level.FINEST, " FE=> pipeline batch[{0}] pre-populate slot.fields from cache, fields={1}",
+                new Object[]{i, castNonNull(sq.getFields()).length});
+          }
+          slots[i].fields = castNonNull(sq.getFields());
+        }
+        pending.add(slots[i]);
+      }
+
+      sendSync();
+      pending.add(ResponseSlot.SYNC_MARKER);
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      batchHandler.handleCompletion();
+      return;
+    }
+
+    // Wait for all slots
+    for (int i = 0; i < slots.length; i++) {
+      try {
+        slots[i].await(castNonNull(pipelineReaderThread));
+      } catch (Exception e) {
+        handler.handleError(new PSQLException(
+            "Interrupted waiting for batch response",
+            PSQLState.CONNECTION_FAILURE, e));
+        break;
+      }
+      deliverSlotResults(slots[i], handler, (SimpleQuery) queries[i]);
+      if (slots[i].error != null) {
+        break;
+      }
+      batchHandler.secureProgress();
+    }
+
+    batchHandler.handleCompletion();
+  }
+
+  /**
+   * Execute a cursor fetch in pipeline mode.
+   */
+  private void fetchPipeline(ResultCursor cursor, ResultHandler handler, int fetchSize) throws SQLException {
+    Portal portal = (Portal) cursor;
+    SimpleQuery query = castNonNull(portal.getQuery());
+
+    ResponseSlot slot = new ResponseSlot(query, portal, false, 0);
+    ConcurrentLinkedDeque<ResponseSlot> slots = pipelineSlots();
+
+    try (ResourceLock ignore = sendLock.obtain()) {
+      sendExecute(query, portal, fetchSize);
+      sendSync();
+
+      slots.add(slot);
+      slots.add(ResponseSlot.SYNC_MARKER);
+
+      pgStream.flush();
+    } catch (IOException e) {
+      abort();
+      handler.handleError(new PSQLException(
+          GT.tr("An I/O error occurred while sending to the backend."),
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    try {
+      slot.await(castNonNull(pipelineReaderThread));
+    } catch (Exception e) {
+      handler.handleError(new PSQLException(
+          "Interrupted waiting for fetch response",
+          PSQLState.CONNECTION_FAILURE, e));
+      handler.handleCompletion();
+      return;
+    }
+
+    // Deliver fetch results
+    if (slot.error != null) {
+      handler.handleError(slot.error);
+    } else if (slot.warnings != null) {
+      handler.handleWarning(slot.warnings);
+    }
+
+    Field[] fields = query.getFields();
+    if (fields != null) {
+      List<Tuple> tuples = slot.tuples != null ? slot.tuples : new ArrayList<>();
+      ResultCursor resultCursor = slot.portalSuspended ? portal : null;
+      handler.handleResultRows(query, fields, tuples, resultCursor);
+    } else {
+      handler.handleCommandStatus("EMPTY", 0, 0);
+    }
+
+    handler.handleCompletion();
+  }
+
+  /**
+   * Deliver results from a completed ResponseSlot to a ResultHandler.
+   */
+  private void deliverSlotResults(ResponseSlot slot, ResultHandler handler, SimpleQuery query) {
+    if (slot.error != null) {
+      handler.handleError(slot.error);
+      return;
+    }
+    if (slot.warnings != null) {
+      handler.handleWarning(slot.warnings);
+    }
+    @SuppressWarnings("nullness")
+    Field @Nullable [] fields = slot.fields != null ? slot.fields : query.getFields();
+    if (LOGGER.isLoggable(Level.FINEST)) {
+      Field @Nullable [] qf = query.getFields();
+      LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: slot.fields={0}, query.getFields()={1}, tuples={2}, commandStatus={3}, query={4}",
+          new Object[]{
+              slot.fields != null ? slot.fields.length : null,
+              qf != null ? qf.length : null,
+              slot.tuples != null ? slot.tuples.size() : null,
+              slot.commandStatus,
+              query});
+    }
+    if (fields != null && slot.tuples != null) {
+      // SELECT-like query that returned rows
+      ResultCursor cursor = slot.portalSuspended ? slot.portal : null;
+      handler.handleResultRows(query, fields, slot.tuples, cursor);
+    } else if (slot.commandStatus != null) {
+      // DML or DDL — no result rows
+      handler.handleCommandStatus(slot.commandStatus, slot.updateCount, slot.insertOID);
+    } else {
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, " pipeline deliverSlotResults: NO RESULT DELIVERED, fields={0}, tuples={1}, commandStatus={2}",
+            new Object[]{fields != null, slot.tuples != null, slot.commandStatus});
+      }
+    }
+  }
 }
