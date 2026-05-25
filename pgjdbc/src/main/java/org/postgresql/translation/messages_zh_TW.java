@@ -8,8 +8,8 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.3\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2008-01-21 16:50+0800\nLast-Translator: 郭朝益(ChaoYi, Kuo) <Kuo.ChaoYi@gmail.com>\nLanguage-Team: The PostgreSQL Development Team <Kuo.ChaoYi@gmail.com>\nLanguage: \nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\nX-Poedit-Language: Chinese\nX-Poedit-Country: TAIWAN\nX-Poedit-SourceCharset: utf-8\n";
     t[6] = "Cannot call cancelRowUpdates() when on the insert row.";
     t[7] = "不能在新增的資料列上呼叫 cancelRowUpdates()。";
-    t[8] = "The server requested password-based authentication, but no password was provided.";
-    t[9] = "伺服器要求使用密碼驗證，但是密碼並未提供。";
+    t[8] = "Fetch size must be a value greater than or equal to 0.";
+    t[9] = "資料讀取筆數(fetch size)必須大於或等於 0。";
     t[12] = "Detail: {0}";
     t[13] = "詳細：{0}";
     t[16] = "Can''t refresh the insert row.";
@@ -62,8 +62,6 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[163] = "查詢逾時等候時間必須大於或等於 0。";
     t[170] = "Unknown type {0}.";
     t[171] = "不明的型別 {0}";
-    t[174] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
-    t[175] = "這伺服器的 standard_conforming_strings 參數已回報為 {0}，JDBC 驅動程式已預期開啟或是關閉。";
     t[176] = "Invalid character data was found.  This is most likely caused by stored data containing characters that are invalid for the character set the database was created in.  The most common example of this is storing 8bit data in a SQL_ASCII database.";
     t[177] = "發現不合法的字元，可能的原因是欲儲存的資料中包含資料庫的字元集不支援的字碼，其中最常見例子的就是將 8 位元資料存入使用 SQL_ASCII 編碼的資料庫中。";
     t[178] = "The column index is out of range: {0}, number of columns: {1}.";
@@ -82,8 +80,6 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[205] = "不能在 ResultSet 的第一筆資料之前呼叫 deleteRow()。";
     t[214] = "The maximum field size must be a value greater than or equal to 0.";
     t[215] = "最大欄位容量必須大於或等於 0。";
-    t[216] = "Fetch size must be a value greater than or equal to 0.";
-    t[217] = "資料讀取筆數(fetch size)必須大於或等於 0。";
     t[220] = "PostgreSQL LOBs can only index to: {0}";
     t[221] = "PostgreSQL LOBs 僅能索引到：{0}";
     t[224] = "The JVM claims not to support the encoding: {0}";
@@ -128,8 +124,6 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[345] = "Sstatement 已經被關閉。";
     t[352] = "Server SQLState: {0}";
     t[353] = "伺服器 SQLState：{0}";
-    t[354] = "No primary key found for table {0}.";
-    t[355] = "{0} 資料表中未找到主鍵(Primary key)。";
     t[362] = "Cannot convert an instance of {0} to type {1}";
     t[363] = "無法轉換 {0} 到類型 {1} 的實例";
     t[364] = "DataSource has been closed.";
@@ -162,10 +156,8 @@ public class messages_zh_TW extends java.util.ResourceBundle {
     t[425] = "不能在新增的資料列上使用相對位置 move 方法。";
     t[434] = "Invalid stream length {0}.";
     t[435] = "無效的串流長度 {0}.";
-    t[436] = "The driver currently does not support COPY operations.";
-    t[437] = "驅動程式目前不支援 COPY 操作。";
-    t[440] = "Maximum number of rows must be a value grater than or equal to 0.";
-    t[441] = "最大資料讀取筆數必須大於或等於 0。";
+    t[436] = "The server''s standard_conforming_strings parameter was reported as {0}. The JDBC driver expected on or off.";
+    t[437] = "這伺服器的 standard_conforming_strings 參數已回報為 {0}，JDBC 驅動程式已預期開啟或是關閉。";
     t[446] = "Failed to create object for: {0}.";
     t[447] = "為 {0} 建立物件失敗。";
     t[448] = "{0} function takes three and only three arguments.";
