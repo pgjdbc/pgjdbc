@@ -140,8 +140,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[283] = "Параметърът standard_conforming_strings при сървъра бе докладван като {0}. JDBC драйвъра очаква този параметър да бъде on или off.";
     t[284] = "Unable to translate data into the desired encoding.";
     t[285] = "Невъзможно преобразуване на данни в желаното кодиране.";
-    t[292] = "PostgreSQL LOBs can only index to: {0}";
-    t[293] = "PostgreSQL индексира големи обекти LOB само до: {0}";
+    t[292] = "CommandComplete expected COPY but got: {0}";
+    t[293] = "Очаквано командно допълнение COPY но получено: {0}";
     t[294] = "Provided InputStream failed.";
     t[295] = "Зададения InputStream поток е неуспешен.";
     t[296] = "Invalid protocol state requested. Attempted transaction interleaving is not supported. xid={0}, currentXid={1}, state={2}, flags={3}";
@@ -274,8 +274,6 @@ public class messages_bg extends java.util.ResourceBundle {
     t[631] = "Неизвестен XML входящ клас: {0}";
     t[632] = "Interval {0} not yet implemented";
     t[633] = "Интервалът {0} не е валиден все още.";
-    t[636] = "commit called before end. commit xid={0}, state={1}";
-    t[637] = "commit извикан преди end. commit xid={0}, state={1}";
     t[638] = "Tried to break lock on database connection";
     t[639] = "Опит за премахване на заключването/резервацията при връзка към базата данни";
     t[642] = "Missing expected error response to copy cancel request";
@@ -294,6 +292,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[681] = "Копирането от базата данни бе неуспешно: {0}";
     t[682] = "Connection has been closed automatically because a new connection was opened for the same PooledConnection or the PooledConnection has been closed.";
     t[683] = "Връзката бе автоматично прекъсната, защото нова връзка за същата беше осъществена или PooledConnection връзката е вече прекъсната.";
+    t[694] = "PostgreSQL LOBs can only index to: {0}";
+    t[695] = "PostgreSQL индексира големи обекти LOB само до: {0}";
     t[698] = "Custom type maps are not supported.";
     t[699] = "Специфични типови съответствия не се поддържат.";
     t[700] = "xid must not be null";
@@ -344,8 +344,8 @@ public class messages_bg extends java.util.ResourceBundle {
     t[811] = "Индексът на масив е извън обхвата: {0}, брой елементи: {1}.";
     t[812] = "Internal Query: {0}";
     t[813] = "Вътрешна заявка: {0}";
-    t[816] = "CommandComplete expected COPY but got: ";
-    t[817] = "Очаквано командно допълнение COPY но получено: ";
+    t[816] = "commit called before end. commit xid={0}, state={1}";
+    t[817] = "commit извикан преди end. commit xid={0}, state={1}";
     t[826] = "Unknown type {0}.";
     t[827] = "Неизвестен тип {0}.";
     t[828] = "ResultSets with concurrency CONCUR_READ_ONLY cannot be updated.";
