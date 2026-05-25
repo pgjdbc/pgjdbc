@@ -191,6 +191,8 @@ tasks.configureEach<Checkstyle> {
 
 val update_pot_with_new_messages by tasks.registering(GettextTask::class) {
     sourceFiles.from(sourceSets.main.get().allJava)
+    // Empty entry disables xgettext default keywords (getString, gettext, …)
+    keywords.add("")
     keywords.add("GT.tr")
 }
 
