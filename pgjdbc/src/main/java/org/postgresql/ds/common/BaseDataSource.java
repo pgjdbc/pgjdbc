@@ -1287,6 +1287,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return true if async reading is enabled
+   * @see PGProperty#ASYNC_READING
+   */
+  public boolean getAsyncReading() {
+    return PGProperty.ASYNC_READING.getBoolean(properties);
+  }
+
+  /**
+   * @param enabled if async protocol reading should be enabled
+   * @see PGProperty#ASYNC_READING
+   */
+  public void setAsyncReading(boolean enabled) {
+    PGProperty.ASYNC_READING.set(properties, enabled);
+  }
+
+  /**
    * @return socket factory class name
    * @see PGProperty#SOCKET_FACTORY
    */
@@ -1956,6 +1972,10 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
 
   public boolean isAllowEncodingChanges() {
     return getAllowEncodingChanges();
+  }
+
+  public boolean isAsyncReading() {
+    return getAsyncReading();
   }
 
   public boolean isLogUnclosedConnections() {

@@ -81,6 +81,7 @@ import org.postgresql.core.PGStream;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Parser;
 import org.postgresql.core.PgMessageType;
+import org.postgresql.core.ProtocolMessage;
 import org.postgresql.core.ProtocolVersion;
 import org.postgresql.core.Query;
 import org.postgresql.core.QueryExecutor;
@@ -228,6 +229,30 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean inExtendedProtocol;
 
+  private final boolean asyncReadingEnabled;
+  private volatile int networkTimeoutRequested;
+  private @Nullable AsyncMessageReader asyncReader;
+  private @Nullable MessageQueue messageQueue;
+
+  /**
+   * When async reading is active and a full message has been pulled from the queue,
+   * this holds the current message being processed.
+   */
+  private @Nullable ProtocolMessage currentAsyncMessage;
+
+  /**
+   * When {@link #peekNextMessageType()} is called in async mode, the message is consumed
+   * from the queue and stored. This flag indicates nextMessageType should return the
+   * already-consumed message type instead of reading again.
+   */
+  private int peekedMessageType = -1;
+
+  /**
+   * Reader for consuming fields from the current async message payload.
+   * Set by {@link #nextMessageType()} when async reading is active.
+   */
+  private @Nullable PayloadReader currentPayload;
+
   @SuppressWarnings({"assignment", "argument",
       "method.invocation"})
   public QueryExecutorImpl(PGStream pgStream,
@@ -239,9 +264,53 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
     this.allowEncodingChanges = PGProperty.ALLOW_ENCODING_CHANGES.getBoolean(info);
     this.cleanupSavePoints = PGProperty.CLEANUP_SAVEPOINTS.getBoolean(info);
+    this.asyncReadingEnabled = PGProperty.ASYNC_READING.getBoolean(info);
     // assignment, argument
     this.replicationProtocol = new V3ReplicationProtocol(this, pgStream);
     readStartupMessages();
+
+    if (asyncReadingEnabled) {
+      // Preserve the configured socket timeout for consumer-side enforcement, then clear
+      // SO_TIMEOUT so the reader thread blocks indefinitely waiting for data.
+      this.networkTimeoutRequested = pgStream.getNetworkTimeout();
+      pgStream.setNetworkTimeout(0);
+      this.messageQueue = new MessageQueue(1024);
+      this.asyncReader = new AsyncMessageReader(pgStream, this.messageQueue);
+      this.messageQueue.setReader(this.asyncReader);
+    }
+  }
+
+  @Override
+  public void close() {
+    if (asyncReader != null) {
+      asyncReader.shutdown();
+    }
+    super.close();
+  }
+
+  @Override
+  public boolean isAsyncReadingEnabled() {
+    return asyncReadingEnabled;
+  }
+
+  @Override
+  public void setNetworkTimeout(int milliseconds) throws IOException {
+    if (asyncReadingEnabled) {
+      // When async reading is active, the reader thread requires SO_TIMEOUT=0 to block
+      // indefinitely. Store the requested timeout for consumer-side enforcement but do
+      // not change the socket.
+      this.networkTimeoutRequested = milliseconds;
+      return;
+    }
+    super.setNetworkTimeout(milliseconds);
+  }
+
+  @Override
+  public int getNetworkTimeout() throws IOException {
+    if (asyncReadingEnabled) {
+      return networkTimeoutRequested;
+    }
+    return super.getNetworkTimeout();
   }
 
   @Override
@@ -659,10 +728,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         for (int i = 0; i < queries.length; i++) {
           SimpleQuery query = (SimpleQuery) queries[i];
-          if (i == 0) {
-            estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
-          } else {
-            flushIfDeadlockRisk(query, handler, batchHandler, flags);
+          if (!asyncReadingEnabled) {
+            if (i == 0) {
+              estimatedReceiveBufferBytes += estimateQueryResponseBytes(query, flags);
+            } else {
+              flushIfDeadlockRisk(query, handler, batchHandler, flags);
+            }
           }
 
           V3ParameterList parameters = (V3ParameterList) parameterLists[i];
@@ -672,12 +743,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
           sendQuery(query, parameters, maxRows, fetchSize, flags, handler, batchHandler, adaptiveFetch);
 
-          if (handler.getException() != null) {
+          if (!asyncReadingEnabled && handler.getException() != null) {
             break;
           }
         }
 
-        if (handler.getException() == null) {
+        if (asyncReadingEnabled || handler.getException() == null) {
           // Sync message is not required for 'Q' execution as 'Q' ends with ReadyForQuery message
           // on its own
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
@@ -926,37 +997,88 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
       try {
-        while (timeoutMillis >= 0 || pgStream.hasMessagePending()) {
-          if (useTimeout && timeoutMillis >= 0) {
-            setSocketTimeout(timeoutMillis);
-          }
-          int c = pgStream.receiveChar();
-          if (useTimeout && timeoutMillis >= 0) {
-            setSocketTimeout(0); // Don't timeout after first char
-          }
-          switch (c) {
-            case 'A': // Asynchronous Notify
-              receiveAsyncNotify();
-              timeoutMillis = -1;
-              continue;
-            case 'E':
-              // Error Response (response to pretty much everything; backend then skips until Sync)
-              throw receiveErrorResponse();
-            case 'N': // Notice Response (warnings / info)
-              SQLWarning warning = receiveNoticeResponse();
-              addWarning(warning);
-              if (useTimeout) {
-                long newTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
-                timeoutMillis += (int) (startTime - newTimeMillis); // Overflows after 49 days, ignore that
-                startTime = newTimeMillis;
-                if (timeoutMillis == 0) {
-                  timeoutMillis = -1; // Don't accidentally wait forever
-                }
+        while (timeoutMillis >= 0 || hasMessagePending()) {
+          if (asyncReadingEnabled && messageQueue != null) {
+            // In async mode, use timed poll on the queue instead of socket timeout
+            MessageQueue queue = messageQueue;
+            MessageQueue.Entry entry;
+            try {
+              if (timeoutMillis > 0) {
+                entry = queue.poll(timeoutMillis);
+              } else if (timeoutMillis == 0) {
+                entry = queue.take();
+              } else {
+                entry = queue.poll();
               }
-              break;
-            default:
-              throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
-                  PSQLState.CONNECTION_FAILURE);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IOException("Interrupted while waiting for notifications", e);
+            }
+            if (entry == null) {
+              break; // timeout or no message pending
+            }
+            if (entry.isError()) {
+              throw castNonNull(entry.getError());
+            }
+            currentAsyncMessage = castNonNull(entry.getMessage());
+            ProtocolMessage msg = currentAsyncMessage;
+            currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+            int c = msg.getType();
+            switch (c) {
+              case 'A':
+                receiveAsyncNotify();
+                timeoutMillis = -1;
+                continue;
+              case 'E':
+                throw receiveErrorResponse();
+              case 'N':
+                SQLWarning warning = receiveNoticeResponse();
+                addWarning(warning);
+                if (useTimeout) {
+                  long newTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+                  timeoutMillis += (int) (startTime - newTimeMillis);
+                  startTime = newTimeMillis;
+                  if (timeoutMillis == 0) {
+                    timeoutMillis = -1;
+                  }
+                }
+                break;
+              default:
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
+                    PSQLState.CONNECTION_FAILURE);
+            }
+          } else {
+            // Sync mode: use socket timeout directly
+            if (useTimeout && timeoutMillis >= 0) {
+              setSocketTimeout(timeoutMillis);
+            }
+            int c = pgStream.receiveChar();
+            if (useTimeout && timeoutMillis >= 0) {
+              setSocketTimeout(0); // Don't timeout after first char
+            }
+            switch (c) {
+              case 'A': // Asynchronous Notify
+                receiveAsyncNotify();
+                timeoutMillis = -1;
+                continue;
+              case 'E':
+                throw receiveErrorResponse();
+              case 'N': // Notice Response (warnings / info)
+                SQLWarning warning = receiveNoticeResponse();
+                addWarning(warning);
+                if (useTimeout) {
+                  long newTimeMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+                  timeoutMillis += (int) (startTime - newTimeMillis);
+                  startTime = newTimeMillis;
+                  if (timeoutMillis == 0) {
+                    timeoutMillis = -1;
+                  }
+                }
+                break;
+              default:
+                throw new PSQLException(GT.tr("Unknown Response Type {0}.", (char) c),
+                    PSQLState.CONNECTION_FAILURE);
+            }
           }
         }
       } catch (SocketTimeoutException ioe) {
@@ -973,6 +1095,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void setSocketTimeout(int millis) throws PSQLException {
+    if (asyncReadingEnabled) {
+      networkTimeoutRequested = millis;
+      return;
+    }
     try {
       Socket s = pgStream.getSocket();
       if (!s.isClosed()) { // Is this check required?
@@ -990,7 +1116,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     byte[] returnValue = null;
 
     while (!endQuery) {
-      int c = pgStream.receiveChar();
+      int c = nextMessageType();
       switch (c) {
         case PgMessageType.ASYNCHRONOUS_NOTICE:
           receiveAsyncNotify();
@@ -1018,15 +1144,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.FUNCTION_CALL_RESPONSE:
-          @SuppressWarnings("unused")
-          int msgLen = pgStream.receiveInteger4();
-          int valueLen = pgStream.receiveInteger4();
+          skipMessageLength();
+          int valueLen = readInt4();
 
           LOGGER.log(Level.FINEST, " <=BE FunctionCallResponse({0} bytes)", valueLen);
 
           if (valueLen != -1) {
             byte[] buf = new byte[valueLen];
-            pgStream.receive(buf, 0, valueLen);
+            readBytes(buf, 0, valueLen);
             returnValue = buf;
           }
 
@@ -1115,13 +1240,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     try (ResourceLock ignore = lock.obtain()) {
-      pgStream.receiveInteger4(); // length not used
-      int rowFormat = pgStream.receiveChar();
-      int numFields = pgStream.receiveInteger2();
+      skipMessageLength();
+      int rowFormat = readChar();
+      int numFields = readInt2();
       int[] fieldFormats = new int[numFields];
 
       for (int i = 0; i < numFields; i++) {
-        fieldFormats[i] = pgStream.receiveInteger2();
+        fieldFormats[i] = readInt2();
       }
 
       lock(op);
@@ -1391,7 +1516,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       SQLException errors = null;
       int len;
 
-      while (!endReceiving && (block || pgStream.hasMessagePending())) {
+      while (!endReceiving && (block || hasMessagePending())) {
 
         // There is a bug in the server's implementation of the copy
         // protocol. It returns command complete immediately upon
@@ -1402,14 +1527,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         // until we actually are done with the copy.
         //
         if (!block) {
-          int c = pgStream.peekChar();
+          int c = peekNextMessageType();
           if (c == PgMessageType.COMMAND_COMPLETE_RESPONSE) {
             LOGGER.log(Level.FINEST, " <=BE CommandStatus, Ignored until CopyDone");
             break;
           }
         }
 
-        int c = pgStream.receiveChar();
+        int c = nextMessageType();
         switch (c) {
 
           case PgMessageType.ASYNCHRONOUS_NOTICE:
@@ -1498,11 +1623,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyData");
 
-            len = pgStream.receiveInteger4() - 4;
+            len = readCopyDataLength();
 
             assert len > 0 : "Copy Data length must be greater than 4";
 
-            byte[] buf = pgStream.receive(len);
+            byte[] buf = new byte[len];
+            readBytes(buf, 0, len);
             if (op == null) {
               error = new PSQLException(GT.tr("Got CopyData without an active copy operation"),
                   PSQLState.OBJECT_NOT_IN_STATE);
@@ -1520,9 +1646,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
             LOGGER.log(Level.FINEST, " <=BE CopyDone");
 
-            len = pgStream.receiveInteger4() - 4;
+            len = readCopyDataLength();
             if (len > 0) {
-              pgStream.receive(len); // not in specification; should never appear
+              byte[] skip = new byte[len];
+              readBytes(skip, 0, len); // not in specification; should never appear
             }
 
             if (!(op instanceof CopyOut)) {
@@ -1651,6 +1778,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       ResultHandler resultHandler,
       @Nullable BatchResultHandler batchHandler,
       final int flags) throws IOException {
+    // When async reading is enabled, the reader thread drains the server's send buffer
+    // into an unbounded queue. The reader never blocks, so the server can always send,
+    // which means the server can always read, preventing TCP deadlock.
+    if (asyncReadingEnabled) {
+      return;
+    }
+
     int resultBytes = estimateQueryResponseBytes(query, flags);
 
     int estimatedReceiveBufferBytesTotal = estimatedReceiveBufferBytes + resultBytes;
@@ -1679,8 +1813,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     SimpleParameterList[] subparams = parameters.getSubparams();
 
     if (subqueries == null) {
-      // If we saw errors, don't send anything more.
-      if (resultHandler.getException() == null) {
+      if (asyncReadingEnabled || resultHandler.getException() == null) {
         if (fetchSize != 0) {
           adaptiveFetchCache.addNewQuery(adaptiveFetch, query);
         }
@@ -1690,13 +1823,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       for (int i = 0; i < subqueries.length; i++) {
         final SimpleQuery subquery = (SimpleQuery) subqueries[i];
-        if (i == 0) {
-          estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
-        } else {
-          flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
-          // If we saw errors, don't send anything more.
-          if (resultHandler.getException() != null) {
-            break;
+        if (!asyncReadingEnabled) {
+          if (i == 0) {
+            estimatedReceiveBufferBytes += estimateQueryResponseBytes(subquery, flags);
+          } else {
+            flushIfDeadlockRisk(subquery, resultHandler, batchHandler, flags);
+            if (resultHandler.getException() != null) {
+              break;
+            }
           }
         }
 
@@ -2348,6 +2482,233 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
   }
 
+  /**
+   * In synchronous mode, reads and discards the 4-byte message length from the stream.
+   * In async mode, this is a no-op since the length was already consumed by readFullMessage().
+   */
+  private void skipMessageLength() throws IOException {
+    if (currentPayload == null) {
+      pgStream.receiveInteger4();
+    }
+    // In async mode, payload already excludes the length field — nothing to skip
+  }
+
+  /**
+   * Reads a 4-byte integer from the current message source.
+   */
+  private int readInt4() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveInteger4();
+    }
+    return pgStream.receiveInteger4();
+  }
+
+  /**
+   * Reads a 2-byte unsigned integer from the current message source.
+   */
+  private int readInt2() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveInteger2();
+    }
+    return pgStream.receiveInteger2();
+  }
+
+  /**
+   * Reads a single byte from the current message source.
+   */
+  private int readChar() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveChar();
+    }
+    return pgStream.receiveChar();
+  }
+
+  /**
+   * Reads a null-terminated canonicalized string from the current message source.
+   */
+  private String readCanonicalString() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveCanonicalString();
+    }
+    return pgStream.receiveCanonicalString();
+  }
+
+  /**
+   * Reads a null-terminated canonicalized-if-present string from the current message source.
+   */
+  private String readCanonicalStringIfPresent() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveCanonicalStringIfPresent();
+    }
+    return pgStream.receiveCanonicalStringIfPresent();
+  }
+
+  /**
+   * Reads a null-terminated string from the current message source.
+   */
+  private String readString() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveString();
+    }
+    return pgStream.receiveString();
+  }
+
+  /**
+   * Reads a fixed-length string from the current message source.
+   */
+  private String readString(int len) throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.receiveString(len);
+    }
+    return pgStream.receiveString(len);
+  }
+
+  /**
+   * Reads a fixed-length error string with encoding fallback from the current message source.
+   */
+  private EncodingPredictor.DecodeResult readErrorString(int len) throws IOException {
+    if (currentPayload != null) {
+      PayloadReader payload = currentPayload;
+      byte[] data = payload.getData();
+      int pos = payload.getPos();
+      EncodingPredictor.DecodeResult res = pgStream.decodeErrorString(data, pos, len);
+      payload.advance(len);
+      return res;
+    }
+    return pgStream.receiveErrorString(len);
+  }
+
+  /**
+   * Reads a fixed number of bytes into the given buffer from the current message source.
+   */
+  private void readBytes(byte[] buf, int off, int len) throws IOException {
+    if (currentPayload != null) {
+      currentPayload.receive(buf, off, len);
+    } else {
+      pgStream.receive(buf, off, len);
+    }
+  }
+
+  /**
+   * Checks whether there is a message available without blocking.
+   * In async mode, checks the message queue; in sync mode, checks the stream.
+   */
+  private boolean hasMessagePending() throws IOException {
+    if (asyncReadingEnabled && messageQueue != null) {
+      MessageQueue queue = messageQueue;
+      return queue.size() > 0;
+    }
+    return pgStream.hasMessagePending();
+  }
+
+  /**
+   * Peeks at the next message type without consuming it.
+   * In async mode, polls the queue and stores the message for the next {@link #nextMessageType()} call.
+   * In sync mode, peeks at the stream.
+   */
+  private int peekNextMessageType() throws IOException {
+    if (asyncReadingEnabled && messageQueue != null) {
+      MessageQueue queue = messageQueue;
+      // In async mode, we must consume from the queue — store it for nextMessageType
+      MessageQueue.Entry entry;
+      try {
+        while (true) {
+          entry = queue.poll(1000);
+          if (entry != null) {
+            break;
+          }
+          if (pgStream.isClosed() || (asyncReader != null && !asyncReader.isAlive())) {
+            throw new IOException("Connection closed while peeking for protocol message");
+          }
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("Interrupted while peeking for protocol message", e);
+      }
+      if (entry.isError()) {
+        throw castNonNull(entry.getError());
+      }
+      ProtocolMessage msg = castNonNull(entry.getMessage());
+      currentAsyncMessage = msg;
+      currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+      peekedMessageType = msg.getType();
+      return peekedMessageType;
+    }
+    return pgStream.peekChar();
+  }
+
+  /**
+   * Reads the data length for CopyData/CopyDone messages.
+   * In async mode, the length field was already consumed by readFullMessage, so we read
+   * the remaining payload length from the PayloadReader. In sync mode, we subtract 4
+   * from the wire length (which includes itself).
+   */
+  private int readCopyDataLength() throws IOException {
+    if (currentPayload != null) {
+      return currentPayload.remaining();
+    }
+    return pgStream.receiveInteger4() - 4;
+  }
+
+  /**
+   * Reads the next message type byte, either from the async message queue or directly
+   * from the stream. When async reading is active, the full message payload is buffered
+   * in {@link #currentAsyncMessage} for subsequent field reads.
+   *
+   * @return the message type byte
+   * @throws IOException if an I/O error occurs
+   */
+  private int nextMessageType() throws IOException {
+    if (asyncReadingEnabled && messageQueue != null) {
+      // If peekNextMessageType() already consumed a message, return it
+      if (peekedMessageType != -1) {
+        int type = peekedMessageType;
+        peekedMessageType = -1;
+        return type;
+      }
+      MessageQueue queue = messageQueue;
+      MessageQueue.Entry entry;
+      try {
+        long waitStart = System.nanoTime();
+        int socketTimeout = networkTimeoutRequested;
+        long pollMs = socketTimeout > 0 ? Math.min(socketTimeout, 1000) : 1000;
+        while (true) {
+          entry = queue.poll(pollMs);
+          if (entry != null) {
+            break;
+          }
+          // Check if the connection has been closed while we were waiting
+          if (pgStream.isClosed() || (asyncReader != null && !asyncReader.isAlive())) {
+            throw new IOException("Connection closed while waiting for protocol message");
+          }
+          // Respect socket/network timeout
+          if (socketTimeout > 0) {
+            long elapsed = (System.nanoTime() - waitStart) / 1_000_000;
+            if (elapsed >= socketTimeout) {
+              throw new SocketTimeoutException("Async read timed out after " + elapsed + "ms");
+            }
+            pollMs = Math.min(socketTimeout - elapsed, 1000);
+            if (pollMs <= 0) {
+              throw new SocketTimeoutException("Async read timed out after " + elapsed + "ms");
+            }
+          }
+        }
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IOException("Interrupted while waiting for protocol message", e);
+      }
+      if (entry.isError()) {
+        throw castNonNull(entry.getError());
+      }
+      ProtocolMessage msg = castNonNull(entry.getMessage());
+      currentAsyncMessage = msg;
+      currentPayload = new PayloadReader(msg.getPayload(), pgStream.getEncoding());
+      return msg.getType();
+    }
+    currentPayload = null;
+    return pgStream.receiveChar();
+  }
+
   protected void processResults(ResultHandler handler, int flags) throws IOException {
     processResults(handler, flags, false);
   }
@@ -2370,14 +2731,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     boolean doneAfterRowDescNoData = false;
 
     while (!endQuery) {
-      c = pgStream.receiveChar();
+      c = nextMessageType();
       switch (c) {
         case 'A': // Asynchronous Notify
           receiveAsyncNotify();
           break;
 
         case PgMessageType.PARSE_COMPLETE_RESPONSE: // Parse Complete (response to Parse)
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
 
           SimpleQuery parsedQuery = pendingParseQueue.removeFirst();
           String parsedStatementName = parsedQuery.getStatementName();
@@ -2387,7 +2748,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
@@ -2398,10 +2759,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // This might differ from query.getStatementName if the query was re-prepared
           String origStatementName = describeData.statementName;
 
-          int numParams = pgStream.receiveInteger2();
+          int numParams = readInt2();
 
           for (int i = 1; i <= numParams; i++) {
-            int typeOid = pgStream.receiveInteger4();
+            int typeOid = readInt4();
             params.setResolvedType(i, typeOid);
           }
 
@@ -2425,7 +2786,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         }
 
         case PgMessageType.BIND_COMPLETE_RESPONSE: // (response to Bind)
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
 
           Portal boundPortal = pendingBindQueue.removeFirst();
           LOGGER.log(Level.FINEST, " <=BE BindComplete [{0}]", boundPortal);
@@ -2434,12 +2795,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.CLOSE_COMPLETE_RESPONSE: // response to Close
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
           LOGGER.log(Level.FINEST, " <=BE CloseComplete");
           break;
 
         case PgMessageType.NO_DATA_RESPONSE: // response to Describe
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
           LOGGER.log(Level.FINEST, " <=BE NoData");
 
           pendingDescribePortalQueue.removeFirst();
@@ -2462,7 +2823,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // nb: this appears *instead* of CommandStatus.
           // Must be a SELECT if we suspended, so don't worry about it.
 
-          pgStream.receiveInteger4(); // len, discarded
+          skipMessageLength();
           LOGGER.log(Level.FINEST, " <=BE PortalSuspended");
 
           ExecuteRequest executeData = pendingExecuteQueue.removeFirst();
@@ -2594,7 +2955,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         case PgMessageType.DATA_ROW_RESPONSE: // Data Transfer (ongoing Execute response)
           Tuple tuple = null;
           try {
-            tuple = pgStream.receiveTupleV3();
+            if (currentPayload != null) {
+              PayloadReader payload = currentPayload;
+              // Compute data size for adaptive fetch: payload minus 2-byte field count
+              // minus 4 bytes per field for the length prefix
+              int payloadLen = payload.getLength();
+              tuple = payload.receiveTupleV3();
+              // dataToReadSize = total payload - 2 (nf) - 4*nf (length ints)
+              int nf = tuple.fieldCount();
+              int dataToReadSize = payloadLen - 2 - 4 * nf;
+              pgStream.setMaxRowSizeBytes(dataToReadSize);
+            } else {
+              tuple = pgStream.receiveTupleV3();
+            }
           } catch (OutOfMemoryError oome) {
             if (!noResults) {
               handler.handleError(
@@ -2643,7 +3016,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           break;
 
         case PgMessageType.EMPTY_QUERY_RESPONSE: { // Empty Query (end of Execute)
-          pgStream.receiveInteger4();
+          skipMessageLength();
 
           LOGGER.log(Level.FINEST, " <=BE EmptyQuery");
 
@@ -2792,6 +3165,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * communication stream.
    */
   private void skipMessage() throws IOException {
+    if (currentPayload != null) {
+      // In async mode, the entire message is already buffered — nothing to skip from stream
+      return;
+    }
     int len = pgStream.receiveInteger4();
 
     assert len >= 4 : "Length from skip message must be at least 4 ";
@@ -2886,8 +3263,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Receive the field descriptions from the back end.
    */
   private Field[] receiveFields() throws IOException {
-    pgStream.receiveInteger4(); // MESSAGE SIZE
-    int size = pgStream.receiveInteger2();
+    skipMessageLength(); // MESSAGE SIZE
+    int size = readInt2();
     Field[] fields = new Field[size];
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2895,13 +3272,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     }
 
     for (int i = 0; i < fields.length; i++) {
-      String columnLabel = pgStream.receiveCanonicalString();
-      int tableOid = pgStream.receiveInteger4();
-      short positionInTable = (short) pgStream.receiveInteger2();
-      int typeOid = pgStream.receiveInteger4();
-      short typeLength = (short) pgStream.receiveInteger2();
-      int typeModifier = pgStream.receiveInteger4();
-      int formatType = pgStream.receiveInteger2();
+      String columnLabel = readCanonicalString();
+      int tableOid = readInt4();
+      short positionInTable = (short) readInt2();
+      int typeOid = readInt4();
+      short typeLength = (short) readInt2();
+      int typeModifier = readInt4();
+      int formatType = readInt2();
       fields[i] = new Field(columnLabel,
           typeOid, typeLength, typeModifier, tableOid, positionInTable);
       fields[i].setFormat(formatType);
@@ -2913,12 +3290,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveAsyncNotify() throws IOException {
-    int len = pgStream.receiveInteger4(); // MESSAGE SIZE
-    assert len > 4 : "Length for AsyncNotify must be at least 4";
+    skipMessageLength(); // MESSAGE SIZE
 
-    int pid = pgStream.receiveInteger4();
-    String msg = pgStream.receiveCanonicalString();
-    String param = pgStream.receiveString();
+    int pid = readInt4();
+    String msg = readCanonicalString();
+    String param = readString();
     addNotification(new Notification(msg, pid, param));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2932,10 +3308,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // so, append messages to a string buffer and keep processing
     // check at the bottom to see if we need to throw an exception
 
-    int elen = pgStream.receiveInteger4();
+    int elen;
+    if (currentPayload != null) {
+      elen = currentPayload.getLength() + 4; // reconstruct original length value
+    } else {
+      elen = pgStream.receiveInteger4();
+    }
     assert elen > 4 : "Error response length must be greater than 4";
 
-    EncodingPredictor.DecodeResult totalMessage = pgStream.receiveErrorString(elen - 4);
+    EncodingPredictor.DecodeResult totalMessage = readErrorString(elen - 4);
     ServerErrorMessage errorMsg = new ServerErrorMessage(totalMessage);
 
     if (LOGGER.isLoggable(Level.FINEST)) {
@@ -2952,10 +3333,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private SQLWarning receiveNoticeResponse() throws IOException {
-    int nlen = pgStream.receiveInteger4();
+    int nlen;
+    if (currentPayload != null) {
+      nlen = currentPayload.getLength() + 4; // reconstruct original length value
+    } else {
+      nlen = pgStream.receiveInteger4();
+    }
     assert nlen > 4 : "Notice Response length must be greater than 4";
 
-    ServerErrorMessage warnMsg = new ServerErrorMessage(pgStream.receiveString(nlen - 4));
+    ServerErrorMessage warnMsg = new ServerErrorMessage(readString(nlen - 4));
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE NoticeResponse({0})", warnMsg.toString());
@@ -2965,12 +3351,16 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private String receiveCommandStatus() throws IOException {
-    // TODO: better handle the msg len
-    int len = pgStream.receiveInteger4();
+    int len;
+    if (currentPayload != null) {
+      len = currentPayload.getLength() + 4; // reconstruct original length value
+    } else {
+      len = pgStream.receiveInteger4();
+    }
     // read len -5 bytes (-4 for len and -1 for trailing \0)
-    String status = pgStream.receiveString(len - 5);
+    String status = readString(len - 5);
     // now read and discard the trailing \0
-    pgStream.receiveChar(); // Receive(1) would allocate new byte[1], so avoid it
+    readChar(); // Receive(1) would allocate new byte[1], so avoid it
 
     LOGGER.log(Level.FINEST, " <=BE CommandStatus({0})", status);
 
@@ -2991,11 +3381,19 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   }
 
   private void receiveRFQ() throws IOException {
-    if (pgStream.receiveInteger4() != 5) {
-      throw new IOException("unexpected length of ReadyForQuery message");
+    if (currentPayload != null) {
+      // In async mode, payload length should be 1 (just the status byte)
+      // The wire length was 5 (4 for length field + 1 status byte)
+      if (currentPayload.getLength() != 1) {
+        throw new IOException("unexpected length of ReadyForQuery message");
+      }
+    } else {
+      if (pgStream.receiveInteger4() != 5) {
+        throw new IOException("unexpected length of ReadyForQuery message");
+      }
     }
 
-    char tStatus = (char) pgStream.receiveChar();
+    char tStatus = (char) readChar();
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ReadyForQuery({0})", tStatus);
     }
@@ -3094,9 +3492,9 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus
-    pgStream.receiveInteger4(); // MESSAGE SIZE
-    final String name = pgStream.receiveCanonicalStringIfPresent();
-    final String value = pgStream.receiveCanonicalStringIfPresent();
+    skipMessageLength(); // MESSAGE SIZE
+    final String name = readCanonicalStringIfPresent();
+    final String value = readCanonicalStringIfPresent();
 
     if (LOGGER.isLoggable(Level.FINEST)) {
       LOGGER.log(Level.FINEST, " <=BE ParameterStatus({0} = {1})", new Object[]{name, value});

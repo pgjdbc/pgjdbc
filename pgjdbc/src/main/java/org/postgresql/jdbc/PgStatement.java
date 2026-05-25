@@ -915,19 +915,23 @@ public class PgStatement implements Statement, BaseStatement {
 
     // Describe the query before batching so flushIfDeadlockRisk can estimate
     // response sizes accurately and avoid client/server TCP deadlock. See #194.
-    SqlCommand sqlCommand = queries[0].getSqlCommand();
-    boolean queryReturnsRows = wantsGeneratedKeysAlways
-        || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
-    if (queryReturnsRows
-        && !queries[0].isStatementDescribed()
-        && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
-      int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
-      try {
-        connection.getQueryExecutor().execute(
-            queries[0], parameterLists[0], new DiscardResultHandler(), 0, 0, describeFlags);
-      } catch (SQLException e) {
-        handler.handleError(e);
-        handler.handleCompletion();
+    // With async reading, the reader thread prevents deadlock so the pre-describe
+    // round-trip is unnecessary.
+    if (!connection.getQueryExecutor().isAsyncReadingEnabled()) {
+      SqlCommand sqlCommand = queries[0].getSqlCommand();
+      boolean queryReturnsRows = wantsGeneratedKeysAlways
+          || (sqlCommand != null && sqlCommand.isReturningKeywordPresent());
+      if (queryReturnsRows
+          && !queries[0].isStatementDescribed()
+          && (flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
+        int describeFlags = flags | QueryExecutor.QUERY_DESCRIBE_ONLY;
+        try {
+          connection.getQueryExecutor().execute(
+              queries[0], parameterLists[0], new DiscardResultHandler(), 0, 0, describeFlags);
+        } catch (SQLException e) {
+          handler.handleError(e);
+          handler.handleCompletion();
+        }
       }
     }
 

@@ -559,6 +559,33 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
+   * Decodes an error string from a pre-read byte array, with encoding fallback.
+   * This is used when the message has already been buffered (e.g., async reading).
+   *
+   * @param buf the byte array containing the error message
+   * @param off offset into the array
+   * @param len number of bytes to decode
+   * @return the decode result with possible encoding warning
+   * @throws IOException if decoding fails entirely
+   */
+  public EncodingPredictor.DecodeResult decodeErrorString(byte[] buf, int off, int len)
+      throws IOException {
+    EncodingPredictor.DecodeResult res;
+    try {
+      String value = encoding.decode(buf, off, len);
+      res = new EncodingPredictor.DecodeResult(value, null);
+    } catch (IOException e) {
+      res = EncodingPredictor.decode(buf, off, len);
+      if (res == null) {
+        Encoding enc = Encoding.defaultEncoding();
+        String value = enc.decode(buf, off, len);
+        res = new EncodingPredictor.DecodeResult(value, enc.name());
+      }
+    }
+    return res;
+  }
+
+  /**
    * Receives a null-terminated string from the backend. If we don't see a null, then we assume
    * something has gone wrong.
    *
@@ -731,6 +758,39 @@ public class PGStream implements Closeable, Flushable {
     }
     throw new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
         PSQLState.COMMUNICATION_ERROR);
+  }
+
+  /**
+   * Reads a complete protocol message from the stream: type byte, 4-byte length, and payload.
+   *
+   * <p>The returned {@link ProtocolMessage} contains the payload bytes (length field excluded).
+   * This method blocks until a full message is available.</p>
+   *
+   * @return a complete protocol message
+   * @throws IOException if an I/O error occurs or the stream is closed
+   */
+  public ProtocolMessage readFullMessage() throws IOException {
+    int type = pgInput.read();
+    if (type < 0) {
+      throw new EOFException();
+    }
+    int len = pgInput.readInt4();
+    int payloadLen = len - 4;
+    byte[] payload;
+    if (payloadLen > 0) {
+      payload = new byte[payloadLen];
+      int off = 0;
+      while (off < payloadLen) {
+        int r = pgInput.read(payload, off, payloadLen - off);
+        if (r < 0) {
+          throw new EOFException();
+        }
+        off += r;
+      }
+    } else {
+      payload = new byte[0];
+    }
+    return new ProtocolMessage(type, payload);
   }
 
   /**
