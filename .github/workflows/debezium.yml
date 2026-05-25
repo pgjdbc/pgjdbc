@@ -24,7 +24,7 @@ jobs:
         with:
           distribution: zulu
           java-version: 21
-      - uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1
+      - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
         name: Publish Snapshot
         with:
           job-id: jdk8
