@@ -9,178 +9,137 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.postgresql.PGEnvironment;
 import org.postgresql.util.StubEnvironmentAndProperties;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.properties.SystemProperties;
-import uk.org.webcompere.systemstubs.resource.Resources;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
- * Password resource location used is decided based on availability of different environment
- * variables and file existence in user home directory. Tests verify selection of proper resource.
- * Also, resource content (* matching, escape character handling, comments etc) can be written
+ * Resource content (* matching, escape character handling, comments etc) can be written
  * creatively. Test verify several cases.
  *
  * @author Marek Läll
  */
 @StubEnvironmentAndProperties
-class PgPassParserTest {
+public class PgPassParserTest {
 
-  // "org.postgresql.pgpassfile" : missing
-  // "PGPASSFILE"                : missing
-  // ".pgpass"                   : missing
-  @Test
-  void getPassword11() throws Exception {
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", "/tmp/dir-nonexistent"),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", "/tmp/dir-nonexistent")
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost", "5432", "postgres", "postgres");
-      assertNull(result);
-    });
+  private static final String PGPASS_FILE_NAME = "/pgpass/.pgpass";
+
+  @BeforeAll
+  public static void setUp() throws Exception {
+    // fix pgpass file permissions
+    Utils.setPgpassFilePermissions(PGPASS_FILE_NAME);
   }
 
-  // "org.postgresql.pgpassfile" : missing
-  // "PGPASSFILE"                : missing
-  // ".pgpass"                   : exist
-  // <password line>             : exist
   @Test
-  void getPassword22() throws Exception {
-    URL urlPath = getClass().getResource("/pg_service");
+  public void getPassword11() {
+    URL urlPath = getClass().getResource("/pgpass");
     assertNotNull(urlPath);
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), "", "APPDATA", urlPath.getPath() ),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost", "5432", "postgres",
-          "postgres");
-      assertEquals("postgres1", result);
-      result = PgPassParser.getPassword("localhost2", "5432", "postgres", "postgres");
-      assertEquals("postgres\\", result);
-      result = PgPassParser.getPassword("localhost3", "5432", "postgres", "postgres");
-      assertEquals("postgres:", result);
-      result = PgPassParser.getPassword("localhost4", "5432", "postgres", "postgres");
-      assertEquals("postgres1:", result);
-      result = PgPassParser.getPassword("localhost5", "5432", "postgres", "postgres");
-      assertEquals("postgres5", result);
-      result = PgPassParser.getPassword("localhost6", "5432", "postgres", "postgres");
-      assertEquals("post\\gres\\", result);
-      result = PgPassParser.getPassword("localhost7", "5432", "postgres", "postgres");
-      assertEquals(" ab cd", result);
-      result = PgPassParser.getPassword("localhost8", "5432", "postgres", "postgres");
-      assertEquals("", result);
-      //
-      result = PgPassParser.getPassword("::1", "1234", "colon:db", "colon:user");
-      assertEquals("pass:pass", result);
-      result = PgPassParser.getPassword("::1", "12345", "colon:db", "colon:user");
-      assertEquals("pass:pass1", result);
-      result = PgPassParser.getPassword("::1", "1234", "slash\\db", "slash\\user");
-      assertEquals("pass\\pass", result);
-      result = PgPassParser.getPassword("::1", "12345", "slash\\db", "slash\\user");
-      assertEquals("pass\\pass1", result);
-      //
-      result = PgPassParser.getPassword("any", "5432", "postgres", "postgres");
-      assertEquals("anyhost5", result);
-      result = PgPassParser.getPassword("localhost11", "9999", "postgres", "postgres");
-      assertEquals("anyport5", result);
-      result = PgPassParser.getPassword("localhost12", "5432", "anydb", "postgres");
-      assertEquals("anydb5", result);
-      result = PgPassParser.getPassword("localhost13", "5432", "postgres", "anyuser");
-      assertEquals("anyuser5", result);
-      //
-      result = PgPassParser.getPassword("anyhost", "6544", "anydb", "anyuser");
-      assertEquals("absolute-any", result);
-    });
+    String nonExistingFile = urlPath.getPath() + File.separator + "non_existing_file";
+    String result = PgPassParser.getPassword(nonExistingFile, "localhost", "5432", "postgres", "postgres");
+    assertNull(result);
   }
 
-  // "org.postgresql.pgpassfile" : missing
-  // "PGPASSFILE"                : exist
-  // ".pgpass"                   : exist
-  // <password line>             : missing
   @Test
-  void getPassword31() throws Exception {
-    URL urlPath = getClass().getResource("/pg_service");
+  public void getPassword22() {
+    URL urlPath = getClass().getResource(PGPASS_FILE_NAME);
     assertNotNull(urlPath);
-    URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
-    assertNotNull(urlFileEnv);
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
-      assertNull(result);
-    });
+    String existingFile = urlPath.getPath();
+    String result = PgPassParser.getPassword(existingFile, "localhost", "5432", "postgres", "postgres");
+    assertEquals("postgres1", result);
+    result = PgPassParser.getPassword(existingFile, "localhost2", "5432", "postgres", "postgres");
+    assertEquals("postgres\\", result);
+    result = PgPassParser.getPassword(existingFile, "localhost3", "5432", "postgres", "postgres");
+    assertEquals("postgres:", result);
+    result = PgPassParser.getPassword(existingFile, "localhost4", "5432", "postgres", "postgres");
+    assertEquals("postgres1:", result);
+    result = PgPassParser.getPassword(existingFile, "localhost5", "5432", "postgres", "postgres");
+    assertEquals("postgres5", result);
+    result = PgPassParser.getPassword(existingFile, "localhost6", "5432", "postgres", "postgres");
+    assertEquals("post\\gres\\", result);
+    result = PgPassParser.getPassword(existingFile, "localhost7", "5432", "postgres", "postgres");
+    assertEquals(" ab cd", result);
+    result = PgPassParser.getPassword(existingFile, "localhost8", "5432", "postgres", "postgres");
+    assertEquals("", result);
+    //
+    result = PgPassParser.getPassword(existingFile, "::1", "1234", "colon:db", "colon:user");
+    assertEquals("pass:pass", result);
+    result = PgPassParser.getPassword(existingFile, "::1", "12345", "colon:db", "colon:user");
+    assertEquals("pass:pass1", result);
+    result = PgPassParser.getPassword(existingFile, "::1", "1234", "slash\\db", "slash\\user");
+    assertEquals("pass\\pass", result);
+    result = PgPassParser.getPassword(existingFile, "::1", "12345", "slash\\db", "slash\\user");
+    assertEquals("pass\\pass1", result);
+    //
+    result = PgPassParser.getPassword(existingFile, "any", "5432", "postgres", "postgres");
+    assertEquals("anyhost5", result);
+    result = PgPassParser.getPassword(existingFile, "localhost11", "9999", "postgres", "postgres");
+    assertEquals("anyport5", result);
+    result = PgPassParser.getPassword(existingFile, "localhost12", "5432", "anydb", "postgres");
+    assertEquals("anydb5", result);
+    result = PgPassParser.getPassword(existingFile, "localhost13", "5432", "postgres", "anyuser");
+    assertEquals("anyuser5", result);
+    //
+    result = PgPassParser.getPassword(existingFile, "anyhost", "6544", "anydb", "anyuser");
+    assertEquals("absolute-any", result);
   }
 
-  // "org.postgresql.pgpassfile" : missing
-  // "PGPASSFILE"                : exist
-  // ".pgpass"                   : exist
-  // <password line>             : exist
   @Test
-  void getPassword32() throws Exception {
-    URL urlPath = getClass().getResource("/pg_service");
-    assertNotNull(urlPath);
-    URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
-    assertNotNull(urlFileEnv);
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost", "5432", "postgres1",
-          "postgres2");
-      assertEquals("postgres3", result);
-    });
-  }
-
-
-  // "org.postgresql.pgpassfile" : exist
-  // "PGPASSFILE"                : exist
-  // ".pgpass"                   : exist
-  // <password line>             : missing
-  @Test
-  void getPassword41() throws Exception {
-    URL urlPath = getClass().getResource("/pg_service");
-    assertNotNull(urlPath);
-    URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
-    assertNotNull(urlFileEnv);
-    URL urlFileProps = getClass().getResource("/pg_service/pgpassfileProps.conf");
-    assertNotNull(urlFileProps);
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getFile(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), "", "user.home", urlPath.getPath())
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost-missing", "5432", "postgres1", "postgres2");
-      assertNull(result);
-    });
-  }
-
-  // "org.postgresql.pgpassfile" : exist
-  // "PGPASSFILE"                : exist
-  // ".pgpass"                   : exist
-  // <password line>             : exist
-  @Test
-  void getPassword42() throws Exception {
-    URL urlPath = getClass().getResource("/pg_service");
-    assertNotNull(urlPath);
-    URL urlFileEnv = getClass().getResource("/pg_service/pgpassfileEnv.conf");
-    assertNotNull(urlFileEnv);
-    URL urlFileProps = getClass().getResource("/pg_service/pgpassfileProps.conf");
-    assertNotNull(urlFileProps);
-    Resources.with(
-        new EnvironmentVariables(PGEnvironment.PGPASSFILE.getName(), urlFileEnv.getPath(), "APPDATA", urlPath.getPath()),
-        new SystemProperties(PGEnvironment.ORG_POSTGRESQL_PGPASSFILE.getName(), urlFileProps.getFile(), "user.home", urlPath.getPath())
-    ).execute(() -> {
-      String result = PgPassParser.getPassword("localhost77", "5432", "any", "postgres11");
-      assertEquals("postgres22", result);
-      result = PgPassParser.getPassword("localhost888", "5432", "any", "postgres11");
-      assertNull(result);
-      result = PgPassParser.getPassword("localhost999", "5432", "any", "postgres11");
-      assertNull(result);
-    });
+  public void getPassword30() throws IOException {
+    //
+    List<PosixFilePermission> permissionList = Arrays.asList(
+        PosixFilePermission.OWNER_WRITE,
+        PosixFilePermission.OWNER_EXECUTE,
+        PosixFilePermission.GROUP_READ,
+        PosixFilePermission.GROUP_WRITE,
+        PosixFilePermission.GROUP_EXECUTE,
+        PosixFilePermission.OTHERS_READ,
+        PosixFilePermission.OTHERS_WRITE,
+        PosixFilePermission.OTHERS_EXECUTE
+    );
+    //
+    File file = null;
+    try {
+      file = File.createTempFile("pgpass_with_different_rights", ".tmp");
+      Path path = file.toPath();
+      FileSystem fileSystem = path.getFileSystem();
+      if (fileSystem.supportedFileAttributeViews().contains("posix")) {
+        // write one line to temp file
+        Files.write(path, "*:*:*:*:pass".getBytes(StandardCharsets.UTF_8));
+        // test
+        for (PosixFilePermission permission : permissionList) {
+          // set permissions
+          Set<PosixFilePermission> newPermissions = new HashSet<>();
+          newPermissions.add(PosixFilePermission.OWNER_READ);
+          newPermissions.add(permission);
+          Files.setPosixFilePermissions(path, newPermissions);
+          // verify result
+          String result = PgPassParser.getPassword(file.getPath(), "x", "x", "x", "x");
+          if (permission.name().startsWith("OWNER_")) {
+            assertEquals("pass", result);
+          } else {
+            assertNull(result);
+          }
+        }
+      }
+    } finally {
+      if (file != null) {
+        file.delete();
+      }
+    }
   }
 
 }
