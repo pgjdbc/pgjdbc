@@ -9,8 +9,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * feat: invalidate the prepared-statement cache after CREATE/DROP/ALTER so callers no longer trip on "cached plan must not change result type" without opting into `autosave=ALWAYS`. Controlled by the new `flushCacheOnDdl` connection property (default `true`); set to `false` for the prior behaviour.
 
 ### Changed
+* chore: `PGXAConnection.ConnectionHandler` now rejects `setAutoCommit(false)` and `setSavepoint(...)` during an active XA branch, in addition to the long-rejected `setAutoCommit(true)` / `commit()` / `rollback()`. The `setSavepoint` rejection was already meant to be in place but the guard misspelled the method name as `setSavePoint`, so savepoints silently went through. Both changes bring the proxy in line with JTA 1.2 §3.4.
+* chore: `commitPrepared` / `rollback`-of-prepared now return `XAER_RMFAIL` instead of `XAER_RMERR` when the underlying connection is left in a non-idle `TransactionState`. Transaction managers (Geronimo, Narayana, Atomikos) treat `XAER_RMFAIL` as retryable on a fresh `XAResource`; the prepared transaction is no longer abandoned.
+
 ### Fixed
 * fix: getCharacterStream wraps String in StringReader [PR #4063](https://github.com/pgjdbc/pgjdbc/pull/4063)
+* fix: `PGXAConnection` no longer saves and restores the underlying connection's JDBC `autoCommit` flag. All XA-protocol SQL (`BEGIN`, `PREPARE TRANSACTION`, `COMMIT`, `ROLLBACK`, `COMMIT PREPARED`, `ROLLBACK PREPARED`, the `recover()` SELECT) is sent through `QUERY_SUPPRESS_BEGIN`, so the caller's `autoCommit` value is invariant across every `XAResource` call. Fixes the "2nd phase commit must be issued using an idle connection" failure during recovery on managed datasources that pool connections with `autoCommit=false` (TomEE, WildFly, WebSphere Liberty).
+* fix: `PGXAConnection.prepare()` now mutates XA state only after `PREPARE TRANSACTION` succeeds. A failed `PREPARE` previously left the driver thinking the branch was already prepared, so the follow-up `rollback(xid)` tried `ROLLBACK PREPARED` against a non-existent gid and returned `XAER_RMERR`. Transaction managers (Narayana) escalated this to `HeuristicMixedException`. With the fix, `rollback(xid)` takes the active-branch path and issues a plain `ROLLBACK`, which the server accepts cleanly. Fixes [Issue #3153](https://github.com/pgjdbc/pgjdbc/issues/3153), [Issue #3123](https://github.com/pgjdbc/pgjdbc/issues/3123).
 
 ## [42.7.11] (2026-04-28)
 

@@ -14,6 +14,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.core.BaseConnection;
+import org.postgresql.core.TransactionState;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.tags.Xa;
 import org.postgresql.test.jdbc2.optional.BaseDataSourceTest;
@@ -324,35 +326,36 @@ public class XADataSourceTest {
     // per normal JDBC rules.
     assertTrue(conn.getAutoCommit());
 
-    // When in an XA transaction, autocommit should be false
+    // XAResource methods leave the JDBC autoCommit flag invariant (see xaMethods_doNotChangeAutoCommit
+    // for the full per-method check). Spot-check the one-phase and two-phase paths here.
     xaRes.start(xid, XAResource.TMNOFLAGS);
-    assertFalse(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "start() must not change autoCommit");
     xaRes.end(xid, XAResource.TMSUCCESS);
-    assertFalse(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "end() must not change autoCommit");
     xaRes.commit(xid, true);
-    assertTrue(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "one-phase commit() must not change autoCommit");
 
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.prepare(xid);
-    assertTrue(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "prepare() must not change autoCommit");
     xaRes.commit(xid, false);
-    assertTrue(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "two-phase commit() must not change autoCommit");
 
-    // Check that autocommit is reset to true after a 1-phase rollback
+    // Same for a 1-phase rollback
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.rollback(xid);
-    assertTrue(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "1-phase rollback() must not change autoCommit");
 
-    // Check that autocommit is reset to true after a 2-phase rollback
+    // Same for a 2-phase rollback
     xaRes.start(xid, XAResource.TMNOFLAGS);
     xaRes.end(xid, XAResource.TMSUCCESS);
     xaRes.prepare(xid);
     xaRes.rollback(xid);
-    assertTrue(conn.getAutoCommit());
+    assertTrue(conn.getAutoCommit(), "2-phase rollback() must not change autoCommit");
 
-    // Check that autoCommit is set correctly after a getConnection-call
+    // close()+getConnection() during an active XA branch returns to the same server transaction
     conn = xaconn.getConnection();
     assertTrue(conn.getAutoCommit());
 
@@ -364,7 +367,9 @@ public class XADataSourceTest {
 
     conn.close();
     conn = xaconn.getConnection();
-    assertFalse(conn.getAutoCommit());
+    // state != IDLE on getConnection(), so the JDBC handle is not reset to autoCommit=true here.
+    // The physical connection's autoCommit is whatever it was before start() (true in this test).
+    assertTrue(conn.getAutoCommit());
 
     Timestamp ts2 = getTransactionTimestamp(conn);
 
@@ -846,4 +851,348 @@ public class XADataSourceTest {
    *
    * xaRes.commit(xid1, true); xaRes.commit(xid2, true); xaRes.commit(xid3, true); }
    */
+
+  private TransactionState transactionState(Connection c) throws SQLException {
+    return c.unwrap(BaseConnection.class).getTransactionState();
+  }
+
+  /**
+   * recover() on a connection with autoCommit=false must not leave the connection in OPEN: the
+   * SELECT against pg_prepared_xacts uses QUERY_SUPPRESS_BEGIN, so pgjdbc does not prepend a BEGIN.
+   * A follow-up commit(xid, false) on the recovered xid then succeeds, instead of failing the
+   * "2nd phase commit must be issued using an idle connection" precondition.
+   */
+  @Test
+  void recover_withAutoCommitFalse_doesNotOpenTransaction() throws Exception {
+    Xid xid = new CustomXid(0xa1000001);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (1)");
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    xaRes.prepare(xid);
+
+    // Simulate the managed-datasource scenario: the recovery flow lands on a connection that the
+    // pool has put into autoCommit=false.
+    conn.setAutoCommit(false);
+    assertEquals(TransactionState.IDLE, transactionState(conn),
+        "autoCommit=false alone must not start a transaction");
+
+    Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN);
+    assertTrue(Arrays.asList(recovered).contains(xid), "Did not recover prepared xid");
+    assertEquals(TransactionState.IDLE, transactionState(conn),
+        "recover() must leave transactionState=IDLE on an autoCommit=false connection");
+
+    // Same XAResource, same xid → 2nd phase commit must succeed.
+    xaRes.commit(xid, false);
+    assertEquals(TransactionState.IDLE, transactionState(conn));
+  }
+
+  /**
+   * recover() called on a connection that already has an open local transaction must not commit
+   * or roll back that transaction. The SELECT against pg_prepared_xacts runs inside the caller's
+   * transaction with QUERY_SUPPRESS_BEGIN; transactionState ends where it started.
+   */
+  @Test
+  void recover_withUserTransactionInFlight_doesNotCommitUserWork() throws Exception {
+    // First, prepare a transaction so recover() has something to return.
+    Xid prepared = new CustomXid(0xa1000002);
+    xaRes.start(prepared, XAResource.TMNOFLAGS);
+    conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (2)");
+    xaRes.end(prepared, XAResource.TMSUCCESS);
+    xaRes.prepare(prepared);
+
+    // Now open a local transaction on the same physical connection with an unrelated INSERT.
+    conn.setAutoCommit(false);
+    conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (99)");
+    assertEquals(TransactionState.OPEN, transactionState(conn));
+
+    // recover() must see the prepared xid and leave the local transaction OPEN.
+    Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN);
+    assertTrue(Arrays.asList(recovered).contains(prepared), "Did not recover prepared xid");
+    assertEquals(TransactionState.OPEN, transactionState(conn),
+        "recover() must not change the caller's transactionState");
+
+    // Roll back the local transaction. The unrelated INSERT must be gone.
+    conn.rollback();
+    try (ResultSet rs = dbConn.createStatement().executeQuery("SELECT count(*) FROM testxa1 WHERE foo = 99")) {
+      rs.next();
+      assertEquals(0, rs.getInt(1), "recover() must not have committed the caller's INSERT");
+    }
+
+    // Clean up the prepared transaction.
+    conn.setAutoCommit(true);
+    xaRes.rollback(prepared);
+  }
+
+  /**
+   * When the caller's local transaction is already in FAILED state, recover() cannot read
+   * pg_prepared_xacts (PG rejects the SELECT with "current transaction is aborted"). The driver
+   * surfaces this as XAException(XAER_RMERR); the caller's transaction is left untouched.
+   */
+  @Test
+  void recover_inFailedTransaction_failsWithRMERR() throws Exception {
+    conn.setAutoCommit(false);
+    // Force the connection into TransactionState.FAILED by running a query that errors inside the
+    // caller's transaction.
+    try (Statement st = conn.createStatement()) {
+      st.executeUpdate("SELECT 1 FROM no_such_table_for_xa_test");
+      fail("Expected SQL error to put transaction into FAILED");
+    } catch (SQLException expected) {
+      // ignore
+    }
+    assertEquals(TransactionState.FAILED, transactionState(conn));
+
+    try {
+      xaRes.recover(XAResource.TMSTARTRSCAN);
+      fail("recover() must fail on a FAILED transaction");
+    } catch (XAException xae) {
+      assertEquals(XAException.XAER_RMERR, xae.errorCode,
+          "recover() on a FAILED transaction expects XAER_RMERR");
+    }
+    assertEquals(TransactionState.FAILED, transactionState(conn),
+        "recover() must not silently reset the caller's transaction");
+
+    // Clean up so the @AfterEach connection close does not complain.
+    conn.rollback();
+    conn.setAutoCommit(true);
+  }
+
+  /**
+   * commit(xid, false) on a connection where the caller has left a local transaction open must
+   * fail with XAER_RMFAIL, not silently commit the caller's work. XAER_RMFAIL signals the
+   * transaction manager to retry on a fresh XAResource.
+   */
+  @Test
+  void commitPrepared_failsCleanlyOnDirtyConnection() throws Exception {
+    // Prepare a transaction on a separate XAConnection so we can attempt the 2-phase commit on a
+    // connection that is also holding a local transaction.
+    Xid prepared = new CustomXid(0xa1000003);
+    XAConnection xaconn2 = xaDs.getXAConnection();
+    try {
+      XAResource xaRes2 = xaconn2.getXAResource();
+      Connection conn2 = xaconn2.getConnection();
+      xaRes2.start(prepared, XAResource.TMNOFLAGS);
+      conn2.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (3)");
+      xaRes2.end(prepared, XAResource.TMSUCCESS);
+      xaRes2.prepare(prepared);
+    } finally {
+      xaconn2.close();
+    }
+
+    // Open a local transaction on the recovery connection.
+    conn.setAutoCommit(false);
+    conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (88)");
+    assertEquals(TransactionState.OPEN, transactionState(conn));
+
+    try {
+      xaRes.commit(prepared, false);
+      fail("commit(prepared, false) must fail on a connection with an open local transaction");
+    } catch (XAException xae) {
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "commit(prepared, false) on a dirty connection expects XAER_RMFAIL");
+    }
+    assertEquals(TransactionState.OPEN, transactionState(conn),
+        "commit(prepared, false) must not touch the caller's transaction");
+
+    // Clean up.
+    conn.rollback();
+    conn.setAutoCommit(true);
+    xaRes.rollback(prepared);
+  }
+
+  /**
+   * Symmetric to {@link #commitPrepared_failsCleanlyOnDirtyConnection()}: rollback(xid) of a
+   * prepared transaction on a connection with an open local transaction must fail with
+   * XAER_RMFAIL, not silently roll back the caller's work.
+   */
+  @Test
+  void rollbackPrepared_failsCleanlyOnDirtyConnection() throws Exception {
+    Xid prepared = new CustomXid(0xa1000004);
+    XAConnection xaconn2 = xaDs.getXAConnection();
+    try {
+      XAResource xaRes2 = xaconn2.getXAResource();
+      Connection conn2 = xaconn2.getConnection();
+      xaRes2.start(prepared, XAResource.TMNOFLAGS);
+      conn2.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (4)");
+      xaRes2.end(prepared, XAResource.TMSUCCESS);
+      xaRes2.prepare(prepared);
+    } finally {
+      xaconn2.close();
+    }
+
+    conn.setAutoCommit(false);
+    conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (77)");
+    assertEquals(TransactionState.OPEN, transactionState(conn));
+
+    try {
+      xaRes.rollback(prepared);
+      fail("rollback(prepared) must fail on a connection with an open local transaction");
+    } catch (XAException xae) {
+      assertEquals(XAException.XAER_RMFAIL, xae.errorCode,
+          "rollback(prepared) on a dirty connection expects XAER_RMFAIL");
+    }
+    assertEquals(TransactionState.OPEN, transactionState(conn),
+        "rollback(prepared) must not touch the caller's transaction");
+
+    // Clean up.
+    conn.rollback();
+    conn.setAutoCommit(true);
+    xaRes.rollback(prepared);
+  }
+
+  /**
+   * XAResource methods must not change the caller's JDBC autoCommit flag on either the success or
+   * the failure path. Verified on every method in the lifecycle.
+   */
+  @Test
+  void xaMethods_doNotChangeAutoCommit() throws Exception {
+    for (boolean initial : new boolean[]{true, false}) {
+      // Reset the connection to a known state before each iteration.
+      if (!conn.getAutoCommit()) {
+        conn.rollback();
+      }
+      conn.setAutoCommit(initial);
+      assertEquals(initial, conn.getAutoCommit(), "precondition for initial=" + initial);
+
+      Xid xid = new CustomXid(0xa1000010 + (initial ? 1 : 0));
+
+      xaRes.start(xid, XAResource.TMNOFLAGS);
+      assertEquals(initial, conn.getAutoCommit(), "start() must not change autoCommit");
+
+      conn.createStatement().executeUpdate("INSERT INTO testxa1 VALUES (10)");
+      assertEquals(initial, conn.getAutoCommit(), "user SQL must not change autoCommit");
+
+      xaRes.end(xid, XAResource.TMSUCCESS);
+      assertEquals(initial, conn.getAutoCommit(), "end() must not change autoCommit");
+
+      xaRes.prepare(xid);
+      assertEquals(initial, conn.getAutoCommit(), "prepare() must not change autoCommit");
+
+      xaRes.commit(xid, false);
+      assertEquals(initial, conn.getAutoCommit(), "2-phase commit() must not change autoCommit");
+
+      Xid[] recovered = xaRes.recover(XAResource.TMSTARTRSCAN);
+      Arrays.toString(recovered); // silence unused warnings; the call is the point
+      assertEquals(initial, conn.getAutoCommit(), "recover() must not change autoCommit");
+    }
+
+    // Also check the failure path: a forced PREPARE TRANSACTION failure via a deferred FK
+    // violation must leave autoCommit untouched.
+    Xid xid = new CustomXid(0xa1000020);
+    conn.setAutoCommit(true);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    conn.createStatement().executeUpdate("SET CONSTRAINTS ALL DEFERRED");
+    conn.createStatement().executeUpdate("INSERT INTO testxa3 VALUES (404)");
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    try {
+      xaRes.prepare(xid);
+      fail("prepare() with a deferred constraint violation must fail");
+    } catch (XAException expected) {
+      // ignore
+    }
+    assertTrue(conn.getAutoCommit(),
+        "prepare() must not change autoCommit even when PREPARE TRANSACTION fails");
+
+    xaRes.rollback(xid);
+    assertTrue(conn.getAutoCommit());
+  }
+
+  /**
+   * When PREPARE TRANSACTION fails (here, on a deferred foreign-key constraint), the driver must leave the XA
+   * branch in a state where the transaction manager can recover it by calling rollback(xid).
+   * That means {@code state == ENDED} with {@code currentXid == xid}, so rollback(xid) takes the
+   * active-branch path and issues a plain ROLLBACK — not the prepared-branch path that would
+   * issue ROLLBACK PREPARED against a non-existent gid.
+   *
+   * <p>Reproduces the scenario from
+   * <a href="https://github.com/pgjdbc/pgjdbc/issues/3123">Issue #3123</a> (Narayana escalating
+   * a failed prepare to {@code HeuristicMixedException}) and
+   * <a href="https://github.com/pgjdbc/pgjdbc/issues/3153">Issue #3153</a> (the pgjdbc-internal
+   * diagnosis: rollback() should not return XAER_RMERR after a failed prepare).</p>
+   */
+  @Test
+  void prepareFailure_leavesBranchRollbackable() throws Exception {
+    // Use a deferred FK constraint violation to force PREPARE TRANSACTION to fail. The INSERT
+    // succeeds inside the branch, end() succeeds, but PREPARE evaluates the deferred constraint
+    // and rejects the commit.
+    Xid xid = new CustomXid(0xa1000030);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    conn.createStatement().executeUpdate("SET CONSTRAINTS ALL DEFERRED");
+    conn.createStatement().executeUpdate("INSERT INTO testxa3 VALUES (777)");
+    xaRes.end(xid, XAResource.TMSUCCESS);
+    try {
+      xaRes.prepare(xid);
+      fail("PREPARE TRANSACTION with a deferred constraint violation must fail");
+    } catch (XAException expected) {
+      // ignore
+    }
+
+    // The driver must still let us roll back the active branch. The successful rollback issues
+    // ROLLBACK (active-branch path) and clears the INSERT from the server transaction. If state
+    // had been mutated to IDLE before SQL — as the pre-fix code did — rollback(xid) would have
+    // taken the prepared-branch path and tried ROLLBACK PREPARED against a gid the server has
+    // never seen.
+    xaRes.rollback(xid);
+
+    try (ResultSet rs = dbConn.createStatement().executeQuery("SELECT count(*) FROM testxa3 WHERE foo = 777")) {
+      rs.next();
+      assertEquals(0, rs.getInt(1), "rollback() after a failed prepare() must roll back the active branch");
+    }
+  }
+
+  /**
+   * The ConnectionHandler proxy must reject both setAutoCommit(true) and setAutoCommit(false)
+   * while an XA branch is active on the connection, per JTA 1.2 §3.4. The previous behaviour
+   * blocked only setAutoCommit(true).
+   */
+  @Test
+  void connectionHandler_rejectsBothAutoCommitDirections() throws Exception {
+    Xid xid = new CustomXid(0xa1000040);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try {
+      try {
+        conn.setAutoCommit(true);
+        fail("setAutoCommit(true) must be rejected during an active XA branch");
+      } catch (PSQLException expected) {
+        // ignore
+      }
+      try {
+        conn.setAutoCommit(false);
+        fail("setAutoCommit(false) must be rejected during an active XA branch");
+      } catch (PSQLException expected) {
+        // ignore
+      }
+    } finally {
+      xaRes.end(xid, XAResource.TMSUCCESS);
+      xaRes.rollback(xid);
+    }
+  }
+
+  /**
+   * The ConnectionHandler must also reject {@code setSavepoint()} and {@code setSavepoint(name)}
+   * while an XA branch is active, per JTA 1.2 §3.4. Until this fix the guard misspelled the
+   * method name as {@code setSavePoint}, so savepoints silently went through to the underlying
+   * connection.
+   */
+  @Test
+  void connectionHandler_rejectsSetSavepoint() throws Exception {
+    Xid xid = new CustomXid(0xa1000041);
+    xaRes.start(xid, XAResource.TMNOFLAGS);
+    try {
+      try {
+        conn.setSavepoint();
+        fail("setSavepoint() must be rejected during an active XA branch");
+      } catch (PSQLException expected) {
+        // ignore
+      }
+      try {
+        conn.setSavepoint("xa_sp");
+        fail("setSavepoint(name) must be rejected during an active XA branch");
+      } catch (PSQLException expected) {
+        // ignore
+      }
+    } finally {
+      xaRes.end(xid, XAResource.TMSUCCESS);
+      xaRes.rollback(xid);
+    }
+  }
 }
