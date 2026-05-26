@@ -1941,39 +1941,47 @@ msgstr "SQLState сервера: {0}"
 msgid "StreamWrapper leak detected StreamWrapper.close() was not called. "
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:134
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:138
 msgid ""
-"Transaction control methods setAutoCommit(true), commit, rollback and "
-"setSavePoint not allowed while an XA transaction is active."
+"Transaction control methods setAutoCommit, commit, rollback and setSavepoint "
+"are not allowed while an XA transaction is active."
 msgstr ""
+"Методы управления транзакциями (setAutoCommit, commit, rollback и "
+"setSavepoint) запрещены во время активной XA-транзакции."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:192
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:278
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:387
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:196
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:407
 #, java-format
 msgid "Invalid flags {0}"
 msgstr "Неверные флаги {0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:196
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:282
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:500
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:200
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:290
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:524
 msgid "xid must not be null"
 msgstr ""
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:200
-msgid "Connection is busy with another transaction"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:205
+#, java-format
+msgid ""
+"Connection is already associated with an active XA branch. End the current "
+"branch before starting a new one. start xid={0}, currentXid={1}, state={2}, "
+"flags={3}"
 msgstr ""
+"Соединение уже связано с активной XA-ветвью. Завершите текущую ветвь, прежде "
+"чем начинать новую. start xid={0}, currentXid={1}, state={2}, flags={3}"
 
 # key: postgresql.unimplemented
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:209
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:292
-msgid "suspend/resume not implemented"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:215
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:301
+msgid "Suspend/resume not implemented"
 msgstr "Операции XA suspend/resume не реализованы"
 
 # key: postgresql.con.isolevel
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:217
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:224
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:228
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:223
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:230
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:234
 #, java-format
 msgid ""
 "Invalid protocol state requested. Attempted transaction interleaving is not "
@@ -1982,106 +1990,132 @@ msgstr ""
 "Чередование транзакций в одном соединении не поддерживается. Предыдущую "
 "транзакцию нужно завершить xid={0}, currentXid={1}, state={2}, flags={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:239
-msgid "Error disabling autocommit"
-msgstr ""
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:246
+#, java-format
+msgid "Error opening transaction. start xid={0}"
+msgstr "Ошибка при открытии транзакции. start xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:294
 #, java-format
 msgid ""
-"tried to call end without corresponding start call. state={0}, start "
-"xid={1}, currentXid={2}, preparedXid={3}"
+"end() called without a matching start(). end xid={0}, currentXid={1}, "
+"state={2}, preparedXid={3}"
 msgstr ""
-"Невозможно завершить транзакцию, т.к. транзакция не была начата. state={0}, "
-"start xid={1}, currentXid={2}, preparedXid={3}"
+"Вызов end() без соответствующего вызова start(). end xid={0}, "
+"currentXid={1}, state={2}, preparedXid={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:332
-#, fuzzy, java-format
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:341
+#, java-format
 msgid ""
-"Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}"
+"Transaction was already prepared on this connection. prepare xid={0}, "
+"preparedXid={1}"
 msgstr ""
-"Ошибка при откате подготовленной транзакции. rollback xid={0}, "
-"preparedXid={1}, currentXid={2}"
+"Транзакция уже подготовлена на этом соединении. prepare xid={0}, "
+"preparedXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:335
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:345
 #, java-format
 msgid "Current connection does not have an associated xid. prepare xid={0}"
-msgstr ""
+msgstr "У текущего соединения нет связанного xid. prepare xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:342
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:352
 #, java-format
 msgid ""
-"Not implemented: Prepare must be issued using the same connection that "
-"started the transaction. currentXid={0}, prepare xid={1}"
+"Prepare must be issued on the connection that started the branch. "
+"Transaction interleaving is not supported. prepare xid={0}, currentXid={1}"
 msgstr ""
-"В каком соединении транзакцию начинали, в таком и вызывайте prepare. По-"
-"другому не работает. currentXid={0}, prepare xid={1}"
+"Prepare должен выполняться на том соединении, которое начало ветвь. "
+"Чередование транзакций не поддерживается. prepare xid={0}, currentXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:346
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:356
 #, java-format
-msgid "Prepare called before end. prepare xid={0}, state={1}"
-msgstr ""
-"Вызов prepare должен происходить только после вызова end. prepare xid={0}, "
-"state={1}"
+msgid "Prepare called before end(). prepare xid={0}, state={1}"
+msgstr "prepare вызван до end(). prepare xid={0}, state={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:366
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:368
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:382
 #, java-format
 msgid "Error preparing transaction. prepare xid={0}"
 msgstr "Ошибка при выполнении prepare для транзакции {0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:425
-msgid "Error during recover"
-msgstr ""
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:441
+#, java-format
+msgid "Error during recover. flag={0}"
+msgstr "Ошибка при восстановлении. flag={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:489
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:487
 #, java-format
 msgid ""
-"Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, "
+"Cannot rollback prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"rollback xid={0}, transactionState={1}"
+msgstr ""
+"Невозможно откатить подготовленную транзакцию, пока на соединении "
+"выполняется локальная транзакция. Сначала зафиксируйте или откатите "
+"локальную транзакцию. rollback xid={0}, transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:513
+#, java-format
+msgid ""
+"Error rolling back transaction. rollback xid={0}, preparedXid={1}, "
 "currentXid={2}"
 msgstr ""
-"Ошибка при откате подготовленной транзакции. rollback xid={0}, "
-"preparedXid={1}, currentXid={2}"
+"Ошибка при откате транзакции. rollback xid={0}, preparedXid={1}, "
+"currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:530
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:553
 #, java-format
 msgid ""
 "One-phase commit called for xid {0} but connection was prepared with xid {1}"
 msgstr ""
+"Однофазная фиксация запрошена для xid {0}, но соединение подготовлено с xid "
+"{1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:538
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:561
+#, java-format
 msgid ""
-"Not implemented: one-phase commit must be issued using the same connection "
-"that was used to start it"
+"One-phase commit must be issued on the connection that started the branch. "
+"commit xid={0}"
 msgstr ""
+"Однофазная фиксация должна выполняться на том соединении, которое начало "
+"ветвь. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:542
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:565
 #, java-format
 msgid "One-phase commit with unknown xid. commit xid={0}, currentXid={1}"
-msgstr ""
+msgstr "Однофазная фиксация с неизвестным xid. commit xid={0}, currentXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:546
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:569
 #, java-format
-msgid "commit called before end. commit xid={0}, state={1}"
-msgstr ""
-"Операция commit должна вызываться только после операции end. commit xid={0}, "
-"state={1}"
+msgid "commit() called before end(). commit xid={0}, state={1}"
+msgstr "commit() вызван до end(). commit xid={0}, state={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:557
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:581
 #, java-format
 msgid "Error during one-phase commit. commit xid={0}"
 msgstr "Ошибка при однофазной фиксации транзакции. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:585
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:614
 #, java-format
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection. "
-"commit xid={0}, currentXid={1}, state={2}, transactionState={3}"
+"2nd phase commit cannot be issued while an XA branch is active on this "
+"connection. commit xid={0}, currentXid={1}, state={2}"
 msgstr ""
-"Духфазная фиксация работает только, если соединение неактивно (state=idle и "
-"транзакцция отсутствует). commit xid={0}, currentXid={1}, state={2}, "
-"transactionState={3}"
+"Вторую фазу фиксации нельзя выполнить, пока на соединении активна XA-ветвь. "
+"commit xid={0}, currentXid={1}, state={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:618
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:627
+#, java-format
+msgid ""
+"Cannot 2nd phase commit prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"commit xid={0}, transactionState={1}"
+msgstr ""
+"Невозможно выполнить вторую фазу фиксации подготовленной транзакции, пока на "
+"соединении выполняется локальная транзакция. Сначала зафиксируйте или "
+"откатите локальную транзакцию. commit xid={0}, transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:654
 #, java-format
 msgid ""
 "Error committing prepared transaction. commit xid={0}, preparedXid={1}, "
@@ -2090,7 +2124,7 @@ msgstr ""
 "Ошибка при фиксации подготовленной транзакции. commit xid={0}, "
 "preparedXid={1}, currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:635
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:671
 #, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
-msgstr ""
+msgstr "Эвристический commit/rollback не поддерживается. forget xid={0}"
