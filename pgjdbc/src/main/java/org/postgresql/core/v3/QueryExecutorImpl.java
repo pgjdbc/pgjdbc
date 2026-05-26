@@ -1016,7 +1016,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (valueLen < -1) {
               // Unconditional: the wire protocol assigns meaning only to -1 (NULL) and
               // to non-negative values. Any other negative leaves no way to decode the value.
-              throw pgStream.poison(new IOException(GT.tr(
+              throw pgStream.markBroken(new IOException(GT.tr(
                   "Protocol error. FunctionCallResponse has negative value length {0}.",
                   valueLen)));
             }
@@ -1024,7 +1024,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               // Unconditional: a single value cannot occupy more bytes than the
               // FunctionCallResponse envelope itself holds (single-value variant of
               // the issue-#4015 DataRow field-overrun).
-              throw pgStream.poison(new IOException(GT.tr(
+              throw pgStream.markBroken(new IOException(GT.tr(
                   "Protocol error. FunctionCallResponse value length {0} exceeds message size {1}.",
                   valueLen, msgLen)));
             }
@@ -2906,8 +2906,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     // tightest protocol-level lower bound and is fork-independent.
     if ((long) size * 19L > msgSize - 6L) {
       // Unconditional: the 19-byte minimum is a wire-level invariant; envelope
-      // arithmetic cannot honour the protocolViolationBehaviour override here.
-      throw pgStream.poison(new IOException(GT.tr(
+      // arithmetic cannot honour the protocolHardeningMode override here.
+      throw pgStream.markBroken(new IOException(GT.tr(
           "Protocol error. RowDescription field count {0} requires at least {1} bytes, but message size is only {2}.",
           size, 6 + size * 19, msgSize)));
     }
@@ -3081,21 +3081,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           byte[] ckey;
           if (ProtocolVersion.v3_0.equals(protocolVersion)) {
             if (keyLen != 4) {
-              throw pgStream.poison(new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
+              throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error. Cancel Key should be 4 bytes for protocol version {0},"
                   + " but received {1} bytes. Session setup failed.", ProtocolVersion.v3_0, keyLen),
                   PSQLState.PROTOCOL_VIOLATION));
             }
           }
           if (ProtocolVersion.v3_2.equals(protocolVersion)) {
             if (keyLen < 0) {
-              throw pgStream.poison(new PSQLException(GT.tr(
+              throw pgStream.markBroken(new PSQLException(GT.tr(
                   "Protocol error. Cancel Key has negative length {0} for protocol version {1}."
                       + " Session setup failed.",
                   keyLen, ProtocolVersion.v3_2),
                   PSQLState.PROTOCOL_VIOLATION));
             }
             if (keyLen > 256) {
-              throw pgStream.poison(new PSQLException(GT.tr(
+              throw pgStream.markBroken(new PSQLException(GT.tr(
                   "Protocol error. Cancel Key cannot be greater than 256 for protocol version {0},"
                       + " but received {1} bytes. Session setup failed.",
                   ProtocolVersion.v3_2, keyLen),
@@ -3131,11 +3131,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if (LOGGER.isLoggable(Level.FINEST)) {
             LOGGER.log(Level.FINEST, "  invalid message type={0}", (char) beresp);
           }
-          throw pgStream.poison(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+          throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
               PSQLState.PROTOCOL_VIOLATION));
       }
     }
-    throw pgStream.poison(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+    throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
         PSQLState.PROTOCOL_VIOLATION));
   }
 

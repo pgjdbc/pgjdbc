@@ -105,24 +105,24 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Becomes {@code true} the first time a protocol-level hardening check rejects a
-   * backend message. Once poisoned the stream is permanently desynced: even if the
+   * backend message. Once broken the stream is permanently desynced: even if the
    * underlying socket happens to be open, no further bytes from it can be trusted. The
    * flag is consulted by {@link #isClosed()} so a connection pool that asks
    * {@code isClosed()/isValid()} on borrow will discard the connection rather than
    * hand it to another caller. The matching socket close is best-effort, so a
    * subsequent forgotten {@code abort()} cannot leak the file descriptor either.
    */
-  private volatile boolean poisoned;
+  private volatile boolean broken;
 
   /**
    * Selects what happens when a #4015 hardening check trips. Defaults to the JVM-wide
-   * {@link ProtocolViolationBehaviour#CURRENT}, which is itself sourced from the
-   * {@value ProtocolViolationBehaviour#SYSTEM_PROPERTY} system property. Exposed via a
-   * setter ({@link #setProtocolViolationBehaviour}) primarily for tests that need to
+   * {@link ProtocolHardeningMode#CURRENT}, which is itself sourced from the
+   * {@value ProtocolHardeningMode#SYSTEM_PROPERTY} system property. Exposed via a
+   * setter ({@link #setProtocolHardeningMode}) primarily for tests that need to
    * exercise the {@code warn} and {@code disable} code paths without touching the
    * JVM-wide state.
    */
-  private ProtocolViolationBehaviour protocolViolationBehaviour = ProtocolViolationBehaviour.CURRENT;
+  private ProtocolHardeningMode protocolHardeningMode = ProtocolHardeningMode.CURRENT;
 
   /**
    * Name of the protocol message currently being parsed, captured by the most recent
@@ -204,9 +204,9 @@ public class PGStream implements Closeable, Flushable {
   }
 
   /**
-   * Marks the stream as desynced and closes the underlying socket on a best-effort basis.
+   * Marks the stream broken and closes the underlying socket on a best-effort basis.
    * Returns the supplied exception so call sites can write
-   * {@code throw pgStream.poison(new ...(...))} fluently. The generic signature
+   * {@code throw pgStream.markBroken(new ...(...))} fluently. The generic signature
    * supports both {@link IOException} thrown by
    * PGStream's internal hardening checks and {@link org.postgresql.util.PSQLException}
    * (e.g. {@link org.postgresql.util.PSQLState#PROTOCOL_VIOLATION}) thrown by the
@@ -214,12 +214,12 @@ public class PGStream implements Closeable, Flushable {
    * {@link #isClosed()} reports {@code true}, so even if the regular abort path is
    * somehow skipped the connection cannot be reused.
    */
-  public <T extends Throwable> T poison(T reason) {
-    poisoned = true;
+  public <T extends Throwable> T markBroken(T reason) {
+    broken = true;
     try {
       // Force an immediate TCP RST rather than a graceful FIN/ACK exchange. close() on
       // a graceful path can block waiting for the OS to flush queued bytes when
-      // SO_LINGER > 0; on a poisoned connection we have no reason to wait, and any
+      // SO_LINGER > 0; on a broken connection we have no reason to wait, and any
       // bytes still in our send buffer are part of a request the server is already
       // about to discard. setSoLinger(true, 0) makes the subsequent close() emit an
       // RST and drop both input and output buffers immediately.
@@ -232,7 +232,7 @@ public class PGStream implements Closeable, Flushable {
       connection.close();
     } catch (IOException ignore) {
       // Best-effort: the socket may already be closed, or the close itself may fail.
-      // Either way the stream is already marked as poisoned.
+      // Either way the stream is already marked broken.
     }
     return reason;
   }
@@ -240,31 +240,31 @@ public class PGStream implements Closeable, Flushable {
   /**
    * Returns the current behaviour for #4015 hardening-check failures on this stream.
    */
-  public ProtocolViolationBehaviour getProtocolViolationBehaviour() {
-    return protocolViolationBehaviour;
+  public ProtocolHardeningMode getProtocolHardeningMode() {
+    return protocolHardeningMode;
   }
 
   /**
-   * Overrides the {@link ProtocolViolationBehaviour} for this stream. Intended for
+   * Overrides the {@link ProtocolHardeningMode} for this stream. Intended for
    * tests that need to exercise non-default behaviours without altering the
    * JVM-wide setting. Production code should rely on the system property
-   * ({@value ProtocolViolationBehaviour#SYSTEM_PROPERTY}) so that every connection
+   * ({@value ProtocolHardeningMode#SYSTEM_PROPERTY}) so that every connection
    * the JVM opens picks up the same policy.
    */
-  public void setProtocolViolationBehaviour(ProtocolViolationBehaviour behaviour) {
-    this.protocolViolationBehaviour = behaviour;
+  public void setProtocolHardeningMode(ProtocolHardeningMode behaviour) {
+    this.protocolHardeningMode = behaviour;
   }
 
   /**
    * Reports a hardening-check failure detected by a v3 protocol reader. Routes the
-   * report according to {@link #getProtocolViolationBehaviour()}:
+   * report according to {@link #getProtocolHardeningMode()}:
    *
    * <ul>
-   *   <li>{@link ProtocolViolationBehaviour#FAIL FAIL}: appends the
+   *   <li>{@link ProtocolHardeningMode#FAIL FAIL}: appends the
    *       silence-knob hint to {@code message}, builds an exception with
-   *       {@code factory}, poisons the stream and throws. Opt in via
-   *       {@value ProtocolViolationBehaviour#SYSTEM_PROPERTY}{@code =fail}.</li>
-   *   <li>{@link ProtocolViolationBehaviour#WARN WARN} (default): logs
+   *       {@code factory}, marks the stream broken and throws. Opt in via
+   *       {@value ProtocolHardeningMode#SYSTEM_PROPERTY}{@code =fail}.</li>
+   *   <li>{@link ProtocolHardeningMode#WARN WARN} (default): logs
    *       {@code message} at {@link Level#WARNING WARNING} together with the
    *       exception {@code factory} would have thrown, so the log record carries
    *       a stack trace pointing at the reader site that detected the violation.
@@ -273,7 +273,7 @@ public class PGStream implements Closeable, Flushable {
    *       ({@code NegativeArraySizeException}, hang on socket read, etc.). Whether
    *       the stack trace appears in the rendered log line is controlled by the
    *       logger configuration (handler/formatter), not by this method.</li>
-   *   <li>{@link ProtocolViolationBehaviour#DISABLE DISABLE}: silently returns,
+   *   <li>{@link ProtocolHardeningMode#DISABLE DISABLE}: silently returns,
    *       same continuation as WARN but without the log breadcrumb.</li>
    * </ul>
    *
@@ -294,7 +294,7 @@ public class PGStream implements Closeable, Flushable {
    */
   public <T extends Throwable> void failOnDesync(Function<String, T> factory, String message)
       throws T {
-    switch (protocolViolationBehaviour) {
+    switch (protocolHardeningMode) {
       case DISABLE:
         break;
       case WARN:
@@ -307,7 +307,7 @@ public class PGStream implements Closeable, Flushable {
         break;
       case FAIL:
       default:
-        throw poison(factory.apply(ProtocolViolationBehaviour.appendSilenceHint(message)));
+        throw markBroken(factory.apply(ProtocolHardeningMode.appendSilenceHint(message)));
     }
   }
 
@@ -771,12 +771,12 @@ public class PGStream implements Closeable, Flushable {
     }
     if (maxResultBuffer > 0 && len > maxResultBuffer) {
       // Unconditional. The user explicitly set maxResultBuffer to declare a memory
-      // ceiling; honouring the protocolViolationBehaviour override would let a
+      // ceiling; honouring the protocolHardeningMode override would let a
       // single backend message blow past that ceiling, which is what the user
       // asked us never to allow. The same overrun is caught later by
       // increaseByteCounter, but only after the over-sized buffer has already
       // been allocated.
-      throw poison(new IOException(GT.tr(
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. {0} message has length {1} which exceeds maxResultBuffer cap of {2} bytes.",
           packetName, len, maxResultBuffer)));
     }
@@ -882,7 +882,7 @@ public class PGStream implements Closeable, Flushable {
       // read can only come from outside the message that was declared, which is a
       // protocol-level impossibility. Honouring the override would invite an
       // unbounded scan that crosses the next message boundary.
-      throw poison(new IOException(GT.tr(
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. {0} message of {1} bytes has no remaining envelope budget.",
           currentMessageNameForError(), currentMessageLength)));
     }
@@ -968,7 +968,7 @@ public class PGStream implements Closeable, Flushable {
       // Unconditional. The envelope is too small to hold even the fixed per-field
       // length prefixes the wire already promised; no wire-compatible backend can
       // fit 4*nf bytes into fewer than 4*nf bytes of envelope space.
-      throw poison(new IOException(GT.tr(
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. DataRow field count {0} requires at least {1} bytes for per-field length prefixes, but message size is only {2}.",
           nf, 4 * nf, messageSize)));
     }
@@ -986,21 +986,21 @@ public class PGStream implements Closeable, Flushable {
           // Unconditional. The wire protocol assigns exactly two meanings to the
           // per-field length: -1 means NULL, any non-negative value is the byte
           // count. Any other negative value leaves no way for the driver to
-          // decode the field, so honouring the protocolViolationBehaviour
+          // decode the field, so honouring the protocolHardeningMode
           // override here would only swap an IOException for a less informative
           // NegativeArraySizeException a few lines below.
-          throw poison(new IOException(GT.tr(
+          throw markBroken(new IOException(GT.tr(
               "Protocol error. DataRow field {0} has negative length {1}.",
               i, size)));
         }
         if (size > remaining) {
           // Unconditional: this is the exact scenario from issue #4015. A single field
           // claiming more bytes than the row envelope still holds is mathematically
-          // impossible on any wire-compatible backend, so no protocolViolationBehaviour
+          // impossible on any wire-compatible backend, so no protocolHardeningMode
           // override should allow it through. Bypass failOnDesync and fail fast even in
           // WARN and DISABLE modes; the original bug (~1.7 GB allocation, indefinite
           // socket-read hang) is otherwise reachable in DISABLE mode.
-          throw poison(new IOException(GT.tr(
+          throw markBroken(new IOException(GT.tr(
               "Protocol error. DataRow field {0} length {1} exceeds remaining row bytes {2}.",
               i, size, remaining)));
         }
@@ -1113,7 +1113,7 @@ public class PGStream implements Closeable, Flushable {
     if (c < 0) {
       return;
     }
-    throw poison(new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
+    throw markBroken(new PSQLException(GT.tr("Expected an EOF from server, got: {0}", c),
         PSQLState.COMMUNICATION_ERROR));
   }
 
@@ -1220,7 +1220,7 @@ public class PGStream implements Closeable, Flushable {
     if (maxResultBuffer != -1) {
       resultBufferByteCount += value;
       if (resultBufferByteCount > maxResultBuffer) {
-        throw poison(new PSQLException(GT.tr(
+        throw markBroken(new PSQLException(GT.tr(
           "Result set exceeded maxResultBuffer limit. Received:  {0}; Current limit: {1}",
           String.valueOf(resultBufferByteCount), String.valueOf(maxResultBuffer)), PSQLState.COMMUNICATION_ERROR));
       }
@@ -1228,6 +1228,6 @@ public class PGStream implements Closeable, Flushable {
   }
 
   public boolean isClosed() {
-    return poisoned || connection.isClosed();
+    return broken || connection.isClosed();
   }
 }

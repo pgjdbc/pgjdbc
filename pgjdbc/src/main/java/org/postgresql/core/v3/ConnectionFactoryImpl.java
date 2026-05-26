@@ -645,7 +645,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         // fallthrough
 
       default:
-        throw pgStream.poison(new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
+        throw pgStream.markBroken(new PSQLException(GT.tr("An error occurred while setting up the GSS Encoded connection."),
             PSQLState.PROTOCOL_VIOLATION));
     }
   }
@@ -721,7 +721,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
         return pgStream;
 
       default:
-        throw pgStream.poison(new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
+        throw pgStream.markBroken(new PSQLException(GT.tr("An error occurred while setting up the SSL connection."),
             PSQLState.PROTOCOL_VIOLATION));
     }
   }
@@ -842,7 +842,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               // Unconditional: envelope arithmetic impossible (each option is at
               // minimum one NUL byte, so the envelope cannot fit more options than
               // it has bytes left).
-              throw pgStream.poison(new PSQLException(GT.tr(
+              throw pgStream.markBroken(new PSQLException(GT.tr(
                   "Protocol error. NegotiateProtocolVersion option count {0} exceeds remaining message size {1}.",
                   numOptionsNotRecognized, negotiateMsgLen - 12),
                   PSQLState.PROTOCOL_VIOLATION));
@@ -854,7 +854,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 errorMessage += (i > 0 ? "," : "") + pgStream.receiveString();
               }
               LOGGER.log(Level.FINEST, errorMessage);
-              throw pgStream.poison(new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION));
+              throw pgStream.markBroken(new PSQLException(errorMessage, PSQLState.PROTOCOL_VIOLATION));
             }
             pgStream.endMessage();
             int major = protocol >> 16 & 0xff;
@@ -1100,7 +1100,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             break;
 
           default:
-            throw pgStream.poison(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
+            throw pgStream.markBroken(new PSQLException(GT.tr("Protocol error.  Session setup failed."),
                 PSQLState.PROTOCOL_VIOLATION));
         }
       }

@@ -38,7 +38,7 @@ import java.util.logging.Logger;
 import javax.net.SocketFactory;
 
 @Isolated("Tests modify System.properties")
-class ProtocolViolationBehaviourTest {
+class ProtocolHardeningModeTest {
 
   /**
    * Minimal {@code SocketFactory} that returns a connected, in-memory socket so we can
@@ -162,32 +162,32 @@ class ProtocolViolationBehaviourTest {
   @Test
   void defaultBehaviourFollowsCurrent() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    assertSame(ProtocolViolationBehaviour.CURRENT, pgStream.getProtocolViolationBehaviour(),
-        "Newly constructed PGStream should pick up the JVM-wide ProtocolViolationBehaviour.CURRENT");
+    assertSame(ProtocolHardeningMode.CURRENT, pgStream.getProtocolHardeningMode(),
+        "Newly constructed PGStream should pick up the JVM-wide ProtocolHardeningMode.CURRENT");
   }
 
   @Test
-  void failModeThrowsAndPoisons() throws IOException {
+  void failModeThrowsAndMarksBroken() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    pgStream.setProtocolViolationBehaviour(ProtocolViolationBehaviour.FAIL);
+    pgStream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
 
     IOException thrown = assertThrows(IOException.class, () ->
         pgStream.failOnDesync(IOException::new, "synthetic test message"));
 
     assertTrue(thrown.getMessage().contains("synthetic test message"),
         "Thrown exception should carry the original message");
-    assertTrue(thrown.getMessage().contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+    assertTrue(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
         "FAIL-mode message should mention the silence-knob system property: " + thrown.getMessage());
     assertTrue(thrown.getMessage().contains("filing a bug report"),
         "FAIL-mode message should ask the user to file a bug report: " + thrown.getMessage());
     assertTrue(pgStream.isClosed(),
-        "FAIL mode must poison the stream so connection pools discard it");
+        "FAIL mode must mark the stream broken so connection pools discard it");
   }
 
   @Test
   void warnModeLogsAndContinues() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    pgStream.setProtocolViolationBehaviour(ProtocolViolationBehaviour.WARN);
+    pgStream.setProtocolHardeningMode(ProtocolHardeningMode.WARN);
 
     // No throw expected.
     pgStream.failOnDesync(IOException::new, "warn-mode synthetic message");
@@ -206,16 +206,16 @@ class ProtocolViolationBehaviourTest {
         "Attached Throwable should match the factory type: " + thrown);
     assertTrue(thrown.getMessage().contains("warn-mode synthetic message"),
         "Attached Throwable should carry the original message");
-    assertFalse(thrown.getMessage().contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+    assertFalse(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
         "WARN-mode Throwable must not carry the silence hint; the user already configured the property");
     assertFalse(pgStream.isClosed(),
-        "WARN mode must not poison the stream");
+        "WARN mode must not mark the stream broken");
   }
 
   @Test
   void warnModeSkipsConstructionWhenFilteredOut() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    pgStream.setProtocolViolationBehaviour(ProtocolViolationBehaviour.WARN);
+    pgStream.setProtocolHardeningMode(ProtocolHardeningMode.WARN);
 
     // Raise the logger level above WARNING so isLoggable() returns false. The
     // failOnDesync call must then skip the factory invocation entirely (the
@@ -234,20 +234,20 @@ class ProtocolViolationBehaviourTest {
   @Test
   void disableModeIsSilent() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    pgStream.setProtocolViolationBehaviour(ProtocolViolationBehaviour.DISABLE);
+    pgStream.setProtocolHardeningMode(ProtocolHardeningMode.DISABLE);
 
     pgStream.failOnDesync(IOException::new, "disable-mode synthetic message");
 
     assertEquals(0, warningCount(),
         "DISABLE mode must not emit any WARNING records");
     assertFalse(pgStream.isClosed(),
-        "DISABLE mode must not poison the stream");
+        "DISABLE mode must not mark the stream broken");
   }
 
   @Test
   void failModeSupportsPSQLExceptionFactory() throws IOException {
     PGStream pgStream = newStream(new byte[0]);
-    pgStream.setProtocolViolationBehaviour(ProtocolViolationBehaviour.FAIL);
+    pgStream.setProtocolHardeningMode(ProtocolHardeningMode.FAIL);
 
     PSQLException thrown = assertThrows(PSQLException.class, () ->
         pgStream.failOnDesync(
@@ -265,34 +265,34 @@ class ProtocolViolationBehaviourTest {
     // branch directly: unset, empty, whitespace, each defined value (case-insensitive),
     // and an unknown value that must fall back to WARN (the configured default) rather
     // than silently flip the policy to a stricter or more permissive mode on a typo.
-    String key = ProtocolViolationBehaviour.SYSTEM_PROPERTY;
+    String key = ProtocolHardeningMode.SYSTEM_PROPERTY;
     String previous = System.getProperty(key);
     try {
       System.clearProperty(key);
-      assertSame(ProtocolViolationBehaviour.WARN, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.WARN, ProtocolHardeningMode.fromSystemProperty(),
           "Unset property must select WARN (the default)");
 
       System.setProperty(key, "");
-      assertSame(ProtocolViolationBehaviour.WARN, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.WARN, ProtocolHardeningMode.fromSystemProperty(),
           "Empty property must select WARN");
 
       System.setProperty(key, "   ");
-      assertSame(ProtocolViolationBehaviour.WARN, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.WARN, ProtocolHardeningMode.fromSystemProperty(),
           "Whitespace-only property must select WARN");
 
       System.setProperty(key, "fail");
-      assertSame(ProtocolViolationBehaviour.FAIL, ProtocolViolationBehaviour.fromSystemProperty());
+      assertSame(ProtocolHardeningMode.FAIL, ProtocolHardeningMode.fromSystemProperty());
 
       System.setProperty(key, "wArN");
-      assertSame(ProtocolViolationBehaviour.WARN, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.WARN, ProtocolHardeningMode.fromSystemProperty(),
           "Parsing must be case-insensitive");
 
       System.setProperty(key, " disable ");
-      assertSame(ProtocolViolationBehaviour.DISABLE, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.DISABLE, ProtocolHardeningMode.fromSystemProperty(),
           "Surrounding whitespace must be trimmed");
 
       System.setProperty(key, "bogus");
-      assertSame(ProtocolViolationBehaviour.WARN, ProtocolViolationBehaviour.fromSystemProperty(),
+      assertSame(ProtocolHardeningMode.WARN, ProtocolHardeningMode.fromSystemProperty(),
           "Unknown value must fall back to WARN, so a typo cannot silently flip the policy");
     } finally {
       if (previous == null) {
@@ -317,19 +317,19 @@ class ProtocolViolationBehaviourTest {
         (byte) 0xFF, (byte) 0xFF, (byte) 0xFF, (byte) 0xFB, // size_0 = -5
     };
 
-    for (ProtocolViolationBehaviour mode : ProtocolViolationBehaviour.values()) {
+    for (ProtocolHardeningMode mode : ProtocolHardeningMode.values()) {
       PGStream pgStream = newStream(data);
-      pgStream.setProtocolViolationBehaviour(mode);
+      pgStream.setProtocolHardeningMode(mode);
 
       IOException thrown = assertThrows(IOException.class, pgStream::receiveTupleV3,
           "DataRow negative field length must throw in every mode, including " + mode);
       assertTrue(thrown.getMessage().contains("negative length"),
           "Thrown message must name the negative-length condition: " + thrown.getMessage());
-      assertFalse(thrown.getMessage().contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+      assertFalse(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
           "Unconditional-check message must not advertise a silence knob "
               + "the user cannot use: " + thrown.getMessage());
       assertTrue(pgStream.isClosed(),
-          "Unconditional check must poison the stream in every mode, including " + mode);
+          "Unconditional check must mark the stream broken in every mode, including " + mode);
     }
   }
 
@@ -341,7 +341,7 @@ class ProtocolViolationBehaviourTest {
     //   size_0  = 100: claims 100 bytes of field data, but only 4 remain in the
     //                  envelope. This is the exact scenario from issue #4015.
     // The hardening check that catches it (size > remaining) must fire regardless
-    // of protocolViolationBehaviour, because no wire-compatible backend can
+    // of protocolHardeningMode, because no wire-compatible backend can
     // physically fit 100 bytes of field into a 4-byte envelope window.
     byte[] data = new byte[]{
         0x00, 0x00, 0x00, 0x0E, // msgSize = 14
@@ -350,19 +350,19 @@ class ProtocolViolationBehaviourTest {
         0x00, 0x00, 0x00, 0x00, // 4 bytes of envelope payload (never read)
     };
 
-    for (ProtocolViolationBehaviour mode : ProtocolViolationBehaviour.values()) {
+    for (ProtocolHardeningMode mode : ProtocolHardeningMode.values()) {
       PGStream pgStream = newStream(data);
-      pgStream.setProtocolViolationBehaviour(mode);
+      pgStream.setProtocolHardeningMode(mode);
 
       IOException thrown = assertThrows(IOException.class, pgStream::receiveTupleV3,
           "DataRow field-overrun must throw in every mode, including " + mode);
       assertTrue(thrown.getMessage().contains("exceeds remaining row bytes"),
           "Thrown message must name the field-overrun condition: " + thrown.getMessage());
-      assertFalse(thrown.getMessage().contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+      assertFalse(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
           "Unconditional-check message must not advertise a silence knob "
               + "the user cannot use: " + thrown.getMessage());
       assertTrue(pgStream.isClosed(),
-          "Unconditional check must poison the stream in every mode, including " + mode);
+          "Unconditional check must mark the stream broken in every mode, including " + mode);
     }
   }
 
@@ -372,9 +372,9 @@ class ProtocolViolationBehaviourTest {
     // Wire bytes: a length of 1000 with maxResultBuffer = 100.
     byte[] data = new byte[]{0x00, 0x00, 0x03, (byte) 0xE8}; // 1000
 
-    for (ProtocolViolationBehaviour mode : ProtocolViolationBehaviour.values()) {
+    for (ProtocolHardeningMode mode : ProtocolHardeningMode.values()) {
       PGStream pgStream = newStream(data);
-      pgStream.setProtocolViolationBehaviour(mode);
+      pgStream.setProtocolHardeningMode(mode);
       pgStream.setMaxResultBuffer("100"); // bytes
 
       IOException thrown = assertThrows(IOException.class,
@@ -382,20 +382,20 @@ class ProtocolViolationBehaviourTest {
           "maxResultBuffer overrun must throw in every mode, including " + mode);
       assertTrue(thrown.getMessage().contains("exceeds maxResultBuffer"),
           "Thrown message must name the maxResultBuffer overrun: " + thrown.getMessage());
-      assertFalse(thrown.getMessage().contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+      assertFalse(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
           "Unconditional-check message must not advertise a silence knob: " + thrown.getMessage());
       assertTrue(pgStream.isClosed(),
-          "Unconditional check must poison the stream in every mode, including " + mode);
+          "Unconditional check must mark the stream broken in every mode, including " + mode);
     }
   }
 
   @Test
   void silenceHintMentionsBothKnobs() {
-    String hint = ProtocolViolationBehaviour.appendSilenceHint("base");
+    String hint = ProtocolHardeningMode.appendSilenceHint("base");
     assertTrue(hint.startsWith("base"));
     assertTrue(hint.contains("warn"), () -> "Hint should mention warn mode: " + hint);
     assertTrue(hint.contains("disable"), () -> "Hint should mention disable mode: " + hint);
-    assertTrue(hint.contains(ProtocolViolationBehaviour.SYSTEM_PROPERTY),
+    assertTrue(hint.contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
         () -> "Hint should mention the system property name: " + hint);
     assertTrue(hint.contains("https://github.com/pgjdbc/pgjdbc"),
         () -> "Hint should link to the issue tracker: " + hint);

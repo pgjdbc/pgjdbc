@@ -18,7 +18,7 @@ import java.util.logging.Logger;
  * introduced by issue #4015 trips on a backend message.
  *
  * <p>Configured through the {@value #SYSTEM_PROPERTY} JVM system property
- * (e.g. {@code -Dpgjdbc.protocolViolationBehaviour=fail}). The setting is read
+ * (e.g. {@code -Dpgjdbc.protocolHardeningMode=fail}). The setting is read
  * once at driver class-load time and applies to every connection opened by
  * the JVM. The property is deliberately not exposed via the JDBC URL or
  * {@code Properties} object: a URL-level override would let an attacker who
@@ -36,9 +36,9 @@ import java.util.logging.Logger;
  * has not yet accommodated), the property lets the user relax the policy
  * without rebuilding the driver.</p>
  */
-public enum ProtocolViolationBehaviour {
+public enum ProtocolHardeningMode {
   /**
-   * On the first hardening check failure, poison the {@code PGStream}
+   * On the first hardening check failure, mark the {@code PGStream} broken
    * (best-effort close the socket and flag {@code isClosed()}) and throw a
    * connection-level error. A pooling layer that calls {@code isClosed()} on
    * borrow will discard the connection rather than hand a desynced reader to
@@ -81,11 +81,11 @@ public enum ProtocolViolationBehaviour {
    * in the same JVM. Values are matched case-insensitively against
    * {@link #getValue()}.
    */
-  public static final String SYSTEM_PROPERTY = "pgjdbc.protocolViolationBehaviour";
+  public static final String SYSTEM_PROPERTY = "pgjdbc.protocolHardeningMode";
 
   private final String value;
 
-  ProtocolViolationBehaviour(String value) {
+  ProtocolHardeningMode(String value) {
     this.value = value;
   }
 
@@ -101,13 +101,13 @@ public enum ProtocolViolationBehaviour {
 
   /**
    * Reads {@link #SYSTEM_PROPERTY} from the JVM and resolves it to a
-   * {@code ProtocolViolationBehaviour}. An unset or empty property selects
+   * {@code ProtocolHardeningMode}. An unset or empty property selects
    * {@link #WARN} (the default). An unrecognised value is reported via
    * {@code LOGGER} at {@link Level#WARNING} and also falls back to {@link #WARN},
    * so a typo in the JVM flag does not silently flip the policy to a stricter
    * or more permissive mode than the user intended.
    */
-  static ProtocolViolationBehaviour fromSystemProperty() {
+  static ProtocolHardeningMode fromSystemProperty() {
     String raw;
     try {
       raw = System.getProperty(SYSTEM_PROPERTY);
@@ -123,12 +123,12 @@ public enum ProtocolViolationBehaviour {
     if (trimmed.isEmpty()) {
       return WARN;
     }
-    for (ProtocolViolationBehaviour b : values()) {
+    for (ProtocolHardeningMode b : values()) {
       if (b.value.equals(trimmed)) {
         return b;
       }
     }
-    Logger.getLogger(ProtocolViolationBehaviour.class.getName()).log(Level.WARNING,
+    Logger.getLogger(ProtocolHardeningMode.class.getName()).log(Level.WARNING,
         "Unrecognised value for system property {0}: {1}. Allowed: fail, warn, disable. Falling back to warn.",
         new Object[]{SYSTEM_PROPERTY, raw});
     return WARN;
@@ -139,7 +139,7 @@ public enum ProtocolViolationBehaviour {
    * Held in a singleton to avoid re-reading the system property on every
    * hot-path check.
    */
-  public static final ProtocolViolationBehaviour CURRENT = fromSystemProperty();
+  public static final ProtocolHardeningMode CURRENT = fromSystemProperty();
 
   /**
    * Hint appended to the error message a {@link #FAIL}-mode throw site
