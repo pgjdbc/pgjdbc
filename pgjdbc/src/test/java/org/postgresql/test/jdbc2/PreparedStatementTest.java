@@ -1018,14 +1018,14 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"this is not boolean\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "this is not boolean"), e.getMessage());
     }
     try {
       pstmt.setObject(1, 'X', Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"X\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "X"), e.getMessage());
     }
     try {
       java.io.File obj = new java.io.File("");
@@ -1040,35 +1040,35 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"1.0\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "1.0"), e.getMessage());
     }
     try {
       pstmt.setObject(1, "-1", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"-1\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "-1"), e.getMessage());
     }
     try {
       pstmt.setObject(1, "ok", Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"ok\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "ok"), e.getMessage());
     }
     try {
       pstmt.setObject(1, 0.99f, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"0.99\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "0.99"), e.getMessage());
     }
     try {
       pstmt.setObject(1, -0.01d, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"-0.01\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "-0.01"), e.getMessage());
     }
     try {
       pstmt.setObject(1, new java.sql.Date(0), Types.BOOLEAN);
@@ -1082,14 +1082,14 @@ public class PreparedStatementTest extends BaseTest4 {
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"1000\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "1000"), e.getMessage());
     }
     try {
       pstmt.setObject(1, Math.PI, Types.BOOLEAN);
       fail();
     } catch (SQLException e) {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-      assertEquals("Cannot cast to boolean: \"3.141592653589793\"", e.getMessage());
+      assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "3.141592653589793"), e.getMessage());
     }
     pstmt.close();
   }

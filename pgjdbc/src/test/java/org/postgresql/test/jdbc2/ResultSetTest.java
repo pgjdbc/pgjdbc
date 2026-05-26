@@ -19,6 +19,7 @@ import org.postgresql.PGConnection;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -426,8 +427,8 @@ public class ResultSetTest extends BaseTest4 {
       assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
       // message can be 2 or 2.0 depending on whether binary or text
       final String message = e.getMessage();
-      if (!"Cannot cast to boolean: \"2.0\"".equals(message)) {
-        assertEquals("Cannot cast to boolean: \"2\"", message);
+      if (!GT.tr("Cannot cast to boolean: \"{0}\"", "2.0").equals(message)) {
+        assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", "2"), message);
       }
     }
     rs.close();
@@ -459,16 +460,27 @@ public class ResultSetTest extends BaseTest4 {
     } catch (SQLException e) {
       //binary transfer gets different error code and message
       if (org.postgresql.util.PSQLState.DATA_TYPE_MISMATCH.getState().equals(e.getSQLState())) {
+        // The driver's "Cannot convert the column of type {0} to requested type {1}." message
+        // is localised via GT.tr. Derive the locale-specific prefix/middle/suffix by formatting
+        // the same template with placeholder markers and verify the actual message lines up.
         final String message = e.getMessage();
-        if (!message.startsWith("Cannot convert the column of type ")) {
-          fail(message);
-        }
-        if (!message.endsWith(" to requested type boolean.")) {
+        final String marker0 = "@@COLTYPE@@";
+        final String marker1 = "@@REQTYPE@@";
+        final String localized = GT.tr(
+            "Cannot convert the column of type {0} to requested type {1}.", marker0, marker1);
+        final int idx0 = localized.indexOf(marker0);
+        final int idx1 = localized.indexOf(marker1);
+        final String prefix = localized.substring(0, idx0);
+        final String middle = localized.substring(idx0 + marker0.length(), idx1);
+        final String suffix = localized.substring(idx1 + marker1.length());
+        if (!message.startsWith(prefix)
+            || !message.contains(middle)
+            || !message.endsWith("boolean" + suffix)) {
           fail(message);
         }
       } else {
         assertEquals(PSQLState.CANNOT_COERCE.getState(), e.getSQLState());
-        assertEquals("Cannot cast to boolean: \"" + value + "\"", e.getMessage());
+        assertEquals(GT.tr("Cannot cast to boolean: \"{0}\"", value), e.getMessage());
       }
     }
     rs.close();

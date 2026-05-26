@@ -16,6 +16,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGConnection;
 import org.postgresql.test.TestUtil;
+import org.postgresql.util.GT;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -796,7 +797,9 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateString("name1", "bob");
       fail("Should have failed since unique column u1 is nullable");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table unique_null_constraint.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "unique_null_constraint"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
@@ -893,7 +896,9 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since id2 is nullable column");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "uniquekeys"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
@@ -910,7 +915,9 @@ public class UpdateableResultTest extends BaseTest4 {
       rs.updateDate("dt", Date.valueOf("1999-01-01"));
       fail("Should have failed since no UK/PK are in the select statement");
     } catch (SQLException ex) {
-      assertEquals("No eligible primary or unique key found for table uniquekeys.", ex.getMessage());
+      assertEquals(
+          GT.tr("No eligible primary or unique key found for table {0}.", "uniquekeys"),
+          ex.getMessage());
     }
     rs.close();
     st.close();
