@@ -808,19 +808,17 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
 
     try {
       int authIterations = 0;
-      boolean authCapReported = false;
       authloop: while (true) {
-        if (++authIterations > MAX_AUTH_ITERATIONS && !authCapReported) {
-          // failOnDesync throws in FAIL mode; in WARN and DISABLE modes we log or
-          // skip exactly once and then let the loop continue uncapped, matching the
-          // pre-#4015 behaviour the user opted into (a hostile server can then spin
-          // the client indefinitely, the trade-off the relaxed policy accepts).
-          authCapReported = true;
-          pgStream.failOnDesync(
-              msg -> new PSQLException(msg, PSQLState.PROTOCOL_VIOLATION),
-              GT.tr(
-                  "Protocol error. Authentication did not complete within {0} round-trips.",
-                  MAX_AUTH_ITERATIONS));
+        if (++authIterations > MAX_AUTH_ITERATIONS) {
+          // Unconditional: WARN-and-continue does not bound the loop, so a
+          // hostile server could still spin the client indefinitely (the
+          // pre-auth CPU/memory DoS the cap was added to prevent). The cap is
+          // not a tightening of the protocol where a fork could legitimately
+          // need more round-trips; it is a hard ceiling on pre-auth dialogue.
+          throw pgStream.markBroken(new PSQLException(GT.tr(
+              "Protocol error. Authentication did not complete within {0} round-trips.",
+              MAX_AUTH_ITERATIONS),
+              PSQLState.PROTOCOL_VIOLATION));
         }
         int beresp = pgStream.receiveChar();
 
@@ -831,11 +829,15 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
             protocol = pgStream.receiveInteger4();
             int numOptionsNotRecognized = pgStream.receiveInteger4();
             if (numOptionsNotRecognized < 0) {
-              pgStream.failOnDesync(
-                  msg -> new PSQLException(msg, PSQLState.PROTOCOL_VIOLATION),
-                  GT.tr(
-                      "Protocol error. NegotiateProtocolVersion has negative option count {0}.",
-                      numOptionsNotRecognized));
+              // Unconditional: numOptionsNotRecognized is read as signed int32
+              // and is then used as a loop bound. A negative value wrap-arounds
+              // to a near-2-billion signed positive only if the caller treats
+              // it as unsigned, which pgjdbc does not. WARN-and-continue would
+              // skip the loop and leave the envelope partially consumed.
+              throw pgStream.markBroken(new PSQLException(GT.tr(
+                  "Protocol error. NegotiateProtocolVersion has negative option count {0}.",
+                  numOptionsNotRecognized),
+                  PSQLState.PROTOCOL_VIOLATION));
             }
             // Each unrecognised option is at least a NUL byte; cap against the envelope.
             if (numOptionsNotRecognized > negotiateMsgLen - 12) {

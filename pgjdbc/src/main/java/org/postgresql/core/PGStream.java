@@ -197,9 +197,13 @@ public class PGStream implements Closeable, Flushable {
     }
     long actual = pgInput.getPosition();
     if (actual != expected) {
-      failOnDesync(IOException::new, GT.tr(
+      // Unconditional: an envelope mismatch means the next reader is already
+      // misaligned with the wire. Continuing would parse the following message's
+      // header from inside the previous message's body or skip into the message
+      // after that, so every later read would be against garbage.
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. {0} message has {1} unread bytes.",
-          name, expected - actual));
+          name, expected - actual)));
     }
   }
 
@@ -797,9 +801,13 @@ public class PGStream implements Closeable, Flushable {
   public void readFixedMessageLength(String packetName, int expectedLength) throws IOException {
     int len = receiveInteger4();
     if (len != expectedLength) {
-      failOnDesync(IOException::new, GT.tr(
+      // Unconditional: a fixed-length acknowledgement that does not match its
+      // protocol-defined size leaves the next reader misaligned with the wire.
+      // Continuing under WARN or DISABLE would only stack a confusing crash on
+      // top of an already-broken framing.
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. {0} message has length {1}, expected {2}.",
-          packetName, len, expectedLength));
+          packetName, len, expectedLength)));
     }
     beginMessage(packetName, expectedLength);
   }
@@ -954,13 +962,17 @@ public class PGStream implements Closeable, Flushable {
     // maximum column count (forks such as CockroachDB/YugabyteDB/Redshift may differ from
     // PostgreSQL's own limit), so bound nf only via the message envelope below.
     int nf = receiveInteger2();
-    // The stream is desynced: we cannot locate the next message boundary, so we must not
-    // continue reading. Throw IOException so the caller closes (aborts) the connection
-    // instead of treating this as a per-query error and looping over garbage bytes.
     if (nf < 0) {
-      failOnDesync(IOException::new, GT.tr(
+      // Unconditional: nf is read as signed int16. A fork that packs the slot as
+      // unsigned int16 with a value above 32767 would surface as negative here,
+      // but pgjdbc would then use the negative count as an array size
+      // ({@code new byte[nf][]}, NegativeArraySizeException) and as the
+      // envelope-arithmetic input below. WARN-and-continue does not make such a
+      // fork work; pgjdbc would need an intentional compatibility change to read
+      // the field as unsigned.
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. DataRow has negative field count {0} (message size {1}).",
-          nf, messageSize));
+          nf, messageSize)));
     }
     //size = messageSize - 4 bytes of message size - 2 bytes of field count - 4 bytes for each column length
     int dataToReadSize = messageSize - 4 - 2 - 4 * nf;

@@ -1126,14 +1126,20 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       int numFields = pgStream.receiveInteger2();
       // Envelope is fully determined by numFields; enforce exact equality.
       if (numFields < 0) {
-        pgStream.failOnDesync(IOException::new, GT.tr(
+        // Unconditional: numFields is read as signed int16 and then used as an
+        // array size and a loop bound. WARN-and-continue would only stack a
+        // NegativeArraySizeException on top.
+        throw pgStream.markBroken(new IOException(GT.tr(
             "Protocol error. Copy response has negative field count {0}.",
-            numFields));
+            numFields)));
       }
       if (msgLen != 7 + 2 * numFields) {
-        pgStream.failOnDesync(IOException::new, GT.tr(
+        // Unconditional: an exact-length mismatch means the next reader is
+        // misaligned with the wire; continuing would parse the following
+        // message's header from inside this message's body or vice versa.
+        throw pgStream.markBroken(new IOException(GT.tr(
             "Protocol error. Copy response field count {0} requires message size {1}, got {2}.",
-            numFields, 7 + 2 * numFields, msgLen));
+            numFields, 7 + 2 * numFields, msgLen)));
       }
       int[] fieldFormats = new int[numFields];
 
@@ -2405,14 +2411,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // Envelope is fully determined by numParams; enforce exact equality so a desynced
           // stream cannot pass by claiming a too-large msgLen with a consistent-looking count.
           if (numParams < 0) {
-            pgStream.failOnDesync(IOException::new, GT.tr(
+            // Unconditional: numParams is signed int16 and is used as a loop
+            // bound. WARN-and-continue would either skip the loop entirely (so
+            // pendingDescribeStatementQueue and the params list stay in
+            // disagreement with the wire) or wrap around to a huge unsigned
+            // count; neither is benign.
+            throw pgStream.markBroken(new IOException(GT.tr(
                 "Protocol error. ParameterDescription has negative parameter count {0}.",
-                numParams));
+                numParams)));
           }
           if (paramDescLen != 6 + 4 * numParams) {
-            pgStream.failOnDesync(IOException::new, GT.tr(
+            // Unconditional: an exact-length mismatch leaves the next reader
+            // misaligned with the wire.
+            throw pgStream.markBroken(new IOException(GT.tr(
                 "Protocol error. ParameterDescription parameter count {0} requires message size {1}, got {2}.",
-                numParams, 6 + 4 * numParams, paramDescLen));
+                numParams, 6 + 4 * numParams, paramDescLen)));
           }
 
           for (int i = 1; i <= numParams; i++) {
@@ -2897,9 +2910,12 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     int msgSize = pgStream.readMessageLength("RowDescription", 6);
     int size = pgStream.receiveInteger2();
     if (size < 0) {
-      pgStream.failOnDesync(IOException::new, GT.tr(
+      // Unconditional: size is signed int16 and is used as the {@code Field[]}
+      // array length and the loop bound. WARN-and-continue would only swap a
+      // clean IOException for a NegativeArraySizeException one line later.
+      throw pgStream.markBroken(new IOException(GT.tr(
           "Protocol error. RowDescription has negative field count {0}.",
-          size));
+          size)));
     }
     // Envelope: each field description is at minimum 19 bytes (1 NUL for empty name
     // + 4 tableOid + 2 attnum + 4 typeOid + 2 typlen + 4 typmod + 2 format). This is the

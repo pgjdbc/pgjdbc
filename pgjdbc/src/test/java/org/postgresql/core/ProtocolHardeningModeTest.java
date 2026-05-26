@@ -390,6 +390,33 @@ class ProtocolHardeningModeTest {
   }
 
   @Test
+  void endMessageEnvelopeMismatchIsUnconditional() throws IOException {
+    // DataRow envelope: msgSize(4) + nf(2) + nf*4 (per-field prefixes) + payload.
+    // Declare msgSize = 12 with nf = 0. receiveTupleV3 reads only 6 bytes
+    // (msgSize + nf); endMessage then compares actual vs declared and finds
+    // 2 unread envelope bytes, the desync signature.
+    byte[] data = new byte[]{
+        0x00, 0x00, 0x00, 0x0C, // msgSize = 12
+        0x00, 0x00,             // nf = 0
+    };
+
+    for (ProtocolHardeningMode mode : ProtocolHardeningMode.values()) {
+      PGStream pgStream = newStream(data);
+      pgStream.setProtocolHardeningMode(mode);
+
+      IOException thrown = assertThrows(IOException.class, pgStream::receiveTupleV3,
+          "Envelope mismatch must throw in every mode, including " + mode);
+      assertTrue(thrown.getMessage().contains("unread bytes"),
+          "Thrown message must name the envelope-mismatch condition: " + thrown.getMessage());
+      assertFalse(thrown.getMessage().contains(ProtocolHardeningMode.SYSTEM_PROPERTY),
+          "Unconditional-check message must not advertise a silence knob "
+              + "the user cannot use: " + thrown.getMessage());
+      assertTrue(pgStream.isClosed(),
+          "Unconditional check must mark the stream broken in every mode, including " + mode);
+    }
+  }
+
+  @Test
   void silenceHintMentionsBothKnobs() {
     String hint = ProtocolHardeningMode.appendSilenceHint("base");
     assertTrue(hint.startsWith("base"));
