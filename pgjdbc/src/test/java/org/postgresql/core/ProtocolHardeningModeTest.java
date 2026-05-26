@@ -390,6 +390,59 @@ class ProtocolHardeningModeTest {
   }
 
   @Test
+  void cStringBudgetOverrunMarksBroken() throws IOException {
+    // Declare a tight envelope (msgSize = 12, so body budget = 8 bytes) and feed
+    // 9 readable body bytes without a NUL. scanBoundedCStringLength caps the scan
+    // budget at 8 (the remaining envelope); VisibleBufferedInputStream.scanCStringLength
+    // increments scanned to 9 before the buffer is depleted, hits the budget check,
+    // and throws a plain IOException. PGStream must route that through markBroken
+    // so the broken flag is set at the throw site, not only after the upstream
+    // caller invokes abort().
+    //
+    // (Eight body bytes are not enough to trigger the budget check: the inner
+    // scan loop exits when the buffer is depleted at scanned == 8, and the next
+    // readMore call hits EOF first.)
+    byte[] data = new byte[]{
+        0x00, 0x00, 0x00, 0x0C,                              // msgSize = 12
+        'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a', 'a',         // 9 bytes, no NUL
+    };
+
+    PGStream pgStream = newStream(data);
+    int len = pgStream.readMessageLength("ParameterStatus", 6);
+    assertEquals(12, len);
+
+    IOException thrown = assertThrows(IOException.class, pgStream::receiveString,
+        "C-string overrun must throw");
+    assertTrue(thrown.getMessage().contains("exceeds remaining budget"),
+        "Thrown message must name the budget-overrun condition: " + thrown.getMessage());
+    assertTrue(pgStream.isClosed(),
+        "C-string overrun must mark the stream broken at the throw site, "
+            + "so isClosed() returns true before the upstream caller invokes abort()");
+  }
+
+  @Test
+  void cStringEofMidScanMarksBroken() throws IOException {
+    // Declare msgSize = 100 (so the scan budget is 96 bytes, well above the data
+    // we feed) and provide a name that starts without a NUL and then truncates
+    // before the budget is hit. VisibleBufferedInputStream.scanCStringLength's
+    // readMore returns false on the truncated stream and throws EOFException.
+    // markBroken must still fire.
+    byte[] data = new byte[]{
+        0x00, 0x00, 0x00, 0x64,         // msgSize = 100
+        'a', 'b', 'c', 'd',             // 4 bytes of body, no NUL, then EOF
+    };
+
+    PGStream pgStream = newStream(data);
+    int len = pgStream.readMessageLength("ParameterStatus", 6);
+    assertEquals(100, len);
+
+    assertThrows(IOException.class, pgStream::receiveString,
+        "C-string EOF mid-scan must throw");
+    assertTrue(pgStream.isClosed(),
+        "C-string EOF mid-scan must mark the stream broken at the throw site");
+  }
+
+  @Test
   void endMessageEnvelopeMismatchIsUnconditional() throws IOException {
     // DataRow envelope: msgSize(4) + nf(2) + nf*4 (per-field prefixes) + payload.
     // Declare msgSize = 12 with nf = 0. receiveTupleV3 reads only 6 bytes

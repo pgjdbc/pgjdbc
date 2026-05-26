@@ -880,23 +880,34 @@ public class PGStream implements Closeable, Flushable {
    * it transitively via the message length.
    */
   private int scanBoundedCStringLength() throws IOException {
-    if (messageEndPosition < 0) {
+    // VisibleBufferedInputStream.scanCStringLength throws plain IOException on two
+    // failure modes that also signal a desynced stream: the C-string overruns its
+    // declared budget without a NUL, or the underlying socket EOFs mid-scan. Both
+    // mean the next read would land inside a message we cannot locate the boundary
+    // of, so route any IOException through markBroken to set the broken flag at the
+    // throw point. Without the wrap, isClosed() would still return false until the
+    // upstream caller eventually invoked abort().
+    try {
+      if (messageEndPosition < 0) {
+        return pgInput.scanCStringLength(
+            MAX_MESSAGE_SIZE, "<no envelope>", MAX_MESSAGE_SIZE);
+      }
+      long remaining = messageEndPosition - pgInput.getPosition();
+      if (remaining <= 0) {
+        // Unconditional. The envelope budget has already been spent; another C-string
+        // read can only come from outside the message that was declared, which is a
+        // protocol-level impossibility. Honouring the override would invite an
+        // unbounded scan that crosses the next message boundary.
+        throw new IOException(GT.tr(
+            "Protocol error. {0} message of {1} bytes has no remaining envelope budget.",
+            currentMessageNameForError(), currentMessageLength));
+      }
+      int budget = (int) Math.min(remaining, MAX_MESSAGE_SIZE);
       return pgInput.scanCStringLength(
-          MAX_MESSAGE_SIZE, "<no envelope>", MAX_MESSAGE_SIZE);
+          budget, currentMessageNameForError(), currentMessageLength);
+    } catch (IOException e) {
+      throw markBroken(e);
     }
-    long remaining = messageEndPosition - pgInput.getPosition();
-    if (remaining <= 0) {
-      // Unconditional. The envelope budget has already been spent; another C-string
-      // read can only come from outside the message that was declared, which is a
-      // protocol-level impossibility. Honouring the override would invite an
-      // unbounded scan that crosses the next message boundary.
-      throw markBroken(new IOException(GT.tr(
-          "Protocol error. {0} message of {1} bytes has no remaining envelope budget.",
-          currentMessageNameForError(), currentMessageLength)));
-    }
-    int budget = (int) Math.min(remaining, MAX_MESSAGE_SIZE);
-    return pgInput.scanCStringLength(
-        budget, currentMessageNameForError(), currentMessageLength);
   }
 
   /**
