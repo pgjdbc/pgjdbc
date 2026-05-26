@@ -26,13 +26,21 @@
       "groupName": "checkerframework",
       "matchPackageNames": [
         "org.checkerframework{/,}**"
-      ]
+      ],
+      "allowedVersions": "<4.0.0"
     },
     {
       "groupName": "jmh",
       "matchPackageNames": [
         "org.openjdk.jmh{/,}**"
       ]
+    },
+    {
+      "groupName": "junit-bom",
+      "matchPackageNames": [
+        "org.junit:junit-bom"
+      ],
+      "allowedVersions": "<6.0.0"
     },
     {
       "groupName": "com.gradleup.nmcp",
