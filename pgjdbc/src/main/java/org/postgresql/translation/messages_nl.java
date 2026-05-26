@@ -3,42 +3,92 @@ package org.postgresql.translation;
 public class messages_nl extends java.util.ResourceBundle {
   private static final java.lang.String[] table;
   static {
-    java.lang.String[] t = new java.lang.String[36];
+    java.lang.String[] t = new java.lang.String[134];
     t[0] = "";
     t[1] = "Project-Id-Version: PostgreSQL JDBC Driver 8.0\nReport-Msgid-Bugs-To: \nPO-Revision-Date: 2004-10-11 23:55-0700\nLast-Translator: Arnout Kuiper <ajkuiper@wxs.nl>\nLanguage-Team: Dutch <ajkuiper@wxs.nl>\nLanguage: nl\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n";
-    t[2] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
-    t[3] = "Iets ongewoons is opgetreden, wat deze driver doet falen. Rapporteer deze fout AUB: {0}";
-    t[8] = "Unknown Types value.";
-    t[9] = "Onbekende Types waarde.";
-    t[12] = "Fastpath call {0} - No result was returned and we expected an integer.";
-    t[13] = "Fastpath aanroep {0} - Geen resultaat werd teruggegeven, terwijl we een integer verwacht hadden.";
-    t[20] = "The fastpath function {0} is unknown.";
-    t[21] = "De fastpath functie {0} is onbekend.";
-    t[22] = "No results were returned by the query.";
-    t[23] = "Geen resultaten werden teruggegeven door de query.";
-    t[26] = "An unexpected result was returned by a query.";
-    t[27] = "Een onverwacht resultaat werd teruggegeven door een query";
+    t[2] = "Prepare called before end(). prepare xid={0}, state={1}";
+    t[3] = "Prepare aangeroepen vóór end(). prepare xid={0}, state={1}";
+    t[4] = "One-phase commit with unknown xid. commit xid={0}, currentXid={1}";
+    t[5] = "One-phase commit met onbekende xid. commit xid={0}, currentXid={1}";
+    t[8] = "Transaction was already prepared on this connection. prepare xid={0}, preparedXid={1}";
+    t[9] = "Transactie is al voorbereid op deze verbinding. prepare xid={0}, preparedXid={1}";
+    t[10] = "Connection is already associated with an active XA branch. End the current branch before starting a new one. start xid={0}, currentXid={1}, state={2}, flags={3}";
+    t[11] = "Verbinding is al gekoppeld aan een actieve XA-tak. Beëindig de huidige tak voordat u een nieuwe start. start xid={0}, currentXid={1}, state={2}, flags={3}";
+    t[16] = "One-phase commit must be issued on the connection that started the branch. commit xid={0}";
+    t[17] = "One-phase commit moet worden uitgevoerd op de verbinding die de tak heeft gestart. commit xid={0}";
+    t[20] = "Error rolling back transaction. rollback xid={0}, preparedXid={1}, currentXid={2}";
+    t[21] = "Fout bij het terugdraaien van de transactie. rollback xid={0}, preparedXid={1}, currentXid={2}";
+    t[24] = "2nd phase commit cannot be issued while an XA branch is active on this connection. commit xid={0}, currentXid={1}, state={2}";
+    t[25] = "2nd phase commit kan niet worden uitgevoerd terwijl er een XA-tak actief is op deze verbinding. commit xid={0}, currentXid={1}, state={2}";
+    t[28] = "Transaction control methods setAutoCommit, commit, rollback and setSavepoint are not allowed while an XA transaction is active.";
+    t[29] = "Transactiebeheermethoden setAutoCommit, commit, rollback en setSavepoint zijn niet toegestaan terwijl een XA-transactie actief is.";
+    t[34] = "Unknown Types value.";
+    t[35] = "Onbekende Types waarde.";
+    t[40] = "Error opening transaction. start xid={0}";
+    t[41] = "Fout bij het openen van de transactie. start xid={0}";
+    t[48] = "commit() called before end(). commit xid={0}, state={1}";
+    t[49] = "commit() aangeroepen vóór end(). commit xid={0}, state={1}";
+    t[50] = "end() called without a matching start(). end xid={0}, currentXid={1}, state={2}, preparedXid={3}";
+    t[51] = "end() aangeroepen zonder bijbehorende start(). end xid={0}, currentXid={1}, state={2}, preparedXid={3}";
+    t[52] = "Current connection does not have an associated xid. prepare xid={0}";
+    t[53] = "Huidige verbinding heeft geen gekoppelde xid. prepare xid={0}";
+    t[56] = "Cannot rollback prepared transaction while a local transaction is in progress on this connection. Commit or rollback the local transaction first. rollback xid={0}, transactionState={1}";
+    t[57] = "Kan een voorbereide transactie niet terugdraaien terwijl er een lokale transactie loopt op deze verbinding. Commit of rollback eerst de lokale transactie. rollback xid={0}, transactionState={1}";
+    t[58] = "Error during recover. flag={0}";
+    t[59] = "Fout tijdens recover. flag={0}";
+    t[64] = "The fastpath function {0} is unknown.";
+    t[65] = "De fastpath functie {0} is onbekend.";
+    t[74] = "Something unusual has occurred to cause the driver to fail. Please report this exception.";
+    t[75] = "Iets ongewoons is opgetreden, wat deze driver doet falen. Rapporteer deze fout AUB: {0}";
+    t[84] = "One-phase commit called for xid {0} but connection was prepared with xid {1}";
+    t[85] = "One-phase commit aangeroepen voor xid {0} maar verbinding is voorbereid met xid {1}";
+    t[94] = "Prepare must be issued on the connection that started the branch. Transaction interleaving is not supported. prepare xid={0}, currentXid={1}";
+    t[95] = "Prepare moet worden uitgevoerd op de verbinding die de tak heeft gestart. Transactie-interleaving wordt niet ondersteund. prepare xid={0}, currentXid={1}";
+    t[96] = "An unexpected result was returned by a query.";
+    t[97] = "Een onverwacht resultaat werd teruggegeven door een query";
+    t[100] = "Suspend/resume not implemented";
+    t[101] = "Suspend/resume is niet geïmplementeerd";
+    t[112] = "Fastpath call {0} - No result was returned and we expected an integer.";
+    t[113] = "Fastpath aanroep {0} - Geen resultaat werd teruggegeven, terwijl we een integer verwacht hadden.";
+    t[114] = "No results were returned by the query.";
+    t[115] = "Geen resultaten werden teruggegeven door de query.";
+    t[130] = "Cannot 2nd phase commit prepared transaction while a local transaction is in progress on this connection. Commit or rollback the local transaction first. commit xid={0}, transactionState={1}";
+    t[131] = "Kan een voorbereide transactie niet via 2nd phase commit afronden terwijl er een lokale transactie loopt op deze verbinding. Commit of rollback eerst de lokale transactie. commit xid={0}, transactionState={1}";
     table = t;
   }
   public java.lang.Object handleGetObject (java.lang.String msgid) throws java.util.MissingResourceException {
     int hash_val = msgid.hashCode() & 0x7fffffff;
-    int idx = (hash_val % 18) << 1;
-    java.lang.Object found = table[idx];
-    if (found != null && msgid.equals(found))
-      return table[idx + 1];
-    return null;
+    int idx = (hash_val % 67) << 1;
+    {
+      java.lang.Object found = table[idx];
+      if (found == null)
+        return null;
+      if (msgid.equals(found))
+        return table[idx + 1];
+    }
+    int incr = ((hash_val % 65) + 1) << 1;
+    for (;;) {
+      idx += incr;
+      if (idx >= 134)
+        idx -= 134;
+      java.lang.Object found = table[idx];
+      if (found == null)
+        return null;
+      if (msgid.equals(found))
+        return table[idx + 1];
+    }
   }
   public java.util.Enumeration getKeys () {
     return
       new java.util.Enumeration() {
         private int idx = 0;
-        { while (idx < 36 && table[idx] == null) idx += 2; }
+        { while (idx < 134 && table[idx] == null) idx += 2; }
         public boolean hasMoreElements () {
-          return (idx < 36);
+          return (idx < 134);
         }
         public java.lang.Object nextElement () {
           java.lang.Object key = table[idx];
-          do idx += 2; while (idx < 36 && table[idx] == null);
+          do idx += 2; while (idx < 134 && table[idx] == null);
           return key;
         }
       };

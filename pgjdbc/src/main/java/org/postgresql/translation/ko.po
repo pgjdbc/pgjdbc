@@ -1921,39 +1921,45 @@ msgstr ""
 "StreamWrapper 누수가 감지되었습니다. StreamWrapper.close()가 호출되지 않았습"
 "니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:134
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:138
 msgid ""
-"Transaction control methods setAutoCommit(true), commit, rollback and "
-"setSavePoint not allowed while an XA transaction is active."
+"Transaction control methods setAutoCommit, commit, rollback and setSavepoint "
+"are not allowed while an XA transaction is active."
 msgstr ""
-"XA 트랜잭션이 활성 상태인 동안 트랜잭션 제어 메서드 setAutoCommit(true), "
-"commit, rollback 및 setSavePoint가 허용되지 않습니다."
+"XA 트랜잭션이 활성 상태인 동안 트랜잭션 제어 메서드 setAutoCommit, commit, "
+"rollback 및 setSavepoint가 허용되지 않습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:192
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:278
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:387
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:196
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:407
 #, java-format
 msgid "Invalid flags {0}"
 msgstr "잘못된 플래그 {0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:196
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:282
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:500
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:200
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:290
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:524
 msgid "xid must not be null"
 msgstr "xid는 null일 수 없습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:200
-msgid "Connection is busy with another transaction"
-msgstr "연결이 다른 트랜잭션으로 바쁩니다."
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:205
+#, java-format
+msgid ""
+"Connection is already associated with an active XA branch. End the current "
+"branch before starting a new one. start xid={0}, currentXid={1}, state={2}, "
+"flags={3}"
+msgstr ""
+"연결이 이미 활성 XA 분기와 연관되어 있습니다. 새 분기를 시작하기 전에 현재 분"
+"기를 종료하십시오. start xid={0}, currentXid={1}, state={2}, flags={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:209
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:292
-msgid "suspend/resume not implemented"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:215
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:301
+msgid "Suspend/resume not implemented"
 msgstr "일시 중지/다시 시작이 구현되지 않았습니다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:217
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:224
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:228
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:223
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:230
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:234
 #, java-format
 msgid ""
 "Invalid protocol state requested. Attempted transaction interleaving is not "
@@ -1962,63 +1968,79 @@ msgstr ""
 "잘못된 프로토콜 상태 요청됨. 트랜잭션 교차 시도는 지원되지 않습니다. "
 "xid={0}, currentXid={1}, state={2}, flags={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:239
-msgid "Error disabling autocommit"
-msgstr "자동 커밋 비활성화 오류"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:246
+#, java-format
+msgid "Error opening transaction. start xid={0}"
+msgstr "트랜잭션 열기 오류. start xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:286
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:294
 #, java-format
 msgid ""
-"tried to call end without corresponding start call. state={0}, start "
-"xid={1}, currentXid={2}, preparedXid={3}"
+"end() called without a matching start(). end xid={0}, currentXid={1}, "
+"state={2}, preparedXid={3}"
 msgstr ""
-"해당 시작 호출 없이 end를 호출하려고 했습니다. state={0}, start xid={1}, "
-"currentXid={2}, preparedXid={3}"
+"일치하는 start() 호출 없이 end()가 호출되었습니다. end xid={0}, "
+"currentXid={1}, state={2}, preparedXid={3}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:332
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:341
 #, java-format
 msgid ""
-"Preparing already prepared transaction, the prepared xid {0}, prepare xid={1}"
-msgstr "이미 준비된 트랜잭션 준비, 준비된 xid {0}, prepare xid={1}"
+"Transaction was already prepared on this connection. prepare xid={0}, "
+"preparedXid={1}"
+msgstr ""
+"이 연결에서 트랜잭션이 이미 준비되었습니다. prepare xid={0}, preparedXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:335
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:345
 #, java-format
 msgid "Current connection does not have an associated xid. prepare xid={0}"
 msgstr "현재 연결에는 연결된 xid가 없습니다. prepare xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:342
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:352
 #, java-format
 msgid ""
-"Not implemented: Prepare must be issued using the same connection that "
-"started the transaction. currentXid={0}, prepare xid={1}"
+"Prepare must be issued on the connection that started the branch. "
+"Transaction interleaving is not supported. prepare xid={0}, currentXid={1}"
 msgstr ""
-"구현되지 않음: Prepare는 트랜잭션을 시작한 동일한 연결을 사용하여 발행해야 합"
-"니다. currentXid={0}, prepare xid={1}"
+"Prepare는 분기를 시작한 연결에서 발행해야 합니다. 트랜잭션 교차는 지원되지 않"
+"습니다. prepare xid={0}, currentXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:346
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:356
 #, java-format
-msgid "Prepare called before end. prepare xid={0}, state={1}"
-msgstr "end 이전에 호출 준비. prepare xid={0}, state={1}"
+msgid "Prepare called before end(). prepare xid={0}, state={1}"
+msgstr "end() 호출 전에 Prepare가 호출되었습니다. prepare xid={0}, state={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:366
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:368
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:382
 #, java-format
 msgid "Error preparing transaction. prepare xid={0}"
 msgstr "트랜잭션 준비 오류. prepare xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:425
-msgid "Error during recover"
-msgstr "복구 중 오류"
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:441
+#, java-format
+msgid "Error during recover. flag={0}"
+msgstr "복구 중 오류. flag={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:489
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:487
 #, java-format
 msgid ""
-"Error rolling back prepared transaction. rollback xid={0}, preparedXid={1}, "
+"Cannot rollback prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"rollback xid={0}, transactionState={1}"
+msgstr ""
+"이 연결에서 로컬 트랜잭션이 진행 중인 동안에는 준비된 트랜잭션을 롤백할 수 없"
+"습니다. 먼저 로컬 트랜잭션을 커밋하거나 롤백하십시오. rollback xid={0}, "
+"transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:513
+#, java-format
+msgid ""
+"Error rolling back transaction. rollback xid={0}, preparedXid={1}, "
 "currentXid={2}"
 msgstr ""
-"준비된 트랜잭션을 롤백하는 중 오류가 발생했습니다. 롤백 xid={0}, "
+"트랜잭션을 롤백하는 중 오류가 발생했습니다. rollback xid={0}, "
 "preparedXid={1}, currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:530
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:553
 #, java-format
 msgid ""
 "One-phase commit called for xid {0} but connection was prepared with xid {1}"
@@ -2026,39 +2048,49 @@ msgstr ""
 "1단계 커밋이 xid {0} 에 대해 호출되었으나 연결이 xid {1}(으)로 준비되었습니"
 "다."
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:538
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:561
+#, java-format
 msgid ""
-"Not implemented: one-phase commit must be issued using the same connection "
-"that was used to start it"
-msgstr ""
-"구현되지 않음: 1단계 커밋은 시작하는 데 사용된 동일한 연결을 사용하여 발행해"
-"야 합니다."
+"One-phase commit must be issued on the connection that started the branch. "
+"commit xid={0}"
+msgstr "1단계 커밋은 분기를 시작한 연결에서 발행해야 합니다. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:542
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:565
 #, java-format
 msgid "One-phase commit with unknown xid. commit xid={0}, currentXid={1}"
 msgstr "알 수 없는 xid와 1단계 커밋. commit xid={0}, currentXid={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:546
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:569
 #, java-format
-msgid "commit called before end. commit xid={0}, state={1}"
-msgstr "end 이전에 호출 커밋. commit xid={0}, state={1}"
+msgid "commit() called before end(). commit xid={0}, state={1}"
+msgstr "end() 호출 전에 commit()이 호출되었습니다. commit xid={0}, state={1}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:557
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:581
 #, java-format
 msgid "Error during one-phase commit. commit xid={0}"
 msgstr "1단계 커밋 중 오류 발생. commit xid={0}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:585
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:614
 #, java-format
 msgid ""
-"Not implemented: 2nd phase commit must be issued using an idle connection. "
-"commit xid={0}, currentXid={1}, state={2}, transactionState={3}"
+"2nd phase commit cannot be issued while an XA branch is active on this "
+"connection. commit xid={0}, currentXid={1}, state={2}"
 msgstr ""
-"구현되지 않음: 2단계 커밋은 유휴 연결을 사용하여 발행해야 합니다. commit "
-"xid={0}, currentXid={1}, state={2}, transactionState={3}"
+"이 연결에서 XA 분기가 활성 상태인 동안에는 2단계 커밋을 발행할 수 없습니다. "
+"commit xid={0}, currentXid={1}, state={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:618
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:627
+#, java-format
+msgid ""
+"Cannot 2nd phase commit prepared transaction while a local transaction is in "
+"progress on this connection. Commit or rollback the local transaction first. "
+"commit xid={0}, transactionState={1}"
+msgstr ""
+"이 연결에서 로컬 트랜잭션이 진행 중인 동안에는 준비된 트랜잭션의 2단계 커밋"
+"을 수행할 수 없습니다. 먼저 로컬 트랜잭션을 커밋하거나 롤백하십시오. commit "
+"xid={0}, transactionState={1}"
+
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:654
 #, java-format
 msgid ""
 "Error committing prepared transaction. commit xid={0}, preparedXid={1}, "
@@ -2067,7 +2099,7 @@ msgstr ""
 "준비된 트랜잭션을 커밋하는 중 오류가 발생했습니다. commit xid={0}, "
 "preparedXid={1}, currentXid={2}"
 
-#: src/main/java/org/postgresql/xa/PGXAConnection.java:635
+#: src/main/java/org/postgresql/xa/PGXAConnection.java:671
 #, java-format
 msgid "Heuristic commit/rollback not supported. forget xid={0}"
 msgstr "휴리스틱 커밋/롤백이 지원되지 않습니다. forget xid={0}"
