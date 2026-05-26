@@ -15,6 +15,7 @@ import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
+import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -120,7 +121,9 @@ class ScramTest {
         () -> DriverManager.getConnection(TestUtil.getURL(), ROLE_NAME, password),
         "SCRAM connection attempt with invalid password should fail");
 
-    assertEquals(expectedMessage, e.getMessage());
+    // The driver localises messages via GT.tr, so compare against the translated form
+    // rather than the English source to keep the test locale-independent.
+    assertEquals(GT.tr(expectedMessage), e.getMessage());
   }
 
   private PSQLException scramAuthExpectingFailure(String scramMaxIterations, int serverScramIterations, String password) throws SQLException {
@@ -138,15 +141,15 @@ class ScramTest {
   void rejectIterationCountAboveDefaultCap() throws SQLException {
     int serverScramIterations = 789_123_456;
     PSQLException ex = scramAuthExpectingFailure(null, serverScramIterations, "does-not-matter");
-    assertTrue(ex.getMessage().contains("exceeds"),
-            "expected iteration-cap error, got: " + ex.getMessage());
+    // The iteration-cap message is the only SCRAM error that references the property name,
+    // so checking for it pins the test to the right error path without depending on locale.
     assertTrue(ex.getMessage().contains("scramMaxIterations"),
-        "error should reference the connection property name, got: " + ex.getMessage());
+        "expected iteration-cap error referencing the connection property name, got: " + ex.getMessage());
     // The message is formatted through MessageFormat, which applies locale-aware grouping
     // to integer arguments; format the expected numbers the same way.
     NumberFormat nf = NumberFormat.getNumberInstance();
     assertTrue(ex.getMessage().contains(nf.format(serverScramIterations)),
-        "error should include the configured cap, got: " + ex.getMessage());
+        "error should include the server-supplied iteration count, got: " + ex.getMessage());
   }
 
   @Test
