@@ -155,12 +155,18 @@ class GssAction implements PrivilegedAction<@Nullable Exception>, Callable<@Null
             case PgMessageType.AUTHENTICATION_RESPONSE:
               LOGGER.log(Level.FINEST, " <=BE AuthenticationGSSContinue");
               // AuthenticationGSSContinue: 4 (self) + 4 (type) + GSS token bytes.
+              int len = pgStream.readMessageLength("AuthenticationGSSContinue", 8);
               // Kerberos tokens are typically 1-16 KB; Windows AD PAC-bloated tickets
               // can reach ~64 KB (Microsoft's historical MaxTokenSize = 48000/65535);
               // pathological nested-group memberships have been reported up to a few
               // hundred KB. A 2 MiB cap leaves >30x headroom over real-world extremes
-              // while failing fast on a desynced stream.
-              int len = pgStream.readMessageLength("AuthenticationGSSContinue", 8, 8 + 2 * 1024 * 1024);
+              // while failing fast on a desynced stream. Soft cap, routed through
+              // ProtocolHardeningMode.
+              if (len > 8 + 2 * 1024 * 1024) {
+                pgStream.failOnDesync(IOException::new, GT.tr(
+                    "Protocol error. AuthenticationGSSContinue length {0} exceeds the 2 MiB payload pgjdbc cap.",
+                    len));
+              }
               @SuppressWarnings("unused")
               int type = pgStream.receiveInteger4(); // Specifies that this message contains GSSAPI or SSPI data
               // should check type = 8

@@ -748,11 +748,14 @@ public class PGStream implements Closeable, Flushable {
 
   /**
    * Reads a 4-byte length prefix and validates it is within
-   * {@code [minLength, maxLength]}. Throws {@link IOException} on violation, so the caller
-   * tears the connection down instead of using the wire-provided length to drive an
-   * allocation or a skip. Callers should pass the tightest protocol-level upper bound they
-   * know (for messages with a protocol-defined maximum well below {@link #MAX_MESSAGE_SIZE}),
-   * so a desynced stream is detected as early as possible.
+   * {@code [minLength, maxLength]}. Both bounds are unconditional. {@code maxLength} is
+   * the place to encode a <em>protocol-derived</em> hard cap (for example, an int16
+   * count multiplied out as {@code 6 + 4 * Short.MAX_VALUE} for
+   * {@code ParameterDescription}, or the backend's
+   * {@code PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32)} for the GSS encryption handshake
+   * token). Soft pgjdbc-applied caps that the user might legitimately want to relax
+   * for an exotic fork must be expressed as a separate inline {@code if (len > soft)}
+   * check after this call, routed through {@link #failOnDesync(Function, String)}.
    *
    * <p>If the user has configured {@code maxResultBuffer}, lengths exceeding it are also
    * rejected. The user has declared an upper bound on memory they are willing to spend
@@ -762,16 +765,19 @@ public class PGStream implements Closeable, Flushable {
    * @param packetName protocol message name used in the error message
    * @param minLength inclusive minimum legal value of the length field
    * @param maxLength inclusive maximum legal value of the length field;
-   *                  must be ≤ {@link #MAX_MESSAGE_SIZE}
+   *                  must be ≤ {@link #MAX_MESSAGE_SIZE}; encode the
+   *                  protocol-derived ceiling here, not a soft pgjdbc cap
    * @return the validated length
    * @throws IOException if the length is out of range
    */
   public int readMessageLength(String packetName, int minLength, int maxLength) throws IOException {
     int len = receiveInteger4();
     if (len < minLength || len > maxLength) {
-      failOnDesync(IOException::new, GT.tr(
+      // Unconditional. maxLength is a hard protocol-derived ceiling, not a pgjdbc
+      // soft cap; soft caps live in inline checks at the call site.
+      throw markBroken(new IOException(GT.tr(
           "Protocol error. {0} message has invalid length {1} (expected between {2} and {3}).",
-          packetName, len, minLength, maxLength));
+          packetName, len, minLength, maxLength)));
     }
     if (maxResultBuffer > 0 && len > maxResultBuffer) {
       // Unconditional. The user explicitly set maxResultBuffer to declare a memory

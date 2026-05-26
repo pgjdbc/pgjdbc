@@ -880,12 +880,18 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           case PgMessageType.AUTHENTICATION_RESPONSE:
             // Authentication request.
             // AuthenticationRequest: 4 (self) + 4 (areq) + optional payload.
+            int msgLen = pgStream.readMessageLength("AuthenticationRequest", 8);
             // The largest payload variant is AUTH_REQ_GSS_CONT carrying a Kerberos token
             // (typically 1-16 KB; up to ~64 KB with Windows AD PAC; a few hundred KB in
             // pathological nested-group cases). SCRAM/MD5/password variants are much
             // smaller. A 2 MiB cap leaves >30x headroom over real-world GSS extremes while
-            // failing fast on a desynced stream.
-            int msgLen = pgStream.readMessageLength("AuthenticationRequest", 8, 8 + 2 * 1024 * 1024);
+            // failing fast on a desynced stream. Soft cap, routed through
+            // ProtocolHardeningMode.
+            if (msgLen > 8 + 2 * 1024 * 1024) {
+              pgStream.failOnDesync(IOException::new, GT.tr(
+                  "Protocol error. AuthenticationRequest length {0} exceeds the 2 MiB payload pgjdbc cap.",
+                  msgLen));
+            }
 
             // Get the type of request
             int areq = pgStream.receiveInteger4();

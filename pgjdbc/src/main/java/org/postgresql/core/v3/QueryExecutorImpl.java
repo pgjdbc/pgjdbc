@@ -1120,8 +1120,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private void initCopy(CopyOperationImpl op) throws SQLException, IOException {
     try (ResourceLock ignore = lock.obtain()) {
       // CopyInResponse/CopyOutResponse is exactly 7 + 2*numFields bytes. numFields is a
-      // signed int16, so the protocol-level maximum is 7 + 2*32767 = 65541 bytes.
-      int msgLen = pgStream.readMessageLength("CopyInResponse/CopyOutResponse", 7, 65541);
+      // signed int16, so the protocol-level maximum is 7 + 2*Short.MAX_VALUE = 65 541
+      // bytes. Hard cap, enforced unconditionally by readMessageLength.
+      int msgLen = pgStream.readMessageLength(
+          "CopyInResponse/CopyOutResponse", 7, 7 + 2 * Short.MAX_VALUE);
       int rowFormat = pgStream.receiveChar();
       int numFields = pgStream.receiveInteger2();
       // Envelope is fully determined by numFields; enforce exact equality.
@@ -2395,8 +2397,10 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         case PgMessageType.PARAMETER_DESCRIPTION_RESPONSE: {
           // ParameterDescription is exactly 6 + 4*numParams bytes. numParams is a signed
-          // int16, so the protocol-level maximum is 6 + 4*32767 = 131074 bytes.
-          int paramDescLen = pgStream.readMessageLength("ParameterDescription", 6, 131074);
+          // int16, so the protocol-level maximum is 6 + 4*Short.MAX_VALUE = 131 074
+          // bytes. Hard cap, enforced unconditionally by readMessageLength.
+          int paramDescLen = pgStream.readMessageLength(
+              "ParameterDescription", 6, 6 + 4 * Short.MAX_VALUE);
 
           LOGGER.log(Level.FINEST, " <=BE ParameterDescription");
 
@@ -2959,11 +2963,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private void receiveAsyncNotify() throws IOException {
     // NotificationResponse: 4 (self) + 4 (pid) + NUL-terminated channel + NUL-terminated payload.
+    int notifLen = pgStream.readMessageLength("NotificationResponse", 10);
     // PostgreSQL's NOTIFY payload is capped at NOTIFY_PAYLOAD_MAX_LENGTH (8000 bytes) and
     // channel names are NAMEDATALEN-bounded (64 bytes), so a well-formed message tops out
     // at ~8 KiB. A 1 MiB cap leaves >100x headroom for forks (which may bump NAMEDATALEN
     // or the payload limit substantially) while still bounding a desynced stream early.
-    pgStream.readMessageLength("NotificationResponse", 10, 1024 * 1024);
+    // Soft cap, routed through ProtocolHardeningMode: a fork that advertises larger can
+    // disable it without rebuilding the driver.
+    if (notifLen > 1024 * 1024) {
+      pgStream.failOnDesync(IOException::new, GT.tr(
+          "Protocol error. NotificationResponse length {0} exceeds the 1 MiB pgjdbc cap.",
+          notifLen));
+    }
 
     int pid = pgStream.receiveInteger4();
     // Each C-string is bounded by what's left in the envelope (tracked by PGStream).
@@ -3157,10 +3168,15 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   public void receiveParameterStatus() throws IOException, SQLException {
     // ParameterStatus: 4 (self) + NUL-terminated name + NUL-terminated value, minimum 6.
+    int paramStatusLen = pgStream.readMessageLength("ParameterStatus", 6);
     // Names are NAMEDATALEN-bounded; values are short GUC strings in practice. A 1 MiB cap
     // is orders of magnitude over any real-world parameter status while still bounding a
-    // desynced stream.
-    pgStream.readMessageLength("ParameterStatus", 6, 1024 * 1024);
+    // desynced stream. Soft cap, routed through ProtocolHardeningMode.
+    if (paramStatusLen > 1024 * 1024) {
+      pgStream.failOnDesync(IOException::new, GT.tr(
+          "Protocol error. ParameterStatus length {0} exceeds the 1 MiB pgjdbc cap.",
+          paramStatusLen));
+    }
     final String name = pgStream.receiveCanonicalStringIfPresent();
     final String value = pgStream.receiveCanonicalStringIfPresent();
     // Each receive() bounds against the remaining envelope, but those per-string bounds
