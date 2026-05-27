@@ -225,13 +225,16 @@ public class BatchDeadlockTest extends BaseTest4 {
       assertTrue(syncs < BATCH_SIZE, () -> "Sync should not fire per row, got " + metrics);
       assertTrue(roundtrips < BATCH_SIZE, () -> "batch should pipeline, got " + metrics);
     } else {
-      int expectedRoundtrips = BATCH_SIZE * 250 /* bytes per row */ * 2 / 64000;
-      assertTrue(syncs <= expectedRoundtrips,
-          () -> "small RETURNING fits in receive buffer — expected a few terminating Syncs, "
-              + "got " + metrics);
-      assertTrue(roundtrips <= expectedRoundtrips,
-          () -> "small RETURNING fits in receive buffer — expected a few write→read cycles, "
-              + "got " + metrics);
+      // 250 bytes/row is an intentionally loose upper bound on the per-row response; the
+      // real ID-only row is much smaller. +1 covers the terminating Sync that always fires
+      // at the end of a batch, on top of any mid-batch flushes.
+      int expectedSyncs = BATCH_SIZE * 250 /* bytes per row */ * 2 / 64000 + 1;
+      assertTrue(syncs <= expectedSyncs,
+          () -> "small RETURNING fits in receive buffer: expected at most " + expectedSyncs
+              + " Syncs (mid-batch flushes + 1 terminating), got " + metrics);
+      assertTrue(roundtrips <= expectedSyncs,
+          () -> "small RETURNING fits in receive buffer: expected at most " + expectedSyncs
+              + " write→read cycles, got " + metrics);
     }
   }
 
