@@ -7,5 +7,14 @@
 *.yaml text
 *.yml text
 *.bat text eol=crlf
+
+# Java-aware diff hunk headers (git built-in funcname pattern)
+*.java diff=java
+
 /CHANGELOG.md merge=union
 /contributors.json merge=union
+
+# Generated files: collapse in PR diffs and exclude from language stats
+/pgjdbc/src/main/java/org/postgresql/translation/messages_*.java linguist-generated=true
+/pgjdbc/src/main/java/org/postgresql/translation/messages.pot linguist-generated=true
+/.github/workflows/package-lock.json linguist-generated=true
