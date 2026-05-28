@@ -482,6 +482,82 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Allow OAUTHBEARER authentication over a connection that is not encrypted, or whose server
+   * certificate is not verified. RFC 7628 §3 requires TLS, so enabling this is intended for
+   * development and testing only; DO NOT ENABLE IN PRODUCTION ENVIRONMENTS.
+   */
+  OAUTH_ALLOW_INSECURE_CONNECTION(
+      "oauthAllowInsecureConnection",
+      "false",
+      "Allow OAUTHBEARER authentication over a connection that is neither encrypted by TLS with a "
+          + "verified server certificate nor by GSS. RFC 7628, section 3 requires TLS, so enable "
+          + "this for development and testing only."),
+
+  /**
+   * Whether to allow a non-HTTPS OAuth issuer URL. Disabled by default;
+   * enable only for development/testing.
+   */
+  OAUTH_ALLOW_INSECURE_ISSUER(
+      "oauthAllowInsecureIssuer",
+      "false",
+      "Allow the oauthIssuer URL to use a plaintext http scheme instead of HTTPS. Enable this for "
+          + "development and testing only."),
+
+  /**
+   * The OAuth client ID to use for the token request.
+   */
+  OAUTH_CLIENT_ID(
+      "oauthClientId",
+      null,
+      "OAuth client id. The driver does not contact the issuer itself; the value is passed to the "
+          + "oauthTokenProviderClassName implementation."),
+
+  /**
+   * The OAuth client secret to use for the token request.
+   */
+  OAUTH_CLIENT_SECRET(
+      "oauthClientSecret",
+      null,
+      "OAuth client secret. The driver does not contact the issuer itself; the value is passed to "
+          + "the oauthTokenProviderClassName implementation."),
+
+  /**
+   * The HTTPS URL of the OAuth issuer.
+   */
+  OAUTH_ISSUER(
+      "oauthIssuer",
+      null,
+      "URL of the OAuth issuer to obtain a token from. The driver does not contact the issuer "
+          + "itself; the value is passed to the oauthTokenProviderClassName implementation."),
+
+  /**
+   * The OAuth scope to request for the token.
+   */
+  OAUTH_SCOPE(
+      "oauthScope",
+      null,
+      "OAuth scope to request. The driver does not contact the issuer itself; the value is passed "
+          + "to the oauthTokenProviderClassName implementation."),
+
+  /**
+   * OAuth bearer token for OAUTHBEARER SASL authentication.
+   * Takes priority over token provider.
+   */
+  OAUTH_TOKEN(
+      "oauthToken",
+      null,
+      "OAuth bearer token for OAuth authentication."),
+
+  /**
+   * Fully-qualified class name of an OAuthTokenProvider implementation.
+   * The provider is called to obtain a bearer token.
+   */
+  OAUTH_TOKEN_PROVIDER_CLASS_NAME(
+      "oauthTokenProviderClassName",
+      null,
+      "Name of the class implementing OAuthTokenProvider for OAuth bearer token authentication."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
@@ -666,10 +742,10 @@ public enum PGProperty {
       null,
       "Comma-separated list of acceptable authentication methods. "
       + "Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). "
-      + "Supported: password, md5, gss, sspi, scram-sha-256, none",
+      + "Supported: password, md5, gss, sspi, scram-sha-256, oauth, none",
       false,
-      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "none",
-                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!none"}
+      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "oauth", "none",
+                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!oauth", "!none"}
   ),
 
   /**
