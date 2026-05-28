@@ -275,6 +275,10 @@ public class TestUtil {
     return new File(certdir, name).getAbsolutePath();
   }
 
+  public static void assumeOAuthTestsEnabled() {
+    assumeTrue(Boolean.parseBoolean(System.getProperty("enable_oauth_tests")));
+  }
+
   public static void initDriver() {
     try (ResourceLock ignore = lock.obtain()) {
       if (initialized) {
