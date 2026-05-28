@@ -419,7 +419,7 @@ public enum PGProperty {
    */
   LOG_SERVER_ERROR_DETAIL(
       "logServerErrorDetail",
-      "true",
+      "false",
       "Include full server error detail in exception messages. If disabled then only the error itself will be included."),
 
   /**
