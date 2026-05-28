@@ -57,6 +57,8 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     SSL   = "yes" | "no"                   - Whether to enable SSL
     XA    = "yes" | "no"                   - Whether to enable XA for prepared transactions
     SCRAM = "yes" | "no"                   - Whether to enable SCRAM authentication
+    OAUTH = "no" | "smoke" | "all"         - OAuth mode: off, OAuth tests only, or route every
+                                             connection through OAuth (PG 18+)
     TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
     CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 
@@ -86,6 +88,17 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     To start the default (latest) version with read only replicas:
 
     CREATE_REPLICAS=on docker/bin/postgres-server
+
+    To start a PostgreSQL 18 server with Keycloak for OAuth testing:
+
+    PGV=18 OAUTH=smoke docker/bin/postgres-server
+
+    To additionally authenticate the whole test suite via OAuth:
+
+    PGV=18 OAUTH=all docker/bin/postgres-server
+
+    Any OAuth mode other than "no" starts a Keycloak container that binds
+    127.0.0.1:8080 on the host.
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
@@ -273,7 +286,90 @@ host    test    all    all    md5
 
 The test user must also have a password set so the server can verify it (`ALTER USER test WITH PASSWORD 'test';`).
 
-## 11 - Credits and Feedback
+## 11 - OAuth authentication tests
+
+`OAuthTest` exercises OAUTHBEARER authentication ([RFC 7628](https://www.rfc-editor.org/rfc/rfc7628)) against a real server and a real authorization server. Every test in it skips unless `-Denable_oauth_tests=true` is given, so a plain `./gradlew test` never runs them.
+
+There is a second mode. Under `-DauthMode=oauth` the default `test` role authenticates through OAuth for the whole suite, so every test that opens a connection takes the OAuth path (see `TestUtil.addOAuthProperties`). Tests that cannot work that way call `TestUtil.assumeNotOAuthMode()` and skip.
+
+### Requirements
+
+- PostgreSQL 18 or later (the server side `oauth` authentication method was introduced in 18)
+- A validator module named by `oauth_validator_libraries`. The Docker setup installs [pg_oidc_validator](https://github.com/percona/pg_oidc_validator)
+- An authorization server to issue the tokens. The Docker setup runs Keycloak with the realm in `docker/postgres-server/keycloak/realm.json`
+- A `testoauth` role, an `oauth` rule for it in `pg_hba.conf`, and an ident map from the `preferred_username` claim of the token to that role
+
+### Using Docker
+
+Start the server together with Keycloak:
+
+```sh
+PGV=18 OAUTH=smoke docker/bin/postgres-server
+```
+
+Keycloak binds `127.0.0.1:8080` on the host. `pg_oidc_validator` is published for amd64 only, so on an arm64 host `docker/bin/postgres-server` runs the server under `linux/amd64` emulation, which is noticeably slower.
+
+Then run the tests:
+
+```sh
+./gradlew :postgresql:test --tests '*OAuthTest' -Denable_oauth_tests=true
+```
+
+`OAUTH=all` switches the `test` role to OAuth as well, which is what `authMode=oauth` expects:
+
+```sh
+PGV=18 OAUTH=all docker/bin/postgres-server
+./gradlew test -Denable_oauth_tests=true -DauthMode=oauth
+```
+
+### Manual setup
+
+If you are not using Docker, load a validator and point an `oauth` rule at your issuer. With `pg_oidc_validator` and a Keycloak realm named `pgjdbc`:
+
+```
+# postgresql.conf
+oauth_validator_libraries = 'pg_oidc_validator'
+pg_oidc_validator.authn_field = 'preferred_username'
+ident_file = '/path/to/pg_ident.conf'
+```
+
+```
+# pg_hba.conf, above the other host rules so it takes precedence
+host    all    testoauth    all    oauth    scope=pgjdbc,issuer=http://keycloak:8080/realms/pgjdbc,map=oauthmap
+```
+
+```
+# pg_ident.conf
+# map-name    system-username                database-username
+oauthmap      service-account-pgjdbc-test    testoauth
+```
+
+```sql
+CREATE ROLE testoauth WITH LOGIN;
+GRANT CONNECT ON DATABASE test TO testoauth;
+GRANT USAGE ON SCHEMA public TO testoauth;
+```
+
+The `issuer` in the rule is matched against the issuer inside the token, so it is the URL the authorization server knows itself by. That is not necessarily the URL the tests reach it at, which is `oauthIssuer` below.
+
+### Test properties
+
+The tests obtain their own tokens through `org.postgresql.test.OAuthTestTokenProvider`, which sends a `client_credentials` request to the issuer. These system properties configure the tests, and the defaults match the Docker setup:
+
+| Property | Default | Meaning |
+| --- | --- | --- |
+| `enable_oauth_tests` | `false` | Runs the tests in `OAuthTest` rather than skipping them |
+| `authMode` | `default` | `oauth` routes the whole suite through OAuth |
+| `oauthIssuer` | `http://localhost:8080/realms/pgjdbc` | Realm the token is requested from |
+| `oauthClientId` | `pgjdbc-test` | Client the token is requested as |
+| `oauthClientSecret` | `pgjdbc-test-client-secret` | Secret of that client |
+| `oauthScope` | `pgjdbc` | Scope requested, and the one the `pg_hba.conf` rule requires |
+| `oauthTokenProviderClassName` | `org.postgresql.test.OAuthTestTokenProvider` | Provider the tests configure the driver with |
+| `oauthRole` | `testoauth` | Role the tests connect as |
+
+The build forwards `enable_oauth_tests` and `authMode` to the forked test JVM; see the `passProperty` list in `build-logic/jvm/src/main/kotlin/build-logic.test-base.gradle.kts`. The remaining properties are not on that list, so `-D` on the Gradle command line does not reach the tests. Add them to that list, or export `_JAVA_OPTIONS`, which every JVM picks up and which is how CI passes its test properties.
+
+## 12 - Credits and Feedback
 
 The parts of this document describing the PostgreSQL test suite
 were originally written by Rene Pijlman. Liam Stewart contributed
