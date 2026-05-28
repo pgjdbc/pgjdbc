@@ -1562,6 +1562,50 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(properties, className);
   }
 
+  /**
+   * @return OAuth 2.0 bearer token, or null if unset
+   */
+  public @Nullable String getOAuthToken() {
+    return PGProperty.OAUTH_TOKEN.getOrDefault(properties);
+  }
+
+  /**
+   * @param token OAuth 2.0 bearer token for authentication
+   */
+  public void setOAuthToken(String token) {
+    PGProperty.OAUTH_TOKEN.set(properties, token);
+  }
+
+  /**
+   * @return the class name to use for token provider, can be null
+   */
+  public @Nullable String getOAuthTokenProviderClassName() {
+    return PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.getOrDefault(properties);
+  }
+
+  /**
+   * @param className fully-qualified class implementing {@link org.postgresql.plugin.OAuthTokenProvider}
+   *                  This class will be used to obtain the OAuth 2.0 bearer token.
+   */
+  public void setOAuthTokenProviderClassName(@Nullable String className) {
+    PGProperty.OAUTH_TOKEN_PROVIDER_CLASS_NAME.set(properties, className);
+  }
+
+  /**
+   * @return true if OAUTHBEARER is permitted over a connection not encrypted by TLS or GSS.
+   */
+  public boolean getOAuthAllowUnencrypted() {
+    return PGProperty.OAUTH_ALLOW_UNENCRYPTED.getBoolean(properties);
+  }
+
+  /**
+   * @param allow permits OAUTHBEARER authentication over a connection not
+   *              encrypted by TLS or GSS. Intended for development only.
+   */
+  public void setOAuthAllowUnencrypted(boolean allow) {
+    PGProperty.OAUTH_ALLOW_UNENCRYPTED.set(properties, allow);
+  }
+
   public @Nullable String getProperty(String name) throws SQLException {
     PGProperty pgProperty = PGProperty.forName(name);
     if (pgProperty != null) {

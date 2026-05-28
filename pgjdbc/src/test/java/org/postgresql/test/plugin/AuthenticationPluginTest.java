@@ -34,7 +34,7 @@ class AuthenticationPluginTest {
     private static Consumer<AuthenticationRequestType> onGetPassword;
 
     @Override
-    public @Nullable char[] getPassword(AuthenticationRequestType type) throws PSQLException {
+    public char @Nullable [] getPassword(AuthenticationRequestType type) throws PSQLException {
       onGetPassword.accept(type);
 
       // Ex: "MD5" => "DUMMY-MD5"

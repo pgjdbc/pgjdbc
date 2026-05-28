@@ -482,6 +482,34 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Allow OAUTHBEARER authentication over a connection that is not encrypted by TLS or GSS.
+   * RFC 7628 §4 requires OAUTHBEARER to run over a confidential channel.
+   * Enabling this is intended for development and testing only; DO NOT ENABLE IN PRODUCTION ENVIRONMENTS.
+   */
+  OAUTH_ALLOW_UNENCRYPTED(
+      "oauthAllowUnencrypted",
+      "false",
+      "Allow OAUTHBEARER authentication over a connection not encrypted by TLS or GSS. Default false per RFC 7628."),
+
+  /**
+   * OAuth bearer token for OAUTHBEARER SASL authentication.
+   * Takes priority over token provider.
+   */
+  OAUTH_TOKEN(
+      "oauthToken",
+      null,
+      "OAuth bearer token for OAUTHBEARER authentication."),
+
+  /**
+   * Fully-qualified class name of an OAuthTokenProvider implementation.
+   * The provider is called to obtain a bearer token.
+   */
+  OAUTH_TOKEN_PROVIDER_CLASS_NAME(
+      "oauthTokenProviderClassName",
+      null,
+      "Name of the class implementing OAuthTokenProvider for OAuth bearer token authentication."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
@@ -666,10 +694,10 @@ public enum PGProperty {
       null,
       "Comma-separated list of acceptable authentication methods. "
       + "Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). "
-      + "Supported: password, md5, gss, sspi, scram-sha-256, none",
+      + "Supported: password, md5, gss, sspi, scram-sha-256, oauth-bearer, none",
       false,
-      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "none",
-                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!none"}
+      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "oauth-bearer", "none",
+                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!oauth-bearer", "!none"}
   ),
 
   /**

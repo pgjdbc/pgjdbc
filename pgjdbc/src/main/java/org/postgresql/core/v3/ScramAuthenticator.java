@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -43,19 +42,26 @@ final class ScramAuthenticator {
   private final int maxIterations;
 
   ScramAuthenticator(char[] password, PGStream pgStream, ChannelBinding channelBinding,
-      int maxIterations) throws PSQLException {
+      int maxIterations, List<String> saslMechanisms) throws PSQLException {
     this.pgStream = pgStream;
     this.maxIterations = maxIterations;
-    this.scramClient = initializeScramClient(password, pgStream, channelBinding);
+    this.scramClient = initializeScramClient(password, pgStream, channelBinding, saslMechanisms);
   }
 
-  private static ScramClient initializeScramClient(char[] password, PGStream stream, ChannelBinding channelBinding) throws PSQLException {
+  private static ScramClient initializeScramClient(char[] password, PGStream stream,
+      ChannelBinding channelBinding, List<String> mechanisms) throws PSQLException {
     try {
       LOGGER.log(Level.FINEST, "channelBinding( {0} )", channelBinding);
+      if (channelBinding == ChannelBinding.REQUIRE
+          && !mechanisms.stream().anyMatch(m -> m.endsWith("-PLUS"))) {
+        throw new PSQLException(
+            GT.tr("Channel Binding is required, but server did not offer an "
+                + "authentication method that supports channel binding"),
+            PSQLState.CONNECTION_REJECTED);
+      }
       final byte[] cbindData = getChannelBindingData(stream, channelBinding);
-      final List<String> advertisedMechanisms = advertisedMechanisms(stream, channelBinding);
       ScramClient client = ScramClient.builder()
-          .advertisedMechanisms(advertisedMechanisms)
+          .advertisedMechanisms(mechanisms)
           .username("*") // username is ignored by server, startup message is used instead
           .password(password)
           .channelBinding(TlsServerEndpoint.TLS_SERVER_END_POINT, cbindData)
@@ -65,35 +71,11 @@ final class ScramAuthenticator {
       LOGGER.log(Level.FINEST, () -> " Using SCRAM mechanism: "
           + client.getScramMechanism().getName());
       return client;
-    } catch (IllegalArgumentException | IOException e) {
+    } catch (IllegalArgumentException e) {
       throw new PSQLException(
           GT.tr("Invalid SCRAM client initialization", e),
           PSQLState.CONNECTION_REJECTED);
     }
-  }
-
-  private static List<String> advertisedMechanisms(PGStream stream, ChannelBinding channelBinding)
-      throws PSQLException, IOException {
-    List<String> mechanisms = new ArrayList<>();
-    do {
-      mechanisms.add(stream.receiveString());
-    } while (stream.peekChar() != 0);
-    int c = stream.receiveChar();
-    assert c == 0;
-    if (mechanisms.isEmpty()) {
-      throw new PSQLException(
-          GT.tr("Received AuthenticationSASL message with 0 mechanisms!"),
-          PSQLState.CONNECTION_REJECTED);
-    }
-    LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL( {0} )", mechanisms);
-    if (channelBinding == ChannelBinding.REQUIRE
-        && !mechanisms.stream().anyMatch(m -> m.endsWith("-PLUS"))) {
-      throw new PSQLException(
-          GT.tr("Channel Binding is required, but server did not offer an "
-              + "authentication method that supports channel binding"),
-          PSQLState.CONNECTION_REJECTED);
-    }
-    return mechanisms;
   }
 
   private static byte[] getChannelBindingData(PGStream stream, ChannelBinding channelBinding)
