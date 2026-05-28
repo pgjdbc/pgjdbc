@@ -482,6 +482,83 @@ public enum PGProperty {
       "Maximum amount of bytes buffered before sending to the backend"),
 
   /**
+   * Whether to allow a non-HTTPS OAuth issuer URL. Disabled by default;
+   * enable only for development/testing.
+   */
+  OAUTH_ALLOW_INSECURE_ISSUER(
+      "oauthAllowInsecureIssuer",
+      "false",
+      "Whether to allow a non-HTTPS OAuth issuer URL. Enable only for development/testing."),
+
+  /**
+   * Allow OAUTHBEARER authentication over a connection that is not encrypted by TLS or GSS.
+   * RFC 7628 §4 requires OAUTHBEARER to run over a confidential channel.
+   * Enabling this is intended for development and testing only; DO NOT ENABLE IN PRODUCTION ENVIRONMENTS.
+   */
+  OAUTH_ALLOW_UNENCRYPTED_CONNECTION(
+      "oauthAllowUnencryptedConnection",
+      "false",
+      "Allow OAUTHBEARER authentication over a connection not encrypted by TLS or GSS. Default false per RFC 7628."),
+
+  /**
+   * The OAuth client ID to use for the token request.
+   */
+  OAUTH_CLIENT_ID(
+      "oauthClientId",
+      null,
+      "OAuth client ID."),
+
+  /**
+   * The OAuth client secret to use for the token request.
+   */
+  OAUTH_CLIENT_SECRET(
+      "oauthClientSecret",
+      null,
+      "OAuth client secret."),
+
+  /**
+   * The HTTPS URL of the OAuth issuer.
+   */
+  OAUTH_ISSUER(
+      "oauthIssuer",
+      null,
+      "OAuth issuer URL."),
+
+  /**
+   * The OAuth scope to request for the token.
+   */
+  OAUTH_SCOPE(
+      "oauthScope",
+      null,
+      "OAuth token scope."),
+
+  /**
+   * OAuth bearer token for OAUTHBEARER SASL authentication.
+   * Takes priority over token provider.
+   */
+  OAUTH_TOKEN(
+      "oauthToken",
+      null,
+      "OAuth bearer token for OAuth authentication."),
+
+  /**
+   * Fully-qualified class name of an OAuthTokenProvider implementation.
+   * The provider is called to obtain a bearer token.
+   */
+  OAUTH_TOKEN_PROVIDER_CLASS_NAME(
+      "oauthTokenProviderClassName",
+      null,
+      "Name of the class implementing OAuthTokenProvider for OAuth bearer token authentication."),
+
+  /**
+   * The OAuth username to use for the token request.
+   */
+  OAUTH_USERNAME(
+      "oauthUsername",
+      null,
+      "OAuth username."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */
@@ -666,10 +743,10 @@ public enum PGProperty {
       null,
       "Comma-separated list of acceptable authentication methods. "
       + "Use '!' prefix to reject methods (e.g., '!password' to reject cleartext). "
-      + "Supported: password, md5, gss, sspi, scram-sha-256, none",
+      + "Supported: password, md5, gss, sspi, scram-sha-256, oauth, none",
       false,
-      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "none",
-                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!none"}
+      new String[]{"password", "md5", "gss", "sspi", "scram-sha-256", "oauth", "none",
+                   "!password", "!md5", "!gss", "!sspi", "!scram-sha-256", "!oauth", "!none"}
   ),
 
   /**
