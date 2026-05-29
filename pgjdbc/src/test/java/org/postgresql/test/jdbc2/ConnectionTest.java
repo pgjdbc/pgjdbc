@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.ExtendedSocketOptionAccessorImpl;
 import org.postgresql.core.PGStream;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.jdbc.PgConnection;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.net.Socket;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -542,6 +544,15 @@ class ConnectionTest {
     PGStream pgStream = (PGStream) f.get(queryExecutor);
     pgStream.setNetworkTimeout(1000);
     pgStream.getSocket().setKeepAlive(true);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepCount(pgStream.getSocket(), 80);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepIdle(pgStream.getSocket(), 900);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      ExtendedSocketOptionAccessorImpl.INSTANCE.setTcpKeepInterval(pgStream.getSocket(), 1000);
+    }
     pgStream.getSocket().setSendBufferSize(8192);
     pgStream.getSocket().setReceiveBufferSize(2048);
     PGStream newStream = new PGStream(pgStream, 10);
@@ -549,6 +560,51 @@ class ConnectionTest {
     assertEquals(2048, newStream.getSocket().getReceiveBufferSize());
     assertEquals(8192, newStream.getSocket().getSendBufferSize());
     assertTrue(newStream.getSocket().getKeepAlive());
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(newStream.getSocket()));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(newStream.getSocket()));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(newStream.getSocket()));
+    }
+
+    TestUtil.closeDB(con);
+  }
+
+  @Test
+  void socketSettings() throws Exception {
+    Properties properties = new Properties();
+    PGProperty.TCP_KEEP_ALIVE.set(properties, true);
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      PGProperty.TCP_KEEP_COUNT.set(properties, 80);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      PGProperty.TCP_KEEP_IDLE.set(properties, 900);
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      PGProperty.TCP_KEEP_INTERVAL.set(properties, 1000);
+    }
+
+    con = TestUtil.openDB(properties);
+    QueryExecutor queryExecutor = ((PgConnection) con).getQueryExecutor();
+
+    Field f = queryExecutor.getClass().getSuperclass().getDeclaredField("pgStream");
+    f.setAccessible(true);
+    PGStream pgStream = (PGStream) f.get(queryExecutor);
+
+    Socket socket = pgStream.getSocket();
+    assertTrue(socket.getKeepAlive());
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepCountSupported()) {
+      assertEquals(80, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepCount(socket));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIdleSupported()) {
+      assertEquals(900, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepIdle(socket));
+    }
+    if (ExtendedSocketOptionAccessorImpl.INSTANCE.isTcpKeepIntervalSupported()) {
+      assertEquals(1000, ExtendedSocketOptionAccessorImpl.INSTANCE.getTcpKeepInterval(socket));
+    }
 
     TestUtil.closeDB(con);
   }

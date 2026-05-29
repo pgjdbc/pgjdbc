@@ -226,6 +226,15 @@ matrix.addAxis({
 });
 
 matrix.addAxis({
+   name: 'keep_alive',
+    title: x => x.value === 'yes' ? 'keep_alive' : '',
+    values: [
+        {value: 'yes', weight: 10},
+        {value: 'no', weight: 10},
+    ]
+});
+
+matrix.addAxis({
   name: 'rewrite_batch_inserts',
   title: x => x.value === 'yes' ? 'rewrite_batch_inserts' : '',
   values: [
@@ -251,7 +260,7 @@ matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
-    'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
+    'adaptive_fetch', 'keep_alive', 'rewrite_batch_inserts', 'query_timeout',
     'autosave', 'cleanupSavepoints'
 ]);
 
@@ -348,6 +357,7 @@ include.forEach(v => {
   v.check_anorm_sbt = v.check_anorm_sbt.value;
   v.query_mode = v.query_mode.value;
   v.adaptive_fetch = v.adaptive_fetch.value;
+  v.keep_alive = v.keep_alive.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
   v.query_timeout = v.query_timeout.value;
   v.autosave = v.autosave.value;
@@ -413,6 +423,9 @@ include.forEach(v => {
   }
   if (v.adaptive_fetch === 'yes') {
       testJvmArgs.push('-DadaptiveFetch=true');
+  }
+  if (v.keep_alive === 'yes' && v.java_version >= 11) {
+      testJvmArgs.push('-DtcpKeepAlive=true', '-DtcpKeepCount=9', '-DtcpKeepIdle=30', '-DtcpKeepInterval=1');
   }
   if (v.rewrite_batch_inserts === 'yes') {
       testJvmArgs.push('-DreWriteBatchedInserts=true');
