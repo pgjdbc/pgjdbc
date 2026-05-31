@@ -24,6 +24,7 @@ package org.postgresql.util;
 
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,6 +34,7 @@ import org.postgresql.test.annotations.DisableLogger;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,7 +48,8 @@ public class LazyCleanerTest {
     List<Object> list = new ArrayList<>(Arrays.asList(
         new Object(), new Object(), new Object()));
 
-    LazyCleanerImpl t = new LazyCleanerImpl("Cleaner", ofSeconds(5));
+    Duration ttl = ofSeconds(5);
+    LazyCleanerImpl t = new LazyCleanerImpl("Cleaner", ttl);
 
     String[] collected = new String[list.size()];
     List<LazyCleaner.Cleanable<RuntimeException>> cleaners = new ArrayList<>();
@@ -67,9 +70,13 @@ public class LazyCleanerTest {
       );
     }
 
+    // The active LazyCleanerImpl is selected by multi-release packaging, not by the runtime JDK
+    // (the Maven source-distribution build runs the Java 8 variant on any JDK), so branch on the
+    // observed behaviour rather than on JavaVersion.
+    boolean dedicatedThread = t.isThreadRunning();
     if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
-      assertTrue(t.isThreadRunning(),
-          "cleanup thread should be running, and it should wait for the leaks");
+      assertTrue(dedicatedThread,
+          "Java 8 always loads the PhantomReference-based cleaner, which runs a dedicated thread");
     }
 
     cleaners.get(1).clean();
@@ -82,14 +89,14 @@ public class LazyCleanerTest {
     System.gc();
     System.gc();
 
-    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+    if (dedicatedThread) {
       Await.until(
-          "The cleanup thread should detect leaks and terminate within 5-10 seconds after GC",
-          ofSeconds(10),
+          "The cleanup thread should detect leaks and terminate after GC",
+          threadStopBudget(ttl),
           () -> !t.isThreadRunning()
       );
     } else {
-      // Allow some room for Java's Cleaner to clean the refs
+      // The native Cleaner has no dedicated thread to stop; give it room to process the refs
       Thread.sleep(1000);
     }
 
@@ -103,7 +110,8 @@ public class LazyCleanerTest {
   @Test
   void cleanupCompletesAfterManualClean() throws InterruptedException {
     String threadName = UUID.randomUUID().toString();
-    LazyCleanerImpl t = new LazyCleanerImpl(threadName, ofSeconds(5));
+    Duration ttl = ofSeconds(5);
+    LazyCleanerImpl t = new LazyCleanerImpl(threadName, ttl);
 
     AtomicBoolean cleaned = new AtomicBoolean();
     List<Object> list = new ArrayList<>();
@@ -115,9 +123,13 @@ public class LazyCleanerTest {
             leak -> cleaned.set(true)
         );
 
+    // The active LazyCleanerImpl is selected by multi-release packaging, not by the runtime JDK
+    // (the Maven source-distribution build runs the Java 8 variant on any JDK), so branch on the
+    // observed behaviour rather than on JavaVersion.
+    boolean dedicatedThread = t.isThreadRunning();
     if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
-      assertTrue(t.isThreadRunning(),
-          "cleanup thread should be running when there are objects to monitor");
+      assertTrue(dedicatedThread,
+          "Java 8 always loads the PhantomReference-based cleaner, which runs a dedicated thread");
     }
 
     // Manually clean the object
@@ -131,19 +143,23 @@ public class LazyCleanerTest {
     System.gc();
     System.gc();
 
-    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+    if (dedicatedThread) {
       Await.until(
           "Cleanup thread should stop when no objects remain",
-          ofSeconds(10),
+          threadStopBudget(ttl),
           () -> !t.isThreadRunning()
       );
+    } else {
+      assertFalse(t.isThreadRunning(),
+          "Native Cleaner variant: there is no dedicated thread to stop");
     }
   }
 
   @Test
   @DisableLogger(LazyCleanerImpl.class)
   void exceptionsDuringCleanupAreHandled() throws InterruptedException {
-    LazyCleanerImpl t = new LazyCleanerImpl("test-cleaner", ofSeconds(5));
+    Duration ttl = ofSeconds(5);
+    LazyCleanerImpl t = new LazyCleanerImpl("test-cleaner", ttl);
 
     java.util.concurrent.atomic.AtomicInteger cleanupCount = new java.util.concurrent.atomic.AtomicInteger(0);
     List<Object> list = new ArrayList<>();
@@ -166,9 +182,13 @@ public class LazyCleanerTest {
         leak -> secondCleaned.set(true)
     );
 
+    // The active LazyCleanerImpl is selected by multi-release packaging, not by the runtime JDK
+    // (the Maven source-distribution build runs the Java 8 variant on any JDK), so branch on the
+    // observed behaviour rather than on JavaVersion.
+    boolean dedicatedThread = t.isThreadRunning();
     if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
-      assertTrue(t.isThreadRunning(),
-          "cleanup thread should be running when there are objects to monitor");
+      assertTrue(dedicatedThread,
+          "Java 8 always loads the PhantomReference-based cleaner, which runs a dedicated thread");
     }
 
     // Trigger cleanup
@@ -176,18 +196,25 @@ public class LazyCleanerTest {
     System.gc();
     System.gc();
 
+    // Cleanup completion is bound by GC and reference-enqueue latency, not by threadTtl. Allow a
+    // generous budget so the assertion holds even when the JVM runs on a single CPU
+    // (-XX:ActiveProcessorCount=1), where GC, the reference handler, and the ForkJoinPool worker
+    // all share one core.
     Await.until(
         "Both cleanups should complete despite exception",
-        ofSeconds(10),
+        ofSeconds(30),
         () -> cleanupCount.get() == 1 && secondCleaned.get()
     );
 
-    if (JavaVersion.getRuntimeVersion() == JavaVersion.v1_8) {
+    if (dedicatedThread) {
       Await.until(
           "Cleanup thread should stop after all objects are cleaned",
-          ofSeconds(10),
+          threadStopBudget(ttl),
           () -> !t.isThreadRunning()
       );
+    } else {
+      assertFalse(t.isThreadRunning(),
+          "Native Cleaner variant: there is no dedicated thread to stop");
     }
   }
 
@@ -203,5 +230,19 @@ public class LazyCleanerTest {
 
     RuntimeException thrownException = assertThrows(RuntimeException.class, cleanable::clean);
     assertSame(expectedException, thrownException, "Expected same exception instance to be thrown");
+  }
+
+  /**
+   * Worst-case time for the Java 8 cleanup thread to stop once its registry empties. The thread
+   * waits up to one {@code threadTtl} window to observe the final GC'd reference, then must time
+   * out a second full {@code threadTtl} window before the loop breaks (see {@code LazyCleanerImpl}).
+   * The extra seconds absorb scheduling slack when the JVM runs on a single CPU
+   * (-XX:ActiveProcessorCount=1).
+   *
+   * @param threadTtl the time-to-live configured for the cleaner
+   * @return the await budget to use for {@code !isThreadRunning()}
+   */
+  private static Duration threadStopBudget(Duration threadTtl) {
+    return threadTtl.multipliedBy(2).plus(ofSeconds(5));
   }
 }
