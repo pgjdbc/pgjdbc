@@ -1,10 +1,56 @@
 <article class="article">
+    {{- partial "docs/page-meta.html" . -}}
     <h1>
         {{if eq .Title "Documentation"}}
-        <img src="{{"/icons/document.svg" | relURL}}" alt="document">
+        <img src="{{"icons/document.svg" | relURL}}" alt="document">
         {{end}}
         {{ .Title }}
     </h1>
     {{ .Content }}
+
+    {{/* On section pages, render a card list of child pages
+         (subsections and regular pages alike, ordered by weight).
+         Without this, readers landing on /documentation/connect/
+         see only the section's short intro paragraph and have to
+         retreat to the sidebar to continue. */}}
+    {{- if .IsSection }}
+      {{- with .Pages.ByWeight }}
+        <ul class="section-children">
+          {{- range . }}
+            {{/* Front-matter description may carry inline Markdown
+                 (`code` spans for type and property names). Render it
+                 through markdownify, then strip Hugo's wrapping <p>
+                 so the snippet stays inline inside <span>. */}}
+            {{- $desc := "" -}}
+            {{- $isMarkdown := false -}}
+            {{- with .Description -}}
+              {{- $desc = . | markdownify -}}
+              {{- $desc = replaceRE `^<p>` "" $desc -}}
+              {{- $desc = replaceRE `</p>\s*$` "" $desc -}}
+              {{- $isMarkdown = true -}}
+            {{- end -}}
+            {{- if not $desc -}}
+              {{/* Fallback: strip the {{< review >}} shortcode's output
+                   before Hugo auto-truncates, otherwise pages that lead
+                   with a review block surface "Reviewed YYYY-MM-DD
+                   against source: ..." as their card description. */}}
+              {{- $cleaned := replaceRE `<p class="review-meta">[\s\S]*?</p>\s*` "" .Content -}}
+              {{- $desc = $cleaned | plainify | htmlUnescape | strings.TrimSpace | truncate 160 -}}
+            {{- end -}}
+            <li>
+              <a href="{{ .RelPermalink }}" class="section-children__link">
+                <span class="section-children__title">{{ .Title }}</span>
+                {{- with $desc }}
+                  <span class="section-children__summary">
+                    {{- if $isMarkdown }}{{ . | safeHTML }}{{ else }}{{ . }}{{ end -}}
+                  </span>
+                {{- end }}
+              </a>
+            </li>
+          {{- end }}
+        </ul>
+      {{- end }}
+    {{- end }}
+
     {{- partial "previous-next-links.html" . -}}
 </article>

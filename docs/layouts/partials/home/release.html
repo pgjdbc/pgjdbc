@@ -1,0 +1,54 @@
+{{/*
+  Current release card.
+
+  Single source of truth for "the latest release" is the
+  /changelogs/ section's content tree. Each release file's
+  front-matter carries `version`, `date`, and `summary`; the
+  permalink is the URL. Listing in `.ByDate.Reverse` and taking
+  the first entry whose version starts with a digit (so any
+  non-release status notices filed in the section in the past
+  are skipped) gives the same data the homepage used to read from
+  homepagedata.toml, minus the duplication.
+
+  When a new version ships, only one file changes: the new
+  /changelogs/<YYYY-MM-DD>-<version>-release.md. The homepage
+  picks it up automatically on the next build.
+*/}}
+{{- $releases := slice -}}
+{{- range (where site.RegularPages "Section" "changelogs").ByDate.Reverse -}}
+  {{- if findRE "^[0-9]" (.Params.version | default "") -}}
+    {{- $releases = $releases | append . -}}
+  {{- end -}}
+{{- end -}}
+{{- $latest := index $releases 0 -}}
+{{- $recent := first 3 (after 1 $releases) -}}
+
+<section class="release">
+    <h2 class="release__head">Latest release</h2>
+
+    <div class="release__card">
+        <div class="release__primary">
+            <strong class="release__version">{{ $latest.Params.version }}</strong>
+            <span class="release__date">{{ $latest.Date.Format "2 January 2006" }}</span>
+        </div>
+
+        {{- with $latest.Params.summary }}
+        <p class="release__summary">{{ . }}</p>
+        {{- end }}
+
+        <ul class="release__actions" role="list">
+            <li><a href="{{ $latest.RelPermalink }}">Release notes &rarr;</a></li>
+            <li><a href="{{ "security/" | relURL }}">Security &rarr;</a></li>
+        </ul>
+
+        {{- if $recent }}
+        <p class="release__recent">
+            Recent:
+            {{- range $i, $r := $recent }}
+                {{ if $i }}<span class="release__sep">·</span>{{ end }}
+                <a href="{{ $r.RelPermalink }}">{{ $r.Params.version }}</a>
+            {{- end }}
+        </p>
+        {{- end }}
+    </div>
+</section>

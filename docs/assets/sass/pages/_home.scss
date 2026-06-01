@@ -1,3 +1,17 @@
+// Styling pass — six homepage blocks share three rules:
+//   1. Block headings carry the same size and bottom margin
+//      (var(--space-s)). Hierarchy comes from weight + colour
+//      below, not from per-block font-size variation.
+//   2. Blue is reserved for CTAs, headings, and link colour.
+//      Tile titles, bullet leads, decorative pills, and the
+//      release version display use the body's neutral colour
+//      and lean on weight/size for prominence. Each block-local
+//      override below is intentional.
+//   3. Block-level `<p>` styling is set per block (release
+//      summary, tasks desc, hero subtitle) — there is no
+//      `.home p { ... }` blanket rule, because the previous one
+//      bolded everything and was overridden in five places.
+
 .home {
     max-width: 70rem;
     margin: var(--box-spacing) auto;
@@ -12,16 +26,7 @@
         color: var(--clr-primary-400);
     }
 
-    p {
-        font-weight: 600;
-        letter-spacing: 1px;
-        margin: 1em 0;
-    }
-
-    .hero,
-    .info,
-    .feature {
-
+    .hero {
         @include mq-min(medium) {
             display: flex;
             justify-content: space-between;
@@ -37,37 +42,54 @@
     }
 }
 
+.home__decision {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: clamp(1.5rem, 3vw, 2.5rem);
+    align-items: start;
+
+    @include mq-min(medium) {
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    }
+}
+
 // Hero Section
 
 .hero {
     align-items: center;
-    column-gap: 5em;
+    column-gap: 4em;
 
+    /* Elephant illustration stays but no longer dominates the fold;
+       the content side is the primary task-flow target. */
     &__img {
-        width: 45%;
+        width: 28%;
 
         @include mq-max(medium) {
-            width: 70%
+            width: 50%;
         }
 
     }
 
     &__content {
-        width: 45%;
+        width: 62%;
 
         @include mq-max(medium) {
             width: 100%
         }
 
+        /* Title kept under one viewport-line on a typical desktop so
+           the install path stays visible above the fold. Previous
+           5.4rem forced wrap on most widths. */
         &__head {
-            font-size: 5.4rem;
+            font-size: 3.5rem;
+            line-height: 1.15;
 
             @include mq-max(medium) {
-                font-size: 4.5rem;
+                font-size: 2.8rem;
             }
 
             @include mq-max(small) {
-                font-size: 3.5rem;
+                font-size: 2.2rem;
             }
         }
 
@@ -75,12 +97,10 @@
             font-size: 1.25rem;
             padding-block: 0.5em;
             font-weight: 600;
-            // letter-spacing: 1px;
             line-height: 1.5;
 
             @include mq-max(medium) {
                 font-size: 1.05rem;
-                // line-height: 1.25;
             }
         }
 
@@ -98,138 +118,434 @@
                 justify-content: center;
             }
         }
+
+        /* Tertiary links: a quiet row of three text links under the
+           CTAs, separated by middots. They are not the primary task
+           but should be reachable in one click. */
+        &__links {
+            list-style: none;
+            margin: 0;
+            padding: 1em 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.25em 1em;
+            font-size: 0.95rem;
+            color: var(--clr-neutral-600);
+
+            li + li::before {
+                content: "·";
+                margin-inline-end: 1em;
+                color: var(--clr-neutral-400);
+            }
+
+            a {
+                color: var(--clr-primary-400);
+                text-decoration: underline;
+            }
+
+            @include mq-max(medium) {
+                justify-content: center;
+            }
+        }
+
+        /* Badge bar: shields.io-style badges. Each one is an
+           actionable signal (Maven Central version, Javadoc,
+           license, OpenSSF Scorecard) — not decoration. */
+        &__badges {
+            list-style: none;
+            margin: 0;
+            padding: 1.25em 0 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4em 0.6em;
+
+            img { display: block; }
+
+            @include mq-max(medium) {
+                justify-content: center;
+            }
+        }
     }
 }
 
-// Info Section
+// Quick install — pgJDBC dependency snippet, right under the hero.
+// The inner `.code-tabs` carries its own styling from
+// components/_code-tabs.scss; this rule only sets up the wrapper.
 
-.info {
+.quick-install {
+    min-width: 0;
 
-    ul {
-        margin: 0;
-        padding: 0;
-
-        li {
-            padding-inline: 0.5em;
-        }
-
-        li:nth-child(even) {
-            background-color: var(--clr-neutral-200);
-        }
-    }
-
-    &__about {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        max-width: 45%;
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: var(--space-s);
+        line-height: 1.15;
 
         @include mq-max(medium) {
-            max-width: 100%
-        }
-    }
-
-    &__release {
-        display: flex;
-        flex-direction: column;
-        max-width: 45%;
-
-        h2 {
             text-align: center;
         }
+    }
+
+    /* Two stacked code-tabs blocks (Maven, Gradle) share one grid
+       track sized to the widest block (Maven XML). Without this,
+       Gradle hugs its single-line snippet and the right edges step
+       — visually noisy under a shared heading. minmax(0, max-content)
+       lets the track shrink on narrow viewports (inner <pre>
+       overflow-scrolls) while still capping at the natural width. */
+    &__snippets {
+        display: grid;
+        grid-template-columns: minmax(0, max-content);
+        gap: var(--space-m);
+        max-width: 100%;
 
         @include mq-max(medium) {
-            max-width: 100%
+            justify-content: center;
         }
+    }
 
+    /* Override the component's default `margin-block` and intrinsic
+       `width: max-content` so the children stretch to fill the
+       shared grid track instead of sizing to their own content. */
+    .code-tabs {
+        margin-block: 0;
+        width: auto;
     }
 }
 
-// Feature Section
+// Release & compatibility card. Single primary card under
+// Quick-install. Type registers: block heading (1.6rem, blue,
+// shared across blocks), version display (1.7rem, neutral 700,
+// weight 600), body (1rem inherit). The version is intentionally
+// not blue — the styling pass reserves primary blue for headings
+// and CTAs; the version is a display value but neither of those.
+// Size + weight carry its prominence.
 
-.feature {
-    column-gap: 5rem;
+.release {
+    min-width: 0;
 
-    &__item {
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: var(--space-s);
+        line-height: 1.15;
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    /* No box around the release card. The Quick-install block on the
+       left already carries the bordered + filled visual treatment
+       (its inner code-tabs container), and matching it here forced
+       two heavy containers side-by-side with different content
+       densities (mono-code vs proportional text) — read messy. The
+       release block now flows as open text under its heading; the
+       grid spacing on .home__decision still separates it from the
+       neighbour. */
+    &__card {
+        padding: 0;
+    }
+
+    /* Version (left) and date (right), baseline-aligned. On phones
+       the row collapses to centred stack. */
+    &__primary {
+        margin: 0;
         display: flex;
-        flex-direction: column;
-        align-items: center;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.4em 1em;
 
-        &__media {
-            width: 4rem;
-            aspect-ratio: 1;
-        }
-    }
-}
-
-.example {
-    pre code {
         @include mq-max(medium) {
-            display: block;
+            justify-content: center;
+        }
+    }
+
+    &__version {
+        font-size: 1.7rem;
+        font-weight: 600;
+        color: var(--clr-neutral-700);
+        line-height: 1.15;
+    }
+
+    &__date {
+        color: var(--clr-neutral-600);
+    }
+
+    /* Java / PostgreSQL pills. Decorative neutral chips — not
+       links, not CTAs. Border and text both neutral; the styling
+       pass moved them out of blue. */
+    &__pills {
+        list-style: none;
+        margin: 0.7em 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4em 0.6em;
+
+        li {
+            display: inline-block;
+            padding: 0.25em 0.8em;
+            border: 1px solid var(--clr-neutral-300);
+            border-radius: 100vmax;
+            background: var(--clr-white);
+            color: var(--clr-neutral-700);
+            font-weight: 500;
+            font-size: 0.95rem;
+            line-height: 1.3;
+        }
+
+        @include mq-max(medium) {
+            justify-content: center;
+        }
+    }
+
+    &__summary {
+        margin: 0.85em 0 0;
+        color: var(--clr-neutral-700);
+        line-height: 1.45;
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    &__sep {
+        color: var(--clr-neutral-400);
+        margin-inline: 0.15em;
+    }
+
+    &__actions {
+        list-style: none;
+        margin: 0.9em 0 0;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3em 1.25em;
+
+        a {
+            color: var(--clr-primary-400);
+            text-decoration: underline;
+        }
+
+        @include mq-max(medium) {
+            justify-content: center;
+            text-align: center;
+        }
+    }
+
+    &__recent {
+        margin: 0.9em 0 0 0;
+        padding-top: 0.85em;
+        border-top: 1px solid var(--clr-neutral-300);
+        color: var(--clr-neutral-600);
+
+        a {
+            color: var(--clr-primary-400);
+            text-decoration: underline;
+            font-weight: 500;
+        }
+
+        @include mq-max(medium) {
+            text-align: center;
         }
     }
 }
 
-// Report Section
+// Common tasks. 6-card grid linking into the relevant topical
+// documentation pages. Each card is one CSS Grid cell; the link
+// covers the whole card so the click target is the entire visual
+// box rather than just the title.
 
-.report {
-    &__row {
-        @include mq-min(small) {
-            display: flex;
-            justify-content: space-between;
-            padding-top: var(--primary-spacing);
+.tasks {
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: var(--space-s);
+        line-height: 1.15;
+
+        @include mq-max(medium) {
+            text-align: center;
+        }
+    }
+
+    &__grid {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-m);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+
+        @include mq-max(medium) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @include mq-max(small) {
+            grid-template-columns: minmax(0, 1fr);
         }
     }
 
     &__item {
-        display: inline-flex;
-        column-gap: var(--primary-spacing);
-        align-items: center;
+        margin: 0;
+        padding: 0;
     }
 
-    &__desc {
-        font-size: var(--fs-400);
-        font-stretch: 100%;
+    /* Card-as-link: the whole tile is the click target. No underline
+       on the static state; a quiet border colour shift + slight lift
+       on hover/focus gives the affordance without competing with the
+       cards' role as scannable navigation. */
+    &__link {
+        display: block;
+        height: 100%;
+        padding: var(--space-m);
+        border: var(--border-subtle);
+        border-radius: var(--radius-m);
+        background: var(--clr-white);
+        color: inherit;
+        text-decoration: none;
+        transition: border-color 0.2s, transform 0.2s;
+
+        &:hover,
+        &:focus-visible {
+            border-color: var(--clr-primary-300);
+            transform: translateY(-1px);
+            text-decoration: none;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--clr-primary-300);
+            outline-offset: 2px;
+        }
+    }
+
+    /* Tile title: the whole tile is the link target, so the
+       title itself isn't the active element — blue would
+       miscue. Neutral 700 + weight 600 carries hierarchy without
+       competing with CTAs. */
+    &__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--clr-neutral-700);
         line-height: 1.3;
     }
-}
-
-// Support Section
-
-.support {
-    position: relative;
 
     &__desc {
-        position: absolute;
-        top: 25%;
-        bottom: 25%;
-        left: 50%;
-        background-color: hsla(0, 0%, 100%, 0.5);
-        padding: var(--container-spacing);
-        margin-left: var(--container-spacing);
-        border-radius: 3px;
+        margin: 0.4em 0 0;
+        font-size: 0.95rem;
+        color: var(--clr-neutral-600);
+        line-height: 1.45;
+    }
+}
+
+// Why pgJDBC? — short reassurance block under Common tasks. Four
+// strong-lead bullets, each with one short expansion line. No
+// marketing prose; if a fact isn't reachable from the surrounding
+// context (hero subtitle, badge bar, release card), put it here.
+
+.why {
+    &__head {
+        font-size: 1.6rem;
+        margin-bottom: var(--space-s);
+        line-height: 1.15;
 
         @include mq-max(medium) {
-            top: 15%;
-            left: 0%;
-            bottom: 15%;
-            margin: var(--primary-spacing);
-            padding: var(--primary-spacing);
+            text-align: center;
+        }
+    }
 
+    &__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-s) var(--space-l);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+
+        @include mq-max(medium) {
+            grid-template-columns: minmax(0, 1fr);
         }
 
-        @include mq-max(x-small) {
-            top: 10%;
-            left: 0%;
-            bottom: 10%;
+        li {
+            margin: 0;
+            line-height: 1.5;
 
-            h2 {
-                font-size: 1rem;
+            /* Bullet lead — bold + dark neutral. Was blue; moved
+               out as part of the styling pass since these are
+               prose strongs, not links or CTAs. */
+            strong {
+                display: block;
+                font-weight: 600;
+                color: var(--clr-neutral-700);
+                margin-bottom: 0.15em;
             }
+        }
+    }
+}
 
-            .desc {
-                font-size: 0.65rem;
-            }
+// Closing block. Four actionable destinations (bug / security /
+// contribute / donate to PostgreSQL) rendered as plain text
+// columns — no border, no fill, no card chrome. This block is a
+// utility / footer band, not equal-feature primary content; the
+// card visual the previous version used over-claimed the role.
+
+.closing {
+    &__grid {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: var(--space-s) var(--space-l);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+
+        @include mq-max(medium) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        @include mq-max(small) {
+            grid-template-columns: minmax(0, 1fr);
+        }
+    }
+
+    &__item {
+        margin: 0;
+        padding: 0;
+    }
+
+    &__link {
+        display: block;
+        color: inherit;
+        text-decoration: none;
+
+        &:hover strong,
+        &:focus-visible strong {
+            color: var(--clr-primary-400);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--clr-primary-300);
+            outline-offset: 2px;
+            border-radius: var(--radius-s);
+        }
+
+        /* Item label — neutral by default; turns blue on hover
+           or keyboard focus, mirroring the link-affordance rule
+           used elsewhere in the site. The whole `<a>` is the
+           target, so the static blue would over-claim the role. */
+        strong {
+            display: block;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--clr-neutral-700);
+            line-height: 1.3;
+            text-decoration: underline;
+            transition: color 0.15s;
+        }
+
+        span {
+            display: block;
+            margin-top: 0.2em;
+            font-size: 0.85rem;
+            color: var(--clr-neutral-600);
+            line-height: 1.4;
         }
     }
 }
