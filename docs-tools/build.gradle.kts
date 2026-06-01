@@ -76,34 +76,13 @@ val releaseHistoryYaml =
     isolated.rootProject.projectDirectory.dir("docs/data")
         .file("release-history.yaml")
 
-val generateReleaseHistory by tasks.registering(JavaExec::class) {
+val generateReleaseHistory by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Generate docs/data/release-history.yaml from git refs " +
         "(release/* branches, REL* tags) + release-history-overlay.yaml."
 
-    mainClass.set("org.postgresql.tools.docs.GenerateReleaseHistory")
-    classpath = sourceSets.main.get().runtimeClasspath
-    dependsOn(tasks.named("classes"))
-    dependsOn(tasks.named("processJandexIndex"))
-    // Karaf's :postgresql:generateKar declares the :postgresql jar as
-    // one of its outputs. In a full-graph CI build (`gradle jandex test
-    // jacocoReport`) generateKar runs and writes pgjdbc/build/libs/
-    // postgresql-<v>.jar, the same path :postgresql:jar produces.
-    // Gradle 9's strict overlap check then refuses to schedule any
-    // task that even touches that directory on its classpath without
-    // an explicit ordering. We do not actually consume the jar here,
-    // so mustRunAfter (not dependsOn) suffices: if generateKar is in
-    // the task graph it runs first, and if it is not (e.g. during
-    // local `serveDocs`) the constraint is a no-op.
-    mustRunAfter(":postgresql:generateKar")
-
-    argumentProviders.add(CommandLineArgumentProvider {
-        listOf(
-            projectRoot.absolutePath,
-            releaseHistoryOverlay.asFile.absolutePath,
-            releaseHistoryYaml.asFile.absolutePath
-        )
-    })
+    commandLine("bash", projectRoot.resolve("docs-tools/bin/generate-release-history.sh").absolutePath)
+    workingDir = projectRoot
 
     // The git directory's content drives the output, but Gradle cannot
     // track .git efficiently — declare the overlay as the only file input
@@ -111,9 +90,6 @@ val generateReleaseHistory by tasks.registering(JavaExec::class) {
     inputs.file(releaseHistoryOverlay).withPropertyName("overlay")
     outputs.file(releaseHistoryYaml).withPropertyName("releaseHistoryYaml")
     outputs.upToDateWhen { false }
-
-    standardOutput = System.out
-    errorOutput = System.err
 }
 
 // ----- Hugo wrappers -------------------------------------------------------
