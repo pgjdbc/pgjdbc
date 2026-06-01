@@ -17,21 +17,7 @@ plugins {
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
-    // GenerateReleaseHistory walks git refs (release/*.x branches and
-    // REL42.* tags). JGit 7.x has first-class git-worktree support
-    // (commondir indirection) and a typed API — preferable to shelling
-    // out to `git`. JGit 7.x bytecode targets Java 17; pgjdbc builds on
-    // JDK 21, so the runtime is fine.
-    implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
-
-    // SLF4J binding for JGit. Without one, SLF4J 2.x prints a per-JVM
-    // "No SLF4J providers were found" warning and silently routes JGit's
-    // diagnostics to NOP. slf4j-simple writes to stderr with no config
-    // file; tune via -Dorg.slf4j.simpleLogger.defaultLogLevel=warn.
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
-
-    // snakeyaml drives the release-history YAML emitter and parses the
-    // hand-maintained release-history-overlay.yaml.
+    // snakeyaml parses the hand-maintained release-history-overlay.yaml.
     implementation("org.yaml:snakeyaml:2.2")
 }
 
