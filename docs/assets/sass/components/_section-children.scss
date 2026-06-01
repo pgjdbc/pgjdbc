@@ -1,0 +1,49 @@
+/* Card-list of child pages rendered at the bottom of a section's
+   `_index.md` landing. Gives the reader a continuation path inside
+   the section instead of pushing them back to the sidebar. */
+.section-children {
+  list-style: none;
+  margin: var(--space-l) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-s);
+
+  @include mq-min(small) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  li {
+    margin: 0;
+    padding: 0;
+  }
+
+  &__link {
+    display: block;
+    padding: var(--space-s) var(--space-m);
+    border: var(--border-subtle);
+    border-radius: var(--radius-m);
+    color: inherit;
+    text-decoration: none;
+    transition: border-color 80ms ease, background-color 80ms ease;
+
+    &:hover {
+      border-color: var(--clr-primary-300);
+      background: var(--clr-neutral-100);
+    }
+  }
+
+  &__title {
+    display: block;
+    color: var(--clr-primary-400);
+    font-weight: 600;
+    margin-block-end: var(--space-3xs);
+  }
+
+  &__summary {
+    display: block;
+    color: var(--clr-neutral-600);
+    font-size: var(--fs-300);
+    line-height: 1.4;
+  }
+}

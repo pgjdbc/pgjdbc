@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs);
+
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+
+  font-size: var(--fs-300);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+
+  background: var(--clr-neutral-200);
+  color: var(--clr-neutral-700);
+
+  /* Version badges — readable text, never strikethrough. */
+  &--since {
+    background: var(--clr-success-100);
+    color:      var(--clr-success-500);
+  }
+
+  &--deprecated-in {
+    background: var(--clr-warning-100);
+    color:      var(--clr-warning-500);
+  }
+
+  &--hidden-in {
+    background: var(--clr-danger-100);
+    color:      var(--clr-danger-500);
+  }
+
+  /* Legacy aliases — used outside the param-table (since.html, deprecated.html). */
+  &--deprecated {
+    background: var(--clr-warning-100);
+    color:      var(--clr-warning-500);
+  }
+
+  &--removed {
+    background: var(--clr-danger-100);
+    color:      var(--clr-danger-500);
+  }
+}

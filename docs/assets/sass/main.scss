@@ -21,14 +21,20 @@
 
 
 @import
+  'components/badge',
   'components/button',
   'components/card',
+  'components/code-tabs',
+  'components/page-meta',
   'components/pagination',
+  'components/section-children',
+  'components/release-history',
   'components/search',
   'components/table',
   'components/toc';
 
 @import
+  'pages/changelogs',
   'pages/community',
   'pages/development',
   'pages/docs',

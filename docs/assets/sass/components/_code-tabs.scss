@@ -1,0 +1,114 @@
+.code-tabs {
+  margin-block: var(--space-m);
+  /* Shrink the container to the widest tab's content rather than
+     filling the parent column. On the homepage this keeps the copy
+     button (absolute-positioned to the right edge of the panels)
+     glued to the snippet instead of stranding it at the page edge.
+     On docs pages it gives the same visual: snippets sit at their
+     natural width, not stretched. Long lines still cap at parent
+     width via max-width and overflow horizontally inside <pre>. */
+  width: max-content;
+  max-width: 100%;
+  border: var(--border-subtle);
+  border-radius: var(--radius-m);
+  background: var(--clr-neutral-100);
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-block-end: var(--border-subtle);
+    background: var(--clr-neutral-200);
+    border-start-start-radius: var(--radius-m);
+    border-start-end-radius:   var(--radius-m);
+  }
+
+  &__tab {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__btn {
+    display: inline-block;
+    padding: var(--space-2xs) var(--space-m);
+
+    background: transparent;
+    border: 0;
+    border-block-end: 2px solid transparent;
+    cursor: pointer;
+
+    font: inherit;
+    font-weight: 500;
+    color: var(--clr-neutral-600);
+
+    &[aria-selected="true"] {
+      background: var(--clr-neutral-100);
+      color: var(--clr-primary-400);
+      border-block-end-color: var(--clr-primary-400);
+    }
+
+    &:hover { color: var(--clr-primary-400); }
+    &:focus-visible { outline: 2px solid var(--clr-primary-300); outline-offset: -2px; }
+  }
+
+  &__panels { position: relative; }
+
+  &__panel {
+    display: none;
+    padding: 0;
+
+    &[data-active="true"] { display: block; }
+
+    /* Reserve room on the right for the absolute-positioned
+       `__copy` button so a single-line snippet (Gradle Kotlin /
+       Groovy on the homepage) does not run under it. The
+       container's `width: max-content` then sizes to
+       `widest-line + 5rem`, keeping the button glued to the
+       block edge rather than overlapping the code. */
+    pre {
+      margin: 0;
+      border-radius: 0;
+      padding-inline-end: 5rem;
+    }
+  }
+
+  &__copy {
+    position: absolute;
+    inset-block-start: var(--space-2xs);
+    inset-inline-end:  var(--space-2xs);
+    z-index: 1;
+
+    padding: var(--space-3xs) var(--space-xs);
+    border: var(--border-subtle);
+    border-radius: var(--radius-s);
+    background: var(--clr-white);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-300);
+    color: var(--clr-neutral-600);
+    line-height: 1;
+
+    &:hover  { background: var(--clr-neutral-100); color: var(--clr-primary-400); }
+    &:focus-visible {
+      outline: 2px solid var(--clr-primary-300);
+      outline-offset: 1px;
+    }
+
+    /* JS swaps the label text to "Copied" and adds .is-copied for the
+       brief confirmation window; mirror with a green tint so the
+       feedback is unmissable without an icon swap. */
+    &.is-copied {
+      color: var(--clr-success-400, #1f7a3d);
+      border-color: var(--clr-success-300, #2d9d57);
+    }
+
+    &.is-failed {
+      color: var(--clr-danger-400, #b3261e);
+      border-color: var(--clr-danger-300, #d9534f);
+    }
+  }
+}
