@@ -8,9 +8,14 @@ package org.postgresql.test.util;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.postgresql.Driver;
 import org.postgresql.PGProperty;
+import org.postgresql.core.SocketFactoryFactory;
 import org.postgresql.jdbc.SslMode;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.ObjectFactory;
@@ -19,6 +24,7 @@ import org.postgresql.util.PSQLState;
 import org.junit.jupiter.api.Test;
 import org.opentest4j.MultipleFailuresError;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -93,6 +99,75 @@ class ObjectFactoryTest {
     PGProperty.SSL_MODE.set(props, SslMode.VERIFY_FULL.value);
     PGProperty.SSL_ROOT_CERT.set(props, TestUtil.getSslTestCertPath("goodroot.crt"));
     testInvalidInstantiation(PGProperty.SSL_HOSTNAME_VERIFIER, PSQLState.CONNECTION_FAILURE);
+  }
+
+  @Test
+  void socketFactoryReceivesCustomProperties() throws SQLException {
+    Properties props = new Properties();
+    PGProperty.SOCKET_FACTORY.set(props, CapturingSocketFactory.class.getName());
+    props.setProperty("x-acme-customfield", "from-properties");
+
+    SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(props);
+
+    CapturingSocketFactory capturingSocketFactory =
+        assertInstanceOf(CapturingSocketFactory.class, socketFactory);
+    assertSame(props, capturingSocketFactory.properties);
+    assertEquals("from-properties",
+        capturingSocketFactory.properties.getProperty("x-acme-customfield"));
+  }
+
+  @Test
+  void socketFactoryReceivesCustomPropertiesFromUrl() throws SQLException {
+    Properties props = Driver.parseURL(
+        "jdbc:postgresql://localhost/test?socketFactory="
+            + CapturingSocketFactory.class.getName()
+            + "&x-acme-customfield=from-url",
+        null);
+    assertNotNull(props);
+
+    SocketFactory socketFactory = SocketFactoryFactory.getSocketFactory(props);
+
+    CapturingSocketFactory capturingSocketFactory =
+        assertInstanceOf(CapturingSocketFactory.class, socketFactory);
+    assertSame(props, capturingSocketFactory.properties);
+    assertEquals("from-url",
+        capturingSocketFactory.properties.getProperty("x-acme-customfield"));
+  }
+
+  @Test
+  void socketFactoryReceivesCustomPropertiesOnConnection() throws SQLException {
+    CapturingSocketFactory.reset();
+    Properties props = new Properties();
+    PGProperty.SOCKET_FACTORY.set(props, CapturingSocketFactory.class.getName());
+    props.setProperty("x-acme-customfield", "from-properties-connection");
+
+    try (Connection connection = TestUtil.openDB(props)) {
+      assertNotNull(connection);
+    }
+
+    Properties socketFactoryProperties = CapturingSocketFactory.getLastProperties();
+    assertNotNull(socketFactoryProperties);
+    assertEquals("from-properties-connection",
+        socketFactoryProperties.getProperty("x-acme-customfield"));
+  }
+
+  @Test
+  void socketFactoryReceivesCustomUrlPropertiesOnConnection() throws SQLException {
+    CapturingSocketFactory.reset();
+    Properties props = new Properties();
+    TestUtil.setTestUrlProperty(props, PGProperty.SOCKET_FACTORY,
+        CapturingSocketFactory.class.getName());
+    props.setProperty(TestUtil.TEST_URL_PROPERTY_PREFIX + "x-acme-customfield",
+        "from-url-connection");
+
+    try (Connection connection = TestUtil.openDB(props)) {
+      assertNotNull(connection);
+    }
+
+    Properties socketFactoryProperties = CapturingSocketFactory.getLastProperties();
+    assertNotNull(socketFactoryProperties);
+    assertEquals("from-url-connection",
+        socketFactoryProperties.getProperty("x-acme-customfield"));
   }
 
   @Test
