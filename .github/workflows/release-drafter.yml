@@ -30,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout sources
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up JDK 17
         if: ${{ env.PUBLISH_SNAPSHOT == 'true' }}
         uses: actions/setup-java@v3
