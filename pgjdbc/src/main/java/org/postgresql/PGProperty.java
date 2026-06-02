@@ -555,6 +555,20 @@ public enum PGProperty {
       "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
 
   /**
+   * Maximum number of PBKDF2 iterations the client will accept from the server during SCRAM
+   * authentication. If the server advertises more iterations than this value, authentication
+   * is rejected before the expensive PBKDF2 computation runs. This mitigates a denial-of-service
+   * vector where a malicious or compromised server forces the client to burn CPU on an
+   * attacker-controlled iteration count. Must be a non-negative integer. Defaults to 100000. Raise
+   * only if you know you are connecting to a trusted server that legitimately uses a higher
+   * iteration count. A value of zero disables this check.
+   */
+  SCRAM_MAX_ITERATIONS(
+      "scramMaxIterations",
+      "100000",
+      "Maximum PBKDF2 iteration count accepted from the server during SCRAM authentication. A value of zero disables this check."),
+
+  /**
    * Socket write buffer size (SO_SNDBUF). A value of {@code -1}, which is the default, means system
    * default.
    */
