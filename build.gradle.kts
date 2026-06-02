@@ -364,7 +364,11 @@ allprojects {
                     "Copyright &copy; 1997-$lastEditYear PostgreSQL Global Development Group. All Rights Reserved."
                 if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
-                    links("https://docs.oracle.com/javase/9/docs/api/")
+                    // Do not register an external links() entry for the modular JDK API.
+                    // The sources are documented as the unnamed module (source 1.8); linking
+                    // them to the modular docs makes javadoc warn, and Oracle now redirects the
+                    // old non-modular URL. Either warning fails the build under -Xwerror, so the
+                    // link is dropped on JDK 9+ (master drops it on JDK 17+ for the same reason).
                 } else {
                     links("https://docs.oracle.com/javase/8/docs/api/")
                 }
