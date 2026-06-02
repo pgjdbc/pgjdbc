@@ -20,8 +20,9 @@ jobs:
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: zulu
         java-version: 8
     - uses: burrunan/gradle-cache-action@v3
       name: Verify code style
@@ -68,8 +69,9 @@ jobs:
       working-directory: docker
       run: docker compose up -d && docker compose logs
     - name: 'Set up JDK ${{ matrix.jdk }}'
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: zulu
         java-version: ${{ matrix.jdk }}
     - name: Prepare ssltest.local.properties
       run: echo enable_ssl_tests=true > ssltest.local.properties
@@ -96,8 +98,9 @@ jobs:
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
+          distribution: zulu
           java-version: 11
       - uses: burrunan/gradle-cache-action@v3
         name: Run CheckerFramework
@@ -119,8 +122,9 @@ jobs:
         working-directory: docker
         run: docker compose up -d && docker compose logs
       - name: 'Set up JDK 11'
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3
         with:
+          distribution: zulu
           java-version: 11
       - uses: burrunan/gradle-cache-action@v3
         name: Prepare source distribution
@@ -144,8 +148,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: 'Set up JDK 8'
-      uses: actions/setup-java@v1
+      uses: actions/setup-java@v3
       with:
+        distribution: zulu
         java-version: 8
     - name: 'Install software'
       run: sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql-16
