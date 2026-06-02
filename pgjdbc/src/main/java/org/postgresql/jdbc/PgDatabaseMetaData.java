@@ -1318,8 +1318,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       select += " AND n.nspname LIKE " + escapeQuotes(schemaPattern);
     }
     if (connection.getHideUnprivilegedObjects()) {
+      // as of https://git.postgresql.org/gitweb/?p=postgresql.git;a=commit;h=fefa76f70fdc75c91f80bddce2df7a8825205962
+      // The RULE privilege has been removed
+      String privileges = connection.getServerMajorVersion() < ServerVersion.v18.getMajorVersionNumber()
+          ? " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')"
+          : " 'SELECT, INSERT, UPDATE, DELETE, REFERENCES, TRIGGER')";
       select += " AND has_table_privilege(c.oid, "
-        + " 'SELECT, INSERT, UPDATE, DELETE, RULE, REFERENCES, TRIGGER')";
+        + privileges;
     }
     orderby = " ORDER BY TABLE_TYPE,TABLE_SCHEM,TABLE_NAME ";
 
