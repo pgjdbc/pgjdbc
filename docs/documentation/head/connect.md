@@ -588,6 +588,15 @@ Connection conn = DriverManager.getConnection(url);
   If we quote them, then we end up sending ""colname"" to the backend instead of "colname"
   which will not be found.
 
+* **scramMaxIterations** == int
+
+  Maximum PBKDF2 iteration count that pgjdbc will accept from the server during SCRAM authentication.
+  During SCRAM-SHA-256 authentication, the server sends the iteration count used to derive the salted password.
+  If the server advertises a value higher than `scramMaxIterations`, the driver rejects authentication before
+  starting the PBKDF2 computation.
+  This limits client CPU exposure if a malicious or compromised server sends an excessively large iteration count.
+  A value of zero disables this check.
+
 * **authenticationPluginClassName** == String
 
   Fully qualified class name of the class implementing the AuthenticationPlugin interface.
