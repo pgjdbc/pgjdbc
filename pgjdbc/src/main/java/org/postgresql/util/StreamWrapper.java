@@ -52,7 +52,7 @@ public class StreamWrapper {
 
       if (memoryLength == -1) {
         final int diskLength;
-        final File tempFile = Files.createTempFile(TEMP_FILE_PREFIX, null).toFile();
+        final File tempFile = Files.createTempFile(TEMP_FILE_PREFIX, ".tmp").toFile();
         FileOutputStream diskOutputStream = new FileOutputStream(tempFile);
         diskOutputStream.write(rawData);
         try {
