@@ -123,8 +123,6 @@ jobs:
             ],
             os: [
               'ubuntu-latest',
-              // Disable self-hosted on forks:
-              ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
             ],
           })"
 
