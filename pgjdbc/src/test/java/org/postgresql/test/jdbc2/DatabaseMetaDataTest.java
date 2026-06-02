@@ -238,6 +238,7 @@ public class DatabaseMetaDataTest {
       } else {
         assertEquals("___custom", res.getString("TYPE_NAME"));
       }
+    }
   }
 
   @Test
