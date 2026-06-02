@@ -8,12 +8,27 @@ plugins {
     id("java")
     id("com.github.vlsi.crlf")
     id("com.github.vlsi.gradle-extensions")
-    id("build-logic.repositories")
     id("build-logic.test-base")
     id("build-logic.build-params")
     id("build-logic.style")
-    id("build-logic.toolchains")
     id("com.github.vlsi.jandex")
+}
+
+repositories {
+    if (buildParameters.enableMavenLocal) {
+        mavenLocal()
+    }
+    mavenCentral {
+        mavenContent {
+            releasesOnly()
+        }
+    }
+    maven {
+        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
+        mavenContent {
+            snapshotsOnly()
+        }
+    }
 }
 
 java {

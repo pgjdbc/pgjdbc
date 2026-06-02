@@ -2,7 +2,6 @@ import com.github.vlsi.gradle.dsl.configureEach
 
 plugins {
     id("checkstyle")
-    id("build-logic.toolchains")
     id("build-logic.build-params")
 }
 

@@ -1,5 +1,6 @@
 plugins {
-    id("build-logic.java-library")
+    id("build-logic.java")
+    id("java-library")
     id("build-logic.without-type-annotations")
 }
 
