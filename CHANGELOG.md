@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 ### Security
+- fix: Limit SCRAM PBKDF2 iterations accepted from the server.
+  pgjdbc was vulnerable to a client-side denial of service in SCRAM-SHA-256 authentication, where a malicious or compromised PostgreSQL server could specify an extremely large PBKDF2 iteration count that the driver would process before authentication completed. The driver now rejects SCRAM iteration counts above `scramMaxIterations`, which defaults to 100000.
 - fix: CVE-2022-31197 Fixes SQL generated in PgResultSet.refresh() to escape column identifiers so as to prevent SQL injection.
   - Previously, the column names for both key and data columns in the table were copied as-is into the generated
   SQL. This allowed a malicious table with column names that include statement terminator to be parsed and

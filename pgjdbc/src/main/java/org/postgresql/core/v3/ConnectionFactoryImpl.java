@@ -756,7 +756,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
                 //#if mvn.project.property.postgresql.jdbc.spec >= "JDBC4.1"
-                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream);
+                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                if (scramMaxIterations < 0) {
+                  throw new PSQLException(
+                      GT.tr("{0} must be a non-negative integer, but was: {1}",
+                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                      PSQLState.INVALID_PARAMETER_VALUE);
+                }
+                scramAuthenticator = new org.postgresql.jre7.sasl.ScramAuthenticator(user, castNonNull(password), pgStream, scramMaxIterations);
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
                 // This works as follows:
