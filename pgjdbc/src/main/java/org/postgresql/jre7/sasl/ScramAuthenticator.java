@@ -7,6 +7,7 @@ package org.postgresql.jre7.sasl;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.PGProperty;
 import org.postgresql.core.PGStream;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -34,6 +35,7 @@ public class ScramAuthenticator {
   private final String user;
   private final String password;
   private final PGStream pgStream;
+  private final int maxIterations;
   private @Nullable ScramClient scramClient;
   private @Nullable ScramSession scramSession;
   private @Nullable ScramSession.ClientFinalProcessor clientFinalProcessor;
@@ -50,10 +52,11 @@ public class ScramAuthenticator {
     pgStream.flush();
   }
 
-  public ScramAuthenticator(String user, String password, PGStream pgStream) {
+  public ScramAuthenticator(String user, String password, PGStream pgStream, int maxIterations) {
     this.user = user;
     this.password = password;
     this.pgStream = pgStream;
+    this.maxIterations = maxIterations;
   }
 
   public void processServerMechanismsAndInit() throws IOException, PSQLException {
@@ -142,6 +145,15 @@ public class ScramAuthenticator {
                  " <=BE AuthenticationSASLContinue(salt={0}, iterations={1})",
                  new Object[] { serverFirstProcessor.getSalt(), serverFirstProcessor.getIteration() }
                  );
+    }
+    int iterations = serverFirstProcessor.getIteration();
+    if (maxIterations > 0 && iterations > maxIterations) {
+      throw new PSQLException(
+          GT.tr("Server requested {0} SCRAM PBKDF2 iterations, which exceeds the "
+              + "client-side limit of {1}. If you trust this server, raise the "
+              + "{2} connection property.",
+              iterations, maxIterations, PGProperty.SCRAM_MAX_ITERATIONS.getName()),
+          PSQLState.CONNECTION_REJECTED);
     }
 
     clientFinalProcessor = serverFirstProcessor.clientFinalProcessor(password);

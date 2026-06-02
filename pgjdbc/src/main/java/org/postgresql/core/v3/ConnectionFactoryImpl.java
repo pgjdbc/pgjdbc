@@ -785,6 +785,13 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
               case AUTH_REQ_SASL:
                 LOGGER.log(Level.FINEST, " <=BE AuthenticationSASL");
 
+                int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
+                if (scramMaxIterations < 0) {
+                  throw new PSQLException(
+                      GT.tr("{0} must be a non-negative integer, but was: {1}",
+                          PGProperty.SCRAM_MAX_ITERATIONS.getName(), scramMaxIterations),
+                      PSQLState.INVALID_PARAMETER_VALUE);
+                }
                 scramAuthenticator = AuthenticationPluginManager.withPassword(AuthenticationRequestType.SASL, info, password -> {
                   if (password == null) {
                     throw new PSQLException(
@@ -798,7 +805,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                             "The server requested SCRAM-based authentication, but the password is an empty string."),
                         PSQLState.CONNECTION_REJECTED);
                   }
-                  return new org.postgresql.jre7.sasl.ScramAuthenticator(user, String.valueOf(password), pgStream);
+                  return new org.postgresql.jre7.sasl.ScramAuthenticator(user,
+                      String.valueOf(password), pgStream, scramMaxIterations);
                 });
                 scramAuthenticator.processServerMechanismsAndInit();
                 scramAuthenticator.sendScramClientFirstMessage();
