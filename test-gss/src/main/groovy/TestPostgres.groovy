@@ -47,7 +47,7 @@ class TestPostgres {
         if (isMac)
             postgres = new Postgres()
         else
-            postgres = new Postgres('/usr/lib/postgresql/14/bin/', '/tmp/pggss')
+            postgres = new Postgres('/usr/lib/postgresql/16/bin/', '/tmp/pggss')
         /*
         make sure we can connect
          */
@@ -77,6 +77,7 @@ class TestPostgres {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
+                        System.exit( -1)
                     }
                 } catch( Exception ex ) {
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
@@ -93,6 +94,7 @@ class TestPostgres {
                         System.err.println 'GSS authenticated and encrypted Connection succeeded'
                     } else {
                         Assert.fail 'GSS authenticated and encrypted Connection failed'
+                        System.exit( -1)
                     }
                 } catch( Exception ex ) {
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
@@ -114,11 +116,12 @@ class TestPostgres {
                         System.err.println 'GSS authenticated and not encrypted Connection succeeded'
                     } else {
                         Assert.fail 'GSS authenticated and not encrypted Connection failed'
+                        System.exit( -1)
                     }
                 }catch( Exception ex ) {
                     System.err.println "PG HBA.conf: \n ${postgres.readPgHBA()}"
                     ex.printStackTrace()
-
+                    System.exit( -1)
 
                 } finally {
                     if (!connection) {
