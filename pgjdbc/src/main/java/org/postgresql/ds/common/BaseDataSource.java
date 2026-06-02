@@ -1232,6 +1232,22 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return maximum PBKDF2 iteration count accepted during SCRAM authentication
+   * @see PGProperty#SCRAM_MAX_ITERATIONS
+   */
+  public int getScramMaxIterations() {
+    return PGProperty.SCRAM_MAX_ITERATIONS.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param scramMaxIterations maximum PBKDF2 iteration count accepted during SCRAM authentication
+   * @see PGProperty#SCRAM_MAX_ITERATIONS
+   */
+  public void setScramMaxIterations(int scramMaxIterations) {
+    PGProperty.SCRAM_MAX_ITERATIONS.set(properties, scramMaxIterations);
+  }
+
+  /**
    * @param replication set to 'database' for logical replication or 'true' for physical replication
    * @see PGProperty#REPLICATION
    */
