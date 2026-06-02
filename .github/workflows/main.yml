@@ -38,7 +38,7 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
     - name: 'Set up JDK 8'
@@ -59,7 +59,7 @@ jobs:
     name: 'CheckerFramework'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: 'Set up JDK 11'
@@ -81,7 +81,7 @@ jobs:
     name: 'Source distribution (JDK 11)'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 50
       - name: Start PostgreSQL
@@ -139,7 +139,7 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
     - name: Start PostgreSQL
@@ -196,7 +196,7 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: 'Get test node ARCH'
       run: echo "::set-output name=arch_name::$(uname -i)"
       id: get_arch_name
