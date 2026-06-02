@@ -88,7 +88,6 @@ matrix.addAxis({
     // We use docker-compose for launching PostgreSQL
     // 'windows-latest',
     // 'macos-latest',
-    ...(process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc' ? ['self-hosted'] : [])
   ]
 });
 
@@ -203,11 +202,7 @@ matrix.exclude(row => row.replication.value === 'yes' && isLessThan(row.pg_versi
 matrix.exclude( row => row.query_mode.value == 'simple' && isLessThan(row.pg_version, '9.1'));
 // Microsoft Java has no distribution for 8
 matrix.exclude({java_distribution: 'microsoft', java_version: '8'});
-matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest', 'self-hosted']})
-if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
-    // PG images below 9.3 are x86_64 only
-    matrix.exclude(row => row.os === 'self-hosted' && isLessThan(row.pg_version, '9.3'));
-}
+matrix.exclude({gss: {value: 'yes'}, os: ['windows-latest', 'macos-latest']})
 
 // The most rare features should be generated the first
 // For instance, we have a lot of PostgreSQL versions, so we generate the minimal the first
@@ -228,9 +223,6 @@ matrix.generateRow({ssl: {value: 'yes'}});
 // Ensure at least one Windows and at least one Linux job is present (macOS is almost the same as Linux)
 // matrix.generateRow({os: 'windows-latest'});
 matrix.generateRow({os: 'ubuntu-latest'});
-if (process.env.GITHUB_REPOSITORY === 'pgjdbc/pgjdbc') {
-  matrix.generateRow({os: 'self-hosted'});
-}
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
