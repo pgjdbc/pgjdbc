@@ -20,20 +20,72 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        
+        with:
+          # :docs-tools:generateReleaseHistory enumerates REL42.* tags and
+          # release/42.*.x branches via JGit to build the compatibility
+          # matrix. A shallow checkout would surface only `master` and
+          # produce an empty table on the published site.
+          fetch-depth: 0
+          fetch-tags: true
+
+      # Hugo (extended) goes on PATH; the :docs-tools:buildDocs Gradle task
+      # invokes it via Exec after the release-history generator has produced
+      # the data files. Keeping the dedicated Hugo install step (instead of
+      # e.g. `brew install hugo`) lets us pin a tested release without
+      # relying on whatever the runner happens to ship.
       - name: Setup Hugo
         uses: peaceiris/actions-hugo@2752ce1d29631191ea3f27c23495fa06139a5b78 # v3.2.1
         with:
           hugo-version: 'latest'
           extended: true
-          
+
+      # JDK is required for the docs build: :docs-tools:generateReleaseHistory
+      # walks the REL42.* tags via JGit and emits docs/data/release-history.yaml
+      # before Hugo runs. Same JDK as the main pipeline.
+      - name: 'Set up JDK 21'
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: zulu
+          java-version: 21
+
+      # enablement: true lets a fresh fork run the workflow without first
+      # toggling Settings → Pages by hand; the action calls the Pages REST
+      # API (requires the `pages: write` permission declared above) and
+      # creates the site in "build from GitHub Actions" mode if missing.
+      # The `id: pages` is consumed below to forward the auto-detected
+      # base URL into Hugo.
       - name: Setup Pages
+        id: pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-        
+        with:
+          enablement: true
+
+      # :docs-tools:buildDocs = :docs-tools:generateReleaseHistory then
+      # `hugo --gc --minify` in docs/. See docs-tools/build.gradle.kts.
+      #
+      # HUGO_BASEURL is read by :docs-tools:buildDocs and forwarded to
+      # hugo as `--baseURL` (CLI flag — config.toml's baseURL is the
+      # fallback for forks that don't override it). Order of precedence:
+      #   1. repo variable WEBSITE_BASE_URL (lets pgjdbc/pgjdbc keep
+      #      pinning the canonical https://jdbc.postgresql.org/ URL
+      #      without touching code);
+      #   2. otherwise the URL that GitHub considers "home" for this
+      #      repo, taken from actions/configure-pages — handles project
+      #      sites, user/org sites, and custom-domain (CNAME) cases.
+      # If configure-pages reports `http://` (happens on freshly
+      # enabled sites whose HTTPS cert isn't ready), turn on
+      # Settings → Pages → Enforce HTTPS in the repo; we don't want to
+      # paper over a security setting from CI.
       - name: Build
-        run: hugo --minify
-        working-directory: ./docs
-        
+        uses: burrunan/gradle-cache-action@663fbad34e03c8f12b27f4999ac46e3d90f87eca # v3.0.1
+        env:
+          HUGO_BASEURL: ${{ vars.WEBSITE_BASE_URL || steps.pages.outputs.base_url }}
+          S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
+          S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
+        with:
+          job-id: docs-build
+          arguments: --no-parallel --no-daemon --scan :docs-tools:buildDocs
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:

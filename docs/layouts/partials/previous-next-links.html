@@ -1,4 +1,10 @@
-{{ $pages := where .Site.RegularPages "Section" .Section }}
+{{/* Sibling pages only. `.Section` is the top-level section (e.g.
+     "documentation"), so the previous form pulled in every page
+     across /documentation/* and navigated by global weight order —
+     a getting-started page would land you in postgresql-features
+     because some other section's page had the next-higher weight.
+     `.CurrentSection.RegularPages` restricts to the immediate folder. */}}
+{{ $pages := .CurrentSection.RegularPages }}
 
 <div class="pagination">
 	<div class="pagination__left">

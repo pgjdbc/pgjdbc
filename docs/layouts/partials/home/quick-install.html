@@ -1,0 +1,76 @@
+{{/*
+  Quick install block — Maven + Gradle examples stacked rather
+  than tabbed. The previous tab UI hid two of three snippets
+  behind clicks; this layout shows both Maven and Gradle in one
+  scan. Only Kotlin DSL is shown for Gradle — the Groovy DSL
+  differs by `()` vs `''` quoting, which Groovy-DSL users adapt
+  trivially.
+
+  Both blocks reuse the `code-tabs` markup (with a single tab
+  acting as the label) so the existing components/_code-tabs.scss
+  styling and static/js/code-tabs.js copy-button handling pick
+  this up unchanged.
+
+  The version string is the same "latest release" the release
+  card shows, read from /changelogs/*-release.md sorted reverse-
+  chronological. Single source of truth shared with release.html.
+*/}}
+{{- $version := "" -}}
+{{- range (where site.RegularPages "Section" "changelogs").ByDate.Reverse -}}
+  {{- if and (not $version) (findRE "^[0-9]" (.Params.version | default "")) -}}
+    {{- $version = .Params.version -}}
+  {{- end -}}
+{{- end -}}
+{{- $maven := printf `<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>%s</version>
+</dependency>` $version -}}
+{{- $gradleKotlin := printf `implementation("org.postgresql:postgresql:%s")` $version -}}
+
+<section class="quick-install">
+    <h2 class="quick-install__head">Add it to your build</h2>
+
+    {{/* Snippets share a single grid track sized to the widest
+         block (Maven XML), so the Gradle one-liner stretches to
+         match instead of leaving a stepped right edge. */}}
+    <div class="quick-install__snippets">
+    <div class="code-tabs" data-code-tabs id="qi-maven">
+        <ul class="code-tabs__list" role="tablist">
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-maven-panel-0" aria-selected="true"
+                        data-tab-target="0">Maven</button>
+            </li>
+        </ul>
+        <div class="code-tabs__panels">
+            <button class="code-tabs__copy" type="button"
+                    aria-label="Copy snippet to clipboard">
+                <span class="code-tabs__copy-label">Copy</span>
+            </button>
+            <div id="qi-maven-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
+                {{ transform.Highlight $maven "xml" "" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="code-tabs" data-code-tabs id="qi-gradle">
+        <ul class="code-tabs__list" role="tablist">
+            <li class="code-tabs__tab" role="presentation">
+                <button class="code-tabs__btn" role="tab" type="button"
+                        aria-controls="qi-gradle-panel-0" aria-selected="true"
+                        data-tab-target="0">Gradle</button>
+            </li>
+        </ul>
+        <div class="code-tabs__panels">
+            <button class="code-tabs__copy" type="button"
+                    aria-label="Copy snippet to clipboard">
+                <span class="code-tabs__copy-label">Copy</span>
+            </button>
+            <div id="qi-gradle-panel-0" class="code-tabs__panel" role="tabpanel" data-active="true">
+                {{ transform.Highlight $gradleKotlin "kotlin" "" }}
+            </div>
+        </div>
+    </div>
+    </div>
+</section>

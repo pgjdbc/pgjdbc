@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html{{ with site.Language.Locale }} lang="{{.}}"{{end}}>
+<head>
+<title>{{ .Permalink }}</title>
+<link rel="canonical" href="{{ .Permalink }}">
+<meta charset="utf-8">
+{{/*
+  Fragment-level redirects for legacy hub URLs. Hugo's default alias HTML
+  is a meta-refresh that rewrites the path but drops the URL fragment,
+  so a deep link like /documentation/use/#unix-sockets would otherwise
+  land at /documentation/connect/url-syntax/ with no scroll anchor.
+
+  The inline script below runs before the meta-refresh, checks the
+  current URL hash against a union of the four split-hub maps (use,
+  setup, server-prepare, query), and replaces the location with the
+  topical-page URL plus the original anchor when the hash matches. When
+  the hash is empty or unknown, the script falls through and the
+  meta-refresh below takes the user to the destination this alias was
+  declared for.
+
+  Anchor keys are the slug forms emitted by Hugo (lowercased, runs of
+  non-word chars collapsed to '-'). Names are unique across the four
+  hubs, so a flat lookup is sufficient.
+
+  All target URLs are passed through relURL so the script keeps working
+  on project-page deploys (<owner>.github.io/<repo>/). The argument has
+  no leading slash for the same reason: a leading `/` makes relURL skip
+  BasePath, which is the trap lintDocsLinks flags.
+*/}}
+{{- $map := dict
+    "#connecting-to-the-database"                          (relURL "documentation/connect/url-syntax/")
+    "#system-properties"                                   (relURL "documentation/connect/url-syntax/")
+    "#connection-parameters"                               (relURL "documentation/connect/url-syntax/")
+    "#unix-sockets"                                        (relURL "documentation/connect/unix-sockets/")
+    "#connection-fail-over"                                (relURL "documentation/connect/failover/")
+    "#getting-the-driver"                                  (relURL "documentation/getting-started/getting-the-driver/")
+    "#setting-up-the-class-path"                           (relURL "documentation/getting-started/setting-up-the-class-path/")
+    "#preparing-the-database-server-for-jdbc"              (relURL "documentation/getting-started/server-prep/")
+    "#creating-a-database"                                 (relURL "documentation/getting-started/server-prep/")
+    "#getting-results-based-on-a-cursor"                   (relURL "documentation/query/fetch-size/")
+    "#using-the-statement-or-preparedstatement-interface"  (relURL "documentation/query/basics/")
+    "#using-the-resultset-interface"                       (relURL "documentation/query/basics/")
+    "#performing-updates"                                  (relURL "documentation/query/basics/")
+    "#creating-and-modifying-database-objects"             (relURL "documentation/query/basics/")
+    "#using-java-8-date-and-time-classes"                  (relURL "documentation/data-types/date-time/")
+    "#accessing-the-extensions"                            (relURL "documentation/postgresql-features/extensions-api/")
+    "#timestamp-infinity"                                  (relURL "documentation/data-types/infinity/")
+    "#geometric-data-types"                                (relURL "documentation/data-types/geometric/")
+    "#large-objects"                                       (relURL "documentation/data-types/large-objects/")
+    "#listen--notify"                                      (relURL "documentation/postgresql-features/listen-notify/")
+    "#server-prepared-statements"                          (relURL "documentation/query/prepared-statements/")
+    "#parameter-status-messages"                           (relURL "documentation/postgresql-features/parameter-status/")
+    "#methods"                                             (relURL "documentation/postgresql-features/parameter-status/")
+    "#physical-and-logical-replication-api"                (relURL "documentation/postgresql-features/replication/")
+    "#configure-database"                                  (relURL "documentation/postgresql-features/replication/")
+    "#logical-replication"                                 (relURL "documentation/postgresql-features/replication/")
+    "#physical-replication"                                (relURL "documentation/postgresql-features/replication/")
+    "#arrays"                                              (relURL "documentation/data-types/arrays/")
+    "#copymanager"                                         (relURL "documentation/postgresql-features/copy/")
+-}}
+<script>
+(function () {
+  var map = {{ $map | jsonify | safeJS }};
+  var hash = window.location.hash.toLowerCase();
+  if (hash && map[hash]) {
+    window.location.replace(map[hash] + hash);
+  }
+})();
+</script>
+<meta http-equiv="refresh" content="0; url={{ .Permalink }}">
+</head>
+</html>

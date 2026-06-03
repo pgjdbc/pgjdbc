@@ -5,11 +5,13 @@
         max-width: 100%;
     }
 
-    .custom-marker>::marker {
-        content: $link;
-        font-size: large;
+    .past-versions > li {
+        padding-left: 0.25em;
     }
-    .custom-marker>li {
-        padding-left: 0.5em;
+
+    .past-versions__date {
+        margin-left: 0.5em;
+        color: var(--clr-neutral-600);
+        font-size: 0.875em;
     }
 }

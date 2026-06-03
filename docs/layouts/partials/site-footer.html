@@ -1,6 +1,6 @@
 <footer class="footer" role="contentinfo">
     <div class="footer__item">
-        {{ range $.Site.Data.footer.external }}
+        {{ range hugo.Data.footer.external }}
         <ul role="list" class="list">
             <li class="list__head">{{ .title }}</li>
             {{/*  <br />  */}}
@@ -11,6 +11,6 @@
         {{ end }}
     </div>
     <div class="copyrights">
-        Copyright © 1996-2023 The PostgreSQL Global Development Group
+        Copyright © 1996-{{ now.Year }} The PostgreSQL Global Development Group
     </div>
 </footer>

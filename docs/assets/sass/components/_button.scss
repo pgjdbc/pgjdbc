@@ -1,36 +1,60 @@
+/* The .btn classes apply directly to either a `<button>` element or
+   an `<a>` used for navigation. Legacy usages where `<a>` sits
+   INSIDE a `<button class="btn">` continue to work — the `a` selector
+   inherits the same colour / decoration so the rendered look is
+   identical regardless of which markup pattern a page uses.
+
+   Hover handling carries an extra responsibility: the global
+   `a { color: ...; } a:hover { color: primary-300; ... }` rule in
+   base/_typography.scss applies to every `<a>` on the site. With
+   the contained button using `<a class="btn--contained">`, the
+   default hover would flip text to primary-300 — the same colour as
+   the button's own hover background — so the text would visually
+   disappear. The button rules below re-pin colour / decoration in
+   hover and focus states explicitly. */
 .btn {
     border-radius: 100vmax;
     padding: 0.5em var(--primary-spacing);
     border-style: none;
     cursor: pointer;
     transition: 0.25s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    font: inherit;
+
+    &:hover,
+    &:focus {
+        text-decoration: none;
+    }
 
     @include mq-max(small) {
-        a {
-            font-size: 1.05rem;
-        }
+        font-size: 1.05rem;
+
+        a { font-size: 1.05rem; }
     }
 
-    &--contained {
-        display: inline-flex;
-        align-items: start;
+    &--contained,
+    &--contained a {
         background-color: var(--clr-primary-400);
+        color: var(--clr-white);
 
-        a {
-            color: var(--clr-white);
-            padding-left: 4px;
-        }
-
-        &:hover {
+        &:hover,
+        &:focus {
             background-color: var(--clr-primary-300);
+            color: var(--clr-white);   // override global a:hover
         }
     }
 
-    &--outlined {
+    &--outlined,
+    &--outlined a {
         color: var(--clr-primary-400);
         background-color: transparent;
         border: 1px solid var(--clr-primary-400);
+        text-decoration: none;
+    }
 
+    &--outlined {
         &::after {
             content: $single-left-arrow;
             display: inline-block;
@@ -38,8 +62,13 @@
             transition: transform 0.3s ease-out;
         }
 
-        &:hover {
-            border-color: transparent;
+        /* Outlined hover: keep the border so the affordance does not
+           visually evaporate; add a quiet tint and slide the arrow. */
+        &:hover,
+        &:focus {
+            color: var(--clr-primary-400);
+            background-color: var(--clr-primary-50, #eaf3fc);
+            border-color: var(--clr-primary-400);
 
             &::after {
                 transform: translateX(4px);
