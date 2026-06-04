@@ -76,7 +76,7 @@ jobs:
         with:
           read-only: ${{ matrix.os == 'self-hosted' }}
           job-id: checker-jdk11
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes -PjdkBuildVersion=11
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes -PjdkBuildVersion=11 -PignoreJdkCheck
 
   source-distribution-check:
     name: 'Source distribution (JDK 17)'
