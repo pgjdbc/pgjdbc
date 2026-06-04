@@ -23,12 +23,23 @@ plugins {
     id("com.github.vlsi.gettext")
     id("com.github.vlsi.gradle-extensions")
     id("com.github.vlsi.ide")
+    id("com.gradleup.nmcp")
 }
 
 buildscript {
     repositories {
         // E.g. for biz.aQute.bnd.builder which is not published to Gradle Plugin Portal
         mavenCentral()
+    }
+}
+
+nmcp {
+    publishAllPublications {
+        // Central Portal user token, reusing the credentials of the legacy release flow
+        username.set(providers.gradleProperty("ghNexusUsername"))
+        password.set(providers.gradleProperty("ghNexusPassword"))
+        // Upload and validate only; publish or drop the deployment from the Portal UI
+        publicationType.set("USER_MANAGED")
     }
 }
 
