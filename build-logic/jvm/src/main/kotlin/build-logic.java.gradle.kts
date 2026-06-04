@@ -2,6 +2,7 @@ import com.github.vlsi.gradle.crlf.CrLfSpec
 import com.github.vlsi.gradle.crlf.LineEndings
 import com.github.vlsi.gradle.dsl.configureEach
 import com.github.vlsi.gradle.properties.dsl.props
+import org.gradle.jvm.toolchain.JavaLanguageVersion
 import java.time.LocalDate
 
 plugins {
@@ -16,8 +17,11 @@ plugins {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    buildParameters.jdkBuildVersion.takeIf { it != 0 }?.let {
+        toolchain {
+            languageVersion.set(JavaLanguageVersion.of(it))
+        }
+    }
 }
 
 sourceSets {
@@ -48,6 +52,8 @@ tasks.configureEach<JavaCompile> {
     inputs.property("java.vm.version", System.getProperty("java.vm.version"))
     options.apply {
         encoding = "UTF-8"
+        // Target Java 8 bytecode without referencing Java 9+ API (--release needs javac 9+).
+        release.set(provider { 8.takeIf { javaCompiler.get().metadata.languageVersion.asInt() > 9 } })
         compilerArgs.add("-Xlint:deprecation")
         if (JavaVersion.current().isJava9Compatible) {
             // See https://bugs.openjdk.org/browse/JDK-8032211

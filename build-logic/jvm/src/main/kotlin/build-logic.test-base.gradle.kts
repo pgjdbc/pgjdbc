@@ -3,10 +3,18 @@ import com.github.vlsi.gradle.properties.dsl.props
 import org.gradle.api.tasks.testing.Test
 
 plugins {
+    id("java-library")
     id("build-logic.build-params")
 }
 
 tasks.configureEach<Test> {
+    buildParameters.jdkTestVersion.takeIf { it != 0 }?.let {
+        javaLauncher.set(
+            javaToolchains.launcherFor {
+                languageVersion.set(org.gradle.jvm.toolchain.JavaLanguageVersion.of(it))
+            }
+        )
+    }
     inputs.file("../build.properties")
     if (file("../build.local.properties").exists()) {
         inputs.file("../build.local.properties")
@@ -36,7 +44,9 @@ tasks.configureEach<Test> {
     val props = System.getProperties()
     @Suppress("UNCHECKED_CAST")
     for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-        if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
+        // Forward only pgjdbc.* properties; the build JVM's java.* props must not leak into a
+        // test JVM that may run on a different Java version.
+        if (e.startsWith("pgjdbc.")) {
             passProperty(e)
         }
     }
