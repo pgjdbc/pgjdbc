@@ -13,6 +13,8 @@ import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 buildscript {
@@ -65,6 +67,10 @@ val skipJavadoc by props()
 val skipForbiddenApis by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
+// Java version used to compile the driver via a toolchain. 0 falls back to the JVM that runs Gradle.
+val jdkBuildVersion = props.int("jdkBuildVersion", 17)
+// Java version used to run the test task via a toolchain. 0 reuses the build JVM.
+val jdkTestVersion = props.int("jdkTestVersion", 0)
 // For instance -PincludeTestTags=!org.postgresql.test.SlowTests
 //           or -PincludeTestTags=!org.postgresql.test.Replication
 val includeTestTags by props("")
@@ -379,11 +385,16 @@ allprojects {
 
     plugins.withType<JavaPlugin> {
         configure<JavaPluginExtension> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
             withSourcesJar()
             if (!skipJavadoc) {
                 withJavadocJar()
+            }
+            // Compile the driver via a toolchain so the build JVM can differ from the
+            // JVM used to compile. The bytecode target stays Java 8 via javac --release 8.
+            if (jdkBuildVersion != 0) {
+                toolchain {
+                    languageVersion.set(JavaLanguageVersion.of(jdkBuildVersion))
+                }
             }
         }
 
@@ -537,8 +548,20 @@ allprojects {
 
             configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
+                // Target Java 8 bytecode without referencing Java 9+ API (--release needs javac 9+).
+                options.release.set(
+                    provider { 8.takeIf { javaCompiler.get().metadata.languageVersion.asInt() > 9 } }
+                )
             }
             configureEach<Test> {
+                // Run tests on a specific Java version, independent of the build JVM.
+                if (jdkTestVersion != 0) {
+                    javaLauncher.set(
+                        project.the<JavaToolchainService>().launcherFor {
+                            languageVersion.set(JavaLanguageVersion.of(jdkTestVersion))
+                        }
+                    )
+                }
                 useJUnitPlatform {
                     if (includeTestTags.isNotBlank()) {
                         includeTags.add(includeTestTags)
@@ -574,7 +597,10 @@ allprojects {
                 passProperty("user.country", "tr")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
+                    // Forward only pgjdbc.* here. Forwarding the build JVM's java.* properties
+                    // (java.home, java.version, ...) would break a test JVM on a different
+                    // Java version selected via jdkTestVersion.
+                    if (e.startsWith("pgjdbc.")) {
                         passProperty(e)
                     }
                 }
