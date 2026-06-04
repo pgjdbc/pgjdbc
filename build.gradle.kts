@@ -14,6 +14,8 @@ import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 plugins {
@@ -52,6 +54,10 @@ val skipJavadoc by props()
 val skipForbiddenApis by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
+// Java version used to compile the driver via a toolchain. 0 falls back to the JVM that runs Gradle.
+val jdkBuildVersion = props.int("jdkBuildVersion", 11)
+// Java version used to run the test task via a toolchain. 0 reuses the build JVM.
+val jdkTestVersion = props.int("jdkTestVersion", 0)
 // For instance -PincludeTestTags=!org.postgresql.test.SlowTests
 //           or -PincludeTestTags=!org.postgresql.test.Replication
 val includeTestTags by props("")
@@ -358,14 +364,17 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
         configure<JavaPluginExtension> {
             withSourcesJar()
             if (!skipJavadoc) {
                 withJavadocJar()
+            }
+            // postgresql-jre6/jre7 target older Java releases and manage their own
+            // compiler (java6home/java7home or --release), so keep them off the toolchain.
+            if (jdkBuildVersion != 0 && !project.path.startsWith(":postgresql-jre")) {
+                toolchain {
+                    languageVersion.set(JavaLanguageVersion.of(jdkBuildVersion))
+                }
             }
         }
 
@@ -519,8 +528,26 @@ allprojects {
 
             configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
+                // Target Java 8 bytecode without referencing Java 9+ API.
+                // --release is only understood by javac 9+, so skip it on JDK 8.
+                // postgresql-jre6/jre7 set their own --release, so leave them alone.
+                if (!project.path.startsWith(":postgresql-jre")) {
+                    options.release.set(
+                        provider {
+                            8.takeIf { javaCompiler.get().metadata.languageVersion.asInt() > 9 }
+                        }
+                    )
+                }
             }
             configureEach<Test> {
+                // Run tests on a specific Java version, independent of the build JVM.
+                if (jdkTestVersion != 0) {
+                    javaLauncher.set(
+                        project.the<JavaToolchainService>().launcherFor {
+                            languageVersion.set(JavaLanguageVersion.of(jdkTestVersion))
+                        }
+                    )
+                }
                 useJUnitPlatform {
                     if (includeTestTags.isNotBlank()) {
                         includeTags.add(includeTestTags)
@@ -545,7 +572,10 @@ allprojects {
                 passProperty("user.country", "tr")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
+                    // Forward only pgjdbc.* here. Forwarding the build JVM's java.* properties
+                    // (java.home, java.version, ...) would break a test JVM on a different
+                    // Java version selected via jdkTestVersion.
+                    if (e.startsWith("pgjdbc.")) {
                         passProperty(e)
                     }
                 }
