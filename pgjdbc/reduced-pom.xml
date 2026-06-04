@@ -37,6 +37,8 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-jar-plugin.version>2.6</maven-jar-plugin.version>
         <maven-javadoc-plugin.version>3.0.1</maven-javadoc-plugin.version>
+        <!-- Overridden by the add-opens-jdk16 profile so System Stubs can mock env vars on JDK 16+ -->
+        <surefire.argLine>-Xmx1536m</surefire.argLine>
     </properties>
 
     <dependencies>
@@ -103,7 +105,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven-surefire-plugin.version}</version>
                 <configuration>
-                    <argLine>-Xmx1536m</argLine>
+                    <argLine>${surefire.argLine}</argLine>
                     <systemPropertyVariables>
                         <build.properties.relative.path>.</build.properties.relative.path>
                     </systemPropertyVariables>
@@ -213,6 +215,20 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <!--
+          System Stubs mocks environment variables via reflection. JDK 16+ rejects that
+          unless java.base is opened; these options are invalid on Java 8, so they live in a
+          JDK 16+ profile rather than the default argLine.
+          -->
+        <profile>
+            <id>add-opens-jdk16</id>
+            <activation>
+                <jdk>[16,)</jdk>
+            </activation>
+            <properties>
+                <surefire.argLine>-Xmx1536m --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED</surefire.argLine>
+            </properties>
         </profile>
     </profiles>
 </project>
