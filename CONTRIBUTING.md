@@ -217,28 +217,41 @@ is used for releasing artifacts.
 
 ## Releasing a new version
 
+Releases go to Maven Central through the [Central Portal](https://central.sonatype.com/).
+OSSRH (`oss.sonatype.org`) is shut down, so this branch uploads with the
+[nmcp](https://github.com/GradleUp/nmcp) plugin rather than the old Nexus 2 staging flow.
+
 Prerequisites:
-- Java 8
+- Java 17 to launch Gradle (enforced in `settings.gradle.kts`). The driver is compiled with
+  the Java toolchain set by `jdkBuildVersion` in `gradle.properties`.
 - a PostgreSQL instance for running tests; it must have a user named `test` as well as a database named `test`
+- a Central Portal user token (not the retired OSSRH password) in the `ghNexusUsername` and
+  `ghNexusPassword` Gradle properties, plus a PGP signing key published to a public keyserver
 - ensure that the RPM packaging CI isn't failing at
   [copr web page](https://copr.fedorainfracloud.org/coprs/g/pgjdbc/pgjdbc-travis/builds/)
 
 ### Manual release procedure
 
-See details in [Stage Vote Release readme](https://github.com/vlsi/vlsi-release-plugins/tree/master/plugins/stage-vote-release-plugin#making-a-release-candidate)
+1. Set `pgjdbc.version` in `gradle.properties` to the release version and commit.
 
-Prepare release candidate:
+2. Build, sign, and upload the artifacts to the Central Portal:
 
-    ./gradlew prepareVote -Prc=1 -Pgh
+        ./gradlew :postgresql:publishAllPublicationsToCentralPortal \
+          -Prc=1 -PuseGpgCmd=true -Psigning.gnupg.keyName=<your-key-id>
 
-It will create a release candidate tag, push the artifacts to Maven Central and print the announcement draft.
-The staged repository will become open for smoke testing access at https://oss.sonatype.org/content/repositories/orgpostgresql-1082/
+   `-Prc=1` selects the release (non-snapshot) version and turns on signing. The upload is
+   `USER_MANAGED`, so nothing reaches Maven Central until you publish it in the next step.
 
-If staged artifacts look fine, release it
+3. Open the deployment at <https://central.sonatype.com/publishing>,
+   [smoke-test the staged artifacts](https://central.sonatype.org/publish/publish-portal-api/),
+   then publish it. If something is wrong, drop it, fix it and repeat.
 
-    ./gradlew publishDist -Prc=1 -Pgh
+4. Tag the release and push the tag to the pgjdbc repository:
 
-Then update version, and readme as required.
+        git tag REL<version>
+        git push origin REL<version>
+
+5. Bump `pgjdbc.version` (in `gradle.properties`) to the next development version and update the README as needed.
 
 ### Updating changelog
 
