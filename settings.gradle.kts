@@ -15,6 +15,7 @@ pluginManagement {
         id("com.github.vlsi.license-gather") version "1.86"
         id("com.github.vlsi.ide") version "1.86"
         id("com.github.vlsi.stage-vote-release") version "1.86"
+        id("com.gradleup.nmcp") version "0.0.9"
         id("org.nosphere.gradle.github.actions") version "1.3.2"
         id("me.champeau.jmh") version "0.7.0"
         kotlin("jvm") version "1.8.10"
@@ -24,6 +25,12 @@ pluginManagement {
 plugins {
     `gradle-enterprise`
     id("com.github.burrunan.s3-build-cache")
+}
+
+// nmcp (Central Portal publishing) does not resolve on Java 8, and the build compiles with
+// a Java 17 toolchain, so launching Gradle needs Java 17.
+if (JavaVersion.current() < JavaVersion.VERSION_17) {
+    throw UnsupportedOperationException("Please use Java 17 for launching Gradle when building pgjdbc, the current Java is ${JavaVersion.current().majorVersion}")
 }
 
 // This is the name of a current project
