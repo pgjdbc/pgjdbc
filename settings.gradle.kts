@@ -27,6 +27,7 @@ pluginManagement {
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.nosphere.gradle.github.actions")
         idv("org.owasp.dependencycheck")
+        id("com.gradleup.nmcp") version "0.0.9"
         kotlin("jvm") version "kotlin".v()
     }
 }
@@ -37,6 +38,14 @@ plugins {
     // See https://github.com/gradle/gradle/issues/17361
     id("com.gradle.enterprise") version "3.10.1"
     id("com.github.burrunan.s3-build-cache")
+}
+
+// nmcp (Central Portal publishing) does not resolve on Java 8, and the build compiles with
+// a Java 17 toolchain, so launching Gradle needs Java 17. The CheckerFramework job still runs
+// on Java 11 and passes -PignoreJdkCheck to skip this check.
+if (!startParameter.projectProperties.containsKey("ignoreJdkCheck") &&
+    JavaVersion.current() < JavaVersion.VERSION_17) {
+    throw UnsupportedOperationException("Please use Java 17 for launching Gradle when building pgjdbc, the current Java is ${JavaVersion.current().majorVersion}. To skip the check, add -PignoreJdkCheck")
 }
 
 // This is the name of a current project
