@@ -16,6 +16,14 @@ buildParameters {
         defaultValue.set(false)
         description.set("Collect test coverage")
     }
+    integer("jdkBuildVersion") {
+        defaultValue.set(17)
+        description.set("Java version used to compile the driver via a Gradle toolchain. 0 uses the JVM that runs Gradle.")
+    }
+    integer("jdkTestVersion") {
+        defaultValue.set(0)
+        description.set("Java version used to run tests via a Gradle toolchain. 0 reuses the build JVM.")
+    }
     bool("spotbugs") {
         defaultValue.set(false)
         description.set("Run SpotBugs verifications")
