@@ -27,6 +27,7 @@ pluginManagement {
         idv("org.jetbrains.gradle.plugin.idea-ext")
         idv("org.nosphere.gradle.github.actions")
         idv("org.owasp.dependencycheck")
+        id("com.gradleup.nmcp") version "0.0.9"
         kotlin("jvm") version "kotlin".v()
     }
 }
@@ -34,6 +35,12 @@ pluginManagement {
 plugins {
     `gradle-enterprise`
     id("com.github.burrunan.s3-build-cache")
+}
+
+// nmcp (Central Portal publishing) does not resolve on Java 8, and the build compiles with
+// a Java 11 toolchain, so launching Gradle needs Java 11.
+if (JavaVersion.current() < JavaVersion.VERSION_11) {
+    throw UnsupportedOperationException("Please use Java 11 for launching Gradle when building pgjdbc, the current Java is ${JavaVersion.current().majorVersion}")
 }
 
 // This is the name of a current project
