@@ -41,11 +41,11 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 50
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK 17'
       uses: actions/setup-java@v3
       with:
         distribution: zulu
-        java-version: 8
+        java-version: 17
     - uses: burrunan/gradle-cache-action@v1
       name: Verify code style
       env:
@@ -62,6 +62,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 50
+      # CheckerFramework 3.5.0 cannot access javac internals on JDK 16+, so run it on JDK 11.
       - name: 'Set up JDK 11'
         uses: actions/setup-java@v3
         with:
@@ -75,10 +76,10 @@ jobs:
         with:
           read-only: ${{ matrix.os == 'self-hosted' }}
           job-id: checker-jdk11
-          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes
+          arguments: --scan --no-parallel --no-daemon -PenableCheckerframework classes -PjdkBuildVersion=11
 
   source-distribution-check:
-    name: 'Source distribution (JDK 11)'
+    name: 'Source distribution (JDK 17)'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -87,18 +88,18 @@ jobs:
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
         run: docker compose up -d && docker compose logs
-      - name: 'Set up JDK 11'
+      - name: 'Set up JDK 17'
         uses: actions/setup-java@v3
         with:
           distribution: zulu
-          java-version: 11
+          java-version: 17
       - uses: burrunan/gradle-cache-action@v1
         name: Prepare source distribution
         env:
           S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
           S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
         with:
-          job-id: source-release-jdk11
+          job-id: source-release-jdk17
           arguments: --scan --no-parallel --no-daemon sourceDistribution -Ppgjdbc.version=1.0 -Prelease
       - name: Verify source distribution
         working-directory: pgjdbc/build/distributions
@@ -117,7 +118,7 @@ jobs:
       run: |
         node -p "
           '::set-output name=matrix::' + JSON.stringify({
-            jdk: [
+            testJdkVersion: [
               8,
               11,
             ],
@@ -127,7 +128,7 @@ jobs:
           })"
 
   build-test:
-    name: 'Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
+    name: 'Test - build JDK 17, test JDK ${{ matrix.testJdkVersion }} on ${{ matrix.os }}'
     runs-on: ${{ matrix.os }}
     needs: matrix_prep
     strategy:
@@ -150,19 +151,23 @@ jobs:
     - name: 'Get test node ARCH'
       run: echo "::set-output name=arch_name::$(uname -i)"
       id: get_arch_name
-    - name: 'Set up JDK ${{ matrix.jdk }}'
+    - name: 'Set up test JDK ${{ matrix.testJdkVersion }} and build JDK 17'
       if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v3
       with:
         distribution: zulu
-        java-version: ${{ matrix.jdk }}
+        # The last version becomes the default JAVA_HOME, so Gradle (and the build) runs on JDK 17.
+        # The test task is launched on JDK ${{ matrix.testJdkVersion }} via the Gradle toolchain.
+        java-version: |
+          ${{ matrix.testJdkVersion }}
+          17
         architecture: x64
-    - name: 'Setup JDK ${{ matrix.jdk }} on ARM64'
+    - name: 'Setup test JDK ${{ matrix.testJdkVersion }} and build JDK 17 on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
       with:
         impl: hotspot # or openj9
-        version: ${{ matrix.jdk }}
+        version: ${{ matrix.testJdkVersion }}
         architecture: aarch64
     - name: Prepare ssltest.local.properties
       run: echo enable_ssl_tests=true > ssltest.local.properties
@@ -173,10 +178,14 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         read-only: ${{ matrix.os == 'self-hosted' }}
-        job-id: jdk${{ matrix.jdk }}
+        job-id: jdk${{ matrix.testJdkVersion }}
         arguments: --scan --no-parallel --no-daemon jandex test
         properties: |
           includeTestTags=!org.postgresql.test.SlowTests & !org.postgresql.test.Replication
+          jdkBuildVersion=17
+          jdkTestVersion=${{ matrix.testJdkVersion }}
+          org.gradle.java.installations.fromEnv=JAVA_HOME_${{ matrix.testJdkVersion }}_X64,JAVA_HOME_17_X64
+          org.gradle.java.installations.auto-download=false
     - name: Cleanup Docker
       if: ${{ always() }}
       working-directory: docker/postgres-server
@@ -185,12 +194,9 @@ jobs:
         docker compose down -v --rmi local
 
   gss-encryption:
-    name: 'GSS Test - JDK ${{ matrix.jdk }} on ${{ matrix.os }}'
-    runs-on: ${{ matrix.os }}
-    needs: matrix_prep
-    strategy:
-      fail-fast: false
-      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+    # The driver is built on JDK 17, so this job no longer varies by the test JDK matrix.
+    name: 'GSS Test - JDK 17 on ubuntu-latest'
+    runs-on: ubuntu-latest
     env:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
@@ -199,18 +205,18 @@ jobs:
     - name: 'Get test node ARCH'
       run: echo "::set-output name=arch_name::$(uname -i)"
       id: get_arch_name
-    - name: 'Set up JDK 8'
+    - name: 'Set up JDK 17'
       if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
       uses: actions/setup-java@v3
       with:
         distribution: zulu
-        java-version: 8
-    - name: 'Setup JDK 8 on ARM64'
+        java-version: 17
+    - name: 'Setup JDK 17 on ARM64'
       if: ${{ steps.get_arch_name.outputs.arch_name == 'aarch64' }}
       uses: AdoptOpenJDK/install-jdk@v1
       with:
         impl: hotspot # or openj9
-        version: '8'
+        version: '17'
         architecture: aarch64
     - name: 'Install software'
       if: ${{ steps.get_arch_name.outputs.arch_name != 'aarch64' }}
@@ -224,8 +230,8 @@ jobs:
     - uses: burrunan/gradle-cache-action@v1
       name: Build pgjdbc
       with:
-        read-only: ${{ matrix.os == 'self-hosted' }}
-        job-id: gss-jdk8
+        read-only: false
+        job-id: gss-jdk17
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Run tests
       run: |

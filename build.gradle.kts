@@ -14,6 +14,8 @@ import com.github.vlsi.gradle.publishing.dsl.simplifyXml
 import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApis
 import de.thetaphi.forbiddenapis.gradle.CheckForbiddenApisExtension
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+import org.gradle.jvm.toolchain.JavaToolchainService
 import org.postgresql.buildtools.JavaCommentPreprocessorTask
 
 buildscript {
@@ -66,6 +68,10 @@ val skipJavadoc by props()
 val skipForbiddenApis by props()
 val enableMavenLocal by props()
 val enableGradleMetadata by props()
+// Java version to compile via toolchain; 0 = the JVM running Gradle
+val jdkBuildVersion = props.int("jdkBuildVersion", 17)
+// Java version to run tests via toolchain; 0 = reuse build JVM
+val jdkTestVersion = props.int("jdkTestVersion", 0)
 // For instance -PincludeTestTags=!org.postgresql.test.SlowTests
 //           or -PincludeTestTags=!org.postgresql.test.Replication
 val includeTestTags by props("")
@@ -354,7 +360,13 @@ allprojects {
                 }
                 // javadoc: error - The code being documented uses modules but the packages
                 // defined in https://docs.oracle.com/javase/9/docs/api/ are in the unnamed module
-                source = "1.8"
+                if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
+                    // Document against the Java 8 API. --release also avoids deprecation-for-removal
+                    // warnings (e.g. AccessController) that newer JDKs emit and -Xwerror turns fatal.
+                    addStringOption("-release", "8")
+                } else {
+                    source = "1.8"
+                }
                 docEncoding = "UTF-8"
                 charSet = "UTF-8"
                 encoding = "UTF-8"
@@ -363,7 +375,12 @@ allprojects {
                 header = "<b>PostgreSQL JDBC</b>"
                 bottom =
                     "Copyright &copy; 1997-$lastEditYear PostgreSQL Global Development Group. All Rights Reserved."
-                if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
+                // There are too many missing javadocs, so failing the build on missing comments is not an option
+                addBooleanOption("Xdoclint:all,-missing", true)
+                if (JavaVersion.current() >= JavaVersion.VERSION_17) {
+                    // Java 17+ javadoc warns on the redirecting javase/9 element-list, so skip the external links
+                    addBooleanOption("html5", true)
+                } else if (JavaVersion.current() >= JavaVersion.VERSION_1_9) {
                     addBooleanOption("html5", true)
                     links("https://docs.oracle.com/javase/9/docs/api/")
                 } else {
@@ -375,14 +392,15 @@ allprojects {
     }
 
     plugins.withType<JavaPlugin> {
-        configure<JavaPluginConvention> {
-            sourceCompatibility = JavaVersion.VERSION_1_8
-            targetCompatibility = JavaVersion.VERSION_1_8
-        }
         configure<JavaPluginExtension> {
             withSourcesJar()
             if (!skipJavadoc) {
                 withJavadocJar()
+            }
+            if (jdkBuildVersion != 0) {
+                toolchain {
+                    languageVersion.set(JavaLanguageVersion.of(jdkBuildVersion))
+                }
             }
         }
 
@@ -535,8 +553,23 @@ allprojects {
 
             configureEach<JavaCompile> {
                 options.encoding = "UTF-8"
+                // Target Java 8 bytecode without referencing Java 9+ API.
+                // --release is only understood by javac 9+, so skip it on JDK 8.
+                options.release.set(
+                    provider {
+                        8.takeIf { javaCompiler.get().metadata.languageVersion.asInt() > 9 }
+                    }
+                )
             }
             configureEach<Test> {
+                // Run tests on a specific Java version, independent of the build JVM.
+                if (jdkTestVersion != 0) {
+                    javaLauncher.set(
+                        project.the<JavaToolchainService>().launcherFor {
+                            languageVersion.set(JavaLanguageVersion.of(jdkTestVersion))
+                        }
+                    )
+                }
                 useJUnitPlatform {
                     if (includeTestTags.isNotBlank()) {
                         includeTags.add(includeTestTags)
@@ -569,7 +602,10 @@ allprojects {
                 passProperty("user.country", "tr")
                 val props = System.getProperties()
                 for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
-                    if (e.startsWith("pgjdbc.") || e.startsWith("java")) {
+                    // Forward only pgjdbc.* here. The build JVM's java.* properties
+                    // (java.home, java.version, ...) must not leak into a test JVM
+                    // running on a different Java version selected via jdkTestVersion.
+                    if (e.startsWith("pgjdbc.")) {
                         passProperty(e)
                     }
                 }
