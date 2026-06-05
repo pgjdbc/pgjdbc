@@ -1,5 +1,3 @@
-# Ignore everything
+# The build only needs the Dockerfile; sources are git-cloned and the entrypoint
+# is fetched from the official image during the build.
 **
-
-# Explicitly included
-!scripts/**

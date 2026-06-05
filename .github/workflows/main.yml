@@ -88,7 +88,7 @@ jobs:
           fetch-depth: 50
       - name: Start PostgreSQL
         working-directory: docker/postgres-server
-        run: docker compose up -d && docker compose logs
+        run: docker compose up -d --wait || { docker compose logs; exit 1; }
       - name: 'Set up JDK 21'
         uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
         with:
@@ -162,6 +162,8 @@ jobs:
         SSL: ${{ matrix.ssl }}
         SCRAM: ${{ matrix.scram }}
         CREATE_REPLICAS: ${{ matrix.replication }}
+        PG_IMAGE: ${{ matrix.pg_version == 'HEAD' && 'pgjdbc/postgres-devel:ci-head' || '' }}
+        PG_PULL_POLICY: ${{ matrix.pg_version == 'HEAD' && 'build' || 'missing' }}
       # The below run command is long, however, it is intentional, and it makes the output nicer in GitHub UI
       # language=bash
       run: |
@@ -169,7 +171,7 @@ jobs:
 
         docker compose down -v --rmi local || true
         sed -i -r '/- (543[3-4]):\1/d' docker-compose.yml
-        docker compose up -d
+        docker compose up -d --wait || { docker compose logs; exit 1; }
         docker compose logs
     - name: Start PostgreSQL PGV=${{ matrix.pg_version }}
       if: ${{ runner.os != 'Linux' }}

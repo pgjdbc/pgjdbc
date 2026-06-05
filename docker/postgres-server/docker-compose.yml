@@ -1,6 +1,13 @@
 services:
   pgdb:
-    image: postgres:${PGV:-latest}
+    image: ${PG_IMAGE:-postgres:${PGV:-latest}}
+    # With the default pull_policy (missing) this section is ignored and the
+    # official postgres:<PGV> is pulled; force a build with PG_PULL_POLICY=build.
+    build:
+      context: ../postgres-head
+      args:
+        PG_MAJOR: ${PG_MAJOR:-}
+    pull_policy: ${PG_PULL_POLICY:-missing}
     ports:
       - 5432:5432
       - 5433:5433
@@ -31,3 +38,14 @@ services:
       - GITHUB_ACTIONS=true
     command: >-
       postgres
+    healthcheck:
+      # Probe the TCP listener with bash, not the socket: the entrypoint runs a
+      # socket-only temp server while initialising, so the listener is reachable
+      # only once the real server is up. This is version-, auth- and SSL-agnostic,
+      # unlike pg_isready (the Debian pg_wrapper cannot resolve it for servers
+      # older than 9.3). It lets consumers `docker compose up --wait`.
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5432'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s

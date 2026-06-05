@@ -72,6 +72,11 @@ matrix.addAxis({
   ]
 });
 
+// Test with PostgreSQL HEAD for branch-based builds only.
+if ((process.env.GITHUB_REF || '').startsWith('refs/heads/')) {
+  matrix.axisByName.pg_version.values.push('HEAD');
+}
+
 matrix.addAxis({
   name: 'tz',
   title: x => 'client_tz ' + x,
@@ -287,6 +292,8 @@ matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
+// HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
+matrix.imply({pg_version: 'HEAD'}, {os: {value: 'ubuntu-latest'}});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
 

@@ -4,6 +4,12 @@ set -euo pipefail
 . /custom/scripts/common.sh
 
 main () {
+    # The official postgres image exports PG_MAJOR; the from-source image does
+    # not. Derive a bare integer major from the server binary when unset so the
+    # version checks below (and the upstream docker-entrypoint.sh) work.
+    : "${PG_MAJOR:=$(postgres --version | grep -oE '[0-9]+' | head -n1)}"
+    export PG_MAJOR
+
     # Make a copy of certdir so we can edit the files
     cp -r /custom/certdir /home/certdir
     chown postgres:postgres /home/certdir/*.key
