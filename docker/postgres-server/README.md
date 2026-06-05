@@ -27,6 +27,23 @@ Example usages
 
     docker compose down && PGV=latest docker compose up
 
+Testing against PostgreSQL HEAD
+===============================
+
+To run the driver tests against an unreleased PostgreSQL, build the devel
+image (from `apt.postgresql.org`'s `pgdg-snapshot` suite) inline via the
+shared compose:
+
+    PG_IMAGE=pgjdbc/postgres-devel:local docker compose up --build
+
+Or, equivalently, without the `--build` flag:
+
+    PG_IMAGE=pgjdbc/postgres-devel:local PG_PULL_POLICY=build docker compose up
+
+The build picks the highest `postgresql-N` available in `pgdg-snapshot`. Pass
+`PG_MAJOR=18` to pin a specific major. See [docker/postgres-head/README.md](../postgres-head/README.md)
+for the Dockerfile.
+
 Alternative Foreground Helper
 =============================
 Run a database server configured for testing the driver in the foreground via:

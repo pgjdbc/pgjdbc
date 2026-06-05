@@ -123,7 +123,7 @@ jobs:
             const test_group = opts.test_group ?? DEFAULT_TEST_GROUP;
             const create_replicas = opts.create_replicas ?? false;
 
-            const isAtLeast = (minVersion) => Number(pg_version) >= Number(minVersion);
+            const isAtLeast = (minVersion) => pg_version === 'HEAD' || Number(pg_version) >= Number(minVersion);
             const scramSupported = isAtLeast('10');
             const sslSupported = isAtLeast('9.3');
 
@@ -185,6 +185,11 @@ jobs:
                 pg_version,
             });
         }
+
+        // Latest JDK x PostgreSQL HEAD (built inline from pgdg-snapshot).
+        addItem({
+            pg_version: 'HEAD',
+        });
 
         // Latest PG version x each remaining JDK
         for (const jdk of JDK_OPTIONS) {
@@ -301,9 +306,11 @@ jobs:
 
     - name: Start PostgreSQL
       working-directory: docker/postgres-server
-      run: docker compose up -d && docker compose logs
+      run: docker compose up -d --wait || { docker compose logs; exit 1; }
       env:
         PGV: ${{ matrix.pg_version }}
+        PG_IMAGE: ${{ matrix.pg_version == 'HEAD' && 'pgjdbc/postgres-devel:ci-head' || '' }}
+        PG_PULL_POLICY: ${{ matrix.pg_version == 'HEAD' && 'build' || 'missing' }}
 
     # Install built-in JDK
     - name: 'Set up JDK ${{ matrix.jdk_version }} / ${{ matrix.jdk_distribution }}'
@@ -339,12 +346,6 @@ jobs:
         PGDATABASE: postgres
         PGHOST: localhost
       run: |
-        if ! docker/bin/wait_for_pg_isready; then
-            # Server is not online so dump some logs for debugging
-            docker ps
-            cd docker/postgres-server
-            docker compose logs
-        fi
         psql -c 'SELECT version()'
 
     - name: Prepare local properties
@@ -374,54 +375,3 @@ jobs:
       with:
         file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
 
-  test-pg-head:
-    name: Zulu 17 x PG HEAD
-    runs-on: ubuntu-latest
-    if: github.event_name != 'schedule' || vars.ENABLE_SCHEDULED_JOBS == 'true'
-    continue-on-error: true
-    steps:
-    - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-      with:
-        fetch-depth: 50
-    - name: Compile and start PostgreSQL
-      working-directory: docker/postgres-head
-      run: docker compose up -d && docker compose logs
-    - name: Set up JDK
-      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
-      with:
-        distribution: zulu
-        java-version: 17
-        architecture: x64
-    - name: Java version
-      run: |
-        java -version
-    - name: PostgreSQL version
-      env:
-        PGUSER: postgres
-        PGDATABASE: postgres
-        PGHOST: localhost
-      run: |
-        if ! docker/bin/wait_for_pg_isready; then
-            # Server is not online so dump some logs for debugging
-            docker ps
-            cd docker/postgres-head
-            docker compose logs
-        fi
-        psql -c 'SELECT version()'
-    - name: Prepare local properties
-      run: |
-        cat <<EOF >ssltest.local.properties
-        enable_ssl_tests=false
-        EOF
-        cat <<EOF >build.local.properties
-        EOF
-    - name: Test
-      uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
-      with:
-        arguments: --no-parallel --no-daemon --scan jandex test jacocoReport -PskipJavadoc
-        properties: |
-          includeTestTags=!org.postgresql.test.SlowTests & !replication
-    - name: 'Upload code coverage'
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6
-      with:
-        file: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
