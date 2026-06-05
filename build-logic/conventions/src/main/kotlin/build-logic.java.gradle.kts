@@ -1,7 +1,10 @@
+import com.github.vlsi.gradle.crlf.CrLfSpec
+import com.github.vlsi.gradle.crlf.LineEndings
 import java.time.LocalDate
 
 plugins {
     id("java")
+    id("com.github.vlsi.crlf")
     id("build-logic.test-base")
     id("build-logic.build-params")
     id("build-logic.style")
@@ -131,11 +134,13 @@ tasks.withType<Javadoc>().configureEach {
 
 afterEvaluate {
     tasks.withType<Jar>().configureEach {
-        into("META-INF") {
-            filteringCharset = "UTF-8"
-            duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-            from("$rootDir/LICENSE")
-            from("$rootDir/NOTICE")
+        CrLfSpec(LineEndings.LF).run {
+            into("META-INF") {
+                filteringCharset = "UTF-8"
+                duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+                textFrom("$rootDir/LICENSE")
+                textFrom("$rootDir/NOTICE")
+            }
         }
     }
 }
