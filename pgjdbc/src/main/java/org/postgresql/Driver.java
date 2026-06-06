@@ -39,9 +39,13 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -290,17 +294,16 @@ public class Driver implements java.sql.Driver {
       // Enforce login timeout, if specified, by running the connection
       // attempt in a separate thread. If we hit the timeout without the
       // connection completing, we abandon the connection attempt in
-      // the calling thread, but the separate thread will keep trying.
-      // Eventually, the separate thread will either fail or complete
-      // the connection; at that point we clean up the connection if
-      // we managed to establish one after all. See ConnectThread for
-      // more details.
+      // the calling thread and try to cancel the worker thread.
+      // If cancellation does not take effect immediately, the worker
+      // cleans up any connection it manages to establish after
+      // abandonment. See ConnectTask for more details.
       long timeout = timeout(props);
       if (timeout <= 0) {
         return makeConnection(url, props);
       }
 
-      ConnectThread ct = new ConnectThread(url, props);
+      ConnectTask ct = new ConnectTask(url, props);
       ThreadFactory threadFactory = resolveConnectThreadFactory(props);
       Thread thread = threadFactory.newThread(ct);
       if (thread == null) {
@@ -344,48 +347,36 @@ public class Driver implements java.sql.Driver {
   /**
    * Perform a connect in a separate thread; supports getting the results from the original thread
    * while enforcing a login timeout.
+   *
+   * <p>If the caller times out or is interrupted, we mark the attempt as abandoned and try to
+   * cancel the worker thread. Cancellation is best-effort: if the connection attempt does not stop
+   * immediately, the worker closes any connection it manages to establish after abandonment so that
+   * it does not leak.</p>
    */
-  private static class ConnectThread implements Runnable {
-    private final ResourceLock lock = new ResourceLock();
-    private final Condition lockCondition = lock.newCondition();
+  private static class ConnectTask extends FutureTask<Connection> {
+    private final AtomicBoolean abandoned;
+    private final AtomicReference<@Nullable Connection> establishedConnection;
 
-    ConnectThread(String url, Properties props) {
-      this.url = url;
-      this.props = props;
+    ConnectTask(String url, Properties props) {
+      this(new AtomicBoolean(), new AtomicReference<>(), url, props);
     }
 
-    @Override
-    public void run() {
-      Connection conn;
-      Throwable error;
-
-      try {
-        conn = makeConnection(url, props);
-        error = null;
-      } catch (Throwable t) {
-        conn = null;
-        error = t;
-      }
-
-      try (ResourceLock ignore = lock.obtain()) {
-        if (abandoned) {
-          if (conn != null) {
-            try {
-              conn.close();
-            } catch (SQLException ignored) {
-              // TODO: should we rethrow it?
-            }
-          }
-        } else {
-          result = conn;
-          resultException = error;
-          lockCondition.signal();
+    private ConnectTask(AtomicBoolean abandoned, AtomicReference<@Nullable Connection> establishedConnection,
+        String url, Properties props) {
+      super(() -> {
+        Connection conn = makeConnection(url, props);
+        establishedConnection.set(conn);
+        if (abandoned.get() && establishedConnection.compareAndSet(conn, null)) {
+          closeConnection(conn);
         }
-      }
+        return conn;
+      });
+      this.abandoned = abandoned;
+      this.establishedConnection = establishedConnection;
     }
 
     /**
-     * Get the connection result from this (assumed running) thread. If the timeout is reached
+     * Get the connection result from this (assumed running) task. If the timeout is reached
      * without a result being available, a SQLException is thrown.
      *
      * @param timeout timeout in milliseconds
@@ -393,53 +384,49 @@ public class Driver implements java.sql.Driver {
      * @throws SQLException if a connection error occurs or the timeout is reached
      */
     Connection getResult(long timeout) throws SQLException {
-      long expiry = TimeUnit.NANOSECONDS.toMillis(System.nanoTime()) + timeout;
-      try (ResourceLock ignore = lock.obtain()) {
-        while (true) {
-          if (result != null) {
-            return result;
-          }
+      try {
+        return get(timeout, TimeUnit.MILLISECONDS);
+      } catch (TimeoutException te) {
+        abandon();
+        throw new PSQLException(GT.tr("Connection attempt timed out."),
+            PSQLState.CONNECTION_UNABLE_TO_CONNECT);
+      } catch (InterruptedException ie) {
+        abandon();
 
-          Throwable resultException = this.resultException;
-          if (resultException != null) {
-            if (resultException instanceof SQLException) {
-              resultException.fillInStackTrace();
-              throw (SQLException) resultException;
-            } else {
-              throw new PSQLException(
-                  GT.tr(
-                      "Something unusual has occurred to cause the driver to fail. Please report this exception."),
-                  PSQLState.UNEXPECTED_ERROR, resultException);
-            }
-          }
+        // reset the interrupt flag
+        Thread.currentThread().interrupt();
 
-          long delay = expiry - TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
-          if (delay <= 0) {
-            abandoned = true;
-            throw new PSQLException(GT.tr("Connection attempt timed out."),
-                PSQLState.CONNECTION_UNABLE_TO_CONNECT);
-          }
-
-          try {
-            lockCondition.await(delay, TimeUnit.MILLISECONDS);
-          } catch (InterruptedException ie) {
-
-            // reset the interrupt flag
-            Thread.currentThread().interrupt();
-            abandoned = true;
-
-            // throw an unchecked exception which will hopefully not be ignored by the calling code
-            throw new RuntimeException(GT.tr("Interrupted while attempting to connect."));
-          }
+        // throw an unchecked exception which will hopefully not be ignored by the calling code
+        throw new RuntimeException(GT.tr("Interrupted while attempting to connect."));
+      } catch (ExecutionException ee) {
+        Throwable resultException = ee.getCause();
+        if (resultException instanceof SQLException) {
+          resultException.fillInStackTrace();
+          throw (SQLException) resultException;
+        } else {
+          throw new PSQLException(
+              GT.tr(
+                  "Something unusual has occurred to cause the driver to fail. Please report this exception."),
+              PSQLState.UNEXPECTED_ERROR, resultException);
         }
       }
     }
 
-    private final String url;
-    private final Properties props;
-    private @Nullable Connection result;
-    private @Nullable Throwable resultException;
-    private boolean abandoned;
+    private void abandon() {
+      abandoned.set(true);
+      cancel(true);
+      closeConnection(establishedConnection.getAndSet(null));
+    }
+
+    private static void closeConnection(@Nullable Connection conn) {
+      if (conn != null) {
+        try {
+          conn.close();
+        } catch (SQLException ignored) {
+          // best-effort cleanup after abandonment
+        }
+      }
+    }
   }
 
   /**
