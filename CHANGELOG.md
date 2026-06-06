@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Security
 ### Added
 * feat: invalidate the prepared-statement cache after CREATE/DROP/ALTER so callers no longer trip on "cached plan must not change result type" without opting into `autosave=ALWAYS`. Controlled by the new `flushCacheOnDdl` connection property (default `true`); set to `false` for the prior behaviour.
+* feat: add `connectThreadFactory` connection property to customize the `ThreadFactory` used to spawn the worker thread that runs the connection attempt when `loginTimeout` is in effect. The value is the fully qualified name of a class implementing `java.util.concurrent.ThreadFactory`. With a null value, the default, the driver retains the prior behavior of using a daemon thread named `"PostgreSQL JDBC driver connection thread"`. Useful for testing timeout behaviour or for applications that want detailed control of all driver-created threads.
 
 ### Changed
 * chore: `PGXAConnection.ConnectionHandler` now rejects `setAutoCommit(false)` and `setSavepoint(...)` during an active XA branch, in addition to the long-rejected `setAutoCommit(true)` / `commit()` / `rollback()`. The `setSavepoint` rejection was already meant to be in place but the guard misspelled the method name as `setSavePoint`, so savepoints silently went through. Both changes bring the proxy in line with JTA 1.2 §3.4.
