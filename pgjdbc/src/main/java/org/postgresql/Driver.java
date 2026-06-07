@@ -44,7 +44,6 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -353,26 +352,25 @@ public class Driver implements java.sql.Driver {
    * immediately, the worker closes any connection it manages to establish after abandonment so that
    * it does not leak.</p>
    */
-  private static class ConnectTask extends FutureTask<Connection> {
-    private final AtomicBoolean abandoned;
-    private final AtomicReference<@Nullable Connection> establishedConnection;
+  private static class ConnectTask implements Runnable {
+    private volatile boolean abandoned;
+    private final AtomicReference<@Nullable Connection> establishedConnection = new AtomicReference<>();
+    private final FutureTask<Connection> futureTask;
 
     ConnectTask(String url, Properties props) {
-      this(new AtomicBoolean(), new AtomicReference<>(), url, props);
-    }
-
-    private ConnectTask(AtomicBoolean abandoned, AtomicReference<@Nullable Connection> establishedConnection,
-        String url, Properties props) {
-      super(() -> {
+      this.futureTask = new FutureTask<>(() -> {
         Connection conn = makeConnection(url, props);
         establishedConnection.set(conn);
-        if (abandoned.get() && establishedConnection.compareAndSet(conn, null)) {
+        if (abandoned && establishedConnection.compareAndSet(conn, null)) {
           closeConnection(conn);
         }
         return conn;
       });
-      this.abandoned = abandoned;
-      this.establishedConnection = establishedConnection;
+    }
+
+    @Override
+    public void run() {
+      futureTask.run();
     }
 
     /**
@@ -385,7 +383,7 @@ public class Driver implements java.sql.Driver {
      */
     Connection getResult(long timeout) throws SQLException {
       try {
-        return get(timeout, TimeUnit.MILLISECONDS);
+        return futureTask.get(timeout, TimeUnit.MILLISECONDS);
       } catch (TimeoutException te) {
         abandon();
         throw new PSQLException(GT.tr("Connection attempt timed out."),
@@ -413,8 +411,8 @@ public class Driver implements java.sql.Driver {
     }
 
     private void abandon() {
-      abandoned.set(true);
-      cancel(true);
+      abandoned = true;
+      futureTask.cancel(true);
       closeConnection(establishedConnection.getAndSet(null));
     }
 
