@@ -1,13 +1,9 @@
-import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.properties.dsl.props
-import org.gradle.api.tasks.testing.Test
-
 plugins {
     id("java-library")
     id("build-logic.build-params")
 }
 
-tasks.configureEach<Test> {
+tasks.withType<Test>().configureEach {
     buildParameters.testJdk?.let {
         javaLauncher.convention(javaToolchains.launcherFor(it))
     }
@@ -28,7 +24,8 @@ tasks.configureEach<Test> {
     if (buildParameters.testJdkVersion >= 21) {
         jvmArgs("-XX:+EnableDynamicAgentLoading")
     }
-    props.string("testExtraJvmArgs").trim().takeIf { it.isNotBlank() }?.let {
+    val testExtraJvmArgs = (project.findProperty("testExtraJvmArgs") as? String) ?: ""
+    testExtraJvmArgs.trim().takeIf { it.isNotBlank() }?.let {
         jvmArgs(it.split(" ::: "))
     }
     // Pass the property to tests
@@ -40,9 +37,9 @@ tasks.configureEach<Test> {
     passProperty("java.awt.headless")
     passProperty("user.language", "TR")
     passProperty("user.country", "tr")
-    val props = System.getProperties()
+    val sysProps = System.getProperties()
     @Suppress("UNCHECKED_CAST")
-    for (e in props.propertyNames() as `java.util`.Enumeration<String>) {
+    for (e in sysProps.propertyNames() as `java.util`.Enumeration<String>) {
         if (e.startsWith("pgjdbc.")) {
             passProperty(e)
         }

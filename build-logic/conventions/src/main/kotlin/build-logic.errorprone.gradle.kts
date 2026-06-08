@@ -5,7 +5,6 @@ import org.gradle.kotlin.dsl.dependencies
 
 plugins {
     id("java")
-    id("build-logic.repositories")
     id("build-logic.build-params")
 }
 

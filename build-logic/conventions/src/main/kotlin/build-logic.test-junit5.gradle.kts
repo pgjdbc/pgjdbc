@@ -1,6 +1,3 @@
-import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.properties.dsl.props
-
 plugins {
     id("java-library")
     id("build-logic.build-params")
@@ -25,11 +22,10 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-tasks.configureEach<Test> {
+tasks.withType<Test>().configureEach {
     useJUnitPlatform {
-        props.string("includeTestTags")
-            .takeIf { it.isNotBlank() }
-            ?.let { includeTags(it) }
+        val includeTestTags = (project.findProperty("includeTestTags") as? String) ?: ""
+        includeTestTags.takeIf { it.isNotBlank() }?.let { includeTags(it) }
     }
     // Pass the property to tests
     fun passProperty(name: String, default: String? = null) {

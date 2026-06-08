@@ -4,7 +4,6 @@
  */
 
 plugins {
-    id("build-logic.repositories")
     id("build-logic.build-params")
     id("build-logic.root-build")
     id("org.nosphere.gradle.github.actions")
@@ -13,6 +12,13 @@ plugins {
     // Release
     id("com.github.vlsi.gradle-extensions")
     id("jacoco")
+}
+
+repositories {
+    if (buildParameters.enableMavenLocal) {
+        mavenLocal()
+    }
+    mavenCentral()
 }
 
 buildscript {

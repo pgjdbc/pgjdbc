@@ -2,10 +2,17 @@ import com.github.vlsi.gradle.publishing.dsl.versionFromResolution
 
 plugins {
     id("build-logic.build-params")
-    id("build-logic.java-library")
-    id("build-logic.reproducible-builds")
+    id("build-logic.java")
+    id("java-library")
     id("build-logic.publish-to-central")
     id("com.gradleup.shadow")
+}
+
+tasks.withType<AbstractArchiveTask>().configureEach {
+    isPreserveFileTimestamps = false
+    isReproducibleFileOrder = true
+    dirPermissions { unix("755") }
+    filePermissions { unix("644") }
 }
 
 java {

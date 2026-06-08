@@ -3,7 +3,8 @@
  * See the LICENSE file in the project root for more information.
  */
 plugins {
-    id("build-logic.java-library")
+    id("build-logic.java")
+    id("java-library")
     id("me.champeau.jmh")
 }
 

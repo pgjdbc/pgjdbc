@@ -1,13 +1,6 @@
-import com.github.vlsi.gradle.dsl.configureEach
-import com.github.vlsi.gradle.properties.dsl.props
-
-plugins {
-    id("com.github.vlsi.gradle-extensions")
-}
-
-tasks.configureEach<buildlogic.JavaCommentPreprocessorTask> {
+tasks.withType<buildlogic.JavaCommentPreprocessorTask>().configureEach {
     variables.apply {
-        val jdbcSpec = props.string("jdbc.specification.version")
+        val jdbcSpec = (project.findProperty("jdbc.specification.version") as? String) ?: ""
         put("mvn.project.property.postgresql.jdbc.spec", "JDBC$jdbcSpec")
         put("jdbc.specification.version", jdbcSpec)
     }
