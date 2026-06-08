@@ -33,7 +33,9 @@ cd "$workdir"
 test -f "$hook_payload" && webhook-checkout "$hook_payload"
 
 # generate source tarball
-./gradlew :postgresql:sourceDistribution -Prelease -PjdkBuildVersion=21 -Psigning.gpg.enabled=OFF
+# jdkBuildVersion=0 builds with whatever JDK the chroot ships (the running JDK),
+# so we never pin a java-NN-openjdk-devel package that Fedora later drops.
+./gradlew :postgresql:sourceDistribution -Prelease -PjdkBuildVersion=0 -Psigning.pgp.enabled=OFF
 
 project_version=$(grep pgjdbc.version gradle.properties | cut -d "=" -f2-)
 cp pgjdbc/build/distributions/postgresql-$project_version-jdbc-src.tar.gz "$resultdir"
