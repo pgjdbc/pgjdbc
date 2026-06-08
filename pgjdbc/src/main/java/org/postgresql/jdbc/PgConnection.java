@@ -289,123 +289,137 @@ public class PgConnection implements BaseConnection {
     // Now make the initial connection and set up local state
     this.queryExecutor = ConnectionFactory.openConnection(hostSpecs, info);
 
-    // WARNING for unsupported servers (9.0 and lower are not supported)
-    if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v9_1)) {
-      LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
-    }
+    // The socket is open now, but the connection is only registered with the Cleaner at the very
+    // end of this constructor. If any setup step below fails, close queryExecutor explicitly so
+    // the socket is not leaked, then rethrow the original failure.
+    try {
+      // WARNING for unsupported servers (9.0 and lower are not supported)
+      if (LOGGER.isLoggable(Level.WARNING) && !haveMinimumServerVersion(ServerVersion.v9_1)) {
+        LOGGER.log(Level.WARNING, "Unsupported Server Version: {0}", queryExecutor.getServerVersion());
+      }
 
-    setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
-    setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
+      setSessionReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", false, true);
+      setSessionNotReadOnly = createQuery("SET SESSION CHARACTERISTICS AS TRANSACTION READ WRITE", false, true);
 
-    // Set read-only early if requested
-    if (PGProperty.READ_ONLY.getBoolean(info)) {
-      setReadOnly(true);
-    }
+      // Set read-only early if requested
+      if (PGProperty.READ_ONLY.getBoolean(info)) {
+        setReadOnly(true);
+      }
 
-    this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
+      this.hideUnprivilegedObjects = PGProperty.HIDE_UNPRIVILEGED_OBJECTS.getBoolean(info);
 
-    // Default is true: DDL transparently invalidates the prepared-statement
-    // cache so the driver re-prepares server plans rather than surfacing
-    // "cached plan must not change result type" to callers.
-    queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
+      // Default is true: DDL transparently invalidates the prepared-statement
+      // cache so the driver re-prepares server plans rather than surfacing
+      // "cached plan must not change result type" to callers.
+      queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
 
-    // get oids that support binary transfer
-    Set<Integer> binaryOids = getBinaryEnabledOids(info);
-    // get oids that should be disabled from transfer
-    binaryDisabledOids = getBinaryDisabledOids(info);
-    // if there are any, remove them from the enabled ones
-    if (!binaryDisabledOids.isEmpty()) {
-      binaryOids.removeAll(binaryDisabledOids);
-    }
+      // get oids that support binary transfer
+      Set<Integer> binaryOids = getBinaryEnabledOids(info);
+      // get oids that should be disabled from transfer
+      binaryDisabledOids = getBinaryDisabledOids(info);
+      // if there are any, remove them from the enabled ones
+      if (!binaryDisabledOids.isEmpty()) {
+        binaryOids.removeAll(binaryDisabledOids);
+      }
 
-    // split for receive and send for better control
-    Set<Integer> useBinarySendForOids = new HashSet<>(binaryOids);
+      // split for receive and send for better control
+      Set<Integer> useBinarySendForOids = new HashSet<>(binaryOids);
 
-    Set<Integer> useBinaryReceiveForOids = new HashSet<>(binaryOids);
+      Set<Integer> useBinaryReceiveForOids = new HashSet<>(binaryOids);
 
-    /*
-     * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
-     * whereas the binary transfer only supports date accuracy.
-     */
-    useBinarySendForOids.remove(Oid.DATE);
+      /*
+       * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
+       * whereas the binary transfer only supports date accuracy.
+       */
+      useBinarySendForOids.remove(Oid.DATE);
 
-    queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
-    queryExecutor.setBinarySendOids(useBinarySendForOids);
+      queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
+      queryExecutor.setBinarySendOids(useBinarySendForOids);
 
-    if (LOGGER.isLoggable(Level.FINEST)) {
-      LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
-      LOGGER.log(Level.FINEST, "    types using binary receive = {0}", oidsToString(useBinaryReceiveForOids));
-      LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
-    }
+      if (LOGGER.isLoggable(Level.FINEST)) {
+        LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
+        LOGGER.log(Level.FINEST, "    types using binary receive = {0}", oidsToString(useBinaryReceiveForOids));
+        LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
+      }
 
-    //
-    // String -> text or unknown?
-    //
+      //
+      // String -> text or unknown?
+      //
 
-    String stringType = PGProperty.STRING_TYPE.getOrDefault(info);
-    if (stringType != null) {
-      if ("unspecified".equalsIgnoreCase(stringType)) {
-        bindStringAsVarchar = false;
-      } else if ("varchar".equalsIgnoreCase(stringType)) {
-        bindStringAsVarchar = true;
+      String stringType = PGProperty.STRING_TYPE.getOrDefault(info);
+      if (stringType != null) {
+        if ("unspecified".equalsIgnoreCase(stringType)) {
+          bindStringAsVarchar = false;
+        } else if ("varchar".equalsIgnoreCase(stringType)) {
+          bindStringAsVarchar = true;
+        } else {
+          throw new PSQLException(
+              GT.tr("Unsupported value for stringtype parameter: {0}", stringType),
+              PSQLState.INVALID_PARAMETER_VALUE);
+        }
       } else {
-        throw new PSQLException(
-            GT.tr("Unsupported value for stringtype parameter: {0}", stringType),
-            PSQLState.INVALID_PARAMETER_VALUE);
+        bindStringAsVarchar = true;
       }
-    } else {
-      bindStringAsVarchar = true;
-    }
 
-    // Initialize timestamp stuff
-    timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(),
-        new QueryExecutorTimeZoneProvider(queryExecutor));
+      // Initialize timestamp stuff
+      timestampUtils = new TimestampUtils(!queryExecutor.getIntegerDateTimes(),
+          new QueryExecutorTimeZoneProvider(queryExecutor));
 
-    // Initialize common queries.
-    // isParameterized==true so full parse is performed and the engine knows the query
-    // is not a compound query with ; inside, so it could use parse/bind/exec messages
-    commitQuery = createQuery("COMMIT", false, true).query;
-    rollbackQuery = createQuery("ROLLBACK", false, true).query;
+      // Initialize common queries.
+      // isParameterized==true so full parse is performed and the engine knows the query
+      // is not a compound query with ; inside, so it could use parse/bind/exec messages
+      commitQuery = createQuery("COMMIT", false, true).query;
+      rollbackQuery = createQuery("ROLLBACK", false, true).query;
 
-    int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
+      int unknownLength = PGProperty.UNKNOWN_LENGTH.getInt(info);
 
-    // Initialize object handling
-    @SuppressWarnings("argument")
-    TypeInfo typeCache = createTypeInfo(this, unknownLength);
-    this.typeCache = typeCache;
-    initObjectTypes(info);
+      // Initialize object handling
+      @SuppressWarnings("argument")
+      TypeInfo typeCache = createTypeInfo(this, unknownLength);
+      this.typeCache = typeCache;
+      initObjectTypes(info);
 
-    if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
-      openStackTrace = new Throwable("Connection was created at this point:");
-    }
-    finalizeAction = new PgConnectionCleaningAction(lock, openStackTrace, queryExecutor.getCloseAction());
-    this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
-    this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
-    this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
-
-    if (haveMinimumServerVersion(ServerVersion.v8_3)) {
-      typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
-      typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
-    }
-
-    this.clientInfo = new Properties();
-    if (haveMinimumServerVersion(ServerVersion.v9_0)) {
-      String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
-      if (appName == null) {
-        appName = "";
+      if (PGProperty.LOG_UNCLOSED_CONNECTIONS.getBoolean(info)) {
+        openStackTrace = new Throwable("Connection was created at this point:");
       }
-      this.clientInfo.put("ApplicationName", appName);
+      finalizeAction = new PgConnectionCleaningAction(lock, openStackTrace, queryExecutor.getCloseAction());
+      this.logServerErrorDetail = PGProperty.LOG_SERVER_ERROR_DETAIL.getBoolean(info);
+      this.disableColumnSanitiser = PGProperty.DISABLE_COLUMN_SANITISER.getBoolean(info);
+      this.convertBooleanToNumeric = PGProperty.CONVERT_BOOLEAN_TO_NUMERIC.getBoolean(info);
+
+      if (haveMinimumServerVersion(ServerVersion.v8_3)) {
+        typeCache.addCoreType("uuid", Oid.UUID, Types.OTHER, "java.util.UUID", Oid.UUID_ARRAY);
+        typeCache.addCoreType("xml", Oid.XML, Types.SQLXML, "java.sql.SQLXML", Oid.XML_ARRAY);
+      }
+
+      this.clientInfo = new Properties();
+      if (haveMinimumServerVersion(ServerVersion.v9_0)) {
+        String appName = PGProperty.APPLICATION_NAME.getOrDefault(info);
+        if (appName == null) {
+          appName = "";
+        }
+        this.clientInfo.put("ApplicationName", appName);
+      }
+
+      fieldMetadataCache = new LruCache<>(
+          Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
+          Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L),
+          false);
+
+      replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
+
+      xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
+      cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
+    } catch (SQLException | RuntimeException | Error e) {
+      // close() is idempotent (QueryExecutorBase.close checks isClosed), so this is a safe no-op
+      // if a setup step already closed the executor.
+      try {
+        queryExecutor.close();
+      } catch (Exception suppressed) {
+        e.addSuppressed(suppressed);
+      }
+      throw e;
     }
-
-    fieldMetadataCache = new LruCache<>(
-        Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS.getInt(info)),
-        Math.max(0, PGProperty.DATABASE_METADATA_CACHE_FIELDS_MIB.getInt(info) * 1024L * 1024L),
-        false);
-
-    replicationConnection = PGProperty.REPLICATION.getOrDefault(info) != null;
-
-    xmlFactoryFactoryClass = PGProperty.XML_FACTORY_FACTORY.getOrDefault(info);
-    cleanable = LazyCleanerImpl.getInstance().register(leakHandle, finalizeAction);
   }
 
   private static ReadOnlyBehavior getReadOnlyBehavior(@Nullable String property) {
