@@ -5,7 +5,7 @@ SERVER_CRT_DIR=server/
 
 all : $(SERVER_CRT_DIR)root.key $(SERVER_CRT_DIR)root.crt $(SERVER_CRT_DIR)server.crt goodroot.crt goodclient badclient
 
-goodclient: goodclient.crt goodclient.p12
+goodclient: goodclient.crt goodclient.p12 goodclient.pk8
 
 badclient: badclient.crt badclient.p12
 
@@ -13,8 +13,13 @@ badclient: badclient.crt badclient.p12
 clean:
 	@echo Removing certificate files
 	@rm -f *.crt *.key *.csr *.srl *.p12
+	@rm -f *.pk8
 	@rm -rf $(SERVER_CRT_DIR)*.crt $(SERVER_CRT_DIR)*.key $(SERVER_CRT_DIR)*.csr $(SERVER_CRT_DIR)*.srl $(SERVER_CRT_DIR)*.p12 $(SERVER_CRT_DIR)*.pk8
 	@echo
+
+%.pk8 : %.key
+	@echo Converting key to DER PKCS#8 format $@
+	openssl pkcs8 -topk8 -nocrypt -inform PEM -outform DER -in $< -out $@
 
 %.p12 : %.crt
 	@echo Exporting certificate $@

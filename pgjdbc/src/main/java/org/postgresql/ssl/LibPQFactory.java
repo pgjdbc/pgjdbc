@@ -99,6 +99,34 @@ public class LibPQFactory extends WrappedFactory {
     km = new PKCS12KeyManager(sslkeyfile, getCallbackHandler(info));
   }
 
+  /**
+   * Case-insensitive {@link String#endsWith(String)}, so {@code .PEM} and {@code .pem}
+   * map to the same format on case-insensitive filesystems. Returns {@code false} when
+   * {@code value} is shorter than {@code suffix}.
+   */
+  private static boolean endsWithIgnoreCase(String value, String suffix) {
+    return value.regionMatches(true, value.length() - suffix.length(), suffix, 0, suffix.length());
+  }
+
+  private void initPk8OrPem(
+      @UnderInitialization(WrappedFactory.class)LibPQFactory this,
+      String sslkeyfile, String defaultdir, Properties info) throws PSQLException {
+    try {
+      String sslcertfile = getCertFilePath(defaultdir, info);
+      String algorithm = castNonNull(PGProperty.PEM_KEY_ALGORITHM.getOrDefault(info));
+      PEMKeyManager pem = new PEMKeyManager(sslkeyfile, sslcertfile, algorithm);
+      LazyKeyManager pk8 = new LazyKeyManager(
+          ("".equals(sslcertfile) ? null : sslcertfile),
+          ("".equals(sslkeyfile) ? null : sslkeyfile),
+          getCallbackHandler(info), defaultfile);
+      km = new Pk8OrPemKeyManager(sslkeyfile, pem, pk8);
+    } catch (Exception ex) {
+      throw new PSQLException(
+          GT.tr("Could not initialize key manager."),
+          PSQLState.CONNECTION_FAILURE, ex);
+    }
+  }
+
   private void initPEM(
       @UnderInitialization(WrappedFactory.class)LibPQFactory this,
       String sslKeyFile, String defaultdir, Properties info) throws PSQLException {
@@ -136,12 +164,14 @@ public class LibPQFactory extends WrappedFactory {
         sslkeyfile = defaultdir + "postgresql.pk8";
       }
 
-      if (sslkeyfile.endsWith(".p12") || sslkeyfile.endsWith(".pfx")) {
+      if (endsWithIgnoreCase(sslkeyfile, ".p12") || endsWithIgnoreCase(sslkeyfile, ".pfx")) {
         initP12(sslkeyfile, info);
-      } else if (sslkeyfile.endsWith(".key") || sslkeyfile.endsWith(".pem")) {
+      } else if (endsWithIgnoreCase(sslkeyfile, ".pem")) {
         initPEM(sslkeyfile, defaultdir, info);
-      } else {
+      } else if (endsWithIgnoreCase(sslkeyfile, ".der")) {
         initPk8(sslkeyfile, defaultdir, info);
+      } else {
+        initPk8OrPem(sslkeyfile, defaultdir, info);
       }
 
       TrustManager[] tm;
@@ -232,6 +262,9 @@ public class LibPQFactory extends WrappedFactory {
       }
       if (km instanceof PEMKeyManager) {
         ((PEMKeyManager) km).throwKeyManagerException();
+      }
+      if (km instanceof Pk8OrPemKeyManager) {
+        ((Pk8OrPemKeyManager) km).throwKeyManagerException();
       }
     }
   }
