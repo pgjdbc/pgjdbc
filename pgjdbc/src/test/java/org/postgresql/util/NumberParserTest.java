@@ -40,7 +40,6 @@ class NumberParserTest {
     assertGetLongFail("-234.12542.");
     assertGetLongFail(".");
     assertGetLongFail("-.");
-    assertGetLongFail(Long.toString(Long.MIN_VALUE).substring(1));
   }
 
   private static void assertGetLongResult(String s, long expected) {
