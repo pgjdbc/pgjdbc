@@ -30,5 +30,8 @@ release.properties
 dependency-reduced-pom.xml
 buildNumber.properties
 
+# Ignore local scratch files
+/scratch
+
 # Ignore folders used to build binaries for old Java
 /eclipsebin/
