@@ -42,6 +42,25 @@ class NumberParserTest {
     assertGetLongFail("-.");
   }
 
+  @Test
+  void getFastLong_failOnOverflowedValues() {
+    // values that wrap the long accumulator must fail instead of returning wrapped results
+    assertGetLongFail("9223372036854775808");
+    assertGetLongFail("-9223372036854775809");
+    assertGetLongFail("92233720368547758089");
+    assertGetLongFail("-92233720368547758080");
+    assertGetLongFail("92233720368547758081234");
+    assertGetLongFail("-92233720368547758081234");
+    assertGetLongFail("18446744073709551616");
+    assertGetLongFail("99999999999999999999");
+  }
+
+  @Test
+  void getFastLong_parsesMinValueWithFraction() {
+    assertGetLongResult("-9223372036854775808.9", Long.MIN_VALUE);
+    assertGetLongResult("9223372036854775807.9", Long.MAX_VALUE);
+  }
+
   private static void assertGetLongResult(String s, long expected) {
     try {
       assertEquals(
