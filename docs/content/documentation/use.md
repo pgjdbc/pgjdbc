@@ -254,12 +254,14 @@ The timeout value in seconds that the driver will wait for a query to execute if
 * **`loginTimeout (`*int*`)`** *Default `0`*\
 Specify how long to wait for establishment of a database connection. The timeout is specified in seconds max(2147484).
 
-* **`connectThreadFactory (`*String*`)`** *Default `null`*\
-The fully qualified name of a class implementing `java.util.concurrent.ThreadFactory`. When `loginTimeout` is in effect, `Driver.connect(...)` uses the configured factory to produce the `ThreadFactory` that spawns the worker thread running the connection attempt.
-With a null value, the driver uses a daemon thread named `"PostgreSQL JDBC driver connection thread"`. This indirection can be used to customize testing of timeout behavior or for applications that want detailed control of all driver created threads.
+* **`connectExecutor (`*String*`)`** *Default `null`*\
+The fully qualified name of a class implementing `java.util.concurrent.Executor`. When `loginTimeout` is in effect, `Driver.connect(...)` hands the worker task that runs the connection attempt to the configured `Executor`.
+If the value is null, the driver runs the connection attempt on its own daemon thread named `"PostgreSQL JDBC driver connection thread"` (the name may change in future releases).
+Running the attempt on a named thread lets applications that monitor driver-created threads identify it.
+The executor **must** run the submitted task on a thread other than the caller's and it must support thread interruption.
 
-* **`connectThreadFactoryArg (`*String*`)`** \
-An optional String argument passed to the constructor of the `connectThreadFactory` class.
+* **`connectExecutorArg (`*String*`)`** \
+An optional String argument passed to the constructor of the `connectExecutor` class.
 
 * **`connectTimeout (`*int*`)`** *Default `10`*\
 The timeout value used for socket connect operations. If connecting to the server takes longer than this value, the connection is broken. 

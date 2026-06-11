@@ -40,8 +40,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -290,27 +290,21 @@ public class Driver implements java.sql.Driver {
 
       LOGGER.log(Level.FINE, "Connecting with URL: {0}", url);
 
-      // Enforce login timeout, if specified, by running the connection
-      // attempt in a separate thread. If we hit the timeout without the
-      // connection completing, we abandon the connection attempt in
-      // the calling thread and try to cancel the worker thread.
-      // If cancellation does not take effect immediately, the worker
-      // cleans up any connection it manages to establish after
-      // abandonment. See ConnectTask for more details.
+      // Enforce login timeout, if specified, by handing the connection
+      // attempt to an Executor, which must run it on a thread other than
+      // this one. If we hit the timeout without the connection completing,
+      // we abandon the connection attempt in the calling thread and try to
+      // cancel the worker thread. If cancellation does not take effect
+      // immediately, the worker cleans up any connection it manages to
+      // establish after abandonment. See ConnectTask for more details.
       long timeout = timeout(props);
       if (timeout <= 0) {
         return makeConnection(url, props);
       }
 
       ConnectTask ct = new ConnectTask(url, props);
-      ThreadFactory threadFactory = resolveConnectThreadFactory(props);
-      Thread thread = threadFactory.newThread(ct);
-      if (thread == null) {
-        throw new PSQLException(
-            GT.tr("ThreadFactory returned a null Thread for the connection attempt."),
-            PSQLState.UNEXPECTED_ERROR);
-      }
-      thread.start();
+      Executor executor = resolveConnectExecutor(props);
+      executor.execute(ct);
       return ct.getResult(timeout);
     } catch (PSQLException ex1) {
       LOGGER.log(Level.FINE, "Connection error: ", ex1);
@@ -704,24 +698,24 @@ public class Driver implements java.sql.Driver {
     return hostSpecs;
   }
 
-  private static final ThreadFactory DEFAULT_THREAD_FACTORY = r -> {
+  private static final Executor DEFAULT_EXECUTOR = r -> {
     Thread thread = new Thread(r, "PostgreSQL JDBC driver connection thread");
     thread.setDaemon(true); // Don't prevent the VM from shutting down
-    return thread;
+    thread.start();
   };
 
-  private static ThreadFactory resolveConnectThreadFactory(Properties props)
+  private static Executor resolveConnectExecutor(Properties props)
       throws PSQLException {
-    String className = PGProperty.CONNECT_THREAD_FACTORY.getOrDefault(props);
+    String className = PGProperty.CONNECT_EXECUTOR.getOrDefault(props);
     if (className == null || className.isEmpty()) {
-      return DEFAULT_THREAD_FACTORY;
+      return DEFAULT_EXECUTOR;
     }
     try {
-      return ObjectFactory.instantiate(ThreadFactory.class, className, props, true,
-          PGProperty.CONNECT_THREAD_FACTORY_ARG.getOrDefault(props));
+      return ObjectFactory.instantiate(Executor.class, className, props, true,
+          PGProperty.CONNECT_EXECUTOR_ARG.getOrDefault(props));
     } catch (Exception ex) {
       throw new PSQLException(
-          GT.tr("Could not instantiate connectThreadFactory: {0}", className),
+          GT.tr("Could not instantiate connectExecutor: {0}", className),
           PSQLState.INVALID_PARAMETER_VALUE, ex);
     }
   }

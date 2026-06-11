@@ -170,22 +170,26 @@ public enum PGProperty {
       new String[]{"true", "false"}),
 
   /**
-   * Factory class used to produce the helper thread used to enforce {@code loginTimeout} during
-   * connection establishment. Value must be the name of a class implementing {@link java.util.concurrent.ThreadFactory}.
-   * With a null value, which is the default, the driver uses a daemon thread named {@code "PostgreSQL JDBC driver connection thread"}.
+   * Executor used to run the connection attempt that enforces {@code loginTimeout} during
+   * connection establishment. Value must be the name of a class implementing {@link java.util.concurrent.Executor}.
+   * With a null value, which is the default, the driver runs the connection attempt on a daemon
+   * thread named {@code "PostgreSQL JDBC driver connection thread"}.
+   *
+   * <p>The executor <b>must</b> run the submitted task on a thread other than the caller's and support
+   * thread interruption to handle canceled connection attempts.
    */
-  CONNECT_THREAD_FACTORY(
-      "connectThreadFactory",
+  CONNECT_EXECUTOR(
+      "connectExecutor",
       null,
-      "Factory class to instantiate the Thread used for connection attempts with loginTimeout"),
+      "Executor class used to run connection attempts with loginTimeout. It must support thread interrupts and clear interrupt flags after task execution."),
 
   /**
-   * The String argument to give to the constructor of the connectThreadFactory class.
+   * The String argument to give to the constructor of the connectExecutor class.
    */
-  CONNECT_THREAD_FACTORY_ARG(
-      "connectThreadFactoryArg",
+  CONNECT_EXECUTOR_ARG(
+      "connectExecutorArg",
       null,
-      "Argument forwarded to constructor of connectThreadFactory class."),
+      "Argument forwarded to constructor of connectExecutor class."),
 
   /**
    * The timeout value used for socket connect operations. If connecting to the server takes longer

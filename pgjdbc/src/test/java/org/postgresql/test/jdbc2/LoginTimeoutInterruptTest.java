@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -43,14 +43,14 @@ public class LoginTimeoutInterruptTest {
     SleepThenThrowAuthPlugin.PLUGIN_INVOKED.set(false);
     SleepThenThrowAuthPlugin.INTERRUPTED_DURING_SLEEP.set(false);
     SleepThenThrowAuthPlugin.POST_SLEEP_REACHED.set(false);
-    CapturingThreadFactory.CAPTURED.set(null);
+    CapturingExecutor.CAPTURED.set(null);
 
     Properties props = new Properties();
     PGProperty.LOGIN_TIMEOUT.set(props, Long.toString(LOGIN_TIMEOUT_SECONDS));
     PGProperty.AUTHENTICATION_PLUGIN_CLASS_NAME.set(props,
         SleepThenThrowAuthPlugin.class.getName());
-    PGProperty.CONNECT_THREAD_FACTORY.set(props,
-        CapturingThreadFactory.class.getName());
+    PGProperty.CONNECT_EXECUTOR.set(props,
+        CapturingExecutor.class.getName());
 
     long startNanos = System.nanoTime();
     SQLException ex = assertThrows(SQLException.class, () -> TestUtil.openDB(props));
@@ -60,8 +60,8 @@ public class LoginTimeoutInterruptTest {
     // in ConnectTask.abandon() does not actually deliver an interrupt, the worker stays in
     // Thread.sleep for the full PLUGIN_SLEEP_MS, join() times out, and isAlive() is still
     // true.
-    Thread worker = CapturingThreadFactory.CAPTURED.get();
-    assertNotNull(worker, "Custom ThreadFactory should have captured the worker thread");
+    Thread worker = CapturingExecutor.CAPTURED.get();
+    assertNotNull(worker, "Custom Executor should have captured the worker thread");
     worker.join(WORKER_JOIN_TIMEOUT_MS);
     assertFalse(worker.isAlive(),
         "Worker thread should have exited after cancel(true) interrupted its Thread.sleep,"
@@ -87,19 +87,19 @@ public class LoginTimeoutInterruptTest {
   }
 
   /**
-   * Test-only {@link java.util.concurrent.ThreadFactory} that captures the worker thread the driver spawns
+   * Test-only {@link java.util.concurrent.Executor} that captures the worker thread the driver spawns
    * for the connection attempt, so the test can {@link Thread#join} it and observe whether
    * cancel(true) actually caused the worker to exit.
    */
-  public static class CapturingThreadFactory implements ThreadFactory {
+  public static class CapturingExecutor implements Executor {
     static final AtomicReference<Thread> CAPTURED = new AtomicReference<>();
 
     @Override
-    public Thread newThread(Runnable r) {
+    public void execute(Runnable r) {
       Thread t = new Thread(r, "LoginTimeoutInterruptTest worker");
       t.setDaemon(true);
       CAPTURED.set(t);
-      return t;
+      t.start();
     }
   }
 

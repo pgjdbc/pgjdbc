@@ -1865,20 +1865,20 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
     PGProperty.XML_FACTORY_FACTORY.set(properties, xmlFactoryFactory);
   }
 
-  public @Nullable String getConnectThreadFactory() {
-    return PGProperty.CONNECT_THREAD_FACTORY.getOrDefault(properties);
+  public @Nullable String getConnectExecutor() {
+    return PGProperty.CONNECT_EXECUTOR.getOrDefault(properties);
   }
 
-  public void setConnectThreadFactory(@Nullable String connectThreadFactory) {
-    PGProperty.CONNECT_THREAD_FACTORY.set(properties, connectThreadFactory);
+  public void setConnectExecutor(@Nullable String connectExecutor) {
+    PGProperty.CONNECT_EXECUTOR.set(properties, connectExecutor);
   }
 
-  public @Nullable String getConnectThreadFactoryArg() {
-    return PGProperty.CONNECT_THREAD_FACTORY_ARG.getOrDefault(properties);
+  public @Nullable String getConnectExecutorArg() {
+    return PGProperty.CONNECT_EXECUTOR_ARG.getOrDefault(properties);
   }
 
-  public void setConnectThreadFactoryArg(@Nullable String connectThreadFactoryArg) {
-    PGProperty.CONNECT_THREAD_FACTORY_ARG.set(properties, connectThreadFactoryArg);
+  public void setConnectExecutorArg(@Nullable String connectExecutorArg) {
+    PGProperty.CONNECT_EXECUTOR_ARG.set(properties, connectExecutorArg);
   }
 
   public @Nullable String getPemKeyAlgorithm() {
