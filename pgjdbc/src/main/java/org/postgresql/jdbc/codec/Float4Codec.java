@@ -46,6 +46,17 @@ public final class Float4Codec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 4) {
+      throw new PSQLException(
+          GT.tr("Invalid float4 binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    return ByteConverter.float4(data, offset);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     float v = toFloat(value);
     byte[] result = new byte[4];

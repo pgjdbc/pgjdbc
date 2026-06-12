@@ -54,6 +54,17 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 4) {
+      throw new PSQLException(
+          GT.tr("Invalid int4 binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    return ByteConverter.int4(data, offset);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     int v = toInt(value);
     byte[] result = new byte[4];

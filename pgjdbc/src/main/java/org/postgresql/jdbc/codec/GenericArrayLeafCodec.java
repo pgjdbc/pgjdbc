@@ -21,7 +21,6 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Generic array leaf adapter that delegates each non-null element to the
@@ -113,7 +112,7 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
       if (length == -1) {
         arr[i] = null;
       } else {
-        arr[i] = codec.decodeBinary(Arrays.copyOfRange(data, pos, pos + length), elementType, ctx);
+        arr[i] = codec.decodeBinary(data, pos, length, elementType, ctx);
         pos += length;
       }
     }

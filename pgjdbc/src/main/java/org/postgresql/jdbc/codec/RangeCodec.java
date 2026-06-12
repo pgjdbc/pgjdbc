@@ -25,7 +25,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.util.Arrays;
 
 /**
  * Codec for PostgreSQL range types.
@@ -117,8 +116,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             throw new PSQLException(GT.tr("Invalid range binary data: lower bound truncated"),
                 PSQLState.DATA_ERROR);
           }
-          byte[] lowerData = Arrays.copyOfRange(data, offset, offset + lowerLen);
-          lower = elementCodec.decodeBinary(lowerData, elementType, ctx);
+          lower = elementCodec.decodeBinary(data, offset, lowerLen, elementType, ctx);
           offset += lowerLen;
         }
       }
@@ -136,8 +134,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
             throw new PSQLException(GT.tr("Invalid range binary data: upper bound truncated"),
                 PSQLState.DATA_ERROR);
           }
-          byte[] upperData = Arrays.copyOfRange(data, offset, offset + upperLen);
-          upper = elementCodec.decodeBinary(upperData, elementType, ctx);
+          upper = elementCodec.decodeBinary(data, offset, upperLen, elementType, ctx);
         }
       }
 

@@ -53,6 +53,19 @@ public final class UuidCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 16) {
+      throw new PSQLException(
+          GT.tr("Invalid uuid binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    long msb = ByteConverter.int8(data, offset);
+    long lsb = ByteConverter.int8(data, offset + 8);
+    return new UUID(msb, lsb);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     UUID uuid = toUuid(value);
     byte[] result = new byte[16];
