@@ -51,6 +51,12 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    return new String(data, offset, length, ctx.getCharset());
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     String s = toString(value);
     Charset encoding = ctx.getCharset();

@@ -49,6 +49,17 @@ public final class BoolCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 1) {
+      throw new PSQLException(
+          GT.tr("Invalid bool binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    return data[offset] == 1;
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     boolean b = toBoolean(value);
     return new byte[]{(byte) (b ? 1 : 0)};

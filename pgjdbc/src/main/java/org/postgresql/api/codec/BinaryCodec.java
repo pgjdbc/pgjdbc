@@ -13,6 +13,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 /**
  * Codec for encoding and decoding PostgreSQL values in binary format.
@@ -58,6 +59,33 @@ public interface BinaryCodec extends Codec {
    * @throws SQLException if decoding fails
    */
   @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException;
+
+  /**
+   * Decodes a value from a slice of a larger binary buffer, without copying the
+   * slice out first.
+   *
+   * <p>Container codecs (arrays, ranges, composites) call this so each element,
+   * bound, or field is decoded in place instead of through a per-element
+   * {@link java.util.Arrays#copyOfRange}. The default copies the slice and
+   * delegates to {@link #decodeBinary(byte[], PgType, CodecContext)}, so codecs
+   * that do not override it keep the existing single-copy behaviour. Fixed-width
+   * and string codecs override it to read directly at {@code offset}.</p>
+   *
+   * @param data the backing buffer; only {@code [offset, offset + length)} is this value
+   * @param offset start of this value's bytes within {@code data}
+   * @param length number of bytes for this value
+   * @param type the PostgreSQL type information
+   * @param ctx the codec context providing connection settings
+   * @return the decoded Java object
+   * @throws SQLException if decoding fails
+   */
+  default @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (offset == 0 && length == data.length) {
+      return decodeBinary(data, type, ctx);
+    }
+    return decodeBinary(Arrays.copyOfRange(data, offset, offset + length), type, ctx);
+  }
 
   /**
    * Encodes a value to binary format.

@@ -51,6 +51,17 @@ public final class Int2Codec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 2) {
+      throw new PSQLException(
+          GT.tr("Invalid int2 binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    return (int) ByteConverter.int2(data, offset);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     short v = toShort(value);
     byte[] result = new byte[2];

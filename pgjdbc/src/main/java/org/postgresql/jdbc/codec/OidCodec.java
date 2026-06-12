@@ -49,6 +49,18 @@ public final class OidCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 4) {
+      throw new PSQLException(
+          GT.tr("Invalid oid binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    // Treat as unsigned 32-bit
+    return ByteConverter.int4(data, offset) & 0xFFFFFFFFL;
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     long v = toLong(value);
     byte[] result = new byte[4];

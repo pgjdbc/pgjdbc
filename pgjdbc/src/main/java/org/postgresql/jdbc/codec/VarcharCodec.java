@@ -44,6 +44,12 @@ public final class VarcharCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    return TextCodecImpl.INSTANCE.decodeBinary(data, offset, length, type, ctx);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     return TextCodecImpl.INSTANCE.encodeBinary(value, type, ctx);
   }

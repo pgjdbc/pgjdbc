@@ -47,6 +47,17 @@ public final class Int8Codec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 8) {
+      throw new PSQLException(
+          GT.tr("Invalid int8 binary data length: {0}", length),
+          PSQLState.DATA_ERROR);
+    }
+    return ByteConverter.int8(data, offset);
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     long v = toLong(value);
     byte[] result = new byte[8];
