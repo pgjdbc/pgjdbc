@@ -10,7 +10,6 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.codec.ArrayCodec;
-import org.postgresql.jdbc.codec.ArrayLeafStreamingCodec;
 import org.postgresql.jdbc.codec.BoolCodec;
 import org.postgresql.jdbc.codec.BpcharCodec;
 import org.postgresql.jdbc.codec.ByteaCodec;
@@ -186,10 +185,6 @@ public class CodecRegistry {
     registerByName(ArrayCodec.INSTANCE);
     registerByName(CompositeCodec.INSTANCE);
     registerByName(DomainCodec.INSTANCE);
-
-    // Specialized primitive array codecs (POC — replaces ArrayEncoding's
-    // NumberArrayEncoder hot path with per-OID leaf codecs).
-    registerByName(ArrayLeafStreamingCodec.INT4);
 
     // Range types
     registerByName(RangeCodec.INSTANCE);

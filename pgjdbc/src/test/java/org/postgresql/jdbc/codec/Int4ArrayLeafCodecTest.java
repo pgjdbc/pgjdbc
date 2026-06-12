@@ -7,52 +7,55 @@ package org.postgresql.jdbc.codec;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.postgresql.core.Oid;
+import org.postgresql.jdbc.CodecRegistry;
 import org.postgresql.jdbc.ObjectName;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.sql.SQLException;
 
 /**
- * Unit tests for {@link ArrayLeafStreamingCodec#INT4}, the POC specialized codec for
- * {@code _int4} arrays.
+ * Unit tests for {@link Int4ArrayLeafCodec}, the {@code int4} array fast leaf,
+ * exercised through the shared {@link MultiDimArrayBinary} / {@link MultiDimArrayText}
+ * walkers — the same path the single {@link ArrayCodec} runs once an element
+ * codec advertises it via {@link ArrayElementCodec}.
+ *
+ * <p>These cover encode/decode shape without a live connection. End-to-end
+ * coverage through {@code ArrayCodec} with a real {@code CodecContext} lives in
+ * the integration suites (for example {@code ArrayTest}).</p>
  */
-class ArrayLeafStreamingCodecTest {
+class Int4ArrayLeafCodecTest {
 
-  private ArrayLeafStreamingCodec codec;
-  private PgType int4ArrayType;
+  private static final Int4ArrayLeafCodec LEAF = Int4ArrayLeafCodec.INSTANCE;
 
-  @BeforeEach
-  void setUp() {
-    codec = ArrayLeafStreamingCodec.INT4;
-    int4ArrayType = new PgType(
-        new ObjectName("pg_catalog", "_int4"),
-        "integer[]",
-        Oid.INT4_ARRAY,
-        'b',
-        'A',           // array category
-        -1,
-        Oid.INT4,      // typelem
-        0,
-        0
-    );
+  private static byte[] encodeBinary(Object array) throws SQLException {
+    return MultiDimArrayBinary.encode(array, null, LEAF);
   }
 
-  @Test
-  void typeName_is_int4() {
-    assertEquals("_int4", codec.getTypeName());
+  private static Object decodeBinary(byte[] data, Class<?> leafComponentType) throws SQLException {
+    return MultiDimArrayBinary.decode(data, leafComponentType, null, LEAF);
   }
 
+  private static String encodeText(Object array) throws SQLException {
+    return MultiDimArrayText.encode(array, ',', null, LEAF);
+  }
+
+  // ---------------- leaf identity ----------------
+
   @Test
-  void defaultJavaType_isIntegerArray() {
-    assertEquals(Integer[].class, codec.getDefaultJavaType());
+  void int4Codec_advertisesThisLeaf() {
+    assertSame(LEAF, Int4Codec.INSTANCE.arrayLeaf());
+    assertEquals(Oid.INT4, LEAF.getElementOid());
+    assertEquals(int.class, LEAF.getPrimitiveComponentType());
+    assertEquals(Integer.class, LEAF.getBoxedComponentType());
   }
 
   // ---------------- binary encode ----------------
@@ -60,7 +63,7 @@ class ArrayLeafStreamingCodecTest {
   @Test
   void encodeBinary_intArray_writesPackedHeader() throws SQLException {
     int[] input = {1, -2, 3};
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
+    byte[] bytes = encodeBinary(input);
 
     assertEquals(20 + 8 * input.length, bytes.length);
     assertEquals(1, ByteConverter.int4(bytes, 0));         // dimensions
@@ -80,7 +83,7 @@ class ArrayLeafStreamingCodecTest {
   @Test
   void encodeBinary_integerArrayWithNull_setsHasNullsAndEmitsMinusOne() throws SQLException {
     Integer[] input = {10, null, 30};
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
+    byte[] bytes = encodeBinary(input);
 
     // 20-byte header + per-element (4 bytes len + 4 bytes data for non-null, 4 bytes only for null)
     assertEquals(20 + (4 * 3) + (4 * 2), bytes.length);
@@ -100,77 +103,68 @@ class ArrayLeafStreamingCodecTest {
   // ---------------- binary decode ----------------
 
   @Test
-  void decodeBinary_returnsLazyPgArray() throws SQLException {
-    // We can't easily build a CodecContext here, but decodeBinaryAs covers the
-    // fast unpack path which is what the POC really replaces.
-    Integer[] roundTrip = (Integer[]) codec.decodeBinaryAs(
-        codec.encodeBinary(new Integer[]{1, null, -5}, int4ArrayType, null),
-        int4ArrayType, Integer[].class, null);
+  void decodeBinary_integerArray_roundTrip() throws SQLException {
+    Integer[] roundTrip = (Integer[]) decodeBinary(
+        encodeBinary(new Integer[]{1, null, -5}), Integer.class);
     assertArrayEquals(new Integer[]{1, null, -5}, roundTrip);
   }
 
   @Test
-  void decodeBinaryAs_intArray_rejectsNulls() throws SQLException {
-    byte[] withNull = codec.encodeBinary(new Integer[]{1, null, 3}, int4ArrayType, null);
-    assertThrows(SQLException.class,
-        () -> codec.decodeBinaryAs(withNull, int4ArrayType, int[].class, null));
+  void decodeBinary_intArray_rejectsNulls() throws SQLException {
+    byte[] withNull = encodeBinary(new Integer[]{1, null, 3});
+    assertThrows(SQLException.class, () -> decodeBinary(withNull, int.class));
   }
 
   @Test
-  void decodeBinaryAs_intArray_packedRoundTrip() throws SQLException {
+  void decodeBinary_intArray_packedRoundTrip() throws SQLException {
     int[] input = {7, -42, 0, Integer.MAX_VALUE, Integer.MIN_VALUE};
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
-    int[] roundTrip = (int[]) codec.decodeBinaryAs(bytes, int4ArrayType, int[].class, null);
+    int[] roundTrip = (int[]) decodeBinary(encodeBinary(input), int.class);
     assertArrayEquals(input, roundTrip);
   }
 
   @Test
-  void decodeBinaryAs_rejectsInvalidElementLength() throws SQLException {
-    byte[] bytes = codec.encodeBinary(new int[]{1}, int4ArrayType, null);
+  void decodeBinary_rejectsInvalidElementLength() throws SQLException {
+    byte[] bytes = encodeBinary(new int[]{1});
     ByteConverter.int4(bytes, 20, 8);
-    assertThrows(SQLException.class,
-        () -> codec.decodeBinaryAs(bytes, int4ArrayType, int[].class, null));
+    assertThrows(SQLException.class, () -> decodeBinary(bytes, int.class));
   }
 
   @Test
-  void decodeBinaryAs_emptyArray() throws SQLException {
-    byte[] bytes = codec.encodeBinary(new Integer[]{}, int4ArrayType, null);
-    Integer[] decoded = (Integer[]) codec.decodeBinaryAs(bytes, int4ArrayType, Integer[].class, null);
+  void decodeBinary_emptyArray() throws SQLException {
+    Integer[] decoded = (Integer[]) decodeBinary(encodeBinary(new Integer[]{}), Integer.class);
     assertArrayEquals(new Integer[]{}, decoded);
+  }
+
+  @Test
+  void decodeBinary_nullValueLeavesSlot() throws SQLException {
+    byte[] bytes = encodeBinary(new Integer[]{null, null, 7, null});
+    Integer[] decoded = (Integer[]) decodeBinary(bytes, Integer.class);
+    assertNull(decoded[0]);
+    assertNull(decoded[1]);
+    assertEquals(7, decoded[2]);
+    assertNull(decoded[3]);
   }
 
   // ---------------- text encode ----------------
 
   @Test
   void encodeText_intArray_emitsUnquotedNumbers() throws SQLException {
-    assertEquals("{1,2,3}", codec.encodeText(new int[]{1, 2, 3}, int4ArrayType, null));
+    assertEquals("{1,2,3}", encodeText(new int[]{1, 2, 3}));
   }
 
   @Test
   void encodeText_integerArrayWithNull_emitsNullLiteral() throws SQLException {
-    assertEquals("{1,NULL,3}",
-        codec.encodeText(new Integer[]{1, null, 3}, int4ArrayType, null));
+    assertEquals("{1,NULL,3}", encodeText(new Integer[]{1, null, 3}));
   }
 
   @Test
   void encodeText_emptyArray() throws SQLException {
-    assertEquals("{}", codec.encodeText(new int[]{}, int4ArrayType, null));
+    assertEquals("{}", encodeText(new int[]{}));
   }
 
   @Test
   void encodeBinary_rejectsUnsupportedType() {
-    assertThrows(Exception.class,
-        () -> codec.encodeBinary("not-an-array", int4ArrayType, null));
-  }
-
-  @Test
-  void decodeBinaryAs_nullValueLeavesSlot() throws SQLException {
-    byte[] bytes = codec.encodeBinary(new Integer[]{null, null, 7, null}, int4ArrayType, null);
-    Integer[] decoded = (Integer[]) codec.decodeBinaryAs(bytes, int4ArrayType, Integer[].class, null);
-    assertNull(decoded[0]);
-    assertNull(decoded[1]);
-    assertEquals(7, decoded[2]);
-    assertNull(decoded[3]);
+    assertThrows(Exception.class, () -> encodeBinary("not-an-array"));
   }
 
   // ---------------- multi-dim ----------------
@@ -186,7 +180,7 @@ class ArrayLeafStreamingCodecTest {
         }
       }
     }
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
+    byte[] bytes = encodeBinary(input);
 
     // Header: 3 × int4 (dim/hasNulls/oid) + 3 × (length+lower) = 12 + 24 = 36
     assertEquals(3, ByteConverter.int4(bytes, 0));
@@ -196,8 +190,7 @@ class ArrayLeafStreamingCodecTest {
     assertEquals(3, ByteConverter.int4(bytes, 20));
     assertEquals(2, ByteConverter.int4(bytes, 28));
 
-    int[][][] roundTrip = (int[][][]) codec.decodeBinaryAs(
-        bytes, int4ArrayType, int[][][].class, null);
+    int[][][] roundTrip = (int[][][]) decodeBinary(bytes, int.class);
     for (int x = 0; x < 2; x++) {
       for (int y = 0; y < 3; y++) {
         assertArrayEquals(input[x][y], roundTrip[x][y]);
@@ -211,58 +204,58 @@ class ArrayLeafStreamingCodecTest {
         {1, null, 3},
         {null, 5, 6}
     };
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
+    byte[] bytes = encodeBinary(input);
     assertEquals(2, ByteConverter.int4(bytes, 0));          // ndim
     assertEquals(1, ByteConverter.int4(bytes, 4));          // hasNulls
     assertEquals(Oid.INT4, ByteConverter.int4(bytes, 8));
 
-    Integer[][] roundTrip = (Integer[][]) codec.decodeBinaryAs(
-        bytes, int4ArrayType, Integer[][].class, null);
+    Integer[][] roundTrip = (Integer[][]) decodeBinary(bytes, Integer.class);
     assertArrayEquals(input[0], roundTrip[0]);
     assertArrayEquals(input[1], roundTrip[1]);
   }
 
   @Test
   void multiDim_text_emitsNestedBraces() throws SQLException {
-    int[][] input = {{1, 2}, {3, 4}};
-    assertEquals("{{1,2},{3,4}}", codec.encodeText(input, int4ArrayType, null));
+    assertEquals("{{1,2},{3,4}}", encodeText(new int[][]{{1, 2}, {3, 4}}));
   }
 
   @Test
   void multiDim_text_withNulls() throws SQLException {
-    Integer[][] input = {{1, null}, {null, 4}};
-    assertEquals("{{1,NULL},{NULL,4}}", codec.encodeText(input, int4ArrayType, null));
+    assertEquals("{{1,NULL},{NULL,4}}", encodeText(new Integer[][]{{1, null}, {null, 4}}));
   }
 
   @Test
   void multiDim_intArray_rejectsNullForPrimitiveTarget() throws SQLException {
-    Integer[][] input = {{1, null}};
-    byte[] bytes = codec.encodeBinary(input, int4ArrayType, null);
-    assertThrows(SQLException.class,
-        () -> codec.decodeBinaryAs(bytes, int4ArrayType, int[][].class, null));
+    byte[] bytes = encodeBinary(new Integer[][]{{1, null}});
+    assertThrows(SQLException.class, () -> decodeBinary(bytes, int.class));
   }
 
   @Test
   void multiDim_binaryRejectsJaggedArray() {
-    int[][] input = {{1, 2}, {3}};
-    assertThrows(SQLException.class,
-        () -> codec.encodeBinary(input, int4ArrayType, null));
+    assertThrows(SQLException.class, () -> encodeBinary(new int[][]{{1, 2}, {3}}));
   }
 
   @Test
   void multiDim_textRejectsJaggedArray() {
-    int[][] input = {{1, 2}, {3}};
-    assertThrows(SQLException.class,
-        () -> codec.encodeText(input, int4ArrayType, null));
+    assertThrows(SQLException.class, () -> encodeText(new int[][]{{1, 2}, {3}}));
   }
 
+  // ---------------- registry routing ----------------
+
   @Test
-  void registry_resolves_int4_arrayName_toThisCodec() {
-    org.postgresql.jdbc.CodecRegistry registry = new org.postgresql.jdbc.CodecRegistry();
-    // _int4 is the PostgreSQL canonical type name for the int4 array type; the
-    // codec must be picked up by name-based lookup, ahead of the generic
-    // ArrayCodec fallback that resolveByTyptype returns for unrecognized array
-    // names.
-    assertEquals(ArrayLeafStreamingCodec.INT4, registry.getByName("_int4"));
+  void registry_routes_int4Array_toSingleArrayCodec() {
+    CodecRegistry registry = new CodecRegistry();
+    PgType int4ArrayType = new PgType(
+        new ObjectName("pg_catalog", "_int4"),
+        "integer[]",
+        Oid.INT4_ARRAY,
+        'b', 'A', -1, Oid.INT4, 0, 0);
+
+    // _int4 is no longer registered under a dedicated codec; the single
+    // ArrayCodec handles every array type, picking the fast leaf from the
+    // element codec at call time.
+    assertNull(registry.getByName("_int4"));
+    assertSame(ArrayCodec.INSTANCE, registry.getByOid(Oid.INT4_ARRAY, int4ArrayType));
+    assertInstanceOf(ArrayElementCodec.class, registry.getByName("int4"));
   }
 }
