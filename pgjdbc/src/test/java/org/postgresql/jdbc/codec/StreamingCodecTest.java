@@ -32,7 +32,6 @@ import java.sql.SQLException;
 class StreamingCodecTest {
 
   private PgType int4Type;
-  private PgType int4ArrayType;
 
   @BeforeEach
   void setUp() {
@@ -41,11 +40,6 @@ class StreamingCodecTest {
         "integer",
         Oid.INT4,
         'b', 'N', -1, 0, 0, 0);
-    int4ArrayType = new PgType(
-        new ObjectName("pg_catalog", "_int4"),
-        "integer[]",
-        Oid.INT4_ARRAY,
-        'b', 'A', -1, Oid.INT4, 0, 0);
   }
 
   // ---------------- StreamingTextCodec adapter ----------------
@@ -164,24 +158,24 @@ class StreamingCodecTest {
     assertEquals("\"(\\\"{\\\\\\\"a\\\\\\\\\\\\\\\"b\\\\\\\"}\\\")\"", sink.toString());
   }
 
-  // ---------------- INT4 array leaf codec via streaming ----------------
+  // ---------------- INT4 array leaf via streaming ----------------
 
   @Test
-  void int4ArrayCodec_streamingText_equalsNonStreaming() throws SQLException, IOException {
+  void int4ArrayLeaf_streamingText_equalsNonStreaming() throws SQLException, IOException {
     Integer[] input = {1, null, -7, Integer.MAX_VALUE};
-    String viaString = ArrayLeafStreamingCodec.INT4.encodeText(input, int4ArrayType, null);
+    String viaString = MultiDimArrayText.encode(input, ',', null, Int4ArrayLeafCodec.INSTANCE);
     StringBuilder sb = new StringBuilder();
-    ArrayLeafStreamingCodec.INT4.encodeText(input, int4ArrayType, null, sb);
+    MultiDimArrayText.encode(input, ',', sb, null, Int4ArrayLeafCodec.INSTANCE);
     assertEquals(viaString, sb.toString());
     assertEquals("{1,NULL,-7,2147483647}", viaString);
   }
 
   @Test
-  void int4ArrayCodec_streamingBinary_equalsNonStreaming() throws SQLException, IOException {
+  void int4ArrayLeaf_streamingBinary_equalsNonStreaming() throws SQLException, IOException {
     int[] input = {7, -42, 0, 1};
-    byte[] viaArray = ArrayLeafStreamingCodec.INT4.encodeBinary(input, int4ArrayType, null);
+    byte[] viaArray = MultiDimArrayBinary.encode(input, null, Int4ArrayLeafCodec.INSTANCE);
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
-    ArrayLeafStreamingCodec.INT4.encodeBinary(input, int4ArrayType, null, out);
+    MultiDimArrayBinary.encode(input, out, null, Int4ArrayLeafCodec.INSTANCE);
     assertArrayEquals(viaArray, out.toByteArray());
   }
 
@@ -209,10 +203,8 @@ class StreamingCodecTest {
         "ArrayCodec should opt into StreamingTextCodec");
     assertTrue(ArrayCodec.INSTANCE instanceof StreamingBinaryCodec,
         "ArrayCodec should opt into StreamingBinaryCodec");
-    assertTrue(ArrayLeafStreamingCodec.INT4 instanceof StreamingTextCodec,
-        "INT4 array codec should opt into StreamingTextCodec");
-    assertTrue(ArrayLeafStreamingCodec.INT4 instanceof StreamingBinaryCodec,
-        "INT4 array codec should opt into StreamingBinaryCodec");
+    assertTrue(Int4Codec.INSTANCE instanceof ArrayElementCodec,
+        "Int4Codec should advertise an array fast-leaf via ArrayElementCodec");
   }
 
   @Test
@@ -224,11 +216,11 @@ class StreamingCodecTest {
   }
 
   @Test
-  void int4ArrayCodec_streamingBinaryHeaderMatchesNonStreaming() throws SQLException, IOException {
+  void int4ArrayLeaf_streamingBinaryHeaderMatchesNonStreaming() throws SQLException, IOException {
     Integer[] input = {10, 20, 30};
-    byte[] viaArray = ArrayLeafStreamingCodec.INT4.encodeBinary(input, int4ArrayType, null);
+    byte[] viaArray = MultiDimArrayBinary.encode(input, null, Int4ArrayLeafCodec.INSTANCE);
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
-    ArrayLeafStreamingCodec.INT4.encodeBinary(input, int4ArrayType, null, out);
+    MultiDimArrayBinary.encode(input, out, null, Int4ArrayLeafCodec.INSTANCE);
     byte[] streamed = out.toByteArray();
     assertNotNull(viaArray);
     assertArrayEquals(viaArray, streamed);

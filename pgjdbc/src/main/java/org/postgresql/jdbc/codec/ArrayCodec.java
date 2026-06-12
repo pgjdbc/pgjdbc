@@ -116,6 +116,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @SuppressWarnings("unchecked")
   private byte[] encodeBinaryJavaArray(Object javaArray, PgType type, CodecContext ctx) throws SQLException {
+    ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+    if (fastLeaf != null) {
+      return MultiDimArrayBinary.encode(javaArray, ctx, fastLeaf);
+    }
     int arrayOid = type.getOid();
     if (ArrayEncoding.hasNativeEncoder(javaArray)) {
       ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(javaArray);
@@ -141,12 +145,34 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   /**
+   * Resolves the fast leaf for {@code arrayType}'s element type, or {@code null}
+   * when the element codec offers no specialization and the array must fall back
+   * to the generic / legacy path.
+   *
+   * <p>A scalar codec opts in by implementing {@link ArrayElementCodec}; the leaf
+   * keeps the per-element loop typed (for example {@code int[]} / {@code Integer[]})
+   * so primitive arrays avoid boxing.</p>
+   */
+  private static @Nullable ArrayLeafCodec fastLeafFor(PgType arrayType, CodecContext ctx)
+      throws SQLException {
+    int elementOid = arrayType.getTypelem();
+    if (elementOid == 0) {
+      return null;
+    }
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
+    if (elementCodec instanceof ArrayElementCodec) {
+      return ((ArrayElementCodec) elementCodec).arrayLeaf();
+    }
+    return null;
+  }
+
+  /**
    * Encodes a generic {@code Object[]} (any rank) by dispatching each leaf
    * element through the registered binary codec for the array's element type.
    * Used for element types that {@link ArrayEncoding} cannot encode natively
    * (composite, SQLData, domain over composite, etc.). Multi-dim header /
-   * dimension walking is shared with {@link ArrayLeafStreamingCodec} via
-   * {@link MultiDimArrayBinary}.
+   * dimension walking is shared via {@link MultiDimArrayBinary}.
    */
   private void streamBinaryArrayViaCodec(Object javaArray, PgType arrayType, CodecContext ctx,
       BackpatchingBinarySink out) throws SQLException, IOException {
@@ -200,6 +226,11 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return;
     }
     if (value.getClass().isArray()) {
+      ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+      if (fastLeaf != null) {
+        MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx, fastLeaf);
+        return;
+      }
       if (ArrayEncoding.hasNativeEncoder(value)) {
         @SuppressWarnings("unchecked")
         ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(value);
@@ -243,7 +274,14 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return (T) decodeBinary(data, type, ctx);
     }
     if (targetClass.isArray()) {
-      // Decode binary array to Java array, then the caller gets the typed array
+      ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+      if (fastLeaf != null) {
+        Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
+        if (fastLeaf.supportsTargetComponent(leafComponentType)) {
+          return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, fastLeaf);
+        }
+      }
+      // Fall back to the legacy decoder for element types without a fast leaf.
       CodecDepth.enter();
       try {
         BaseConnection conn = ctx.getConnection();

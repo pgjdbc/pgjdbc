@@ -25,7 +25,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL int4 (INTEGER) type.
  */
-public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec {
+public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec, ArrayElementCodec {
 
   public static final Int4Codec INSTANCE = new Int4Codec();
 
@@ -41,6 +41,11 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   @Override
   public Class<?> getDefaultJavaType() {
     return Integer.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return Int4ArrayLeafCodec.INSTANCE;
   }
 
   @Override
