@@ -94,6 +94,19 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   }
 
   @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    try {
+      return (int) NumberParser.getFastLong(
+          data, offset, length, Integer.MIN_VALUE, Integer.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // Anything the fast path rejects (a leading '+', whitespace, out-of-range)
+      // falls back to the String parser, which owns the error message.
+      return decodeText(new String(data, offset, length), type, ctx);
+    }
+  }
+
+  @Override
   public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
     return String.valueOf(toInt(value));
   }

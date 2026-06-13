@@ -23,7 +23,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL int8 (BIGINT) type.
  */
-public final class Int8Codec implements BinaryCodec, TextCodec {
+public final class Int8Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Int8Codec INSTANCE = new Int8Codec();
 
@@ -39,6 +39,11 @@ public final class Int8Codec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return Long.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return Int8ArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -68,6 +73,18 @@ public final class Int8Codec implements BinaryCodec, TextCodec {
   @Override
   public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    try {
+      return NumberParser.getFastLong(data, offset, length, Long.MIN_VALUE, Long.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // Anything the fast path rejects (a leading '+', whitespace, out-of-range)
+      // falls back to the String parser, which owns the error message.
+      return decodeText(new String(data, offset, length), type, ctx);
+    }
   }
 
   @Override
@@ -222,7 +239,7 @@ public final class Int8Codec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private long toLong(Object value) throws SQLException {
+  static long toLong(Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
