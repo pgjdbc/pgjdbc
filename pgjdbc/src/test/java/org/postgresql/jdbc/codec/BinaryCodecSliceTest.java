@@ -123,6 +123,20 @@ class BinaryCodecSliceTest {
   }
 
   @Test
+  void numeric_sliceMatchesWhole() throws SQLException {
+    byte[] v = NumericCodec.INSTANCE.encodeBinary(
+        new java.math.BigDecimal("-12345.6789"), ANY, CTX);
+    assertSliceMatches(NumericCodec.INSTANCE, v);
+  }
+
+  @Test
+  void interval_sliceMatchesWhole() throws SQLException {
+    byte[] v = IntervalCodec.INSTANCE.encodeBinary(
+        new org.postgresql.util.PGInterval(1, 2, 3, 4, 5, 6.5), ANY, CTX);
+    assertSliceMatches(IntervalCodec.INSTANCE, v);
+  }
+
+  @Test
   void sliceLengthMismatch_throws() {
     byte[] buf = embed(new byte[4]);
     assertThrows(SQLException.class,

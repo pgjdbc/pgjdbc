@@ -50,11 +50,17 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
+    return decodeBinary(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
     // PostgreSQL numeric supports NaN / ±Infinity (the latter since v14).
     // BigDecimal can't represent them, so surface those literals as Double
     // sentinels — matches the legacy driver's getObject contract. Callers
     // that need BigDecimal go through decodeAsBigDecimal which throws.
-    Number result = ByteConverter.numeric(data);
+    Number result = ByteConverter.numeric(data, offset, length);
     if (result instanceof Double) {
       double d = result.doubleValue();
       if (Double.isNaN(d) || Double.isInfinite(d)) {
