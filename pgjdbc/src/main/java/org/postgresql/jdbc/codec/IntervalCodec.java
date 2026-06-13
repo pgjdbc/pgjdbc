@@ -45,19 +45,25 @@ public final class IntervalCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    if (data == null || data.length == 0) {
+    if (data.length == 0) {
       return null;
     }
-    if (data.length != 16) {
+    return decodeBinary(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length != 16) {
       throw new PSQLException(
-          GT.tr("Invalid interval binary data length: {0}", data.length),
+          GT.tr("Invalid interval binary data length: {0}", length),
           PSQLState.DATA_ERROR);
     }
 
     // Binary format: 8 bytes microseconds, 4 bytes days, 4 bytes months
-    long microseconds = ByteConverter.int8(data, 0);
-    int days = ByteConverter.int4(data, 8);
-    int months = ByteConverter.int4(data, 12);
+    long microseconds = ByteConverter.int8(data, offset);
+    int days = ByteConverter.int4(data, offset + 8);
+    int months = ByteConverter.int4(data, offset + 12);
 
     // Convert to PGInterval components
     int years = months / 12;
