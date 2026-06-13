@@ -207,6 +207,22 @@ public class PgArray implements Array {
         useTextRepresentation = true;
       }
 
+      // Decode through the shared codec walker when the element type supports it:
+      // a primitive fast leaf yields a typed array (Integer[]/Long[]/...), and a
+      // composite/range element decodes generically into Object[] with per-element
+      // slice dispatch. Either way this avoids the legacy per-element String/byte[]
+      // copy. Slicing and type-map requests still take the legacy path below.
+      if (codecContext.isConnectionBound()
+          && (map == null || map.isEmpty()) && index == 1 && count == 0
+          && ArrayCodec.canDecodeArrayViaWalker(getPgType(), codecContext)) {
+        if (fieldBytes != null && !useTextRepresentation) {
+          return ArrayCodec.decodeBinaryArray(fieldBytes, getPgType(), codecContext);
+        }
+        if (fieldString != null) {
+          return ArrayCodec.decodeTextArray(fieldString, getPgType(), codecContext);
+        }
+      }
+
       if (fieldBytes != null && !useTextRepresentation) {
         // Binary format - maps not supported for binary arrays yet
         if (map != null && !map.isEmpty()) {

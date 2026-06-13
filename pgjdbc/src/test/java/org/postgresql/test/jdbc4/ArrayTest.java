@@ -116,6 +116,249 @@ public class ArrayTest extends BaseTest4 {
     assertEquals(Boolean.FALSE, out[2]);
   }
 
+  /**
+   * Typed {@code getObject(col, int[].class)} routes int4[] through the codec
+   * (ArrayCodec.decodeBinaryAs / decodeTextAs and the int4 fast leaf). Running
+   * under both binary modes exercises the binary and text walkers and asserts
+   * they agree.
+   */
+  @Test
+  public void testGetObjectIntArrayViaCodec() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,2,3}'::int4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertArrayEquals(new int[]{1, 2, 3}, rs.getObject(1, int[].class));
+    assertArrayEquals(new Integer[]{1, 2, 3}, rs.getObject(1, Integer[].class));
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetObjectIntegerArrayWithNullViaCodec() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,NULL,3}'::int4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    assertArrayEquals(new Integer[]{1, null, 3}, rs.getObject(1, Integer[].class));
+    // a primitive int[] cannot hold a NULL element
+    assertThrows(SQLException.class, () -> rs.getObject(1, int[].class));
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetObjectIntArrayMultiDimViaCodec() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{{1,2},{3,4}}'::int4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    int[][] m = rs.getObject(1, int[][].class);
+    assertArrayEquals(new int[]{1, 2}, m[0]);
+    assertArrayEquals(new int[]{3, 4}, m[1]);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetObjectIntArrayMatchesGetArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{10,20,30}'::int4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Integer[] viaCodec = rs.getObject(1, Integer[].class);
+    Integer[] viaGetArray = (Integer[]) rs.getArray(1).getArray();
+    assertArrayEquals(viaGetArray, viaCodec);
+    rs.close();
+    pstmt.close();
+  }
+
+  /**
+   * getArray() for int8[] / int4[] now decodes through the shared walker with the
+   * element's fast leaf. These pin that it returns the same typed array the legacy
+   * decoder did (Long[] / Integer[]) — across both binary and text modes.
+   */
+  @Test
+  public void testGetArrayInt8ReturnsLongArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,2,3}'::int8[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Long[].class, arr);
+    assertArrayEquals(new Long[]{1L, 2L, 3L}, (Long[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayInt8WithNulls() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,NULL,3}'::int8[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Long[] arr = (Long[]) rs.getArray(1).getArray();
+    assertArrayEquals(new Long[]{1L, null, 3L}, arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayInt8MultiDim() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{{1,2},{3,4}}'::int8[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Long[][] arr = (Long[][]) rs.getArray(1).getArray();
+    assertArrayEquals(new Long[]{1L, 2L}, arr[0]);
+    assertArrayEquals(new Long[]{3L, 4L}, arr[1]);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayInt4ReturnsIntegerArrayViaWalker() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,2,3}'::int4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Integer[].class, arr);
+    assertArrayEquals(new Integer[]{1, 2, 3}, (Integer[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayInt2ReturnsShortArray() throws SQLException {
+    // Legacy getArray() returned Short[] for int2[] (distinct from the scalar
+    // codec's Integer default); the fast leaf must preserve that.
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1,NULL,3}'::int2[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Short[].class, arr);
+    assertArrayEquals(new Short[]{1, null, 3}, (Short[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayBoolReturnsBooleanArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{t,NULL,f}'::bool[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Boolean[].class, arr);
+    assertArrayEquals(new Boolean[]{true, null, false}, (Boolean[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayFloat8ReturnsDoubleArray() throws SQLException {
+    PreparedStatement pstmt =
+        conn.prepareStatement("SELECT '{1.5,NaN,Infinity,-Infinity}'::float8[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Double[].class, arr);
+    assertArrayEquals(
+        new Double[]{1.5, Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY},
+        (Double[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayFloat4ReturnsFloatArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1.5,NULL,NaN}'::float4[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Float[].class, arr);
+    assertArrayEquals(new Float[]{1.5f, null, Float.NaN}, (Float[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayOidReturnsLongArray() throws SQLException {
+    // oid is unsigned int4; legacy getArray() returned Long[].
+    PreparedStatement pstmt =
+        conn.prepareStatement("SELECT '{16384,2147483648,4294967295}'::oid[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(Long[].class, arr);
+    assertArrayEquals(new Long[]{16384L, 2147483648L, 4294967295L}, (Long[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayTextReturnsStringArrayWithSpecialChars() throws SQLException {
+    // Elements containing the delimiter, a quote and a backslash exercise the
+    // server's quoting/escaping and the cursor's unescaping on the read path.
+    PreparedStatement pstmt =
+        conn.prepareStatement("SELECT ARRAY['a', 'b,c', 'a\"b', 'c\\d']::text[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(String[].class, arr);
+    assertArrayEquals(new String[]{"a", "b,c", "a\"b", "c\\d"}, (String[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayVarcharMultiDimAndNull() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{{a,NULL},{c,d}}'::varchar[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    String[][] arr = (String[][]) rs.getArray(1).getArray();
+    assertArrayEquals(new String[]{"a", null}, arr[0]);
+    assertArrayEquals(new String[]{"c", "d"}, arr[1]);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayNumericReturnsBigDecimalArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement("SELECT '{1.5,2.25,NULL,-3.14}'::numeric[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(java.math.BigDecimal[].class, arr);
+    assertArrayEquals(new java.math.BigDecimal[]{
+        new java.math.BigDecimal("1.5"), new java.math.BigDecimal("2.25"),
+        null, new java.math.BigDecimal("-3.14")}, (java.math.BigDecimal[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayUuidReturnsUuidArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement(
+        "SELECT '{550e8400-e29b-41d4-a716-446655440000,NULL}'::uuid[]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(UUID[].class, arr);
+    assertArrayEquals(new UUID[]{
+        UUID.fromString("550e8400-e29b-41d4-a716-446655440000"), null}, (UUID[]) arr);
+    rs.close();
+    pstmt.close();
+  }
+
+  @Test
+  public void testGetArrayByteaReturnsByteArrayArray() throws SQLException {
+    PreparedStatement pstmt = conn.prepareStatement(
+        "SELECT ARRAY['\\x0102'::bytea, '\\xaabb'::bytea, NULL::bytea]");
+    ResultSet rs = pstmt.executeQuery();
+    assertTrue(rs.next());
+    Object arr = rs.getArray(1).getArray();
+    assertInstanceOf(byte[][].class, arr);
+    byte[][] out = (byte[][]) arr;
+    assertArrayEquals(new byte[]{0x01, 0x02}, out[0]);
+    assertArrayEquals(new byte[]{(byte) 0xaa, (byte) 0xbb}, out[1]);
+    assertNull(out[2]);
+    rs.close();
+    pstmt.close();
+  }
+
   @Test
   public void testCreateArrayOfInt() throws SQLException {
     PreparedStatement pstmt = conn.prepareStatement("SELECT ?::int[]");

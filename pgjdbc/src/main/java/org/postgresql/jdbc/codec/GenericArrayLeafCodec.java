@@ -148,6 +148,31 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
     }
   }
 
+  @Override
+  public void readLeafText(LiteralCursor cur, Object leaf, char delimiter, CodecContext ctx)
+      throws SQLException {
+    if (!(leaf instanceof Object[])) {
+      throw unsupportedLeaf(leaf, ctx);
+    }
+    TextCodec codec = textCodec;
+    if (codec == null) {
+      throw noTextCodec();
+    }
+    @Nullable Object[] arr = (@Nullable Object[]) leaf;
+    for (int i = 0; i < arr.length; i++) {
+      if (i > 0) {
+        cur.expect(delimiter);
+      }
+      cur.readValue(delimiter, '}');
+      if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
+        arr[i] = null;
+      } else {
+        arr[i] = codec.decodeText(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength(),
+            elementType, ctx);
+      }
+    }
+  }
+
   private static void appendEscapedArrayElement(Appendable out, String value) throws IOException {
     out.append('"');
     for (int i = 0; i < value.length(); i++) {

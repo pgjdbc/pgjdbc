@@ -25,7 +25,7 @@ import java.sql.SQLException;
  * <p>Based on values accepted by PostgreSQL server:
  * https://www.postgresql.org/docs/current/static/datatype-boolean.html</p>
  */
-public final class BoolCodec implements BinaryCodec, TextCodec {
+public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final BoolCodec INSTANCE = new BoolCodec();
 
@@ -41,6 +41,11 @@ public final class BoolCodec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return Boolean.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return BoolArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -212,7 +217,7 @@ public final class BoolCodec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private static boolean toBoolean(Object value) throws SQLException {
+  static boolean toBoolean(Object value) throws SQLException {
     return BooleanTypeUtil.castToBoolean(value);
   }
 }

@@ -22,7 +22,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL float8 (DOUBLE PRECISION) type.
  */
-public final class Float8Codec implements BinaryCodec, TextCodec {
+public final class Float8Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Float8Codec INSTANCE = new Float8Codec();
 
@@ -42,6 +42,11 @@ public final class Float8Codec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return Double.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return Float8ArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -235,7 +240,7 @@ public final class Float8Codec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private double toDouble(Object value) throws SQLException {
+  static double toDouble(Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
     }

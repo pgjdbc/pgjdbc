@@ -42,6 +42,34 @@ public interface TextCodec extends Codec {
   @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException;
 
   /**
+   * Decodes a value from a slice of a larger text literal, without copying the
+   * slice out into its own {@code String} first.
+   *
+   * <p>Container codecs (arrays, ranges, composites) call this so each element,
+   * bound, or field is decoded in place. The slice is the <em>already-unquoted</em>
+   * logical value — the container's tokenizer has stripped the surrounding quotes
+   * and unescaped the content, so implementations only parse the value and never
+   * deal with array/composite syntax. The {@code data} buffer is a borrowed view
+   * valid only during the call; implementations must not retain it.</p>
+   *
+   * <p>The default copies the slice and delegates to
+   * {@link #decodeText(String, PgType, CodecContext)}, so codecs that do not
+   * override it keep the existing behaviour.</p>
+   *
+   * @param data backing buffer; only {@code [offset, offset + length)} is this value
+   * @param offset start of this value's chars within {@code data}
+   * @param length number of chars for this value
+   * @param type the PostgreSQL type information
+   * @param ctx the codec context providing connection settings
+   * @return the decoded Java object
+   * @throws SQLException if decoding fails
+   */
+  default @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    return decodeText(new String(data, offset, length), type, ctx);
+  }
+
+  /**
    * Encodes a value to text format.
    *
    * @param value the Java object to encode (never null)
