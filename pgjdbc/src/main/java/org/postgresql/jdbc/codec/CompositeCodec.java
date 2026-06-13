@@ -19,6 +19,7 @@ import org.postgresql.jdbc.PgSQLOutputBinary;
 import org.postgresql.jdbc.PgSQLOutputText;
 import org.postgresql.jdbc.PgStruct;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -28,13 +29,12 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.sql.SQLData;
 import java.sql.SQLException;
 import java.sql.SQLInput;
 import java.sql.Struct;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -64,11 +64,15 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
    */
   public static final class DecodedField {
     private final int typeOid;
-    private final byte @Nullable [] data;
+    private final byte[] source;
+    private final int offset;
+    private final int length;
 
-    DecodedField(int typeOid, byte @Nullable [] data) {
+    DecodedField(int typeOid, byte[] source, int offset, int length) {
       this.typeOid = typeOid;
-      this.data = data;
+      this.source = source;
+      this.offset = offset;
+      this.length = length;
     }
 
     /**
@@ -79,17 +83,25 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     }
 
     /**
-     * Returns the raw binary data for this field, or null if the field is NULL.
+     * Returns a copy of this field's raw binary data, or null if the field is NULL.
      */
     public byte @Nullable [] getData() {
-      return data;
+      return length < 0 ? null : Arrays.copyOfRange(source, offset, offset + length);
     }
 
     /**
      * Returns true if this field is NULL.
      */
     public boolean isNull() {
-      return data == null;
+      return length < 0;
+    }
+
+    /**
+     * Decodes this field through {@code codec}, reading directly from the backing
+     * buffer without copying the field's bytes out first.
+     */
+    @Nullable Object decode(BinaryCodec codec, PgType type, CodecContext ctx) throws SQLException {
+      return codec.decodeBinary(source, offset, length, type, ctx);
     }
   }
 
@@ -110,16 +122,36 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
    * @throws SQLException if the data format is invalid
    */
   public static List<DecodedField> decodeBinaryFields(byte[] data) throws SQLException {
-    if (data.length < 4) {
+    return decodeBinaryFields(data, 0, data.length);
+  }
+
+  /**
+   * Decodes the composite fields contained in {@code data[start, start + len)}.
+   *
+   * <p>Each {@link DecodedField} records the field's {@code (offset, length)}
+   * within {@code data} instead of a copied {@code byte[]}, so callers that
+   * decode through a codec avoid a slice allocation per field.
+   * {@link DecodedField#getData()} still materializes a copy on demand.</p>
+   *
+   * @param data the backing buffer
+   * @param start start of the composite within {@code data}
+   * @param len length of the composite
+   * @return list of decoded fields referencing {@code data}
+   * @throws SQLException if the data format is invalid
+   */
+  public static List<DecodedField> decodeBinaryFields(byte[] data, int start, int len)
+      throws SQLException {
+    if (len < 4) {
       throw new PSQLException(
           GT.tr("Invalid binary composite data: too short"),
           PSQLState.DATA_ERROR);
     }
 
-    ByteBuffer buffer = ByteBuffer.wrap(data);
-    buffer.order(ByteOrder.BIG_ENDIAN);
+    int end = start + len;
+    int pos = start;
 
-    int fieldCount = buffer.getInt();
+    int fieldCount = ByteConverter.int4(data, pos);
+    pos += 4;
     if (fieldCount < 0) {
       throw new PSQLException(
           GT.tr("Invalid binary composite data: negative field count {0}", fieldCount),
@@ -129,35 +161,32 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     List<DecodedField> fields = new ArrayList<>(fieldCount);
 
     for (int i = 0; i < fieldCount; i++) {
-      if (buffer.remaining() < 8) {
+      if (end - pos < 8) {
         throw new PSQLException(
             GT.tr("Invalid binary composite data: unexpected end at field {0}", i),
             PSQLState.DATA_ERROR);
       }
 
-      int typeOid = buffer.getInt();
-      int length = buffer.getInt();
+      int typeOid = ByteConverter.int4(data, pos);
+      pos += 4;
+      int length = ByteConverter.int4(data, pos);
+      pos += 4;
 
-      byte[] fieldData;
       if (length == -1) {
-        fieldData = null;
+        fields.add(new DecodedField(typeOid, data, pos, -1));
       } else if (length < 0) {
         throw new PSQLException(
             GT.tr("Invalid binary composite data: invalid length {0} at field {1}", length, i),
             PSQLState.DATA_ERROR);
-      } else if (length == 0) {
-        fieldData = new byte[0];
       } else {
-        if (buffer.remaining() < length) {
+        if (end - pos < length) {
           throw new PSQLException(
               GT.tr("Invalid binary composite data: not enough data for field {0}", i),
               PSQLState.DATA_ERROR);
         }
-        fieldData = new byte[length];
-        buffer.get(fieldData);
+        fields.add(new DecodedField(typeOid, data, pos, length));
+        pos += length;
       }
-
-      fields.add(new DecodedField(typeOid, fieldData));
     }
 
     return fields;
@@ -189,19 +218,23 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     }
 
     byte[] result = new byte[size];
-    ByteBuffer buffer = ByteBuffer.wrap(result);
-    buffer.order(ByteOrder.BIG_ENDIAN);
+    int pos = 0;
 
-    buffer.putInt(fieldOids.length);
+    ByteConverter.int4(result, pos, fieldOids.length);
+    pos += 4;
 
     for (int i = 0; i < fieldOids.length; i++) {
-      buffer.putInt(fieldOids[i]);
+      ByteConverter.int4(result, pos, fieldOids[i]);
+      pos += 4;
       byte[] data = fieldData[i];
       if (data == null) {
-        buffer.putInt(-1);
+        ByteConverter.int4(result, pos, -1);
+        pos += 4;
       } else {
-        buffer.putInt(data.length);
-        buffer.put(data);
+        ByteConverter.int4(result, pos, data.length);
+        pos += 4;
+        System.arraycopy(data, 0, result, pos, data.length);
+        pos += data.length;
       }
     }
 
@@ -479,23 +512,34 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     // PgStruct extends PGobject and implements Struct, so the same return value
     // satisfies both the legacy "(PGobject) rs.getObject(i)" contract and the
     // new "(Struct) rs.getObject(i)" contract.
-    return decodeBinaryAsStruct(data, type, ctx);
+    return decodeBinaryAsStruct(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
+      return null;
+    }
+    // Decode an array-of-struct element in place: decodeBinaryFields records the
+    // field offsets as absolute indices into data, so each field decodes without
+    // a per-element or per-field copy.
+    return decodeBinaryAsStruct(data, offset, length, type, ctx);
   }
 
   /**
    * Decodes binary composite data into a PgStruct with per-attribute decoding
    * routed through the codec registered for each field's OID.
    */
-  private PgStruct decodeBinaryAsStruct(byte[] data, PgType type, CodecContext ctx)
-      throws SQLException {
+  private PgStruct decodeBinaryAsStruct(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
-      List<DecodedField> binaryFields = decodeBinaryFields(data);
+      List<DecodedField> binaryFields = decodeBinaryFields(data, offset, length);
       @Nullable Object[] attributes = new @Nullable Object[binaryFields.size()];
       for (int i = 0; i < binaryFields.size(); i++) {
         DecodedField field = binaryFields.get(i);
-        byte @Nullable [] fieldData = field.getData();
-        if (fieldData == null) {
+        if (field.isNull()) {
           attributes[i] = null;
           continue;
         }
@@ -503,9 +547,9 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
         BinaryCodec fieldCodec = ctx.getCodecs().getBinaryCodec(fieldOid, fieldType);
         if (fieldCodec == null) {
-          attributes[i] = fieldData.clone();
+          attributes[i] = field.getData();
         } else {
-          attributes[i] = fieldCodec.decodeBinary(fieldData, fieldType, ctx);
+          attributes[i] = field.decode(fieldCodec, fieldType, ctx);
         }
       }
       return new PgStruct(type.getFullName(), attributes, ctx.getConnection());
@@ -740,17 +784,17 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     CodecRegistry codecs = ctx.getCodecs();
     byte[] buf = new byte[4];
     // field count
-    org.postgresql.util.ByteConverter.int4(buf, 0, fields.size());
+    ByteConverter.int4(buf, 0, fields.size());
     out.write(buf);
     for (int i = 0; i < attributes.length; i++) {
       PgField field = fields.get(i);
       int fieldOid = field.getTypeOid();
       // type oid
-      org.postgresql.util.ByteConverter.int4(buf, 0, fieldOid);
+      ByteConverter.int4(buf, 0, fieldOid);
       out.write(buf);
       Object attr = attributes[i];
       if (attr == null) {
-        org.postgresql.util.ByteConverter.int4(buf, 0, -1);
+        ByteConverter.int4(buf, 0, -1);
         out.write(buf);
         continue;
       }
@@ -769,7 +813,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
         out.setInt32At(lengthSlot, out.position() - startPos);
       } else {
         byte[] bytes = codec.encodeBinary(attr, fieldType, ctx);
-        org.postgresql.util.ByteConverter.int4(buf, 0, bytes.length);
+        ByteConverter.int4(buf, 0, bytes.length);
         out.write(buf);
         out.write(bytes);
       }
@@ -800,7 +844,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
     // Structured access — build a PgStruct with per-field decoded attributes.
     if (targetClass == Struct.class || targetClass == PgStruct.class) {
-      return (T) decodeBinaryAsStruct(data, type, ctx);
+      return (T) decodeBinaryAsStruct(data, 0, data.length, type, ctx);
     }
 
     // Legacy access — return the typed PGobject wrapper produced by decodeBinary.
