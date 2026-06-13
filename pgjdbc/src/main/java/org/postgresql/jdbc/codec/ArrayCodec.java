@@ -65,7 +65,25 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    *         {@code null} at an intermediate array level
    */
   public static void validateJavaArray(Object javaArray) throws SQLException {
-    int dimensions = MultiDimArraySupport.computeDimensions(javaArray);
+    validateJavaArray(javaArray, null);
+  }
+
+  /**
+   * Validates a Java array whose SQL element type's Java representation is
+   * {@code leafElementClass}, so an array-typed element (a {@code byte[]} for
+   * {@code bytea}) is treated as a leaf rather than an inner dimension. This
+   * lets {@code bytea[]} hold {@code byte[]} elements of differing lengths.
+   * A {@code null} or non-array {@code leafElementClass} behaves like
+   * {@link #validateJavaArray(Object)}.
+   *
+   * @param javaArray Java array to validate
+   * @param leafElementClass the Java class of one SQL element, or {@code null}
+   * @throws SQLException if the value is not an array, is jagged, or contains
+   *         {@code null} at an intermediate array level
+   */
+  public static void validateJavaArray(Object javaArray, @Nullable Class<?> leafElementClass)
+      throws SQLException {
+    int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClass);
     if (dimensions == 0) {
       throw new PSQLException(
           GT.tr("Cannot convert {0} to array", javaArray.getClass().getName()),

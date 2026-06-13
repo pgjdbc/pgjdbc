@@ -728,9 +728,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @SuppressWarnings("deprecation")
   private void setObjectArray(int parameterIndex, Object in) throws SQLException {
-    ArrayCodec.validateJavaArray(in);
     TypeInfo typeInfo = connection.getTypeInfo();
     Class<?> arrayType = getArrayElementType(in.getClass());
+    // arrayType is the Java type of one SQL element (byte[] for bytea), so the
+    // validator treats a byte[] element as a leaf rather than an inner dimension.
+    ArrayCodec.validateJavaArray(in, arrayType);
     int oid = typeInfo.getJavaArrayType(arrayType);
     if (oid == Oid.UNSPECIFIED) {
       throw new SQLFeatureNotSupportedException();

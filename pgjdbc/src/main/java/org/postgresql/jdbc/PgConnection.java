@@ -1616,7 +1616,11 @@ public class PgConnection implements BaseConnection {
       return makeArray(arrayOid, null);
     }
 
-    ArrayCodec.validateJavaArray(elements);
+    // Pass the element's Java type so an array-typed element (a byte[] for
+    // bytea) is validated as a leaf, not as an inner array dimension; bytea[]
+    // may then hold byte[] elements of differing lengths.
+    ArrayCodec.validateJavaArray(elements,
+        codecRegistry.getByOid(elementOid, elementType).getDefaultJavaType());
     return new PgArray(this, arrayOid, elements);
   }
 
