@@ -260,8 +260,28 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
     if (data == null || data.isEmpty()) {
       return null;
     }
+    return decodeRange(LiteralCursor.over(data), type, ctx);
+  }
 
-    if ("empty".equalsIgnoreCase(data)) {
+  @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    if (length == 0) {
+      return null;
+    }
+    // Slice form: parse a range nested in a composite/array directly off the
+    // borrowed char[] without materializing a per-element String first.
+    return decodeRange(new LiteralCursor(data, offset, length), type, ctx);
+  }
+
+  /**
+   * Parses a range literal off {@code cur}, driving the shared {@link LiteralCursor}
+   * so the same code serves the String and slice forms.
+   */
+  private @Nullable Object decodeRange(LiteralCursor cur, PgType type, CodecContext ctx)
+      throws SQLException {
+    cur.skipWhitespace();
+    if (cur.consumeKeyword("empty")) {
       PGRange<Object> range = PGRange.empty();
       range.setType(type.getFullName());
       return range;
@@ -276,21 +296,70 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
       int elementOid = type.getTypelem();
       PgType elementType = elementOid != 0 ? ctx.getTypeInfo().getPgTypeByOid(elementOid) : null;
       Codec elementCodec = elementOid != 0 ? ctx.getCodecs().getByOid(elementOid, elementType) : null;
+      TextCodec boundCodec =
+          elementCodec instanceof TextCodec && elementType != null ? (TextCodec) elementCodec : null;
 
-      PGRange<Object> range = PGRange.<Object>parse(data, (String value) -> {
-        if (elementCodec instanceof TextCodec && elementType != null) {
-          Object decoded = ((TextCodec) elementCodec).decodeText(value, elementType, ctx);
-          if (decoded != null) {
-            return decoded;
-          }
-        }
-        return value;
-      });
+      char open = cur.peek();
+      boolean lowerInclusive;
+      if (open == '[') {
+        lowerInclusive = true;
+      } else if (open == '(') {
+        lowerInclusive = false;
+      } else {
+        throw new PSQLException(
+            GT.tr("Invalid range format, expected '[' or '(': {0}", cur.literal()),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+      cur.expect(open);
+
+      // Lower bound, terminated by the ',' separator.
+      cur.readValue(',', ']', ')');
+      Object lower = decodeBound(cur, boundCodec, elementType, ctx);
+      cur.expect(',');
+
+      // Upper bound, terminated by the ']' or ')' closing bracket.
+      cur.readValue(',', ']', ')');
+      Object upper = decodeBound(cur, boundCodec, elementType, ctx);
+
+      char close = cur.peek();
+      boolean upperInclusive;
+      if (close == ']') {
+        upperInclusive = true;
+      } else if (close == ')') {
+        upperInclusive = false;
+      } else {
+        throw new PSQLException(
+            GT.tr("Invalid range format, expected ']' or ')': {0}", cur.literal()),
+            PSQLState.DATA_TYPE_MISMATCH);
+      }
+      cur.expect(close);
+
+      PGRange<Object> range = new PGRange<>(lower, upper, lowerInclusive, upperInclusive);
       range.setType(type.getFullName());
       return range;
     } finally {
       CodecDepth.exit();
     }
+  }
+
+  /**
+   * Decodes the cursor's current token as a range bound. An unquoted empty token
+   * is an infinite/unbounded bound ({@code null}); otherwise the bound slice is
+   * decoded by the subtype text codec when known, or kept as its raw string.
+   */
+  private static @Nullable Object decodeBound(LiteralCursor cur, @Nullable TextCodec boundCodec,
+      @Nullable PgType elementType, CodecContext ctx) throws SQLException {
+    if (!cur.tokenWasQuoted() && cur.tokenLength() == 0) {
+      return null; // infinite / unbounded
+    }
+    if (boundCodec != null && elementType != null) {
+      Object decoded = boundCodec.decodeText(cur.tokenChars(), cur.tokenOffset(),
+          cur.tokenLength(), elementType, ctx);
+      if (decoded != null) {
+        return decoded;
+      }
+    }
+    return new String(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength());
   }
 
   @Override

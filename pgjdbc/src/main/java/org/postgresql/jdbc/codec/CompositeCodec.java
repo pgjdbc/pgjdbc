@@ -400,75 +400,57 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
   }
 
   /**
+   * Reads each field of a PostgreSQL composite text literal {@code (f0,f1,...)}
+   * from {@code cur} and hands it to {@code consumer} as a borrowed,
+   * already-unquoted slice. The surrounding parentheses are optional.
+   *
+   * <p>A field is SQL NULL iff it was unquoted and empty; a quoted empty field
+   * is the empty string. Composites have at least one field, so an empty
+   * {@code ()} yields a single NULL field. The slice is valid only for the
+   * duration of the {@code accept} call (the cursor reuses its unescape buffer),
+   * so the consumer must decode it before the next field.</p>
+   */
+  private static void readCompositeFields(LiteralCursor cur, CompositeFieldConsumer consumer)
+      throws SQLException {
+    cur.skipWhitespace();
+    boolean parens = cur.peek() == '(';
+    if (parens) {
+      cur.expect('(');
+    }
+    int index = 0;
+    while (true) {
+      cur.readValue(',', ')');
+      boolean isNull = !cur.tokenWasQuoted() && cur.tokenLength() == 0;
+      consumer.accept(index, isNull, cur.tokenChars(), cur.tokenOffset(), cur.tokenLength());
+      index++;
+      if (!cur.tryConsume(',')) {
+        break;
+      }
+    }
+    if (parens) {
+      cur.expect(')');
+    }
+  }
+
+  /** Receives one composite field as a borrowed, already-unquoted char slice. */
+  @FunctionalInterface
+  private interface CompositeFieldConsumer {
+    void accept(int index, boolean isNull, char[] buf, int offset, int length) throws SQLException;
+  }
+
+  /**
    * Parses a PostgreSQL composite text value, e.g. {@code (val1,"val,2",)}, into the
    * raw per-field strings. A null element represents a SQL NULL attribute. The
    * surrounding parentheses are optional.
    *
    * @param text the composite text value
    * @return per-field strings (with composite escape sequences resolved)
+   * @throws SQLException if the literal is malformed
    */
-  public static @Nullable String[] parseCompositeText(String text) {
+  public static @Nullable String[] parseCompositeText(String text) throws SQLException {
     List<@Nullable String> values = new ArrayList<>();
-
-    if (text.startsWith("(") && text.endsWith(")")) {
-      text = text.substring(1, text.length() - 1);
-    }
-
-    int i = 0;
-    int len = text.length();
-
-    while (i <= len) {
-      if (i == len) {
-        // Handle trailing empty value
-        if (!values.isEmpty() || len == 0) {
-          values.add(null);
-        }
-        break;
-      }
-
-      char c = text.charAt(i);
-      if (c == '"') {
-        // Quoted value
-        StringBuilder sb = new StringBuilder();
-        i++; // skip opening quote
-        while (i < len) {
-          char ch = text.charAt(i);
-          if (ch == '"') {
-            if (i + 1 < len && text.charAt(i + 1) == '"') {
-              sb.append('"');
-              i += 2;
-            } else {
-              i++; // skip closing quote
-              break;
-            }
-          } else if (ch == '\\' && i + 1 < len) {
-            sb.append(text.charAt(i + 1));
-            i += 2;
-          } else {
-            sb.append(ch);
-            i++;
-          }
-        }
-        values.add(sb.toString());
-        if (i < len && text.charAt(i) == ',') {
-          i++;
-        }
-      } else if (c == ',') {
-        values.add(null);
-        i++;
-      } else {
-        // Unquoted value
-        int start = i;
-        while (i < len && text.charAt(i) != ',') {
-          i++;
-        }
-        values.add(text.substring(start, i));
-        if (i < len && text.charAt(i) == ',') {
-          i++;
-        }
-      }
-    }
-
+    readCompositeFields(LiteralCursor.over(text), (index, isNull, buf, offset, length) ->
+        values.add(isNull ? null : new String(buf, offset, length)));
     return values.toArray(new @Nullable String[0]);
   }
 
@@ -589,48 +571,59 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     // PgStruct extends PGobject and implements Struct, so the same return value
     // satisfies both the legacy "(PGobject) rs.getObject(i)" contract and the
     // new "(Struct) rs.getObject(i)" contract.
-    PgStruct struct = decodeTextAsStruct(data, type, ctx);
-    // Make the PGobject view carry the raw composite text so callers that fall
-    // back to getValue() keep working.
+    PgStruct struct = decodeTextAsStruct(LiteralCursor.over(data), type, ctx);
+    // The top-level value already exists as a String, so record it on the PGobject
+    // view verbatim — callers that fall back to getValue() see the exact server text.
     struct.setValue(data);
     return struct;
+  }
+
+  @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    // Slice form: a composite nested in an array/composite is decoded directly off
+    // the parent's borrowed char[] — no per-element String and no toCharArray
+    // round-trip. The PGobject view's raw value is left unset; PgStruct.getValue()
+    // reconstructs it lazily from the attributes if needed (the same path that
+    // getObject(col, Struct.class) already relies on).
+    return decodeTextAsStruct(new LiteralCursor(data, offset, length), type, ctx);
   }
 
   /**
    * Decodes composite text into a PgStruct with per-attribute decoding routed
    * through the text codec registered for each field's OID.
    */
-  private PgStruct decodeTextAsStruct(String data, PgType type, CodecContext ctx)
+  private PgStruct decodeTextAsStruct(LiteralCursor cur, PgType type, CodecContext ctx)
       throws SQLException {
     CodecDepth.enter();
     try {
-      @Nullable String[] rawFields = parseCompositeText(data);
-      if (rawFields == null) {
-        return new PgStruct(type.getFullName(), new Object[0], ctx.getConnection());
-      }
       List<PgField> fields = type.getFields();
       if (fields == null) {
         fields = ctx.getTypeInfo().getFields(type.getOid());
       }
-      int expected = fields.size();
-      int actual = Math.min(rawFields.length, expected);
-      @Nullable Object[] attributes = new @Nullable Object[expected];
-      for (int i = 0; i < expected; i++) {
-        String raw = i < actual ? rawFields[i] : null;
-        if (raw == null) {
-          attributes[i] = null;
-          continue;
+      final List<PgField> fieldList = fields;
+      final int expected = fieldList.size();
+      final @Nullable Object[] attributes = new @Nullable Object[expected];
+      // Decode each field from its borrowed slice in place: no per-field String,
+      // and nested composites/arrays recurse through the child codec's own cursor.
+      readCompositeFields(cur, (index, isNull, buf, offset, length) -> {
+        if (index >= expected) {
+          return; // tolerate a literal with more fields than the type declares
         }
-        PgField field = fields.get(i);
+        if (isNull) {
+          attributes[index] = null;
+          return;
+        }
+        PgField field = fieldList.get(index);
         int fieldOid = field.getTypeOid();
         PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(fieldOid);
         TextCodec fieldCodec = ctx.getCodecs().getTextCodec(fieldOid, fieldType);
         if (fieldCodec == null) {
-          attributes[i] = raw;
+          attributes[index] = new String(buf, offset, length);
         } else {
-          attributes[i] = fieldCodec.decodeText(raw, fieldType, ctx);
+          attributes[index] = fieldCodec.decodeText(buf, offset, length, fieldType, ctx);
         }
-      }
+      });
       return new PgStruct(type.getFullName(), attributes, ctx.getConnection());
     } finally {
       CodecDepth.exit();
@@ -881,7 +874,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
     // Structured access — build a PgStruct with per-field decoded attributes.
     if (targetClass == Struct.class || targetClass == PgStruct.class) {
-      return (T) decodeTextAsStruct(data, type, ctx);
+      return (T) decodeTextAsStruct(LiteralCursor.over(data), type, ctx);
     }
 
     // Legacy access — return the typed PGobject wrapper produced by decodeText.
