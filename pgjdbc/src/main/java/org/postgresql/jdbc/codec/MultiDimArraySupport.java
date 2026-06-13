@@ -26,9 +26,29 @@ final class MultiDimArraySupport {
   }
 
   static int computeDimensions(Object array) {
+    return computeDimensions(array, null);
+  }
+
+  /**
+   * Counts the array dimensions of {@code array}, treating {@code leafElementClass}
+   * as a scalar element even when it is itself an array type.
+   *
+   * <p>PostgreSQL {@code bytea} maps to a Java {@code byte[]} element, so a
+   * {@code byte[][]} is a one-dimensional {@code bytea[]} (its elements are
+   * {@code byte[]}), not a two-dimensional array. Passing {@code byte[].class}
+   * stops the walk at that level so the element {@code byte[]} is not mistaken
+   * for an inner dimension; the elements may then have different lengths, which
+   * a multidimensional array may not. The outermost level is always a dimension,
+   * so a bare {@code byte[]} stays one-dimensional. A {@code null} or non-array
+   * {@code leafElementClass} reproduces the plain syntactic count.</p>
+   */
+  static int computeDimensions(Object array, @Nullable Class<?> leafElementClass) {
     int dims = 0;
     Class<?> cls = array.getClass();
     while (cls.isArray()) {
+      if (dims >= 1 && cls == leafElementClass) {
+        break;
+      }
       dims++;
       cls = cls.getComponentType();
     }
