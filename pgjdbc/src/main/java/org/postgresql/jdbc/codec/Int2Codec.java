@@ -11,6 +11,7 @@ import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.NumberParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -25,7 +26,7 @@ import java.sql.SQLException;
  * <p>Note: getObject() returns Integer for backward compatibility,
  * not Short as might be expected.</p>
  */
-public final class Int2Codec implements BinaryCodec, TextCodec {
+public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Int2Codec INSTANCE = new Int2Codec();
 
@@ -42,6 +43,11 @@ public final class Int2Codec implements BinaryCodec, TextCodec {
   public Class<?> getDefaultJavaType() {
     // Returns Integer for backward compatibility
     return Integer.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return Int2ArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -72,6 +78,19 @@ public final class Int2Codec implements BinaryCodec, TextCodec {
   @Override
   public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
     return decodeAsInt(data, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    try {
+      return (int) NumberParser.getFastLong(
+          data, offset, length, Short.MIN_VALUE, Short.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // Anything the fast path rejects (a leading '+', whitespace, out-of-range)
+      // falls back to the String parser, which owns the error message.
+      return decodeText(new String(data, offset, length), type, ctx);
+    }
   }
 
   @Override
@@ -177,7 +196,7 @@ public final class Int2Codec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private short toShort(Object value) throws SQLException {
+  static short toShort(Object value) throws SQLException {
     if (value instanceof Number) {
       long longValue = ((Number) value).longValue();
       if (longValue < Short.MIN_VALUE || longValue > Short.MAX_VALUE) {

@@ -11,6 +11,7 @@ import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.ByteConverter;
 import org.postgresql.util.GT;
+import org.postgresql.util.NumberParser;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -25,7 +26,7 @@ import java.sql.SQLException;
  * <p>OID is an unsigned 32-bit integer, represented as Long in Java
  * to handle the full range without overflow.</p>
  */
-public final class OidCodec implements BinaryCodec, TextCodec {
+public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final OidCodec INSTANCE = new OidCodec();
 
@@ -41,6 +42,11 @@ public final class OidCodec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return Long.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return OidArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -71,6 +77,20 @@ public final class OidCodec implements BinaryCodec, TextCodec {
   @Override
   public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
     return decodeAsLong(data, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeText(char[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
+    // Long bounds, not 0..2^32-1: decodeText(String) parses the full signed long
+    // without masking to unsigned 32-bit, and the slice form has to match it.
+    try {
+      return NumberParser.getFastLong(data, offset, length, Long.MIN_VALUE, Long.MAX_VALUE);
+    } catch (NumberFormatException fast) {
+      // Anything the fast path rejects (a leading '+', whitespace, out-of-range)
+      // falls back to the String parser, which owns the error message.
+      return decodeText(new String(data, offset, length), type, ctx);
+    }
   }
 
   @Override
@@ -171,7 +191,7 @@ public final class OidCodec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private long toLong(Object value) throws SQLException {
+  static long toLong(Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
