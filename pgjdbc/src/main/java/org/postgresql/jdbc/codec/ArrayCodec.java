@@ -266,6 +266,148 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     MultiDimArrayText.encode(javaArray, arrayType.getDelimiter(), out, ctx, leafCodec);
   }
 
+  /**
+   * Returns the Java array component type for a non-fast-leaf element decoded
+   * through the generic walker, or {@code null} when the element type is not
+   * routed there (and must use the legacy decoder).
+   *
+   * <ul>
+   *   <li>composite / range → {@code Object[]} (the shape the legacy decoder
+   *       produced for these);</li>
+   *   <li>elements whose codec decodes to {@code String} (text, varchar, bpchar,
+   *       name), {@code BigDecimal} (numeric), {@code UUID} (uuid) or
+   *       {@code byte[]} (bytea, giving {@code byte[][]}) → the matching typed
+   *       array.</li>
+   * </ul>
+   */
+  private static @Nullable Class<?> genericComponentType(PgType elementType,
+      @Nullable Codec elementCodec) {
+    if (elementType.isComposite() || elementType.getTyptype() == 'r') {
+      return Object.class;
+    }
+    if (elementCodec != null) {
+      // Allowlist of element Java types whose generic decode matches the legacy
+      // getArray() shape. Other types (PGobject for json/jsonb, the temporal
+      // types, ...) still take the legacy path.
+      Class<?> javaType = elementCodec.getDefaultJavaType();
+      if (javaType == String.class
+          || javaType == java.math.BigDecimal.class
+          || javaType == java.util.UUID.class
+          || javaType == byte[].class) {
+        return javaType;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Decodes a binary array whose element type has no primitive fast leaf
+   * (composite, range, string, and other user-defined types) through the shared
+   * {@link MultiDimArrayBinary} walker, dispatching each element to the element
+   * type's {@link BinaryCodec} from a borrowed slice. The leaf component type is
+   * {@code componentType} (for example {@code Object} for composite/range,
+   * {@code String} for string types), so the result matches the legacy
+   * {@code getArray()} shape while skipping the per-element {@code byte[]} copy.
+   */
+  private static Object decodeBinaryGeneric(byte[] data, PgType arrayType, Class<?> componentType,
+      CodecContext ctx) throws SQLException {
+    int elementOid = arrayType.getTypelem();
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
+    if (elementCodec == null) {
+      throw new PSQLException(
+          GT.tr("No binary codec registered for array element oid {0}", elementOid),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    GenericArrayLeafCodec leaf = new GenericArrayLeafCodec(elementType, elementCodec, null);
+    return MultiDimArrayBinary.decode(data, componentType, ctx, leaf);
+  }
+
+  /** Text counterpart of {@link #decodeBinaryGeneric}. */
+  private static Object decodeTextGeneric(String data, PgType arrayType, Class<?> componentType,
+      CodecContext ctx) throws SQLException {
+    int elementOid = arrayType.getTypelem();
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    TextCodec elementCodec = ctx.getCodecs().getTextCodec(elementOid, elementType);
+    if (elementCodec == null) {
+      throw new PSQLException(
+          GT.tr("No text codec registered for array element oid {0}", elementOid),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    GenericArrayLeafCodec leaf = new GenericArrayLeafCodec(elementType, null, elementCodec);
+    return MultiDimArrayText.decode(data, componentType, arrayType.getDelimiter(), ctx, leaf);
+  }
+
+  /**
+   * Returns whether {@code arrayType}'s elements decode through the shared codec
+   * walker: a primitive fast leaf ({@code int4}, {@code int8}, ...) yielding a
+   * typed array, a composite/range element decoded into {@code Object[]}, or a
+   * string element decoded into {@code String[]}. Element types with none of these
+   * still use the legacy decoder.
+   */
+  public static boolean canDecodeArrayViaWalker(PgType arrayType, CodecContext ctx)
+      throws SQLException {
+    if (fastLeafFor(arrayType, ctx) != null) {
+      return true;
+    }
+    int elementOid = arrayType.getTypelem();
+    if (elementOid == 0) {
+      return false;
+    }
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    Codec elementCodec = ctx.getCodecs().getByOid(elementOid, elementType);
+    return genericComponentType(elementType, elementCodec) != null;
+  }
+
+  /**
+   * Decodes a binary array through the shared {@link MultiDimArrayBinary} walker:
+   * the element's fast leaf (producing a typed array such as {@code Long[]}, the
+   * same type the legacy decoder returned) when available, otherwise the generic
+   * path producing {@code Object[]} (composite/range) or {@code String[]} (string
+   * types). Gate on {@link #canDecodeArrayViaWalker}.
+   *
+   * @param data the binary array payload
+   * @param arrayType the array type metadata
+   * @param ctx the codec context
+   * @return the decoded array
+   * @throws SQLException if decoding fails
+   */
+  public static Object decodeBinaryArray(byte[] data, PgType arrayType, CodecContext ctx)
+      throws SQLException {
+    ArrayLeafCodec fast = fastLeafFor(arrayType, ctx);
+    if (fast != null) {
+      return MultiDimArrayBinary.decode(data, fast.getBoxedComponentType(), ctx, fast);
+    }
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
+    Codec elementCodec = ctx.getCodecs().getByOid(arrayType.getTypelem(), elementType);
+    Class<?> componentType = genericComponentType(elementType, elementCodec);
+    return decodeBinaryGeneric(data, arrayType,
+        componentType != null ? componentType : Object.class, ctx);
+  }
+
+  /**
+   * Text counterpart of {@link #decodeBinaryArray}.
+   *
+   * @param data the array text literal
+   * @param arrayType the array type metadata
+   * @param ctx the codec context
+   * @return the decoded array
+   * @throws SQLException if decoding fails
+   */
+  public static Object decodeTextArray(String data, PgType arrayType, CodecContext ctx)
+      throws SQLException {
+    ArrayLeafCodec fast = fastLeafFor(arrayType, ctx);
+    if (fast != null) {
+      return MultiDimArrayText.decode(data, fast.getBoxedComponentType(),
+          arrayType.getDelimiter(), ctx, fast);
+    }
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
+    Codec elementCodec = ctx.getCodecs().getByOid(arrayType.getTypelem(), elementType);
+    Class<?> componentType = genericComponentType(elementType, elementCodec);
+    return decodeTextGeneric(data, arrayType,
+        componentType != null ? componentType : Object.class, ctx);
+  }
+
   @Override
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
@@ -303,7 +445,15 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return (T) decodeText(data, type, ctx);
     }
     if (targetClass.isArray()) {
-      // Decode text array to Java array
+      ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
+      if (fastLeaf != null) {
+        Class<?> leafComponentType = MultiDimArraySupport.leafComponentType(targetClass);
+        if (fastLeaf.supportsTargetComponent(leafComponentType)) {
+          return (T) MultiDimArrayText.decode(data, leafComponentType, type.getDelimiter(), ctx,
+              fastLeaf);
+        }
+      }
+      // Fall back to the legacy decoder for element types without a fast leaf.
       CodecDepth.enter();
       try {
         BaseConnection conn = ctx.getConnection();

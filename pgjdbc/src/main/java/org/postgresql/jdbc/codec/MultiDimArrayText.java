@@ -46,6 +46,20 @@ public final class MultiDimArrayText {
         throws SQLException, IOException;
   }
 
+  /**
+   * Strategy for reading one leaf-level 1-D slice from a {@link LiteralCursor}
+   * into a typed Java array. The read counterpart of {@link LeafTextWriter}.
+   */
+  public interface LeafTextReader {
+    /**
+     * Reads {@code Array.getLength(leaf)} elements from {@code cur} into
+     * {@code leaf}, consuming the element delimiters between them but not the
+     * surrounding braces.
+     */
+    void readLeafText(LiteralCursor cur, Object leaf, char delim, CodecContext ctx)
+        throws SQLException;
+  }
+
   public static String encode(Object javaArray, char delim, CodecContext ctx, LeafTextWriter leaf)
       throws SQLException {
     StringBuilder sb = new StringBuilder(128);
@@ -89,5 +103,88 @@ public final class MultiDimArrayText {
       walk(out, java.lang.reflect.Array.get(array, i), depth - 1, delim, ctx, leaf);
     }
     out.append('}');
+  }
+
+  // ---------------------------- decode ----------------------------
+
+  /**
+   * Decodes a PostgreSQL array text literal into a typed Java array whose leaf
+   * component type is {@code leafComponentType} (e.g. {@code int.class},
+   * {@code Integer.class}). The element loop is delegated to {@code leaf}, which
+   * pulls one value per element from the shared {@link LiteralCursor}.
+   *
+   * <p>The shape is discovered in a cheap structural pass before allocation:
+   * the dimensionality from the leading braces and each dimension's length by
+   * counting children (quote-aware) — the text analogue of reading the binary
+   * array header. A second pass fills the typed array.</p>
+   */
+  public static Object decode(String data, Class<?> leafComponentType, char delim,
+      CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
+    if (!leaf.supportsTargetComponent(leafComponentType)) {
+      throw new PSQLException(
+          GT.tr("Array leaf codec for oid {0} does not support {1}",
+              leaf.getElementOid(), leafComponentType.getName()),
+          PSQLState.INVALID_PARAMETER_TYPE);
+    }
+    char[] chars = data.toCharArray();
+
+    LiteralCursor measure = new LiteralCursor(chars, 0, chars.length);
+    measure.skipDimensionPrefix();
+    int dimensions = measure.countLeadingBraces();
+    if (dimensions == 0) {
+      throw new PSQLException(
+          GT.tr("MultiDimArrayText.decode requires an array literal, got {0}", data),
+          PSQLState.DATA_ERROR);
+    }
+    int[] dimLengths = new int[dimensions];
+    measureDim(measure, dimLengths, 0, dimensions, delim);
+
+    Object result = java.lang.reflect.Array.newInstance(leafComponentType, dimLengths);
+
+    LiteralCursor values = new LiteralCursor(chars, 0, chars.length);
+    values.skipDimensionPrefix();
+    walkAndDecode(values, result, dimensions, delim, ctx, leaf);
+    return result;
+  }
+
+  private static void measureDim(LiteralCursor cur, int[] dimLengths, int depth, int dimensions,
+      char delim) throws SQLException {
+    cur.expect('{');
+    if (cur.tryConsume('}')) {
+      dimLengths[depth] = 0;
+      return;
+    }
+    int count = 0;
+    do {
+      count++;
+      if (depth + 1 < dimensions) {
+        if (count == 1) {
+          measureDim(cur, dimLengths, depth + 1, dimensions, delim);
+        } else {
+          cur.skipSubarray();
+        }
+      } else {
+        cur.skipScalar(delim, '}');
+      }
+    } while (cur.tryConsume(delim));
+    cur.expect('}');
+    dimLengths[depth] = count;
+  }
+
+  private static void walkAndDecode(LiteralCursor cur, Object container, int depth, char delim,
+      CodecContext ctx, ArrayLeafCodec leaf) throws SQLException {
+    cur.expect('{');
+    if (depth == 1) {
+      leaf.readLeafText(cur, container, delim, ctx);
+    } else {
+      int length = java.lang.reflect.Array.getLength(container);
+      for (int i = 0; i < length; i++) {
+        if (i > 0) {
+          cur.expect(delim);
+        }
+        walkAndDecode(cur, java.lang.reflect.Array.get(container, i), depth - 1, delim, ctx, leaf);
+      }
+    }
+    cur.expect('}');
   }
 }

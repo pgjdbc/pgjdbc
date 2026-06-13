@@ -26,7 +26,8 @@ import java.util.Locale;
  * support.</p>
  */
 interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
-    MultiDimArrayBinary.LeafBinaryReader, MultiDimArrayText.LeafTextWriter {
+    MultiDimArrayBinary.LeafBinaryReader, MultiDimArrayText.LeafTextWriter,
+    MultiDimArrayText.LeafTextReader {
 
   int getElementOid();
 
@@ -73,4 +74,8 @@ interface ArrayLeafCodec extends MultiDimArrayBinary.LeafBinaryWriter,
   @Override
   void appendLeaf(Appendable out, Object leaf, char delimiter, CodecContext ctx)
       throws SQLException, IOException;
+
+  @Override
+  void readLeafText(LiteralCursor cur, Object leaf, char delimiter, CodecContext ctx)
+      throws SQLException;
 }

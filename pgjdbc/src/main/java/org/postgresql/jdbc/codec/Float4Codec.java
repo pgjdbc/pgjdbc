@@ -22,7 +22,7 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL float4 (REAL) type.
  */
-public final class Float4Codec implements BinaryCodec, TextCodec {
+public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final Float4Codec INSTANCE = new Float4Codec();
 
@@ -38,6 +38,11 @@ public final class Float4Codec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return Float.class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return Float4ArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -227,7 +232,7 @@ public final class Float4Codec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private float toFloat(Object value) throws SQLException {
+  static float toFloat(Object value) throws SQLException {
     if (value instanceof Number) {
       return ((Number) value).floatValue();
     }

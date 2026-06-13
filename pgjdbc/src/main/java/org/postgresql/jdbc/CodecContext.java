@@ -278,6 +278,18 @@ public final class CodecContext {
   }
 
   /**
+   * Returns whether this context is bound to a live connection, and therefore has
+   * a {@link TypeInfo} and {@link CodecRegistry}. The unit-testing constructor
+   * produces a context that is not connection-bound; callers that need the
+   * registry or type cache must fall back when this returns {@code false}.
+   *
+   * @return true if connection-bound
+   */
+  public boolean isConnectionBound() {
+    return connection != null;
+  }
+
+  /**
    * Returns the type information cache.
    *
    * @return the type info cache

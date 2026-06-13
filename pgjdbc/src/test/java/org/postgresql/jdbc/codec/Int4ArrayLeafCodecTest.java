@@ -240,6 +240,109 @@ class Int4ArrayLeafCodecTest {
     assertThrows(SQLException.class, () -> encodeText(new int[][]{{1, 2}, {3}}));
   }
 
+  // ---------------- text decode ----------------
+
+  private static Object decodeText(String literal, Class<?> leafComponentType) throws SQLException {
+    return MultiDimArrayText.decode(literal, leafComponentType, ',', null, LEAF);
+  }
+
+  @Test
+  void decodeText_intArray_roundTrip() throws SQLException {
+    int[] input = {1, -2, 3, Integer.MAX_VALUE, Integer.MIN_VALUE};
+    int[] decoded = (int[]) decodeText(encodeText(input), int.class);
+    assertArrayEquals(input, decoded);
+  }
+
+  @Test
+  void decodeText_integerArray_withNull() throws SQLException {
+    Integer[] decoded = (Integer[]) decodeText("{1,NULL,3}", Integer.class);
+    assertArrayEquals(new Integer[]{1, null, 3}, decoded);
+  }
+
+  @Test
+  void decodeText_intArray_rejectsNull() {
+    assertThrows(SQLException.class, () -> decodeText("{1,NULL,3}", int.class));
+  }
+
+  @Test
+  void decodeText_emptyArray() throws SQLException {
+    assertArrayEquals(new int[]{}, (int[]) decodeText("{}", int.class));
+    assertArrayEquals(new Integer[]{}, (Integer[]) decodeText("{}", Integer.class));
+  }
+
+  @Test
+  void decodeText_quotedNumbersAccepted() throws SQLException {
+    assertArrayEquals(new int[]{1, 2, 3}, (int[]) decodeText("{\"1\",\"2\",\"3\"}", int.class));
+  }
+
+  @Test
+  void decodeText_ignoresUnquotedWhitespace() throws SQLException {
+    assertArrayEquals(new int[]{1, 2, 3}, (int[]) decodeText("{ 1 , 2 , 3 }", int.class));
+  }
+
+  @Test
+  void decodeText_skipsDimensionPrefix() throws SQLException {
+    assertArrayEquals(new int[]{1, 2, 3}, (int[]) decodeText("[0:2]={1,2,3}", int.class));
+  }
+
+  @Test
+  void decodeText_customDelimiter() throws SQLException {
+    int[] decoded = (int[]) MultiDimArrayText.decode("{1;2;3}", int.class, ';', null, LEAF);
+    assertArrayEquals(new int[]{1, 2, 3}, decoded);
+  }
+
+  @Test
+  void decodeText_rejectsNonArrayLiteral() {
+    assertThrows(SQLException.class, () -> decodeText("123", int.class));
+  }
+
+  @Test
+  void decodeText_multiDim_roundTrip() throws SQLException {
+    int[][] input = {{1, 2}, {3, 4}};
+    int[][] decoded = (int[][]) decodeText(encodeText(input), int.class);
+    assertArrayEquals(input[0], decoded[0]);
+    assertArrayEquals(input[1], decoded[1]);
+  }
+
+  @Test
+  void decodeText_multiDim_withNulls_roundTrip() throws SQLException {
+    Integer[][] input = {{1, null}, {null, 4}};
+    Integer[][] decoded = (Integer[][]) decodeText(encodeText(input), Integer.class);
+    assertArrayEquals(input[0], decoded[0]);
+    assertArrayEquals(input[1], decoded[1]);
+  }
+
+  @Test
+  void decodeText_threeDim_roundTrip() throws SQLException {
+    int[][][] input = new int[2][3][2];
+    int n = 0;
+    for (int x = 0; x < 2; x++) {
+      for (int y = 0; y < 3; y++) {
+        for (int z = 0; z < 2; z++) {
+          input[x][y][z] = n++;
+        }
+      }
+    }
+    int[][][] decoded = (int[][][]) decodeText(encodeText(input), int.class);
+    for (int x = 0; x < 2; x++) {
+      for (int y = 0; y < 3; y++) {
+        assertArrayEquals(input[x][y], decoded[x][y]);
+      }
+    }
+  }
+
+  @Test
+  void decodeText_genericLeaf_viaElementCodec() throws SQLException {
+    PgType int4Type = new PgType(
+        new ObjectName("pg_catalog", "int4"),
+        "integer", Oid.INT4, 'b', 'N', -1, 0, 0, 0);
+    GenericArrayLeafCodec genericLeaf =
+        new GenericArrayLeafCodec(int4Type, null, Int4Codec.INSTANCE);
+    Object[] decoded =
+        (Object[]) MultiDimArrayText.decode("{1,2,3}", Object.class, ',', null, genericLeaf);
+    assertArrayEquals(new Object[]{1, 2, 3}, decoded);
+  }
+
   // ---------------- registry routing ----------------
 
   @Test
