@@ -11,6 +11,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -90,7 +92,7 @@ public final class MultiDimArrayBinary {
 
   public static byte[] encode(Object javaArray, int elementOid, CodecContext ctx, LeafBinaryWriter leaf) throws SQLException {
     BackpatchByteArrayOutputStream baos =
-        new BackpatchByteArrayOutputStream(estimateInitialCapacityFor(javaArray));
+        new BackpatchByteArrayOutputStream(estimateInitialCapacityFor(javaArray, leaf));
     try {
       encode(javaArray, elementOid, leaf, baos, ctx);
     } catch (IOException e) {
@@ -114,7 +116,7 @@ public final class MultiDimArrayBinary {
   public static void encode(Object javaArray, int elementOid,
       LeafBinaryWriter leaf, BackpatchingBinarySink out, CodecContext ctx)
       throws SQLException, IOException {
-    int dimensions = MultiDimArraySupport.computeDimensions(javaArray);
+    int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClassOf(leaf));
     if (dimensions == 0) {
       throw new PSQLException(
           GT.tr("MultiDimArrayBinary.encode requires a Java array, got {0}",
@@ -153,8 +155,8 @@ public final class MultiDimArrayBinary {
     return hasNulls;
   }
 
-  private static int estimateInitialCapacityFor(Object javaArray) {
-    int dims = MultiDimArraySupport.computeDimensions(javaArray);
+  private static int estimateInitialCapacityFor(Object javaArray, LeafBinaryWriter leaf) {
+    int dims = MultiDimArraySupport.computeDimensions(javaArray, leafElementClassOf(leaf));
     if (dims == 0) {
       return 64;
     }
@@ -163,6 +165,15 @@ public final class MultiDimArrayBinary {
     } catch (SQLException e) {
       return 64;
     }
+  }
+
+  /**
+   * The leaf's element Java class when it is an {@link ArrayLeafCodec} (so a
+   * {@code byte[]} element of {@code bytea} is counted as a leaf, not a
+   * dimension), otherwise {@code null} for a plain {@link LeafBinaryWriter}.
+   */
+  private static @Nullable Class<?> leafElementClassOf(LeafBinaryWriter leaf) {
+    return leaf instanceof ArrayLeafCodec ? ((ArrayLeafCodec) leaf).getBoxedComponentType() : null;
   }
 
   // ---------------------------- decode ----------------------------

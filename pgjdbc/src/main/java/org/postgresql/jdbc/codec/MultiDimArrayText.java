@@ -10,6 +10,8 @@ import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 import java.io.IOException;
 import java.sql.SQLException;
 
@@ -75,7 +77,7 @@ public final class MultiDimArrayText {
    * Streaming variant: writes the array literal directly into {@code out}.
    */
   public static void encode(Object javaArray, char delim, Appendable out, CodecContext ctx, LeafTextWriter leaf) throws SQLException, IOException {
-    int dimensions = MultiDimArraySupport.computeDimensions(javaArray);
+    int dimensions = MultiDimArraySupport.computeDimensions(javaArray, leafElementClassOf(leaf));
     if (dimensions == 0) {
       throw new PSQLException(
           GT.tr("MultiDimArrayText.encode requires a Java array, got {0}",
@@ -84,6 +86,15 @@ public final class MultiDimArrayText {
     }
     MultiDimArraySupport.computeDimensionLengths(javaArray, dimensions);
     walk(out, javaArray, dimensions, delim, ctx, leaf);
+  }
+
+  /**
+   * The leaf's element Java class when it is an {@link ArrayLeafCodec} (so a
+   * {@code byte[]} element of {@code bytea} is counted as a leaf, not a
+   * dimension), otherwise {@code null} for a plain {@link LeafTextWriter}.
+   */
+  private static @Nullable Class<?> leafElementClassOf(LeafTextWriter leaf) {
+    return leaf instanceof ArrayLeafCodec ? ((ArrayLeafCodec) leaf).getBoxedComponentType() : null;
   }
 
   private static void walk(Appendable out, Object array, int depth, char delim,

@@ -24,7 +24,7 @@ import java.util.Arrays;
 /**
  * Codec for PostgreSQL bytea type.
  */
-public final class ByteaCodec implements BinaryCodec, TextCodec {
+public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final ByteaCodec INSTANCE = new ByteaCodec();
 
@@ -40,6 +40,11 @@ public final class ByteaCodec implements BinaryCodec, TextCodec {
   @Override
   public Class<?> getDefaultJavaType() {
     return byte[].class;
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return ByteaArrayLeafCodec.INSTANCE;
   }
 
   @Override
@@ -155,7 +160,7 @@ public final class ByteaCodec implements BinaryCodec, TextCodec {
         PSQLState.INVALID_PARAMETER_TYPE);
   }
 
-  private byte[] toBytes(Object value) throws SQLException {
+  static byte[] toBytes(Object value) throws SQLException {
     if (value instanceof byte[]) {
       return (byte[]) value;
     }
