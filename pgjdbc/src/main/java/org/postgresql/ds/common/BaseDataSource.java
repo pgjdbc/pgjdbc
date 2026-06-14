@@ -60,20 +60,15 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   private Properties properties = new Properties();
 
   /*
-   * Ensure the driver is loaded as JDBC Driver might be invisible to Java's ServiceLoader.
-   * Usually, {@code Class.forName(...)} is not required as {@link DriverManager} detects JDBC drivers
-   * via {@code META-INF/services/java.sql.Driver} entries. However there might be cases when the driver
-   * is located at the application level classloader, thus it might be required to perform manual
-   * registration of the driver.
+   * Ensure the pgjdbc driver is registered with the {@link DriverManager}: {@code getConnection}
+   * relies on it. Usually explicit loading is not required as the {@link DriverManager} detects JDBC
+   * drivers via {@code META-INF/services/java.sql.Driver} entries. However there might be cases when
+   * the driver sits on the application level classloader where the ServiceLoader lookup misses it.
+   * Invoking a static method forces the {@link Driver} class to initialise, and its static
+   * initialiser self-registers with the {@link DriverManager}.
    */
   static {
-    try {
-      Class.forName("org.postgresql.Driver");
-    } catch (ClassNotFoundException e) {
-      throw new IllegalStateException(
-          "BaseDataSource is unable to load org.postgresql.Driver. Please check if you have proper PostgreSQL JDBC Driver jar on the classpath",
-          e);
-    }
+    Driver.isRegistered();
   }
 
   /**
@@ -1318,6 +1313,23 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   @SuppressWarnings("deprecation")
   public void setSocketFactoryArg(@Nullable String socketFactoryArg) {
     PGProperty.SOCKET_FACTORY_ARG.set(properties, socketFactoryArg);
+  }
+
+  /**
+   * @return the order in which classloaders are searched when loading user-supplied classes
+   * @see PGProperty#CLASS_LOADER_STRATEGY
+   */
+  public @Nullable String getClassLoaderStrategy() {
+    return PGProperty.CLASS_LOADER_STRATEGY.getOrDefault(properties);
+  }
+
+  /**
+   * @param classLoaderStrategy the order in which classloaders are searched when loading
+   *     user-supplied classes
+   * @see PGProperty#CLASS_LOADER_STRATEGY
+   */
+  public void setClassLoaderStrategy(@Nullable String classLoaderStrategy) {
+    PGProperty.CLASS_LOADER_STRATEGY.set(properties, classLoaderStrategy);
   }
 
   /**

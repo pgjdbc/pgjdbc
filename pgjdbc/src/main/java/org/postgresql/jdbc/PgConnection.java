@@ -39,6 +39,7 @@ import org.postgresql.geometric.PGpolygon;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.replication.PGReplicationConnection;
 import org.postgresql.replication.PGReplicationConnectionImpl;
+import org.postgresql.util.ClassLoaderStrategy;
 import org.postgresql.util.ClassUtils;
 import org.postgresql.util.DriverInfo;
 import org.postgresql.util.GT;
@@ -116,7 +117,8 @@ public class PgConnection implements BaseConnection {
     MethodHandle systemGetSecurityManagerHandle = null;
     MethodHandle securityManagerCheckPermission = null;
     try {
-      Class<?> securityManagerClass = Class.forName("java.lang.SecurityManager");
+      Class<?> securityManagerClass = Class.forName("java.lang.SecurityManager", true,
+          PgConnection.class.getClassLoader());
       systemGetSecurityManagerHandle =
           MethodHandles.lookup().findStatic(System.class, "getSecurityManager",
               MethodType.methodType(securityManagerClass));
@@ -229,6 +231,7 @@ public class PgConnection implements BaseConnection {
 
   private final @Nullable String xmlFactoryFactoryClass;
   private @Nullable PGXmlFactoryFactory xmlFactoryFactory;
+  private final ClassLoaderStrategy classLoaderStrategy;
   private final LazyCleaner.Cleanable<IOException> cleanable;
   /* this is actually the database we are connected to */
   private @Nullable String catalog;
@@ -274,6 +277,8 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, DriverInfo.DRIVER_FULL_NAME);
 
     this.creatingURL = url;
+
+    this.classLoaderStrategy = ClassLoaderStrategy.of(info);
 
     this.readOnlyBehavior = getReadOnlyBehavior(PGProperty.READ_ONLY_MODE.getOrDefault(info));
 
@@ -825,7 +830,7 @@ public class PgConnection implements BaseConnection {
   @Deprecated
   public void addDataType(String type, String name) {
     try {
-      addDataType(type, ClassUtils.forName(name, PGobject.class, getClass().getClassLoader()));
+      addDataType(type, ClassUtils.forName(name, PGobject.class, classLoaderStrategy, getClass().getClassLoader()));
     } catch (Exception e) {
       throw new RuntimeException("Cannot register new type " + type, e);
     }
@@ -872,7 +877,7 @@ public class PgConnection implements BaseConnection {
         Class<?> klass;
 
         try {
-          klass = ClassUtils.forName(className, PGobject.class, getClass().getClassLoader());
+          klass = ClassUtils.forName(className, PGobject.class, classLoaderStrategy, getClass().getClassLoader());
         } catch (ClassNotFoundException cnfe) {
           throw new PSQLException(
               GT.tr("Unable to load the class {0} responsible for the datatype {1}",
@@ -2002,7 +2007,7 @@ public class PgConnection implements BaseConnection {
     } else {
       Class<? extends PGXmlFactoryFactory> clazz;
       try {
-        clazz = ClassUtils.forName(xmlFactoryFactoryClass, PGXmlFactoryFactory.class, getClass().getClassLoader());
+        clazz = ClassUtils.forName(xmlFactoryFactoryClass, PGXmlFactoryFactory.class, classLoaderStrategy, getClass().getClassLoader());
       } catch (ClassNotFoundException ex) {
         throw new PSQLException(
             GT.tr("Could not instantiate xmlFactoryFactory: {0}", xmlFactoryFactoryClass),

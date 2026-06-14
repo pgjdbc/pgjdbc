@@ -34,6 +34,8 @@ import org.postgresql.jdbc.SslNegotiation;
 import org.postgresql.plugin.AuthenticationRequestType;
 import org.postgresql.ssl.MakeSSL;
 import org.postgresql.sspi.ISSPIClient;
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.MD5Digest;
@@ -120,8 +122,8 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
       @Nullable String spnServiceClass,
       boolean enableNegotiate) {
     try {
-      @SuppressWarnings("unchecked")
-      Class<ISSPIClient> c = (Class<ISSPIClient>) Class.forName("org.postgresql.sspi.SSPIClient");
+      Class<? extends ISSPIClient> c = ClassUtils.forName("org.postgresql.sspi.SSPIClient",
+          ISSPIClient.class, ClassLoaderStrategy.DRIVER, ConnectionFactoryImpl.class.getClassLoader());
       return c.getDeclaredConstructor(PGStream.class, String.class, boolean.class)
           .newInstance(pgStream, spnServiceClass, enableNegotiate);
     } catch (Exception e) {

@@ -409,13 +409,22 @@ of suitable candidates.
 * **`socketFactory (`*String*`)`** *Default `null`*\
 The provided value is a class name to use as the `SocketFactory` when establishing a socket connection. 
 This may be used to create unix sockets instead of normal sockets. The class name specified by `socketFactory` must extend
-`javax.net.SocketFactory` and be available to the driver's classloader. This class must have a zero-argument constructor,
+`javax.net.SocketFactory` and be reachable through one of the classloaders selected by `classLoaderStrategy`. This class must have a zero-argument constructor,
 a single-argument constructor taking a String argument, or a single-argument constructor taking a Properties argument. 
 The Properties object will contain all the connection parameters. The String argument will have the value of the `socketFactoryArg`
 connection parameter.
 
 * **`socketFactoryArg (`*String*`)`** : (deprecated)\
 This value is an optional argument to the constructor of the socket factory class provided above.
+
+* **`classLoaderStrategy (`*String*`)`** *Default `driver-first`*\
+Order in which the driver searches classloaders when loading a class named by a connection property, for example `socketFactory`.
+The driver's own classloader sees only what is on its classpath, so in a non-flat class path (an application server or an OSGi
+container) a user-supplied class may be reachable only through the thread context classloader.
+`driver-first` tries the driver's classloader and then falls back to the thread context classloader.
+`driver` uses the driver's classloader only, which matches the behaviour from before this property existed.
+`context-first` tries the thread context classloader first; use it in containers that expect their own classloader to take
+precedence even when the driver's classloader could resolve a class of the same name.
 
 * **`reWriteBatchedInserts (`*boolean*`)`** *Default `false`*\
 This will change batch inserts from insert into foo (col1, col2, col3) values (1, 2, 3) into insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6) this provides 2-3x performance improvement

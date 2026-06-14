@@ -160,6 +160,17 @@ public enum PGProperty {
       new String[] {"disable", "prefer", "require"}),
 
   /**
+   * Order in which the driver searches classloaders when loading a class named by a connection
+   * property. See {@link org.postgresql.util.ClassLoaderStrategy} for the meaning of each value.
+   */
+  CLASS_LOADER_STRATEGY(
+      "classLoaderStrategy",
+      "driver-first",
+      "Order in which the driver searches classloaders when loading a class named by a connection property.",
+      false,
+      new String[]{"driver", "driver-first", "context-first"}),
+
+  /**
    * Determine whether SAVEPOINTS used in AUTOSAVE will be released per query or not
    */
   CLEANUP_SAVEPOINTS(

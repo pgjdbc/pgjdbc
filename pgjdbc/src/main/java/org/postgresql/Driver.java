@@ -130,7 +130,8 @@ public class Driver implements java.sql.Driver {
 
   private static <T> T doPrivileged(PrivilegedExceptionAction<T> action) throws Throwable {
     try {
-      Class<?> accessControllerClass = Class.forName("java.security.AccessController");
+      Class<?> accessControllerClass = Class.forName("java.security.AccessController", true,
+          Driver.class.getClassLoader());
       Method doPrivileged = accessControllerClass.getMethod("doPrivileged",
           PrivilegedExceptionAction.class);
       //noinspection unchecked
