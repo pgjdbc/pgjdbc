@@ -8,6 +8,9 @@ package org.postgresql.test.osgi;
 import static org.ops4j.pax.exam.CoreOptions.options;
 import static org.postgresql.test.osgi.DefaultPgjdbcOsgiOptions.defaultPgjdbcOsgiOptions;
 
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
+
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,8 +38,9 @@ public class PlainOsgiTest {
 
   @Test
   public void driverVersionShouldBePositive() throws Exception {
-    Class<?> driverClass = Class.forName("org.postgresql.Driver");
-    Driver driver = (Driver) driverClass.getConstructor().newInstance();
+    Class<? extends Driver> driverClass = ClassUtils.forName("org.postgresql.Driver", Driver.class,
+        ClassLoaderStrategy.DRIVER, PlainOsgiTest.class.getClassLoader());
+    Driver driver = driverClass.getConstructor().newInstance();
 
     // We use regular assert instead of hamcrest since
     // org.hamcrest.Matchers not found by org.ops4j.pax.tipi.hamcrest.core

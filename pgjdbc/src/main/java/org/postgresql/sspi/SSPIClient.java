@@ -10,6 +10,8 @@ import static org.postgresql.util.internal.Nullness.castNonNull;
 
 import org.postgresql.core.PGStream;
 import org.postgresql.core.PgMessageType;
+import org.postgresql.util.ClassLoaderStrategy;
+import org.postgresql.util.ClassUtils;
 import org.postgresql.util.GT;
 import org.postgresql.util.HostSpec;
 import org.postgresql.util.PSQLException;
@@ -56,8 +58,8 @@ public class SSPIClient implements ISSPIClient {
   static {
     Class<? extends SecBufferDesc> klass;
     try {
-      klass = Class.forName("com.sun.jna.platform.win32.SspiUtil$ManagedSecBufferDesc")
-          .asSubclass(SecBufferDesc.class);
+      klass = ClassUtils.forName("com.sun.jna.platform.win32.SspiUtil$ManagedSecBufferDesc",
+          SecBufferDesc.class, ClassLoaderStrategy.DRIVER, SSPIClient.class.getClassLoader());
     } catch (ReflectiveOperationException ex) {
       klass = SecBufferDesc.class;
     }
@@ -104,20 +106,34 @@ public class SSPIClient implements ISSPIClient {
   public boolean isSSPISupported() {
     try {
       /*
-       * SSPI is windows-only. Attempt to use JNA to identify the platform. If Waffle is missing we
-       * won't have JNA and this will throw a NoClassDefFoundError.
+       * SSPI is windows-only. Attempt to use JNA to identify the platform. If JNA is missing this
+       * throws NoClassDefFoundError, which we report as "SSPI unavailable".
        */
       if (!Platform.isWindows()) {
         LOGGER.log(Level.FINE, "SSPI not supported: non-Windows host");
         return false;
       }
-      /* Waffle must be on the CLASSPATH */
-      Class.forName("waffle.windows.auth.impl.WindowsSecurityContextImpl");
-      return true;
     } catch (NoClassDefFoundError ex) {
       LOGGER.log(Level.WARNING, "SSPI unavailable (no Waffle/JNA libraries?)", ex);
       return false;
-    } catch (ClassNotFoundException ex) {
+    }
+    return isWaffleAvailable(SSPIClient.class.getClassLoader());
+  }
+
+  /**
+   * Tests whether Waffle is reachable through the given classloader. The probe is by name only, so
+   * a missing optional Waffle package is reported as unavailable rather than linked eagerly:
+   * referencing a Waffle type here would throw {@link NoClassDefFoundError} before the probe could
+   * run.
+   *
+   * @param classLoader the classloader to probe
+   * @return {@code true} if Waffle is on the classpath
+   */
+  static boolean isWaffleAvailable(@Nullable ClassLoader classLoader) {
+    try {
+      Class.forName("waffle.windows.auth.impl.WindowsSecurityContextImpl", false, classLoader);
+      return true;
+    } catch (ClassNotFoundException | NoClassDefFoundError ex) {
       LOGGER.log(Level.WARNING, "SSPI unavailable (no Waffle/JNA libraries?)", ex);
       return false;
     }

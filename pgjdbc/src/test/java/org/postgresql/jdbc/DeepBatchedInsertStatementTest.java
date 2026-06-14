@@ -312,7 +312,9 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
    */
   private static byte[] getEncodedStatementName(BatchedQuery bqd)
       throws Exception {
-    Class<?> clazz = Class.forName("org.postgresql.core.v3.SimpleQuery");
+    // getEncodedStatementName is declared in the package-private SimpleQuery, BatchedQuery's
+    // superclass, so it cannot be named as SimpleQuery.class from this package.
+    Class<?> clazz = BatchedQuery.class.getSuperclass();
     Method mESN = clazz.getDeclaredMethod("getEncodedStatementName");
     mESN.setAccessible(true);
     return (byte[]) mESN.invoke(bqd);

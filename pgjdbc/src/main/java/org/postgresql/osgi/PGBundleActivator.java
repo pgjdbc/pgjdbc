@@ -35,7 +35,11 @@ public class PGBundleActivator implements BundleActivator {
 
   private static boolean dataSourceFactoryExists() {
     try {
-      Class.forName("org.osgi.service.jdbc.DataSourceFactory");
+      // Probe by name only: referencing DataSourceFactory.class here would resolve the optional
+      // org.osgi.service.jdbc package and throw NoClassDefFoundError during bundle activation when
+      // it is absent, instead of cleanly reporting that the service is unavailable.
+      Class.forName("org.osgi.service.jdbc.DataSourceFactory", false,
+          PGBundleActivator.class.getClassLoader());
       return true;
     } catch (ClassNotFoundException ignored) {
       // DataSourceFactory does not exist => no reason to register the service
