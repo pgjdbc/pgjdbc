@@ -336,8 +336,9 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
         query_mode: {value: 'extended'},
         ssl: {value: 'yes'}, scram: {value: 'yes'},
         xa: {value: 'yes'}, replication: {value: 'yes'},
-        // slow tests add ~0 coverage but cost runtime; GSS auth needs its own krb5 job.
-        slow_tests: {value: 'no'}, gss: {value: 'no'},
+        // slow tests add ~0 coverage but cost runtime; GSS exercises the driver's encryption
+        // paths and the krb5 setup runs anyway on this Linux job, so keep it on.
+        slow_tests: {value: 'no'}, gss: {value: 'yes'},
       },
       tag: row => { row.collectCoverage = true; },
     },
@@ -449,7 +450,7 @@ include.forEach(v => {
 
   v.includeTestTags = includeTestTags.join(' | ');
 
-  if (v.gss === 'yes' || v.check_anorm_sbt === 'yes') {
+  if (v.check_anorm_sbt === 'yes') {
       v.deploy_to_maven_local = true
   }
   if (v.hash.value === 'same') {

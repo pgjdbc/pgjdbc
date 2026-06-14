@@ -1,110 +1,107 @@
-@groovy.transform.CompileStatic
+/*
+ * Copyright (c) 2026, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.test.gss;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Map;
+
+/**
+ * Drives a throwaway PostgreSQL server for the GSS test: initialises a data directory, starts the
+ * server and rewrites pg_hba.conf / pg_ident.conf / postgresql.conf to toggle GSS behaviour.
+ */
 class Postgres {
-    String binPath
-    String dataPath
-    String hostName = '127.0.0.1'
-    int port
+  private final String binPath;
+  private final String dataPath;
+  private final String hostName = "127.0.0.1";
+  private int port;
 
-    public Postgres() {
-        setupPaths('/usr/local/pgsql/16/bin/','/tmp/pgdata16')
-        initDB()
-    }
-    public Postgres(String binDir, String dataDir) {
-        setupPaths(binDir, dataDir)
-        initDB()
-    }
+  Postgres() throws IOException, InterruptedException {
+    this("/usr/local/pgsql/16/bin/", "/tmp/pgdata16");
+  }
 
-    public void setupPaths(String binPath = '/usr/local/psql/bin', String dataPath = '/tmp/pgdata' ) {
-        this.binPath = binPath
-        this.dataPath = dataPath
-    }
+  Postgres(String binDir, String dataDir) throws IOException, InterruptedException {
+    this.binPath = binDir;
+    this.dataPath = dataDir;
+    initDb();
+  }
 
-    public void initDB() {
-        new File(dataPath).with { f->
-            if (!f.exists()) {
-                println "Initializing db at $dataPath"
-                Process p = "$binPath/initdb --auth=trust -D $dataPath".execute()
-                p.waitForProcessOutput(System.out, System.err)
-            }
-        }
+  private void initDb() throws IOException, InterruptedException {
+    if (!new File(dataPath).exists()) {
+      System.err.println("Initializing db at " + dataPath);
+      GssTestUtil.runAndWait(
+          Arrays.asList(binPath + "/initdb", "--auth=trust", "-D", dataPath), null);
     }
+  }
 
-    public Process runPostgres(String[] environment ) {
-        // -i to enable tcp connections since java needs them anyway
-        println "executing postgres datapath: $dataPath, host: $hostName, port: $port"
-        String exec = "$binPath/postgres -h $hostName -k /tmp -p $port -i -D $dataPath"
-        Process p
+  int getPort() {
+    return port;
+  }
 
-        new Thread() {
-            @Override
-            void run() {
-                println exec
-                p = exec.execute(environment, null)
-                p.waitForProcessOutput(System.out, System.err)
+  /**
+   * Picks a free port and starts the server, passing the Kerberos environment so the backend can
+   * locate its configuration and keytab.
+   */
+  Process startPostgres(Map<String, String> krb5Env) throws IOException {
+    port = GssTestUtil.findFreePort();
+    // -i enables TCP connections (JDBC needs them); -k /tmp keeps the unix socket out of the data dir
+    System.err.println(
+        "executing postgres datapath: " + dataPath + ", host: " + hostName + ", port: " + port);
+    return GssTestUtil.start(
+        Arrays.asList(binPath + "/postgres", "-h", hostName, "-k", "/tmp",
+            "-p", Integer.toString(port), "-i", "-D", dataPath),
+        krb5Env);
+  }
 
-            }
-        }.start()
-        while (p == null){
-            Thread.sleep(100)
-        }
-        return p
-    }
-    public void writePgIdent(String text) {
-        Util.appendToFile("$dataPath/pg_ident.conf", text, true)
-    }
+  void reload() throws IOException, InterruptedException {
+    GssTestUtil.runAndWait(
+        Arrays.asList(binPath + "/pg_ctl", "-D", dataPath, "reload"), null);
+  }
 
-    public boolean waitForHBA( int milliseconds ) {
-        long now = System.nanoTime();
-        while ( System.nanoTime() < (now + (milliseconds * 1E6)) ) {
-            if (new File("$dataPath/pg_hba.conf").exists()) {
-                return true
-            }
-        }
-        return false
+  boolean waitForHba(int milliseconds) {
+    long deadline = System.nanoTime() + (long) (milliseconds * 1E6);
+    while (System.nanoTime() < deadline) {
+      if (new File(dataPath, "pg_hba.conf").exists()) {
+        return true;
+      }
     }
-    public void writePgHBA(String text) {
-        Util.appendToFile("$dataPath/pg_hba.conf", text, true)
-    }
-    public String readPgHBA() {
-        Util.readFile("$dataPath/pg_hba.conf")
-    }
-    public void writePgConf(String text) {
-        Util.appendToFile("$dataPath/postgresql.conf", text, false)
-    }
-    public void setKeyTabLocation(String location) {
-        writePgConf("krb_server_keyfile = '$location'")
-    }
-    public void enableGSS(String hostAddress, String mode, String options) {
-        writePgHBA("$mode all all $hostAddress/32 gss map=mymap")
-    }
-    public void enableMyMap(String realm) {
-        writePgIdent("mymap  /^(.*)@$realm\$  \\1")
-    }
-    // enables a database user that is different than the kerberos login user
-    public void enableOwnerMap(String principal, String realm, String user) {
-        writePgIdent("mymap $principal@$realm  $user")
-    }
+    return false;
+  }
 
-    public Process startPostgres(String []environment) {
-        port= Util.findPort()
-        // postgres.writePgHBA("host all all $postgres.hostName/32 gss map=mymap")
-        runPostgres(environment)
-    }
+  void writePgHba(String text) throws IOException {
+    GssTestUtil.writeText(dataPath + "/pg_hba.conf", text, true);
+  }
 
-    public void reload() {
-        Process p = "$binPath/pg_ctl -D $dataPath reload".execute()
-        p.waitForProcessOutput(System.out, System.err)
-    }
+  String readPgHba() throws IOException {
+    return GssTestUtil.readText(dataPath + "/pg_hba.conf");
+  }
 
-    public static void main( String[] args) {
-        Postgres postgres = new Postgres()
-        postgres.setupPaths('/usr/local/pgsql/12/bin/','/tmp/pgdata11')
-        postgres.initDB()
-        postgres.port= Util.findPort()
-        // postgres.writePgHBA("host all all $postgres.hostName/32 gss map=mymap")
-        Process p = postgres.runPostgres()
-        p.destroy()
+  private void writePgIdent(String text) throws IOException {
+    GssTestUtil.writeText(dataPath + "/pg_ident.conf", text, true);
+  }
 
-        println("Process is ${p.isAlive()?'running':'stopped'}" )
-    }
+  private void writePgConf(String text) throws IOException {
+    GssTestUtil.writeText(dataPath + "/postgresql.conf", text, false);
+  }
+
+  void setKeyTabLocation(String location) throws IOException {
+    writePgConf("krb_server_keyfile = '" + location + "'");
+  }
+
+  void enableGss(String hostAddress, String mode) throws IOException {
+    writePgHba(mode + " all all " + hostAddress + "/32 gss map=mymap");
+  }
+
+  void enableMyMap(String realm) throws IOException {
+    writePgIdent("mymap  /^(.*)@" + realm + "$  \\1");
+  }
+
+  /** Maps the Kerberos principal to a database user that differs from the Kerberos login user. */
+  void enableOwnerMap(String principal, String realm, String user) throws IOException {
+    writePgIdent("mymap " + principal + "@" + realm + "  " + user);
+  }
 }
