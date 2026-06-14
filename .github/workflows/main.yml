@@ -297,6 +297,21 @@ jobs:
         EOF
         fi
 
+    - name: 'Install krb5 for GSS tests'
+      if: ${{ matrix.gss == 'yes' }}
+      # language=bash
+      run: |
+        sudo apt -y update
+        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+        sudo apt -y install postgresql-16
+        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql
+    - name: 'Update hosts for GSS tests'
+      if: ${{ matrix.gss == 'yes' }}
+      # language=bash
+      run: |
+        sudo sed -i '/^127\.0\.0\.1/c\127.0.0.1 auth-test-localhost.postgresql.example.com localhost' /etc/hosts
+        cat /etc/hosts
+
     - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
       name: Test
       id: test
@@ -307,7 +322,7 @@ jobs:
       with:
         read-only: false
         job-id: jdk${{ matrix.java_version }}
-        arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
+        arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.gss == 'yes' && '-PgssTests' || '' }} ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
           testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
@@ -344,20 +359,6 @@ jobs:
         # A Codecov hiccup must not fail the test job.
         fail_ci_if_error: false
 
-    - name: 'Install krb5 for GSS tests'
-      if: ${{ matrix.gss == 'yes' }}
-      # language=bash
-      run: |
-        sudo apt -y update
-        sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
-        sudo apt -y install postgresql-16
-        sudo apt -y install krb5-kdc krb5-admin-server libkrb5-dev postgresql
-    - name: 'Update hosts for GSS tests'
-      if: ${{ matrix.gss == 'yes' }}
-      # language=bash
-      run: |
-        sudo -- sh -c "echo 127.0.0.1 auth-test-localhost.postgresql.example.com localhost > /etc/hosts"
-        cat /etc/hosts
     - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
       if: ${{ matrix.deploy_to_maven_local }}
       name: Deploy pgjdbc to mavenLocal
@@ -425,17 +426,6 @@ jobs:
       with:
         name: ${{ steps.artifact_name.outputs.name }}
         path: ${{ runner.temp }}/pg-server-logs.txt
-    - name: Test GSS
-      if: ${{ matrix.gss == 'yes' }}
-      # language=bash
-      run: |
-        cd test-gss
-        ./gradlew assemble
-        ./gradlew run
-      env:
-        KRB5CCNAME: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5cc
-        KRB5_CONFIG: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/krb5.conf
-        KRB5_KDC_PROFILE: /home/runner/work/pgjdbc/pgjdbc/test-gss/tmp_check/kdc.conf
     - name: Test anorm-sbt
       if: ${{ matrix.check_anorm_sbt == 'yes' }}
       # language=bash
