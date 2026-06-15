@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -83,32 +84,32 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to int"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to int"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to long"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to long"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to double"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert xml to double"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert xml to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -122,9 +123,7 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) value;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert xml to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("xml", targetClass.getName());
   }
 
   @Override
@@ -137,8 +136,6 @@ public final class XmlCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert xml to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("xml", targetClass.getName());
   }
 }

@@ -489,6 +489,13 @@ public class PgConnection implements BaseConnection {
         Oid.FLOAT8_ARRAY,
         Oid.VARCHAR_ARRAY,
         Oid.TEXT_ARRAY,
+        // Temporal arrays carry a binary encoder/decoder via TemporalCodecs and the array codec
+        // walker (GenericArrayLeafCodec writeLeaf/readLeaf), so they can use the binary protocol.
+        Oid.DATE_ARRAY,
+        Oid.TIME_ARRAY,
+        Oid.TIMETZ_ARRAY,
+        Oid.TIMESTAMP_ARRAY,
+        Oid.TIMESTAMPTZ_ARRAY,
         Oid.POINT,
         Oid.BOX,
         Oid.UUID));

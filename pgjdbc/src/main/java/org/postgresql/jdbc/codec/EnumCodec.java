@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -86,9 +87,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) decodeAsString(data, type, ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("enum", targetClass.getName());
   }
 
   @Override
@@ -98,65 +97,63 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class || targetClass == Object.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert enum to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("enum", targetClass.getName());
   }
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public boolean decodeAsBoolean(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to boolean"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public boolean decodeAsBoolean(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert enum to boolean"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   /**
@@ -166,7 +163,7 @@ public final class EnumCodec implements BinaryCodec, TextCodec {
    * @return the string representation
    * @throws SQLException if the value cannot be converted
    */
-  private String toEnumString(Object value) throws SQLException {
+  private static String toEnumString(Object value) throws SQLException {
     if (value instanceof String) {
       return (String) value;
     }

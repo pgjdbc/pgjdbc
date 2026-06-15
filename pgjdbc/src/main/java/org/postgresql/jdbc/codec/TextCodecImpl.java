@@ -7,11 +7,13 @@ package org.postgresql.jdbc.codec;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -22,7 +24,10 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.Charset;
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 /**
  * Codec for PostgreSQL text type.
@@ -201,9 +206,16 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
       }
       return (T) Byte.valueOf((byte) i);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert text to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    if (targetClass == Date.class) {
+      return (T) TemporalCodecs.decodeDateText(value, ctx);
+    }
+    if (targetClass == Time.class) {
+      return (T) TemporalCodecs.decodeTimeText(value, ctx);
+    }
+    if (targetClass == Timestamp.class) {
+      return (T) TemporalCodecs.decodeTimestampText(value, ctx);
+    }
+    throw Codec.cannotDecode("text", targetClass.getName());
   }
 
   @Override
@@ -213,7 +225,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     return decodeBinaryAs(data.getBytes(encoding), type, targetClass, ctx);
   }
 
-  private String toString(Object value) throws SQLException {
+  private static String toString(Object value) throws SQLException {
     if (value instanceof String) {
       return (String) value;
     }
@@ -223,9 +235,7 @@ public final class TextCodecImpl implements StreamingBinaryCodec, StreamingTextC
     if (value instanceof Character) {
       return value.toString();
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to text", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "text");
   }
 
   private static int parseAsInt(String s) throws SQLException {

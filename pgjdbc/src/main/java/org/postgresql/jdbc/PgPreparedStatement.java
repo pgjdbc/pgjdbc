@@ -743,7 +743,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     CodecRegistry codecs = ctx.getCodecs();
     if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       BinaryCodec codec = codecs.getBinaryCodec(oid, arrayTypeInfo);
-      if (codec != null) {
+      if (codec != null && codec.canEncodeBinary(in, arrayTypeInfo, ctx)) {
         bindBytes(parameterIndex, codec.encodeBinary(in, arrayTypeInfo, ctx), oid);
         return;
       }

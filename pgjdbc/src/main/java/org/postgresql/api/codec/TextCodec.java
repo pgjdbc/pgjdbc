@@ -81,6 +81,20 @@ public interface TextCodec extends Codec {
   String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException;
 
   /**
+   * Whether this codec's {@link #encodeText} output can contain characters that require quoting
+   * when embedded in a composite or array literal (a comma, parenthesis, brace, double quote,
+   * backslash, leading/trailing whitespace, or the empty string). Numeric and boolean codecs emit
+   * only quote-safe characters (digits, sign, dot, {@code e}, {@code t}/{@code f}, {@code NaN},
+   * {@code Infinity}) and return {@code false}, letting a container stream such a field straight
+   * into the literal without quoting. The default is {@code true} — assume quoting may be needed.
+   *
+   * @return true if the text output may need composite/array quoting
+   */
+  default boolean mayRequireQuoting() {
+    return true;
+  }
+
+  /**
    * Decodes text data as an int value.
    *
    * <p>Default implementation boxes via {@link #decodeText} and unboxes.
@@ -97,7 +111,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).intValue();
     }
-    throw Codec.cannotConvert(value, "int");
+    throw Codec.cannotDecode(value, "int");
   }
 
   /**
@@ -135,7 +149,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
-    throw Codec.cannotConvert(value, "long");
+    throw Codec.cannotDecode(value, "long");
   }
 
   /**
@@ -170,7 +184,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).floatValue();
     }
-    throw Codec.cannotConvert(value, "float");
+    throw Codec.cannotDecode(value, "float");
   }
 
   /**
@@ -187,7 +201,7 @@ public interface TextCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
     }
-    throw Codec.cannotConvert(value, "double");
+    throw Codec.cannotDecode(value, "double");
   }
 
   /**
@@ -244,7 +258,7 @@ public interface TextCodec extends Codec {
       }
       return BigDecimal.valueOf(((Number) value).doubleValue());
     }
-    throw Codec.cannotConvert(value, "BigDecimal");
+    throw Codec.cannotDecode(value, "BigDecimal");
   }
 
   /**
@@ -271,6 +285,6 @@ public interface TextCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw Codec.cannotConvert(getTypeName(), targetClass.getName());
+    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
   }
 }

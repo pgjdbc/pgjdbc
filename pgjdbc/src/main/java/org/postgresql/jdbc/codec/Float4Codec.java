@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -33,6 +34,12 @@ public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCo
   @Override
   public String getTypeName() {
     return "float4";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is digits/sign/dot/e or NaN/Infinity — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -218,9 +225,7 @@ public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCo
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(value != 0);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert float4 to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("float4", targetClass.getName());
   }
 
   @Override
@@ -248,8 +253,6 @@ public final class Float4Codec implements BinaryCodec, TextCodec, ArrayElementCo
     if (value instanceof Boolean) {
       return (Boolean) value ? 1.0f : 0.0f;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to float4", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "float4");
   }
 }

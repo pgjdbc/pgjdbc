@@ -103,7 +103,7 @@ class DateCodecTest {
 
     assertNotNull(result);
     // Should be parseable back
-    assertEquals(d, ctx.getTimestampUtils().toDate(null, result));
+    assertEquals(d, TestCodecContext.timestampUtils().toDate(null, result));
   }
 
   @Test

@@ -99,6 +99,41 @@ public interface BinaryCodec extends Codec {
   byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException;
 
   /**
+   * Whether {@link #encodeBinary} produces a true PostgreSQL binary representation. Codecs whose
+   * {@code encodeBinary} only emits the text encoding as bytes (for example the {@code time}/
+   * {@code timestamp} codecs, which have no binary parameter encoder) return {@code false}, so
+   * containers such as {@link org.postgresql.jdbc.codec.ArrayCodec} bind their values as text rather
+   * than feeding the server an invalid binary payload.
+   *
+   * @return true if {@code encodeBinary} emits a real binary representation (the default)
+   */
+  default boolean supportsBinaryEncoding() {
+    return true;
+  }
+
+  /**
+   * Whether {@code value} can be encoded for {@code type} as a real PostgreSQL binary payload. This
+   * is the value-level companion to {@link #supportsBinaryEncoding()}: that method decides at the
+   * type level (a codec whose {@code encodeBinary} only emits text bytes returns {@code false}),
+   * while this one lets a codec reject a particular value whose binary form it cannot produce. A
+   * composite codec, for instance, binary-encodes only {@link java.sql.Struct} / {@link
+   * java.sql.SQLData} / {@link org.postgresql.util.PGBinaryObject} values and binds a plain {@link
+   * org.postgresql.util.PGobject} as text, while an array codec needs every leaf to be
+   * binary-encodable. Containers and parameter-binding callers gate the binary path on this rather
+   * than on {@link #supportsBinaryEncoding()} alone. The default defers to {@link
+   * #supportsBinaryEncoding()}, so value-independent codecs need not override it.
+   *
+   * @param value the value to be encoded
+   * @param type the target type metadata
+   * @param ctx the codec context
+   * @return true if {@code value} can be encoded as a real binary representation
+   * @throws SQLException if type metadata cannot be resolved
+   */
+  default boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+    return supportsBinaryEncoding();
+  }
+
+  /**
    * Decodes binary data as an int value.
    *
    * <p>Default implementation boxes via {@link #decodeBinary} and unboxes.
@@ -118,7 +153,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).intValue();
     }
-    throw Codec.cannotConvert(value, "int");
+    throw Codec.cannotDecode(value, "int");
   }
 
   /**
@@ -141,7 +176,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).longValue();
     }
-    throw Codec.cannotConvert(value, "long");
+    throw Codec.cannotDecode(value, "long");
   }
 
   /**
@@ -161,7 +196,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).floatValue();
     }
-    throw Codec.cannotConvert(value, "float");
+    throw Codec.cannotDecode(value, "float");
   }
 
   /**
@@ -181,7 +216,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof Number) {
       return ((Number) value).doubleValue();
     }
-    throw Codec.cannotConvert(value, "double");
+    throw Codec.cannotDecode(value, "double");
   }
 
   /**
@@ -242,7 +277,7 @@ public interface BinaryCodec extends Codec {
       }
       return BigDecimal.valueOf(((Number) value).doubleValue());
     }
-    throw Codec.cannotConvert(value, "BigDecimal");
+    throw Codec.cannotDecode(value, "BigDecimal");
   }
 
   /**
@@ -264,7 +299,7 @@ public interface BinaryCodec extends Codec {
     if (value instanceof byte[]) {
       return (byte[]) value;
     }
-    throw Codec.cannotConvert(value, "byte[]");
+    throw Codec.cannotDecode(value, "byte[]");
   }
 
   /**
@@ -294,6 +329,6 @@ public interface BinaryCodec extends Codec {
     if (targetClass.isInstance(value)) {
       return targetClass.cast(value);
     }
-    throw Codec.cannotConvert(getTypeName(), targetClass.getName());
+    throw Codec.cannotDecode(getTypeName(), targetClass.getName());
   }
 }

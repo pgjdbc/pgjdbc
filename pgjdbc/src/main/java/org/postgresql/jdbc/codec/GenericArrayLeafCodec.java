@@ -37,11 +37,10 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
   private final @Nullable BinaryCodec binaryCodec;
   private final @Nullable TextCodec textCodec;
 
-  GenericArrayLeafCodec(PgType elementType, @Nullable BinaryCodec binaryCodec,
-      @Nullable TextCodec textCodec) {
+  GenericArrayLeafCodec(PgType elementType, Codec elementCodec) {
     this.elementType = elementType;
-    this.binaryCodec = binaryCodec;
-    this.textCodec = textCodec;
+    this.binaryCodec = elementCodec instanceof BinaryCodec ? (BinaryCodec) elementCodec : null;
+    this.textCodec = elementCodec instanceof TextCodec ? (TextCodec) elementCodec : null;
   }
 
   @Override

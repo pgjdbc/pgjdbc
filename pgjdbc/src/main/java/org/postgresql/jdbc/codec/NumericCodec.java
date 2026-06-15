@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -41,6 +42,12 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
   @Override
   public String getTypeName() {
     return "numeric";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is digits/sign/dot/e or NaN — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -314,9 +321,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
       BigDecimal bd = decodeAsBigDecimal(data, type, ctx);
       return bd == null ? null : (T) Boolean.valueOf(bd.compareTo(BigDecimal.ZERO) != 0);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert numeric to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("numeric", targetClass.getName());
   }
 
   @Override
@@ -354,8 +359,6 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     if (value instanceof Boolean) {
       return (Boolean) value ? BigDecimal.ONE : BigDecimal.ZERO;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to numeric", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "numeric");
   }
 }

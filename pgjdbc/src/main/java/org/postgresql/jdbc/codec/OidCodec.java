@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -37,6 +38,12 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
   @Override
   public String getTypeName() {
     return "oid";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is digits — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -177,9 +184,7 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
     if (targetClass == BigDecimal.class) {
       return (T) BigDecimal.valueOf(value);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert oid to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("oid", targetClass.getName());
   }
 
   @Override
@@ -204,8 +209,6 @@ public final class OidCodec implements BinaryCodec, TextCodec, ArrayElementCodec
             PSQLState.NUMERIC_VALUE_OUT_OF_RANGE, e);
       }
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to oid", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "oid");
   }
 }

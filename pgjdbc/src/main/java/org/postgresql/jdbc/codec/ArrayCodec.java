@@ -9,7 +9,6 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
-import org.postgresql.api.codec.TextCodec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.jdbc.ArrayDecoding;
 import org.postgresql.jdbc.ArrayEncoding;
@@ -133,7 +132,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   @SuppressWarnings("unchecked")
-  private byte[] encodeBinaryJavaArray(Object javaArray, PgType type, CodecContext ctx) throws SQLException {
+  private static byte[] encodeBinaryJavaArray(Object javaArray, PgType type, CodecContext ctx) throws SQLException {
     ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
     if (fastLeaf != null) {
       return MultiDimArrayBinary.encode(javaArray, ctx, fastLeaf);
@@ -154,7 +153,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
     try {
-      streamBinaryArrayViaCodec(javaArray, type, ctx, out);
+      MultiDimArrayBinary.encode(javaArray, (BackpatchingBinarySink) out, ctx,
+          getGenericArrayLeafCodec(type, ctx));
     } catch (IOException e) {
       // BackpatchByteArrayOutputStream never throws.
       throw new AssertionError(e);
@@ -186,24 +186,81 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   /**
-   * Encodes a generic {@code Object[]} (any rank) by dispatching each leaf
-   * element through the registered binary codec for the array's element type.
-   * Used for element types that {@link ArrayEncoding} cannot encode natively
-   * (composite, SQLData, domain over composite, etc.). Multi-dim header /
-   * dimension walking is shared via {@link MultiDimArrayBinary}.
+   * Returns whether {@code value}'s array can be bound as a true PostgreSQL binary payload. The
+   * array's element type must itself support binary encoding (the {@code time}/{@code timetz}/
+   * {@code timestamp}/{@code timestamptz} codecs only emit text bytes, so feeding them into the
+   * binary array wire format makes the server misread each element), and every leaf value must be
+   * binary-encodable by that element codec — a composite element, for instance, rejects a plain
+   * {@link org.postgresql.util.PGobject}, which must bind as text. Callers that choose the bind
+   * format (a Java array parameter, or {@link PgArray#toBytes()}) gate the binary path on this.
+   *
+   * @param value the array value (a Java array, a {@link PgArray}, or a JDBC {@link Array})
+   * @param type the array type metadata
+   * @param ctx the codec context
+   * @return true if the array may be encoded in binary
+   * @throws SQLException if type metadata cannot be resolved
    */
-  private void streamBinaryArrayViaCodec(Object javaArray, PgType arrayType, CodecContext ctx,
-      BackpatchingBinarySink out) throws SQLException, IOException {
-    int elementOid = arrayType.getTypelem();
+  @Override
+  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+    Object javaArray;
+    if (value instanceof PgArray) {
+      PgArray pgArray = (PgArray) value;
+      if (pgArray.isBinary()) {
+        return true;
+      }
+      javaArray = pgArray.getArray();
+    } else if (value instanceof Array) {
+      javaArray = ((Array) value).getArray();
+    } else if (value.getClass().isArray()) {
+      javaArray = value;
+    } else {
+      return false;
+    }
+    if (javaArray == null) {
+      // A null backing array binds as an empty binary payload.
+      return true;
+    }
+    int elementOid = type.getTypelem();
+    if (elementOid == 0) {
+      return false;
+    }
     PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
     BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
-    if (elementCodec == null) {
-      throw new PSQLException(
-          GT.tr("No binary codec registered for array element oid {0}", elementOid),
-          PSQLState.INVALID_PARAMETER_TYPE);
+    if (elementCodec == null || !elementCodec.supportsBinaryEncoding()) {
+      return false;
     }
-    GenericArrayLeafCodec leafCodec = new GenericArrayLeafCodec(elementType, elementCodec, null);
-    MultiDimArrayBinary.encode(javaArray, out, ctx, leafCodec);
+    return leavesBinaryEncodable(javaArray, elementType, elementCodec, ctx);
+  }
+
+  /**
+   * Recursively checks that every non-null leaf of a (possibly multi-dimensional) array is
+   * binary-encodable by {@code elementCodec}. Reference arrays are walked level by level via their
+   * {@code Object[]} view; a primitive leaf array (for example {@code double[]}) is always
+   * binary-encodable, its element codec's support already verified by the caller.
+   */
+  private static boolean leavesBinaryEncodable(Object value, PgType elementType,
+      BinaryCodec elementCodec, CodecContext ctx) throws SQLException {
+    if (value instanceof Object[]) {
+      for (Object element : (Object[]) value) {
+        if (element != null
+            && !leavesBinaryEncodable(element, elementType, elementCodec, ctx)) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (value.getClass().isArray()) {
+      // A primitive leaf array (double[], int[], ...): value-independent binary support.
+      return true;
+    }
+    return elementCodec.canEncodeBinary(value, elementType, ctx);
+  }
+
+  private static GenericArrayLeafCodec getGenericArrayLeafCodec(PgType arrayType, CodecContext ctx) throws SQLException {
+    int elementOid = arrayType.getTypelem();
+    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
+    Codec elementCodec = ctx.getCodecs().getByOid(elementOid, elementType);
+    return new GenericArrayLeafCodec(elementType, elementCodec);
   }
 
   @Override
@@ -256,7 +313,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
         return;
       }
       if (value instanceof Object[]) {
-        streamTextArrayViaCodec(value, type, ctx, out);
+        MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx,
+            getGenericArrayLeafCodec(type, ctx));
         return;
       }
       @SuppressWarnings("unchecked")
@@ -267,21 +325,6 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     throw new PSQLException(
         GT.tr("Cannot convert {0} to array", value.getClass().getName()),
         PSQLState.INVALID_PARAMETER_TYPE);
-  }
-
-  /** Streams a generic {@code Object[]} (any rank) as a PostgreSQL text array literal. */
-  private void streamTextArrayViaCodec(Object javaArray, PgType arrayType, CodecContext ctx,
-      Appendable out) throws SQLException, IOException {
-    int elementOid = arrayType.getTypelem();
-    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-    TextCodec elementCodec = ctx.getCodecs().getTextCodec(elementOid, elementType);
-    if (elementCodec == null) {
-      throw new PSQLException(
-          GT.tr("No text codec registered for array element oid {0}", elementOid),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
-    GenericArrayLeafCodec leafCodec = new GenericArrayLeafCodec(elementType, null, elementCodec);
-    MultiDimArrayText.encode(javaArray, arrayType.getDelimiter(), out, ctx, leafCodec);
   }
 
   /**
@@ -305,13 +348,17 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     if (elementCodec != null) {
       // Allowlist of element Java types whose generic decode matches the legacy
-      // getArray() shape. Other types (PGobject for json/jsonb, the temporal
-      // types, ...) still take the legacy path.
+      // getArray() shape. The temporal types decode as their java.sql form (see
+      // leafContext); other types (PGobject for json/jsonb, ...) still take the
+      // legacy path.
       Class<?> javaType = elementCodec.getDefaultJavaType();
       if (javaType == String.class
           || javaType == java.math.BigDecimal.class
           || javaType == java.util.UUID.class
-          || javaType == byte[].class) {
+          || javaType == byte[].class
+          || javaType == java.sql.Date.class
+          || javaType == java.sql.Time.class
+          || javaType == java.sql.Timestamp.class) {
         return javaType;
       }
     }
@@ -319,41 +366,18 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   }
 
   /**
-   * Decodes a binary array whose element type has no primitive fast leaf
-   * (composite, range, string, and other user-defined types) through the shared
-   * {@link MultiDimArrayBinary} walker, dispatching each element to the element
-   * type's {@link BinaryCodec} from a borrowed slice. The leaf component type is
-   * {@code componentType} (for example {@code Object} for composite/range,
-   * {@code String} for string types), so the result matches the legacy
-   * {@code getArray()} shape while skipping the per-element {@code byte[]} copy.
+   * The context to decode {@code componentType} leaves with. Temporal arrays decode to the
+   * {@code java.sql} types regardless of the {@code getObject} java.time preferences, matching the
+   * legacy array decoder (so {@code date[]} yields {@code Date[]}, never {@code LocalDate[]}); other
+   * element types decode with the context unchanged.
    */
-  private static Object decodeBinaryGeneric(byte[] data, PgType arrayType, Class<?> componentType,
-      CodecContext ctx) throws SQLException {
-    int elementOid = arrayType.getTypelem();
-    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-    BinaryCodec elementCodec = ctx.getCodecs().getBinaryCodec(elementOid, elementType);
-    if (elementCodec == null) {
-      throw new PSQLException(
-          GT.tr("No binary codec registered for array element oid {0}", elementOid),
-          PSQLState.INVALID_PARAMETER_TYPE);
+  private static CodecContext leafContext(Class<?> componentType, CodecContext ctx) {
+    if (componentType == java.sql.Date.class
+        || componentType == java.sql.Time.class
+        || componentType == java.sql.Timestamp.class) {
+      return ctx.withoutJavaTimePreferences();
     }
-    GenericArrayLeafCodec leaf = new GenericArrayLeafCodec(elementType, elementCodec, null);
-    return MultiDimArrayBinary.decode(data, componentType, ctx, leaf);
-  }
-
-  /** Text counterpart of {@link #decodeBinaryGeneric}. */
-  private static Object decodeTextGeneric(String data, PgType arrayType, Class<?> componentType,
-      CodecContext ctx) throws SQLException {
-    int elementOid = arrayType.getTypelem();
-    PgType elementType = ctx.getTypeInfo().getPgTypeByOid(elementOid);
-    TextCodec elementCodec = ctx.getCodecs().getTextCodec(elementOid, elementType);
-    if (elementCodec == null) {
-      throw new PSQLException(
-          GT.tr("No text codec registered for array element oid {0}", elementOid),
-          PSQLState.INVALID_PARAMETER_TYPE);
-    }
-    GenericArrayLeafCodec leaf = new GenericArrayLeafCodec(elementType, null, elementCodec);
-    return MultiDimArrayText.decode(data, componentType, arrayType.getDelimiter(), ctx, leaf);
+    return ctx;
   }
 
   /**
@@ -399,8 +423,9 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     PgType elementType = ctx.getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
     Codec elementCodec = ctx.getCodecs().getByOid(arrayType.getTypelem(), elementType);
     Class<?> componentType = genericComponentType(elementType, elementCodec);
-    return decodeBinaryGeneric(data, arrayType,
-        componentType != null ? componentType : Object.class, ctx);
+    Class<?> componentType1 = componentType != null ? componentType : Object.class;
+    return MultiDimArrayBinary.decode(data, componentType1, leafContext(componentType1, ctx),
+        getGenericArrayLeafCodec(arrayType, ctx));
   }
 
   /**
@@ -422,8 +447,9 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     PgType elementType = ctx.getTypeInfo().getPgTypeByOid(arrayType.getTypelem());
     Codec elementCodec = ctx.getCodecs().getByOid(arrayType.getTypelem(), elementType);
     Class<?> componentType = genericComponentType(elementType, elementCodec);
-    return decodeTextGeneric(data, arrayType,
-        componentType != null ? componentType : Object.class, ctx);
+    Class<?> componentType1 = componentType != null ? componentType : Object.class;
+    return MultiDimArrayText.decode(data, componentType1, arrayType.getDelimiter(),
+        leafContext(componentType1, ctx), getGenericArrayLeafCodec(arrayType, ctx));
   }
 
   @Override
@@ -452,7 +478,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     throw new PSQLException(
         GT.tr("Cannot convert array to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -486,7 +512,7 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
     }
     throw new PSQLException(
         GT.tr("Cannot convert array to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -498,31 +524,31 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "int");
+    throw Codec.cannotDecode("array", "int");
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "int");
+    throw Codec.cannotDecode("array", "int");
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "long");
+    throw Codec.cannotDecode("array", "long");
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "long");
+    throw Codec.cannotDecode("array", "long");
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "double");
+    throw Codec.cannotDecode("array", "double");
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw Codec.cannotConvert("array", "double");
+    throw Codec.cannotDecode("array", "double");
   }
 }
