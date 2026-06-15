@@ -200,7 +200,12 @@ public class PgArray implements Array {
       boolean useTextRepresentation = false;
       Object javaArray = fieldArray;
       if (javaArray != null) {
-        if ((map == null || map.isEmpty()) && index == 1 && count == 0) {
+        // Return the backing array verbatim only when its leaf component is a
+        // reference type: getArray() must hand back a boxed array (Double[][],
+        // never double[][]), so a primitive-backed array falls through to the
+        // encode/decode round-trip below, which boxes the leaves.
+        if ((map == null || map.isEmpty()) && index == 1 && count == 0
+            && !hasPrimitiveLeaf(javaArray)) {
           return javaArray;
         }
         fieldString = ArrayCodec.INSTANCE.encodeText(javaArray, getPgType(), codecContext);
@@ -637,10 +642,24 @@ public class PgArray implements Array {
     return fieldBytes != null;
   }
 
+  /**
+   * Whether the leaf (innermost) component type of {@code array} is a Java
+   * primitive, for example {@code double[][]} or {@code int[]}. Such an array
+   * must be boxed before being returned from {@link #getArray()}.
+   */
+  private static boolean hasPrimitiveLeaf(Object array) {
+    Class<?> c = array.getClass();
+    while (c.isArray()) {
+      c = castNonNull(c.getComponentType());
+    }
+    return c.isPrimitive();
+  }
+
   public byte @Nullable [] toBytes() throws SQLException {
     Object array = fieldArray;
     if (fieldBytes == null && array != null
-        && getConnection().getPreferQueryMode() != PreferQueryMode.SIMPLE) {
+        && getConnection().getPreferQueryMode() != PreferQueryMode.SIMPLE
+        && ArrayCodec.INSTANCE.canEncodeBinary(array, getPgType(), codecContext)) {
       fieldBytes = ArrayCodec.INSTANCE.encodeBinary(array, getPgType(), codecContext);
     }
     return fieldBytes;

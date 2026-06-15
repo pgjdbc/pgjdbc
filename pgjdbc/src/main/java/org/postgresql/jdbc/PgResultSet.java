@@ -76,7 +76,6 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -85,9 +84,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.StringTokenizer;
-import java.util.TimeZone;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class PgResultSet implements ResultSet, PGRefCursorResultSet {
@@ -580,6 +577,32 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     return resultsetconcurrency;
   }
 
+  /**
+   * Decodes the (already non-null) raw value of column {@code i} to {@code targetClass} through the
+   * column's registered codec, threading {@code cal} so the codec honors the requested time zone.
+   * Returns {@code null} when the column has no codec, so the caller can fall back to legacy
+   * handling. The temporal codecs own all date/time cross-type conversions (for example
+   * {@code getTimestamp} on a DATE column), so the {@code getDate}/{@code getTime}/{@code getTimestamp}
+   * methods become a thin dispatch over them.
+   */
+  private <T> @Nullable T decodeColumnViaCodec(int i, byte[] value, Class<T> targetClass,
+      Calendar cal) throws SQLException {
+    Field field = getFieldWithCodec(i);
+    CodecContext ctx = getCodecContext().withCalendar(cal);
+    if (isBinary(i)) {
+      BinaryCodec codec = field.getBinaryCodec();
+      if (codec != null) {
+        return codec.decodeBinaryAs(value, field.getPgType(), targetClass, ctx);
+      }
+      return null;
+    }
+    TextCodec codec = field.getTextCodec();
+    if (codec != null) {
+      return codec.decodeTextAs(castNonNull(getString(i)), field.getPgType(), targetClass, ctx);
+    }
+    return null;
+  }
+
   @Override
   public @Nullable Date getDate(
       int i, @Nullable Calendar cal) throws SQLException {
@@ -591,27 +614,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    if (isBinary(i)) {
-      int col = i - 1;
-      int oid = fields[col].getOID();
-      TimeZone tz = cal.getTimeZone();
-      if (oid == Oid.DATE) {
-        return getTimestampUtils().toDateBin(tz, value);
-      } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-        // If backend provides just TIMESTAMP, we use "cal" timezone
-        // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
-        Timestamp timestamp = castNonNull(getTimestamp(i, cal));
-        // Here we just truncate date to 00:00 in a given time zone
-        return getTimestampUtils().convertToDate(timestamp.getTime(), tz);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "date"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
+    Date d = decodeColumnViaCodec(i, value, Date.class, cal);
+    if (d != null) {
+      return d;
     }
-
-    return getTimestampUtils().toDate(cal, value);
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    throw new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(oid), "date"),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -625,36 +637,17 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
-    if (isBinary(i)) {
-      int col = i - 1;
-      int oid = fields[col].getOID();
-      TimeZone tz = cal.getTimeZone();
-      if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-        return getTimestampUtils().toTimeBin(tz, value);
-      } else if (oid == Oid.TIMESTAMP || oid == Oid.TIMESTAMPTZ) {
-        // If backend provides just TIMESTAMP, we use "cal" timezone
-        // If backend provides TIMESTAMPTZ, we ignore "cal" as we know true instant value
-        Timestamp timestamp = getTimestamp(i, cal);
-        if (timestamp == null) {
-          return null;
-        }
-        long timeMillis = timestamp.getTime();
-        if (oid == Oid.TIMESTAMPTZ) {
-          // time zone == UTC since BINARY "timestamp with time zone" is always sent in UTC
-          // So we truncate days
-          return new Time(timeMillis % TimeUnit.DAYS.toMillis(1));
-        }
-        // Here we just truncate date part
-        return getTimestampUtils().convertToTime(timeMillis, tz);
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "time"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
+    Time t = decodeColumnViaCodec(i, value, Time.class, cal);
+    if (t != null) {
+      return t;
     }
 
-    return getTimestampUtils().toTime(cal, value);
+    int col = i - 1;
+    int oid = fields[col].getOID();
+    throw new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(oid), "time"),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Pure
@@ -670,53 +663,16 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     if (cal == null) {
       cal = getDefaultCalendar();
     }
+    Timestamp t = decodeColumnViaCodec(i, value, Timestamp.class, cal);
+    if (t != null) {
+      return t;
+    }
     int col = i - 1;
     int oid = fields[col].getOID();
-
-    if (isBinary(i)) {
-      byte [] row = castNonNull(thisRow).get(col);
-      if (oid == Oid.TIMESTAMPTZ || oid == Oid.TIMESTAMP) {
-        boolean hasTimeZone = oid == Oid.TIMESTAMPTZ;
-        TimeZone tz = cal.getTimeZone();
-        return getTimestampUtils().toTimestampBin(tz, castNonNull(row), hasTimeZone);
-      } else if (oid == Oid.TIME) {
-        // JDBC spec says getTimestamp of Time and Date must be supported
-        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(cal.getTimeZone(), castNonNull(row), false);
-        // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
-        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-        return tsUnixEpochDate;
-      } else if (oid == Oid.TIMETZ) {
-        TimeZone tz = cal.getTimeZone();
-        byte[] timeBytesWithoutTimeZone = Arrays.copyOfRange(castNonNull(row), 0, 8);
-        Timestamp tsWithMicros = getTimestampUtils().toTimestampBin(tz, timeBytesWithoutTimeZone, false);
-        // If server sends us a TIMETZ, we ensure java counterpart has date of 1970-01-01
-        Timestamp tsUnixEpochDate = new Timestamp(castNonNull(getTime(i, cal)).getTime());
-        tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-        return tsUnixEpochDate;
-      } else if (oid == Oid.DATE) {
-        return new Timestamp(castNonNull(getDate(i, cal)).getTime());
-      } else {
-        throw new PSQLException(
-            GT.tr("Cannot convert the column of type {0} to requested type {1}.",
-                Oid.toString(oid), "timestamp"),
-            PSQLState.DATA_TYPE_MISMATCH);
-      }
-    }
-
-    // If this is actually a timestamptz, the server-provided timezone will override
-    // the one we pass in, which is the desired behaviour. Otherwise, we'll
-    // interpret the timezone-less value in the provided timezone.
-    if (oid == Oid.TIME || oid == Oid.TIMETZ) {
-      // If server sends us a TIME, we ensure java counterpart has date of 1970-01-01
-      Timestamp tsWithMicros = getTimestampUtils().toTimestamp(cal, value);
-      Timestamp tsUnixEpochDate = new Timestamp(getTimestampUtils().toTime(cal, value).getTime());
-      tsUnixEpochDate.setNanos(tsWithMicros.getNanos());
-      return tsUnixEpochDate;
-    }
-
-    return getTimestampUtils().toTimestamp(cal, value);
-
+    throw new PSQLException(
+        GT.tr("Cannot convert the column of type {0} to requested type {1}.",
+            Oid.toString(oid), "timestamp"),
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override

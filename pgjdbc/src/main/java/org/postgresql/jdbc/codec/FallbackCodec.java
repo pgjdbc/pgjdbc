@@ -6,9 +6,11 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
+import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGUnknownBinary;
 import org.postgresql.util.PGobject;
@@ -17,7 +19,10 @@ import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
 
 /**
  * Fallback codec for unknown/unmapped PostgreSQL types.
@@ -50,24 +55,20 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
+  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
+    return value instanceof PGUnknownBinary || value instanceof String;
+  }
+
+  @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
     if (value instanceof PGUnknownBinary) {
       byte[] bytes = ((PGUnknownBinary) value).getBytes();
       return bytes != null ? bytes : new byte[0];
     }
-    if (value instanceof PGobject) {
-      String strValue = ((PGobject) value).getValue();
-      if (strValue != null) {
-        return strValue.getBytes(ctx.getCharset());
-      }
-      return new byte[0];
-    }
     if (value instanceof String) {
       return ((String) value).getBytes(ctx.getCharset());
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to {1}", value.getClass().getName(), type.getTypeName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, type.getTypeName().getName());
   }
 
   @Override
@@ -115,9 +116,7 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     if (targetClass == byte[].class) {
       return (T) data.clone();
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to {1}", type.getTypeName(), targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   @Override
@@ -129,9 +128,20 @@ public final class FallbackCodec implements BinaryCodec, TextCodec {
     if (targetClass == String.class) {
       return (T) data;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to {1}", type.getTypeName(), targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    // 'unknown' (oid 705, e.g. SELECT '2024-01-01' without a cast) and any other unmapped text
+    // value is parsed as a date/time literal, matching how the legacy fallback handled any
+    // text column. Mapped non-string types (json, xml, ...) carry their own codec and never
+    // reach here, so they keep rejecting date/time coercion.
+    if (targetClass == Date.class) {
+      return (T) TemporalCodecs.decodeDateText(data, ctx);
+    }
+    if (targetClass == Time.class) {
+      return (T) TemporalCodecs.decodeTimeText(data, ctx);
+    }
+    if (targetClass == Timestamp.class) {
+      return (T) TemporalCodecs.decodeTimestampText(data, ctx);
+    }
+    throw Codec.cannotDecode(type.getTypeName().getName(), targetClass.getName());
   }
 
   @Override

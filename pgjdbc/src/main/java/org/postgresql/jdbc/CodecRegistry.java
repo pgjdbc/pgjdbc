@@ -476,7 +476,7 @@ public class CodecRegistry {
    * @param pgType the type information
    * @return the resolved codec, or null if no resolution is possible
    */
-  private @Nullable Codec resolveByTyptype(PgType pgType) {
+  private static @Nullable Codec resolveByTyptype(PgType pgType) {
     // Array types (typcategory='A')
     if (pgType.isArray()) {
       return ArrayCodec.INSTANCE;

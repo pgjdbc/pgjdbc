@@ -179,6 +179,11 @@ final class LiteralCursor {
    * containing the container's own delimiter or close bracket, so those only
    * ever appear unquoted as structural tokens.</p>
    *
+   * <p>An unquoted run is trimmed of leading and trailing ASCII whitespace only;
+   * inner whitespace is kept, matching the server's own {@code array_in}. A Unicode
+   * space such as U+2001 is not ASCII whitespace, so it is never trimmed. A quoted
+   * run is taken verbatim (escapes aside).</p>
+   *
    * @param delim the element delimiter (for example {@code ','} or {@code ';'})
    * @param close the container's closing bracket ({@code '}'} for arrays,
    *     {@code ')'} for composites/ranges)
@@ -205,17 +210,23 @@ final class LiteralCursor {
       skipWhitespace();
       return;
     }
-    int start = pos;
+    int runStart = pos;
     while (pos < end) {
       char c = src[pos];
-      if (c == delim || c == close1 || c == close2 || isWhitespace(c)) {
+      if (c == delim || c == close1 || c == close2) {
         break;
       }
       pos++;
     }
+    // Trim trailing ASCII whitespace; leading whitespace was already consumed above.
+    // Inner whitespace is kept, so the slice stays a contiguous view into src.
+    int tokenEnd = pos;
+    while (tokenEnd > runStart && isWhitespace(src[tokenEnd - 1])) {
+      tokenEnd--;
+    }
     tokenBuf = src;
-    tokenOff = start;
-    tokenLen = pos - start;
+    tokenOff = runStart;
+    tokenLen = tokenEnd - runStart;
     tokenQuoted = false;
     skipWhitespace();
   }
@@ -262,7 +273,7 @@ final class LiteralCursor {
     }
     while (pos < end) {
       char c = src[pos];
-      if (c == delim || c == close || isWhitespace(c)) {
+      if (c == delim || c == close) {
         break;
       }
       pos++;

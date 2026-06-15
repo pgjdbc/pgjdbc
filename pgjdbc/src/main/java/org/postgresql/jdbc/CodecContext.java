@@ -16,8 +16,10 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Immutable context passed to all codec operations.
@@ -48,6 +50,11 @@ public final class CodecContext {
   private final @Nullable Encoding encoding;
   private final Charset charset;
   private final @Nullable TimestampUtils timestampUtils;
+
+  // Per-call Calendar threaded by getDate/getTime/getTimestamp(col, Calendar) via
+  // withCalendar(). Null means "use the connection default" (matching getObject,
+  // which supplies no Calendar). Consumed synchronously within a single decode.
+  private final @Nullable Calendar calendar;
 
   // Date/time type preferences (from connection properties)
   private final boolean prefersJavaTimeForDate;
@@ -133,6 +140,7 @@ public final class CodecContext {
     this.encoding = connection.getEncoding();
     this.charset = Charset.forName(encoding.name());
     this.timestampUtils = null;
+    this.calendar = null;
     this.prefersJavaTimeForDate = prefersJavaTimeForDate;
     this.prefersJavaTimeForTime = prefersJavaTimeForTime;
     this.prefersJavaTimeForTimetz = prefersJavaTimeForTimetz;
@@ -182,6 +190,7 @@ public final class CodecContext {
     this.encoding = null;
     this.charset = charset;
     this.timestampUtils = timestampUtils;
+    this.calendar = null;
     this.prefersJavaTimeForDate = prefersJavaTimeForDate;
     this.prefersJavaTimeForTime = prefersJavaTimeForTime;
     this.prefersJavaTimeForTimetz = prefersJavaTimeForTimetz;
@@ -234,8 +243,10 @@ public final class CodecContext {
    *
    * @param utils the TimestampUtils to use, or null to fall through to the
    *     connection-level default
-   * @return a new CodecContext that delegates getTimestampUtils to {@code utils}
+   * @return a new CodecContext bound to {@code utils} for {@code usesDoubleDateTime()} and
+   *     {@code getClientTimeZone()}
    */
+  @SuppressWarnings("ReferenceEquality")
   public CodecContext withTimestampUtils(@Nullable TimestampUtils utils) {
     if (utils == this.timestampUtils) {
       return this;
@@ -255,6 +266,84 @@ public final class CodecContext {
     this.encoding = source.encoding;
     this.charset = source.charset;
     this.timestampUtils = utils;
+    this.calendar = source.calendar;
+    this.prefersJavaTimeForDate = source.prefersJavaTimeForDate;
+    this.prefersJavaTimeForTime = source.prefersJavaTimeForTime;
+    this.prefersJavaTimeForTimetz = source.prefersJavaTimeForTimetz;
+    this.prefersJavaTimeForTimestamp = source.prefersJavaTimeForTimestamp;
+    this.prefersJavaTimeForTimestamptz = source.prefersJavaTimeForTimestamptz;
+    this.convertBooleanToNumeric = source.convertBooleanToNumeric;
+  }
+
+  /**
+   * Returns a new CodecContext carrying the supplied {@link Calendar} for the next
+   * decode. {@code getDate/getTime/getTimestamp(col, Calendar)} use this to thread the
+   * caller's Calendar to the temporal codecs without changing the codec method
+   * signatures. The Calendar is borrowed, not copied: it is consumed synchronously
+   * within a single decode, so the codecs stay stateless.
+   *
+   * @param cal the Calendar to use, or null for the connection default
+   * @return a context that returns {@code cal} from {@link #getCalendar()}
+   */
+  @SuppressWarnings("ReferenceEquality")
+  public CodecContext withCalendar(@Nullable Calendar cal) {
+    if (cal == this.calendar) {
+      return this;
+    }
+    return new CodecContext(this, cal);
+  }
+
+  /**
+   * Returns a context with all {@code getObject} java.time preferences cleared, so the temporal
+   * codecs yield {@code java.sql.Date}/{@code Time}/{@code Timestamp} rather than
+   * {@code LocalDate}/{@code LocalTime}/… Used when decoding temporal <em>array</em> elements:
+   * {@code getArray()} returns the SQL temporal types regardless of the per-getObject preferences,
+   * matching the legacy array decoder. Returns {@code this} when no preference is set.
+   *
+   * @return a context that decodes temporal values as the {@code java.sql} types
+   */
+  public CodecContext withoutJavaTimePreferences() {
+    if (!prefersJavaTimeForDate && !prefersJavaTimeForTime && !prefersJavaTimeForTimetz
+        && !prefersJavaTimeForTimestamp && !prefersJavaTimeForTimestamptz) {
+      return this;
+    }
+    return new CodecContext(this);
+  }
+
+  /**
+   * Copy constructor that clears the java.time {@code getObject} preferences.
+   */
+  private CodecContext(CodecContext source) {
+    this.connection = source.connection;
+    this.typeInfo = source.typeInfo;
+    this.codecs = source.codecs;
+    this.javaTypes = source.javaTypes;
+    this.typeMap = source.typeMap;
+    this.encoding = source.encoding;
+    this.charset = source.charset;
+    this.timestampUtils = source.timestampUtils;
+    this.calendar = source.calendar;
+    this.prefersJavaTimeForDate = false;
+    this.prefersJavaTimeForTime = false;
+    this.prefersJavaTimeForTimetz = false;
+    this.prefersJavaTimeForTimestamp = false;
+    this.prefersJavaTimeForTimestamptz = false;
+    this.convertBooleanToNumeric = source.convertBooleanToNumeric;
+  }
+
+  /**
+   * Copy constructor with a per-call Calendar.
+   */
+  private CodecContext(CodecContext source, @Nullable Calendar cal) {
+    this.connection = source.connection;
+    this.typeInfo = source.typeInfo;
+    this.codecs = source.codecs;
+    this.javaTypes = source.javaTypes;
+    this.typeMap = source.typeMap;
+    this.encoding = source.encoding;
+    this.charset = source.charset;
+    this.timestampUtils = source.timestampUtils;
+    this.calendar = cal;
     this.prefersJavaTimeForDate = source.prefersJavaTimeForDate;
     this.prefersJavaTimeForTime = source.prefersJavaTimeForTime;
     this.prefersJavaTimeForTimetz = source.prefersJavaTimeForTimetz;
@@ -351,16 +440,54 @@ public final class CodecContext {
   }
 
   /**
-   * Returns the timestamp utilities for date/time conversions.
+   * Returns whether the backend uses doubles (rather than longs) for time values. Temporal codecs
+   * read this to decode binary {@code time}/{@code timestamp} payloads.
    *
-   * @return the timestamp utils
+   * @return true if the backend uses {@code float8} timestamps
    */
-  @SuppressWarnings("deprecation")
-  public TimestampUtils getTimestampUtils() {
-    if (timestampUtils != null) {
-      return timestampUtils;
+  public boolean usesDoubleDateTime() {
+    TimestampUtils tu = timestampUtils;
+    if (tu != null) {
+      return tu.usesDouble();
     }
-    return getConnection().getTimestampUtils();
+    return !getConnection().getQueryExecutor().getIntegerDateTimes();
+  }
+
+  /**
+   * Returns the JVM default time zone used to decode/encode {@code date}/{@code time}/
+   * {@code timestamp} (without time zone) when no per-call {@link Calendar} is supplied.
+   *
+   * @return the default time zone
+   */
+  public TimeZone getDefaultTimeZone() {
+    return TimeZone.getDefault();
+  }
+
+  /**
+   * Returns the client/session time zone (the backend's {@code TimeZone} setting). Temporal codecs
+   * use it to render binary {@code timetz}/{@code timestamptz} values as text the same way text
+   * mode does.
+   *
+   * @return the client time zone
+   */
+  public TimeZone getClientTimeZone() {
+    TimestampUtils tu = timestampUtils;
+    if (tu != null) {
+      return tu.getClientTimeZone();
+    }
+    return castNonNull(getConnection().getQueryExecutor().getTimeZone(),
+        "Backend timezone is not known");
+  }
+
+  /**
+   * Returns the per-call Calendar set via {@link #withCalendar(Calendar)}, or null when
+   * none was supplied (the connection default applies). Temporal codecs read this to honor the
+   * {@code Calendar} passed to {@code getDate/getTime/getTimestamp(col, Calendar)}.
+   *
+   * @return the per-call Calendar, or null
+   */
+  public @Nullable Calendar getCalendar() {
+    return calendar;
   }
 
   /**

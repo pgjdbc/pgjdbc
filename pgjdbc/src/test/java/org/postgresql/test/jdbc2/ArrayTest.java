@@ -803,8 +803,10 @@ public class ArrayTest extends BaseTest4 {
     assertEquals(" \fnew \n ", array[2]);
     assertEquals(" ", array[3]);
 
-    // PostgreSQL drops leading and trailing whitespace, so does the driver
-    assertEquals("unquot\u2001", array[1]);
+    // PostgreSQL trims only leading and trailing whitespace from an unquoted element,
+    // keeping inner whitespace, and so does the driver. The vertical tab and the space
+    // before U+2001 are inner, so they stay; U+2001 is not ASCII whitespace and is kept.
+    assertEquals("unquot\u000B \u2001", array[1]);
   }
 
   @Test
@@ -843,11 +845,11 @@ public class ArrayTest extends BaseTest4 {
     assertEquals("def", actual[2]);
     assertEquals("someString", actual[4]);
 
-    // the driver strips out ascii white spaces from an unescaped string, even in
-    // the middle of the value. while this does not exactly match the behavior of
-    // the backend, it will always quote values where ascii white spaces are
-    // present, making this difference not worth the complexity involved addressing.
-    assertEquals("unquot\u2001", actual[3]);
+    // The driver trims only leading and trailing ASCII whitespace from an unquoted
+    // element, like the backend's array_in, so this matches strarr[3] from the server
+    // round-trip above. Inner whitespace (the double space, the vertical tab, the
+    // space before U+2001) is kept; U+2001 is not ASCII whitespace, so it survives too.
+    assertEquals("un  quot\u000B \u2001", actual[3]);
   }
 
   @Test

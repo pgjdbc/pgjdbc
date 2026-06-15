@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.BooleanTypeUtil;
 import org.postgresql.jdbc.CodecContext;
@@ -36,6 +37,12 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
   @Override
   public String getTypeName() {
     return "bool";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is t or f — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -204,9 +211,7 @@ public final class BoolCodec implements BinaryCodec, TextCodec, ArrayElementCode
     if (targetClass == String.class) {
       return (T) String.valueOf(value);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert bool to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("bool", targetClass.getName());
   }
 
   @Override

@@ -513,7 +513,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
    * Decodes binary composite data into a PgStruct with per-attribute decoding
    * routed through the codec registered for each field's OID.
    */
-  private PgStruct decodeBinaryAsStruct(byte[] data, int offset, int length, PgType type,
+  private static PgStruct decodeBinaryAsStruct(byte[] data, int offset, int length, PgType type,
       CodecContext ctx) throws SQLException {
     CodecDepth.enter();
     try {
@@ -561,6 +561,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     throw new PSQLException(
         GT.tr("Cannot encode {0} as composite binary. Use SQLData implementation.", value.getClass().getName()),
         PSQLState.INVALID_PARAMETER_TYPE);
+  }
+
+  @Override
+  public boolean canEncodeBinary(Object value, PgType type, CodecContext ctx) {
+    // encodeBinary serializes a Struct/SQLData attribute-by-attribute; a plain PGobject carries
+    // only the composite text literal and must bind as text.
+    return value instanceof Struct || value instanceof SQLData;
   }
 
   @Override
@@ -729,9 +736,13 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
                 fieldOid, field.getName(), compositeType.getTypeName()),
             PSQLState.SYSTEM_ERROR);
       }
-      if (codec instanceof StreamingTextCodec) {
-        // Stream the field straight into out with composite-level escaping
-        // (always quote — we don't have a way to look ahead and decide).
+      if (codec instanceof StreamingTextCodec && !codec.mayRequireQuoting()) {
+        // Quote-safe streaming codec (numeric/boolean): its output never needs quoting, so stream
+        // it straight into the literal — an int field renders as 1, not "1".
+        ((StreamingTextCodec) codec).encodeText(attr, fieldType, ctx, out);
+      } else if (codec instanceof StreamingTextCodec) {
+        // The output may contain commas/quotes/etc.; we cannot look ahead while streaming, so we
+        // always quote. The extra quotes are redundant but parse to an equivalent value.
         out.append('"');
         EscapingAppendable esc = new EscapingAppendable(out);
         ((StreamingTextCodec) codec).encodeText(attr, fieldType, ctx, esc);
@@ -847,7 +858,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
     throw new PSQLException(
         GT.tr("Cannot convert composite to {0}. Use an SQLData implementation.", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -889,48 +900,48 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
 
     throw new PSQLException(
         GT.tr("Cannot convert composite to {0}. Use an SQLData implementation.", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert composite to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 }

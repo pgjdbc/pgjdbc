@@ -215,7 +215,7 @@ public final class MultiDimArrayBinary {
       throw new PSQLException(
           GT.tr("Array leaf codec for oid {0} does not support {1}",
               leaf.getElementOid(), leafComponentType.getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+          PSQLState.DATA_TYPE_MISMATCH);
     }
     return decode(data, leafComponentType, (LeafBinaryReader) leaf, ctx);
   }

@@ -38,7 +38,7 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   /**
    * Gets the base type codec for the given domain type.
    */
-  private Codec getBaseCodec(PgType domainType, CodecContext ctx) throws SQLException {
+  private static Codec getBaseCodec(PgType domainType, CodecContext ctx) throws SQLException {
     int baseTypeOid = domainType.getTypbasetype();
     if (baseTypeOid == 0) {
       // Not a domain, fall back to default behavior
@@ -51,7 +51,7 @@ public final class DomainCodec implements BinaryCodec, TextCodec {
   /**
    * Gets the base type for the given domain type.
    */
-  private PgType getBaseType(PgType domainType, CodecContext ctx) throws SQLException {
+  private static PgType getBaseType(PgType domainType, CodecContext ctx) throws SQLException {
     int baseTypeOid = domainType.getTypbasetype();
     if (baseTypeOid == 0) {
       return domainType;

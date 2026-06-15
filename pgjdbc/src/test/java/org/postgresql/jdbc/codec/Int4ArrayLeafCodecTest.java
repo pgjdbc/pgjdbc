@@ -337,7 +337,7 @@ class Int4ArrayLeafCodecTest {
         new ObjectName("pg_catalog", "int4"),
         "integer", Oid.INT4, 'b', 'N', -1, 0, 0, 0);
     GenericArrayLeafCodec genericLeaf =
-        new GenericArrayLeafCodec(int4Type, null, Int4Codec.INSTANCE);
+        new GenericArrayLeafCodec(int4Type, Int4Codec.INSTANCE);
     Object[] decoded =
         (Object[]) MultiDimArrayText.decode("{1,2,3}", Object.class, ',', null, genericLeaf);
     assertArrayEquals(new Object[]{1, 2, 3}, decoded);

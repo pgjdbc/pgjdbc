@@ -6,10 +6,11 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
-import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -17,9 +18,9 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 
 /**
@@ -45,76 +46,73 @@ public final class DateCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
+    return decodeBinary(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
     // Check connection property for default type
     if (ctx.prefersJavaTimeForDate()) {
-      return ts.toLocalDateBin(data);
+      return TemporalCodecs.decodeLocalDateBin(data, offset, length, ctx);
     }
-    return ts.toDateBin(null, data);
+    return TemporalCodecs.decodeDateBin(data, offset, length, ctx);
   }
 
   @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     byte[] result = new byte[4];
     if (value instanceof Date) {
-      ts.toBinDate(null, result, (Date) value);
+      TemporalCodecs.encodeDateBin((Date) value, result, ctx);
     } else if (value instanceof LocalDate) {
       // Convert to Date and encode
-      LocalDate ld = (LocalDate) value;
-      ts.toBinDate(null, result, Date.valueOf(ld));
+      TemporalCodecs.encodeDateBin(Date.valueOf((LocalDate) value), result, ctx);
     } else if (value instanceof java.util.Date) {
       @SuppressWarnings("JavaUtilDate")
       long time = ((java.util.Date) value).getTime();
-      ts.toBinDate(null, result, new Date(time));
+      TemporalCodecs.encodeDateBin(new Date(time), result, ctx);
     } else if (value instanceof String) {
-      ts.toBinDate(null, result, ts.toDate(null, (String) value));
+      TemporalCodecs.encodeDateBin(TemporalCodecs.decodeDateText((String) value, ctx), result, ctx);
     } else {
-      throw new PSQLException(
-          GT.tr("Cannot convert {0} to date", value.getClass().getName()),
-          PSQLState.INVALID_PARAMETER_TYPE);
+      throw Codec.cannotEncode(value, "date");
     }
     return result;
   }
 
   @Override
   public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     // Check connection property for default type
     if (ctx.prefersJavaTimeForDate()) {
-      return ts.toLocalDate(data.getBytes(StandardCharsets.UTF_8));
+      return TemporalCodecs.decodeLocalDateText(data, ctx);
     }
-    return ts.toDate(null, data);
+    return TemporalCodecs.decodeDateText(data, ctx);
   }
 
   @Override
   public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (value instanceof Date) {
-      return ts.toString(null, (Date) value);
+      return TemporalCodecs.formatDate((Date) value, ctx);
     }
     if (value instanceof LocalDate) {
-      return ts.toString((LocalDate) value);
+      return TemporalCodecs.formatLocalDate((LocalDate) value, ctx);
     }
     if (value instanceof java.util.Date) {
       @SuppressWarnings("JavaUtilDate")
       long time = ((java.util.Date) value).getTime();
-      return ts.toString(null, new Date(time));
+      return TemporalCodecs.formatDate(new Date(time), ctx);
     }
     if (value instanceof String) {
-      // setObject(i, "2024-01-01", Types.DATE) and friends — let TimestampUtils
-      // parse the literal so we match the legacy behavior of the driver.
+      // setObject(i, "2024-01-01", Types.DATE) and friends — parse the literal so
+      // we match the legacy behavior of the driver.
       try {
-        return ts.toString(null, ts.toDate(null, (String) value));
+        return TemporalCodecs.formatDate(TemporalCodecs.decodeDateText((String) value, ctx), ctx);
       } catch (Exception e) {
         throw new PSQLException(
             GT.tr("Cannot convert {0} to date", value),
             PSQLState.INVALID_PARAMETER_TYPE, e);
       }
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to date", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "date");
   }
 
   @Override
@@ -130,62 +128,63 @@ public final class DateCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (targetClass == Date.class || targetClass == Object.class) {
-      return (T) ts.toDateBin(null, data);
+      return targetClass.cast(TemporalCodecs.decodeDateBin(data, 0, data.length, ctx));
     }
     if (targetClass == LocalDate.class) {
-      return (T) ts.toLocalDateBin(data);
+      return targetClass.cast(TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx));
+    }
+    if (targetClass == Timestamp.class) {
+      // JDBC: getTimestamp on a DATE column yields midnight of that day.
+      Date d = TemporalCodecs.decodeDateBin(data, 0, data.length, ctx);
+      return d == null ? null : targetClass.cast(new Timestamp(d.getTime()));
     }
     if (targetClass == java.util.Date.class) {
-      return (T) ts.toDateBin(null, data);
+      return targetClass.cast(TemporalCodecs.decodeDateBin(data, 0, data.length, ctx));
     }
     if (targetClass == Long.class) {
-      Date d = ts.toDateBin(null, data);
-      return d == null ? null : (T) Long.valueOf(d.getTime());
+      Date d = TemporalCodecs.decodeDateBin(data, 0, data.length, ctx);
+      return d == null ? null : targetClass.cast(d.getTime());
     }
     if (targetClass == String.class) {
-      LocalDate ld = ts.toLocalDateBin(data);
-      return ld == null ? null : (T) ts.toString(ld);
+      LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx);
+      return ld == null ? null : targetClass.cast(TemporalCodecs.formatLocalDate(ld, ctx));
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert date to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Codec.cannotDecode("date", targetClass.getName());
   }
 
   @Override
   public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (targetClass == Date.class || targetClass == Object.class) {
-      return (T) ts.toDate(null, data);
+      return targetClass.cast(TemporalCodecs.decodeDateText(data, ctx));
     }
     if (targetClass == LocalDate.class) {
-      return (T) ts.toLocalDate(data.getBytes(StandardCharsets.UTF_8));
+      return targetClass.cast(TemporalCodecs.decodeLocalDateText(data, ctx));
+    }
+    if (targetClass == Timestamp.class) {
+      Date d = TemporalCodecs.decodeDateText(data, ctx);
+      return d == null ? null : targetClass.cast(new Timestamp(d.getTime()));
     }
     if (targetClass == java.util.Date.class) {
-      return (T) ts.toDate(null, data);
+      return targetClass.cast(TemporalCodecs.decodeDateText(data, ctx));
     }
     if (targetClass == Long.class) {
-      Date d = ts.toDate(null, data);
-      return d == null ? null : (T) Long.valueOf(d.getTime());
+      Date d = TemporalCodecs.decodeDateText(data, ctx);
+      return d == null ? null : targetClass.cast(d.getTime());
     }
     if (targetClass == String.class) {
-      return (T) data;
+      return targetClass.cast(data);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert date to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Codec.cannotDecode("date", targetClass.getName());
   }
 
   @Override
   public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
-    LocalDate ld = ts.toLocalDateBin(data);
-    return ld == null ? null : ts.toString(ld);
+    LocalDate ld = TemporalCodecs.decodeLocalDateBin(data, 0, data.length, ctx);
+    return ld == null ? null : TemporalCodecs.formatLocalDate(ld, ctx);
   }
 
   @Override
@@ -197,14 +196,14 @@ public final class DateCodec implements BinaryCodec, TextCodec {
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert date to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert date to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override

@@ -5,6 +5,7 @@
 
 package org.postgresql.jdbc.codec;
 
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.jdbc.CodecContext;
@@ -36,6 +37,12 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
   @Override
   public String getTypeName() {
     return "int4";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is digits with an optional leading sign — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -217,9 +224,7 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(value != 0);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert int4 to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("int4", targetClass.getName());
   }
 
   @Override
@@ -258,8 +263,6 @@ public final class Int4Codec implements StreamingBinaryCodec, StreamingTextCodec
     if (value instanceof Boolean) {
       return (Boolean) value ? 1 : 0;
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to int4", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "int4");
   }
 }

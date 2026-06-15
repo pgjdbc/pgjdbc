@@ -110,7 +110,7 @@ class TimestampCodecTest {
 
     assertNotNull(result);
     // Result should be parseable back
-    assertEquals(ts, ctx.getTimestampUtils().toTimestamp(null, result));
+    assertEquals(ts, TestCodecContext.timestampUtils().toTimestamp(null, result));
   }
 
   @Test
@@ -121,7 +121,7 @@ class TimestampCodecTest {
 
     assertNotNull(result);
     // Should contain the date and time
-    assertEquals(ldt, ctx.getTimestampUtils().toLocalDateTime(result));
+    assertEquals(ldt, TestCodecContext.timestampUtils().toLocalDateTime(result));
   }
 
   @Test
@@ -141,7 +141,7 @@ class TimestampCodecTest {
 
     assertNotNull(result);
     // Should encode the local date/time part
-    LocalDateTime decoded = ctx.getTimestampUtils().toLocalDateTime(result);
+    LocalDateTime decoded = TestCodecContext.timestampUtils().toLocalDateTime(result);
     assertEquals(LocalDateTime.of(2024, 1, 15, 10, 30, 0), decoded);
   }
 
@@ -152,7 +152,7 @@ class TimestampCodecTest {
     String result = codec.encodeText(zdt, timestampType, ctx);
 
     assertNotNull(result);
-    LocalDateTime decoded = ctx.getTimestampUtils().toLocalDateTime(result);
+    LocalDateTime decoded = TestCodecContext.timestampUtils().toLocalDateTime(result);
     assertEquals(LocalDateTime.of(2024, 1, 15, 10, 30, 0), decoded);
   }
 

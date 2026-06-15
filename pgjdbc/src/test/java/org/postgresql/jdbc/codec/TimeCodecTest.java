@@ -95,7 +95,7 @@ class TimeCodecTest {
     String result = codec.encodeText(lt, timeType, ctx);
 
     assertNotNull(result);
-    assertEquals(lt, ctx.getTimestampUtils().toLocalTime(result));
+    assertEquals(lt, TestCodecContext.timestampUtils().toLocalTime(result));
   }
 
   @Test

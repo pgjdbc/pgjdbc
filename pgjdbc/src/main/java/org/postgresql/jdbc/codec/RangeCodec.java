@@ -205,7 +205,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
     }
   }
 
-  private void writeLengthPrefixed(ByteArrayOutputStream out, byte[] data) throws IOException {
+  private static void writeLengthPrefixed(ByteArrayOutputStream out, byte[] data) throws IOException {
     byte[] lenBytes = new byte[4];
     ByteConverter.int4(lenBytes, 0, data.length);
     out.write(lenBytes);

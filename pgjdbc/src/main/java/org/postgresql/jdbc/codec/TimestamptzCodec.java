@@ -6,10 +6,11 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
-import org.postgresql.jdbc.TimestampUtils;
+import org.postgresql.jdbc.TemporalCodecs;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -17,13 +18,16 @@ import org.postgresql.util.PSQLState;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Codec for PostgreSQL timestamptz (timestamp with time zone) type.
@@ -48,28 +52,31 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
 
   @Override
   public @Nullable Object decodeBinary(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
+    return decodeBinary(data, 0, data.length, type, ctx);
+  }
+
+  @Override
+  public @Nullable Object decodeBinary(byte[] data, int offset, int length, PgType type,
+      CodecContext ctx) throws SQLException {
     // Check connection property for default type
     if (ctx.prefersJavaTimeForTimestamptz()) {
-      return ts.toOffsetDateTimeBin(data);
+      return TemporalCodecs.decodeOffsetDateTimeBin(data, offset, length, ctx);
     }
-    return ts.toTimestampBin(null, data, true);
+    return TemporalCodecs.decodeTimestampBin(data, offset, length, true, ctx);
   }
 
   @Override
   public byte[] encodeBinary(Object value, PgType type, CodecContext ctx) throws SQLException {
-    String text = encodeText(value, type, ctx);
-    return text.getBytes(ctx.getCharset());
+    return TemporalCodecs.encodeTimestamptzBin(value, ctx);
   }
 
   @Override
   public @Nullable Object decodeText(String data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     // Check connection property for default type
     if (ctx.prefersJavaTimeForTimestamptz()) {
-      return normalizeToUtc(ts.toOffsetDateTime(data));
+      return normalizeToUtc(TemporalCodecs.decodeOffsetDateTimeText(data, ctx));
     }
-    return ts.toTimestamp(null, data);
+    return TemporalCodecs.decodeTimestampText(data, ctx);
   }
 
   /**
@@ -86,33 +93,30 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
 
   @Override
   public String encodeText(Object value, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (value instanceof Timestamp) {
-      return ts.toString(null, (Timestamp) value);
+      return TemporalCodecs.formatTimestamp((Timestamp) value, ctx);
     }
     if (value instanceof OffsetDateTime) {
-      return ts.toString((OffsetDateTime) value);
+      return TemporalCodecs.formatOffsetDateTime((OffsetDateTime) value, ctx);
     }
     if (value instanceof ZonedDateTime) {
-      return ts.toString(((ZonedDateTime) value).toOffsetDateTime());
+      return TemporalCodecs.formatOffsetDateTime(((ZonedDateTime) value).toOffsetDateTime(), ctx);
     }
     if (value instanceof Instant) {
-      return ts.toString(((Instant) value).atOffset(ZoneOffset.UTC));
+      return TemporalCodecs.formatOffsetDateTime(((Instant) value).atOffset(ZoneOffset.UTC), ctx);
     }
     if (value instanceof LocalDateTime) {
-      return ts.toString((LocalDateTime) value);
+      return TemporalCodecs.formatLocalDateTime((LocalDateTime) value, ctx);
     }
     if (value instanceof java.util.Date) {
       @SuppressWarnings("JavaUtilDate")
       long time = ((java.util.Date) value).getTime();
-      return ts.toString(null, new Timestamp(time));
+      return TemporalCodecs.formatTimestamp(new Timestamp(time), ctx);
     }
     if (value instanceof String) {
-      return ts.toString(null, ts.toTimestamp(null, (String) value));
+      return TemporalCodecs.formatTimestamp(TemporalCodecs.decodeTimestampText((String) value, ctx), ctx);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to timestamptz", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "timestamptz");
   }
 
   @Override
@@ -128,89 +132,91 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (targetClass == Timestamp.class || targetClass == Object.class) {
-      return (T) ts.toTimestampBin(null, data, true);
+      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx));
     }
     if (targetClass == OffsetDateTime.class) {
-      return (T) ts.toOffsetDateTimeBin(data);
+      return targetClass.cast(TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx));
     }
     if (targetClass == ZonedDateTime.class) {
       // timestamptz is stored as UTC
-      OffsetDateTime odt = ts.toOffsetDateTimeBin(data);
-      return (T) odt.toZonedDateTime();
+      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx);
+      return targetClass.cast(odt.toZonedDateTime());
     }
     if (targetClass == Instant.class) {
-      OffsetDateTime odt = ts.toOffsetDateTimeBin(data);
-      return (T) odt.toInstant();
+      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeBin(data, 0, data.length, ctx);
+      return targetClass.cast(odt.toInstant());
     }
     // LocalDate / LocalTime / LocalDateTime are intentionally rejected — they
     // drop the time zone information that this column carries; the JDBC
     // contract surfaces that as DATA_TYPE_MISMATCH.
-    if (targetClass == java.sql.Date.class) {
-      return (T) ts.toDateBin(null, data);
+    if (targetClass == Date.class) {
+      // JDBC: getDate on a TIMESTAMPTZ column truncates the instant to midnight
+      // in the target time zone.
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      return t == null ? null : targetClass.cast(TemporalCodecs.extractDate(t.getTime(), ctx));
+    }
+    if (targetClass == Time.class) {
+      // JDBC: getTime on a binary TIMESTAMPTZ truncates the UTC instant to the day.
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      return t == null ? null : targetClass.cast(new Time(t.getTime() % TimeUnit.DAYS.toMillis(1)));
     }
     if (targetClass == java.util.Date.class) {
-      return (T) ts.toTimestampBin(null, data, true);
+      return targetClass.cast(TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx));
     }
     if (targetClass == Long.class) {
-      Timestamp t = ts.toTimestampBin(null, data, true);
-      return t == null ? null : (T) Long.valueOf(t.getTime());
+      Timestamp t = TemporalCodecs.decodeTimestampBin(data, 0, data.length, true, ctx);
+      return t == null ? null : targetClass.cast(t.getTime());
     }
     if (targetClass == String.class) {
-      return (T) ts.toStringOffsetDateTime(data);
+      return targetClass.cast(TemporalCodecs.formatOffsetDateTimeBin(data, ctx));
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert timestamptz to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Codec.cannotDecode("timestamptz", targetClass.getName());
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeTextAs(String data, PgType type, Class<T> targetClass, CodecContext ctx)
       throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
     if (targetClass == Timestamp.class || targetClass == Object.class) {
-      return (T) ts.toTimestamp(null, data);
+      return targetClass.cast(TemporalCodecs.decodeTimestampText(data, ctx));
     }
     if (targetClass == OffsetDateTime.class) {
-      return (T) normalizeToUtc(ts.toOffsetDateTime(data));
+      return targetClass.cast(normalizeToUtc(TemporalCodecs.decodeOffsetDateTimeText(data, ctx)));
     }
     if (targetClass == ZonedDateTime.class) {
-      OffsetDateTime odt = normalizeToUtc(ts.toOffsetDateTime(data));
-      return odt == null ? null : (T) odt.toZonedDateTime();
+      OffsetDateTime odt = normalizeToUtc(TemporalCodecs.decodeOffsetDateTimeText(data, ctx));
+      return odt == null ? null : targetClass.cast(odt.toZonedDateTime());
     }
     if (targetClass == Instant.class) {
-      OffsetDateTime odt = ts.toOffsetDateTime(data);
-      return odt == null ? null : (T) odt.toInstant();
+      OffsetDateTime odt = TemporalCodecs.decodeOffsetDateTimeText(data, ctx);
+      return odt == null ? null : targetClass.cast(odt.toInstant());
     }
     // LocalDate / LocalTime / LocalDateTime are intentionally rejected — they
     // drop the time zone information that this column carries.
-    if (targetClass == java.sql.Date.class) {
-      return (T) ts.toDate(null, data);
+    if (targetClass == Date.class) {
+      return targetClass.cast(TemporalCodecs.decodeDateText(data, ctx));
+    }
+    if (targetClass == Time.class) {
+      return targetClass.cast(TemporalCodecs.decodeTimeText(data, ctx));
     }
     if (targetClass == java.util.Date.class) {
-      return (T) ts.toTimestamp(null, data);
+      return targetClass.cast(TemporalCodecs.decodeTimestampText(data, ctx));
     }
     if (targetClass == Long.class) {
-      Timestamp t = ts.toTimestamp(null, data);
-      return t == null ? null : (T) Long.valueOf(t.getTime());
+      Timestamp t = TemporalCodecs.decodeTimestampText(data, ctx);
+      return t == null ? null : targetClass.cast(t.getTime());
     }
     if (targetClass == String.class) {
-      return (T) data;
+      return targetClass.cast(data);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert timestamptz to {0}", targetClass.getName()),
-        PSQLState.DATA_TYPE_MISMATCH);
+    throw Codec.cannotDecode("timestamptz", targetClass.getName());
   }
 
   @Override
   public @Nullable String decodeAsString(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    TimestampUtils ts = ctx.getTimestampUtils();
-    return ts.toStringOffsetDateTime(data);
+    return TemporalCodecs.formatOffsetDateTimeBin(data, ctx);
   }
 
   @Override
@@ -222,14 +228,14 @@ public final class TimestamptzCodec implements BinaryCodec, TextCodec {
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert timestamptz to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert timestamptz to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override

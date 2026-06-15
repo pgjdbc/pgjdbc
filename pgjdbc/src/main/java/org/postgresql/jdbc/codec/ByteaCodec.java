@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -93,9 +94,7 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       // Return InputStream wrapping the raw bytes
       return (T) new ByteArrayInputStream(data);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert bytea to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("bytea", targetClass.getName());
   }
 
   @Override
@@ -113,51 +112,49 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       byte[] bytes = PGbytea.toBytes(data.getBytes(ctx.getCharset()));
       return (T) new ByteArrayInputStream(bytes);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert bytea to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("bytea", targetClass.getName());
   }
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to int"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to long"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
     throw new PSQLException(
         GT.tr("Cannot convert bytea to double"),
-        PSQLState.INVALID_PARAMETER_TYPE);
+        PSQLState.DATA_TYPE_MISMATCH);
   }
 
   static byte[] toBytes(Object value) throws SQLException {
@@ -169,8 +166,6 @@ public final class ByteaCodec implements BinaryCodec, TextCodec, ArrayElementCod
       // PostgreSQL, so the platform default charset is irrelevant here.
       return PGbytea.toBytes(((String) value).getBytes(java.nio.charset.StandardCharsets.US_ASCII));
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to bytea", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "bytea");
   }
 }

@@ -79,4 +79,19 @@ class VarcharCodecTest {
   void decodeAsBoolean() throws SQLException {
     assertEquals(true, codec.decodeAsBoolean("true", varcharType, ctx));
   }
+
+  @Test
+  void decodeTextAs_Date() throws SQLException {
+    assertEquals(
+        org.postgresql.jdbc.TemporalCodecs.decodeDateText("2024-01-02", ctx),
+        codec.decodeTextAs("2024-01-02", varcharType, java.sql.Date.class, ctx));
+  }
+
+  @Test
+  void decodeBinaryAs_Timestamp() throws SQLException {
+    byte[] data = "2024-01-02 12:34:56".getBytes(StandardCharsets.UTF_8);
+    assertEquals(
+        org.postgresql.jdbc.TemporalCodecs.decodeTimestampText("2024-01-02 12:34:56", ctx),
+        codec.decodeBinaryAs(data, varcharType, java.sql.Timestamp.class, ctx));
+  }
 }

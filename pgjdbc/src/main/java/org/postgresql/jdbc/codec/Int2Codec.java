@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -37,6 +38,12 @@ public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCode
   @Override
   public String getTypeName() {
     return "int2";
+  }
+
+  @Override
+  public boolean mayRequireQuoting() {
+    // Output is digits with an optional leading sign — never needs composite/array quoting.
+    return false;
   }
 
   @Override
@@ -181,9 +188,7 @@ public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCode
     if (targetClass == Boolean.class) {
       return (T) Boolean.valueOf(value != 0);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert int2 to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("int2", targetClass.getName());
   }
 
   @Override
@@ -218,8 +223,6 @@ public final class Int2Codec implements BinaryCodec, TextCodec, ArrayElementCode
     if (value instanceof Boolean) {
       return (short) ((Boolean) value ? 1 : 0);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert {0} to int2", value.getClass().getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotEncode(value, "int2");
   }
 }

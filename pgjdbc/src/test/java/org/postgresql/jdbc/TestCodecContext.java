@@ -62,4 +62,13 @@ public final class TestCodecContext {
     return new CodecContext(timestampUtils, StandardCharsets.UTF_8,
         false, false, false, false, false, convertBooleanToNumeric);
   }
+
+  /**
+   * Returns a {@link TimestampUtils} configured identically to the test contexts (integer
+   * datetimes, UTC). Codec tests use it to build expected values without reaching the codec
+   * context's internal temporal engine.
+   */
+  public static TimestampUtils timestampUtils() {
+    return new TimestampUtils(false, () -> TimeZone.getTimeZone("UTC"));
+  }
 }

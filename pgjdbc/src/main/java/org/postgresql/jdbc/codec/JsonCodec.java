@@ -6,6 +6,7 @@
 package org.postgresql.jdbc.codec;
 
 import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
@@ -90,32 +91,32 @@ public final class JsonCodec implements BinaryCodec, TextCodec {
 
   @Override
   public int decodeAsInt(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to int"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public int decodeAsInt(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to int"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to int"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to long"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public long decodeAsLong(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to long"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to long"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(byte[] data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to double"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
   public double decodeAsDouble(String data, PgType type, CodecContext ctx) throws SQLException {
-    throw new PSQLException(GT.tr("Cannot convert json to double"), PSQLState.INVALID_PARAMETER_TYPE);
+    throw new PSQLException(GT.tr("Cannot convert json to double"), PSQLState.DATA_TYPE_MISMATCH);
   }
 
   @Override
@@ -132,9 +133,7 @@ public final class JsonCodec implements BinaryCodec, TextCodec {
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) wrap(value);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert json to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("json", targetClass.getName());
   }
 
   @Override
@@ -150,8 +149,6 @@ public final class JsonCodec implements BinaryCodec, TextCodec {
     if (targetClass == PGobject.class || targetClass == Object.class) {
       return (T) wrap(data);
     }
-    throw new PSQLException(
-        GT.tr("Cannot convert json to {0}", targetClass.getName()),
-        PSQLState.INVALID_PARAMETER_TYPE);
+    throw Codec.cannotDecode("json", targetClass.getName());
   }
 }
