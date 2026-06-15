@@ -2,9 +2,9 @@ services:
   pgdb:
     image: postgres:${PGV:-latest}
     ports:
-      - 5432:5432
-      - 5433:5433
-      - 5434:5434
+      - ${PG_PUBLISH_PORT:-5432}:5432
+      - ${PG_REPLICA_ONE_PUBLISH_PORT:-5433}:5433
+      - ${PG_REPLICA_TWO_PUBLISH_PORT:-5434}:5434
     security_opt:
       - seccomp:unconfined
     volumes:
