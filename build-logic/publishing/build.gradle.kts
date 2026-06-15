@@ -8,5 +8,5 @@ dependencies {
     implementation(project(":build-parameters"))
     implementation("com.github.vlsi.gradle-extensions:com.github.vlsi.gradle-extensions.gradle.plugin:3.0.2")
     implementation("com.gradleup.nmcp:com.gradleup.nmcp.gradle.plugin:1.5.0")
-    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.4.1")
+    implementation("com.gradleup.shadow:com.gradleup.shadow.gradle.plugin:9.4.2")
 }
