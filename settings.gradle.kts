@@ -21,7 +21,7 @@ pluginManagement {
 }
 
 plugins {
-    id("com.gradle.develocity") version "4.4.1"
+    id("com.gradle.develocity") version "4.4.2"
     id("com.github.burrunan.s3-build-cache")
 }
 
