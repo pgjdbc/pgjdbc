@@ -60,7 +60,7 @@ public final class StreamWrapper implements Closeable {
             throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
                 PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
           }
-        } catch (RuntimeException | Error | PSQLException e) {
+        } catch (RuntimeException | Error | PSQLException | IOException e) {
           try {
             tempFile.toFile().delete();
           } catch (Throwable ignore) {
