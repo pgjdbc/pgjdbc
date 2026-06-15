@@ -14,6 +14,14 @@ set -euo pipefail
 #    TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
 #    CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 #
+# The host ports and the Compose project are chosen with:
+#
+#    PG_PUBLISH_PORT             = "5432" | ... - Host port of the primary server (defaults to 5432)
+#    PG_REPLICA_ONE_PUBLISH_PORT = "5433" | ... - Host port of the first replica (defaults to 5433)
+#    PG_REPLICA_TWO_PUBLISH_PORT = "5434" | ... - Host port of the second replica (defaults to 5434)
+#    PG_ISOLATE  = "yes" | "no"                 - Whether to give each git worktree its own Compose project
+#                                                 and host ports (defaults to no)
+#
 # The container is started in the foreground. It will remain running until it
 # is killed via Ctrl-C.
 #
@@ -40,6 +48,11 @@ set -euo pipefail
 # To start the default (latest) version with read only replicas:
 #
 #     CREATE_REPLICAS=on docker/bin/postgres-server
+#
+# To start a server alongside servers started from other git worktrees (two worktrees can
+# still get the same ports; set the port variables to separate them):
+#
+#     PG_ISOLATE=yes docker/bin/postgres-server
 
 log () {
     echo "$@" 1>&2
@@ -48,11 +61,34 @@ log () {
 main () {
     local publish_port="${PG_PUBLISH_PORT:-5432}"
     local replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5433}"
-    local replica_two_port="${PG_REPLICA_ONE_PUBLISH_PORT:-5434}"
+    local replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-5434}"
 
     # Determine our current directory and change to be in the same directory as the compose file
     local script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
     cd "${script_dir}/../postgres-server"
+
+    # The worktree path hashes to a slot from 1 to 199, and each default port grows by ten
+    # times the slot, so an isolated server never takes the default ports. Two worktrees can
+    # hash to the same slot; the port variables separate them.
+    case "${PG_ISOLATE:-no}" in
+    yes|on|true|1)
+        local worktree
+        worktree="$(git rev-parse --show-toplevel 2>/dev/null || { cd ../.. && pwd; })"
+        local slot
+        slot=$(( $(printf '%s' "${worktree}" | cksum | cut -d' ' -f1) % 199 + 1 ))
+        local offset=$(( slot * 10 ))
+
+        publish_port="${PG_PUBLISH_PORT:-$(( 5432 + offset ))}"
+        replica_one_port="${PG_REPLICA_ONE_PUBLISH_PORT:-$(( 5433 + offset ))}"
+        replica_two_port="${PG_REPLICA_TWO_PUBLISH_PORT:-$(( 5434 + offset ))}"
+
+        local slug
+        slug="$(basename "${worktree}" | tr '[:upper:]' '[:lower:]')"
+        slug="${slug//[^a-z0-9_-]/_}"
+        export COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-pgjdbc_${slug}_${slot}}"
+        log "Worktree isolation on: project=${COMPOSE_PROJECT_NAME}, ports=${publish_port}, ${replica_one_port}, ${replica_two_port}"
+        ;;
+    esac
 
     log "Starting Postgres server and mapping to local port ${publish_port}"
     exec docker compose run \

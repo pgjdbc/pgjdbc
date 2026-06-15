@@ -60,6 +60,14 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     TZ    = "Etc/UTC" | ...                - Override server timezone (default Etc/UTC)
     CREATE_REPLICAS = "yes" | "no"         - Whether to create two streaming replicas (defaults to off)
 
+    The host ports and the Compose project are chosen with:
+
+    PG_PUBLISH_PORT             = "5432" | ... - Host port of the primary server (defaults to 5432)
+    PG_REPLICA_ONE_PUBLISH_PORT = "5433" | ... - Host port of the first replica (defaults to 5433)
+    PG_REPLICA_TWO_PUBLISH_PORT = "5434" | ... - Host port of the second replica (defaults to 5434)
+    PG_ISOLATE  = "yes" | "no"                 - Whether to give each git worktree its own Compose project
+                                                 and host ports (defaults to no)
+
     The container is started in the foreground. It will remain running until it
     is killed via Ctrl-C.
 
@@ -86,6 +94,19 @@ If you have Docker, you can use `docker compose` to launch test database (see [d
     To start the default (latest) version with read only replicas:
 
     CREATE_REPLICAS=on docker/bin/postgres-server
+
+    To start a server alongside servers started from other git worktrees (two worktrees can
+    still get the same ports; set the port variables to separate them):
+
+    PG_ISOLATE=yes docker/bin/postgres-server
+
+With `PG_ISOLATE=yes`, the script derives the Compose project name and the host ports from the worktree path and prints
+them before the server starts. The tests connect to the ports in `build.properties`, so write the printed ports into
+`build.local.properties` of the same worktree:
+
+    test.url.PGPORT=<primary port>
+    secondaryPort1=<first replica port>
+    secondaryPort2=<second replica port>
 
 An alternative way is to use a Vagrant script: [jackdb/pgjdbc-test-vm](https://github.com/jackdb/pgjdbc-test-vm).
 Follow the instructions on that project's [README](https://github.com/jackdb/pgjdbc-test-vm) page.
