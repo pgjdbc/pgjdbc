@@ -31,11 +31,9 @@ if (!project.hasProperty("skipErrorprone")) {
                 disableWarningsInGeneratedCode.set(true)
                 errorproneArgs.add("-XepExcludedPaths:.*/translation/messages_.*.java")
                 error(
+                    "MethodCanBeStatic",
                     "PackageLocation",
                     "UnusedVariable",
-                )
-                enable(
-                    "MethodCanBeStatic",
                 )
                 disable(
                     "EqualsGetClass",
