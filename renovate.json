@@ -9,18 +9,17 @@
   "schedule": [
     "every 3 weeks on Monday"
   ],
+  "vulnerabilityAlerts": {
+    "description": "Security updates bypass the packageRules grouping below (Renovate resets their groupName), so apply the same groupId grouping to them here.",
+    "groupName": "{{{replace ':.*' '' depName}}} security"
+  },
   "packageRules": [
     {
-      "groupName": "logback",
-      "matchPackageNames": [
-        "ch.qos.logback{/,}**"
-      ]
-    },
-    {
-      "groupName": "com.github.vlsi",
-      "matchPackageNames": [
-        "com.github.vlsi{/,}**"
-      ]
+      "description": "Group every Maven update by its groupId by default. The more specific rules below run later and override this where a group must span several groupIds, pin a version, or stay disabled.",
+      "matchDatasources": [
+        "maven"
+      ],
+      "groupName": "{{{replace ':.*' '' depName}}}"
     },
     {
       "groupName": "checkerframework",
@@ -30,29 +29,11 @@
       "allowedVersions": "<4.0.0"
     },
     {
-      "groupName": "jmh",
-      "matchPackageNames": [
-        "org.openjdk.jmh{/,}**"
-      ]
-    },
-    {
       "groupName": "junit-bom",
       "matchPackageNames": [
         "org.junit:junit-bom"
       ],
       "allowedVersions": "<6.0.0"
-    },
-    {
-      "groupName": "com.gradleup.nmcp",
-      "matchPackageNames": [
-        "com.gradleup.nmcp{/,}**"
-      ]
-    },
-    {
-      "groupName": "pax-exam",
-      "matchPackageNames": [
-        "org.ops4j.pax.exam{/,}**"
-      ]
     },
     {
       "matchPackageNames": [
