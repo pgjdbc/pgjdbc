@@ -16,7 +16,7 @@ pluginManagement {
         id("com.github.vlsi.stage-vote-release") version "3.0.2"
         id("org.nosphere.gradle.github.actions") version "1.4.0"
         id("me.champeau.jmh") version "0.7.3"
-        kotlin("jvm") version "2.3.21"
+        kotlin("jvm") version "2.4.0"
     }
 }
 
