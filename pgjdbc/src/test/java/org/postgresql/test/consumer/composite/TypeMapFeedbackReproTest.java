@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.test.jdbc2.BaseTest4.assumeCallableStatementsSupported;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.Oid;
@@ -251,6 +252,7 @@ public class TypeMapFeedbackReproTest {
   void callableStatementRegisterOutParameterByNameShouldWork() throws SQLException {
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call repro_typemap_f() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter("total", java.sql.Types.INTEGER);
       cs.execute();
       assertEquals(42, cs.getInt(1));
@@ -261,6 +263,7 @@ public class TypeMapFeedbackReproTest {
   void callableStatementGetObjectByNameShouldReturnValue() throws SQLException {
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call repro_typemap_f() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter(1, java.sql.Types.INTEGER);
       cs.execute();
       Object value = cs.getObject("total");
@@ -273,6 +276,7 @@ public class TypeMapFeedbackReproTest {
   void callableStatementGetObjectByNameMapShouldReturnValue() throws SQLException {
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call repro_typemap_f() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter(1, java.sql.Types.INTEGER);
       cs.execute();
       Map<String, Class<?>> map = new HashMap<>();
@@ -286,6 +290,7 @@ public class TypeMapFeedbackReproTest {
   void callableStatementGetObjectByNameClassShouldReturnValue() throws SQLException {
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call repro_typemap_f() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter(1, java.sql.Types.INTEGER);
       cs.execute();
       Integer value = cs.getObject("total", Integer.class);
