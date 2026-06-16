@@ -5,12 +5,16 @@
 
 package org.postgresql.jdbc;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -230,17 +234,69 @@ public abstract class PgSQLOutput<BufferType> implements SQLOutput {
 
   @Override
   public void writeCharacterStream(@Nullable Reader x) throws SQLException {
-    throw new PSQLException(GT.tr("writeCharacterStream() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    PgField field = nextField();
+    if (x == null) {
+      writeNull();
+      return;
+    }
+    attributeValues.add(encodeString(readAll(x), getFieldType(field)));
   }
 
   @Override
   public void writeAsciiStream(@Nullable InputStream x) throws SQLException {
-    throw new PSQLException(GT.tr("writeAsciiStream() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    PgField field = nextField();
+    if (x == null) {
+      writeNull();
+      return;
+    }
+    attributeValues.add(encodeString(new String(readAll(x), US_ASCII), getFieldType(field)));
   }
 
   @Override
   public void writeBinaryStream(@Nullable InputStream x) throws SQLException {
-    throw new PSQLException(GT.tr("writeBinaryStream() not implemented"), PSQLState.NOT_IMPLEMENTED);
+    PgField field = nextField();
+    if (x == null) {
+      writeNull();
+      return;
+    }
+    attributeValues.add(encodeBytes(readAll(x), getFieldType(field)));
+  }
+
+  /**
+   * Reads a character stream to its end.
+   */
+  private static String readAll(Reader reader) throws SQLException {
+    StringBuilder sb = new StringBuilder();
+    char[] buffer = new char[8192];
+    try {
+      int read;
+      while ((read = reader.read(buffer)) != -1) {
+        sb.append(buffer, 0, read);
+      }
+    } catch (IOException e) {
+      throw new PSQLException(GT.tr("An I/O error occurred while reading the stream."),
+          PSQLState.IO_ERROR, e);
+    }
+    return sb.toString();
+  }
+
+  /**
+   * Reads a byte stream to its end.
+   */
+  private static byte[] readAll(InputStream stream) throws SQLException {
+    // TODO: support ByteStreamWriter?
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    byte[] buffer = new byte[8192];
+    try {
+      int read;
+      while ((read = stream.read(buffer)) != -1) {
+        baos.write(buffer, 0, read);
+      }
+    } catch (IOException e) {
+      throw new PSQLException(GT.tr("An I/O error occurred while reading the stream."),
+          PSQLState.IO_ERROR, e);
+    }
+    return baos.toByteArray();
   }
 
   @Override

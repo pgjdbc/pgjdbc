@@ -277,21 +277,21 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
   }
 
   @Override
-  public Reader readCharacterStream() throws SQLException {
+  public @Nullable Reader readCharacterStream() throws SQLException {
     String s = readString();
-    return new StringReader(s == null ? "" : s);
+    return s == null ? null : new StringReader(s);
   }
 
   @Override
-  public InputStream readAsciiStream() throws SQLException {
+  public @Nullable InputStream readAsciiStream() throws SQLException {
     String s = readString();
-    return new ByteArrayInputStream(s == null ? new byte[0] : s.getBytes(US_ASCII));
+    return s == null ? null : new ByteArrayInputStream(s.getBytes(US_ASCII));
   }
 
   @Override
-  public InputStream readBinaryStream() throws SQLException {
+  public @Nullable InputStream readBinaryStream() throws SQLException {
     byte[] bytes = readBytes();
-    return new ByteArrayInputStream(bytes == null ? new byte[0] : bytes);
+    return bytes == null ? null : new ByteArrayInputStream(bytes);
   }
 
   @Override
@@ -355,7 +355,7 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
   @Override
   public @Nullable SQLXML readSQLXML() throws SQLException {
     String s = readString();
-    return new PgSQLXML(ctx.getConnection(), s);
+    return s == null ? null : new PgSQLXML(ctx.getConnection(), s);
   }
 
   @Override
