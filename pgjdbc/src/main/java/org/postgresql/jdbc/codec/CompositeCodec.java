@@ -664,6 +664,12 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
       String strValue = ((PGobject) value).getValue();
       return strValue != null ? strValue : "";
     }
+    if (value instanceof String) {
+      // A bare String is already the composite's text literal — the form
+      // createArrayOf("composite_type", new String[]{"(1,2)"}) produces. Emit it
+      // verbatim, matching PGobject.getValue() and the legacy array encoder.
+      return (String) value;
+    }
     throw new PSQLException(
         GT.tr("Cannot convert {0} to composite", value.getClass().getName()),
         PSQLState.INVALID_PARAMETER_TYPE);
