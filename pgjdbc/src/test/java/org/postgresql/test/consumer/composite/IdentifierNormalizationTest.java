@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.postgresql.test.jdbc2.BaseTest4.assumeCallableStatementsSupported;
 
 import org.postgresql.test.TestUtil;
 
@@ -353,6 +354,7 @@ public class IdentifierNormalizationTest {
     typeMap.put(mapKey, BareT.class);
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call idnorm_f_bare() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter(1, Types.STRUCT, BARE_TYPE);
       cs.execute();
       Object value = cs.getObject(1, typeMap);
@@ -372,6 +374,7 @@ public class IdentifierNormalizationTest {
     typeMap.put(mapKey, MixedCase.class);
     try (Connection con = TestUtil.openDB();
          CallableStatement cs = con.prepareCall("{ ? = call idnorm_f_mixed() }")) {
+      assumeCallableStatementsSupported(con);
       cs.registerOutParameter(1, Types.STRUCT, MIXED_TYPE);
       cs.execute();
       Object value = cs.getObject(1, typeMap);
