@@ -90,6 +90,9 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
             + "$$");
       }
 
+      stmt.execute("CREATE TYPE consumer_tag_set AS (label text, tags text[])");
+      stmt.execute("CREATE TABLE consumer_tag_sets (id int primary key, payload consumer_tag_set)");
+
       stmt.execute("CREATE TYPE consumer_batch_customer AS (email text, loyalty_tier int)");
       stmt.execute("CREATE TABLE consumer_batch_events (id int primary key, customer consumer_batch_customer)");
 
@@ -121,6 +124,8 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
     stmt.execute("DROP SCHEMA IF EXISTS consumer_shadow_a CASCADE");
     stmt.execute("DROP TABLE IF EXISTS consumer_batch_events");
     stmt.execute("DROP TYPE IF EXISTS consumer_batch_customer CASCADE");
+    stmt.execute("DROP TABLE IF EXISTS consumer_tag_sets");
+    stmt.execute("DROP TYPE IF EXISTS consumer_tag_set CASCADE");
     stmt.execute("DROP TABLE IF EXISTS consumer_nullable_customers");
     stmt.execute("DROP TYPE IF EXISTS consumer_nullable_customer CASCADE");
     stmt.execute("DROP TABLE IF EXISTS consumer_baskets");
@@ -139,6 +144,7 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
       stmt.execute("TRUNCATE TABLE consumer_customer_records");
       stmt.execute("TRUNCATE TABLE consumer_baskets");
       stmt.execute("TRUNCATE TABLE consumer_batch_events");
+      stmt.execute("TRUNCATE TABLE consumer_tag_sets");
       stmt.execute("TRUNCATE TABLE consumer_nullable_customers");
       stmt.execute("TRUNCATE TABLE consumer_shadow_a.orders");
       stmt.execute("TRUNCATE TABLE consumer_shadow_b.orders");
@@ -302,6 +308,58 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
         assertEquals(1, firstLine.quantity);
         assertEquals("sku-20", secondLine.sku);
         assertEquals(4, secondLine.quantity);
+      }
+    }
+  }
+
+  @Test
+  void arrayField_roundTripsThroughReadArrayAndWriteArray() throws SQLException {
+    Array tags = con.createArrayOf("text", new String[]{"red", "green", "blue"});
+    ConsumerTagSet payload = new ConsumerTagSet("colors", tags);
+
+    try (PreparedStatement insert = con.prepareStatement(
+        "INSERT INTO consumer_tag_sets (id, payload) VALUES (?, ?)");
+         PreparedStatement select = con.prepareStatement(
+             "SELECT payload FROM consumer_tag_sets WHERE id = ?")) {
+      insert.setInt(1, 1);
+      insert.setObject(2, payload);
+      assertEquals(1, insert.executeUpdate());
+
+      Map<String, Class<?>> typeMap = new HashMap<>();
+      typeMap.put("consumer_tag_set", ConsumerTagSet.class);
+
+      select.setInt(1, 1);
+      try (ResultSet rs = select.executeQuery()) {
+        assertTrue(rs.next());
+        ConsumerTagSet actual = (ConsumerTagSet) rs.getObject(1, typeMap);
+        assertEquals("colors", actual.label);
+        Array actualTags = assertInstanceOf(Array.class, actual.tags);
+        assertArrayEquals(new String[]{"red", "green", "blue"}, (String[]) actualTags.getArray());
+      }
+    }
+  }
+
+  @Test
+  void arrayField_nullArrayReadsAsNull() throws SQLException {
+    ConsumerTagSet payload = new ConsumerTagSet("empty", null);
+
+    try (PreparedStatement insert = con.prepareStatement(
+        "INSERT INTO consumer_tag_sets (id, payload) VALUES (?, ?)");
+         PreparedStatement select = con.prepareStatement(
+             "SELECT payload FROM consumer_tag_sets WHERE id = ?")) {
+      insert.setInt(1, 2);
+      insert.setObject(2, payload);
+      assertEquals(1, insert.executeUpdate());
+
+      Map<String, Class<?>> typeMap = new HashMap<>();
+      typeMap.put("consumer_tag_set", ConsumerTagSet.class);
+
+      select.setInt(1, 2);
+      try (ResultSet rs = select.executeQuery()) {
+        assertTrue(rs.next());
+        ConsumerTagSet actual = (ConsumerTagSet) rs.getObject(1, typeMap);
+        assertEquals("empty", actual.label);
+        assertEquals(null, actual.tags);
       }
     }
   }
@@ -572,6 +630,36 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
     public void writeSQL(SQLOutput stream) throws SQLException {
       stream.writeString(sku);
       stream.writeInt(quantity);
+    }
+  }
+
+  public static final class ConsumerTagSet implements SQLData {
+    String label;
+    Array tags;
+
+    public ConsumerTagSet() {
+    }
+
+    ConsumerTagSet(String label, Array tags) {
+      this.label = label;
+      this.tags = tags;
+    }
+
+    @Override
+    public String getSQLTypeName() {
+      return "consumer_tag_set";
+    }
+
+    @Override
+    public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      label = stream.readString();
+      tags = stream.readArray();
+    }
+
+    @Override
+    public void writeSQL(SQLOutput stream) throws SQLException {
+      stream.writeString(label);
+      stream.writeArray(tags);
     }
   }
 

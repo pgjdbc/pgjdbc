@@ -139,6 +139,8 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
 
   protected abstract @Nullable Object decodeObject(BufferType data, PgType fieldType) throws SQLException;
 
+  protected abstract Array decodeArray(BufferType data, PgType fieldType) throws SQLException;
+
   protected abstract <T> @Nullable T decodeObjectAs(BufferType data, PgType fieldType, Class<T> type)
       throws SQLException;
 
@@ -318,8 +320,13 @@ public abstract class PgSQLInput<BufferType> implements SQLInput {
   }
 
   @Override
-  public Array readArray() throws SQLException {
-    throw new PSQLException(GT.tr("readArray() not implemented"), PSQLState.NOT_IMPLEMENTED);
+  public @Nullable Array readArray() throws SQLException {
+    PgField field = nextField();
+    BufferType data = nextValue();
+    if (data == null) {
+      return null;
+    }
+    return decodeArray(data, getFieldType(field));
   }
 
   @Override
