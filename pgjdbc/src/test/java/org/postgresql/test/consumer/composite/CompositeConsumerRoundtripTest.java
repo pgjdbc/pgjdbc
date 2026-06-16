@@ -5,6 +5,7 @@
 
 package org.postgresql.test.consumer.composite;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -23,6 +24,8 @@ import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.ByteArrayInputStream;
+import java.io.StringReader;
 import java.sql.Array;
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -99,6 +102,9 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
       stmt.execute("CREATE TYPE consumer_nullable_customer AS (customer_id int, nickname text, full_name consumer_person_name)");
       stmt.execute("CREATE TABLE consumer_nullable_customers (id int primary key, payload consumer_nullable_customer)");
 
+      stmt.execute("CREATE TYPE consumer_stream_payload AS (char_text text, ascii_text text, raw_bytes bytea)");
+      stmt.execute("CREATE TABLE consumer_stream_payloads (id int primary key, payload consumer_stream_payload)");
+
       stmt.execute("CREATE SCHEMA consumer_shadow_a");
       stmt.execute("CREATE SCHEMA consumer_shadow_b");
       stmt.execute("CREATE TYPE consumer_shadow_a.shipping_state AS (value text)");
@@ -120,6 +126,8 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
     // DROP TABLE IF EXISTS schema.table still errors on PG 9.1 when the
     // schema itself is missing, so let DROP SCHEMA ... CASCADE remove the
     // qualified tables along with the schema.
+    stmt.execute("DROP TABLE IF EXISTS consumer_stream_payloads");
+    stmt.execute("DROP TYPE IF EXISTS consumer_stream_payload CASCADE");
     stmt.execute("DROP SCHEMA IF EXISTS consumer_shadow_b CASCADE");
     stmt.execute("DROP SCHEMA IF EXISTS consumer_shadow_a CASCADE");
     stmt.execute("DROP TABLE IF EXISTS consumer_batch_events");
@@ -146,6 +154,7 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
       stmt.execute("TRUNCATE TABLE consumer_batch_events");
       stmt.execute("TRUNCATE TABLE consumer_tag_sets");
       stmt.execute("TRUNCATE TABLE consumer_nullable_customers");
+      stmt.execute("TRUNCATE TABLE consumer_stream_payloads");
       stmt.execute("TRUNCATE TABLE consumer_shadow_a.orders");
       stmt.execute("TRUNCATE TABLE consumer_shadow_b.orders");
       stmt.execute("RESET search_path");
@@ -492,6 +501,61 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
     }
   }
 
+  @Test
+  void streamFields_roundTripThroughWriteStreamMethods() throws SQLException {
+    StreamPayload payload = new StreamPayload(
+        "Schrödinger's café",
+        "plain ascii text",
+        new byte[]{0x00, 0x01, 0x7f, (byte) 0x80, (byte) 0xff});
+
+    try (PreparedStatement insert = con.prepareStatement(
+        "INSERT INTO consumer_stream_payloads (id, payload) VALUES (?, ?)");
+         PreparedStatement select = con.prepareStatement(
+             "SELECT payload FROM consumer_stream_payloads WHERE id = ?")) {
+      insert.setInt(1, 1);
+      insert.setObject(2, payload);
+      assertEquals(1, insert.executeUpdate());
+
+      Map<String, Class<?>> typeMap = new HashMap<>();
+      typeMap.put("consumer_stream_payload", StreamPayload.class);
+
+      select.setInt(1, 1);
+      try (ResultSet rs = select.executeQuery()) {
+        assertTrue(rs.next());
+        StreamPayload actual = (StreamPayload) rs.getObject(1, typeMap);
+        assertEquals("Schrödinger's café", actual.charText);
+        assertEquals("plain ascii text", actual.asciiText);
+        assertArrayEquals(new byte[]{0x00, 0x01, 0x7f, (byte) 0x80, (byte) 0xff}, actual.rawBytes);
+      }
+    }
+  }
+
+  @Test
+  void streamFields_nullStreamsWriteSqlNull() throws SQLException {
+    StreamPayload payload = new StreamPayload(null, null, null);
+
+    try (PreparedStatement insert = con.prepareStatement(
+        "INSERT INTO consumer_stream_payloads (id, payload) VALUES (?, ?)");
+         PreparedStatement select = con.prepareStatement(
+             "SELECT payload FROM consumer_stream_payloads WHERE id = ?")) {
+      insert.setInt(1, 2);
+      insert.setObject(2, payload);
+      assertEquals(1, insert.executeUpdate());
+
+      Map<String, Class<?>> typeMap = new HashMap<>();
+      typeMap.put("consumer_stream_payload", StreamPayload.class);
+
+      select.setInt(1, 2);
+      try (ResultSet rs = select.executeQuery()) {
+        assertTrue(rs.next());
+        StreamPayload actual = (StreamPayload) rs.getObject(1, typeMap);
+        assertEquals(null, actual.charText);
+        assertEquals(null, actual.asciiText);
+        assertEquals(null, actual.rawBytes);
+      }
+    }
+  }
+
   // Batch counts can be -2 (Statement.SUCCESS_NO_INFO) when
   // rewriteBatchedInserts collapses inserts into a single statement.
   private static void assertBatchSucceeded(int expectedLength, int[] counts) {
@@ -660,6 +724,41 @@ public class CompositeConsumerRoundtripTest extends BaseTest4 {
     public void writeSQL(SQLOutput stream) throws SQLException {
       stream.writeString(label);
       stream.writeArray(tags);
+    }
+  }
+
+  public static final class StreamPayload implements SQLData {
+    String charText;
+    String asciiText;
+    byte[] rawBytes;
+
+    public StreamPayload() {
+    }
+
+    StreamPayload(String charText, String asciiText, byte[] rawBytes) {
+      this.charText = charText;
+      this.asciiText = asciiText;
+      this.rawBytes = rawBytes;
+    }
+
+    @Override
+    public String getSQLTypeName() {
+      return "consumer_stream_payload";
+    }
+
+    @Override
+    public void readSQL(SQLInput stream, String typeName) throws SQLException {
+      charText = stream.readString();
+      asciiText = stream.readString();
+      rawBytes = stream.readBytes();
+    }
+
+    @Override
+    public void writeSQL(SQLOutput stream) throws SQLException {
+      stream.writeCharacterStream(charText == null ? null : new StringReader(charText));
+      stream.writeAsciiStream(
+          asciiText == null ? null : new ByteArrayInputStream(asciiText.getBytes(US_ASCII)));
+      stream.writeBinaryStream(rawBytes == null ? null : new ByteArrayInputStream(rawBytes));
     }
   }
 
