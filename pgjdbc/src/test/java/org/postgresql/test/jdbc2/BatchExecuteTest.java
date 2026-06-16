@@ -12,9 +12,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.PGStatement;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLState;
 
@@ -1385,6 +1387,37 @@ Server SQLState: 25001)
       assertBatchResult("1 rows inserted via batch", new int[]{1}, actual);
     } finally {
       TestUtil.closeQuietly(ps);
+    }
+  }
+
+  /**
+   * When the server terminates the connection in the middle of a batch, executeBatch should report a
+   * plain SQLException rather than failing with an AssertionError when assertions are enabled.
+   * See <a href="https://github.com/pgjdbc/pgjdbc/issues/1458">issue 1458</a>.
+   */
+  @Test
+  public void testBatchOnTerminatedConnection() throws Exception {
+    assumeTrue(TestUtil.haveMinimumServerVersion(con, ServerVersion.v8_4),
+        "pg_terminate_backend(...) requires PostgreSQL 8.4+");
+
+    try (PreparedStatement ps = con.prepareStatement("INSERT INTO prep(a) VALUES (?)")) {
+      ps.setInt(1, 1);
+      ps.addBatch();
+      ps.setInt(1, 2);
+      ps.addBatch();
+
+      // Kill the backend so that executeBatch operates on a connection that is already gone.
+      TestUtil.terminateBackend(con);
+
+      // The driver must surface a SQLException; it must not throw an AssertionError even when the
+      // JVM runs with -ea (see BatchResultHandler.isAutoCommit).
+      assertThrows(SQLException.class, ps::executeBatch,
+          "executeBatch on a terminated connection should throw SQLException");
+    } finally {
+      // The connection is gone, so re-open a fresh one for tearDown to clean up against.
+      TestUtil.closeDB(con);
+      con = TestUtil.openDB();
+      con.setAutoCommit(false);
     }
   }
 }
