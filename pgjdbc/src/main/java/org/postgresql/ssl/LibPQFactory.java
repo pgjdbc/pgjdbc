@@ -25,14 +25,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.TrustAnchor;
+import java.security.cert.X509Certificate;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.Set;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -153,13 +157,6 @@ public class LibPQFactory extends WrappedFactory {
         // Load the server certificate
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
-        KeyStore ks;
-        try {
-          ks = KeyStore.getInstance("jks");
-        } catch (KeyStoreException e) {
-          // this should never happen
-          throw new NoSuchAlgorithmException("jks KeyStore not available");
-        }
         String sslrootcertfile = PGProperty.SSL_ROOT_CERT.getOrDefault(info);
         if (sslrootcertfile == null) { // Fall back to default
           sslrootcertfile = defaultdir + "root.crt";
@@ -174,18 +171,19 @@ public class LibPQFactory extends WrappedFactory {
         }
         try {
           CertificateFactory cf = CertificateFactory.getInstance("X.509");
-          // Certificate[] certs = cf.generateCertificates(is).toArray(new Certificate[]{}); //Does
-          // not work in java 1.4
-          Object[] certs = cf.generateCertificates(is).toArray(new Certificate[]{});
-          ks.load(null, null);
-          for (int i = 0; i < certs.length; i++) {
-            ks.setCertificateEntry("cert" + i, (Certificate) certs[i]);
+          // Build PKIX trust anchors straight from the certificates rather than via an
+          // intermediate KeyStore. FIPS-mode JVMs (Semeru FIPS 140-3, IBM SDK, BouncyCastle FIPS)
+          // expose no general-purpose KeyStore type -- both "jks" and the default "pkcs12" fail --
+          // yet this truststore is transient and never serialised, so a KeyStore buys nothing.
+          Set<TrustAnchor> anchors = new HashSet<>();
+          for (Certificate cert : cf.generateCertificates(is)) {
+            anchors.add(new TrustAnchor((X509Certificate) cert, null));
           }
-          tmf.init(ks);
-        } catch (IOException ioex) {
-          throw new PSQLException(
-              GT.tr("Could not read SSL root certificate file {0}.", sslrootcertfile),
-              PSQLState.CONNECTION_FAILURE, ioex);
+          PKIXBuilderParameters params = new PKIXBuilderParameters(anchors, null);
+          // Honour the same revocation toggle the KeyStore-based PKIX TrustManagerFactory read,
+          // so applications that enabled CRL/OCSP checking keep it (default off, as before).
+          params.setRevocationEnabled(Boolean.getBoolean("com.sun.net.ssl.checkRevocation"));
+          tmf.init(new CertPathTrustManagerParameters(params));
         } catch (GeneralSecurityException gsex) {
           throw new PSQLException(
               GT.tr("Loading the SSL root certificate {0} into a TrustManager failed.",
