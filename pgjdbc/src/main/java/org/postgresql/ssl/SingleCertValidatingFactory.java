@@ -14,12 +14,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
+import java.security.cert.PKIXBuilderParameters;
+import java.security.cert.TrustAnchor;
 import java.security.cert.X509Certificate;
-import java.util.UUID;
+import java.util.Collections;
 
+import javax.net.ssl.CertPathTrustManagerParameters;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
@@ -167,15 +169,23 @@ public class SingleCertValidatingFactory extends WrappedFactory {
     X509TrustManager trustManager;
 
     public SingleCertTrustManager(InputStream in) throws IOException, GeneralSecurityException {
-      KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-      // Note: KeyStore requires it be loaded even if you don't load anything into it:
-      ks.load(null);
       CertificateFactory cf = CertificateFactory.getInstance("X509");
       cert = (X509Certificate) cf.generateCertificate(in);
-      ks.setCertificateEntry(UUID.randomUUID().toString(), cert);
-      TrustManagerFactory tmf =
-          TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-      tmf.init(ks);
+      // Build the trust anchor directly instead of via an in-memory KeyStore. FIPS-mode JVMs
+      // (Semeru FIPS 140-3, IBM SDK, BouncyCastle FIPS) expose no general-purpose KeyStore type --
+      // both "jks" and the default "pkcs12" fail -- and this single-cert truststore is never
+      // serialised, so a KeyStore buys nothing.
+      PKIXBuilderParameters params =
+          new PKIXBuilderParameters(Collections.singleton(new TrustAnchor(cert, null)), null);
+      // Honour the same revocation toggle the KeyStore-based PKIX TrustManagerFactory read,
+      // so applications that enabled CRL/OCSP checking keep it (default off, as before).
+      params.setRevocationEnabled(Boolean.getBoolean("com.sun.net.ssl.checkRevocation"));
+      // Request "PKIX" explicitly rather than TrustManagerFactory.getDefaultAlgorithm(). The
+      // KeyStore-free init below passes ManagerFactoryParameters, which only the PKIX factory
+      // accepts (SunX509 rejects them). The default algorithm is already "PKIX" on a stock JDK, so
+      // this changes behaviour only if a custom provider made some other algorithm the default.
+      TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+      tmf.init(new CertPathTrustManagerParameters(params));
       for (TrustManager tm : tmf.getTrustManagers()) {
         if (tm instanceof X509TrustManager) {
           trustManager = (X509TrustManager) tm;
