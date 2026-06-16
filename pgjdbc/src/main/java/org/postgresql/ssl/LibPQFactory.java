@@ -153,12 +153,16 @@ public class LibPQFactory extends WrappedFactory {
         // Load the server certificate
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("PKIX");
+        // Use the runtime's default KeyStore type so FIPS-mode JVMs (which reject "jks")
+        // can still build the in-memory truststore that holds the sslrootcert. The store
+        // is never serialised, so the on-disk format is irrelevant.
         KeyStore ks;
+        String ksType = KeyStore.getDefaultType();
         try {
-          ks = KeyStore.getInstance("jks");
+          ks = KeyStore.getInstance(ksType);
         } catch (KeyStoreException e) {
-          // this should never happen
-          throw new NoSuchAlgorithmException("jks KeyStore not available");
+          throw new NoSuchAlgorithmException(
+              "Default KeyStore type \"" + ksType + "\" not available", e);
         }
         String sslrootcertfile = PGProperty.SSL_ROOT_CERT.getOrDefault(info);
         if (sslrootcertfile == null) { // Fall back to default
