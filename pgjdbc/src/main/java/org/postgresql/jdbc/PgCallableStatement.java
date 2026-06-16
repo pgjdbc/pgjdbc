@@ -489,9 +489,10 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
    * {@link java.sql.DatabaseMetaData#getProcedureColumns} on purpose: those metadata calls take
    * the schema and routine name as separate {@code LIKE} patterns, so reusing them would require
    * splitting and LIKE-escaping the (possibly quoted, possibly schema-qualified) name, filtering
-   * the result rows by {@code search_path}, and disambiguating overloads by hand. {@code
-   * to_regproc} resolves the name with the same rules as the call itself and returns {@code NULL}
-   * on an absent or overloaded name, which is both shorter and more accurate here.</p>
+   * the result rows by {@code search_path}, and disambiguating overloads by hand. A {@code regproc}
+   * cast resolves the name with the same rules as the call itself, which is both shorter and more
+   * accurate here; it raises on an absent or overloaded name, which is mapped to an actionable
+   * "use a positional parameter index" error.</p>
    */
   private Map<String, Integer> resolveParameterNamesFromCatalog() throws SQLException {
     String functionName = extractRoutineName(jdbcSql);
@@ -503,34 +504,41 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
     }
     String @Nullable [] argNames = null;
     String @Nullable [] argModes = null;
+    boolean resolved = false;
+    // Resolve the (possibly quoted, schema-qualified) name through the same search_path and quoting
+    // rules as the call itself by casting it to regproc. The cast is available on every supported
+    // server, unlike pg_catalog.to_regproc (9.4+); it raises rather than returning NULL when the
+    // name is absent or overloaded, so the catch below maps that to the actionable message.
     try (PreparedStatement ps = connection.prepareStatement(
         "SELECT proargnames, proargmodes FROM pg_catalog.pg_proc "
-            + "WHERE oid = pg_catalog.to_regproc(?)")) {
+            + "WHERE oid = ?::pg_catalog.regproc")) {
       ps.setString(1, functionName);
       try (ResultSet rs = ps.executeQuery()) {
-        if (!rs.next()) {
-          throw new PSQLException(
-              GT.tr("Unable to resolve routine {0} to a single function; it may be overloaded "
-                  + "or absent. Use a positional parameter index instead.", functionName),
-              PSQLState.INVALID_PARAMETER_VALUE);
-        }
-        Array namesArray = rs.getArray("proargnames");
-        if (namesArray != null) {
-          argNames = (String[]) namesArray.getArray();
-        }
-        Array modesArray = rs.getArray("proargmodes");
-        if (modesArray != null) {
-          argModes = (String[]) modesArray.getArray();
+        if (rs.next()) {
+          resolved = true;
+          Array namesArray = rs.getArray("proargnames");
+          if (namesArray != null) {
+            argNames = (String[]) namesArray.getArray();
+          }
+          Array modesArray = rs.getArray("proargmodes");
+          if (modesArray != null) {
+            argModes = (String[]) modesArray.getArray();
+          }
         }
       }
-    } catch (PSQLException e) {
-      throw e;
     } catch (SQLException e) {
-      // to_regproc can raise on an ambiguous name on some server versions.
+      // The regproc cast raises 'function "x" does not exist' (absent) or 'more than one function
+      // named "x"' (overloaded); both mean the name is not a single routine.
       throw new PSQLException(
           GT.tr("Unable to resolve routine {0} to a single function; it may be overloaded "
               + "or absent. Use a positional parameter index instead.", functionName),
           PSQLState.INVALID_PARAMETER_VALUE, e);
+    }
+    if (!resolved) {
+      throw new PSQLException(
+          GT.tr("Unable to resolve routine {0} to a single function; it may be overloaded "
+              + "or absent. Use a positional parameter index instead.", functionName),
+          PSQLState.INVALID_PARAMETER_VALUE);
     }
 
     Map<String, Integer> result = new HashMap<>();
@@ -578,8 +586,7 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   /**
    * Extracts the routine name (optionally schema-qualified and/or quoted) from the JDBC escape
-   * SQL. Schema, quoting and {@code search_path} resolution are left to
-   * {@code pg_catalog.to_regproc}.
+   * SQL. Schema, quoting and {@code search_path} resolution are left to the {@code regproc} cast.
    *
    * @return the routine name, or {@code null} if it cannot be located
    */
