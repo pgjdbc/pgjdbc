@@ -54,11 +54,27 @@ val java11 by sourceSets.creating {
     compileClasspath += sourceSets.main.get().output
 }
 
+// Create a separate source set for Java 17+ specific code (e.g., Unix domain sockets)
+val java17 by sourceSets.creating {
+    java {
+        srcDir("src/main/java17")
+    }
+    // Make java17 source set depend on main source set (to access PGProperty and friends)
+    compileClasspath += sourceSets.main.get().output
+}
+
 if (buildParameters.testJdkVersion >= 11) {
     // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
     // So we explicitly prepend the classpath with Java 11 classes
     tasks.test {
         classpath = java11.output + classpath
+    }
+}
+
+if (buildParameters.testJdkVersion >= 17) {
+    // Same as above: make the Java 17 multi-release classes visible to tests
+    tasks.test {
+        classpath = java17.output + classpath
     }
 }
 
@@ -69,9 +85,19 @@ tasks.named<JavaCompile>(java11.compileJavaTaskName) {
     dependsOn(tasks.compileJava)
 }
 
+// Configure the java17 source set to compile with Java 17
+tasks.named<JavaCompile>(java17.compileJavaTaskName) {
+    options.release.set(17)
+    // Ensure main classes are compiled before java17 classes
+    dependsOn(tasks.compileJava)
+}
+
 fun CopySpec.addMultiReleaseContents() {
     into("META-INF/versions/11") {
         from(java11.output)
+    }
+    into("META-INF/versions/17") {
+        from(java17.output)
     }
 }
 
@@ -139,6 +165,7 @@ dependencies {
 
     implementation("org.checkerframework:checker-qual:3.55.1")
     java11.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
+    java17.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
 
     testKitSourcesWithoutAnnotations(projects.testkit)
 
