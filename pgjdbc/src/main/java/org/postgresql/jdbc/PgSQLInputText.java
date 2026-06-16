@@ -13,6 +13,7 @@ import org.postgresql.jdbc.codec.CompositeCodec;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.math.BigDecimal;
+import java.sql.Array;
 import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
@@ -209,5 +210,10 @@ public final class PgSQLInputText extends PgSQLInput<String> {
   protected <T> @Nullable T decodeObjectAs(String data, PgType fieldType, Class<T> type)
       throws SQLException {
     return getCodec().decodeTextAs(data, getCurrentType(), type, ctx);
+  }
+
+  @Override
+  protected Array decodeArray(String data, PgType fieldType) throws SQLException {
+    return new PgArray(ctx.getConnection(), getCurrentType().getOid(), data);
   }
 }
