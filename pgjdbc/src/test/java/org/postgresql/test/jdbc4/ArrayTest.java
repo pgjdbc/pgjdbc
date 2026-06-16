@@ -39,6 +39,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -979,6 +980,66 @@ public class ArrayTest extends BaseTest4 {
         Array jsonArray = rs.getArray(1);
         assertNotNull(jsonArray);
         assertEquals("jsonb", jsonArray.getBaseTypeName());
+      }
+    }
+  }
+
+  @Test
+  public void testBinaryArrayToString() throws SQLException {
+    // Under binaryMode=FORCE the array arrives in binary, so PgArray.toString() decodes it through
+    // the codec walker (ArrayCodec.decodeBinaryArray) and re-encodes the literal.
+    try (PreparedStatement pstmt = con.prepareStatement("SELECT '{1,2,3}'::int4[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals("{1,2,3}", rs.getArray(1).toString());
+    }
+  }
+
+  /**
+   * Typed {@code getObject(col, T[].class)} for element types without a fast leaf (text, timestamp)
+   * goes through the shared codec walker (decodeBinaryArray/decodeTextArray), not the legacy
+   * ArrayDecoding fallback.
+   */
+  @Test
+  public void testGetObjectStringArray() throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement("SELECT '{a,b,c}'::text[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertArrayEquals(new String[]{"a", "b", "c"}, rs.getObject(1, String[].class));
+    }
+  }
+
+  @Test
+  public void testGetObjectTimestampArray() throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement(
+        "SELECT ARRAY['2024-01-02 03:04:05'::timestamp, '1999-12-31 23:59:59'::timestamp]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      Timestamp[] out = rs.getObject(1, Timestamp[].class);
+      assertEquals(2, out.length);
+      assertEquals(Timestamp.valueOf("2024-01-02 03:04:05"), out[0]);
+      assertEquals(Timestamp.valueOf("1999-12-31 23:59:59"), out[1]);
+    }
+  }
+
+  /**
+   * getResultSet() on a multi-dimensional array exposes each outer row as a nested array in the
+   * VALUE column. The text path splits the literal via the codec tokenizer (captureSubarray); the
+   * binary path (binaryMode=FORCE) walks the binary sub-arrays.
+   */
+  @Test
+  public void testGetResultSetMultiDim() throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement("SELECT '{{1,2},{3,4}}'::int4[]");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      try (ResultSet ars = rs.getArray(1).getResultSet()) {
+        assertTrue(ars.next());
+        assertEquals(1, ars.getInt(1));
+        assertArrayEquals(new Integer[]{1, 2}, (Integer[]) ars.getArray(2).getArray());
+        assertTrue(ars.next());
+        assertEquals(2, ars.getInt(1));
+        assertArrayEquals(new Integer[]{3, 4}, (Integer[]) ars.getArray(2).getArray());
+        assertFalse(ars.next());
       }
     }
   }

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.sql.SQLFeatureNotSupportedException;
 
+@SuppressWarnings("deprecation") // exercises the deprecated ArrayEncoding directly
 class ArraysTest {
 
   @Test

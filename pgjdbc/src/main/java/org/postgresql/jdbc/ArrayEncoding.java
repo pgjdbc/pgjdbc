@@ -47,7 +47,12 @@ import java.util.Map;
  * </ul>
  *
  * @author Brett Okken
+ * @deprecated array encoding moved to the codec layer
+ *     ({@link org.postgresql.jdbc.codec.ArrayCodec} and its leaf codecs, which encode every Java
+ *     array — primitive and reference — through the element type's codec). This class is no longer
+ *     used by the driver and will be removed. New code must use {@code ArrayCodec}.
  */
+@Deprecated
 public final class ArrayEncoding {
 
   @SuppressWarnings("ExtendsObject")

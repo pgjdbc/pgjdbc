@@ -66,31 +66,46 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
   @Override
   public boolean writeLeaf(Object leaf, BackpatchingBinarySink out, byte[] scratch,
       CodecContext ctx) throws IOException, SQLException {
-    if (!(leaf instanceof Object[])) {
-      throw unsupportedLeaf(leaf, ctx);
-    }
     BinaryCodec codec = binaryCodec;
     if (codec == null) {
       throw noBinaryCodec();
     }
-    Object[] arr = (Object[]) leaf;
-    boolean hasNulls = false;
-    for (Object element : arr) {
-      if (element == null) {
-        out.writeInt32(-1);
-        hasNulls = true;
-      } else if (codec instanceof StreamingBinaryCodec) {
-        int lengthSlot = out.reserveInt32();
-        int startPos = out.position();
-        ((StreamingBinaryCodec) codec).encodeBinary(element, elementType, ctx, out.asOutputStream());
-        out.setInt32At(lengthSlot, out.position() - startPos);
-      } else {
-        byte[] encoded = codec.encodeBinary(element, elementType, ctx);
-        out.writeInt32(encoded.length);
-        out.write(encoded);
+    if (leaf instanceof Object[]) {
+      boolean hasNulls = false;
+      for (Object element : (Object[]) leaf) {
+        if (element == null) {
+          out.writeInt32(-1);
+          hasNulls = true;
+        } else {
+          writeElement(codec, element, out, ctx);
+        }
       }
+      return hasNulls;
     }
-    return hasNulls;
+    if (leaf.getClass().isArray()) {
+      // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element and
+      // dispatch to the element codec. Primitive arrays never contain nulls.
+      int len = java.lang.reflect.Array.getLength(leaf);
+      for (int i = 0; i < len; i++) {
+        writeElement(codec, java.lang.reflect.Array.get(leaf, i), out, ctx);
+      }
+      return false;
+    }
+    throw unsupportedLeaf(leaf, ctx);
+  }
+
+  private void writeElement(BinaryCodec codec, Object element, BackpatchingBinarySink out,
+      CodecContext ctx) throws IOException, SQLException {
+    if (codec instanceof StreamingBinaryCodec) {
+      int lengthSlot = out.reserveInt32();
+      int startPos = out.position();
+      ((StreamingBinaryCodec) codec).encodeBinary(element, elementType, ctx, out.asOutputStream());
+      out.setInt32At(lengthSlot, out.position() - startPos);
+    } else {
+      byte[] encoded = codec.encodeBinary(element, elementType, ctx);
+      out.writeInt32(encoded.length);
+      out.write(encoded);
+    }
   }
 
   @Override
@@ -121,29 +136,50 @@ final class GenericArrayLeafCodec implements ArrayLeafCodec {
   @Override
   public void appendLeaf(Appendable out, Object leaf, char delimiter, CodecContext ctx)
       throws SQLException, IOException {
-    if (!(leaf instanceof Object[])) {
-      throw unsupportedLeaf(leaf, ctx);
-    }
     TextCodec codec = textCodec;
     if (codec == null) {
       throw noTextCodec();
     }
-    Object[] arr = (Object[]) leaf;
-    for (int i = 0; i < arr.length; i++) {
-      if (i > 0) {
-        out.append(delimiter);
+    if (leaf instanceof Object[]) {
+      Object[] arr = (Object[]) leaf;
+      for (int i = 0; i < arr.length; i++) {
+        if (i > 0) {
+          out.append(delimiter);
+        }
+        appendElement(codec, arr[i], out, ctx);
       }
-      Object element = arr[i];
-      if (element == null) {
-        out.append("NULL");
-      } else if (codec instanceof StreamingTextCodec) {
-        out.append('"');
-        ((StreamingTextCodec) codec).encodeText(element, elementType, ctx,
-            new EscapingAppendable(out));
-        out.append('"');
+      return;
+    }
+    if (leaf.getClass().isArray()) {
+      // Primitive leaf array (e.g. int[]/double[] bound to numeric[]): box each element. Primitive
+      // arrays never contain nulls.
+      int len = java.lang.reflect.Array.getLength(leaf);
+      for (int i = 0; i < len; i++) {
+        if (i > 0) {
+          out.append(delimiter);
+        }
+        appendElement(codec, java.lang.reflect.Array.get(leaf, i), out, ctx);
+      }
+      return;
+    }
+    throw unsupportedLeaf(leaf, ctx);
+  }
+
+  private void appendElement(TextCodec codec, @Nullable Object element, Appendable out,
+      CodecContext ctx) throws SQLException, IOException {
+    if (element == null) {
+      out.append("NULL");
+    } else if (codec instanceof StreamingTextCodec) {
+      StreamingTextCodec streamingCodec = (StreamingTextCodec) codec;
+      if (!codec.mayRequireQuoting()) {
+        streamingCodec.encodeText(element, elementType, ctx, out);
       } else {
-        appendEscapedArrayElement(out, codec.encodeText(element, elementType, ctx));
+        out.append('"');
+        streamingCodec.encodeText(element, elementType, ctx, new EscapingAppendable(out));
+        out.append('"');
       }
+    } else {
+      appendEscapedArrayElement(out, codec.encodeText(element, elementType, ctx));
     }
   }
 
