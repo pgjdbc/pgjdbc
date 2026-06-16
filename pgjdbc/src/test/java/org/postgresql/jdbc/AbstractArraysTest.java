@@ -288,13 +288,15 @@ public abstract class AbstractArraysTest<A> {
     }
 
     @Override
-    public CodecContext getCodecContext() {
-      return TestCodecContext.create();
+    public CodecContext getCodecContext() throws SQLException {
+      // A connection-bound context so the array codec walker can resolve element
+      // types and codecs through the connection's TypeInfo / CodecRegistry.
+      return new CodecContext(this, typeInfo.getCodecRegistry(), new JavaTypeRegistry());
     }
 
     @Override
     public CodecRegistry getCodecRegistry() {
-      throw new UnsupportedOperationException("Not implemented in test mock");
+      return typeInfo.getCodecRegistry();
     }
 
     @Override
