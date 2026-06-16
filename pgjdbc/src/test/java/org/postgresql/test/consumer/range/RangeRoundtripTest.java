@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGRange;
 
@@ -40,6 +41,7 @@ import java.sql.Struct;
  * ({@code array-of-range}), including the nested case where an array element is
  * a range whose bound is itself quoted.</p>
  */
+@EnabledForServerVersionRange(gte = "9.2") // range types exist from 9.2
 public class RangeRoundtripTest extends BaseTest4 {
 
   @BeforeAll

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.util.PGobject;
 
@@ -34,6 +35,7 @@ import java.util.Map;
  */
 @ParameterizedClass
 @MethodSource("data")
+@EnabledForServerVersionRange(gte = "9.2") // json/json[] exist from 9.2
 public class JsonArrayRoundtripTest extends BaseTest4 {
 
   private Connection conn;
@@ -68,6 +70,7 @@ public class JsonArrayRoundtripTest extends BaseTest4 {
   }
 
   @Test
+  @EnabledForServerVersionRange(gte = "9.4") // jsonb exists from 9.4
   public void jsonbArrayReturnsStringArray() throws SQLException {
     try (PreparedStatement ps = conn.prepareStatement("SELECT ARRAY['1', '2', null]::jsonb[]");
          ResultSet rs = ps.executeQuery()) {
