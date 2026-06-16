@@ -198,6 +198,34 @@ matrix.addAxis({
   ]
 });
 
+// Activate a Unix domain socket listener on the PostgreSQL server and expose it to the host. This
+// only makes the socket available; whether tests actually use it is the domain_socket_frontend axis
+// below. Requires a Unix host (Docker), so it is constrained to ubuntu below.
+matrix.addAxis({
+  name: 'domain_socket_backend',
+  title: x => x.value === 'yes' ? 'ds_backend' : '',
+  values: [
+    {value: 'yes', weight: 3},
+    {value: 'no', weight: 10},
+  ]
+});
+
+// How the tests use the Unix domain socket (via org.postgresql.unixsocket.UnixDomainSocketFactory,
+// which needs a Java 17+ client):
+//   none  - no test uses the socket; everything runs over TCP/TLS as usual
+//   smoke - normal tests stay on TCP, and a couple of dedicated tests connect over the socket, so a
+//           single run exercises both paths (used by the coverage job to cover both in one job)
+//   all   - every default connection is forced over the socket (fuzzing to flush out socket bugs)
+matrix.addAxis({
+  name: 'domain_socket_frontend',
+  title: x => x.value === 'none' ? '' : 'ds_' + x.value,
+  values: [
+    {value: 'none', weight: 10},
+    {value: 'smoke', weight: 3},
+    {value: 'all', weight: 2},
+  ]
+});
+
 matrix.addAxis({
   name: 'autosave',
   title: x => x.value === 'never' ? '' : 'autosave ' + x.value,
@@ -274,7 +302,7 @@ function lessThan(minVersion) {
 matrix.setNamePattern([
     'java_version', 'java_distribution', 'pg_version', 'query_mode', 'scram', 'ssl', 'hash', 'os',
     'server_tz', 'tz', 'locale',
-    'gss', 'replication', 'slow_tests',
+    'gss', 'domain_socket_backend', 'domain_socket_frontend', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
     'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
 ]);
@@ -295,6 +323,20 @@ matrix.imply({java_distribution: {value: 'oracle'}}, {java_version: v => v === e
 // TODO: Semeru does not ship Java 21 builds yet
 matrix.exclude({java_distribution: {value: 'semeru'}, java_version: '21'})
 matrix.imply({gss: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
+// Activating the socket listener needs a Unix host (Docker) and the unix_socket_directories GUC,
+// which exists on PostgreSQL 9.3+
+matrix.imply({domain_socket_backend: {value: 'yes'}}, {os: {value: 'ubuntu-latest'}})
+matrix.exclude({domain_socket_backend: {value: 'yes'}, pg_version: lessThan('9.3')})
+// Using the socket from tests (smoke/all) requires the listener to be active and a Java 17+ client
+// (the factory ships in META-INF/versions/17)
+matrix.imply({domain_socket_frontend: {value: ['smoke', 'all']}}, {domain_socket_backend: {value: 'yes'}})
+matrix.imply({domain_socket_frontend: {value: ['smoke', 'all']}}, {java_version: v => v === eaJava || v >= 17})
+// Forcing every connection over the socket (all) clashes with tests that assume TCP host semantics:
+// the multi-host/replication tests compare inet_server_addr() across hosts (null over a socket), and
+// GSS encryption is negotiated over TCP. So in "all" mode keep replication and GSS on TCP; smoke
+// leaves the normal tests on TCP already, so it is unaffected.
+matrix.imply({domain_socket_frontend: {value: 'all'}}, {replication: {value: 'no'}})
+matrix.imply({domain_socket_frontend: {value: 'all'}}, {gss: {value: 'no'}})
 // ikalnytskyi/action-setup-postgres supports PostgreSQL 14+ only
 matrix.exclude({os: {value: ['windows-latest', 'macos-latest']}, pg_version: lessThan('14')});
 // HEAD is built from pgdg-snapshot inside Docker, which only runs on Linux.
@@ -327,6 +369,8 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
         query_mode: {value: 'extended'},
         ssl: {value: 'yes'}, scram: {value: 'yes'},
         xa: {value: 'yes'}, replication: {value: 'yes'},
+        // Cover the TCP and Unix domain socket paths in one job (smoke implies the backend)
+        domain_socket_frontend: {value: 'smoke'},
         // slow tests add ~0 coverage but cost runtime; GSS exercises the driver's encryption
         // paths and the krb5 setup runs anyway on this Linux job, so keep it on.
         slow_tests: {value: 'no'}, gss: {value: 'yes'},
@@ -354,6 +398,8 @@ const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
     // Ensure we test all values of the axes below
     ...matrix.allAxisValues('query_mode'),
     ...matrix.allAxisValues('gss'),
+    ...matrix.allAxisValues('domain_socket_backend'),
+    ...matrix.allAxisValues('domain_socket_frontend'),
     ...matrix.allAxisValues('xa'),
     ...matrix.allAxisValues('ssl'),
     ...matrix.allAxisValues('replication'),
@@ -416,6 +462,8 @@ include.forEach(v => {
   v.slow_tests = v.slow_tests.value;
   v.xa = v.xa.value;
   v.gss = v.gss.value;
+  v.domain_socket_backend = v.domain_socket_backend.value;
+  v.domain_socket_frontend = v.domain_socket_frontend.value;
   v.ssl = v.ssl.value;
   v.scram = v.scram.value;
   v.query_mode = v.query_mode.value;
@@ -496,6 +544,14 @@ include.forEach(v => {
   }
   if (v.gss === 'no') {
       testJvmArgs.push('-DskipGssEncryption=true');
+  }
+  if (v.domain_socket_backend === 'yes') {
+      // The docker-compose override bind-mounts the server socket directory to this host path
+      testJvmArgs.push('-DdomainSocketDir=/tmp/pgjdbc-postgresql-socket');
+  }
+  if (v.domain_socket_frontend !== 'none') {
+      // smoke: only the dedicated socket tests use it; all: every default connection uses it
+      testJvmArgs.push(`-DdomainSocketMode=${v.domain_socket_frontend}`);
   }
   if (v.cpu_count.value === '1') {
       // Constrains ForkJoinPool common pool to a single worker, exposing FJP submit/compensation

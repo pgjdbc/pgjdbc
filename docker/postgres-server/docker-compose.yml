@@ -31,6 +31,7 @@ services:
       - AUTO_VACUUM=${AUTO_VACUUM:-no}
       - TRACK_COUNTS=${TRACK_COUNTS:-no}
       - CREATE_REPLICAS=${CREATE_REPLICAS:-no}
+      - DOMAIN_SOCKET=${DOMAIN_SOCKET:-no}
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=
       - POSTGRES_DB=postgres
