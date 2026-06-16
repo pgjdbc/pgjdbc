@@ -493,6 +493,20 @@ public class PgConnection implements BaseConnection {
         Oid.TIMESTAMPTZ_ARRAY,
         Oid.POINT,
         Oid.BOX,
+        // bit/varbit carry a binary encoder/decoder via BitCodec; the scalar bit(1) -> Boolean
+        // contract reads the bit count from the binary int4 prefix in PgResultSet, and bit[]/varbit[]
+        // decode through the array codec walker (PGobject[]).
+        Oid.BIT,
+        Oid.VARBIT,
+        Oid.BIT_ARRAY,
+        Oid.VARBIT_ARRAY,
+        // json/jsonb carry a binary encoder/decoder via JsonCodec/JsonbCodec; json[]/jsonb[] decode
+        // to String[] through the array codec walker (JsonArrayLeafCodec) and the codec-backed slice
+        // decoder, both binary-aware (the jsonb version byte is handled by the codec).
+        Oid.JSON,
+        Oid.JSONB,
+        Oid.JSON_ARRAY,
+        Oid.JSONB_ARRAY,
         Oid.UUID));
   }
 

@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
@@ -30,12 +31,14 @@ import java.sql.SQLException;
  *
  * <p>Binary format includes a version byte prefix (currently always 1).</p>
  */
-public final class JsonbCodec implements BinaryCodec, TextCodec {
+public final class JsonbCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final JsonbCodec INSTANCE = new JsonbCodec();
 
   /** JSONB binary format version (currently 1) */
   private static final byte JSONB_VERSION = 1;
+
+  private static final JsonArrayLeafCodec ARRAY_LEAF = new JsonArrayLeafCodec(Oid.JSONB, INSTANCE);
 
   private JsonbCodec() {
   }
@@ -43,6 +46,11 @@ public final class JsonbCodec implements BinaryCodec, TextCodec {
   @Override
   public String getTypeName() {
     return "jsonb";
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return ARRAY_LEAF;
   }
 
   @Override

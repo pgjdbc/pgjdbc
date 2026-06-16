@@ -10,6 +10,7 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
 import org.postgresql.jdbc.codec.ArrayCodec;
+import org.postgresql.jdbc.codec.BitCodec;
 import org.postgresql.jdbc.codec.BoolCodec;
 import org.postgresql.jdbc.codec.BpcharCodec;
 import org.postgresql.jdbc.codec.ByteaCodec;
@@ -28,6 +29,7 @@ import org.postgresql.jdbc.codec.Int8Codec;
 import org.postgresql.jdbc.codec.IntervalCodec;
 import org.postgresql.jdbc.codec.JsonCodec;
 import org.postgresql.jdbc.codec.JsonbCodec;
+import org.postgresql.jdbc.codec.MoneyCodec;
 import org.postgresql.jdbc.codec.NameCodec;
 import org.postgresql.jdbc.codec.NumericCodec;
 import org.postgresql.jdbc.codec.OidCodec;
@@ -155,6 +157,7 @@ public class CodecRegistry {
     registerByName(Float4Codec.INSTANCE);
     registerByName(Float8Codec.INSTANCE);
     registerByName(NumericCodec.INSTANCE);
+    registerByName(MoneyCodec.INSTANCE);
     registerByName(OidCodec.INSTANCE);
 
     // String types
@@ -175,6 +178,11 @@ public class CodecRegistry {
     // Binary types
     registerByName(ByteaCodec.INSTANCE);
     registerByName(UuidCodec.INSTANCE);
+
+    // Bit string types
+    registerByName(BitCodec.INSTANCE);
+    registerAlias("bit varying", BitCodec.INSTANCE);
+    registerAlias("varbit", BitCodec.INSTANCE);
 
     // JSON/XML types
     registerByName(JsonCodec.INSTANCE);
