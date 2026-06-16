@@ -169,6 +169,21 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
   }
 
   /**
+   * Overrides the type map used by this ResultSet's getters. Used by
+   * {@link PgArray#getResultSet(java.util.Map)} so that composite array
+   * elements are decoded through the caller-supplied {@code SQLData} mapping
+   * when {@code getObject} is called on the returned rows. The connection's
+   * java.time / boolean preferences and the per-ResultSet TimestampUtils are
+   * preserved.
+   *
+   * @param typeMap the type map to apply for this ResultSet
+   * @throws SQLException if the context cannot be derived
+   */
+  void setTypeMapOverride(Map<String, Class<?>> typeMap) throws SQLException {
+    this.codecContext = getCodecContext().withTypeMap(typeMap);
+  }
+
+  /**
    * Gets the binary codec for the specified column.
    *
    * @param columnIndex the 1-based column index
@@ -271,12 +286,11 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         }
 
         if (field.getOID() == Oid.BIT) {
-          // Let's peek at the data - I tried to use the field.getLength() but it returns 65535 and
-          // it doesn't reflect the real length of the field, which is odd.
-          // If we have 1 byte, it's a bit(1) and return a boolean to preserve the backwards
-          // compatibility. If the value is null, it doesn't really matter
+          // bit(1) returns a Boolean to preserve backwards compatibility. The bit count is the byte
+          // length in text but the leading int4 in binary, so read it format-aware. (field.getLength()
+          // is unreliable here — it returns 65535.) A null value doesn't matter.
           byte[] data = getRawValue(columnIndex);
-          if (data == null || data.length == 1) {
+          if (data == null || (isBinary(columnIndex) ? ByteConverter.int4(data, 0) : data.length) == 1) {
             return getBoolean(columnIndex);
           }
         }
@@ -3074,20 +3088,19 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
 
     int oid = field.getOID();
 
-    // Special case: BIT(n>1) returns PGobject for backward compatibility
+    // Special case: bit(1) returns Boolean, wider bit returns PGobject (via BitCodec), for backward
+    // compatibility. The bit count is the byte length in text but the leading int4 in binary, so it
+    // must be read format-aware before deciding; bit(n>1) then falls through to the codec path.
     if (oid == Oid.BIT) {
-      byte[] data = getRawValue(columnIndex);
-      if (data != null && data.length > 1) {
-        // BIT(n>1) — fall through to PGobject path
-        if (isBinary(columnIndex)) {
-          return connection.getObject(getPGType(columnIndex), null, value);
-        }
-        String stringValue = castNonNull(getString(columnIndex));
-        return connection.getObject(getPGType(columnIndex), stringValue, null);
+      int nbits = isBinary(columnIndex) ? ByteConverter.int4(value, 0) : value.length;
+      if (nbits == 1) {
+        return getBoolean(columnIndex);
       }
-      // BIT(1) — return Boolean
-      return getBoolean(columnIndex);
+      // bit(n>1) — fall through to the codec path, which returns a PGobject.
     }
+    // isBinary()/getBoolean() above are instance calls, so the checker can no longer prove thisRow
+    // is non-null after the bit branch merges back in; getRawValue() above did set it.
+    castNonNull(thisRow, "thisRow");
 
     // Special case: refcursor returns a ResultSet
     if (oid == Oid.REFCURSOR) {

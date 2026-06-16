@@ -8,6 +8,7 @@ package org.postgresql.jdbc.codec;
 import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
@@ -28,9 +29,11 @@ import java.sql.SQLException;
  * via {@link PGobject#getValue()} or request String/byte[] explicitly through
  * {@code getObject(i, String.class)} / {@code getString(i)}.</p>
  */
-public final class JsonCodec implements BinaryCodec, TextCodec {
+public final class JsonCodec implements BinaryCodec, TextCodec, ArrayElementCodec {
 
   public static final JsonCodec INSTANCE = new JsonCodec();
+
+  private static final JsonArrayLeafCodec ARRAY_LEAF = new JsonArrayLeafCodec(Oid.JSON, INSTANCE);
 
   private JsonCodec() {
   }
@@ -38,6 +41,11 @@ public final class JsonCodec implements BinaryCodec, TextCodec {
   @Override
   public String getTypeName() {
     return "json";
+  }
+
+  @Override
+  public ArrayLeafCodec arrayLeaf() {
+    return ARRAY_LEAF;
   }
 
   @Override
