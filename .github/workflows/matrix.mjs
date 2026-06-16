@@ -262,6 +262,15 @@ matrix.addAxis({
   ]
 });
 
+matrix.addAxis({
+  name: 'assertions',
+  title: x => x.value === 'yes' ? 'assertions' : '',
+  values: [
+    {value: 'yes', weight: 3},
+    {value: 'no', weight: 10},
+  ]
+});
+
 function lessThan(minVersion) {
     return value => Number(value) < Number(minVersion);
 }
@@ -271,7 +280,7 @@ matrix.setNamePattern([
     'server_tz', 'tz', 'locale',
     'check_anorm_sbt', 'gss', 'replication', 'slow_tests',
     'adaptive_fetch', 'rewrite_batch_inserts', 'query_timeout',
-    'autosave', 'cleanupSavepoints', 'cpu_count'
+    'autosave', 'cleanupSavepoints', 'cpu_count', 'assertions'
 ]);
 
 // We take EA builds from Oracle
@@ -324,6 +333,7 @@ matrix.ensureAllAxisValuesCovered('ssl');
 matrix.ensureAllAxisValuesCovered('replication');
 matrix.ensureAllAxisValuesCovered('os');
 matrix.ensureAllAxisValuesCovered('cpu_count');
+matrix.ensureAllAxisValuesCovered('assertions');
 // Ensure at least one job with autosave=always
 matrix.generateRow({autosave: {value: 'always'}});
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
@@ -458,6 +468,10 @@ include.forEach(v => {
       testJvmArgs.push('-XX:ActiveProcessorCount=1');
   }
   delete v.cpu_count;
+  if (v.assertions.value === 'yes') {
+      testJvmArgs.push('-ea');
+  }
+  delete v.assertions;
   v.extraJvmArgs = jvmArgs.join(' ');
   v.testExtraJvmArgs = testJvmArgs.join(' ::: ');
   delete v.hash;
