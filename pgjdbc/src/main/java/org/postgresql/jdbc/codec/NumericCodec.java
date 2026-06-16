@@ -336,7 +336,7 @@ public final class NumericCodec implements BinaryCodec, TextCodec {
     return decodeBinaryAs(bytes, type, targetClass, ctx);
   }
 
-  private BigDecimal toBigDecimal(Object value) throws SQLException {
+  private static BigDecimal toBigDecimal(Object value) throws SQLException {
     if (value instanceof BigDecimal) {
       return (BigDecimal) value;
     }

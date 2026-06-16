@@ -20,12 +20,36 @@ import java.sql.SQLException;
 /**
  * Codec for PostgreSQL domain types.
  *
- * <p>Domain types in PostgreSQL are custom types based on underlying base types
- * with optional constraints. This codec delegates all encoding/decoding to the
+ * <p>Domain types in PostgreSQL are custom types based on an underlying base type
+ * with optional constraints. This codec delegates all encoding and decoding to the
  * base type's codec.</p>
  *
- * <p>Example: CREATE DOMAIN positive_int AS integer CHECK (value > 0).
- * The positive_int domain will use Int4Codec for its encoding/decoding.</p>
+ * <p>Example: {@code CREATE DOMAIN positive_int AS integer CHECK (value > 0)}.
+ * The {@code positive_int} domain uses {@code Int4Codec} for its encoding and decoding.</p>
+ *
+ * <h2>Contract: a domain is unwrapped transparently to its base type</h2>
+ *
+ * <p>This codec resolves the domain to its base type ({@code pg_type.typbasetype}) and forwards
+ * the wire bytes to the base type's codec, passing the <em>base</em> {@link PgType}. Two
+ * consequences follow, and both are intentional:</p>
+ *
+ * <ul>
+ *   <li><strong>The base codec sees the base type, not the domain.</strong> A caller that decodes
+ *   a domain value receives the Java type of the base type — a {@code positive_int} value comes
+ *   back as an {@link Integer}, exactly as a plain {@code integer} would. The DISTINCT identity of
+ *   the domain is not reflected in the decoded Java object; it is visible only through metadata
+ *   ({@code ResultSetMetaData.getColumnTypeName}, {@code DatabaseMetaData}), which report the
+ *   domain rather than its base type.</li>
+ *
+ *   <li><strong>The domain's type modifier is not propagated.</strong> A domain may pin a typmod
+ *   on its base type (for example {@code CREATE DOMAIN price AS numeric(10,2)}), stored in
+ *   {@code pg_type.typtypmod}. The base codec is handed the base {@link PgType}, so it does not
+ *   observe that typmod. This is currently harmless: the numeric codecs encode from the value's
+ *   own scale and precision and do not apply a typmod on encode, and the server enforces the
+ *   domain constraint on input regardless. Code that needs the domain typmod — column-size
+ *   reporting, for instance — must read it from the domain {@link PgType} via
+ *   {@link PgType#getTyptypmod()}, not from anything this codec forwards.</li>
+ * </ul>
  */
 public final class DomainCodec implements BinaryCodec, TextCodec {
 

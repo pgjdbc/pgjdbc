@@ -278,7 +278,7 @@ public final class RangeCodec implements BinaryCodec, TextCodec {
    * Parses a range literal off {@code cur}, driving the shared {@link LiteralCursor}
    * so the same code serves the String and slice forms.
    */
-  private @Nullable Object decodeRange(LiteralCursor cur, PgType type, CodecContext ctx)
+  private static @Nullable Object decodeRange(LiteralCursor cur, PgType type, CodecContext ctx)
       throws SQLException {
     cur.skipWhitespace();
     if (cur.consumeKeyword("empty")) {

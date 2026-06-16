@@ -600,7 +600,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
    * Decodes composite text into a PgStruct with per-attribute decoding routed
    * through the text codec registered for each field's OID.
    */
-  private PgStruct decodeTextAsStruct(LiteralCursor cur, PgType type, CodecContext ctx)
+  private static PgStruct decodeTextAsStruct(LiteralCursor cur, PgType type, CodecContext ctx)
       throws SQLException {
     CodecDepth.enter();
     try {
@@ -736,17 +736,15 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
                 fieldOid, field.getName(), compositeType.getTypeName()),
             PSQLState.SYSTEM_ERROR);
       }
-      if (codec instanceof StreamingTextCodec && !codec.mayRequireQuoting()) {
-        // Quote-safe streaming codec (numeric/boolean): its output never needs quoting, so stream
-        // it straight into the literal — an int field renders as 1, not "1".
-        ((StreamingTextCodec) codec).encodeText(attr, fieldType, ctx, out);
-      } else if (codec instanceof StreamingTextCodec) {
-        // The output may contain commas/quotes/etc.; we cannot look ahead while streaming, so we
-        // always quote. The extra quotes are redundant but parse to an equivalent value.
-        out.append('"');
-        EscapingAppendable esc = new EscapingAppendable(out);
-        ((StreamingTextCodec) codec).encodeText(attr, fieldType, ctx, esc);
-        out.append('"');
+      if (codec instanceof StreamingTextCodec) {
+        StreamingTextCodec streamingTextCodec = (StreamingTextCodec) codec;
+        if (!codec.mayRequireQuoting()) {
+          streamingTextCodec.encodeText(attr, fieldType, ctx, out);
+        } else {
+          out.append('"');
+          streamingTextCodec.encodeText(attr, fieldType, ctx, new EscapingAppendable(out));
+          out.append('"');
+        }
       } else {
         String value = codec.encodeText(attr, fieldType, ctx);
         appendQuotedField(out, value);
