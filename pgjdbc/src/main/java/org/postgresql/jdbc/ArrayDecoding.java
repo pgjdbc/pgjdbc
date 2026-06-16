@@ -49,7 +49,13 @@ import java.util.Map;
  * </p>
  *
  * @author Brett Okken
+ * @deprecated array decoding moved to the codec layer
+ *     ({@link org.postgresql.jdbc.codec.ArrayCodec} and its leaf codecs). This class is retained only
+ *     for the residual fall-back paths in {@link PgArray} (the {@code getArrayImpl} legacy branch for
+ *     element types the walker cannot reproduce, such as a DOMAIN over varchar) and will be removed
+ *     once those are migrated. New code must use {@code ArrayCodec}.
  */
+@Deprecated
 public final class ArrayDecoding {
 
   /**

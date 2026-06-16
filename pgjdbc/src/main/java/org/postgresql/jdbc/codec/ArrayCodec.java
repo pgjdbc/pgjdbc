@@ -10,13 +10,11 @@ import org.postgresql.api.codec.Codec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.core.BaseConnection;
-import org.postgresql.jdbc.ArrayDecoding;
-import org.postgresql.jdbc.ArrayEncoding;
 import org.postgresql.jdbc.CodecContext;
-import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.jdbc.PgArray;
 import org.postgresql.jdbc.PgType;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
@@ -26,14 +24,18 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Array;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Codec for PostgreSQL array types.
  *
- * <p>This codec handles encoding and decoding of PostgreSQL arrays by delegating
- * to {@link ArrayEncoding} and {@link ArrayDecoding} utilities. For decoding,
- * it returns a {@link PgArray} that lazily decodes elements on access. For encoding,
- * it accepts both {@link Array} (PgArray) and raw Java array objects.</p>
+ * <p>Encoding walks the Java array and dispatches each leaf to the element type's codec via
+ * {@link MultiDimArrayBinary} / {@link MultiDimArrayText} (using a primitive fast leaf when the
+ * element type provides one, otherwise {@link GenericArrayLeafCodec}). For decoding it returns a
+ * {@link PgArray} that lazily decodes elements on access through the shared walker (see
+ * {@link #canDecodeArrayViaWalker}). It accepts both {@link Array} (PgArray) and raw Java array
+ * objects for encoding.</p>
  */
 public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCodec {
 
@@ -131,26 +133,16 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
         PSQLState.INVALID_PARAMETER_TYPE);
   }
 
-  @SuppressWarnings("unchecked")
   private static byte[] encodeBinaryJavaArray(Object javaArray, PgType type, CodecContext ctx) throws SQLException {
     ArrayLeafCodec fastLeaf = fastLeafFor(type, ctx);
     if (fastLeaf != null) {
       return MultiDimArrayBinary.encode(javaArray, ctx, fastLeaf);
     }
-    int arrayOid = type.getOid();
-    if (ArrayEncoding.hasNativeEncoder(javaArray)) {
-      ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(javaArray);
-      if (encoder.supportBinaryRepresentation(arrayOid)) {
-        return encoder.toBinaryRepresentation(ctx.getConnection(), javaArray, arrayOid);
-      }
-    }
-    if (!(javaArray instanceof Object[])) {
-      // No native encoder and not an Object[] (e.g. a primitive multi-dim array
-      // whose oid we do not support binary-wise). Defer to ArrayEncoding so it
-      // produces the same error message it always has.
-      ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(javaArray);
-      return encoder.toBinaryRepresentation(ctx.getConnection(), javaArray, arrayOid);
-    }
+    // No primitive fast leaf: encode every leaf through the element type's binary codec via the
+    // shared walker. This covers reference arrays (String[], UUID[], the temporal types,
+    // BigDecimal[], composite, SQLData, ...) and boxed primitive leaves (for example an int[]
+    // bound to numeric[]). The binary path is only reached after canEncodeBinary() confirmed the
+    // element codec can binary-encode the leaves, so this never feeds the server a text-only payload.
     BackpatchByteArrayOutputStream out = new BackpatchByteArrayOutputStream();
     try {
       MultiDimArrayBinary.encode(javaArray, (BackpatchingBinarySink) out, ctx,
@@ -235,8 +227,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
   /**
    * Recursively checks that every non-null leaf of a (possibly multi-dimensional) array is
    * binary-encodable by {@code elementCodec}. Reference arrays are walked level by level via their
-   * {@code Object[]} view; a primitive leaf array (for example {@code double[]}) is always
-   * binary-encodable, its element codec's support already verified by the caller.
+   * {@code Object[]} view. A primitive leaf array (for example {@code int[]} bound to
+   * {@code numeric[]}) is homogeneous, so its first boxed element decides: when the element codec
+   * cannot binary-encode that boxed value (a type with no real binary codec, such as {@code money}
+   * via the fallback codec), the array binds as text instead.
    */
   private static boolean leavesBinaryEncodable(Object value, PgType elementType,
       BinaryCodec elementCodec, CodecContext ctx) throws SQLException {
@@ -250,8 +244,11 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return true;
     }
     if (value.getClass().isArray()) {
-      // A primitive leaf array (double[], int[], ...): value-independent binary support.
-      return true;
+      // Primitive leaf array (int[], double[], ...): empty binds fine; otherwise the homogeneous
+      // first boxed element is representative of the whole leaf.
+      int len = java.lang.reflect.Array.getLength(value);
+      return len == 0
+          || elementCodec.canEncodeBinary(java.lang.reflect.Array.get(value, 0), elementType, ctx);
     }
     return elementCodec.canEncodeBinary(value, elementType, ctx);
   }
@@ -306,20 +303,12 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
         MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx, fastLeaf);
         return;
       }
-      if (ArrayEncoding.hasNativeEncoder(value)) {
-        @SuppressWarnings("unchecked")
-        ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(value);
-        out.append(encoder.toArrayString(type.getDelimiter(), value));
-        return;
-      }
-      if (value instanceof Object[]) {
-        MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx,
-            getGenericArrayLeafCodec(type, ctx));
-        return;
-      }
-      @SuppressWarnings("unchecked")
-      ArrayEncoding.ArrayEncoder<Object> encoder = ArrayEncoding.getArrayEncoder(value);
-      out.append(encoder.toArrayString(type.getDelimiter(), value));
+      // No primitive fast leaf: render every leaf through the element type's text codec via the
+      // shared walker. Covers reference arrays (String[], UUID[], the temporal types,
+      // BigDecimal[], composite, ...) and boxed primitive leaves (for example an int[] bound to
+      // numeric[]).
+      MultiDimArrayText.encode(value, type.getDelimiter(), out, ctx,
+          getGenericArrayLeafCodec(type, ctx));
       return;
     }
     throw new PSQLException(
@@ -338,8 +327,16 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
    *   <li>elements whose codec decodes to {@code String} (text, varchar, bpchar,
    *       name), {@code BigDecimal} (numeric), {@code UUID} (uuid) or
    *       {@code byte[]} (bytea, giving {@code byte[][]}) → the matching typed
-   *       array.</li>
+   *       array;</li>
+   *   <li>{@code bit}/{@code varbit} → {@code PGobject[]} (decoded by {@link BitCodec}, which parses
+   *       the binary int4+packed form the legacy {@code Boolean[]} decoder could not);</li>
+   *   <li>every other element type → {@code Object[]} of the scalar codec's value, the shape the
+   *       legacy decoder produced via {@code MappedTypeObjectArrayDecoder} (xml, hstore, geometric,
+   *       interval, domains — which report sqlType DISTINCT — and unknown user types).</li>
    * </ul>
+   *
+   * <p>Only returns {@code null} when no element codec is available, which does not happen for a
+   * connection-bound context (the registry always resolves at least the fallback codec).</p>
    */
   private static @Nullable Class<?> genericComponentType(PgType elementType,
       @Nullable Codec elementCodec) {
@@ -347,10 +344,14 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
       return Object.class;
     }
     if (elementCodec != null) {
+      // bit/varbit decode to PGobject for any width; produce a PGobject[] (the binary int4+packed
+      // form is parsed by BitCodec, which the legacy Boolean[] decoder could not handle).
+      if (elementCodec instanceof BitCodec) {
+        return PGobject.class;
+      }
       // Allowlist of element Java types whose generic decode matches the legacy
       // getArray() shape. The temporal types decode as their java.sql form (see
-      // leafContext); other types (PGobject for json/jsonb, ...) still take the
-      // legacy path.
+      // leafContext).
       Class<?> javaType = elementCodec.getDefaultJavaType();
       if (javaType == String.class
           || javaType == java.math.BigDecimal.class
@@ -361,6 +362,12 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
           || javaType == java.sql.Timestamp.class) {
         return javaType;
       }
+      // Every remaining non-fast-leaf element decodes into a generic Object[] holding its scalar
+      // codec's value — the shape the legacy MappedTypeObjectArrayDecoder produced (xml, hstore,
+      // geometric, interval, domains — which report sqlType DISTINCT — and unknown user types). The
+      // fast-leaf and typed-allowlist branches above already cover every type the legacy decoder gave
+      // a typed array, so reaching here means "not typed" and the result is always Object[].
+      return Object.class;
     }
     return null;
   }
@@ -452,6 +459,69 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
         leafContext(componentType1, ctx), getGenericArrayLeafCodec(arrayType, ctx));
   }
 
+  /** The outermost-dimension split of an array text literal: see {@link #splitTextArray}. */
+  public static final class TextArrayElements {
+    private final int dimensions;
+    private final List<@Nullable String> elements;
+
+    TextArrayElements(int dimensions, List<@Nullable String> elements) {
+      this.dimensions = dimensions;
+      this.elements = elements;
+    }
+
+    /** Number of array dimensions (1 for {@code {1,2}}, 2 for {@code {{1,2}}}). */
+    public int dimensions() {
+      return dimensions;
+    }
+
+    /**
+     * The outermost-dimension elements, each kept as its raw text: a leaf value for a
+     * one-dimensional array (or {@code null} for an unquoted {@code NULL}), or the nested
+     * {@code {...}} literal for a higher-dimensional array.
+     */
+    public List<@Nullable String> elements() {
+      return elements;
+    }
+  }
+
+  /**
+   * Splits an array text literal into its outermost-dimension elements without decoding them, using
+   * the shared {@link LiteralCursor} tokenizer. Each returned element keeps its raw text (the
+   * unquoted leaf value, or the nested literal for a multi-dimensional array), so a consumer can
+   * decode it through the element type's codec — this is what {@link PgArray#getResultSet()} needs,
+   * and it avoids a decode/re-encode round-trip that would, for example, lose a {@code money}
+   * currency symbol.
+   *
+   * @param literal the array text literal (for example {@code {1,2,3}})
+   * @param delimiter the element delimiter for this array type
+   * @return the dimension count and the raw outermost-dimension elements
+   * @throws SQLException if the literal is malformed
+   */
+  public static TextArrayElements splitTextArray(String literal, char delimiter) throws SQLException {
+    LiteralCursor cur = LiteralCursor.over(literal);
+    cur.skipDimensionPrefix();
+    int dimensions = cur.countLeadingBraces();
+    List<@Nullable String> elements = new ArrayList<>();
+    cur.expect('{');
+    if (!cur.tryConsume('}')) {
+      boolean multiDim = dimensions > 1;
+      do {
+        if (multiDim) {
+          elements.add(cur.captureSubarray());
+        } else {
+          cur.readValue(delimiter, '}');
+          if (!cur.tokenWasQuoted() && cur.tokenEquals("NULL")) {
+            elements.add(null);
+          } else {
+            elements.add(new String(cur.tokenChars(), cur.tokenOffset(), cur.tokenLength()));
+          }
+        }
+      } while (cur.tryConsume(delimiter));
+      cur.expect('}');
+    }
+    return new TextArrayElements(dimensions, elements);
+  }
+
   @Override
   @SuppressWarnings("unchecked")
   public <T> @Nullable T decodeBinaryAs(byte[] data, PgType type, Class<T> targetClass, CodecContext ctx)
@@ -467,14 +537,10 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
           return (T) MultiDimArrayBinary.decode(data, leafComponentType, ctx, fastLeaf);
         }
       }
-      // Fall back to the legacy decoder for element types without a fast leaf.
-      CodecDepth.enter();
-      try {
-        BaseConnection conn = ctx.getConnection();
-        return (T) ArrayDecoding.readBinaryArray(1, 0, data, conn);
-      } finally {
-        CodecDepth.exit();
-      }
+      // Element type has no matching fast leaf: decode through the shared codec walker, which
+      // yields the same component type the legacy decoder produced (typed array, String[], or
+      // Object[] for composite/range), so getObject(col, T[].class) is unchanged.
+      return (T) decodeBinaryArray(data, type, ctx);
     }
     throw new PSQLException(
         GT.tr("Cannot convert array to {0}", targetClass.getName()),
@@ -497,15 +563,8 @@ public final class ArrayCodec implements StreamingBinaryCodec, StreamingTextCode
               fastLeaf);
         }
       }
-      // Fall back to the legacy decoder for element types without a fast leaf.
-      CodecDepth.enter();
-      try {
-        BaseConnection conn = ctx.getConnection();
-        ArrayDecoding.PgArrayList arrayList = ArrayDecoding.buildArrayList(data, type.getDelimiter());
-        return (T) ArrayDecoding.readStringArray(1, arrayList.size(), type.getTypelem(), arrayList, conn);
-      } finally {
-        CodecDepth.exit();
-      }
+      // Element type has no matching fast leaf: decode through the shared codec walker.
+      return (T) decodeTextArray(data, type, ctx);
     }
     if (targetClass == String.class) {
       return (T) data;

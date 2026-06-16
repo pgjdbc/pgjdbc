@@ -50,6 +50,7 @@ import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 @Arrays
+@SuppressWarnings("deprecation") // exercises the deprecated ArrayEncoding directly
 public abstract class AbstractArraysTest<A> {
 
   private static final BaseConnection ENCODING_CONNECTION = new EncodingConnection(Encoding.getJVMEncoding("utf-8"));

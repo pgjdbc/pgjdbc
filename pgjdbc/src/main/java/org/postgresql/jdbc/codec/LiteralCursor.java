@@ -281,6 +281,17 @@ final class LiteralCursor {
     skipWhitespace();
   }
 
+  /**
+   * Captures the raw {@code {...}} sub-array literal at the cursor (leading whitespace skipped) and
+   * advances past it, so one row of a multi-dimensional array can be exposed as a nested literal.
+   */
+  String captureSubarray() throws SQLException {
+    skipWhitespace();
+    int subStart = pos;
+    skipSubarray();
+    return new String(src, subStart, pos - subStart);
+  }
+
   /** Skips one balanced {@code {...}} sub-array (quote-aware). */
   void skipSubarray() throws SQLException {
     expect('{');
