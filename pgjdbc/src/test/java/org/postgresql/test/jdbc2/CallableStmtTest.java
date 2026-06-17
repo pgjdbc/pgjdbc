@@ -18,6 +18,8 @@ import org.postgresql.test.TestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.math.BigDecimal;
 import java.sql.Array;
@@ -307,4 +309,50 @@ public class CallableStmtTest extends BaseTest4 {
     assertFalse(rs.next());
   }
 
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "{? = call testspg__insertInt(?)}",
+      "/* test comment */ {? = call testspg__insertInt(?)}",
+      "{/* test comment */ ? = call testspg__insertInt(?)}",
+      "{/* test comment */? = call testspg__insertInt(?)}",
+      "{ /* test comment */ ? = call testspg__insertInt(?)}",
+      "{ /* test comment */? = call testspg__insertInt(?)}",
+      "{ ? /* test comment */ = call testspg__insertInt(?)}",
+      "{ ? /* test comment */= call testspg__insertInt(?)}",
+      "{ ?/* test comment */ = call testspg__insertInt(?)}",
+      "{ ?/* test comment */= call testspg__insertInt(?)}",
+      "{ ? = /* test comment */ call testspg__insertInt(?)}",
+      "{ ? =/* test comment */ call testspg__insertInt(?)}",
+      "{ ? =/* test comment */call testspg__insertInt(?)}",
+      "{ ? = call /* test comment */ testspg__insertInt(?)}",
+      "{ ? = call/* test comment */ testspg__insertInt(?)}",
+      "{ ? = call /* test comment */testspg__insertInt(?)}",
+      "{ ? = call testspg__insertInt(?) /* test comment */}",
+      "{ ? = call testspg__insertInt(?)/* test comment */}",
+      "{ ? = call testspg__insertInt(?)}/* test comment */",
+      "{ ? = call testspg__insertInt(?)} /* test comment */",
+      "{ ? = call testspg__insertInt(?)} /* test comment */ ",
+      "{ ? = call testspg__insertInt(?)} -- test comment",
+      "{ -- test comment\n? = call testspg__insertInt(?)}",
+      "{ -- test comment\n ? = call testspg__insertInt(?)}",
+      "-- test comment\n {? = call testspg__insertInt(?)}",
+      "{? = call testspg__insertInt(?)}-- test comment",
+      "{? -- test comment \n = call testspg__insertInt(?)}",
+      "{? = -- test comment \n call testspg__insertInt(?)}",
+      "{? = call -- test comment \n testspg__insertInt(?)}",
+      "{? = call testspg__insertInt(?)-- test comment \n }",
+      "{? = call testspg__insertInt(-- test comment \n ?)}",
+      "{? = call testspg__insertInt(?-- test comment \n)}",
+      "{? = call testspg__insertInt(?)-- test comment \n}",
+      "{? = call testspg__insertInt-- test comment \n(?)}",
+  })
+  public void testCallableStatementWithComment(String sqlCall) throws SQLException {
+    CallableStatement call = con.prepareCall(sqlCall);
+    call.setInt(2, 100);
+    //this should not fail for statement with comment in various positions
+    call.registerOutParameter(1, java.sql.Types.INTEGER);
+    call.executeUpdate();
+    int result = call.getInt(1);
+    assertEquals(1, result);
+  }
 }
