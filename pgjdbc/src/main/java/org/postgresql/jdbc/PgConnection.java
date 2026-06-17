@@ -197,9 +197,12 @@ public class PgConnection implements BaseConnection {
   protected boolean forcebinary;
 
   /**
-   * Oids for which binary transfer should be disabled.
+   * Oids kept in text on each direction: the union of the legacy {@code binaryTransferDisable} set
+   * and the {@code disable} entries of {@code binarySend}/{@code binaryReceive}. Later opt-ins such
+   * as {@code addDataType} honour these so a disabled type is not silently re-enabled.
    */
-  private final Set<? extends Integer> binaryDisabledOids;
+  private final Set<Integer> binarySendDisabledOids;
+  private final Set<Integer> binaryReceiveDisabledOids;
 
   private int rsHoldability = ResultSet.CLOSE_CURSORS_AT_COMMIT;
   private int savepointId;
@@ -313,25 +316,36 @@ public class PgConnection implements BaseConnection {
       // "cached plan must not change result type" to callers.
       queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
 
-      // get oids that support binary transfer
-      Set<Integer> binaryOids = getBinaryEnabledOids(info);
-      // get oids that should be disabled from transfer
-      binaryDisabledOids = getBinaryDisabledOids(info);
-      // if there are any, remove them from the enabled ones
-      if (!binaryDisabledOids.isEmpty()) {
-        binaryOids.removeAll(binaryDisabledOids);
-      }
+      // Step 1: parse the legacy binaryTransfer* properties and lay them out into the
+      // per-direction send/receive sets (both identical at this point).
+      Set<Integer> legacyBinaryOids = getBinaryEnabledOids(info);
+      Set<? extends Integer> legacyDisabledOids = getBinaryDisabledOids(info);
+      legacyBinaryOids.removeAll(legacyDisabledOids);
+      Set<Integer> useBinarySendForOids = new HashSet<>(legacyBinaryOids);
+      Set<Integer> useBinaryReceiveForOids = new HashSet<>(legacyBinaryOids);
 
-      // split for receive and send for better control
-      Set<Integer> useBinarySendForOids = new HashSet<>(binaryOids);
-
-      Set<Integer> useBinaryReceiveForOids = new HashSet<>(binaryOids);
-
-      /*
-       * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
-       * whereas the binary transfer only supports date accuracy.
-       */
+      // Step 2: the driver never sends DATE in binary by default, because the text path keeps the
+      // sub-day precision that setDate needs for timestamp targets. Model it as date=disable on send.
       useBinarySendForOids.remove(Oid.DATE);
+
+      // The built-in defaults that binarySend/binaryReceive `auto` resets a type to. The send
+      // default follows the same DATE rule. Computed here, so the parser stays free of type hardcodes.
+      Set<Integer> sendDefaultOids = new HashSet<>(SUPPORTED_BINARY_OIDS);
+      sendDefaultOids.remove(Oid.DATE);
+      Set<Integer> receiveDefaultOids = SUPPORTED_BINARY_OIDS;
+
+      // Step 3: parse the new binarySend/binaryReceive properties and update the per-direction sets.
+      // These override the legacy properties for the types they mention; `auto` resets to the
+      // supplied default set. The disabled sets start from the legacy binaryTransferDisable set so
+      // that later opt-ins such as addDataType keep honouring every disabled type.
+      Set<Integer> sendDisabledOids = new HashSet<>(legacyDisabledOids);
+      Set<Integer> receiveDisabledOids = new HashSet<>(legacyDisabledOids);
+      applyBinaryDirectionOverrides(info, PGProperty.BINARY_SEND, useBinarySendForOids,
+          sendDefaultOids, true, sendDisabledOids);
+      applyBinaryDirectionOverrides(info, PGProperty.BINARY_RECEIVE, useBinaryReceiveForOids,
+          receiveDefaultOids, false, receiveDisabledOids);
+      binarySendDisabledOids = sendDisabledOids;
+      binaryReceiveDisabledOids = receiveDisabledOids;
 
       queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
       queryExecutor.setBinarySendOids(useBinarySendForOids);
@@ -516,6 +530,76 @@ public class PgConnection implements BaseConnection {
       oids.add(Oid.valueOf(oid));
     }
     return oids;
+  }
+
+  /**
+   * Applies a per-direction, per-type binary override property ({@code binarySend} or
+   * {@code binaryReceive}) on top of the set already computed from the legacy
+   * {@code binaryTransfer*} properties. Every mode overrides the legacy properties for that type
+   * and direction: {@code force} adds the OID, {@code disable} removes it, and {@code auto} resets
+   * the OID to {@code defaultOids} (the driver's built-in default for the direction, which may
+   * change between driver versions). The parser itself never special-cases a type; any default
+   * such as the send-side {@code DATE} exclusion is baked into {@code defaultOids} by the caller.
+   *
+   * @param info connection properties
+   * @param property {@link PGProperty#BINARY_SEND} or {@link PGProperty#BINARY_RECEIVE}
+   * @param oids set for the given direction, mutated in place
+   * @param defaultOids the driver's built-in default set for this direction, used by {@code auto}
+   * @param isSend whether this is the send direction ({@code force} is accepted for send only)
+   * @param disabledOut collects the OIDs set to {@code disable}, so later opt-ins such as
+   *     {@code addDataType} keep honouring them, like the legacy {@code binaryTransferDisable}
+   * @throws PSQLException if an OID, a mode, or the {@code oid:mode} syntax is invalid,
+   *     or if the same OID appears more than once
+   */
+  private static void applyBinaryDirectionOverrides(Properties info, PGProperty property,
+      Set<Integer> oids, Set<Integer> defaultOids, boolean isSend, Set<Integer> disabledOut)
+      throws PSQLException {
+    String spec = property.getOrDefault(info);
+    if (spec == null || spec.isEmpty()) {
+      return;
+    }
+    Set<Integer> seen = new HashSet<>();
+    StringTokenizer tokenizer = new StringTokenizer(spec, ",");
+    while (tokenizer.hasMoreTokens()) {
+      String entry = tokenizer.nextToken().trim();
+      int colon = entry.indexOf(':');
+      if (colon < 0) {
+        throw new PSQLException(
+            GT.tr("Invalid value \"{0}\" for property {1}: expected oid:mode entries.",
+                entry, property.getName()),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      int oid = Oid.valueOf(entry.substring(0, colon).trim());
+      String mode = entry.substring(colon + 1).trim();
+      if (!seen.add(oid)) {
+        throw new PSQLException(
+            GT.tr("Duplicate type \"{0}\" in property {1}.",
+                Oid.toString(oid), property.getName()),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+      if ("auto".equalsIgnoreCase(mode)) {
+        // Reset to the driver's built-in default for this direction, overriding any legacy
+        // binaryTransfer* setting — including binaryTransferDisable, so the type must also
+        // leave the disabled set (consulted by addDataType and other later opt-ins).
+        disabledOut.remove(oid);
+        if (defaultOids.contains(oid)) {
+          oids.add(oid);
+        } else {
+          oids.remove(oid);
+        }
+      } else if ("disable".equalsIgnoreCase(mode)) {
+        oids.remove(oid);
+        disabledOut.add(oid);
+      } else if (isSend && "force".equalsIgnoreCase(mode)) {
+        oids.add(oid);
+      } else {
+        throw new PSQLException(
+            GT.tr("Invalid mode \"{0}\" for type \"{1}\" in property {2}. Allowed modes are {3}.",
+                mode, Oid.toString(oid), property.getName(),
+                isSend ? "auto, force, disable" : "auto, disable"),
+            PSQLState.INVALID_PARAMETER_VALUE);
+      }
+    }
   }
 
   private static String oidsToString(Set<Integer> oids) {
@@ -840,11 +924,15 @@ public class PgConnection implements BaseConnection {
     if (PGBinaryObject.class.isAssignableFrom(klass) && getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       // try to get an oid for this type (will return 0 if the type does not exist in the database)
       int oid = typeCache.getPGType(type);
-      // check if oid is there and if it is not disabled for binary transfer
-      if (oid > 0 && !binaryDisabledOids.contains(oid)) {
-        // allow using binary transfer for receiving and sending of this type
-        queryExecutor.addBinaryReceiveOid(oid);
-        queryExecutor.addBinarySendOid(oid);
+      // check if oid is there and honour the per-direction disabled sets (which already fold in the
+      // legacy binaryTransferDisable set) so a disabled type is not silently re-enabled here
+      if (oid > 0) {
+        if (!binaryReceiveDisabledOids.contains(oid)) {
+          queryExecutor.addBinaryReceiveOid(oid);
+        }
+        if (!binarySendDisabledOids.contains(oid)) {
+          queryExecutor.addBinarySendOid(oid);
+        }
       }
     }
   }
