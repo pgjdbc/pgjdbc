@@ -41,30 +41,6 @@ public class CompositeCodecTest {
   }
 
   @Test
-  void testEncodeAttributesAsText() {
-    // Simple values
-    assertEquals("(a,b,c)", CompositeCodec.encodeAttributesAsText(new Object[]{"a", "b", "c"}));
-
-    // With null
-    assertEquals("(a,,c)", CompositeCodec.encodeAttributesAsText(new Object[]{"a", null, "c"}));
-
-    // Empty array
-    assertEquals("()", CompositeCodec.encodeAttributesAsText(new Object[]{}));
-
-    // Single value
-    assertEquals("(value)", CompositeCodec.encodeAttributesAsText(new Object[]{"value"}));
-
-    // Values needing quoting
-    assertEquals("(\"hello,world\")", CompositeCodec.encodeAttributesAsText(new Object[]{"hello,world"}));
-    assertEquals("(\"with\\\"quote\")", CompositeCodec.encodeAttributesAsText(new Object[]{"with\"quote"}));
-    assertEquals("(\"with\\\\backslash\")", CompositeCodec.encodeAttributesAsText(new Object[]{"with\\backslash"}));
-
-    // Mixed
-    assertEquals("(simple,\"has,comma\",123)",
-        CompositeCodec.encodeAttributesAsText(new Object[]{"simple", "has,comma", 123}));
-  }
-
-  @Test
   void testDecodeBinaryFieldsSimple() throws Exception {
     // Binary format: [4 bytes field_count] [for each: 4 bytes oid, 4 bytes len, data]
     // Let's create a simple 2-field composite

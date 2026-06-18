@@ -2852,8 +2852,10 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     if (isBinary(columnIndex)) {
-      // If the data is already binary then just return it
-      return value;
+      // The data is already binary; still honour maxFieldSize, which applies to
+      // char/varchar/binary columns regardless of transfer format. trimBytes is a
+      // no-op for non-trimmable types (e.g. a binary int4), so this is safe.
+      return trimBytes(columnIndex, value);
     }
     if (fields[columnIndex - 1].getOID() == Oid.BYTEA) {
       return trimBytes(columnIndex, PGbytea.toBytes(value));

@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.parallel.Isolated;
 
 import java.nio.ByteBuffer;
 import java.sql.Connection;
@@ -43,6 +44,11 @@ import java.util.concurrent.TimeoutException;
 
 @Replication
 @EnabledForServerVersionRange(gte = "9.4")
+// Creating a logical replication slot blocks until every concurrent transaction with an XID
+// finishes (it must export a consistent snapshot), so run this class alone rather than alongside
+// the parallel suite. The class-level timeout (covering setUp) caps how long that wait can stall.
+@Isolated
+@Timeout(value = 1, unit = TimeUnit.MINUTES)
 class LogicalReplicationTest {
   private static final String SLOT_NAME = "pgjdbc_logical_replication_slot";
 

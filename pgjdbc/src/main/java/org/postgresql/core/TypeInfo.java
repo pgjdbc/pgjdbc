@@ -17,6 +17,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Provides type information for PostgreSQL types.
@@ -69,6 +70,95 @@ public interface TypeInfo {
    * @throws SQLException if a database error occurs
    */
   List<PgField> getFields(int oid) throws SQLException;
+
+  /**
+   * Reports whether values of this type can be sent by the server in binary
+   * format, recursing into element, field and base types.
+   *
+   * <p>Unlike {@link PgType#hasOwnBinarySend()}, a container type is binary-send
+   * capable only when its contents are: {@code aclitem[]} has its own
+   * {@code array_send}, but {@code aclitem} has no send function, so the array
+   * is not binary-send capable. The anonymous {@code record} type is treated
+   * optimistically (its per-value field types are unknown from the catalog).</p>
+   *
+   * @param type the type to test
+   * @return true if the server can emit this type in binary
+   * @throws SQLException if a database error occurs while resolving component types
+   */
+  boolean backendCanSendBinary(PgType type) throws SQLException;
+
+  /**
+   * Reports whether values of this type can be received by the server in binary
+   * format (a binary parameter), recursing into element, field and base types.
+   *
+   * <p>The send-direction mirror of {@link #backendCanSendBinary(PgType)}: a type may
+   * have a binary output ({@code typsend}) but no binary input ({@code typreceive}),
+   * so the server could send it in binary yet reject a binary parameter of that type.
+   * Sending such a type in binary must therefore be refused — including recursively,
+   * for a custom composite or array whose element lacks {@code typreceive}. The
+   * anonymous {@code record} type is treated optimistically.</p>
+   *
+   * @param type the type to test
+   * @return true if the server can accept this type as a binary parameter
+   * @throws SQLException if a database error occurs while resolving component types
+   */
+  boolean backendCanReceiveBinary(PgType type) throws SQLException;
+
+  /**
+   * Reports whether the driver has a binary decoder for this type, recursing into
+   * element, field and base types.
+   *
+   * <p>Companion to {@link #backendCanSendBinary(PgType)}: a type may be binary-sendable
+   * by the server yet have no driver-side binary codec (for example
+   * {@code circle}/{@code line}/{@code lseg}/{@code path}, whose codec is
+   * text-only), in which case requesting it in binary would decode to {@code null}.
+   * An unmapped type still counts, because {@code FallbackCodec} is a binary codec
+   * and yields {@code PGUnknownBinary}. A column is received in binary only when
+   * both this and {@link #backendCanSendBinary(PgType)} hold.</p>
+   *
+   * @param type the type to test
+   * @return true if the driver can binary-decode this type
+   * @throws SQLException if a database error occurs while resolving component types
+   */
+  boolean driverCanReceiveBinary(PgType type) throws SQLException;
+
+  /**
+   * Sets the OIDs the connection creator opted out of binary receive
+   * ({@code binaryTransferDisable}). The opt-out is applied recursively by
+   * {@link #isBinaryReceiveDisabled(PgType)} and {@link #shouldReceiveBinary(int)}.
+   *
+   * @param oids the opted-out OIDs
+   */
+  void setBinaryReceiveDisabledOids(Set<? extends Integer> oids);
+
+  /**
+   * Reports whether binary receive was opted out for this type, recursing into
+   * element, field and base types: because there is no per-field transfer format,
+   * a disabled type nested in an otherwise binary column would still be decoded in
+   * binary, so the whole column must stay in text.
+   *
+   * @param type the type to test
+   * @return true if this type, or any type it contains, is in the disabled set
+   * @throws SQLException if a database error occurs while resolving component types
+   */
+  boolean isBinaryReceiveDisabled(PgType type) throws SQLException;
+
+  /**
+   * Cache-only variant of {@link #backendCanSendBinary(PgType)} for the bind-time result
+   * format decision, which runs while a {@code Bind} message is being composed and
+   * therefore must not issue a catalog query (that would corrupt the protocol
+   * stream).
+   *
+   * <p>Returns the memoized capability when it is already known (warmed lazily by
+   * {@link PgType}/codec resolution when a result set materializes), computes it
+   * inline for query-free built-in types, and otherwise defers to {@code false}
+   * (text) rather than loading the type. The anonymous {@code record} types are
+   * treated optimistically so a forced-binary first execution still uses binary.</p>
+   *
+   * @param oid the result column type OID
+   * @return true if the column should be requested in binary, without any catalog I/O
+   */
+  boolean shouldReceiveBinary(int oid);
 
   /**
    * Registers a custom PGobject subclass for a PostgreSQL type.

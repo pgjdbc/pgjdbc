@@ -47,6 +47,13 @@ tasks.configureEach<Test> {
             passProperty(e)
         }
     }
+    // Forward pgjdbc.* Gradle project properties (-Ppgjdbc.foo=bar) to the test JVM as well,
+    // so tests gated on them can be enabled without an explicit -D.
+    for ((name, value) in project.properties) {
+        if (name.startsWith("pgjdbc.") && value != null) {
+            systemProperty(name, value.toString())
+        }
+    }
     for (p in listOf("test.url.PGHOST", "test.url.PGPORT", "test.url.PGDBNAME", "user", "password",
         "privilegedUser", "privilegedPassword",
         "simpleProtocolOnly", "enable_ssl_tests",

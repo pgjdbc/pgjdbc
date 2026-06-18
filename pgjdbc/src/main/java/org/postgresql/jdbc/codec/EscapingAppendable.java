@@ -10,8 +10,15 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 
 /**
- * {@link Appendable} wrapper that emits characters into a delegate, prepending
- * a backslash to any {@code "} or {@code \\} character.
+ * {@link Appendable} wrapper that emits characters into a delegate, escaping any
+ * {@code "} or {@code \\} character in one of the two PostgreSQL container styles.
+ *
+ * <p>{@code array_out} escapes both characters with a leading backslash
+ * ({@code "} → {@code \"}, {@code \\} → {@code \\\\}); {@code record_out} doubles
+ * them instead ({@code "} → {@code ""}, {@code \\} → {@code \\\\}). The default
+ * constructor keeps the array style; pass {@code recordStyle = true} for composite
+ * fields. {@link LiteralCursor} accepts both on decode, so this only matters when
+ * the produced text must match the server byte-for-byte.</p>
  *
  * <p>This wrapper does not add the surrounding quotes for an array element or
  * composite field; callers are responsible for writing those quotes. The
@@ -22,9 +29,15 @@ import java.io.IOException;
 public final class EscapingAppendable implements Appendable {
 
   private final Appendable delegate;
+  private final boolean recordStyle;
 
   public EscapingAppendable(Appendable delegate) {
+    this(delegate, false);
+  }
+
+  public EscapingAppendable(Appendable delegate, boolean recordStyle) {
     this.delegate = delegate;
+    this.recordStyle = recordStyle;
   }
 
   @Override
@@ -49,7 +62,8 @@ public final class EscapingAppendable implements Appendable {
   @Override
   public Appendable append(char c) throws IOException {
     if (c == '"' || c == '\\') {
-      delegate.append('\\');
+      // record_out doubles the character; array_out prefixes a backslash.
+      delegate.append(recordStyle ? c : '\\');
     }
     delegate.append(c);
     return this;
