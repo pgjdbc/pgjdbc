@@ -83,6 +83,9 @@ public class ArrayWalkerCatchAllTest {
     // A DOMAIN reports sqlType DISTINCT, so its array takes the generic Object[] catch-all of the
     // codec walker (of the base-codec value), matching the legacy MappedTypeObjectArrayDecoder shape.
     // It never reaches the legacy ArrayDecoding fall-back. This holds whatever the base type is.
+    // Arrays of domains were only added in PostgreSQL 11; earlier servers reject `domain[]`.
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v11),
+        "arrays of domains require PostgreSQL 11+");
     TestUtil.createDomain(conn, "test_dom_vc", "varchar");
     TestUtil.createDomain(conn, "test_dom_int", "integer");
     try (Statement stmt = conn.createStatement()) {
