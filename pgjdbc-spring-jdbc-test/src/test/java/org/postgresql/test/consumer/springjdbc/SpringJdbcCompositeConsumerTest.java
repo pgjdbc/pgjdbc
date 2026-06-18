@@ -159,8 +159,9 @@ public class SpringJdbcCompositeConsumerTest extends BaseTest4 {
     stmt.execute("DROP TABLE IF EXISTS spring_customer_records");
     stmt.execute("DROP TYPE IF EXISTS spring_customer_record CASCADE");
     stmt.execute("DROP TYPE IF EXISTS spring_person_name CASCADE");
-    stmt.execute("DROP TABLE IF EXISTS " + QUOTED_TABLE);
-    stmt.execute("DROP TYPE IF EXISTS " + QUOTED_ADDRESS_TYPE + " CASCADE");
+    // DROP TABLE/TYPE IF EXISTS schema.name still errors on PG 9.1 when the
+    // schema itself is missing, so let DROP SCHEMA ... CASCADE remove the
+    // qualified table, type and function along with the schema.
     stmt.execute("DROP SCHEMA IF EXISTS " + QUOTED_SCHEMA + " CASCADE");
   }
 
