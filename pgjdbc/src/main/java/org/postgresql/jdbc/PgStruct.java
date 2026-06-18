@@ -29,6 +29,7 @@ import java.util.Map;
 public class PgStruct extends org.postgresql.util.PGobject implements Struct {
 
   private final String typeName;
+  private final @Nullable PgType pgType;
   private final @Nullable Object[] attributes;
   private final @Nullable BaseConnection connection;
 
@@ -49,9 +50,32 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
    * @param attributes the attribute values
    * @param connection the connection (used for type mapping)
    */
-  @SuppressWarnings("method.invocation")
   public PgStruct(String typeName, @Nullable Object[] attributes, @Nullable BaseConnection connection) {
+    this(typeName, null, attributes, connection);
+  }
+
+  /**
+   * Creates a new PgStruct that carries the resolved {@link PgType}.
+   *
+   * <p>For an anonymous record the {@code pgType} carries field types synthesized
+   * from the binary wire (see
+   * {@link org.postgresql.jdbc.codec.CompositeCodec}), so {@link #getValue()} can
+   * rebuild the text literal without a catalog lookup that would find no
+   * attributes. For a named composite it is simply the cached type.</p>
+   *
+   * @param pgType the resolved type, whose fields drive text reconstruction
+   * @param attributes the attribute values
+   * @param connection the connection (used for type mapping)
+   */
+  public PgStruct(PgType pgType, @Nullable Object[] attributes, @Nullable BaseConnection connection) {
+    this(pgType.getFullName(), pgType, attributes, connection);
+  }
+
+  @SuppressWarnings("method.invocation")
+  private PgStruct(String typeName, @Nullable PgType pgType, @Nullable Object[] attributes,
+      @Nullable BaseConnection connection) {
     this.typeName = typeName;
+    this.pgType = pgType;
     this.attributes = attributes.clone();
     this.connection = connection;
     // Also satisfy the PGobject contract — callers that expect getObject(int)
@@ -101,9 +125,14 @@ public class PgStruct extends org.postgresql.util.PGobject implements Struct {
       return value;
     }
     try {
-      PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typeName);
+      // The carried type already holds the right fields (synthesized from the
+      // binary wire for an anonymous record); fall back to a catalog lookup by
+      // name only for structs created without one (e.g. createStruct).
+      PgType type = pgType != null
+          ? pgType
+          : connection.getTypeInfo().getPgTypeByPgName(typeName);
       CodecContext ctx = connection.getCodecContext();
-      String text = CompositeCodec.encodeAttributesAsText(attributes, pgType, ctx);
+      String text = CompositeCodec.encodeAttributesAsText(attributes, type, ctx);
       super.setValue(text);
       return text;
     } catch (SQLException e) {

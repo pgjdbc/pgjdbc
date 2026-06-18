@@ -45,11 +45,10 @@ public class NestedRecordBinaryTransferTest extends BaseTest4 {
   @Override
   protected void updateProperties(Properties props) {
     super.updateProperties(props);
-    // Force binary on the first execute (sends an explicit Describe before
-    // the first Bind) and opt the anonymous record OID (2249) into the
-    // binary-receive set, which is empty for record types by default.
+    // Force binary on the first execute (sends an explicit Describe before the
+    // first Bind). The anonymous record OID (2249) is part of the default
+    // binary-receive set, so no explicit BINARY_TRANSFER_ENABLE is needed.
     PGProperty.PREPARE_THRESHOLD.set(props, -1);
-    PGProperty.BINARY_TRANSFER_ENABLE.set(props, Oid.RECORD);
   }
 
   @Override
@@ -90,6 +89,55 @@ public class NestedRecordBinaryTransferTest extends BaseTest4 {
   }
 
   /**
+   * Verifies that {@code array[row(...)]} — an array whose element type is the
+   * anonymous record OID (2249), reported by the server as {@code record[]} —
+   * is received in binary without an explicit opt-in, decoded element-by-element
+   * into {@link Struct} values, and that {@link Struct#getAttributes()} recovers
+   * the field types from the self-describing wire format.
+   */
+  @Test
+  public void arrayOfRowSucceedsInBinary() throws SQLException {
+    try (PreparedStatement ps =
+             con.prepareStatement("SELECT array[row(1, 2), row(3, 4)]");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next(), "row should be returned");
+      assertEquals("_record", rs.getMetaData().getColumnTypeName(1), "outer column type");
+
+      Object[] elements = (Object[]) rs.getArray(1).getArray();
+      assertEquals(2, elements.length, "array length");
+
+      Struct first = assertInstanceOf(Struct.class, elements[0],
+          "binary record element should decode into java.sql.Struct");
+      Object[] firstAttrs = first.getAttributes();
+      assertEquals(2, firstAttrs.length, "row(1, 2) attribute count");
+      assertEquals(1, ((Number) firstAttrs[0]).intValue(), "row(1, 2) first attribute");
+      assertEquals(2, ((Number) firstAttrs[1]).intValue(), "row(1, 2) second attribute");
+
+      Struct second = assertInstanceOf(Struct.class, elements[1], "second element");
+      assertEquals(3, ((Number) second.getAttributes()[0]).intValue(), "row(3, 4) first attribute");
+      assertEquals(4, ((Number) second.getAttributes()[1]).intValue(), "row(3, 4) second attribute");
+    }
+  }
+
+  /**
+   * Verifies that a binary anonymous record rebuilds its {@code record_out} text
+   * literal from the wire-synthesized field types, including {@code record_out}
+   * quote doubling for values that contain commas and quotes.
+   */
+  @Test
+  public void anonymousRecordRebuildsTextLiteral() throws SQLException {
+    // Cast the literal to text so the record field carries a concrete OID
+    // (an uncast literal is the typeless 'unknown' pseudo-type, which has no
+    // binary codec and would decode to raw bytes).
+    try (PreparedStatement ps = con.prepareStatement("SELECT row(1, 'a,\"b'::text)");
+         ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next(), "row should be returned");
+      // record_out doubles the embedded quote: (1,"a,""b").
+      assertEquals("(1,\"a,\"\"b\")", rs.getString(1), "rebuilt record literal");
+    }
+  }
+
+  /**
    * Sanity check: without binary opt-in for the record OID, the same query
    * goes through {@code record_out} on the server and overflows the 1 GiB
    * stringinfo buffer. This proves {@link #nestedRowSucceedsInBinary()}
@@ -98,7 +146,6 @@ public class NestedRecordBinaryTransferTest extends BaseTest4 {
   @Test
   public void nestedRowFailsInText() throws Exception {
     Properties textProps = new Properties();
-    TestUtil.initDriver();
     // Do NOT inherit BINARY_TRANSFER_ENABLE / forceBinary from updateProperties.
     // Explicitly opt the record OID out so binary cannot kick in even after
     // server-side prepare.

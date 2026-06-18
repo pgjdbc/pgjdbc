@@ -326,6 +326,8 @@ public class PgConnection implements BaseConnection {
       // "cached plan must not change result type" to callers.
       queryExecutor.setFlushCacheOnDdl(PGProperty.FLUSH_CACHE_ON_DDL.getBoolean(info));
 
+      boolean binaryTransfer = PGProperty.BINARY_TRANSFER.getBoolean(info);
+
       // get oids that support binary transfer
       Set<Integer> binaryOids = getBinaryEnabledOids(info);
       // get oids that should be disabled from transfer
@@ -335,23 +337,28 @@ public class PgConnection implements BaseConnection {
         binaryOids.removeAll(binaryDisabledOids);
       }
 
-      // split for receive and send for better control
+      // SEND still uses the explicit allow-list (its migration to per-value
+      // canEncodeBinary is a separate step).
       Set<Integer> useBinarySendForOids = new HashSet<>(binaryOids);
-
-      Set<Integer> useBinaryReceiveForOids = new HashSet<>(binaryOids);
-
       /*
        * Does not pass unit tests because unit tests expect setDate to have millisecond accuracy
        * whereas the binary transfer only supports date accuracy.
        */
       useBinarySendForOids.remove(Oid.DATE);
-
-      queryExecutor.setBinaryReceiveOids(useBinaryReceiveForOids);
       queryExecutor.setBinarySendOids(useBinarySendForOids);
+
+      // RECEIVE is decided per column by the type's catalog capability
+      // (TypeInfo.shouldReceiveBinary), not the static allow-list. Only explicit
+      // binaryTransferEnable oids force binary on; the recursive binaryTransferDisable
+      // opt-out is applied by the TypeInfo (set below); the TypeInfo enabling the
+      // capability fallback is injected below, and only when binaryTransfer is on.
+      Set<Integer> explicitReceiveOids = getExplicitBinaryOids(info);
+      explicitReceiveOids.removeAll(binaryDisabledOids);
+      queryExecutor.setBinaryReceiveOids(explicitReceiveOids);
 
       if (LOGGER.isLoggable(Level.FINEST)) {
         LOGGER.log(Level.FINEST, "    types using binary send = {0}", oidsToString(useBinarySendForOids));
-        LOGGER.log(Level.FINEST, "    types using binary receive = {0}", oidsToString(useBinaryReceiveForOids));
+        LOGGER.log(Level.FINEST, "    types forcing binary receive = {0}", oidsToString(explicitReceiveOids));
         LOGGER.log(Level.FINEST, "    integer date/time = {0}", queryExecutor.getIntegerDateTimes());
       }
 
@@ -390,6 +397,17 @@ public class PgConnection implements BaseConnection {
       @SuppressWarnings("argument")
       TypeInfo typeCache = createTypeInfo(this, unknownLength);
       this.typeCache = typeCache;
+
+      // binaryTransferDisable is applied recursively (a disabled element/field taints
+      // the whole column), so the opt-out lives in the TypeInfo with the type tree.
+      typeCache.setBinaryReceiveDisabledOids(binaryDisabledOids);
+
+      // Enable the catalog capability fallback for result columns only when
+      // binaryTransfer is on. Without it the executor still honours the explicit
+      // binaryTransferEnable oids set above, matching binaryTransfer=false.
+      if (binaryTransfer) {
+        queryExecutor.setTypeInfo(typeCache);
+      }
 
       // Initialize codec infrastructure. Share the TypeInfoCache's
       // JavaTypeRegistry so addDataType updates apply to codec-context lookups
@@ -507,6 +525,14 @@ public class PgConnection implements BaseConnection {
         Oid.JSONB,
         Oid.JSON_ARRAY,
         Oid.JSONB_ARRAY,
+        // Anonymous and named composites decode through CompositeCodec, which reads each field's
+        // OID from the self-describing binary record wire format; record[]/composite[] walk through
+        // the array codec (GenericArrayLeafCodec). A PgStruct from a binary anonymous record carries
+        // the field types synthesized from the wire, so getString()/getValue() can rebuild the
+        // record_out literal without catalog fields for OID 2249. Binary also avoids record_out's
+        // exponential text quoting, so it is the safer default for deeply nested row(...) values.
+        Oid.RECORD,
+        Oid.RECORD_ARRAY,
         Oid.UUID));
   }
 
@@ -526,6 +552,25 @@ public class PgConnection implements BaseConnection {
       binaryOids.addAll(SUPPORTED_BINARY_OIDS);
     }
     // add all oids which are enabled for binary transfer by the creator of the connection
+    String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
+    if (oids != null) {
+      binaryOids.addAll(getOidSet(oids));
+    }
+    return binaryOids;
+  }
+
+  /**
+   * Gets the oids the connection creator explicitly enabled via
+   * {@code binaryTransferEnable}, with no built-in {@link #SUPPORTED_BINARY_OIDS}
+   * defaults. Used for the receive path, where the default is decided per column
+   * by the type's catalog binary-send capability.
+   *
+   * @param info properties
+   * @return the explicitly enabled oids (possibly empty)
+   * @throws PSQLException if any oid is not valid
+   */
+  private static Set<Integer> getExplicitBinaryOids(Properties info) throws PSQLException {
+    Set<Integer> binaryOids = new HashSet<>();
     String oids = PGProperty.BINARY_TRANSFER_ENABLE.getOrDefault(info);
     if (oids != null) {
       binaryOids.addAll(getOidSet(oids));

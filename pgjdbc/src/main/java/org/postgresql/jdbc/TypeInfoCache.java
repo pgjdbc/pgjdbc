@@ -23,11 +23,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
@@ -52,7 +55,7 @@ public class TypeInfoCache implements TypeInfo {
   private static final Logger LOGGER = Logger.getLogger(TypeInfoCache.class.getName());
 
   public static final String PG_TYPE_FIELDS =
-      "t.oid as typoid, t.typname, t.typcategory, t.typtype, t.typtypmod, t.typelem, t.typarray, t.typbasetype, t.typdelim, tn.nspname as typnspname, pg_catalog.format_type(t.oid, null) as typfullname";
+      "t.oid as typoid, t.typname, t.typcategory, t.typtype, t.typtypmod, t.typelem, t.typarray, t.typbasetype, t.typdelim, t.typsend, t.typreceive, tn.nspname as typnspname, pg_catalog.format_type(t.oid, null) as typfullname";
 
   public static final String PG_TYPE_TABLE =
       "pg_catalog.pg_type t JOIN pg_catalog.pg_namespace tn ON (t.typnamespace = tn.oid)";
@@ -93,98 +96,98 @@ public class TypeInfoCache implements TypeInfo {
   private @Nullable PreparedStatement findTypeVisibility;
   private final ResourceLock lock = new ResourceLock();
 
+  // Memoized result of backendCanSendBinary(), keyed by type OID. Recursion into
+  // element/field/base types makes the first computation per OID non-trivial.
+  private final Map<Integer, Boolean> binarySendCapable = new ConcurrentHashMap<>();
+
+  // Memoized result of backendCanReceiveBinary(), keyed by type OID. Mirrors
+  // binarySendCapable for the send direction: a type may have a binary output
+  // (typsend) but no binary input (typreceive), so the server could send it in
+  // binary yet reject a binary parameter of that type.
+  private final Map<Integer, Boolean> binaryReceiveServerCapable = new ConcurrentHashMap<>();
+
+  // Memoized result of driverCanReceiveBinary(), keyed by type OID. Mirrors
+  // binarySendCapable: the server may be able to send a type in binary while the
+  // driver has no binary decoder for it (e.g. circle/line/lseg/path).
+  private final Map<Integer, Boolean> binaryReceiveCodecCapable = new ConcurrentHashMap<>();
+
+  // OIDs the connection creator opted out of binary receive (binaryTransferDisable).
+  // Effectively immutable once the connection is set up.
+  private volatile Set<Integer> binaryReceiveDisabledOids = Collections.emptySet();
+
+  // Memoized result of isBinaryReceiveDisabled(): an OID is tainted when it, or any
+  // element/field/base type it contains, is in binaryReceiveDisabledOids.
+  private final Map<Integer, Boolean> binaryReceiveDisabled = new ConcurrentHashMap<>();
+
   // Note: this is generated with org.postgresql.jdbc.TypeInfoCacheTest.generateBaseTypes
-  // Constructor: PgType(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype)
+  // Constructor: PgType(typeName, fullName, oid, typtype, typcategory, typtypmod, typsend, typreceive, typelem, arrayOid, typbasetype)
   private static final PgType[] BASE_TYPES = {
-      // bit types (typcategory='V' bit-string)
-      new PgType(new ObjectName("pg_catalog", "bit"), "bit", Oid.BIT, 'b', 'V', -1, Oid.UNSPECIFIED, Oid.BIT_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_bit"), "bit[]", Oid.BIT_ARRAY, 'b', 'A', -1, Oid.BIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // boolean (typcategory='B')
-      new PgType(new ObjectName("pg_catalog", "bool"), "boolean", Oid.BOOL, 'b', 'B', -1, Oid.UNSPECIFIED, Oid.BOOL_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_bool"), "boolean[]", Oid.BOOL_ARRAY, 'b', 'A', -1, Oid.BOOL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // geometric types (typcategory='G')
-      new PgType(new ObjectName("pg_catalog", "box"), "box", Oid.BOX, 'b', 'G', -1, Oid.POINT, Oid.BOX_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_box"), "box[]", Oid.BOX_ARRAY, 'b', 'A', -1, Oid.BOX, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // string types (typcategory='S')
-      new PgType(new ObjectName("pg_catalog", "bpchar"), "character", Oid.BPCHAR, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.BPCHAR_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_bpchar"), "character[]", Oid.BPCHAR_ARRAY, 'b', 'A', -1, Oid.BPCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // user-defined types (typcategory='U')
-      new PgType(new ObjectName("pg_catalog", "bytea"), "bytea", Oid.BYTEA, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.BYTEA_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_bytea"), "bytea[]", Oid.BYTEA_ARRAY, 'b', 'A', -1, Oid.BYTEA, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // geometric types (typcategory='G')
-      new PgType(new ObjectName("pg_catalog", "circle"), "circle", Oid.CIRCLE, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.CIRCLE_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_circle"), "circle[]", Oid.CIRCLE_ARRAY, 'b', 'A', -1, Oid.CIRCLE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // date/time types (typcategory='D')
-      new PgType(new ObjectName("pg_catalog", "date"), "date", Oid.DATE, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.DATE_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_date"), "date[]", Oid.DATE_ARRAY, 'b', 'A', -1, Oid.DATE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // numeric types (typcategory='N')
-      new PgType(new ObjectName("pg_catalog", "float4"), "real", Oid.FLOAT4, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.FLOAT4_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_float4"), "real[]", Oid.FLOAT4_ARRAY, 'b', 'A', -1, Oid.FLOAT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "float8"), "double precision", Oid.FLOAT8, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.FLOAT8_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_float8"), "double precision[]", Oid.FLOAT8_ARRAY, 'b', 'A', -1, Oid.FLOAT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // numeric types (typcategory='N')
-      new PgType(new ObjectName("pg_catalog", "int2"), "smallint", Oid.INT2, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT2_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_int2"), "smallint[]", Oid.INT2_ARRAY, 'b', 'A', -1, Oid.INT2, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "int4"), "integer", Oid.INT4, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT4_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_int4"), "integer[]", Oid.INT4_ARRAY, 'b', 'A', -1, Oid.INT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "int8"), "bigint", Oid.INT8, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.INT8_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_int8"), "bigint[]", Oid.INT8_ARRAY, 'b', 'A', -1, Oid.INT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // timespan types (typcategory='T')
-      new PgType(new ObjectName("pg_catalog", "interval"), "interval", Oid.INTERVAL, 'b', 'T', -1, Oid.UNSPECIFIED, Oid.INTERVAL_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_interval"), "interval[]", Oid.INTERVAL_ARRAY, 'b', 'A', -1, Oid.INTERVAL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // user-defined types (typcategory='U')
-      new PgType(new ObjectName("pg_catalog", "json"), "json", Oid.JSON, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.JSON_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_json"), "json[]", Oid.JSON_ARRAY, 'b', 'A', -1, Oid.JSON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // geometric types (typcategory='G')
-      new PgType(new ObjectName("pg_catalog", "line"), "line", Oid.LINE, 'b', 'G', -1, Oid.FLOAT8, Oid.LINE_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_line"), "line[]", Oid.LINE_ARRAY, 'b', 'A', -1, Oid.LINE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "lseg"), "lseg", Oid.LSEG, 'b', 'G', -1, Oid.POINT, Oid.LSEG_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_lseg"), "lseg[]", Oid.LSEG_ARRAY, 'b', 'A', -1, Oid.LSEG, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // money (typcategory='N' numeric) - special case, PG actually uses typcategory 'N' but pgjdbc maps it to DOUBLE
-      new PgType(new ObjectName("pg_catalog", "money"), "money", Oid.MONEY, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.MONEY_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_money"), "money[]", Oid.MONEY_ARRAY, 'b', 'A', -1, Oid.MONEY, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // string types (typcategory='S')
-      new PgType(new ObjectName("pg_catalog", "name"), "name", Oid.NAME, 'b', 'S', -1, Oid.CHAR, Oid.NAME_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_name"), "name[]", Oid.NAME_ARRAY, 'b', 'A', -1, Oid.NAME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // numeric types (typcategory='N')
-      new PgType(new ObjectName("pg_catalog", "numeric"), "numeric", Oid.NUMERIC, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.NUMERIC_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_numeric"), "numeric[]", Oid.NUMERIC_ARRAY, 'b', 'A', -1, Oid.NUMERIC, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "oid"), "oid", Oid.OID, 'b', 'N', -1, Oid.UNSPECIFIED, Oid.OID_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_oid"), "oid[]", Oid.OID_ARRAY, 'b', 'A', -1, Oid.OID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // geometric types (typcategory='G')
-      new PgType(new ObjectName("pg_catalog", "path"), "path", Oid.PATH, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.PATH_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_path"), "path[]", Oid.PATH_ARRAY, 'b', 'A', -1, Oid.PATH, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "point"), "point", Oid.POINT, 'b', 'G', -1, Oid.FLOAT8, Oid.POINT_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_point"), "point[]", Oid.POINT_ARRAY, 'b', 'A', -1, Oid.POINT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "polygon"), "polygon", Oid.POLYGON, 'b', 'G', -1, Oid.UNSPECIFIED, Oid.POLYGON_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_polygon"), "polygon[]", Oid.POLYGON_ARRAY, 'b', 'A', -1, Oid.POLYGON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // user-defined types (typcategory='U')
-      new PgType(new ObjectName("pg_catalog", "refcursor"), "refcursor", Oid.REFCURSOR, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.REFCURSOR_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_refcursor"), "refcursor[]", Oid.REFCURSOR_ARRAY, 'b', 'A', -1, Oid.REFCURSOR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // string types (typcategory='S')
-      new PgType(new ObjectName("pg_catalog", "text"), "text", Oid.TEXT, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.TEXT_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_text"), "text[]", Oid.TEXT_ARRAY, 'b', 'A', -1, Oid.TEXT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // date/time types (typcategory='D')
-      new PgType(new ObjectName("pg_catalog", "time"), "time without time zone", Oid.TIME, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIME_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_time"), "time without time zone[]", Oid.TIME_ARRAY, 'b', 'A', -1, Oid.TIME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "timestamp"), "timestamp without time zone", Oid.TIMESTAMP, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMESTAMP_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_timestamp"), "timestamp without time zone[]", Oid.TIMESTAMP_ARRAY, 'b', 'A', -1, Oid.TIMESTAMP, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "timestamptz"), "timestamp with time zone", Oid.TIMESTAMPTZ, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMESTAMPTZ_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_timestamptz"), "timestamp with time zone[]", Oid.TIMESTAMPTZ_ARRAY, 'b', 'A', -1, Oid.TIMESTAMPTZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "timetz"), "time with time zone", Oid.TIMETZ, 'b', 'D', -1, Oid.UNSPECIFIED, Oid.TIMETZ_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_timetz"), "time with time zone[]", Oid.TIMETZ_ARRAY, 'b', 'A', -1, Oid.TIMETZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // user-defined types (typcategory='U')
-      new PgType(new ObjectName("pg_catalog", "uuid"), "uuid", Oid.UUID, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.UUID_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_uuid"), "uuid[]", Oid.UUID_ARRAY, 'b', 'A', -1, Oid.UUID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // bit-string types (typcategory='V')
-      new PgType(new ObjectName("pg_catalog", "varbit"), "bit varying", Oid.VARBIT, 'b', 'V', -1, Oid.UNSPECIFIED, Oid.VARBIT_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_varbit"), "bit varying[]", Oid.VARBIT_ARRAY, 'b', 'A', -1, Oid.VARBIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // string types (typcategory='S')
-      new PgType(new ObjectName("pg_catalog", "varchar"), "character varying", Oid.VARCHAR, 'b', 'S', -1, Oid.UNSPECIFIED, Oid.VARCHAR_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_varchar"), "character varying[]", Oid.VARCHAR_ARRAY, 'b', 'A', -1, Oid.VARCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
-      // user-defined types (typcategory='U')
-      new PgType(new ObjectName("pg_catalog", "xml"), "xml", Oid.XML, 'b', 'U', -1, Oid.UNSPECIFIED, Oid.XML_ARRAY, Oid.UNSPECIFIED),
-      new PgType(new ObjectName("pg_catalog", "_xml"), "xml[]", Oid.XML_ARRAY, 'b', 'A', -1, Oid.XML, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "bit"), "bit", Oid.BIT, 'b', 'V', -1, "bit_send", "bit_recv", Oid.UNSPECIFIED, Oid.BIT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bit"), "bit[]", Oid.BIT_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "bool"), "boolean", Oid.BOOL, 'b', 'B', -1, "boolsend", "boolrecv", Oid.UNSPECIFIED, Oid.BOOL_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bool"), "boolean[]", Oid.BOOL_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BOOL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "box"), "box", Oid.BOX, 'b', 'G', -1, "box_send", "box_recv", Oid.POINT, Oid.BOX_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_box"), "box[]", Oid.BOX_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BOX, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "bpchar"), "character", Oid.BPCHAR, 'b', 'S', -1, "bpcharsend", "bpcharrecv", Oid.UNSPECIFIED, Oid.BPCHAR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bpchar"), "character[]", Oid.BPCHAR_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BPCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "bytea"), "bytea", Oid.BYTEA, 'b', 'U', -1, "byteasend", "bytearecv", Oid.UNSPECIFIED, Oid.BYTEA_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_bytea"), "bytea[]", Oid.BYTEA_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.BYTEA, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "circle"), "circle", Oid.CIRCLE, 'b', 'G', -1, "circle_send", "circle_recv", Oid.UNSPECIFIED, Oid.CIRCLE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_circle"), "circle[]", Oid.CIRCLE_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.CIRCLE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "date"), "date", Oid.DATE, 'b', 'D', -1, "date_send", "date_recv", Oid.UNSPECIFIED, Oid.DATE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_date"), "date[]", Oid.DATE_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.DATE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "float4"), "real", Oid.FLOAT4, 'b', 'N', -1, "float4send", "float4recv", Oid.UNSPECIFIED, Oid.FLOAT4_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_float4"), "real[]", Oid.FLOAT4_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.FLOAT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "float8"), "double precision", Oid.FLOAT8, 'b', 'N', -1, "float8send", "float8recv", Oid.UNSPECIFIED, Oid.FLOAT8_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_float8"), "double precision[]", Oid.FLOAT8_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.FLOAT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "int2"), "smallint", Oid.INT2, 'b', 'N', -1, "int2send", "int2recv", Oid.UNSPECIFIED, Oid.INT2_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int2"), "smallint[]", Oid.INT2_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.INT2, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "int4"), "integer", Oid.INT4, 'b', 'N', -1, "int4send", "int4recv", Oid.UNSPECIFIED, Oid.INT4_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int4"), "integer[]", Oid.INT4_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.INT4, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "int8"), "bigint", Oid.INT8, 'b', 'N', -1, "int8send", "int8recv", Oid.UNSPECIFIED, Oid.INT8_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_int8"), "bigint[]", Oid.INT8_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.INT8, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "interval"), "interval", Oid.INTERVAL, 'b', 'T', -1, "interval_send", "interval_recv", Oid.UNSPECIFIED, Oid.INTERVAL_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_interval"), "interval[]", Oid.INTERVAL_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.INTERVAL, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "json"), "json", Oid.JSON, 'b', 'U', -1, "json_send", "json_recv", Oid.UNSPECIFIED, Oid.JSON_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_json"), "json[]", Oid.JSON_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.JSON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "line"), "line", Oid.LINE, 'b', 'G', -1, "line_send", "line_recv", Oid.FLOAT8, Oid.LINE_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_line"), "line[]", Oid.LINE_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.LINE, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "lseg"), "lseg", Oid.LSEG, 'b', 'G', -1, "lseg_send", "lseg_recv", Oid.POINT, Oid.LSEG_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_lseg"), "lseg[]", Oid.LSEG_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.LSEG, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "money"), "money", Oid.MONEY, 'b', 'N', -1, "cash_send", "cash_recv", Oid.UNSPECIFIED, Oid.MONEY_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_money"), "money[]", Oid.MONEY_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.MONEY, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "name"), "name", Oid.NAME, 'b', 'S', -1, "namesend", "namerecv", Oid.CHAR, Oid.NAME_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_name"), "name[]", Oid.NAME_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.NAME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "numeric"), "numeric", Oid.NUMERIC, 'b', 'N', -1, "numeric_send", "numeric_recv", Oid.UNSPECIFIED, Oid.NUMERIC_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_numeric"), "numeric[]", Oid.NUMERIC_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.NUMERIC, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "oid"), "oid", Oid.OID, 'b', 'N', -1, "oidsend", "oidrecv", Oid.UNSPECIFIED, Oid.OID_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_oid"), "oid[]", Oid.OID_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.OID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "path"), "path", Oid.PATH, 'b', 'G', -1, "path_send", "path_recv", Oid.UNSPECIFIED, Oid.PATH_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_path"), "path[]", Oid.PATH_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.PATH, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "point"), "point", Oid.POINT, 'b', 'G', -1, "point_send", "point_recv", Oid.FLOAT8, Oid.POINT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_point"), "point[]", Oid.POINT_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.POINT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "polygon"), "polygon", Oid.POLYGON, 'b', 'G', -1, "poly_send", "poly_recv", Oid.UNSPECIFIED, Oid.POLYGON_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_polygon"), "polygon[]", Oid.POLYGON_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.POLYGON, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "refcursor"), "refcursor", Oid.REFCURSOR, 'b', 'U', -1, "textsend", "textrecv", Oid.UNSPECIFIED, Oid.REFCURSOR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_refcursor"), "refcursor[]", Oid.REFCURSOR_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.REFCURSOR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "text"), "text", Oid.TEXT, 'b', 'S', -1, "textsend", "textrecv", Oid.UNSPECIFIED, Oid.TEXT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_text"), "text[]", Oid.TEXT_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.TEXT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "time"), "time without time zone", Oid.TIME, 'b', 'D', -1, "time_send", "time_recv", Oid.UNSPECIFIED, Oid.TIME_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_time"), "time without time zone[]", Oid.TIME_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.TIME, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timestamp"), "timestamp without time zone", Oid.TIMESTAMP, 'b', 'D', -1, "timestamp_send", "timestamp_recv", Oid.UNSPECIFIED, Oid.TIMESTAMP_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timestamp"), "timestamp without time zone[]", Oid.TIMESTAMP_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.TIMESTAMP, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timestamptz"), "timestamp with time zone", Oid.TIMESTAMPTZ, 'b', 'D', -1, "timestamptz_send", "timestamptz_recv", Oid.UNSPECIFIED, Oid.TIMESTAMPTZ_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timestamptz"), "timestamp with time zone[]", Oid.TIMESTAMPTZ_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.TIMESTAMPTZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "timetz"), "time with time zone", Oid.TIMETZ, 'b', 'D', -1, "timetz_send", "timetz_recv", Oid.UNSPECIFIED, Oid.TIMETZ_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_timetz"), "time with time zone[]", Oid.TIMETZ_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.TIMETZ, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "uuid"), "uuid", Oid.UUID, 'b', 'U', -1, "uuid_send", "uuid_recv", Oid.UNSPECIFIED, Oid.UUID_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_uuid"), "uuid[]", Oid.UUID_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.UUID, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "varbit"), "bit varying", Oid.VARBIT, 'b', 'V', -1, "varbit_send", "varbit_recv", Oid.UNSPECIFIED, Oid.VARBIT_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_varbit"), "bit varying[]", Oid.VARBIT_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.VARBIT, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "varchar"), "character varying", Oid.VARCHAR, 'b', 'S', -1, "varcharsend", "varcharrecv", Oid.UNSPECIFIED, Oid.VARCHAR_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_varchar"), "character varying[]", Oid.VARCHAR_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.VARCHAR, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "xml"), "xml", Oid.XML, 'b', 'U', -1, "xml_send", "xml_recv", Oid.UNSPECIFIED, Oid.XML_ARRAY, Oid.UNSPECIFIED),
+      new PgType(new ObjectName("pg_catalog", "_xml"), "xml[]", Oid.XML_ARRAY, 'b', 'A', -1, "array_send", "array_recv", Oid.XML, Oid.UNSPECIFIED, Oid.UNSPECIFIED),
   };
 
   /**
@@ -307,6 +310,14 @@ public class TypeInfoCache implements TypeInfo {
 
     String typName = castNonNull(rs.getString("typname"));
     String typFullName = castNonNull(rs.getString("typfullname"));
+    String typsend = rs.getString("typsend");
+    if (typsend == null || typsend.isEmpty()) {
+      typsend = "-";
+    }
+    String typreceive = rs.getString("typreceive");
+    if (typreceive == null || typreceive.isEmpty()) {
+      typreceive = "-";
+    }
     return new PgType(
         new ObjectName(rs.getString("typnspname"), typName),
         typFullName,
@@ -317,7 +328,9 @@ public class TypeInfoCache implements TypeInfo {
         rs.getInt("typelem"),
         rs.getInt("typarray"),
         rs.getInt("typbasetype"),
-        typdelim);
+        typdelim,
+        typsend,
+        typreceive);
   }
 
   private PreparedStatement preparefindAllPgTypes() throws SQLException {
@@ -388,6 +401,7 @@ public class TypeInfoCache implements TypeInfo {
     typesByPgName.clear();
     typesByOid.clear();
     displayNameByOid.clear();
+    binarySendCapable.clear();
     codecRegistry.invalidateCache();
     // Update epoch after clearing to prevent repeated invalidations
     this.typeCacheEpoch = connectionTypeCacheEpoch;
@@ -850,6 +864,241 @@ public class TypeInfoCache implements TypeInfo {
 
       return fields;
     }
+  }
+
+  @Override
+  public boolean backendCanSendBinary(PgType type) throws SQLException {
+    Boolean cached = binarySendCapable.get(type.getOid());
+    if (cached != null) {
+      return cached;
+    }
+    boolean result = computeBackendCanSendBinary(type);
+    binarySendCapable.put(type.getOid(), result);
+    return result;
+  }
+
+  @Override
+  public boolean backendCanReceiveBinary(PgType type) throws SQLException {
+    Boolean cached = binaryReceiveServerCapable.get(type.getOid());
+    if (cached != null) {
+      return cached;
+    }
+    boolean result = computeBackendCanReceiveBinary(type);
+    binaryReceiveServerCapable.put(type.getOid(), result);
+    return result;
+  }
+
+  @Override
+  public boolean driverCanReceiveBinary(PgType type) throws SQLException {
+    Boolean cached = binaryReceiveCodecCapable.get(type.getOid());
+    if (cached != null) {
+      return cached;
+    }
+    boolean result = computeDriverCanReceiveBinary(type);
+    binaryReceiveCodecCapable.put(type.getOid(), result);
+    return result;
+  }
+
+  @Override
+  public void setBinaryReceiveDisabledOids(Set<? extends Integer> oids) {
+    this.binaryReceiveDisabledOids = oids.isEmpty()
+        ? Collections.emptySet()
+        : Collections.unmodifiableSet(new HashSet<>(oids));
+    binaryReceiveDisabled.clear();
+  }
+
+  @Override
+  public boolean isBinaryReceiveDisabled(PgType type) throws SQLException {
+    Boolean cached = binaryReceiveDisabled.get(type.getOid());
+    if (cached != null) {
+      return cached;
+    }
+    boolean result = computeBinaryReceiveDisabled(type);
+    binaryReceiveDisabled.put(type.getOid(), result);
+    return result;
+  }
+
+  private boolean computeBinaryReceiveDisabled(PgType type) throws SQLException {
+    // A direct opt-out, or — recursively — any element/field/base type opted out,
+    // taints the whole column: there is no per-field transfer format, so a disabled
+    // type nested in a binary column would still be decoded in binary.
+    if (binaryReceiveDisabledOids.contains(type.getOid())) {
+      return true;
+    }
+    if (binaryReceiveDisabledOids.isEmpty()) {
+      return false;
+    }
+    if (type.isArray()) {
+      int elementOid = type.getTypelem();
+      return elementOid != Oid.UNSPECIFIED && isBinaryReceiveDisabled(getPgTypeByOid(elementOid));
+    }
+    // Anonymous record: per-value field types are unknown from the catalog, so only
+    // the direct opt-out above applies.
+    if (type.getOid() == Oid.RECORD) {
+      return false;
+    }
+    if (type.isComposite()) {
+      for (PgField field : getFields(type.getOid())) {
+        if (isBinaryReceiveDisabled(getPgTypeByOid(field.getTypeOid()))) {
+          return true;
+        }
+      }
+      return false;
+    }
+    if (type.isDomain()) {
+      int baseOid = type.getTypbasetype();
+      return baseOid != Oid.UNSPECIFIED && isBinaryReceiveDisabled(getPgTypeByOid(baseOid));
+    }
+    return false;
+  }
+
+  @Override
+  public boolean shouldReceiveBinary(int oid) {
+    // Anonymous record is optimistic and resolved without catalog I/O, so a
+    // forced-binary first execution can request binary before any result set has
+    // warmed the memo. A direct binaryTransferDisable opt-out still applies.
+    if (oid == Oid.RECORD || oid == Oid.RECORD_ARRAY) {
+      return !binaryReceiveDisabledOids.contains(oid);
+    }
+    // A column is requested in binary only when the server can send it
+    // (backendCanSendBinary), the driver can decode it (driverCanReceiveBinary), and no
+    // type in its tree was opted out (binaryTransferDisable). All three are memoized;
+    // this stays cache-only on the bind path.
+    Boolean send = binarySendCapable.get(oid);
+    Boolean codec = binaryReceiveCodecCapable.get(oid);
+    Boolean disabled = binaryReceiveDisabled.get(oid);
+    if (send != null && codec != null && disabled != null) {
+      return send && codec && !disabled;
+    }
+    // Built-in types resolve from the static table without a query, and their
+    // recursion stays within built-ins, so computing inline is safe on the bind path.
+    PgType builtin = DEFAULT_TYPES_BY_OID.get(oid);
+    if (builtin == null) {
+      // A user type that no result set has resolved yet: defer to text rather than
+      // issue a catalog query mid-Bind. It is memoized the first time a result set
+      // materializes its PgType, so a later execution uses binary.
+      return false;
+    }
+    try {
+      return backendCanSendBinary(builtin) && driverCanReceiveBinary(builtin)
+          && !isBinaryReceiveDisabled(builtin);
+    } catch (SQLException e) {
+      return false;
+    }
+  }
+
+  private boolean computeBackendCanSendBinary(PgType type) throws SQLException {
+    // Arrays carry their own array_send, but it delegates to the element's send:
+    // ignore the array's typsend and recurse into the element (e.g. aclitem[]).
+    if (type.isArray()) {
+      int elementOid = type.getTypelem();
+      return elementOid == Oid.UNSPECIFIED
+          ? type.hasOwnBinarySend()
+          : backendCanSendBinary(getPgTypeByOid(elementOid));
+    }
+    // The anonymous record's field types are only known per value, not from the
+    // catalog. Trust record_send optimistically; a field whose type lacks a send
+    // function surfaces as a server-side error rather than being filtered here.
+    if (type.getOid() == Oid.RECORD) {
+      return type.hasOwnBinarySend();
+    }
+    // A named composite is binary-send capable only if every field type is.
+    if (type.isComposite()) {
+      for (PgField field : getFields(type.getOid())) {
+        if (!backendCanSendBinary(getPgTypeByOid(field.getTypeOid()))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    // A domain inherits its base type's binary-send capability.
+    if (type.isDomain()) {
+      int baseOid = type.getTypbasetype();
+      return baseOid == Oid.UNSPECIFIED
+          ? type.hasOwnBinarySend()
+          : backendCanSendBinary(getPgTypeByOid(baseOid));
+    }
+    // Base, enum, range and multirange types: trust their own typsend. (Ranges
+    // could in principle recurse into the subtype, but the subtype OID is not
+    // loaded into PgType; range_send presence is treated optimistically.)
+    return type.hasOwnBinarySend();
+  }
+
+  private boolean computeBackendCanReceiveBinary(PgType type) throws SQLException {
+    // Mirrors computeBackendCanSendBinary for the send direction: a type can be sent
+    // in binary only if the server has a binary input (typreceive) for it, recursing
+    // into element/field/base types. A type may have typsend but not typreceive, so
+    // the two directions are genuinely independent (matters for custom types).
+    if (type.isArray()) {
+      int elementOid = type.getTypelem();
+      return elementOid == Oid.UNSPECIFIED
+          ? type.hasOwnBinaryReceive()
+          : backendCanReceiveBinary(getPgTypeByOid(elementOid));
+    }
+    // Anonymous record: field types are only known per value, so trust record_recv
+    // optimistically and let a field without typreceive fail at the server.
+    if (type.getOid() == Oid.RECORD) {
+      return type.hasOwnBinaryReceive();
+    }
+    if (type.isComposite()) {
+      for (PgField field : getFields(type.getOid())) {
+        if (!backendCanReceiveBinary(getPgTypeByOid(field.getTypeOid()))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (type.isDomain()) {
+      int baseOid = type.getTypbasetype();
+      return baseOid == Oid.UNSPECIFIED
+          ? type.hasOwnBinaryReceive()
+          : backendCanReceiveBinary(getPgTypeByOid(baseOid));
+    }
+    return type.hasOwnBinaryReceive();
+  }
+
+  private boolean computeDriverCanReceiveBinary(PgType type) throws SQLException {
+    // Mirrors computeBackendCanSendBinary, but asks whether the driver has a binary
+    // decoder rather than whether the server can send: a container's own codec
+    // (ArrayCodec/CompositeCodec) is binary, so recurse into the contents.
+    if (type.isArray()) {
+      int elementOid = type.getTypelem();
+      return elementOid == Oid.UNSPECIFIED
+          ? hasOwnBinaryCodec(type)
+          : driverCanReceiveBinary(getPgTypeByOid(elementOid));
+    }
+    // Anonymous record: CompositeCodec decodes it from the self-describing wire,
+    // resolving each field's codec per value (an unknown field falls back to raw
+    // bytes), so treat it as decodable, matching the backendCanSendBinary optimism.
+    if (type.getOid() == Oid.RECORD) {
+      return true;
+    }
+    if (type.isComposite()) {
+      for (PgField field : getFields(type.getOid())) {
+        if (!driverCanReceiveBinary(getPgTypeByOid(field.getTypeOid()))) {
+          return false;
+        }
+      }
+      return true;
+    }
+    if (type.isDomain()) {
+      int baseOid = type.getTypbasetype();
+      return baseOid == Oid.UNSPECIFIED
+          ? hasOwnBinaryCodec(type)
+          : driverCanReceiveBinary(getPgTypeByOid(baseOid));
+    }
+    return hasOwnBinaryCodec(type);
+  }
+
+  /**
+   * Whether the driver has a binary decoder for this exact type (non-recursive).
+   * {@code FallbackCodec} is a {@link org.postgresql.api.codec.BinaryCodec}, so an
+   * unmapped type still counts and is received as {@code PGUnknownBinary}; a
+   * text-only codec (such as the {@code circle}/{@code line} geometric codec) does
+   * not, so the type stays in text.
+   */
+  private boolean hasOwnBinaryCodec(PgType type) {
+    return getCodecRegistry().getBinaryCodec(type.getOid(), type) != null;
   }
 
   private PreparedStatement prepareFindCompositeFields() throws SQLException {

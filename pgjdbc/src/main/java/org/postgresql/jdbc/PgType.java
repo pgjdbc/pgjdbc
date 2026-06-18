@@ -32,6 +32,10 @@ public class PgType {
   private final int arrayOid;
   private final int typbasetype;   // base type OID for domains
   private final char delimiter;
+  // pg_type.typsend function name; "-" means no binary-send function exists
+  private final String typsend;
+  // pg_type.typreceive function name; "-" means no binary-receive function exists
+  private final String typreceive;
 
   // Composite type fields (null for non-composite types, empty list if not yet loaded)
   private final @Nullable List<PgField> fields;
@@ -52,7 +56,35 @@ public class PgType {
   public PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                 int typtypmod, int typelem, int arrayOid, int typbasetype) {
     this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
-        oid == Oid.BOX || oid == Oid.BOX_ARRAY ? ';' : ',', null);
+        oid == Oid.BOX || oid == Oid.BOX_ARRAY ? ';' : ',', null, "-", "-");
+  }
+
+  /**
+   * Constructs a new PgType for non-composite types, carrying the {@code pg_type.typsend}
+   * and {@code pg_type.typreceive} function names.  Pass {@code "-"} when the type has no
+   * binary-send or binary-receive function.
+   *
+   * <p>The parameter order mirrors {@code TypeInfoCache.BASE_TYPES} and the generator in
+   * {@code TypeInfoCacheTest.generateBaseTypes}: {@code typsend} and {@code typreceive} sit
+   * right after {@code typtypmod}.</p>
+   *
+   * @param typeName the type name
+   * @param fullName the full name of the type
+   * @param oid the OID of the type
+   * @param typtype the type type ('b'=base, 'c'=composite, 'e'=enum, 'd'=domain, etc.)
+   * @param typcategory the type category ('A'=array, 'B'=boolean, 'N'=numeric, 'S'=string, etc.)
+   * @param typtypmod the type modifier
+   * @param typsend the name of the binary-send function from pg_type.typsend, or {@code "-"}
+   * @param typreceive the name of the binary-receive function from pg_type.typreceive, or {@code "-"}
+   * @param typelem for array types, the OID of the element type
+   * @param arrayOid for non-array types, the OID of the corresponding array type
+   * @param typbasetype for domain types, the OID of the base type
+   */
+  public PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
+                int typtypmod, String typsend, String typreceive, int typelem, int arrayOid,
+                int typbasetype) {
+    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
+        oid == Oid.BOX || oid == Oid.BOX_ARRAY ? ';' : ',', null, typsend, typreceive);
   }
 
   /**
@@ -71,7 +103,30 @@ public class PgType {
    */
   public PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                 int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter) {
-    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype, delimiter, null);
+    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype, delimiter, null, "-", "-");
+  }
+
+  /**
+   * Constructs a new PgType with delimiter, {@code pg_type.typsend} and {@code pg_type.typreceive}
+   * from the database.
+   *
+   * @param typeName the type name
+   * @param fullName the full name of the type
+   * @param oid the OID of the type
+   * @param typtype the type type ('b'=base, 'c'=composite, 'e'=enum, 'd'=domain, etc.)
+   * @param typcategory the type category ('A'=array, 'B'=boolean, 'N'=numeric, 'S'=string, etc.)
+   * @param typtypmod the type modifier
+   * @param typelem for array types, the OID of the element type
+   * @param arrayOid for non-array types, the OID of the corresponding array type
+   * @param typbasetype for domain types, the OID of the base type
+   * @param delimiter the array delimiter character from pg_type.typdelim
+   * @param typsend the name of the binary-send function from pg_type.typsend, or {@code "-"}
+   * @param typreceive the name of the binary-receive function from pg_type.typreceive, or {@code "-"}
+   */
+  public PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
+                int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
+                String typsend, String typreceive) {
+    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype, delimiter, null, typsend, typreceive);
   }
 
   /**
@@ -92,7 +147,7 @@ public class PgType {
                 int typtypmod, int typelem, int arrayOid, int typbasetype,
                 @Nullable List<PgField> fields) {
     this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
-        oid == Oid.BOX || oid == Oid.BOX_ARRAY ? ';' : ',', fields);
+        oid == Oid.BOX || oid == Oid.BOX_ARRAY ? ';' : ',', fields, "-", "-");
   }
 
   /**
@@ -113,6 +168,13 @@ public class PgType {
   public PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
                 int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
                 @Nullable List<PgField> fields) {
+    this(typeName, fullName, oid, typtype, typcategory, typtypmod, typelem, arrayOid, typbasetype,
+        delimiter, fields, "-", "-");
+  }
+
+  private PgType(ObjectName typeName, String fullName, int oid, char typtype, char typcategory,
+                 int typtypmod, int typelem, int arrayOid, int typbasetype, char delimiter,
+                 @Nullable List<PgField> fields, String typsend, String typreceive) {
     this.typeName = typeName;
     this.fullName = fullName;
     this.oid = oid;
@@ -123,6 +185,8 @@ public class PgType {
     this.arrayOid = arrayOid;
     this.typbasetype = typbasetype;
     this.delimiter = delimiter;
+    this.typsend = typsend;
+    this.typreceive = typreceive;
     this.fields = fields != null ? Collections.unmodifiableList(fields) : null;
   }
 
@@ -338,6 +402,54 @@ public class PgType {
   }
 
   /**
+   * Gets the {@code pg_type.typsend} function name.
+   * Returns {@code "-"} when no binary-send function exists for this type.
+   *
+   * @return the typsend function name, or {@code "-"}
+   */
+  public String getTypsend() {
+    return typsend;
+  }
+
+  /**
+   * Gets the {@code pg_type.typreceive} function name.
+   * Returns {@code "-"} when no binary-receive function exists for this type.
+   *
+   * @return the typreceive function name, or {@code "-"}
+   */
+  public String getTypreceive() {
+    return typreceive;
+  }
+
+  /**
+   * Reports whether this type itself has a binary-send function in the catalog,
+   * i.e. {@code pg_type.typsend} is not {@code "-"}.
+   *
+   * <p>This is the non-recursive, leaf-level check. For containers (arrays,
+   * composites, domains) a present {@code typsend} (such as {@code array_send})
+   * does not guarantee the contents can be sent in binary — use
+   * {@link org.postgresql.core.TypeInfo#backendCanSendBinary(PgType)}, which recurses
+   * into element, field and base types.</p>
+   *
+   * @return true if the type has its own binary-send function
+   */
+  public boolean hasOwnBinarySend() {
+    return !"-".equals(typsend);
+  }
+
+  /**
+   * Reports whether this type itself has a binary-receive function in the catalog,
+   * i.e. {@code pg_type.typreceive} is not {@code "-"}.
+   *
+   * <p>This is the non-recursive, leaf-level check, mirroring {@link #hasOwnBinarySend()}.</p>
+   *
+   * @return true if the type has its own binary-receive function
+   */
+  public boolean hasOwnBinaryReceive() {
+    return !"-".equals(typreceive);
+  }
+
+  /**
    * Gets the name of the type.
    *
    * @return the type name
@@ -421,7 +533,7 @@ public class PgType {
    */
   public PgType withFields(List<PgField> fields) {
     return new PgType(typeName, fullName, oid, typtype, typcategory,
-        typtypmod, typelem, arrayOid, typbasetype, fields);
+        typtypmod, typelem, arrayOid, typbasetype, delimiter, fields, typsend, typreceive);
   }
 
   public boolean isCaseSensitive() {

@@ -94,6 +94,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
@@ -190,6 +191,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    * Bit set that has a bit set for each oid which should be received using binary format.
    */
   private final IntSet useBinaryReceiveForOids = new IntSet();
+
+  /**
+   * Type info consulted (cache-only) to decide binary receive by the column type's
+   * catalog capability and the recursive binaryTransferDisable opt-out. Null when the
+   * capability fallback is off (for example binaryTransfer=false), in which case only
+   * {@link #useBinaryReceiveForOids} enables binary receive.
+   */
+  private @Nullable TypeInfo binaryReceiveTypeInfo;
 
   /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
@@ -1975,7 +1984,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private boolean useBinary(Field field) {
     int oid = field.getOID();
-    return useBinaryForReceive(oid);
+    // Explicit binaryTransferEnable / registered binary types force binary on.
+    synchronized (useBinaryReceiveForOids) {
+      if (useBinaryReceiveForOids.contains(oid)) {
+        return true;
+      }
+    }
+    // Otherwise the column type's catalog capability and the recursive
+    // binaryTransferDisable opt-out decide. This runs while the Bind message is being
+    // composed, so the lookup is cache-only — a catalog query here would corrupt the
+    // protocol stream.
+    TypeInfo typeInfo = binaryReceiveTypeInfo;
+    return typeInfo != null && typeInfo.shouldReceiveBinary(oid);
   }
 
   private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
@@ -3248,6 +3268,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       useBinaryReceiveForOids.clear();
       useBinaryReceiveForOids.addAll(oids);
     }
+  }
+
+  @Override
+  public void setTypeInfo(TypeInfo typeInfo) {
+    this.binaryReceiveTypeInfo = typeInfo;
   }
 
   @Override

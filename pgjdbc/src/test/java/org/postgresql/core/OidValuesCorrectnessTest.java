@@ -112,6 +112,7 @@ public class OidValuesCorrectnessTest extends BaseTest4 {
     oidTypeNames.put("PATH_ARRAY", "_PATH");
     oidTypeNames.put("POLYGON_ARRAY", "_POLYGON");
     oidTypeNames.put("CIRCLE_ARRAY", "_CIRCLE");
+    oidTypeNames.put("RECORD_ARRAY", "_RECORD");
   }
 
   public static Iterable<Object[]> data() throws IllegalAccessException {

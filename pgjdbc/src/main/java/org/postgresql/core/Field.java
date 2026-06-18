@@ -182,7 +182,14 @@ public class Field {
     if (pgType != null) {
       return;
     }
-    pgType = typeInfo.getPgTypeByOid(oid);
+    PgType resolved = typeInfo.getPgTypeByOid(oid);
+    pgType = resolved;
+    // Warm the binary-receive capability memos at this safe point (a result set is
+    // materializing, no protocol message is being composed), so a later bind can
+    // read them via TypeInfo.shouldReceiveBinary() without a catalog query.
+    typeInfo.backendCanSendBinary(resolved);
+    typeInfo.driverCanReceiveBinary(resolved);
+    typeInfo.isBinaryReceiveDisabled(resolved);
   }
 
   /**

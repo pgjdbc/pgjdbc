@@ -19,6 +19,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.StringReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.Array;
@@ -996,7 +997,11 @@ class PgCallableStatement extends PgPreparedStatement implements CallableStateme
 
   @Override
   public @Nullable Reader getCharacterStream(@Positive int parameterIndex) throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "getCharacterStream(int)");
+    Object result = checkIndex(parameterIndex, Types.VARCHAR, "String");
+    if (result == null) {
+      return null;
+    }
+    return new StringReader((String) result);
   }
 
   @Override

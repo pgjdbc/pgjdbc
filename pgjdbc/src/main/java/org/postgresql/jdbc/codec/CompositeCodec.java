@@ -9,6 +9,7 @@ import org.postgresql.api.codec.BinaryCodec;
 import org.postgresql.api.codec.StreamingBinaryCodec;
 import org.postgresql.api.codec.StreamingTextCodec;
 import org.postgresql.api.codec.TextCodec;
+import org.postgresql.core.Oid;
 import org.postgresql.jdbc.CodecContext;
 import org.postgresql.jdbc.CodecDepth;
 import org.postgresql.jdbc.CodecRegistry;
@@ -344,52 +345,15 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
     return out.toByteArray();
   }
 
-  /**
-   * Encodes pre-stringified attributes as a PostgreSQL composite text value.
-   *
-   * <p>Each entry is treated as the final on-wire string for its field — the
-   * caller is responsible for producing a server-compatible representation.
-   * Prefer {@link #encodeAttributesAsText(Object[], PgType, CodecContext)},
-   * which delegates to the per-field {@link TextCodec}; this overload exists
-   * for callers that have already serialized values (e.g., raw escape tests).</p>
-   *
-   * @param attributes the attribute values; non-null entries are quoted via {@link Object#toString()}
-   * @return the text representation in PostgreSQL composite format: (val1,val2,...)
-   */
-  public static String encodeAttributesAsText(@Nullable Object[] attributes) {
-    StringBuilder sb = new StringBuilder();
-    sb.append('(');
-    for (int i = 0; i < attributes.length; i++) {
-      if (i > 0) {
-        sb.append(',');
-      }
-      Object attr = attributes[i];
-      if (attr != null) {
-        appendQuotedField(sb, attr.toString());
-      }
-    }
-    sb.append(')');
-    return sb.toString();
-  }
-
-  private static void appendQuotedField(StringBuilder sb, String value) {
-    if (needsQuoting(value)) {
-      sb.append('"');
-      sb.append(value.replace("\\", "\\\\").replace("\"", "\\\""));
-      sb.append('"');
-    } else {
-      sb.append(value);
-    }
-  }
-
   /** {@link Appendable} overload used by the streaming text path. */
   private static void appendQuotedField(Appendable out, String value) throws IOException {
     if (needsQuoting(value)) {
       out.append('"');
       for (int i = 0; i < value.length(); i++) {
         char c = value.charAt(i);
+        // record_out doubles embedded quotes and backslashes.
         if (c == '"' || c == '\\') {
-          out.append('\\');
+          out.append(c);
         }
         out.append(c);
       }
@@ -534,10 +498,30 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[i] = field.decode(fieldCodec, fieldType, ctx);
         }
       }
-      return new PgStruct(type.getFullName(), attributes, ctx.getConnection());
+      return new PgStruct(structTypeFor(type, binaryFields), attributes, ctx.getConnection());
     } finally {
       CodecDepth.exit();
     }
+  }
+
+  /**
+   * Returns the {@link PgType} the decoded {@link PgStruct} should carry. For a
+   * named composite this is {@code type} as-is (its fields come from the
+   * catalog). For the anonymous record pseudo-type (OID 2249) the catalog has no
+   * attributes, so the field types are synthesized from the self-describing
+   * binary wire — without touching the type cache — so that
+   * {@link PgStruct#getValue()} can rebuild the {@code record_out} literal.
+   */
+  private static PgType structTypeFor(PgType type, List<DecodedField> binaryFields) {
+    if (type.getOid() != Oid.RECORD) {
+      return type;
+    }
+    List<PgField> synthesized = new ArrayList<>(binaryFields.size());
+    for (int i = 0; i < binaryFields.size(); i++) {
+      // Anonymous record fields have no catalog names; "fN" is positional only.
+      synthesized.add(new PgField("f" + (i + 1), binaryFields.get(i).getTypeOid(), i + 1, -1));
+    }
+    return type.withFields(synthesized);
   }
 
   @Override
@@ -631,7 +615,10 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           attributes[index] = fieldCodec.decodeText(buf, offset, length, fieldType, ctx);
         }
       });
-      return new PgStruct(type.getFullName(), attributes, ctx.getConnection());
+      // Text transfer carries no per-field OIDs, so an anonymous record keeps the
+      // fieldless pseudo-type; getValue() still works because the raw server
+      // literal is recorded verbatim by the caller.
+      return new PgStruct(type, attributes, ctx.getConnection());
     } finally {
       CodecDepth.exit();
     }
@@ -748,7 +735,7 @@ public final class CompositeCodec implements StreamingBinaryCodec, StreamingText
           streamingTextCodec.encodeText(attr, fieldType, ctx, out);
         } else {
           out.append('"');
-          streamingTextCodec.encodeText(attr, fieldType, ctx, new EscapingAppendable(out));
+          streamingTextCodec.encodeText(attr, fieldType, ctx, new EscapingAppendable(out, true));
           out.append('"');
         }
       } else {

@@ -464,7 +464,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     PgType pgType = connection.getTypeInfo().getPgTypeByPgName(typename);
     int oid = pgType.getOid();
 
-    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)) {
+    if ((x instanceof PGBinaryObject) && connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(pgType)) {
       PGBinaryObject binObj = (PGBinaryObject) x;
       int length = binObj.lengthInBytes();
       if (length == 0) {
@@ -480,12 +481,14 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   }
 
   private void setMap(@Positive int parameterIndex, Map<?, ?> x) throws SQLException {
-    int oid = connection.getTypeInfo().getPgTypeByPgName("hstore").getOid();
+    PgType hstoreType = connection.getTypeInfo().getPgTypeByPgName("hstore");
+    int oid = hstoreType.getOid();
     if (oid == Oid.UNSPECIFIED) {
       throw new PSQLException(GT.tr("No hstore extension installed."),
           PSQLState.INVALID_PARAMETER_TYPE);
     }
-    if (connection.binaryTransferSend(oid)) {
+    if (connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(hstoreType)) {
       byte[] data = HStoreConverter.toBytes(x, connection.getEncoding());
       bindBytes(parameterIndex, data, oid);
     } else {
@@ -743,7 +746,11 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     CodecRegistry codecs = ctx.getCodecs();
     if (connection.getPreferQueryMode() != PreferQueryMode.SIMPLE) {
       BinaryCodec codec = codecs.getBinaryCodec(oid, arrayTypeInfo);
-      if (codec != null && codec.canEncodeBinary(in, arrayTypeInfo, ctx)) {
+      // canEncodeBinary checks the driver can encode the value; backendCanReceiveBinary
+      // checks the server can parse it (typreceive), recursing into the element type — so
+      // a custom array whose element has no binary input stays in text instead of erroring.
+      if (codec != null && codec.canEncodeBinary(in, arrayTypeInfo, ctx)
+          && typeInfo.backendCanReceiveBinary(arrayTypeInfo)) {
         bindBytes(parameterIndex, codec.encodeBinary(in, arrayTypeInfo, ctx), oid);
         return;
       }
@@ -1471,7 +1478,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     int oid = pgType.getOid();
     CodecContext ctx = connection.getCodecContext();
     CodecRegistry codecs = ctx.getCodecs();
-    if (connection.binaryTransferSend(oid)) {
+    if (connection.binaryTransferSend(oid)
+        && connection.getTypeInfo().backendCanReceiveBinary(pgType)) {
       BinaryCodec codec = codecs.getBinaryCodec(oid, pgType);
       if (codec == null) {
         throw new PSQLException(

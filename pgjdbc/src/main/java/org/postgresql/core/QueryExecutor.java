@@ -371,6 +371,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
   /**
+   * Injects the {@link TypeInfo} used to decide binary receive by the type's
+   * catalog capability (and recursive binaryTransferDisable opt-out). When left
+   * unset (for example when {@code binaryTransfer=false}), only the explicit
+   * receive-oids set enables binary receive.
+   *
+   * @param typeInfo the type info to consult, cache-only, on the bind path
+   */
+  void setTypeInfo(TypeInfo typeInfo);
+
+  /**
    * Adds a single oid that should be sent using binary encoding.
    *
    * @param oid The oid to send with binary encoding.
