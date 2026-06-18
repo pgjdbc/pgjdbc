@@ -435,6 +435,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           } else {
             sendSync();
           }
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
         } catch (PGBindException se) {
@@ -453,6 +454,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           // transaction in progress?
           //
           sendSync();
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
           handler
@@ -544,6 +546,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     try {
       sendOneQuery(releaseAutoSave, SimpleQuery.NO_PARAMETERS, 1, 0,
           QUERY_NO_RESULTS | QUERY_NO_METADATA | QUERY_EXECUTE_AS_SIMPLE);
+      // No response processing follows, so flush the deferred cleanup before returning.
+      pgStream.flush();
     } catch (IOException ex) {
       throw new PSQLException(GT.tr("Error releasing savepoint"), PSQLState.IO_ERROR);
     }
@@ -687,6 +691,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           if ((flags & QueryExecutor.QUERY_EXECUTE_AS_SIMPLE) == 0) {
             sendSync();
           }
+          pgStream.flush();
           processResults(handler, flags, adaptiveFetch);
           estimatedReceiveBufferBytes = 0;
         }
@@ -832,6 +837,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
         beginFlags = updateQueryMode(beginFlags);
         sendOneQuery(beginTransactionQuery, SimpleQuery.NO_PARAMETERS, 0, 0, beginFlags);
         sendSync();
+        pgStream.flush();
         processResults(handler, 0);
         estimatedReceiveBufferBytes = 0;
       } catch (IOException ioe) {
@@ -1663,6 +1669,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     } else {
       LOGGER.log(Level.FINEST, "Forcing Sync, receive buffer full or batching disallowed");
       sendSync();
+      pgStream.flush();
       processResults(resultHandler, flags);
       // We've processed incoming bytes, and the query to be executed would consume receive buffer
       estimatedReceiveBufferBytes = resultBytes;
@@ -1727,18 +1734,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   //
 
   private void sendSync() throws IOException {
-    sendSync(true);
-  }
-
-  private void sendSync(boolean flush) throws IOException {
     inExtendedProtocol = false;
     LOGGER.log(Level.FINEST, " FE=> Sync");
 
     pgStream.sendChar(PgMessageType.SYNC_REQUEST); // Sync
     pgStream.sendInteger4(4); // Length
-    if (flush) {
-      pgStream.flush();
-    }
     // Below "add queues" are likely not required at all
     pendingExecuteQueue.add(new ExecuteRequest(sync, null, true));
     pendingDescribePortalQueue.add(sync);
@@ -2247,7 +2247,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     if (inExtendedProtocol) {
       // A sync message is required when switching from extended protocol to a simple query protocol
       // See https://github.com/pgjdbc/pgjdbc/issues/3107
-      sendSync(false);
+      sendSync();
     }
 
     String nativeSql = query.toString(
@@ -2262,7 +2262,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
     pgStream.sendInteger4(encoded.length + 4 + 1);
     pgStream.send(encoded);
     pgStream.sendChar(0);
-    pgStream.flush();
     pendingExecuteQueue.add(new ExecuteRequest(query, null, true));
     pendingDescribePortalQueue.add(query);
   }
@@ -2758,8 +2757,8 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           pgStream.sendInteger4(buf.length + 4 + 1);
           pgStream.send(buf);
           pgStream.sendChar(0);
-          pgStream.flush();
           sendSync(); // send sync message
+          pgStream.flush();
           skipMessage(); // skip the response message
           break;
 
@@ -2830,6 +2829,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
         sendExecute(query, portal, fetchSize);
         sendSync();
+        pgStream.flush();
 
         processResults(handler, 0, adaptiveFetch);
         estimatedReceiveBufferBytes = 0;

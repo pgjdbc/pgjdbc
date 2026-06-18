@@ -47,6 +47,7 @@ public class CountingSocketFactory extends SocketFactory {
    */
   public static final class Counters {
     public final AtomicLong roundtrips = new AtomicLong();
+    public final AtomicLong flushes = new AtomicLong();
     public final AtomicLong bytesOut = new AtomicLong();
     public final AtomicLong bytesIn = new AtomicLong();
 
@@ -214,6 +215,7 @@ public class CountingSocketFactory extends SocketFactory {
     @Override
     public void flush() throws IOException {
       out.flush();
+      socket.counters.flushes.incrementAndGet();
     }
 
     @Override

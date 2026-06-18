@@ -6,12 +6,14 @@
 package org.postgresql.test.jdbc2;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
+import org.postgresql.test.util.CountingSocketFactory;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedClass;
@@ -21,6 +23,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,6 +44,8 @@ import java.util.Properties;
 @ParameterizedClass
 @MethodSource("data")
 class CleanupSavepointsWithFastpathTest extends BaseTest4 {
+  private CountingSocketFactory.Counters socketCounters = CountingSocketFactory.register();
+
   CleanupSavepointsWithFastpathTest(BinaryMode binaryMode) {
     setBinaryMode(binaryMode);
   }
@@ -58,6 +63,17 @@ class CleanupSavepointsWithFastpathTest extends BaseTest4 {
     super.updateProperties(props);
     PGProperty.AUTOSAVE.set(props, "always");
     PGProperty.CLEANUP_SAVEPOINTS.set(props, true);
+    PGProperty.SOCKET_FACTORY.set(props, CountingSocketFactory.class.getName());
+    PGProperty.SOCKET_FACTORY_ARG.set(props, socketCounters.key());
+  }
+
+  @Override
+  protected void tearDown() throws SQLException {
+    try {
+      super.tearDown();
+    } finally {
+      CountingSocketFactory.unregister(socketCounters);
+    }
   }
 
   /**
@@ -81,9 +97,12 @@ class CleanupSavepointsWithFastpathTest extends BaseTest4 {
     // The bug: the RELEASE SAVEPOINT response ('C') is still in the buffer
     // and receiveFastpathResult() will read it instead of the expected response
     LargeObjectManager lom = con.unwrap(PGConnection.class).getLargeObjectAPI();
+    long flushesBefore = socketCounters.flushes.get();
 
     // This should NOT throw "Unknown Response Type C."
     long oid = lom.createLO();
+    assertEquals(1, socketCounters.flushes.get() - flushesBefore,
+        "Consuming a pending savepoint response should not add an empty flush");
     try {
       try (LargeObject lo = lom.open(oid)) {
         byte[] data = "Test data for issue #3910".getBytes(StandardCharsets.UTF_8);

@@ -14,6 +14,7 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -21,6 +22,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
 
 @ParameterizedClass
 @MethodSource("data")
@@ -54,6 +56,7 @@ public class ConcurrentStatementFetchTest extends BaseTest4 {
   }
 
   @Test
+  @Timeout(value = 10, unit = TimeUnit.SECONDS)
   public void testFetchTwoStatements() throws Exception {
     // This test definitely fails at 8.2 in autocommit=false, and works with 8.4+
     assumeTrue(autoCommit == AutoCommit.YES
