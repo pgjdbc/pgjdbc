@@ -346,6 +346,17 @@ public class LargeObject
   }
 
   /**
+   * Reports whether the server supports the 64-bit large object functions {@code lo_tell64} and
+   * {@code lo_lseek64}, added in PostgreSQL 9.3. Callers can use this to choose the 64-bit
+   * functions by version rather than calling them and recovering from the failure.
+   *
+   * @return {@code true} if the server is 9.3 or newer
+   */
+  boolean supports64BitOffsets() {
+    return fp.getServerVersionNum() >= 90300;
+  }
+
+  /**
    * This method is inefficient, as the only way to find out the size of the object is to seek to
    * the end, record the current position, then return to the original position.
    *
