@@ -13,11 +13,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This is an implementation of an InputStream from a large object.
  */
 public class BlobInputStream extends InputStream {
+  private static final Logger LOGGER = Logger.getLogger(BlobInputStream.class.getName());
   static final int DEFAULT_MAX_BUFFER_SIZE = 512 * 1024;
   static final int INITIAL_BUFFER_SIZE = 64 * 1024;
 
@@ -28,9 +31,10 @@ public class BlobInputStream extends InputStream {
   private final ResourceLock lock = new ResourceLock();
 
   /**
-   * The absolute position.
+   * The absolute position. A negative value means the position has not been initialised yet;
+   * {@link #getLo()} reads it lazily from the LargeObject on first use.
    */
-  private long absolutePosition;
+  private long absolutePosition = -1;
 
   /**
    * Buffer used to improve performance.
@@ -54,14 +58,14 @@ public class BlobInputStream extends InputStream {
   private final int maxBufferSize;
 
   /**
-   * The mark position.
+   * The mark position. Initialised together with {@link #absolutePosition} in {@link #getLo()}.
    */
-  private long markPosition;
+  private long markPosition = -1;
 
   /**
-   * The limit.
+   * The limit, relative to the initial position. Resolved to an absolute value in {@link #getLo()}.
    */
-  private final long limit;
+  private long limit;
 
   /**
    * @param lo LargeObject to read from
@@ -76,7 +80,7 @@ public class BlobInputStream extends InputStream {
    */
 
   public BlobInputStream(LargeObject lo, int bsize) {
-    this(lo, bsize, Long.MAX_VALUE);
+    this(lo, bsize, -1);
   }
 
   /**
@@ -90,8 +94,9 @@ public class BlobInputStream extends InputStream {
     // The very first read multiplies the last buffer size by two, so we divide by two to get
     // the first read to be exactly the initial buffer size
     this.lastBufferSize = INITIAL_BUFFER_SIZE / 2;
-    // Treat -1 as no limit for backward compatibility
-    this.limit = limit == -1 ? Long.MAX_VALUE : limit;
+    // The limit and position are resolved lazily by getLo(), as the initial position depends on
+    // the LargeObject and reading it can fail. -1 means "no limit".
+    this.limit = limit;
   }
 
   /**
@@ -288,7 +293,14 @@ public class BlobInputStream extends InputStream {
   @Override
   public void mark(int readlimit) {
     try (ResourceLock ignore = lock.obtain()) {
-      markPosition = absolutePosition;
+      // mark() must not throw, but initialising the position can fail. Log and leave the mark
+      // unset; the next read/reset surfaces the underlying error as a checked IOException.
+      try {
+        getLo();
+        markPosition = absolutePosition;
+      } catch (IOException e) {
+        LOGGER.log(Level.SEVERE, "Failed to set mark position", e);
+      }
     }
   }
 
@@ -304,13 +316,14 @@ public class BlobInputStream extends InputStream {
     try (ResourceLock ignore = lock.obtain()) {
       LargeObject lo = getLo();
       long loId = lo.getLongOID();
+      // Invalidate the buffer first, so a failed seek cannot leave stale data behind
+      buffer = null;
       try {
         if (markPosition <= Integer.MAX_VALUE) {
           lo.seek((int) markPosition);
         } else {
           lo.seek64(markPosition, LargeObject.SEEK_SET);
         }
-        buffer = null;
         absolutePosition = markPosition;
       } catch (SQLException e) {
         throw new IOException(
@@ -336,9 +349,28 @@ public class BlobInputStream extends InputStream {
   }
 
   private LargeObject getLo() throws IOException {
+    LargeObject lo = this.lo;
     if (lo == null) {
-      throw new IOException("BlobOutputStream is closed");
+      throw new IOException("BlobInputStream is closed");
     }
+    assert lock.isLocked();
+
+    if (absolutePosition < 0) {
+      // Initialise the position lazily, here rather than in the constructor, so the failure can be
+      // reported as a checked IOException. The LargeObject may already be positioned past the
+      // start, so mark/reset must be relative to its current position, not to 0 (issue #3149).
+      try {
+        // lo_tell64 requires PostgreSQL 9.3+, so fall back to lo_tell on older servers
+        this.absolutePosition = lo.supports64BitOffsets() ? lo.tell64() : lo.tell();
+      } catch (SQLException e) {
+        throw new IOException("Failed to initialize BlobInputStream position", e);
+      }
+
+      // The constructor limit is relative to the initial position; -1 means no limit
+      limit = limit == -1 ? Long.MAX_VALUE : limit + absolutePosition;
+      markPosition = absolutePosition;
+    }
+
     return lo;
   }
 }
