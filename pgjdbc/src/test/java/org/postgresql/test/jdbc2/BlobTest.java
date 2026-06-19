@@ -8,6 +8,7 @@ package org.postgresql.test.jdbc2;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -16,6 +17,8 @@ import org.postgresql.core.ServerVersion;
 import org.postgresql.largeobject.LargeObject;
 import org.postgresql.largeobject.LargeObjectManager;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.EnabledForServerVersionRange;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -25,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Blob;
@@ -35,6 +39,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
 import javax.sql.rowset.serial.SerialBlob;
@@ -338,6 +343,123 @@ class BlobTest {
   }
 
   @Test
+  void skip() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(0, bis.read());
+      assertEquals(1024L, bis.skip(1024));
+      assertEquals(1, bis.read());
+      assertEquals(64 * 1024L, bis.skip(64 * 1024));
+      assertEquals(65, bis.read());
+    }
+  }
+
+  @Test
+  void skipBackwards() throws Exception {
+    assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
+
+    try (Statement stmt = con.createStatement()) {
+      try (ResultSet rs = stmt.executeQuery("SELECT lo FROM testblob where id = '/test-file.xml'")) {
+        assertTrue(rs.next());
+
+        LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+        long loid = rs.getLong(1);
+
+        try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+          InputStream bis = blob.getInputStream();
+          assertEquals('<', bis.read());
+          // This stream does not skip backwards, so skip(-1) is a no-op
+          assertEquals(0, bis.skip(-1));
+          assertEquals('?', bis.read());
+        }
+      }
+    }
+  }
+
+  @Test
+  void skipToEnd() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream();
+      assertEquals(96 * 1024, bis.skip(96 * 1024));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  void skipPastEnd() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      // Large objects are sparse: skipping past the end is allowed and reads then return -1
+      InputStream bis = blob.getInputStream();
+      assertEquals(1024 * 1024, bis.skip(1024 * 1024));
+      assertEquals(-1, bis.read());
+      assertEquals(1024, bis.skip(1024));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
+  @EnabledForServerVersionRange(gte = "9.3")
+  void skipPastMax() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    // Not try-with-resources: seeking beyond the server maximum fails and aborts the transaction,
+    // so a later close() on the same connection would fail too
+    LargeObject blob = lom.open(loid, LargeObjectManager.READ);
+    InputStream bis = blob.getInputStream();
+    assertEquals(0, bis.read());
+    assertThrows(IOException.class, () -> bis.skip(Long.MAX_VALUE / 2));
+
+    // The failed seek aborted the transaction, so further statements fail until rolled back
+    try (Statement stmt = con.createStatement()) {
+      SQLException ex = assertThrows(SQLException.class, () -> stmt.execute("SELECT 1"));
+      assertEquals(PSQLState.IN_FAILED_SQL_TRANSACTION.getState(), ex.getSQLState());
+    }
+    con.rollback();
+  }
+
+  @Test
+  void skipWithInitialOffset() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      blob.seek(1024);
+
+      InputStream bis = blob.getInputStream();
+      assertEquals(1, bis.read());
+      assertEquals(1024L, bis.skip(1024));
+      assertEquals(2, bis.read());
+      assertEquals(64 * 1024L, bis.skip(64 * 1024));
+      assertEquals(66, bis.read());
+    }
+  }
+
+  @Test
+  void skipWithLimit() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = createMediumLargeObject();
+
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.READ)) {
+      InputStream bis = blob.getInputStream(65 * 1024);
+      assertEquals(0, bis.read());
+      assertEquals(64 * 1024L, bis.skip(64 * 1024));
+      assertEquals(64, bis.read());
+      assertEquals(1022L, bis.skip(1024));
+      assertEquals(-1, bis.read());
+    }
+  }
+
+  @Test
   void getBytesOffset() throws Exception {
     assertTrue(uploadFile(TEST_FILE, NATIVE_STREAM) > 0);
 
@@ -524,6 +646,27 @@ class BlobTest {
     st.close();
 
     return oid;
+  }
+
+  /**
+   * Creates a large object big enough to require several read buffers, filled so that byte
+   * {@code i} of every 1024-byte block equals the block index. This lets the skip tests assert the
+   * exact byte they land on.
+   *
+   * @return the OID of the created large object
+   * @see org.postgresql.largeobject.BlobInputStream#INITIAL_BUFFER_SIZE
+   */
+  private long createMediumLargeObject() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long loid = lom.createLO();
+    try (LargeObject blob = lom.open(loid, LargeObjectManager.WRITE)) {
+      byte[] buf = new byte[1024];
+      for (byte i = 0; i < 96; i++) {
+        Arrays.fill(buf, i);
+        blob.write(buf);
+      }
+    }
+    return loid;
   }
 
   /*
