@@ -50,6 +50,11 @@ jacoco {
         ?.let { toolVersion = it.get() }
 }
 
+val releaseNotes = tasks.register<org.postgresql.buildtools.ReleaseNotesTask>("releaseNotes"){
+    group = "Release"
+    description = "Updates release notes"
+}
+
 val jacocoReport by tasks.registering(JacocoReport::class) {
     group = "Coverage reports"
     description = "Generates an aggregate report from all subprojects"
