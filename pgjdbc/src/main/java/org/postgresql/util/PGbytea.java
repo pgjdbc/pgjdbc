@@ -182,6 +182,34 @@ public class PGbytea {
    * @throws IOException in case there's underflow in the input value
    */
   public static String toPGLiteral(Object value, SqlSerializationContext context) throws IOException {
+    if (value instanceof String) {
+      // A bytea value supplied as text (for example via PGobject) in the hex
+      // format: \x followed by hex digit pairs, with whitespace allowed between
+      // them. Validate the digits so a malformed value fails fast and cannot
+      // smuggle a quote or backslash into the literal. The escape format is
+      // handled by the caller, which quotes it like any other text literal.
+      String str = (String) value;
+      if (str.length() < 2 || str.charAt(0) != '\\' || str.charAt(1) != 'x') {
+        throw new IllegalArgumentException(
+            GT.tr("A bytea value passed as a String must be in hex format, such as \\x1a2b."));
+      }
+      int digits = 0;
+      for (int i = 2; i < str.length(); i++) {
+        char ch = str.charAt(i);
+        if (isHexDigit(ch)) {
+          digits++;
+        } else if (!isByteaHexWhitespace(ch)) {
+          throw new IllegalArgumentException(
+              GT.tr("Invalid character {0} at index {1} in bytea hex value.", ch, i));
+        }
+      }
+      if ((digits & 1) != 0) {
+        throw new IllegalArgumentException(
+            GT.tr("The bytea hex value has an odd number of digits."));
+      }
+      return "'" + str + "'::bytea";
+    }
+
     if (value instanceof byte[]) {
       byte[] bytes = (byte[]) value;
       StringBuilder sb = new StringBuilder(bytes.length * 2 + 11);
@@ -253,6 +281,16 @@ public class PGbytea {
     }
 
     throw new IllegalArgumentException(
-        GT.tr("Can't convert {0} to {1} literal", value.getClass(), "bytea"));
+        GT.tr("Cannot convert {0} to {1} literal", value.getClass(), "bytea"));
+  }
+
+  private static boolean isHexDigit(char ch) {
+    return (ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+  }
+
+  private static boolean isByteaHexWhitespace(char ch) {
+    // PostgreSQL ignores exactly these whitespace characters between hex digit
+    // pairs. Form feed and vertical tab are not ignored, so they are rejected.
+    return ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r';
   }
 }

@@ -6,9 +6,14 @@
 package org.postgresql.util;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.postgresql.core.v3.SqlSerializationContext;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Random;
 
@@ -35,6 +40,70 @@ class PGbyteaTest {
     final byte[] encoded = hexEncode(data, HEX_DIGITS_U);
     final byte[] decoded = PGbytea.toBytes(encoded);
     assertArrayEquals(data, decoded);
+  }
+
+  @Test
+  void toPGLiteral_byteArray() throws IOException {
+    assertEquals("'\\x00010203'::bytea",
+        PGbytea.toPGLiteral(new byte[]{0, 1, 2, 3}, SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString() throws IOException {
+    assertEquals("'\\x00010203'::bytea",
+        PGbytea.toPGLiteral("\\x00010203", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_upperCaseDigits() throws IOException {
+    assertEquals("'\\xCAFEBABE'::bytea",
+        PGbytea.toPGLiteral("\\xCAFEBABE", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_whitespaceIsAllowed() throws IOException {
+    assertEquals("'\\x00 01\t02'::bytea",
+        PGbytea.toPGLiteral("\\x00 01\t02", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_empty() throws IOException {
+    assertEquals("'\\x'::bytea",
+        PGbytea.toPGLiteral("\\x", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_rejectsNonHexCharacter() {
+    assertThrows(IllegalArgumentException.class,
+        () -> PGbytea.toPGLiteral("\\x00zz", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_rejectsOddNumberOfDigits() {
+    // PostgreSQL rejects an odd number of hex digits, so validate it here too
+    assertThrows(IllegalArgumentException.class,
+        () -> PGbytea.toPGLiteral("\\xcaf", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_rejectsFormFeed() {
+    // PostgreSQL ignores space, tab, newline and carriage return, but not form feed
+    assertThrows(IllegalArgumentException.class,
+        () -> PGbytea.toPGLiteral("\\xca\ffe", SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_hexString_rejectsInjectionAttempt() {
+    // A quote must not slip into the literal unescaped
+    assertThrows(IllegalArgumentException.class,
+        () -> PGbytea.toPGLiteral("\\x00'::bytea); drop table t; --",
+            SqlSerializationContext.of(true, true)));
+  }
+
+  @Test
+  void toPGLiteral_string_rejectsMissingHexPrefix() {
+    assertThrows(IllegalArgumentException.class,
+        () -> PGbytea.toPGLiteral("00010203", SqlSerializationContext.of(true, true)));
   }
 
   private static byte[] hexEncode(byte[] data, byte[] hexDigits) {
