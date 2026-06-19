@@ -53,6 +53,18 @@ public class Fastpath {
   }
 
   /**
+   * Returns the numeric version of the connected server, for example {@code 90300} for 9.3.
+   *
+   * <p>The value is negotiated at connection startup, so reading it costs no round-trip. Use it to
+   * pick between fastpath functions that exist only on newer servers, such as {@code lo_tell64}.</p>
+   *
+   * @return the server version number
+   */
+  public int getServerVersionNum() {
+    return executor.getServerVersionNum();
+  }
+
+  /**
    * Send a function call to the PostgreSQL backend.
    *
    * @param fnId Function id
