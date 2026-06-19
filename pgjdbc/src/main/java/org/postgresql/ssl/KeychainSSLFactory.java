@@ -10,8 +10,8 @@ import org.postgresql.util.PSQLException;
 import java.util.Properties;
 
 /**
- * <p>Provides a SSLSocketFactory that authenticates the remote server against
- * the keychain provided by MacOS.</p>
+ * Provides an SSLSocketFactory that authenticates the remote server against
+ * the keychain provided by macOS.
  *
  * <p>Older versions of the JDK support MacOS key stores but not trust stores.
  * If the trust store implementation is not found, this factory falls back to
@@ -22,7 +22,7 @@ import java.util.Properties;
  * desired certificate from the matching set. Note that this property does not
  * override the certificate selection outside of the matching set.
  */
-public class KeychainSSLFactory extends SSLFactory {
+public class KeychainSSLFactory extends ProviderKeyStoreSSLFactory {
 
   public KeychainSSLFactory(Properties info) throws PSQLException {
     super(info, "TLS", "PKIX", "Apple",

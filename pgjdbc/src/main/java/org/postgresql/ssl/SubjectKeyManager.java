@@ -25,15 +25,12 @@ public class SubjectKeyManager implements X509KeyManager {
   private final @Nullable X500Principal subject;
 
   /**
-   * <p>
    * Wrap the provided key manager with this one, limiting
    * certificates to those matching the given subject.
-   * </p>
    *
-   * <p>
-   * If subject is null, this key manager gives way to the
-   * wrapped key manager and does nothing.
-   * </p>
+   * <p>If subject is null, this key manager gives way to the
+   * wrapped key manager and does nothing.</p>
+   *
    * @param km Wrapped key manager
    * @param subject Subject distinguished name of the chosen
    *     certificate

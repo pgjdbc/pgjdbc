@@ -34,9 +34,9 @@ import javax.security.auth.x500.X500Principal;
  * stores, like the native Windows "SunMSCAPI" or native Apple "Apple"
  * providers.
  */
-public class SSLFactory extends WrappedFactory {
+public abstract class ProviderKeyStoreSSLFactory extends WrappedFactory {
 
-  protected SSLFactory(Properties info, final String protocol, final String algorithm, final String keyStoreProvider, final String keyStoreType, final String trustStoreProvider, final String trustStoreType) throws PSQLException {
+  protected ProviderKeyStoreSSLFactory(Properties info, final String protocol, final String algorithm, final String keyStoreProvider, final String keyStoreType, final String trustStoreProvider, final String trustStoreType) throws PSQLException {
 
     SSLContext ctx;
     final KeyStore keyStore;

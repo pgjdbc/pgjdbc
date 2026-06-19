@@ -10,8 +10,8 @@ import org.postgresql.util.PSQLException;
 import java.util.Properties;
 
 /**
- * <p>Provides a SSLSocketFactory that authenticates the remote server against
- * the logged in user's certificate store provided by Windows.</p>
+ * Provides an SSLSocketFactory that authenticates the remote server against
+ * the logged-in user's certificate store provided by Windows.
  *
  * <p>The remote certificate is validated against the logged in user's
  * certificate trust store.</p>
@@ -21,7 +21,7 @@ import java.util.Properties;
  * desired certificate from the matching set. Note that this property does not
  * override the certificate selection outside of the matching set.
  */
-public class MSCAPISSLFactory extends SSLFactory {
+public class MSCAPISSLFactory extends ProviderKeyStoreSSLFactory {
 
   public MSCAPISSLFactory(Properties info) throws PSQLException {
     super(info, "TLS", "PKIX", "SunMSCAPI",
