@@ -463,3 +463,64 @@ val extraMavenPublications by configurations.getting
         classifier = "features"
     }
 }
+
+// Guards the published pom against accidental dependency leaks/losses. The driver shades its
+// compile dependencies, so the pom should declare only the two unshaded runtime dependencies:
+// checker-qual (its @Nullable annotations stay in the bytecode) and waffle-jna (the optional SSPI
+// dependency). Versions are intentionally ignored, so dependency bumps do not require touching the
+// expectation; update the list below only when the set of unshaded runtime dependencies changes.
+val verifyPublishedPomDependencies by tasks.registering {
+    description = "Verifies the published pom declares exactly the expected runtime dependencies"
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+
+    val pomFile =
+        tasks.named<org.gradle.api.publish.maven.tasks.GenerateMavenPom>(
+            "generatePomFileFor${project.name.replaceFirstChar { it.uppercase() }}Publication"
+        ).map { it.destination }
+    inputs.file(pomFile)
+
+    val expected = listOf(
+        "com.github.waffle:waffle-jna scope=runtime optional=true",
+        "org.checkerframework:checker-qual scope=runtime optional=false"
+    )
+
+    doLast {
+        fun org.w3c.dom.Element.childText(tag: String): String? =
+            (0 until childNodes.length).asSequence()
+                .mapNotNull { childNodes.item(it) as? org.w3c.dom.Element }
+                .firstOrNull { it.tagName == tag }
+                ?.textContent
+                ?.trim()
+
+        val document = javax.xml.parsers.DocumentBuilderFactory.newInstance()
+            .newDocumentBuilder()
+            .parse(pomFile.get())
+
+        // Only the project-level <dependencies>, not <dependencyManagement>
+        val dependencies = (0 until document.documentElement.childNodes.length).asSequence()
+            .mapNotNull { document.documentElement.childNodes.item(it) as? org.w3c.dom.Element }
+            .firstOrNull { it.tagName == "dependencies" }
+
+        val actual = (dependencies?.getElementsByTagName("dependency")?.let { nodes ->
+            (0 until nodes.length).map { nodes.item(it) as org.w3c.dom.Element }
+        } ?: emptyList()).map { dependency ->
+            val group = dependency.childText("groupId")
+            val artifact = dependency.childText("artifactId")
+            val scope = dependency.childText("scope") ?: "compile"
+            val optional = dependency.childText("optional") ?: "false"
+            "$group:$artifact scope=$scope optional=$optional"
+        }.sorted()
+
+        if (actual != expected.sorted()) {
+            throw GradleException(
+                "Published pom dependencies changed.\n" +
+                    "Expected:\n  ${expected.sorted().joinToString("\n  ")}\n" +
+                    "Actual:\n  ${actual.joinToString("\n  ").ifEmpty { "(none)" }}"
+            )
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(verifyPublishedPomDependencies)
+}
