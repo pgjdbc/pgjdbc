@@ -348,6 +348,66 @@ public class BlobInputStream extends InputStream {
     return true;
   }
 
+  /**
+   * Skips over and discards {@code n} bytes of data from this input stream.
+   *
+   * <p>Unlike the default implementation, this seeks instead of reading and discarding the bytes,
+   * so the cost does not grow with {@code n}.</p>
+   *
+   * <p>Large objects are sparse, so the stream allows skipping past the current end of the object.
+   * Subsequent reads then return {@code -1}, and the skipped count still reflects the requested
+   * distance, as the {@link InputStream#skip(long)} contract permits.</p>
+   *
+   * @param n the number of bytes to be skipped
+   * @return the actual number of bytes skipped, which may be zero
+   * @throws IOException if the underlying seek fails, in particular when the target position
+   *     exceeds the maximum large object size the server accepts
+   * @see java.io.InputStream#skip(long)
+   * @see <a href="https://www.postgresql.org/docs/14/lo-implementation.html">Large Objects:
+   *     Implementation Features</a>
+   */
+  @Override
+  public long skip(long n) throws IOException {
+    if (n <= 0) {
+      // The contract allows skipping backwards, but this stream does not.
+      return 0;
+    }
+
+    try (ResourceLock ignore = lock.obtain()) {
+      LargeObject lo = getLo();
+      long loId = lo.getLongOID();
+
+      long targetPosition = absolutePosition + n;
+      if (targetPosition > limit || targetPosition < 0) {
+        // Clamp to the limit, and guard against overflow when n is close to Long.MAX_VALUE
+        targetPosition = limit;
+      }
+      long currentPosition = absolutePosition;
+      long skipped = targetPosition - currentPosition;
+
+      if (buffer != null && buffer.length - bufferPosition > skipped) {
+        // The target is still inside the current buffer, so just advance within it
+        bufferPosition += (int) skipped;
+      } else {
+        buffer = null;
+        try {
+          if (targetPosition <= Integer.MAX_VALUE) {
+            lo.seek((int) targetPosition, LargeObject.SEEK_SET);
+          } else {
+            lo.seek64(targetPosition, LargeObject.SEEK_SET);
+          }
+        } catch (SQLException e) {
+          throw new IOException(
+              GT.tr("Can not skip stream for large object {0} by {1} (currently @{2})",
+                  loId, n, currentPosition),
+              e);
+        }
+      }
+      absolutePosition = targetPosition;
+      return skipped;
+    }
+  }
+
   private LargeObject getLo() throws IOException {
     LargeObject lo = this.lo;
     if (lo == null) {
