@@ -75,7 +75,7 @@ public abstract class QueryExecutorBase implements QueryExecutor {
   protected final ResourceLock lock = new ResourceLock();
   protected final Condition lockCondition = lock.newCondition();
 
-  // Pipeline mode support for virtual threads
+  // Pipeline mode support for threads
   protected final ResourceLock writeLock = new ResourceLock();
   protected final ResourceLock readQueueLock = new ResourceLock();
   protected final Condition nextReaderReady = readQueueLock.newCondition();

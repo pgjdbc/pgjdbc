@@ -106,7 +106,6 @@ import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 import org.postgresql.util.PSQLWarning;
 import org.postgresql.util.ServerErrorMessage;
-import org.postgresql.util.VirtualThreadUtil;
 import org.postgresql.util.internal.IntSet;
 import org.postgresql.util.internal.SourceStreamIOException;
 
@@ -488,7 +487,6 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   private boolean shouldUsePipelineMode() {
     return pipelineModeEnabled
-        && VirtualThreadUtil.isVirtualThread()
         // Connection is not in an exclusive state (COPY, etc.)
         && !hasLock(Thread.currentThread())
         && getTransactionState() != TransactionState.FAILED;
@@ -496,7 +494,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
 
   /**
    * Execute a query using pipeline mode with ticket-based queue.
-   * This allows multiple virtual threads to concurrently send queries
+   * This allows multiple threads to concurrently send queries
    * and read results in FIFO order.
    */
   private void executePipelined(Query query, @Nullable ParameterList parameters,

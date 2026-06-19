@@ -531,17 +531,19 @@ public enum PGProperty {
       "Port of the PostgreSQL server (may be specified directly in the JDBC URL)"),
 
   /**
-   * Enable pipeline mode for virtual threads. When enabled, allows multiple virtual threads
+   * Enable pipeline mode for threads. When enabled, allows multiple threads
    * to concurrently execute queries on the same connection by pipelining queries to the server.
    * This significantly improves throughput on high-latency networks by sending multiple queries
    * without waiting for previous results. Results are processed in FIFO order matching the
-   * PostgreSQL protocol guarantee. Only works with virtual threads and extended query protocol.
+   * PostgreSQL protocol guarantee.
+   *
+   * <p>This mode is especially useful when used in conjunction with virtual threads, but not limited to.</p>
    * Default is {@code false}.
    */
   PIPELINE_MODE(
       "pipelineMode",
       "false",
-      "Enable pipeline mode for virtual threads to allow concurrent query execution on the same connection"),
+      "Enable pipeline mode for threads to allow concurrent query execution on the same connection"),
 
   /**
    * Specifies which mode is used to execute queries to database: simple means ('Q' execute, no parse, no bind, text mode only),
