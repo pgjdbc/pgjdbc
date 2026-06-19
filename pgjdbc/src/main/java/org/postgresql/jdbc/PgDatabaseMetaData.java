@@ -2422,10 +2422,6 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (catalog != null && !catalog.equals(currentCatalog)) {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
-    // Version 11 added "include columns" in index hence we need to filter only the key attributes
-    // when returning primary keys.
-    String keyCountColumn = connection.haveMinimumServerVersion(ServerVersion.v11) ? "i.indnkeyatts" : "i.indnatts";
-
     StringBuilder sql = new StringBuilder();
     sql.append(
         // language=sql
@@ -2439,18 +2435,19 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
             + "FROM "
             + "     (");
     sql.append(
+        // pg_constraint.conkey lists the primary-key columns only: it excludes INCLUDE columns,
+        // which live in the backing index but are not part of the key, so no extra filtering by
+        // key count is needed.
         // language=sql
         "SELECT current_database() AS TABLE_CAT, n.nspname AS TABLE_SCHEM, "
           + "  ct.relname AS TABLE_NAME, a.attname AS COLUMN_NAME, "
-          + "  (information_schema._pg_expandarray(i.indkey)).n AS KEY_SEQ, ci.relname AS PK_NAME, "
-          + "  information_schema._pg_expandarray(i.indkey) AS KEYS, a.attnum AS A_ATTNUM, "
-          + keyCountColumn + " as KEY_COUNT "
-          + "FROM pg_catalog.pg_class ct "
-          + "  JOIN pg_catalog.pg_attribute a ON (ct.oid = a.attrelid) "
+          + "  (information_schema._pg_expandarray(con.conkey)).n AS KEY_SEQ, con.conname AS PK_NAME, "
+          + "  information_schema._pg_expandarray(con.conkey) AS KEYS, a.attnum AS A_ATTNUM "
+          + "FROM pg_catalog.pg_constraint con "
+          + "  JOIN pg_catalog.pg_class ct ON (con.conrelid = ct.oid) "
           + "  JOIN pg_catalog.pg_namespace n ON (ct.relnamespace = n.oid) "
-          + "  JOIN pg_catalog.pg_index i ON ( a.attrelid = i.indrelid) "
-          + "  JOIN pg_catalog.pg_class ci ON (ci.oid = i.indexrelid) "
-          + "WHERE true ");
+          + "  JOIN pg_catalog.pg_attribute a ON (a.attrelid = ct.oid) "
+          + "WHERE con.contype = 'p' ");
 
     List<String> args = new ArrayList<>(2);
     if (schema != null) {
@@ -2463,11 +2460,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       args.add(table);
     }
 
-    sql.append(" AND i.indisprimary ");
     sql.append(
         " ) result"
             + " where "
-            + " result.A_ATTNUM = (result.KEYS).x AND result.KEY_SEQ <= KEY_COUNT ");
+            + " result.A_ATTNUM = (result.KEYS).x ");
     sql.append(" ORDER BY result.table_name, result.pk_name, result.key_seq");
 
     return executeMetadataStatement(sql.toString(), args);
