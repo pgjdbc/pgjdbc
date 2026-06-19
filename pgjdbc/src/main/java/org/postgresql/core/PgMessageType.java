@@ -58,4 +58,9 @@ public class PgMessageType {
   public static final byte COPY_DONE = 'c';
   public static final byte COPY_DATA = 'd';
 
+  // ReadyForQuery transaction status indicators
+  public static final byte TRANSACTION_IDLE = 'I';
+  public static final byte TRANSACTION_OPEN = 'T';
+  public static final byte TRANSACTION_FAILED = 'E';
+
 }
