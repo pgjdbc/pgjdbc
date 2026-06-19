@@ -98,6 +98,10 @@ For any other extension (including ".key"), the driver inspects the first 64 KiB
 > When using a PKCS-12 client certificate the name or alias *MUST* be `user` when using `openssl pkcs12 -export -name user ...`
 There are complete examples of how to export the certificate in the [certdir](https://raw.githubusercontent.com/pgjdbc/pgjdbc/master/certdir/Makefile) Makefile
 
+> **NOTE**
+>
+> The `.p12` archive must hold the full client certificate chain. When the client certificate is signed by one or more intermediate CAs, add `-certfile <intermediate-chain>.crt` to the `openssl pkcs12 -export` command. Without the intermediates the server rejects the connection with `connection requires a valid client certificate`.
+
 Finer control of the SSL connection can be achieved using the `sslmode` connection parameter.
 This parameter is the same as the libpq `sslmode` parameter and currently implements the
 following
