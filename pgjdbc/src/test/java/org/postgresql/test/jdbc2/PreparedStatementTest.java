@@ -26,6 +26,7 @@ import org.postgresql.test.TestUtil;
 import org.postgresql.test.annotations.EnabledForServerVersionRange;
 import org.postgresql.test.util.BrokenInputStream;
 import org.postgresql.util.GT;
+import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.AfterAll;
@@ -389,6 +390,59 @@ public class PreparedStatementTest extends BaseTest4 {
       assertEquals("INSERT INTO streamtable VALUES ('\\x000102'::bytea,('line2'))", assertDoesNotThrow(
           pstmt::toString,
           "PreparedStatement#toString call should succeed even after executeBatch()"), "PreparedStatement#toString after executeBatch() seem to equal to the latest parameter row");
+    }
+  }
+
+  @Test
+  public void PGobject_bytea_hex_toString() throws SQLException {
+    // Regression test for https://github.com/pgjdbc/pgjdbc/issues/3757:
+    // PreparedStatement#toString must not fail for a bytea value supplied as a
+    // hex-format string via PGobject.
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      PGobject bytea = new PGobject();
+      bytea.setType("bytea");
+      bytea.setValue("\\x00010203");
+      pstmt.setObject(1, bytea);
+      pstmt.setString(2, "test");
+
+      String expected = "INSERT INTO streamtable VALUES ('\\x00010203'::bytea,('test'))";
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString must not fail for a bytea PGobject"),
+          "bytea PGobject should be rendered as a hex literal");
+
+      pstmt.execute();
+
+      assertEquals(expected, assertDoesNotThrow(
+          pstmt::toString,
+          "PreparedStatement#toString must not fail after execute()"),
+          "bytea PGobject should be rendered as a hex literal after execute()");
+    }
+  }
+
+  @Test
+  public void PGobject_bytea_escape_toString() throws SQLException {
+    // A bytea value supplied in the escape format is quoted and cast like any
+    // other text literal, so a stray quote cannot break out of the literal.
+    try (PreparedStatement pstmt =
+             con.prepareStatement("INSERT INTO streamtable VALUES (?,?)")) {
+
+      PGobject bytea = new PGobject();
+      bytea.setType("bytea");
+      bytea.setValue("a'b");
+      pstmt.setObject(1, bytea);
+      pstmt.setString(2, "test");
+
+      assertEquals(
+          "INSERT INTO streamtable VALUES (('a''b'::bytea),('test'))",
+          assertDoesNotThrow(
+              pstmt::toString,
+              "PreparedStatement#toString must not fail for an escape-format bytea PGobject"),
+          "escape-format bytea PGobject should be quoted and cast");
+
+      pstmt.execute();
     }
   }
 
