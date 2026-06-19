@@ -7,11 +7,13 @@ package org.postgresql.jdbc;
 
 import static org.postgresql.util.internal.Nullness.castNonNull;
 
+import org.postgresql.api.codec.Codec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.BaseStatement;
 import org.postgresql.core.Oid;
 import org.postgresql.core.QueryExecutor;
 import org.postgresql.core.TypeInfo;
+import org.postgresql.jdbc.codec.PGobjectCodec;
 import org.postgresql.util.GT;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
@@ -284,6 +286,21 @@ public class TypeInfoCache implements TypeInfo {
   public void addDataType(String type, Class<? extends PGobject> klass)
       throws SQLException {
     javaTypeRegistry.addPGobject(type, klass);
+    // Install a codec adapter keyed by OID so the registration takes effect
+    // wherever the codec layer resolves the type — top-level columns, array
+    // elements and composite fields — independent of the identifier form used
+    // to register it. If the type is not present yet, the name-based registry
+    // above still applies through Connection#getObject(String, ...).
+    try {
+      PgType pgType = getPgTypeByPgName(type);
+      int oid = pgType.getOid();
+      if (oid != Oid.UNSPECIFIED) {
+        Codec delegate = codecRegistry.getByOid(oid, pgType);
+        codecRegistry.registerByOid(oid, new PGobjectCodec(klass, delegate));
+      }
+    } catch (SQLException ignore) {
+      // Type not resolvable yet; resolution falls back to the name-based registry.
+    }
   }
 
   @Override
