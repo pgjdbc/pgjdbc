@@ -78,12 +78,18 @@ class SSPIClientWaffleTest {
     };
     handler.setLevel(Level.ALL);
     logger.addHandler(handler);
+    // The probe logs the expected ClassNotFoundException at WARNING. Keep it from reaching the
+    // console handlers so the deliberate failure does not show up as stderr noise in the build;
+    // the locally added handler still captures the record for the assertion below.
+    boolean useParentHandlers = logger.getUseParentHandlers();
+    logger.setUseParentHandlers(false);
     try {
       assertFalse(isWaffleAvailable(new WaffleHidingClassLoader(getClass().getClassLoader())));
       boolean warned = records.stream().anyMatch(record -> record.getLevel() == Level.WARNING
           && String.valueOf(record.getMessage()).contains(UNAVAILABLE_MESSAGE));
       assertTrue(warned, "expected a WARNING containing: " + UNAVAILABLE_MESSAGE);
     } finally {
+      logger.setUseParentHandlers(useParentHandlers);
       logger.removeHandler(handler);
     }
   }
