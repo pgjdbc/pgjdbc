@@ -509,13 +509,17 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       return true;
     }
     String sql = query.getNativeSql();
-    // SET TRANSACTION ISOLATION LEVEL and SET SESSION CHARACTERISTICS cannot be called in subtransaction
+    // SET TRANSACTION ISOLATION LEVEL and SET SESSION CHARACTERISTICS cannot be called in subtransaction.
+    // The optional LOCAL/SESSION qualifier (SET LOCAL TRANSACTION, SET SESSION TRANSACTION) hits the same
+    // restriction, so all of those forms must not be preceded by an automatic SAVEPOINT either.
     // SAVEPOINT commands cannot use autosave because:
     // - SAVEPOINT: releasing the autosave would destroy the user's savepoint (created after autosave)
     // - RELEASE SAVEPOINT: same issue, plus the released savepoint might no longer exist
     // - ROLLBACK TO SAVEPOINT: destroys savepoints created after the target, including autosave
     return "COMMIT".equalsIgnoreCase(sql)
         || startsWithIgnoreCase(sql, "SET TRANSACTION")
+        || startsWithIgnoreCase(sql, "SET LOCAL TRANSACTION")
+        || startsWithIgnoreCase(sql, "SET SESSION TRANSACTION")
         || startsWithIgnoreCase(sql, "SET SESSION CHARACTERISTICS")
         || startsWithIgnoreCase(sql, "SAVEPOINT")
         || startsWithIgnoreCase(sql, "RELEASE")
