@@ -62,6 +62,7 @@ public class TimestampUtils {
   private static final LocalTime MAX_TIME = LocalTime.MAX.minus(Duration.ofNanos(500));
   private static final long MAX_TIME_NANOS = MAX_TIME.toNanoOfDay();
   private static final OffsetDateTime MAX_OFFSET_DATETIME = OffsetDateTime.MAX.minus(Duration.ofMillis(500));
+  private static final Instant MAX_INSTANT = Instant.MAX.minus(Duration.ofMillis(500));
   private static final LocalDateTime MAX_LOCAL_DATETIME = LocalDateTime.MAX.minus(Duration.ofMillis(500));
   // low value for dates is   4713 BC
   private static final LocalDate MIN_LOCAL_DATE = LocalDate.of(4713, 1, 1).with(ChronoField.ERA, IsoEra.BCE.getValue());
@@ -668,6 +669,24 @@ public class TimestampUtils {
   }
 
   /**
+   * Returns the Instant object matching the given bytes with Oid#TIMESTAMPTZ.
+   *
+   * @param bytes The binary encoded timestamp value.
+   * @return The parsed Instant object.
+   * @throws PSQLException If binary format could not be parsed.
+   */
+  public Instant toInstantBin(byte[] bytes) throws PSQLException {
+    ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
+    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+      return Instant.MAX;
+    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+      return Instant.MIN;
+    }
+
+    return Instant.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos);
+  }
+
+  /**
    * Returns the offset date time object matching the given bytes with Oid#TIMESTAMPTZ.
    *
    * @param bytes The binary encoded local date time value.
@@ -675,16 +694,15 @@ public class TimestampUtils {
    * @throws PSQLException If binary format could not be parsed.
    */
   public OffsetDateTime toOffsetDateTimeBin(byte[] bytes) throws PSQLException {
-    ParsedBinaryTimestamp parsedTimestamp = this.toProlepticParsedTimestampBin(bytes);
-    if (parsedTimestamp.infinity == Infinity.POSITIVE) {
+    Instant instant = toInstantBin(bytes);
+    if (instant.equals(Instant.MAX)) {
       return OffsetDateTime.MAX;
-    } else if (parsedTimestamp.infinity == Infinity.NEGATIVE) {
+    } else if (instant.equals(Instant.MIN)) {
       return OffsetDateTime.MIN;
     }
 
     // hardcode utc because the backend does not provide us the timezone
     // Postgres is always UTC
-    Instant instant = Instant.ofEpochSecond(parsedTimestamp.millis / 1000L, parsedTimestamp.nanos);
     return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
   }
 
@@ -1148,12 +1166,12 @@ public class TimestampUtils {
   }
 
   public String toString(OffsetDateTime offsetDateTime) {
+    if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
+      return "infinity";
+    } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
+      return "-infinity";
+    }
     try (ResourceLock ignore = lock.obtain()) {
-      if (offsetDateTime.isAfter(MAX_OFFSET_DATETIME)) {
-        return "infinity";
-      } else if (offsetDateTime.isBefore(MIN_OFFSET_DATETIME)) {
-        return "-infinity";
-      }
 
       sbuf.setLength(0);
 
@@ -1173,6 +1191,19 @@ public class TimestampUtils {
 
       return sbuf.toString();
     }
+  }
+
+  public String toString(Instant instant) {
+    if (instant.isAfter(MAX_INSTANT)) {
+      // Account for rounding, so we use isAfter
+      return "infinity";
+    } else if (instant.equals(Instant.MIN)) {
+      // Instant is inherently in UTC, so we can use the exact value for MIN
+      return "-infinity";
+    }
+
+    OffsetDateTime odt = OffsetDateTime.ofInstant(instant, ZoneOffset.UTC);
+    return toString(odt);
   }
 
   /**
