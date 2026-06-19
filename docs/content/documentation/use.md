@@ -181,6 +181,10 @@ The auto-detection scan is bounded to avoid excessive work on malformed files. T
 > When you create a PKCS-12 key the `alias` or the `name` must be *user*. The test codes uses the following to create a .p12 key `openssl pkcs12 -export -in $< -inkey $*.key -out $@ -name user -CAfile $(SERVER_CRT_DIR)root.crt -caname local -passout pass:$(P12_PASSWORD)`
  A PEM key can be converted to DER format using the openssl command: `openssl pkcs8 -topk8 -inform PEM -in postgresql.key -outform DER -out postgresql.pk8 -v1 PBE-MD5-DES`
 
+> **NOTE**
+>
+> The `.p12` archive must hold the full client certificate chain. When the client certificate is signed by one or more intermediate CAs, add `-certfile <intermediate-chain>.crt` to the `openssl pkcs12 -export` command. Without the intermediates the server rejects the connection with `connection requires a valid client certificate`. The example above needs no `-certfile` because the test certificate is signed directly by the root CA.
+
 If your key has a password, provide it using the `sslpassword` connection parameter described below. Otherwise, you can add the flag `-nocrypt` to the above command to prevent the driver from requesting a password.
 
 > **NOTE**

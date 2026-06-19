@@ -23,6 +23,8 @@ clean:
 
 %.p12 : %.crt
 	@echo Exporting certificate $@
+	# These clients are signed directly by the root CA, so the .p12 needs no extra chain.
+	# With intermediate CAs, add `-certfile <intermediate-chain>.crt` so the server can build the chain.
 	openssl pkcs12 -export -in $< -inkey $*.key -out $@ -name user -CAfile $(SERVER_CRT_DIR)root.crt -caname local -passout pass:$(P12_PASSWORD)
 
 %root.key :
