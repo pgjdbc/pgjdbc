@@ -17,6 +17,8 @@ import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -192,6 +194,80 @@ class ParserTest {
         EscapeSyntaxCallMode.CALL_IF_NO_RETURN).getSql());
     assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)}", true, ServerVersion.v11.getVersionNum(),
         EscapeSyntaxCallMode.CALL).getSql());
+  }
+
+  /**
+   * When the single OUT parameter is moved into the function call, a comment between {@code (} and
+   * {@code )} is not a real argument, so it must not gain a spurious comma. See issue #2538.
+   */
+  @Test
+  void modifyJdbcCallOutParamWithCommentOnlyArgs() throws SQLException {
+    // Comment-only argument list: no comma, otherwise the result would be "f(?, )".
+    assertEquals("select * from pack_getValue(?/* no args */) as result",
+        Parser.modifyJdbcCall("{ ? = call pack_getValue(/* no args */)}", true,
+            ServerVersion.v9_6.getVersionNum(), EscapeSyntaxCallMode.SELECT).getSql());
+    // A real argument behind a comment still gets the comma.
+    assertEquals("select * from pack_getValue(?,/* c */ ?) as result",
+        Parser.modifyJdbcCall("{ ? = call pack_getValue(/* c */ ?)}", true,
+            ServerVersion.v9_6.getVersionNum(), EscapeSyntaxCallMode.SELECT).getSql());
+  }
+
+  /**
+   * A comment after the closing brace of a {@code { ... }} escape must be tolerated rather than
+   * rejected as a syntax error, and it must not leak into the rewritten SQL. See issue #2538.
+   */
+  @Test
+  void modifyJdbcCallToleratesTrailingComment() throws SQLException {
+    assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{call lower(?,?)} /* trailing */", true,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL).getSql());
+    assertEquals("call lower(?,?)", Parser.modifyJdbcCall("{ ? = call lower(?)} -- trailing", true,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL).getSql());
+    assertEquals("select * from lower(?,?) as result",
+        Parser.modifyJdbcCall("{call lower(?,?)}\n/* trailing */", true,
+            ServerVersion.v9_6.getVersionNum(), EscapeSyntaxCallMode.SELECT).getSql());
+    // A trailing token that is not a comment is still a syntax error.
+    assertThrows(PSQLException.class, () -> Parser.modifyJdbcCall("{call lower(?,?)} garbage", true,
+        ServerVersion.v11.getVersionNum(), EscapeSyntaxCallMode.CALL));
+  }
+
+  /**
+   * A {@code CALL} (or {@code { ? = call ... }} escape) preceded by a comment must still be
+   * recognised as a function call, otherwise OUT parameter registration fails. See issue #2538.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "call test_procedure(?,?)",
+      "{ ? = call test_function(?)}",
+      "{call test_procedure(?,?)}",
+      "/* DeviceTagBatchDAO.generateBatch */ call test_procedure(?,?)",
+      "/* some comment */ { ? = call test_function(?)}",
+      "/* nested /* comment */ */ call test_procedure(?,?)",
+      "  /* leading whitespace */  call test_procedure(?,?)",
+      "-- a line comment\ncall test_procedure(?,?)",
+      "CALL test_procedure(?,?)",
+      "/* mixed case */ CaLl test_procedure(?,?)",
+  })
+  void callWithLeadingCommentIsFunction(String sql) throws SQLException {
+    JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
+        EscapeSyntaxCallMode.CALL);
+    assertTrue(parseInfo.isFunction(), () -> "isFunction() should be true for: " + sql);
+  }
+
+  /**
+   * Statements that are not calls must not be mistaken for function calls, even when a comment
+   * happens to contain the word {@code call}.
+   */
+  @ParameterizedTest
+  @ValueSource(strings = {
+      "select 1",
+      "/* call this later */ select 1",
+      "-- call test_procedure(?,?)\nselect 1",
+      "callme(?)",
+  })
+  void nonCallIsNotFunction(String sql) throws SQLException {
+    JdbcCallParseInfo parseInfo = Parser.modifyJdbcCall(sql, true, ServerVersion.v14.getVersionNum(),
+        EscapeSyntaxCallMode.CALL);
+    assertFalse(parseInfo.isFunction(), () -> "isFunction() should be false for: " + sql);
   }
 
   @Test
