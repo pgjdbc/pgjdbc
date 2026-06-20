@@ -1040,4 +1040,56 @@ public class UpdateableResultTest extends BaseTest4 {
       return fromDb;
     }
   }
+
+  @Test
+  public void testUpdateableWithSameTableNameInMultipleSchemas() throws SQLException {
+    // Two schemas hold a table with the same name and the same auto-generated primary key
+    // index name (same_name_pkey), but a different set of key columns. An unqualified query
+    // must be classified using only the table visible through search_path, not the union of
+    // both schemas' key columns. Before the fix the union made upd_schema_a's single-column
+    // key look incomplete, so the result set was wrongly rejected as not updatable.
+    //
+    // search_path puts an empty schema first, so the table resolves through a later entry
+    // (upd_schema_a). This also rules out the rejected #3400 approach of defaulting the
+    // schema to current_schema(): current_schema() is the empty schema, which holds no
+    // same_name table, so that approach would still reject the result set.
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
+    TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_empty");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_a");
+    TestUtil.execute(con, "CREATE SCHEMA upd_schema_b");
+    String savedSearchPath;
+    try (Statement show = con.createStatement();
+         ResultSet rs = show.executeQuery("SHOW search_path")) {
+      assertTrue(rs.next());
+      String sp = rs.getString(1);
+      savedSearchPath = sp != null ? sp : "\"$user\", public";
+    }
+    try {
+      TestUtil.execute(con, "CREATE TABLE upd_schema_a.same_name (id int PRIMARY KEY, val text)");
+      TestUtil.execute(con,
+          "CREATE TABLE upd_schema_b.same_name (id int, other int, val text, PRIMARY KEY (id, other))");
+      TestUtil.execute(con, "INSERT INTO upd_schema_a.same_name (id, val) VALUES (1, 'a')");
+
+      TestUtil.execute(con, "SET search_path TO upd_schema_empty, upd_schema_a, upd_schema_b");
+      try (Statement st = con.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE)) {
+        try (ResultSet rs = st.executeQuery("SELECT id, val FROM same_name")) {
+          assertTrue(rs.next());
+          rs.updateString("val", "updated");
+          rs.updateRow();
+        }
+        try (ResultSet rs = st.executeQuery("SELECT val FROM same_name WHERE id = 1")) {
+          assertTrue(rs.next());
+          assertEquals("updated", rs.getString("val"));
+        }
+      }
+    } finally {
+      TestUtil.execute(con, "SET search_path TO " + savedSearchPath);
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_empty CASCADE");
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_a CASCADE");
+      TestUtil.execute(con, "DROP SCHEMA IF EXISTS upd_schema_b CASCADE");
+    }
+  }
 }

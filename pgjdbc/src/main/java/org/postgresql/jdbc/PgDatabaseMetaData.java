@@ -2535,6 +2535,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     if (schema != null && !schema.isEmpty()) {
       sql.append(" AND n.nspname = ?");
       args.add(schema);
+    } else {
+      // The table name carries no schema qualifier, so it resolves through the session's
+      // search_path. pg_table_is_visible() applies the same visibility rules the server uses,
+      // so only the relation the query actually references is matched. Without it, identically
+      // named tables in other schemas are matched too, which can mis-classify a result set as
+      // updatable when those tables share a constraint name but differ in their key columns.
+      // pg_table_is_visible() has existed since PostgreSQL 7.3.
+      sql.append(" AND pg_catalog.pg_table_is_visible(ct.oid)");
     }
 
     if (table != null && !table.isEmpty()) {
