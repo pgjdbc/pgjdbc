@@ -37,7 +37,7 @@ These older methods of loading the driver are still supported, but they are no l
 With JDBC, a database is represented by a URL (Uniform Resource Locator). With PostgreSQL®, this takes one of the following forms:
 
 * jdbc:postgresql:database
-* jdbc:postgresql:/
+* jdbc:postgresql://
 * jdbc:postgresql://host/database
 * jdbc:postgresql://host/
 * jdbc:postgresql://host:port/database
