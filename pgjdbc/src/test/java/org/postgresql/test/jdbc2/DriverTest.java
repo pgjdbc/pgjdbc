@@ -66,6 +66,20 @@ class DriverTest {
     assertThrows(SQLException.class, () -> driver.connect(null, new Properties()));
   }
 
+  /**
+   * A null URL reaching acceptsURL() is a caller bug. It already threw an NPE before, but an
+   * opaque one from deep inside URL parsing; assert the explicit, message-carrying NPE so the
+   * fail-fast check is not silently dropped.
+   */
+  @Test
+  void acceptsUrlRejectsNull() {
+    Driver driver = new Driver();
+
+    NullPointerException npe =
+        assertThrows(NullPointerException.class, () -> driver.acceptsURL(null));
+    assertEquals("url", npe.getMessage());
+  }
+
   /*
    * This tests the acceptsURL() method with a couple of well and poorly formed jdbc urls.
    */
