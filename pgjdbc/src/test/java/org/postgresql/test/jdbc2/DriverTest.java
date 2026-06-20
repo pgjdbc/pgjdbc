@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeFalse;
 
 import org.postgresql.Driver;
 import org.postgresql.PGEnvironment;
@@ -29,8 +30,13 @@ import uk.org.webcompere.systemstubs.properties.SystemProperties;
 import uk.org.webcompere.systemstubs.resource.Resources;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Method;
+import java.net.BindException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -196,6 +202,65 @@ class DriverTest {
       assertNotNull(con,
           "DriverManager.getConnection(url + \"&user=...&password=...\") should succeed");
     }
+  }
+
+  /**
+   * Verifies that {@code localSocketAddress} reaches {@code socket.bind()} (see
+   * {@code PGStream.createSocket}).
+   *
+   * <p>The test points the property at an address that is not assigned to any local interface, so
+   * the bind must fail and surface as a {@link BindException}. If the property were ignored, the
+   * connection would proceed instead. This avoids inspecting {@code inet_client_addr()}, which is
+   * unreliable when the server is reached through a proxy or NAT — a Dockerised PostgreSQL, for
+   * example, reports the bridge gateway rather than the bound client address.</p>
+   *
+   * <p>The test is skipped on hosts that allow binding non-local addresses
+   * ({@code ip_nonlocal_bind}), where the bind would not fail.</p>
+   */
+  @Test
+  void connectWithLocalSocketAddress() throws Exception {
+    // 203.0.113.0/24 is TEST-NET-3 (RFC 5737); it is never assigned to a real interface.
+    String unassignableAddress = "203.0.113.1";
+    assumeFalse(canBind(unassignableAddress),
+        "host allows binding non-local addresses; cannot exercise the bind failure");
+
+    Properties props = new Properties();
+    PGProperty.USER.set(props, TestUtil.getUser());
+    PGProperty.PASSWORD.set(props, TestUtil.getPassword());
+    PGProperty.LOCAL_SOCKET_ADDRESS.set(props, unassignableAddress);
+
+    SQLException ex = assertThrows(SQLException.class,
+        () -> DriverManager.getConnection(TestUtil.getURL(), props),
+        "binding localSocketAddress to an unassignable address should fail the connection");
+
+    if (!hasCause(ex, BindException.class)) {
+      try {
+        fail("binding localSocketAddress to " + unassignableAddress
+            + " should fail with a BindException, but the connection failed differently");
+      } catch (AssertionError e) {
+        // Attach the original failure so its full stack trace reaches the CI logs.
+        e.addSuppressed(ex);
+        throw e;
+      }
+    }
+  }
+
+  private static boolean canBind(String address) throws Exception {
+    try (Socket socket = new Socket()) {
+      socket.bind(new InetSocketAddress(InetAddress.getByName(address), 0));
+      return true;
+    } catch (IOException e) {
+      return false;
+    }
+  }
+
+  private static boolean hasCause(Throwable throwable, Class<? extends Throwable> type) {
+    for (Throwable c = throwable; c != null; c = c.getCause()) {
+      if (type.isInstance(c)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
