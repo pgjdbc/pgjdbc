@@ -58,6 +58,9 @@ class SchemaTest {
       TestUtil.createTable(conn, "\"UpperCase\".table3", "id integer");
       TestUtil.createTable(conn, "schema1.sptest", "id integer");
       TestUtil.createTable(conn, "schema2.sptest", "id varchar");
+      // The user schema is first in the default search_path ("$user", public), so a RESET that
+      // restores the default resolves the unqualified sptest to this BIGINT table.
+      TestUtil.createTable(conn, TestUtil.getUser() + ".sptest", "id bigint");
       stmt.close();
     }
   }
@@ -237,6 +240,108 @@ class SchemaTest {
     assertColType(ps, "sptest should point to schema2.sptest, thus column type should be VARCHAR",
         Types.VARCHAR);
     ps.close();
+  }
+
+  /**
+   * The command tag is always upper-case, but the user-supplied SQL may use any case, so an
+   * upper-case {@code SET SEARCH_PATH} must invalidate the prepared statement cache just like the
+   * lower-case form does. With autoCommit=false a missed invalidation surfaces as a
+   * "cached plan must not change result type" error that aborts the transaction, which the
+   * reparse-on-error fallback can no longer heal, so this variant guards the regression.
+   */
+  @Test
+  void searchPathPreparedStatementUpperCaseAutoCommitFalse() throws SQLException {
+    conn.setAutoCommit(false);
+    searchPathPreparedStatementUpperCase();
+  }
+
+  @Test
+  void searchPathPreparedStatementUpperCaseAutoCommitTrue() throws SQLException {
+    searchPathPreparedStatementUpperCase();
+  }
+
+  private void searchPathPreparedStatementUpperCase() throws SQLException {
+    execute("SET SEARCH_PATH TO schema1,public");
+    try (PreparedStatement ps = conn.prepareStatement("select * from sptest")) {
+      for (int i = 0; i < 10; i++) {
+        ps.execute();
+      }
+      assertColType(ps, "sptest should point to schema1.sptest, thus column type should be INT",
+          Types.INTEGER);
+    }
+    execute("SET SEARCH_PATH TO schema2,public");
+    try (PreparedStatement ps = conn.prepareStatement("select * from sptest")) {
+      assertColType(ps, "sptest should point to schema2.sptest, thus column type should be VARCHAR",
+          Types.VARCHAR);
+    }
+  }
+
+  /**
+   * {@code RESET search_path} restores the default search_path, so it must invalidate the prepared
+   * statement cache just like {@code SET search_path} does. As with {@code SET}, the
+   * autoCommit=false variant is the real guard: under autoCommit=true the reparse-on-error
+   * fallback hides a missed invalidation.
+   */
+  @Test
+  void searchPathPreparedStatementResetAutoCommitFalse() throws SQLException {
+    conn.setAutoCommit(false);
+    searchPathPreparedStatementReset("RESET search_path");
+  }
+
+  @Test
+  void searchPathPreparedStatementResetAutoCommitTrue() throws SQLException {
+    searchPathPreparedStatementReset("RESET search_path");
+  }
+
+  /**
+   * {@code RESET ALL} reverts every session parameter, search_path included, so it must invalidate
+   * the prepared statement cache too.
+   */
+  @Test
+  void searchPathPreparedStatementResetAllAutoCommitFalse() throws SQLException {
+    conn.setAutoCommit(false);
+    searchPathPreparedStatementReset("RESET ALL");
+  }
+
+  @Test
+  void searchPathPreparedStatementResetAllAutoCommitTrue() throws SQLException {
+    searchPathPreparedStatementReset("RESET ALL");
+  }
+
+  private void searchPathPreparedStatementReset(String resetSql) throws SQLException {
+    execute("SET search_path TO schema1,public");
+    try (PreparedStatement ps = conn.prepareStatement("select * from sptest")) {
+      for (int i = 0; i < 10; i++) {
+        ps.execute();
+      }
+      assertColType(ps, "sptest should point to schema1.sptest, thus column type should be INT",
+          Types.INTEGER);
+    }
+    execute(resetSql);
+    try (PreparedStatement ps = conn.prepareStatement("select * from sptest")) {
+      assertColType(ps, resetSql + " should restore the default search_path, where sptest is the "
+          + "BIGINT table in the user schema", Types.BIGINT);
+    }
+  }
+
+  /**
+   * A {@code RESET} of an unrelated parameter leaves search_path untouched, so the prepared
+   * statement keeps resolving to the same table. This also covers the "RESET, but neither
+   * search_path nor ALL" path, where the cache must not be invalidated.
+   */
+  @Test
+  void resetUnrelatedParameterKeepsSearchPath() throws SQLException {
+    execute("SET search_path TO schema1,public");
+    try (PreparedStatement ps = conn.prepareStatement("select * from sptest")) {
+      for (int i = 0; i < 10; i++) {
+        ps.execute();
+      }
+      assertColType(ps, "sptest should point to schema1.sptest, thus column type should be INT",
+          Types.INTEGER);
+      execute("RESET statement_timeout");
+      assertColType(ps, "RESET statement_timeout must not change search_path, so sptest still "
+          + "points to schema1.sptest", Types.INTEGER);
+    }
   }
 
   @Test
