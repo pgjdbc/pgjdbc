@@ -6,6 +6,54 @@ import { EOL } from 'os';
 import { createGitHubMatrixBuilder } from '@vlsi/github-actions-random-matrix/github';
 const { matrix, random } = createGitHubMatrixBuilder();
 
+// The oldest PostgreSQL version pgjdbc tests against. Older releases are filtered out.
+const minSupportedPgVersion = '9.1';
+
+// Fallback list used when the released versions cannot be fetched from postgresql.org.
+const fallbackPgVersions = [
+  '9.1',
+  '9.2',
+  '9.3',
+  '9.4',
+  '9.5',
+  '9.6',
+  '10',
+  '11',
+  '12',
+  '13',
+  '14',
+  '15',
+  '16',
+  '17',
+  '18'
+];
+
+// Fetch the list of released PostgreSQL major versions so the matrix picks up new releases
+// automatically. On any failure, fall back to the hard-coded list above.
+// See https://github.com/pgjdbc/pgjdbc/pull/2994#issuecomment-1811292887
+async function fetchReleasedPgVersions() {
+  try {
+    const response = await fetch('https://www.postgresql.org/versions.json');
+    if (!response.ok) {
+      throw new Error(`unexpected response status ${response.status}`);
+    }
+    const versions = await response.json();
+    const majors = versions
+      .map(v => v.major)
+      .filter(major => Number(major) >= Number(minSupportedPgVersion))
+      .sort((a, b) => Number(a) - Number(b));
+    if (majors.length === 0) {
+      throw new Error('no PostgreSQL versions found in the response');
+    }
+    return majors;
+  } catch (e) {
+    console.warn('Unable to fetch PostgreSQL versions from postgresql.org, using the hard-coded list:', e);
+    return fallbackPgVersions;
+  }
+}
+
+const pgVersions = await fetchReleasedPgVersions();
+
 // Some of the filter conditions might become unsatisfiable, and by default
 // the matrix would ignore that.
 // For instance, SCRAM requires PostgreSQL 10+, so if you ask
@@ -54,23 +102,7 @@ matrix.addAxis({
   name: 'pg_version',
   title: x => 'PG ' + x,
   // Strings allow versions like 18-ea
-  values: [
-    '9.1',
-    '9.2',
-    '9.3',
-    '9.4',
-    '9.5',
-    '9.6',
-    '10',
-    '11',
-    '12',
-    '13',
-    '14',
-    '15',
-    '16',
-    '17',
-    '18'
-  ]
+  values: pgVersions
 });
 
 // Test with PostgreSQL HEAD for branch-based builds only.
