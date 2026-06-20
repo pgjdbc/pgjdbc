@@ -1248,11 +1248,37 @@ public class PreparedStatementTest extends BaseTest4 {
     assertTrue(rs.wasNull(), "rs.getBigDecimal after rs.getLong");
     assertEquals(BigDecimal.valueOf(maxInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, 1), "maxInt as rs.getBigDecimal(scale=1)");
     assertEquals(BigDecimal.valueOf(minInt).setScale(1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, 1), "minInt as rs.getBigDecimal(scale=1)");
+    assertEquals(BigDecimal.valueOf(maxInt).setScale(-1, RoundingMode.HALF_EVEN), rs.getBigDecimal(1, -1), "maxInt as rs.getBigDecimal(scale=-1)");
+    assertEquals(BigDecimal.valueOf(minInt).setScale(-1, RoundingMode.HALF_EVEN), rs.getBigDecimal(2, -1), "minInt as rs.getBigDecimal(scale=-1)");
     rs.getFloat(3);
     assertTrue(rs.wasNull());
     rs.close();
     pstmt.close();
 
+  }
+
+  @Test
+  public void testNegativeNumericScale() throws SQLException {
+    assumeMinimumServerVersion("numeric with a negative scale typmod requires v15",
+        ServerVersion.v15);
+    try (PreparedStatement pstmt = con.prepareStatement("select 1500::numeric(2,-2)");
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      BigDecimal expected = new BigDecimal("1500").setScale(-2, RoundingMode.HALF_EVEN);
+      assertEquals(expected, rs.getObject(1), "1500::numeric(2,-2) as rs.getObject");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void testBigDecimalWithScale() throws SQLException {
+    final String bigDecimalString = "1.1234";
+    try (PreparedStatement pstmt = con.prepareStatement("select " + bigDecimalString);
+         ResultSet rs = pstmt.executeQuery()) {
+      assertTrue(rs.next());
+      assertEquals(new BigDecimal(bigDecimalString).setScale(2, RoundingMode.HALF_EVEN),
+          rs.getBigDecimal(1, 2), "rs.getBigDecimal(scale=2) should round to the requested scale");
+    }
   }
 
   @Test
