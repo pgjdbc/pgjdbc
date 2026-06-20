@@ -312,7 +312,10 @@ public class Encoding {
    * @param out the underlying stream to encode to
    * @return a non-null Writer implementation.
    * @throws IOException if something goes wrong
+   * @deprecated the driver encodes strings to bytes directly and no longer routes output through a
+   *     {@link Writer}. This method is unused and will be removed in a future release.
    */
+  @Deprecated
   public Writer getEncodingWriter(OutputStream out) throws IOException {
     return new OutputStreamWriter(out, encoding);
   }
