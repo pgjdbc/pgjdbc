@@ -50,10 +50,21 @@ matrix.addAxis({
   ]
 });
 
+// The newest stable PostgreSQL major. It generates the pg_version axis (10..MAX_PG)
+// and pins the server of the coverage job below. Renovate bumps it when a new
+// `postgres:<major>` image reaches Docker Hub (see the custom manager in renovate.json),
+// which is also when we can start testing that release. A string so it compares equal to
+// the axis values, which are strings.
+// renovate: datasource=docker depName=postgres versioning=regex:^(?<major>\d+)$
+const MAX_PG = '18';
+
 matrix.addAxis({
   name: 'pg_version',
   title: x => 'PG ' + x,
-  // Strings allow versions like 18-ea
+  // Strings allow versions like 18-ea.
+  // PostgreSQL before 10 used an x.y major scheme, so those are listed by hand.
+  // From 10 on the major is a single number, so 10..MAX_PG is generated and adding
+  // a new major is a one-line Renovate bump of MAX_PG above.
   values: [
     '9.1',
     '9.2',
@@ -61,15 +72,8 @@ matrix.addAxis({
     '9.4',
     '9.5',
     '9.6',
-    '10',
-    '11',
-    '12',
-    '13',
-    '14',
-    '15',
-    '16',
-    '17',
-    '18'
+    // 10, 11, …, MAX_PG
+    ...Array.from({length: Number(MAX_PG) - 10 + 1}, (_, i) => String(10 + i)),
   ]
 });
 
@@ -311,7 +315,6 @@ matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}}
 // scram, xa, replication, the latest stable server, one query mode). The other flags add at
 // most a line or two to line/branch coverage, so leaving them to the random fill keeps the
 // corpus stable between builds without a fixed seed.
-const MAX_PG = matrix.axisByName.pg_version.values.filter(v => v !== 'HEAD').slice(-1)[0];
 // Latest non-EA Java from the axis, so this need not be bumped when Java versions change.
 const LATEST_JAVA = matrix.axisByName.java_version.values.filter(v => v !== eaJava).slice(-1)[0];
 

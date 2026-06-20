@@ -13,6 +13,18 @@
     "description": "Security updates bypass the packageRules grouping below (Renovate resets their groupName), so apply the same groupId grouping to them here.",
     "groupName": "{{{replace ':.*' '' depName}}} security"
   },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the newest PostgreSQL major (MAX_PG in matrix.mjs) against the postgres Docker image. The regex versioning keeps only single-number major tags, so Renovate bumps MAX_PG when the next major image ships, not on minor `postgres:18.x` releases.",
+      "managerFilePatterns": [
+        "/\\.github/workflows/matrix\\.mjs$/"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) versioning=(?<versioning>\\S+)\\s+const MAX_PG = '(?<currentValue>\\d+)'"
+      ]
+    }
+  ],
   "packageRules": [
     {
       "description": "Group every Maven update by its groupId by default. The more specific rules below run later and override this where a group must span several groupIds, pin a version, or stay disabled.",
@@ -41,6 +53,16 @@
       ],
       "matchCurrentVersion": "1.0.0-dev-master-SNAPSHOT",
       "enabled": false
+    },
+    {
+      "description": "MAX_PG is a plain major number, not a pinnable image reference, so skip the config:best-practices digest pin. Scoped to matrix.mjs so a real `FROM postgres` Dockerfile still gets a pinned digest.",
+      "matchFileNames": [
+        ".github/workflows/matrix.mjs"
+      ],
+      "matchDepNames": [
+        "postgres"
+      ],
+      "pinDigests": false
     },
     {
       "matchPackageNames": [
