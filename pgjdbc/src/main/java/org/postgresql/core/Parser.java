@@ -1023,6 +1023,33 @@ public class Parser {
   }
 
   /**
+   * Returns the offset of the first character at or after {@code offset} that is neither whitespace
+   * nor part of a leading comment. Both {@code --} line comments and {@code /* *}{@code /} block
+   * comments are skipped, the latter nesting per the SQL spec (see {@link #parseLineComment} and
+   * {@link #parseBlockComment}). A comment that is never closed consumes the rest of the input.
+   *
+   * @param sql    SQL text
+   * @param offset start offset
+   * @return offset of the first significant character, or {@code sql.length} if none remains
+   */
+  private static int skipWhitespaceAndComments(char[] sql, int offset) {
+    int len = sql.length;
+    while (offset < len) {
+      char ch = sql[offset];
+      if (Character.isWhitespace(ch)) {
+        offset++;
+      } else if (ch == '-' && offset + 1 < len && sql[offset + 1] == '-') {
+        offset = parseLineComment(sql, offset) + 1;
+      } else if (ch == '/' && offset + 1 < len && sql[offset + 1] == '*') {
+        offset = parseBlockComment(sql, offset) + 1;
+      } else {
+        break;
+      }
+    }
+    return Math.min(offset, len);
+  }
+
+  /**
    * Converts JDBC-specific callable statement escapes {@code { [? =] call <some_function> [(?,
    * [?,..])] }} into the PostgreSQL format which is {@code select <some_function> (?, [?, ...]) as
    * result} or {@code select * from <some_function> (?, [?, ...]) as result} (7.3)
@@ -1043,6 +1070,7 @@ public class Parser {
     boolean isFunction = false;
     boolean outParamBeforeFunc = false;
 
+    char[] jdbcSqlChars = jdbcSql.toCharArray();
     int len = jdbcSql.length();
     int state = 1;
     boolean inQuotes = false;
@@ -1056,15 +1084,19 @@ public class Parser {
       char ch = jdbcSql.charAt(i);
 
       switch (state) {
-        case 1:  // Looking for { at start of query
+        case 1:  // Looking for { at start of query, skipping leading whitespace and comments
           if (ch == '{') {
             ++i;
             ++state;
-          } else if (Character.isWhitespace(ch)) {
-            ++i;
           } else {
-            // Not function-call syntax. Skip the rest of the string.
-            i = len;
+            int skipped = skipWhitespaceAndComments(jdbcSqlChars, i);
+            if (skipped > i) {
+              // Skipped leading whitespace or comments; keep looking for the opening brace.
+              i = skipped;
+            } else {
+              // Not function-call syntax. Skip the rest of the string.
+              i = len;
+            }
           }
           break;
 
@@ -1156,13 +1188,15 @@ public class Parser {
           }
           break;
 
-        case 8:  // At trailing end of query, eating whitespace
-          if (Character.isWhitespace(ch)) {
-            ++i;
+        case 8: {  // At trailing end of query, eating whitespace and comments
+          int trailing = skipWhitespaceAndComments(jdbcSqlChars, i);
+          if (trailing > i) {
+            i = trailing;
           } else {
             syntaxError = true;
           }
           break;
+        }
 
         default:
           throw new IllegalStateException("somehow got into bad state " + state);
@@ -1176,10 +1210,8 @@ public class Parser {
 
         // Detect PostgreSQL native CALL.
         // (OUT parameter registration, needed for stored procedures with INOUT arguments, will fail without this)
-        i = 0;
-        while (i < len && Character.isWhitespace(jdbcSql.charAt(i))) {
-          i++; // skip any preceding whitespace
-        }
+        // Skip any leading whitespace and comments so that a comment before CALL does not hide it.
+        i = skipWhitespaceAndComments(jdbcSqlChars, 0);
         if (i < len - 5) { // 5 == length of "call" + 1 whitespace
           //Check for CALL followed by whitespace
           char ch = jdbcSql.charAt(i);
@@ -1225,21 +1257,13 @@ public class Parser {
     } else if (outParamBeforeFunc) {
       // move the single out parameter into the function call
       // so that it can be treated like all other parameters
-      boolean needComma = false;
 
-      // the following loop will check if the function call has parameters
-      // eg "{ ? = call pack_getValue(?) }" vs "{ ? = call pack_getValue() }
-      for (int j = opening + prefixLength; j < sb.length(); j++) {
-        char c = sb.charAt(j);
-        if (c == ')') {
-          break;
-        }
-
-        if (!Character.isWhitespace(c)) {
-          needComma = true;
-          break;
-        }
-      }
+      // The call already has parameters unless only whitespace or comments sit between '(' and
+      // ')', e.g. "{ ? = call f(?) }" vs "{ ? = call f() }" or "{ ? = call f(/* */) }". Scan the
+      // original SQL: the body in 'sb' starts at 'prefixLength', so '(' is at 'startIndex + opening
+      // - 1' in jdbcSql and the first argument character is at 'startIndex + opening'.
+      int firstArg = skipWhitespaceAndComments(jdbcSqlChars, startIndex + opening);
+      boolean needComma = firstArg < endIndex && jdbcSqlChars[firstArg] != ')';
 
       // insert the return parameter as the first parameter of the function call
       if (needComma) {
