@@ -1,5 +1,5 @@
-# translation of head-de.po to Deutsch
-# German message translation for the PostgreSQL JDBC driver
+# translation of head-de.po to Japanese
+# Japanese message translation for the PostgreSQL JDBC driver
 # This file is distributed under the same license as the package.
 #
 # Andre Bialojahn <ab.spamnews@freenet.de>, 2005, 2006, 2008.
