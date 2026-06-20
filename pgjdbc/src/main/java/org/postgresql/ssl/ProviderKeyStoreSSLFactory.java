@@ -21,6 +21,8 @@ import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -36,7 +38,15 @@ import javax.security.auth.x500.X500Principal;
  */
 public abstract class ProviderKeyStoreSSLFactory extends WrappedFactory {
 
-  protected ProviderKeyStoreSSLFactory(Properties info, final String protocol, final String algorithm, final String keyStoreProvider, final String keyStoreType, final String trustStoreProvider, final String trustStoreType) throws PSQLException {
+  private static final Logger LOGGER = Logger.getLogger(ProviderKeyStoreSSLFactory.class.getName());
+
+  protected ProviderKeyStoreSSLFactory(Properties info, final String protocol, final String algorithm,
+      final String keyStoreProvider, final String keyStoreType,
+      final String trustStoreProvider, final String trustStoreType) throws PSQLException {
+
+    LOGGER.log(Level.FINE,
+        "Initializing SSL context from key store {0} (provider {1}) and trust store {2} (provider {3})",
+        new Object[]{keyStoreType, keyStoreProvider, trustStoreType, trustStoreProvider});
 
     SSLContext ctx;
     final KeyStore keyStore;
@@ -48,150 +58,130 @@ public abstract class ProviderKeyStoreSSLFactory extends WrappedFactory {
     final TrustManagerFactory trustManagerFactory;
 
     try {
-
       keyStore = KeyStore.getInstance(keyStoreType, keyStoreProvider);
-
-    } catch (KeyStoreException ex) {
-      throw new PSQLException(GT.tr("SSL keystore {0} not available.",
-                keyStoreType), PSQLState.CONNECTION_FAILURE, ex);
-    } catch (NoSuchProviderException ex) {
-      throw new PSQLException(GT.tr("SSL keystore {0} not available.",
-                keyStoreType), PSQLState.CONNECTION_FAILURE, ex);
+    } catch (KeyStoreException | NoSuchProviderException ex) {
+      throw new PSQLException(GT.tr("SSL keystore {0} not available.", keyStoreType),
+          PSQLState.CONNECTION_FAILURE, ex);
     }
 
     try {
-
       keyStore.load(null, null);
-
-    } catch (CertificateException ex) {
-      throw new PSQLException(GT.tr("SSL keystore {0} could not be loaded.",
-                keyStoreType), PSQLState.CONNECTION_FAILURE, ex);
-    } catch (IOException ex) {
-      throw new PSQLException(GT.tr("SSL keystore {0} could not be loaded.",
-                keyStoreType), PSQLState.CONNECTION_FAILURE, ex);
+    } catch (CertificateException | IOException ex) {
+      throw new PSQLException(GT.tr("SSL keystore {0} could not be loaded.", keyStoreType),
+          PSQLState.CONNECTION_FAILURE, ex);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     }
 
     try {
-
-      keyManagerFactory = KeyManagerFactory
-              .getInstance(algorithm);
-
+      keyManagerFactory = KeyManagerFactory.getInstance(algorithm);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     }
 
     try {
-
       keyManagerFactory.init(keyStore, keyPassphrase);
-
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     } catch (KeyStoreException ex) {
       throw new PSQLException(GT.tr("Could not initialize SSL keystore."),
-                PSQLState.CONNECTION_FAILURE, ex);
+          PSQLState.CONNECTION_FAILURE, ex);
     } catch (UnrecoverableKeyException ex) {
       throw new PSQLException(GT.tr("Could not read SSL key."),
-                PSQLState.CONNECTION_FAILURE, ex);
+          PSQLState.CONNECTION_FAILURE, ex);
     }
 
     try {
-
       trustStore = KeyStore.getInstance(trustStoreType, trustStoreProvider);
-
     } catch (KeyStoreException ex) {
-      // On the Mac, the truststore is new and won't be available
-      // on old versions of the JDK. In these cases fall back to
-      // the default truststore in cacerts.
+      // On older JDKs the native trust store may not be available
+      // (notably the macOS KeychainStore-ROOT). Fall back to the default
+      // cacerts trust store in that case.
       if (ex.getCause() instanceof NoSuchAlgorithmException) {
+        LOGGER.log(Level.WARNING,
+            "SSL trust store {0} (provider {1}) is not available on this JVM; falling back to the "
+            + "default cacerts trust store. Server certificates will be validated against cacerts "
+            + "rather than the operating system trust store.",
+            new Object[]{trustStoreType, trustStoreProvider});
         trustStore = null;
       } else {
-        throw new PSQLException(GT.tr("SSL truststore {0} not available.",
-                    trustStoreType), PSQLState.CONNECTION_FAILURE, ex);
+        throw new PSQLException(GT.tr("SSL truststore {0} not available.", trustStoreType),
+            PSQLState.CONNECTION_FAILURE, ex);
       }
     } catch (NoSuchProviderException ex) {
-      throw new PSQLException(GT.tr("SSL truststore {0} not available.",
-                trustStoreType), PSQLState.CONNECTION_FAILURE, ex);
+      throw new PSQLException(GT.tr("SSL truststore {0} not available.", trustStoreType),
+          PSQLState.CONNECTION_FAILURE, ex);
     }
 
     try {
-
       if (trustStore != null) {
         trustStore.load(null, null);
       }
-
-    } catch (CertificateException ex) {
-      throw new PSQLException(GT.tr("SSL truststore {0} could not be loaded.",
-                trustStoreType), PSQLState.CONNECTION_FAILURE, ex);
-    } catch (IOException ex) {
-      throw new PSQLException(GT.tr("SSL truststore {0} could not be loaded.",
-                trustStoreType), PSQLState.CONNECTION_FAILURE, ex);
+    } catch (CertificateException | IOException ex) {
+      throw new PSQLException(GT.tr("SSL truststore {0} could not be loaded.", trustStoreType),
+          PSQLState.CONNECTION_FAILURE, ex);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     }
 
     try {
-
-      trustManagerFactory = TrustManagerFactory
-              .getInstance(algorithm);
-
+      trustManagerFactory = TrustManagerFactory.getInstance(algorithm);
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     }
 
     try {
-
       trustManagerFactory.init(trustStore);
-
     } catch (KeyStoreException ex) {
       throw new PSQLException(GT.tr("Could not initialize SSL truststore."),
-                PSQLState.CONNECTION_FAILURE, ex);
+          PSQLState.CONNECTION_FAILURE, ex);
     }
 
     try {
-
       ctx = SSLContext.getInstance(protocol);
-
     } catch (NoSuchAlgorithmException ex) {
-      throw new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
-                ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+      throw noSuchAlgorithm(ex);
     }
 
     try {
-
       if (sslsubject != null && sslsubject.length() != 0) {
         subject = new X500Principal(sslsubject);
       } else {
         subject = null;
       }
-
     } catch (IllegalArgumentException ex) {
       throw new PSQLException(GT.tr("Could not parse sslsubject {0}: {1}.",
-              sslsubject, ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+          sslsubject, ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
+    }
+
+    KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
+    if (keyManagers.length == 0) {
+      throw new PSQLException(GT.tr("SSL keystore {0} produced no key managers.", keyStoreType),
+          PSQLState.CONNECTION_FAILURE);
+    }
+    KeyManager km = keyManagers[0];
+
+    if (subject != null) {
+      if (!(km instanceof X509KeyManager)) {
+        throw new PSQLException(
+            GT.tr("sslsubject is set, but SSL keystore {0} did not provide an X509KeyManager.",
+                keyStoreType), PSQLState.CONNECTION_FAILURE);
+      }
+      km = new SubjectKeyManager((X509KeyManager) km, subject);
     }
 
     try {
-
-      KeyManager km = keyManagerFactory.getKeyManagers()[0];
-
-      if (subject != null) {
-        km = new SubjectKeyManager(X509KeyManager.class.cast(km), subject);
-      }
-
-      ctx.init(new KeyManager[] { km }, null, null);
-
+      ctx.init(new KeyManager[]{ km }, null, null);
     } catch (KeyManagementException ex) {
       throw new PSQLException(GT.tr("Could not initialize SSL keystore/truststore."),
-                PSQLState.CONNECTION_FAILURE, ex);
+          PSQLState.CONNECTION_FAILURE, ex);
     }
 
     factory = ctx.getSocketFactory();
+  }
 
+  private static PSQLException noSuchAlgorithm(NoSuchAlgorithmException ex) {
+    return new PSQLException(GT.tr("Could not find a Java cryptographic algorithm: {0}.",
+        ex.getMessage()), PSQLState.CONNECTION_FAILURE, ex);
   }
 }

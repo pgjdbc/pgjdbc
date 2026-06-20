@@ -1,0 +1,88 @@
+name: Native keystore SSL factories
+
+# Exercises the platform-backed SSLSocketFactory implementations against a real
+# client certificate imported into the operating system store. These providers
+# (Apple KeychainStore, Windows SunMSCAPI) only exist on their own OS, so the
+# checks run on macOS and Windows runners rather than the Linux test matrix.
+
+on:
+  push:
+    branches: [ master ]
+    paths:
+      - 'pgjdbc/src/main/java/org/postgresql/ssl/**'
+      - 'pgjdbc/src/test/java/org/postgresql/test/ssl/**'
+      - '.github/workflows/ssl-native.yml'
+  pull_request:
+    paths:
+      - 'pgjdbc/src/main/java/org/postgresql/ssl/**'
+      - 'pgjdbc/src/test/java/org/postgresql/test/ssl/**'
+      - '.github/workflows/ssl-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos-keychain:
+    name: macOS Keychain
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: 21
+          distribution: temurin
+      - name: Import test client certificate into a throwaway keychain
+        shell: bash
+        env:
+          # Keep the keychain under the runner temp dir.
+          PGJDBC_TEST_KEYCHAIN: ${{ runner.temp }}/pgjdbc-test.keychain
+        run: ./certdir/macos-keychain.sh setup
+      - name: Run native keychain tests
+        shell: bash
+        env:
+          PGJDBC_KEYCHAIN_IMPORTED: 'true'
+        # language=bash
+        run: |
+          ./gradlew --no-daemon --console=plain :postgresql:test \
+            --tests 'org.postgresql.test.ssl.SSLFactoryTest' \
+            --tests 'org.postgresql.test.ssl.KeychainCertTest'
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: macos-keychain-test-results
+          path: pgjdbc/build/reports/tests/**
+
+  # The Windows MSCAPI counterpart is provided for completeness. It mirrors the
+  # macOS job but uses the current-user certificate store. It has not been
+  # validated end to end yet; enable it once a SunMSCAPI-backed test exists.
+  windows-mscapi:
+    name: Windows MSCAPI
+    runs-on: windows-latest
+    if: ${{ false }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: 21
+          distribution: temurin
+      - name: Import test client certificate into the current-user store
+        shell: pwsh
+        run: |
+          # Build a throwaway PKCS#12 from the checked-in test key and
+          # certificate, protected with a random per-job password.
+          $p12pw = -join ((48..57) + (97..122) | Get-Random -Count 24 | ForEach-Object {[char]$_})
+          $p12 = Join-Path $env:RUNNER_TEMP 'goodclient.p12'
+          openssl pkcs12 -export -inkey certdir/goodclient.key -in certdir/goodclient.crt `
+            -passout "pass:$p12pw" -out $p12
+          $secure = ConvertTo-SecureString -String $p12pw -AsPlainText -Force
+          Import-PfxCertificate -FilePath $p12 `
+            -CertStoreLocation Cert:\CurrentUser\My -Password $secure
+      - name: Run native MSCAPI tests
+        shell: bash
+        env:
+          PGJDBC_MSCAPI_IMPORTED: 'true'
+        run: |
+          ./gradlew --no-daemon --console=plain :postgresql:test \
+            --tests 'org.postgresql.test.ssl.SSLFactoryTest'

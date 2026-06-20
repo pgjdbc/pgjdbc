@@ -11,6 +11,8 @@ import java.net.Socket;
 import java.security.Principal;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.net.ssl.X509KeyManager;
 import javax.security.auth.x500.X500Principal;
@@ -20,6 +22,8 @@ import javax.security.auth.x500.X500Principal;
  * the certificate subject specified in "sslsubject".
  */
 public class SubjectKeyManager implements X509KeyManager {
+
+  private static final Logger LOGGER = Logger.getLogger(SubjectKeyManager.class.getName());
 
   private final X509KeyManager km;
   private final @Nullable X500Principal subject;
@@ -70,10 +74,14 @@ public class SubjectKeyManager implements X509KeyManager {
           continue;
         }
 
+        LOGGER.log(Level.FINE, "Selected client certificate alias {0} matching sslsubject {1}",
+            new Object[]{alias, subject});
         return alias;
       }
     }
 
+    LOGGER.log(Level.FINE, "No client certificate matched sslsubject {0}; "
+        + "no certificate will be sent to the server", subject);
     return null;
   }
 

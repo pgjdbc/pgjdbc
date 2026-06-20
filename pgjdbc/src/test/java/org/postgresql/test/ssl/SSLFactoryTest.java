@@ -5,105 +5,58 @@
 
 package org.postgresql.test.ssl;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import org.postgresql.PGProperty;
 import org.postgresql.core.SocketFactoryFactory;
-import org.postgresql.test.TestUtil;
-import org.postgresql.util.PSQLException;
 
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.InvocationTargetException;
-import java.security.NoSuchProviderException;
+import java.util.Locale;
 import java.util.Properties;
 
+import javax.net.ssl.SSLSocketFactory;
+
+/**
+ * Verifies that the bundled SSLSocketFactory implementations can build an
+ * SSLContext from the platform key and trust stores. The native factories only
+ * work on the operating system that provides the underlying security provider,
+ * so each test runs only on the matching platform and is skipped elsewhere.
+ *
+ * <p>These tests exercise factory construction only; they do not open a
+ * connection, so they do not require a running server or SSL test setup.</p>
+ */
 class SSLFactoryTest {
 
-  @Test
-  void TestDefault() throws Exception {
-    TestUtil.assumeSslTestsEnabled();
+  private static final String OS = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
 
+  private static SSLSocketFactory build(String factoryClass) throws Exception {
     Properties props = new Properties();
-    PGProperty.SSL_FACTORY.set(props, "org.postgresql.ssl.DefaultJavaSSLFactory");
-
-    try {
-      SocketFactoryFactory.getSslSocketFactory(props);
-    } catch (Throwable t) {
-      /* ignore NoSuchProviderException */
-      if (!(t instanceof PSQLException)
-              || (!(t.getCause() instanceof InvocationTargetException))
-              || (!(t.getCause().getCause() instanceof PSQLException))
-              || (!(t.getCause().getCause().getCause() instanceof NoSuchProviderException))
-      ) {
-        throw t;
-      }
-    }
-
+    PGProperty.SSL_FACTORY.set(props, factoryClass);
+    return SocketFactoryFactory.getSslSocketFactory(props);
   }
 
   @Test
-  void TestKeychain() throws Exception {
-    TestUtil.assumeSslTestsEnabled();
-
-    Properties props = new Properties();
-    PGProperty.SSL_FACTORY.set(props, "org.postgresql.ssl.KeychainSSLFactory");
-
-    try {
-      SocketFactoryFactory.getSslSocketFactory(props);
-    } catch (Throwable t) {
-      /* ignore NoSuchProviderException */
-      if (!(t instanceof PSQLException)
-              || (!(t.getCause() instanceof InvocationTargetException))
-              || (!(t.getCause().getCause() instanceof PSQLException))
-              || (!(t.getCause().getCause().getCause() instanceof NoSuchProviderException))
-      ) {
-        throw t;
-      }
-    }
-
+  void defaultJavaFactory() throws Exception {
+    assertNotNull(build("org.postgresql.ssl.DefaultJavaSSLFactory"));
   }
 
   @Test
-  void TestMSCurrentUserSSLFactory() throws Exception {
-    TestUtil.assumeSslTestsEnabled();
-
-    Properties props = new Properties();
-    PGProperty.SSL_FACTORY.set(props, "org.postgresql.ssl.MSCAPISSLFactory");
-
-    try {
-      SocketFactoryFactory.getSslSocketFactory(props);
-    } catch (Throwable t) {
-      /* ignore NoSuchProviderException */
-      if (!(t instanceof PSQLException)
-              || (!(t.getCause() instanceof InvocationTargetException))
-              || (!(t.getCause().getCause() instanceof PSQLException))
-              || (!(t.getCause().getCause().getCause() instanceof NoSuchProviderException))
-      ) {
-        throw t;
-      }
-    }
-
+  void keychainFactoryOnMac() throws Exception {
+    assumeTrue(OS.contains("mac"), "KeychainSSLFactory requires the macOS Apple provider");
+    assertNotNull(build("org.postgresql.ssl.KeychainSSLFactory"));
   }
 
   @Test
-  void TestMSLocalMachineSSLFactory() throws Exception {
-    TestUtil.assumeSslTestsEnabled();
-
-    Properties props = new Properties();
-    PGProperty.SSL_FACTORY.set(props, "org.postgresql.ssl.MSCAPILocalMachineSSLFactory");
-
-    try {
-      SocketFactoryFactory.getSslSocketFactory(props);
-    } catch (Throwable t) {
-      /* ignore NoSuchProviderException */
-      if (!(t instanceof PSQLException)
-              || (!(t.getCause() instanceof InvocationTargetException))
-              || (!(t.getCause().getCause() instanceof PSQLException))
-              || (!(t.getCause().getCause().getCause() instanceof NoSuchProviderException))
-      ) {
-        throw t;
-      }
-    }
-
+  void mscapiCurrentUserFactoryOnWindows() throws Exception {
+    assumeTrue(OS.contains("windows"), "MSCAPISSLFactory requires the Windows SunMSCAPI provider");
+    assertNotNull(build("org.postgresql.ssl.MSCAPISSLFactory"));
   }
 
+  @Test
+  void mscapiLocalMachineFactoryOnWindows() throws Exception {
+    assumeTrue(OS.contains("windows"), "MSCAPILocalMachineSSLFactory requires the Windows SunMSCAPI provider");
+    assertNotNull(build("org.postgresql.ssl.MSCAPILocalMachineSSLFactory"));
+  }
 }
