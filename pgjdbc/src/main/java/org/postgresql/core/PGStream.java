@@ -91,7 +91,6 @@ public class PGStream implements Closeable, Flushable {
   private int minStreamAvailableCheckDelay = 1000;
 
   private Encoding encoding;
-  private Writer encodingWriter;
 
   private long maxResultBuffer = -1;
   private long resultBufferByteCount;
@@ -325,13 +324,26 @@ public class PGStream implements Closeable, Flushable {
     if (this.encoding != null && this.encoding.name().equals(encoding.name())) {
       return;
     }
-    // Close down any old writer.
-    if (encodingWriter != null) {
-      encodingWriter.close();
-    }
-
     this.encoding = encoding;
+  }
 
+  /**
+   * Get a Writer instance that encodes directly onto the underlying stream.
+   *
+   * <p>The returned Writer should not be closed. {@link Writer#flush()} must be called before
+   * switching back to the {@code PGStream} write methods, but it won't actually flush output all
+   * the way out -- call {@link #flush} to ensure all output has been pushed to the server.</p>
+   *
+   * @return a Writer that encodes onto the underlying stream
+   * @throws IOException if something goes wrong.
+   * @deprecated the driver writes encoded bytes directly and no longer routes output through an
+   *     encoding {@link Writer}. This method is unused and will be removed in a future release.
+   */
+  @Deprecated
+  public Writer getEncodingWriter() throws IOException {
+    if (encoding == null) {
+      throw new IOException("No encoding has been set on this connection");
+    }
     // Intercept flush() downcalls from the writer; our caller
     // will call PGStream.flush() as needed.
     OutputStream interceptor = new FilterOutputStream(pgOutput) {
@@ -344,26 +356,7 @@ public class PGStream implements Closeable, Flushable {
         super.flush();
       }
     };
-
-    encodingWriter = encoding.getEncodingWriter(interceptor);
-  }
-
-  /**
-   * Get a Writer instance that encodes directly onto the underlying stream.
-   *
-   * <p>The returned Writer should not be closed, as it's a shared object. Writer.flush needs to be
-   * called when switching between use of the Writer and use of the PGStream write methods, but it
-   * won't actually flush output all the way out -- call {@link #flush} to actually ensure all
-   * output has been pushed to the server.</p>
-   *
-   * @return the shared Writer instance
-   * @throws IOException if something goes wrong.
-   */
-  public Writer getEncodingWriter() throws IOException {
-    if (encodingWriter == null) {
-      throw new IOException("No encoding has been set on this connection");
-    }
-    return encodingWriter;
+    return encoding.getEncodingWriter(interceptor);
   }
 
   /**
@@ -712,9 +705,6 @@ public class PGStream implements Closeable, Flushable {
    */
   @Override
   public void flush() throws IOException {
-    if (encodingWriter != null) {
-      encodingWriter.flush();
-    }
     pgOutput.flush();
   }
 
@@ -740,10 +730,6 @@ public class PGStream implements Closeable, Flushable {
    */
   @Override
   public void close() throws IOException {
-    if (encodingWriter != null) {
-      encodingWriter.close();
-    }
-
     pgOutput.close();
     pgInput.close();
     connection.close();
