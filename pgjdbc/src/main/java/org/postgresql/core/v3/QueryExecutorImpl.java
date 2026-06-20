@@ -206,6 +206,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private short deallocateEpoch;
 
   /**
+   * Number of leading characters of a {@code SET}/{@code RESET} statement that are scanned for the
+   * {@code search_path} token. Long statements are not scanned in full so the execute path stays
+   * cheap.
+   */
+  private static final int SEARCH_PATH_SCAN_LIMIT = 1024;
+
+  /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
    * statement cache can be skipped if using repeated calls for the same {@code set search_path}
    * value.
@@ -2529,11 +2536,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
           }
           pgStream.clearMaxRowSizeBytes();
 
-          if (status.startsWith("SET")) {
+          // A successful SET/RESET that changes the session search_path makes any server-side
+          // prepared plan or catalog-name resolution cached under the previous path potentially
+          // stale, so bump the epoch to force a rebuild. The command tag is always upper-case
+          // ("SET"/"RESET"), but the user-supplied SQL may use any case, so the search_path token
+          // is matched case-insensitively.
+          if (status.startsWith("SET") || status.startsWith("RESET")) {
             String nativeSql = currentQuery.getNativeQuery().nativeSql;
-            // Scan only the first 1024 characters to
-            // avoid big overhead for long queries.
-            if (nativeSql.lastIndexOf("search_path", 1024) != -1
+            // Scan only the first SEARCH_PATH_SCAN_LIMIT characters to avoid a big overhead for
+            // long queries.
+            boolean changesSearchPath =
+                containsIgnoreCase(nativeSql, "search_path", SEARCH_PATH_SCAN_LIMIT)
+                    // "RESET ALL" reverts every parameter, search_path included.
+                    || (status.startsWith("RESET")
+                        && containsIgnoreCase(nativeSql, "all", SEARCH_PATH_SCAN_LIMIT));
+            if (changesSearchPath
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
               lastSetSearchPathQuery = nativeSql;
@@ -2788,6 +2805,27 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       }
 
     }
+  }
+
+  /**
+   * Tells whether {@code needle} occurs in {@code sql} using ASCII case-insensitive matching,
+   * starting at any offset in {@code [0, scanLimit]}. The scan is bounded so long statements are not
+   * scanned in full, and it avoids allocating a lower-cased copy of the statement on the execute
+   * path.
+   *
+   * @param sql the statement text to scan
+   * @param needle the lower-case token to look for
+   * @param scanLimit the highest start offset that is examined
+   * @return {@code true} if the token is found within the scanned range
+   */
+  private static boolean containsIgnoreCase(String sql, String needle, int scanLimit) {
+    int last = Math.min(scanLimit, sql.length() - needle.length());
+    for (int i = 0; i <= last; i++) {
+      if (sql.regionMatches(true, i, needle, 0, needle.length())) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
