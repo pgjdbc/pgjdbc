@@ -22,6 +22,14 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  */
 public class BatchedQuery extends SimpleQuery {
 
+  /**
+   * Largest multi-values block the rewrite supports. A single {@code Bind} message can carry at most
+   * {@code 65535} parameters, so a one-parameter row reaches {@code 65535 / 1} rows, which rounds
+   * down to {@code 2^15}. Blocks are always powers of two, so this also bounds the number of
+   * distinct derived statements at {@code log2(MAX_VALUE_BLOCK)}.
+   */
+  public static final int MAX_VALUE_BLOCK = 1 << 15;
+
   private @Nullable String sql;
   private final int valuesBraceOpenPosition;
   private final int valuesBraceClosePosition;
@@ -52,13 +60,13 @@ public class BatchedQuery extends SimpleQuery {
       return this;
     }
     int index = Integer.numberOfTrailingZeros(valueBlock) - 1;
-    if (valueBlock > 128 || valueBlock != (1 << (index + 1))) {
+    if (valueBlock > MAX_VALUE_BLOCK || valueBlock != (1 << (index + 1))) {
       throw new IllegalArgumentException(
-          "Expected value block should be a power of 2 smaller or equal to 128. Actual block is "
-              + valueBlock);
+          "valueBlock must be a power of two no greater than " + MAX_VALUE_BLOCK
+              + ", but was " + valueBlock);
     }
     if (blocks == null) {
-      blocks = new BatchedQuery[7];
+      blocks = new BatchedQuery[Integer.numberOfTrailingZeros(MAX_VALUE_BLOCK)];
     }
     BatchedQuery bq = blocks[index];
     if (bq == null) {

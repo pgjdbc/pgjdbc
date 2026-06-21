@@ -235,6 +235,15 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
 
   boolean isReWriteBatchedInsertsEnabled();
 
+  /**
+   * Returns the configured upper bound on the number of rows merged into a single multi-values
+   * {@code INSERT} when {@link #isReWriteBatchedInsertsEnabled()} is {@code true}. A value of
+   * {@code 0} means no explicit cap, so the protocol-derived maximum applies.
+   *
+   * @return the configured maximum rows per rewritten INSERT, or {@code 0} for the protocol limit
+   */
+  int getReWriteBatchedInsertsSize();
+
   CachedQuery createQuery(String sql, boolean escapeProcessing, boolean isParameterized,
       String @Nullable ... columnNames)
       throws SQLException;

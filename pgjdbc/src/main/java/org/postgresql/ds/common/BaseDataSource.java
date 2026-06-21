@@ -1801,6 +1801,24 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return maximum number of rows merged into a single multi-values INSERT, or 0 for the protocol
+   *         limit
+   * @see PGProperty#REWRITE_BATCHED_INSERTS_SIZE
+   */
+  public int getReWriteBatchedInsertsSize() {
+    return PGProperty.REWRITE_BATCHED_INSERTS_SIZE.getIntNoCheck(properties);
+  }
+
+  /**
+   * @param size maximum number of rows merged into a single multi-values INSERT, or 0 for the
+   *        protocol limit
+   * @see PGProperty#REWRITE_BATCHED_INSERTS_SIZE
+   */
+  public void setReWriteBatchedInsertsSize(int size) {
+    PGProperty.REWRITE_BATCHED_INSERTS_SIZE.set(properties, size);
+  }
+
+  /**
    * @return boolean indicating property is enabled or not.
    * @see PGProperty#HIDE_UNPRIVILEGED_OBJECTS
    */

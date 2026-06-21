@@ -472,6 +472,9 @@ precedence even when the driver's classloader could resolve a class of the same 
 * **`reWriteBatchedInserts (`*boolean*`)`** *Default `false`*\
 This will change batch inserts from insert into foo (col1, col2, col3) values (1, 2, 3) into insert into foo (col1, col2, col3) values (1, 2, 3), (4, 5, 6) this provides 2-3x performance improvement
 
+* **`reWriteBatchedInsertsSize (`*int*`)`** *Default `0`*\
+Caps how many rows `reWriteBatchedInserts` merges into a single multi-values INSERT. The merge size is rounded down to a power of two and never exceeds 32768 rows. With the extended query protocol a statement is limited to 65535 bind parameters, so the cap is `min(65535 / parametersPerRow, 32768)`; the simple query protocol (`preferQueryMode=simple`) inlines parameters and has no such limit, so the cap is 32768. A value of `0`, the default, uses that maximum; a positive value lowers it.
+
 * **`replication (`*String*`)`** *Default `false`*\
 Connection parameter passed in the startup message. This parameter accepts two values; `true` and `database` . 
 Passing `true` tells the backend to go into walsender mode, wherein a small set of replication commands can be issued instead of SQL statements. 
