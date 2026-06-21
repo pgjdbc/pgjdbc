@@ -40,5 +40,5 @@ Most recent contributors can be found [here](https://github.com/pgjdbc/pgjdbc/gr
 | ru - Russian | Serguei Mokhov |
 | sr - Serbian | Bojan Skaljac  |
 | tr - Turkish | Devrim Gunduz, Nicolai Tufar |
-| zh_CN - Simplified Chinese | Weiping, Kuo ChaoYi |
+| zh_CN - Simplified Chinese | Weiping, Kuo ChaoYi, Feng Zhihao |
 | zh_TW - Traditional Chinese  | Zhenbang Wei, Kuo ChaoYi  |
