@@ -1731,7 +1731,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     f[12] = new Field("COLUMN_DEF", Oid.VARCHAR);
     f[13] = new Field("SQL_DATA_TYPE", Oid.INT4);
     f[14] = new Field("SQL_DATETIME_SUB", Oid.INT4);
-    f[15] = new Field("CHAR_OCTET_LENGTH", Oid.VARCHAR);
+    f[15] = new Field("CHAR_OCTET_LENGTH", Oid.INT4);
     f[16] = new Field("ORDINAL_POSITION", Oid.INT4);
     f[17] = new Field("IS_NULLABLE", Oid.VARCHAR);
     f[18] = new Field("SCOPE_CATALOG", Oid.VARCHAR);
@@ -1910,7 +1910,27 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[12] = rs.getBytes("adsrc"); // Column default
       tuple[13] = null; // sql data type (unused)
       tuple[14] = null; // sql datetime sub (unused)
-      tuple[15] = tuple[6]; // char octet length
+      // CHAR_OCTET_LENGTH applies to character and binary types only; it equals COLUMN_SIZE
+      // there and is null for every other type (for example integer, numeric, or integer[]).
+      switch (sqlType) {
+        case Types.CHAR:
+        case Types.VARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NVARCHAR:
+        case Types.LONGNVARCHAR:
+        case Types.CLOB:
+        case Types.NCLOB:
+        case Types.BINARY:
+        case Types.VARBINARY:
+        case Types.LONGVARBINARY:
+        case Types.BLOB:
+          tuple[15] = tuple[6]; // char octet length, same as column size
+          break;
+        default:
+          tuple[15] = null; // char octet length, not applicable
+          break;
+      }
       tuple[16] = connection.encodeString(String.valueOf(rs.getInt("attnum"))); // ordinal position
       // Is nullable
       tuple[17] = connection.encodeString(rs.getBoolean("attnotnull") ? "NO" : "YES");
