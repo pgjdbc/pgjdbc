@@ -34,7 +34,7 @@ Most recent contributors can be found [here](https://github.com/pgjdbc/pgjdbc/gr
 | de - German | Andre Bialojahn |
 | es - Spanish | Diego A. Gil |
 | fr - French | Xavier Poinsard |
-| it - Italian | Giuseppe Sacco |
+| it - Italian | Giuseppe Sacco, Federico Campoli |
 | pl - Polish | Jaroslaw Pyszny |
 | pt_BR - Brazilian Portuguese |Euler Taveira de Oliveira|
 | ru - Russian | Serguei Mokhov |
