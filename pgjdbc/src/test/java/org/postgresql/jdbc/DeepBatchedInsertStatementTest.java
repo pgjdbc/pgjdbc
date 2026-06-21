@@ -6,23 +6,30 @@
 package org.postgresql.jdbc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.PGProperty;
 import org.postgresql.core.ParameterList;
 import org.postgresql.core.Query;
 import org.postgresql.core.v3.BatchedQuery;
 import org.postgresql.test.TestUtil;
+import org.postgresql.test.annotations.tags.Slow;
 import org.postgresql.test.jdbc2.BaseTest4;
 import org.postgresql.test.jdbc2.BatchExecuteTest;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Properties;
 
@@ -38,6 +45,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.createTable(con, "testbatch", "pk INTEGER, col1 INTEGER");
       TestUtil.createTable(con, "testunspecified", "pk INTEGER, bday TIMESTAMP");
+      TestUtil.createTable(con, "testsinglecol", "v INTEGER");
     }
   }
 
@@ -46,6 +54,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
     try (Connection con = TestUtil.openDB()) {
       TestUtil.dropTable(con, "testbatch");
       TestUtil.dropTable(con, "testunspecified");
+      TestUtil.dropTable(con, "testsinglecol");
     }
   }
 
@@ -58,6 +67,7 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
     super.setUp();
     TestUtil.execute(con, "TRUNCATE testbatch");
     TestUtil.execute(con, "TRUNCATE testunspecified");
+    TestUtil.execute(con, "TRUNCATE testsinglecol");
     TestUtil.execute(con, "INSERT INTO testbatch VALUES (1, 0)");
     /*
      * Generally recommended with batch updates. By default we run all tests in
@@ -266,6 +276,98 @@ public class DeepBatchedInsertStatementTest extends BaseTest4 {
       BatchExecuteTest.assertSimpleInsertBatch(4, pstmt.executeBatch());
     } finally {
       TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  /**
+   * With few columns per row the protocol allows far more than the historical cap of 128 rows, so
+   * a single multi-values INSERT absorbs the whole batch. testbatch has two columns, so 256 rows
+   * fit in one statement (256 * 2 = 512 binds, well under the protocol limit). The legacy cap would
+   * have split this into two statements of 128 rows.
+   */
+  @Test
+  public void testBatchBeyondLegacyCap() throws Exception {
+    PgPreparedStatement pstmt = null;
+    try {
+      pstmt = (PgPreparedStatement) con.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      final int rows = 256;
+      for (int i = 0; i < rows; i++) {
+        pstmt.setInt(1, i + 10);
+        pstmt.setInt(2, i);
+        pstmt.addBatch();
+      }
+
+      BatchedQuery[] bqds = transformBQD(pstmt);
+      assertEquals(rows, getBatchSize(bqds));
+      assertEquals(1, bqds.length, "256 two-column rows fit in a single multi-values INSERT");
+      assertEquals(rows, bqds[0].getBatchSize());
+
+      BatchExecuteTest.assertSimpleInsertBatch(rows, pstmt.executeBatch());
+    } finally {
+      TestUtil.closeQuietly(pstmt);
+    }
+  }
+
+  /**
+   * reWriteBatchedInsertsSize caps the rows merged into a single statement even when the protocol
+   * would allow more.
+   */
+  @Test
+  public void testReWriteBatchedInsertsSizeCap() throws Exception {
+    Properties props = new Properties();
+    PGProperty.REWRITE_BATCHED_INSERTS.set(props, true);
+    PGProperty.REWRITE_BATCHED_INSERTS_SIZE.set(props, 64);
+    forceBinary(props);
+    try (Connection con2 = TestUtil.openDB(props)) {
+      con2.setAutoCommit(false);
+      PgPreparedStatement pstmt =
+          (PgPreparedStatement) con2.prepareStatement("INSERT INTO testbatch VALUES (?,?)");
+      try {
+        final int rows = 200;
+        for (int i = 0; i < rows; i++) {
+          pstmt.setInt(1, i + 1000);
+          pstmt.setInt(2, i);
+          pstmt.addBatch();
+        }
+
+        BatchedQuery[] bqds = transformBQD(pstmt);
+        assertEquals(rows, getBatchSize(bqds));
+        for (BatchedQuery bqd : bqds) {
+          assertTrue(bqd.getBatchSize() <= 64,
+              "no statement may exceed the configured cap of 64 rows");
+        }
+
+        BatchExecuteTest.assertSimpleInsertBatch(rows, pstmt.executeBatch());
+      } finally {
+        TestUtil.closeQuietly(pstmt);
+      }
+    }
+  }
+
+  /**
+   * Batching around the largest supported block (2^15 rows for a one-column row) must split the
+   * rewrite at that boundary and still insert every row exactly once. Tagged {@link Slow} because
+   * each case inserts tens of thousands of rows.
+   */
+  @ParameterizedTest
+  @ValueSource(ints = {32767, 32768, 32769})
+  @Slow
+  public void testLargeSingleColumnBatchAroundMaxBlockSize(int rows) throws SQLException {
+    try (PreparedStatement pstmt = con.prepareStatement("INSERT INTO testsinglecol VALUES (?)")) {
+      for (int i = 0; i < rows; i++) {
+        pstmt.setInt(1, i);
+        pstmt.addBatch();
+      }
+      BatchExecuteTest.assertSimpleInsertBatch(rows, pstmt.executeBatch());
+    }
+    con.commit();
+
+    try (Statement st = con.createStatement();
+         ResultSet rs = st.executeQuery("SELECT count(*), min(v), max(v) FROM testsinglecol")) {
+      assertTrue(rs.next());
+      assertEquals(rows, rs.getInt(1), "every batched row should be inserted");
+      assertEquals(0, rs.getInt(2), "smallest inserted value");
+      assertEquals(rows - 1, rs.getInt(3), "largest inserted value");
     }
   }
 

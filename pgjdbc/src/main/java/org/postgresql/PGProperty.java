@@ -681,6 +681,20 @@ public enum PGProperty {
       "Enable optimization to rewrite and collapse compatible INSERT statements that are batched."),
 
   /**
+   * Maximum number of rows merged into a single multi-values {@code INSERT} when
+   * {@link #REWRITE_BATCHED_INSERTS} is enabled. The merge size is rounded down to a power of two
+   * and never exceeds {@code 32768} rows. With the extended query protocol a statement is limited
+   * to {@code 65535} bind parameters, so the cap is {@code min(65535 / parametersPerRow, 32768)};
+   * the simple query protocol ({@code preferQueryMode=simple}) inlines parameters and has no such
+   * limit, so the cap is {@code 32768}. A value of {@code 0}, the default, uses that maximum; a
+   * positive value lowers it.
+   */
+  REWRITE_BATCHED_INSERTS_SIZE(
+      "reWriteBatchedInsertsSize",
+      "0",
+      "Maximum number of rows merged into a single multi-values INSERT when reWriteBatchedInserts is enabled. Rounded down to a power of two and capped at 32768 rows; with the extended protocol also capped at 65535/parametersPerRow. A value of 0, the default, uses that maximum."),
+
+  /**
    * Maximum number of PBKDF2 iterations the client will accept from the server during SCRAM
    * authentication. If the server advertises more iterations than this value, authentication
    * is rejected before the expensive PBKDF2 computation runs. This mitigates a denial-of-service
