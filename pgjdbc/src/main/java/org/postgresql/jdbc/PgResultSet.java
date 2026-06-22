@@ -3783,6 +3783,7 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
     }
 
     checkColumnIndex(columnIndex);
+    rejectOffsetDateTimeForNonTimestamptzColumn(columnIndex, value);
 
     doingUpdates = !onInsertRow;
     if (value == null) {
@@ -3791,6 +3792,26 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
       PGResultSetMetaData md = (PGResultSetMetaData) getMetaData();
       castNonNull(updateValues, "updateValues")
           .put(md.getBaseColumnName(columnIndex), value);
+    }
+  }
+
+  /**
+   * Refuses an {@link OffsetDateTime} for a {@code timestamp}, {@code date}, {@code time}, or
+   * {@code timetz} column with {@link PSQLState#INVALID_PARAMETER_TYPE}. {@link #updateRow()} and
+   * {@link #insertRow()} bind the value as {@code timestamptz}, and the server converts it into the
+   * session time zone before storing it in such a column, so the stored value would depend on the
+   * session time zone.
+   */
+  private void rejectOffsetDateTimeForNonTimestamptzColumn(@Positive int columnIndex,
+      @Nullable Object value) throws SQLException {
+    if (value instanceof OffsetDateTime) {
+      int oid = fields[columnIndex - 1].getOID();
+      if (oid == Oid.TIMESTAMP || oid == Oid.DATE || oid == Oid.TIME || oid == Oid.TIMETZ) {
+        throw new PSQLException(
+            GT.tr("Cannot cast an instance of {0} to type {1}",
+                value.getClass().getName(), getPGType(columnIndex)),
+            PSQLState.INVALID_PARAMETER_TYPE);
+      }
     }
   }
 
