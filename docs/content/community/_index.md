@@ -8,13 +8,13 @@ draft: false
 
 Please do not contact the maintainers directly unless you have a specific need to contact just them.  Please use the [Github discussions](https://github.com/pgjdbc/pgjdbc/discussions) if at all possible.
 
-Primary committers:
+### Primary maintainers
 
 * Dave Cramer ([@davecramer](https://github.com/davecramer))
 * Vladimir Sitnikov ([@vlsi](https://github.com/vlsi))
 * Sehrope Sarkuni ([@sehrope](https://github.com/sehrope))
 
-Occasional committers:
+### Occasional maintainers
 
 * Brett Okken ([@bokken](https://github.com/bokken))
 * Jorge Solórzano ([@jorsol](https://github.com/jorsol))
