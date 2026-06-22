@@ -32,12 +32,16 @@ public class ReplaceProcessingTest extends BaseTest4 {
         {"{fn timestampadd(SQL_TSI_WEEK, ?, {fn now()})}", "(CAST( $1||' week' as interval)+ now())"},
         {"{fn timestampadd(SQL_TSI_MINUTE, ?, {fn now()})}", "(CAST( $1||' minute' as interval)+ now())"},
         {"{fn timestampadd(SQL_TSI_SECOND, ?, {fn now()})}", "(CAST( $1||' second' as interval)+ now())"},
+        // SQL_TSI_FRAC_SECOND maps to microseconds, the finest PostgreSQL interval resolution
+        {"{fn timestampadd(SQL_TSI_FRAC_SECOND, ?, {fn now()})}", "(CAST( $1||' microsecond' as interval)+ now())"},
+        // case-insensitive interval name is accepted, like the other units
+        {"{fn timestampadd(sql_tsi_frac_second, ?, {fn now()})}", "(CAST( $1||' microsecond' as interval)+ now())"},
+        {"{fn timestampdiff(SQL_TSI_FRAC_SECOND, ?, ?)}", "extract( epoch from ( $2- $1))*1000000"},
         {"{fn user()}", "user"},
         {"{fn ifnull(?,?)}", "coalesce($1,$2)"},
         {"{fn database()}", "current_database()"},
         // Not yet supported
         // {"{fn timestampadd(SQL_TSI_QUARTER, ?, {fn now()})}", "(CAST( $1||' quarter' as interval)+ now())"},
-        // {"{fn timestampadd(SQL_TSI_FRAC_SECOND, ?, {fn now()})}", "(CAST( $1||' second' as interval)+ now())"},
     });
   }
 

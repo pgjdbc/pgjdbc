@@ -514,6 +514,8 @@ public final class EscapedFunctions2 {
       throw new PSQLException(GT.tr("Interval {0} not yet implemented", type),
           PSQLState.SYNTAX_ERROR);
     }
+    // JDBC defines SQL_TSI_FRAC_SECOND as billionths (nanoseconds), but a PostgreSQL
+    // interval only has microsecond resolution, so the value is treated as microseconds.
     if (appendSingleIntervalCast(buf, SQL_TSI_DAY, type, value, "day")
         || appendSingleIntervalCast(buf, SQL_TSI_SECOND, type, value, "second")
         || appendSingleIntervalCast(buf, SQL_TSI_HOUR, type, value, "hour")
@@ -521,6 +523,7 @@ public final class EscapedFunctions2 {
         || appendSingleIntervalCast(buf, SQL_TSI_MONTH, type, value, "month")
         || appendSingleIntervalCast(buf, SQL_TSI_WEEK, type, value, "week")
         || appendSingleIntervalCast(buf, SQL_TSI_YEAR, type, value, "year")
+        || appendSingleIntervalCast(buf, SQL_TSI_FRAC_SECOND, type, value, "microsecond")
     ) {
       return;
     }
@@ -574,8 +577,20 @@ public final class EscapedFunctions2 {
           GT.tr("{0} function takes three and only three arguments.", "timestampdiff"),
           PSQLState.SYNTAX_ERROR);
     }
+    String type = parsedArgs.get(0).toString();
+    if (isTsi(type) && areSameTsi(SQL_TSI_FRAC_SECOND, type)) {
+      // JDBC SQL_TSI_FRAC_SECOND is fractional seconds and PostgreSQL interval
+      // resolution is microseconds, so report the total difference in microseconds.
+      // extract(microseconds ...) only returns the seconds field, hence epoch * 1000000.
+      buf.append("extract( epoch from (")
+          .append(parsedArgs.get(2))
+          .append("-")
+          .append(parsedArgs.get(1))
+          .append("))*1000000");
+      return;
+    }
     buf.append("extract( ")
-        .append(constantToDatePart(parsedArgs.get(0).toString()))
+        .append(constantToDatePart(type))
         .append(" from (")
         .append(parsedArgs.get(2))
         .append("-")
