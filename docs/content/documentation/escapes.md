@@ -147,8 +147,8 @@ see the translated SQL requires more parameters than before the translation but 
 |second(arg1)|yes| extract(second from arg1)                                          ||
 |week(arg1)|yes| extract(week from arg1)                                            ||
 |year(arg1)|yes| extract(year from arg1)                                            ||
-|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is not implemented since backend does not support it |
-|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | only an argIntervalType value of SQL_TSI_FRAC_SECOND, SQL_TSI_FRAC_MINUTE, SQL_TSI_FRAC_HOUR or SQL_TSI_FRAC_DAY is supported |
+|timestampadd(argIntervalType, argCount, argTimeStamp)|yes| ((interval according to argIntervalType and argCount)+argTimeStamp)| an argIntervalType value of SQL_TSI_FRAC_SECOND is rejected with an explicit error: the unit has no portable size (nanoseconds in ODBC/SQL Server, microseconds in MySQL), so it is not mapped. Use SQL_TSI_SECOND with a fractional value instead. |
+|timestampdiff(argIntervalType, argTimeStamp1, argTimeStamp2)|not| extract((interval according to argIntervalType) from argTimeStamp2-argTimeStamp1 ) | supported for SQL_TSI_SECOND, SQL_TSI_MINUTE, SQL_TSI_HOUR and SQL_TSI_DAY; SQL_TSI_FRAC_SECOND is rejected with an explicit error, as for timestampadd |
 
 ##### Table 8.4. Supported escaped misc functions
 
