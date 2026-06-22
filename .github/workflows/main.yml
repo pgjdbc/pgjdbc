@@ -111,7 +111,7 @@ jobs:
           cd postgresql-1.0-jdbc-src
           mvn --batch-mode --fail-at-end --show-version verify
       - name: Attach heap dump if any
-        if: ${{ failure() && github.event_name == 'pull_request' }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: pgjdbc-heapdump-source-distribution
@@ -338,11 +338,12 @@ jobs:
         job-id: jdk${{ matrix.java_version }}
         arguments: publishToMavenLocal -Ppgjdbc.version=1.0.0-dev-master -PskipJavadoc
     - name: Attach heap dump if any
-      if: ${{ failure() && github.event_name == 'pull_request' }}
+      if: ${{ failure() }}
       uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       with:
         name: pgjdbc-heapdump
-        path: pgjdbc/*.hprof
+        path: '**/*.hprof'
+        if-no-files-found: ignore
     - name: Collect PostgreSQL server logs (Linux)
       if: ${{ failure() && runner.os == 'Linux' }}
       shell: bash
