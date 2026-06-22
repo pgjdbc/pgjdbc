@@ -8,9 +8,12 @@ package org.postgresql.core;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.postgresql.jdbc.EscapeSyntaxCallMode;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.PSQLState;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -135,6 +138,23 @@ class ParserTest {
 
     // nothing should be changed in that case, no valid escape code
     assertEquals("{obj : 1}", Parser.replaceProcessing("{obj : 1}", true, false));
+  }
+
+  @Test
+  void timestampAddDiffFracSecondIsRejected() throws Exception {
+    // SQL_TSI_FRAC_SECOND has no portable size across databases (nanoseconds in ODBC/SQL Server,
+    // microseconds in MySQL), so pgjdbc rejects it with an explicit error rather than risk
+    // silently producing values off by a factor of 1000. See issue #4086.
+    PSQLException add = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{fn timestampadd(SQL_TSI_FRAC_SECOND, ?, {fn now()})}", true, false));
+    assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), add.getSQLState());
+    assertTrue(add.getMessage().contains("SQL_TSI_FRAC_SECOND"), add.getMessage());
+
+    // timestampdiff is rejected the same way, including the case-insensitive interval name
+    PSQLException diff = assertThrows(PSQLException.class,
+        () -> Parser.replaceProcessing("{fn timestampdiff(sql_tsi_frac_second, ?, ?)}", true, false));
+    assertEquals(PSQLState.NOT_IMPLEMENTED.getState(), diff.getSQLState());
+    assertTrue(diff.getMessage().contains("sql_tsi_frac_second"), diff.getMessage());
   }
 
   @Test
