@@ -2110,25 +2110,46 @@ public class PgResultSet implements ResultSet, PGRefCursorResultSet {
         // toString() isn't enough for date and time types; we must format it correctly
         // or we won't be able to re-parse it.
         //
-        case Types.DATE:
-          rowBuffer.set(columnIndex, connection
-              .encodeString(
-                  getTimestampUtils().toString(
-                      getDefaultCalendar(), (Date) valueObject)));
+        case Types.DATE: {
+          // getObject(int, LocalDate.class) returns LocalDate, so updating the row buffer with
+          // such a value must not assume it is always a java.sql.Date.
+          String stringValue = valueObject instanceof LocalDate
+              ? getTimestampUtils().toString((LocalDate) valueObject)
+              : getTimestampUtils().toString(getDefaultCalendar(), (Date) valueObject);
+          rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
+        }
 
-        case Types.TIME:
-          rowBuffer.set(columnIndex, connection
-              .encodeString(
-                  getTimestampUtils().toString(
-                      getDefaultCalendar(), (Time) valueObject)));
+        case Types.TIME: {
+          // time and timetz both map to Types.TIME, so the value can be java.sql.Time,
+          // java.time.LocalTime (time) or java.time.OffsetTime (timetz).
+          String stringValue;
+          if (valueObject instanceof OffsetTime) {
+            stringValue = getTimestampUtils().toString((OffsetTime) valueObject);
+          } else if (valueObject instanceof LocalTime) {
+            stringValue = getTimestampUtils().toString((LocalTime) valueObject);
+          } else {
+            stringValue = getTimestampUtils().toString(getDefaultCalendar(), (Time) valueObject);
+          }
+          rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
+        }
 
-        case Types.TIMESTAMP:
-          rowBuffer.set(columnIndex, connection.encodeString(
-              getTimestampUtils().toString(
-                  getDefaultCalendar(), (Timestamp) valueObject)));
+        case Types.TIMESTAMP: {
+          // timestamp and timestamptz both map to Types.TIMESTAMP, so the value can be
+          // java.sql.Timestamp, java.time.LocalDateTime (timestamp)
+          // or java.time.OffsetDateTime (timestamptz).
+          String stringValue;
+          if (valueObject instanceof OffsetDateTime) {
+            stringValue = getTimestampUtils().toString((OffsetDateTime) valueObject);
+          } else if (valueObject instanceof LocalDateTime) {
+            stringValue = getTimestampUtils().toString((LocalDateTime) valueObject);
+          } else {
+            stringValue = getTimestampUtils().toString(getDefaultCalendar(), (Timestamp) valueObject);
+          }
+          rowBuffer.set(columnIndex, connection.encodeString(stringValue));
           break;
+        }
 
         case Types.NULL:
           // Should never happen?
