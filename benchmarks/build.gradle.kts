@@ -48,3 +48,18 @@ if ("style" in tasks.names) {
         dependsOn(tasks.compileJmhJava)
     }
 }
+
+// The benchmarks project publishes no artifact and has an empty main source set, so a Jandex
+// index serves no purpose here. Skip Jandex entirely: it otherwise registers processJmhJandexIndex
+// as a producer of sourceSets.jmh.output, and every consumer of that output that the plugin does
+// not wire (jmhRunBytecodeGenerator, checkstyleJmh, forbiddenApisJmh) fails Gradle 9's
+// implicit-dependency validation.
+jandex {
+    skipDefaultProcessing()
+}
+
+// Build the benchmarks jar as part of `check` so build-graph regressions surface during
+// verification rather than only when someone runs the benchmarks.
+tasks.check {
+    dependsOn(tasks.jmhJar)
+}

@@ -55,7 +55,7 @@ jobs:
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
       with:
         job-id: jdk21
-        arguments: styleCheck jandex -PenableErrorprone classes
+        arguments: styleCheck jandex -PenableErrorprone classes :benchmarks:jmhJar
 
   linux-checkerframework:
     name: 'CheckerFramework'
