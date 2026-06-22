@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Array;
 
+@SuppressWarnings("deprecation") // exercises the deprecated ArrayEncoding directly
 public class ByteaArraysTest extends AbstractArraysTest<byte[][]> {
 
   private static final byte[][][][] longs = new byte[][][][]{

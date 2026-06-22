@@ -170,13 +170,14 @@ class DatabaseMetaDataTest {
     TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
 
     try {
-      ti.getSQLType((int) 4294967295L); // (presumably) unused OID 4294967295, which is 2**32 - 1
+      ti.getPgTypeByOid((int) 4294967295L); // (presumably) unused OID 4294967295, which is 2**32 - 1
     } catch (PSQLException ex) {
       assertEquals(ex.getSQLState(), PSQLState.NO_DATA.getState());
     }
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void oidConversion() throws SQLException {
     TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
     int oid = 0;
@@ -201,6 +202,7 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void oidConversionThrowsForNegativeLongValues() throws SQLException {
     assertThrows(PSQLException.class, () -> {
       TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();
@@ -209,6 +211,7 @@ class DatabaseMetaDataTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   void oidConversionThrowsForTooLargeLongValues() throws SQLException {
     assertThrows(PSQLException.class, () -> {
       TypeInfo ti = conn.unwrap(PgConnection.class).getTypeInfo();

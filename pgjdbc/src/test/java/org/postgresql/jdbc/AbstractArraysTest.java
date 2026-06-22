@@ -50,6 +50,7 @@ import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 @Arrays
+@SuppressWarnings("deprecation") // exercises the deprecated ArrayEncoding directly
 public abstract class AbstractArraysTest<A> {
 
   private static final BaseConnection ENCODING_CONNECTION = new EncodingConnection(Encoding.getJVMEncoding("utf-8"));
@@ -284,6 +285,33 @@ public abstract class AbstractArraysTest<A> {
     @Override
     public TypeInfo getTypeInfo() {
       return typeInfo;
+    }
+
+    @Override
+    public CodecContext getCodecContext() throws SQLException {
+      // A connection-bound context so the array codec walker can resolve element
+      // types and codecs through the connection's TypeInfo / CodecRegistry.
+      return new CodecContext(this, typeInfo.getCodecRegistry(), new JavaTypeRegistry());
+    }
+
+    @Override
+    public CodecRegistry getCodecRegistry() {
+      return typeInfo.getCodecRegistry();
+    }
+
+    @Override
+    public void resetCodecs() {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
+    @Override
+    public void registerCodec(org.postgresql.api.codec.Codec codec) {
+      throw new UnsupportedOperationException("Not implemented in test mock");
+    }
+
+    @Override
+    public void unregisterCodec(String typeName) {
+      throw new UnsupportedOperationException("Not implemented in test mock");
     }
 
     /**
@@ -1135,6 +1163,11 @@ public abstract class AbstractArraysTest<A> {
 
     @Override
     public boolean getConvertBooleanToNumeric() {
+      return false;
+    }
+
+    @Override
+    public boolean getMapBooleanToBoolean() {
       return false;
     }
   }

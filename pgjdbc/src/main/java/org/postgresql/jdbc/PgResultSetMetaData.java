@@ -11,6 +11,7 @@ import org.postgresql.PGResultSetMetaData;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.core.Field;
 import org.postgresql.core.ServerVersion;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.util.GT;
 import org.postgresql.util.Gettable;
 import org.postgresql.util.GettableHashMap;
@@ -18,6 +19,7 @@ import org.postgresql.util.JdbcBlackHole;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.sql.ResultSet;
@@ -81,7 +83,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   @Override
   public boolean isCaseSensitive(int column) throws SQLException {
     Field field = getField(column);
-    return connection.getTypeInfo().isCaseSensitive(field.getOID());
+    return PgType.isCaseSensitive(field.getOID());
   }
 
   /**
@@ -139,7 +141,7 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
   @Override
   public boolean isSigned(int column) throws SQLException {
     Field field = getField(column);
-    return connection.getTypeInfo().isSigned(field.getOID());
+    return PgType.isSigned(field.getOID());
   }
 
   @Override
@@ -432,12 +434,35 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
     return fields[columnIndex - 1];
   }
 
+  private Field getFieldWithType(@Positive int columnIndex) throws SQLException {
+    Field field = getField(columnIndex);
+    field.initializePgType(connection.getTypeInfo());
+    return field;
+  }
+
   protected @Nullable String getPGType(int columnIndex) throws SQLException {
-    return connection.getTypeInfo().getPGType(getField(columnIndex).getOID());
+    // Return the raw pg_type.typname (e.g. "int4", "_int4") for on-path types,
+    // but a fully qualified \"schema\".\"typname\" form for off-path/shadowed
+    // types (e.g. "Composites"."Table"). Matches the legacy ResultSetMetaData
+    // contract used by getColumnTypeName.
+    PgType pgType = getFieldWithType(columnIndex).getPgType();
+    TypeInfo typeInfo = connection.getTypeInfo();
+    if (typeInfo instanceof TypeInfoCache) {
+      String displayName = ((TypeInfoCache) typeInfo).getPGTypeDisplayName(pgType.getOid());
+      if (displayName != null) {
+        return displayName;
+      }
+    }
+    return pgType.getTypeName().getName();
   }
 
   protected int getSQLType(int columnIndex) throws SQLException {
-    return connection.getTypeInfo().getSQLType(getField(columnIndex).getOID());
+    int sqlType = getFieldWithType(columnIndex).getPgType().getSqlType();
+    // Handle boolean type mapping preference
+    if (sqlType == Types.BIT && connection.getMapBooleanToBoolean()) {
+      return Types.BOOLEAN;
+    }
+    return sqlType;
   }
 
   // ** JDBC 2 Extensions **
@@ -446,23 +471,21 @@ public class PgResultSetMetaData implements ResultSetMetaData, PGResultSetMetaDa
 
   @Override
   public String getColumnClassName(int column) throws SQLException {
-    Field field = getField(column);
-    String result = connection.getTypeInfo().getJavaClass(field.getOID());
-
-    if (result != null) {
-      return result;
-    }
-
-    int sqlType = getSQLType(column);
-    if (sqlType == Types.ARRAY) {
-      return "java.sql.Array";
-    } else {
-      String type = getPGType(column);
-      if ("unknown".equals(type)) {
-        return "java.lang.String";
+    PgType pgType = getFieldWithType(column).getPgType();
+    int oid = pgType.getOid();
+    // For built-in types JavaTypeRegistry has a precise mapping; for extension
+    // types (e.g. hstore, whose OID is assigned at install time) fall through
+    // to the codec's default Java type so callers see the right wrapper class
+    // (Map for hstore, etc.) instead of the registry's default String.
+    org.postgresql.api.codec.Codec codec =
+        connection.getTypeInfo().getCodecRegistry().getByOid(oid, pgType);
+    if (codec != null) {
+      Class<?> codecDefault = codec.getDefaultJavaType();
+      if (codecDefault != null && codecDefault != Object.class) {
+        return codecDefault.getName();
       }
-      return "java.lang.Object";
     }
+    return JavaTypeRegistry.getDefaultJavaClassName(oid);
   }
 
   @Override

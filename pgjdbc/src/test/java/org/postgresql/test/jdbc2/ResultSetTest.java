@@ -33,10 +33,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -221,6 +223,42 @@ public class ResultSetTest extends BaseTest4 {
     stmt.execute("INSERT INTO testpgobject VALUES(1, '2010-11-3')");
 
     stmt.close();
+  }
+
+  @Test
+  public void testGetDateTimeTimestampOnStringColumns() throws SQLException {
+    // getDate/getTime/getTimestamp now coerce string columns through the text codecs, so a
+    // date/time literal stored in varchar/text parses just like a temporal column.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery(
+             "SELECT '2024-01-02'::varchar, '12:34:56'::text")) {
+      assertTrue(rs.next());
+      assertEquals(Date.valueOf("2024-01-02"), rs.getDate(1));
+      assertEquals(Time.valueOf("12:34:56"), rs.getTime(2));
+    }
+  }
+
+  @Test
+  public void testGetTimestampOnUnknownColumn() throws SQLException {
+    // 'SELECT <literal>' without a cast yields the unknown type (oid 705), which resolves to the
+    // fallback codec. The fallback parses the literal as a date/time, matching the old behaviour.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT '2024-01-02 12:34:56'")) {
+      assertTrue(rs.next());
+      assertEquals(Timestamp.valueOf("2024-01-02 12:34:56"), rs.getTimestamp(1));
+    }
+  }
+
+  @Test
+  public void testGetDateOnIntegerColumnThrows() throws SQLException {
+    // A non-temporal, non-string column cannot be coerced to a date: the int4 codec rejects the
+    // Date target with the same read-side state (DATA_TYPE_MISMATCH) as getDate's own tail.
+    try (Statement stmt = con.createStatement();
+         ResultSet rs = stmt.executeQuery("SELECT 42::int4")) {
+      assertTrue(rs.next());
+      PSQLException ex = assertThrows(PSQLException.class, () -> rs.getDate(1));
+      assertEquals(PSQLState.DATA_TYPE_MISMATCH.getState(), ex.getSQLState());
+    }
   }
 
   @Test

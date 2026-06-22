@@ -94,6 +94,7 @@ import org.postgresql.core.SqlCommand;
 import org.postgresql.core.SqlCommandType;
 import org.postgresql.core.TransactionState;
 import org.postgresql.core.Tuple;
+import org.postgresql.core.TypeInfo;
 import org.postgresql.core.v3.adaptivefetch.AdaptiveFetchCache;
 import org.postgresql.core.v3.replication.V3ReplicationProtocol;
 import org.postgresql.jdbc.AutoSave;
@@ -192,6 +193,14 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final IntSet useBinaryReceiveForOids = new IntSet();
 
   /**
+   * Type info consulted (cache-only) to decide binary receive by the column type's
+   * catalog capability and the recursive binaryTransferDisable opt-out. Null when the
+   * capability fallback is off (for example binaryTransfer=false), in which case only
+   * {@link #useBinaryReceiveForOids} enables binary receive.
+   */
+  private @Nullable TypeInfo binaryReceiveTypeInfo;
+
+  /**
    * Bit set that has a bit set for each oid which should be sent using binary format.
    */
   private final IntSet useBinarySendForOids = new IntSet();
@@ -204,6 +213,7 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   private final SimpleQuery sync = (SimpleQuery) createQuery("SYNC", false, true).query;
 
   private short deallocateEpoch;
+  private int typeCacheEpoch;
 
   /**
    * This caches the latest observed {@code set search_path} query so the reset of prepared
@@ -247,6 +257,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
   @Override
   public ProtocolVersion getProtocolVersion() {
     return protocolVersion;
+  }
+
+  @Override
+  public int getTypeCacheEpoch() {
+    return typeCacheEpoch;
   }
 
   /**
@@ -1969,7 +1984,18 @@ public class QueryExecutorImpl extends QueryExecutorBase {
    */
   private boolean useBinary(Field field) {
     int oid = field.getOID();
-    return useBinaryForReceive(oid);
+    // Explicit binaryTransferEnable / registered binary types force binary on.
+    synchronized (useBinaryReceiveForOids) {
+      if (useBinaryReceiveForOids.contains(oid)) {
+        return true;
+      }
+    }
+    // Otherwise the column type's catalog capability and the recursive
+    // binaryTransferDisable opt-out decide. This runs while the Bind message is being
+    // composed, so the lookup is cache-only — a catalog query here would corrupt the
+    // protocol stream.
+    TypeInfo typeInfo = binaryReceiveTypeInfo;
+    return typeInfo != null && typeInfo.shouldReceiveBinary(oid);
   }
 
   private void sendDescribePortal(SimpleQuery query, @Nullable Portal portal) throws IOException {
@@ -2497,16 +2523,21 @@ public class QueryExecutorImpl extends QueryExecutorBase {
               && (status.startsWith("DEALLOCATE ALL") || status.startsWith("DISCARD ALL"))) {
             deallocateEpoch++;
           }
-          if (isFlushCacheOnDdl()
-              && (status.startsWith("CREATE ")
-                  || status.startsWith("DROP ")
-                  || status.startsWith("ALTER "))) {
-            // DDL invalidates any server-side prepared plan that references
-            // the affected relation. Bump the epoch so the driver
-            // re-prepares matching statements on next use, instead of
-            // surfacing PostgreSQL's "cached plan must not change result
-            // type" to callers that don't opt into autosave=ALWAYS.
-            deallocateEpoch++;
+          if (status.startsWith("CREATE ")
+              || status.startsWith("DROP ")
+              || status.startsWith("ALTER ")) {
+            // DDL may redefine types (e.g. DROP TYPE / ALTER TYPE), so invalidate the
+            // driver's type cache regardless of flushCacheOnDdl, which only governs
+            // server-side prepared plans.
+            typeCacheEpoch++;
+            if (isFlushCacheOnDdl()) {
+              // DDL invalidates any server-side prepared plan that references
+              // the affected relation. Bump the epoch so the driver
+              // re-prepares matching statements on next use, instead of
+              // surfacing PostgreSQL's "cached plan must not change result
+              // type" to callers that don't opt into autosave=ALWAYS.
+              deallocateEpoch++;
+            }
           }
 
           doneAfterRowDescNoData = false;
@@ -2533,8 +2564,13 @@ public class QueryExecutorImpl extends QueryExecutorBase {
             if (nativeSql.lastIndexOf("search_path", 1024) != -1
                 && !nativeSql.equals(lastSetSearchPathQuery)) {
               // Search path was changed, invalidate prepared statement cache
+              // *and* the per-connection type cache: name-keyed lookups
+              // (TypeInfoCache.getPgTypeByPgName) resolve against the
+              // current search_path, so a previously-cached "foo" might
+              // now refer to a different type.
               lastSetSearchPathQuery = nativeSql;
               deallocateEpoch++;
+              typeCacheEpoch++;
             }
           }
 
@@ -3232,6 +3268,11 @@ public class QueryExecutorImpl extends QueryExecutorBase {
       useBinaryReceiveForOids.clear();
       useBinaryReceiveForOids.addAll(oids);
     }
+  }
+
+  @Override
+  public void setTypeInfo(TypeInfo typeInfo) {
+    this.binaryReceiveTypeInfo = typeInfo;
   }
 
   @Override

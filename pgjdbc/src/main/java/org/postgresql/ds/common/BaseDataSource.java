@@ -317,6 +317,79 @@ public abstract class BaseDataSource implements CommonDataSource, Referenceable 
   }
 
   /**
+   * @return value of the {@code getobjectDate} connection property
+   * @see PGProperty#GETOBJECT_DATE
+   */
+  public @Nullable String getGetobjectDate() {
+    return PGProperty.GETOBJECT_DATE.getOrDefault(properties);
+  }
+
+  public void setGetobjectDate(@Nullable String value) {
+    PGProperty.GETOBJECT_DATE.set(properties, value);
+  }
+
+  /**
+   * @return value of the {@code getobjectTime} connection property
+   * @see PGProperty#GETOBJECT_TIME
+   */
+  public @Nullable String getGetobjectTime() {
+    return PGProperty.GETOBJECT_TIME.getOrDefault(properties);
+  }
+
+  public void setGetobjectTime(@Nullable String value) {
+    PGProperty.GETOBJECT_TIME.set(properties, value);
+  }
+
+  /**
+   * @return value of the {@code getobjectTimetz} connection property
+   * @see PGProperty#GETOBJECT_TIMETZ
+   */
+  public @Nullable String getGetobjectTimetz() {
+    return PGProperty.GETOBJECT_TIMETZ.getOrDefault(properties);
+  }
+
+  public void setGetobjectTimetz(@Nullable String value) {
+    PGProperty.GETOBJECT_TIMETZ.set(properties, value);
+  }
+
+  /**
+   * @return value of the {@code getobjectTimestamp} connection property
+   * @see PGProperty#GETOBJECT_TIMESTAMP
+   */
+  public @Nullable String getGetobjectTimestamp() {
+    return PGProperty.GETOBJECT_TIMESTAMP.getOrDefault(properties);
+  }
+
+  public void setGetobjectTimestamp(@Nullable String value) {
+    PGProperty.GETOBJECT_TIMESTAMP.set(properties, value);
+  }
+
+  /**
+   * @return value of the {@code getobjectTimestamptz} connection property
+   * @see PGProperty#GETOBJECT_TIMESTAMPTZ
+   */
+  public @Nullable String getGetobjectTimestamptz() {
+    return PGProperty.GETOBJECT_TIMESTAMPTZ.getOrDefault(properties);
+  }
+
+  public void setGetobjectTimestamptz(@Nullable String value) {
+    PGProperty.GETOBJECT_TIMESTAMPTZ.set(properties, value);
+  }
+
+  /**
+   * @return value of the {@code mapPgTypeBoolean} connection property
+   * @see PGProperty#MAP_PG_TYPE_BOOLEAN
+   */
+  public @Nullable String getMapPgTypeBoolean() {
+    return PGProperty.MAP_PG_TYPE_BOOLEAN.getOrDefault(properties);
+  }
+
+  public void setMapPgTypeBoolean(@Nullable String value) {
+    PGProperty.MAP_PG_TYPE_BOOLEAN.set(properties, value);
+  }
+
+
+  /**
    * @return login timeout
    * @see PGProperty#LOGIN_TIMEOUT
    */

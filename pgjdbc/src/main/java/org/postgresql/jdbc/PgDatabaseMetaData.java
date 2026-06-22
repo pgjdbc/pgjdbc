@@ -40,7 +40,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1335,7 +1334,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // decide if we are returning a single column result.
-      if ("b".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
+      if ("b".equals(returnTypeType) || "c".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
           || ("p".equals(returnTypeType) && argModesArray == null)) {
         byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = catalogName;
@@ -1344,9 +1343,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[3] = connection.encodeString("returnValue");
         tuple[4] = connection
             .encodeString(Integer.toString(DatabaseMetaData.procedureColumnReturn));
-        tuple[5] = connection
-            .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
-        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
+        // TODO: fix N+1
+        PgType returnPgType = connection.getTypeInfo().getPgTypeByOid(returnType);
+        tuple[5] = connection.encodeString(Integer.toString(returnPgType.getSqlType()));
+        tuple[6] = connection.encodeString(returnPgType.getTypeName().getName());
         tuple[7] = null;
         tuple[8] = null;
         tuple[9] = null;
@@ -1392,10 +1392,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           argOid = argTypes.get(i).intValue();
         }
 
-        tuple[5] =
-            connection.encodeString(Integer.toString(
-                castNonNull(connection.getTypeInfo().getSQLType(argOid))));
-        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
+        // TODO: fix N+1
+        PgType argPgType = connection.getTypeInfo().getPgTypeByOid(argOid);
+
+        tuple[5] = connection.encodeString(Integer.toString(argPgType.getSqlType()));
+        tuple[6] = connection.encodeString(argPgType.getTypeName().getName());
         tuple[7] = null;
         tuple[8] = null;
         tuple[9] = null;
@@ -1411,7 +1412,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // if we are returning a multi-column result.
-      if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
+      if (("c".equals(returnTypeType) && argModesArray != null) || ("p".equals(returnTypeType) && argModesArray != null)) {
         PreparedStatement columnstmt = connection.prepareStatement(
             "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
                 + " WHERE a.attrelid = ?"
@@ -1427,9 +1428,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[3] = columnrs.getBytes("attname");
           tuple[4] = connection
               .encodeString(Integer.toString(DatabaseMetaData.procedureColumnResult));
-          tuple[5] = connection
-              .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
-          tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
+          // TODO: fix N+1
+          PgType columnPgType = connection.getTypeInfo().getPgTypeByOid(columnTypeOid);
+          tuple[5] = connection.encodeString(Integer.toString(columnPgType.getSqlType()));
+          tuple[6] = connection.encodeString(columnPgType.getTypeName().getName());
           tuple[7] = null;
           tuple[8] = null;
           tuple[9] = null;
@@ -1761,7 +1763,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     }
 
     sql.append("SELECT current_database() AS current_database, n.nspname,c.relname,a.attname,a.atttypid,a.attnotnull "
-        + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,t.typtypmod,");
+        + " OR (t.typtype = 'd' AND t.typnotnull) AS attnotnull,a.atttypmod,a.attlen,");
 
     if (connection.haveMinimumServerVersion(ServerVersion.v8_4)) {
       sql.append("row_number() OVER (PARTITION BY a.attrelid ORDER BY a.attnum) AS attnum, ");
@@ -1783,11 +1785,14 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     sql.append(
         // language=sql
-        "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,t.typtype "
+        "pg_catalog.pg_get_expr(def.adbin, def.adrelid) AS adsrc,dsc.description,t.typbasetype,"
+           + "pg_catalog.pg_type_is_visible(t.oid) AS type_is_visible,"
+           + TypeInfoCache.PG_TYPE_FIELDS
            + " FROM pg_catalog.pg_namespace n "
            + " JOIN pg_catalog.pg_class c ON (c.relnamespace = n.oid) "
            + " JOIN pg_catalog.pg_attribute a ON (a.attrelid=c.oid) "
            + " JOIN pg_catalog.pg_type t ON (a.atttypid = t.oid) "
+           + " JOIN pg_catalog.pg_namespace tn ON (tn.oid = t.typnamespace) "
            + " LEFT JOIN pg_catalog.pg_attrdef def ON (a.attrelid=def.adrelid AND a.attnum = def.adnum) "
            + " LEFT JOIN pg_catalog.pg_description dsc ON (c.oid=dsc.objoid AND a.attnum = dsc.objsubid) "
            + " LEFT JOIN pg_catalog.pg_class dc ON (dc.oid=dsc.classoid AND dc.relname='pg_class') "
@@ -1813,41 +1818,44 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     PreparedStatement stmt = prepareMetaDataStatement(sql.toString(), args);
     ResultSet rs = stmt.executeQuery();
+    TypeInfo typeInfo = connection.getTypeInfo();
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[numberOfFields][];
-      int typeOid = (int) rs.getLong("atttypid");
+      PgType attrPgType = TypeInfoCache.mapToPgType(rs);
+      int typeOid = attrPgType.getOid();
+      typeInfo.add(attrPgType);
       int typeMod = rs.getInt("atttypmod");
 
-      tuple[0] = currentCatalog.getBytes(Charset.defaultCharset()); // Catalog (database) name
+      int sqlType = attrPgType.getSqlType();
+
+      tuple[0] = connection.encodeString(currentCatalog); // Catalog (database) name
       tuple[1] = rs.getBytes("nspname"); // Schema name
       tuple[2] = rs.getBytes("relname"); // Table name
       tuple[3] = rs.getBytes("attname"); // Column name
-
-      String typtype = rs.getString("typtype");
-      int sqlType;
-      if ("c".equals(typtype)) {
-        sqlType = Types.STRUCT;
-      } else if ("d".equals(typtype)) {
-        sqlType = Types.DISTINCT;
-      } else if ("e".equals(typtype)) {
-        sqlType = Types.VARCHAR;
-      } else {
-        sqlType = connection.getTypeInfo().getSQLType(typeOid);
-      }
-
-      tuple[4] = connection.encodeString(Integer.toString(sqlType));
-      String pgType = connection.getTypeInfo().getPGType(typeOid);
-      tuple[5] = connection.encodeString(pgType); // Type name
+      tuple[4] = connection.encodeString(Integer.toString(attrPgType.getSqlType()));
+      // Use raw pg_type.typname (e.g. "int4", "_int4") rather than the
+      // format_type() pretty name, matching the legacy DatabaseMetaData
+      // contract that several JDBC consumers rely on (e.g. "int4" vs "integer",
+      // "_custom" vs "custom[]"). For types not visible via the search_path
+      // (off-path or shadowed by another type with the same name), emit a
+      // fully qualified, quoted form so the result is unambiguous.
+      boolean typeIsVisible = rs.getBoolean("type_is_visible");
+      String typName = attrPgType.getTypeName().getName();
+      String typNspname = attrPgType.getTypeName().getNamespace();
+      tuple[5] = connection.encodeString(
+          (typeIsVisible || typNspname == null)
+              ? typName
+              : "\"" + typNspname + "\".\"" + typName + "\""); // Type name
       tuple[7] = null; // Buffer length
 
       String defval = rs.getString("adsrc");
 
       if (defval != null && defval.contains("nextval(") ) {
-        if ("int4".equals(pgType)) {
+        if (typeOid == Oid.INT4) {
           tuple[5] = connection.encodeString("serial"); // Type name == serial
-        } else if ("int8".equals(pgType)) {
+        } else if (typeOid == Oid.INT8) {
           tuple[5] = connection.encodeString("bigserial"); // Type name == bigserial
-        } else if ("int2".equals(pgType) && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
+        } else if (typeOid == Oid.INT2 && connection.haveMinimumServerVersion(ServerVersion.v9_2)) {
           tuple[5] = connection.encodeString("smallserial"); // Type name == smallserial
         }
       }
@@ -1856,42 +1864,58 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       String generated = rs.getString("attgenerated");
 
       int baseTypeOid = (int) rs.getLong("typbasetype");
+      // TODO: fix N+1
+      PgType basePgType = baseTypeOid == 0 ? null : typeInfo.getPgTypeByOid(baseTypeOid);
 
       int decimalDigits;
       int columnSize;
 
-      /* this is really a DOMAIN type not sure where DISTINCT came from */
-      if ( sqlType == Types.DISTINCT ) {
-        /*
-        From the docs if typtypmod is -1
-         */
-        int typtypmod = rs.getInt("typtypmod");
-        decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typeMod);
-        /*
-        From the postgres docs:
-        Domains use typtypmod to record the typmod to be applied to their
-        base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
-        if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
-        a domain, but for actual types this will return the correct value.
-         */
-        if ( typtypmod == -1 ) {
-          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typeMod);
-        } else if (baseTypeOid == Oid.NUMERIC ) {
-          decimalDigits = connection.getTypeInfo().getScale(baseTypeOid, typtypmod);
-          columnSize = connection.getTypeInfo().getPrecision(baseTypeOid, typtypmod);
+      // For domain types (typtype='d') the SQL type derived from typcategory
+      // matches the base type (e.g. Types.NUMERIC), not Types.DISTINCT, so we
+      // also need to check the explicit domain flag to route into the
+      // basetype-aware precision/scale resolution.
+      boolean isDomain = attrPgType.isDomain() || sqlType == Types.DISTINCT;
+      if (isDomain) {
+        // From the docs if typtypmod is -1
+        int typtypmod = attrPgType.getTyptypmod();
+        decimalDigits = typeInfo.getScale(baseTypeOid, typeMod);
+        // From the postgres docs:
+        // Domains use typtypmod to record the typmod to be applied to their
+        // base type (-1 if base type does not use a typmod). -1 if this type is not a domain.
+        // if it is -1 then get the precision from the basetype. This doesn't help if the basetype is
+        // a domain, but for actual types this will return the correct value.
+        if (typtypmod == -1) {
+          columnSize = typeInfo.getPrecision(baseTypeOid, typeMod);
         } else {
-          columnSize = typtypmod;
+          // Use the basetype's own precision formula on typtypmod (e.g. varbit(3)
+          // is stored as typtypmod=7, where precision = typtypmod-4 = 3); falling
+          // back to a raw typtypmod gives garbage for types that aren't numeric.
+          decimalDigits = typeInfo.getScale(baseTypeOid, typtypmod);
+          columnSize = typeInfo.getPrecision(baseTypeOid, typtypmod);
+        }
+      } else if (sqlType == Types.ARRAY && attrPgType.getTypelem() != 0) {
+        // For array columns the per-element typmod is stored on the column,
+        // so drill down to the element type to derive precision/scale.
+        int elemOid = attrPgType.getTypelem();
+        decimalDigits = typeInfo.getScale(elemOid, typeMod);
+        columnSize = typeInfo.getPrecision(elemOid, typeMod);
+        if (columnSize == 0) {
+          columnSize = typeInfo.getDisplaySize(elemOid, typeMod);
         }
       } else {
-        decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
-        columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
+        decimalDigits = typeInfo.getScale(typeOid, typeMod);
+        columnSize = typeInfo.getPrecision(typeOid, typeMod);
         if ( sqlType != Types.NUMERIC && columnSize == 0 ) {
-          columnSize = connection.getTypeInfo().getDisplaySize(typeOid, typeMod);
+          columnSize = typeInfo.getDisplaySize(typeOid, typeMod);
         }
       }
       tuple[6] = connection.encodeString(Integer.toString(columnSize));
-      // Give null for an unset scale on Decimal and Numeric columns
-      if (((sqlType == Types.NUMERIC) || (sqlType == Types.DECIMAL)) && (typeMod == -1)) {
+      // Give null for an unset scale on Decimal and Numeric columns. For domain
+      // types we resolved typtypmod above, so the scale is known even when the
+      // column's own typmod is -1.
+      boolean hasDomainTypmod = isDomain && attrPgType.getTyptypmod() != -1;
+      if (((sqlType == Types.NUMERIC) || (sqlType == Types.DECIMAL)) && (typeMod == -1)
+          && !hasDomainTypmod) {
         tuple[8] = null;
       } else {
         tuple[8] = connection.encodeString(Integer.toString(decimalDigits));
@@ -1900,7 +1924,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // Everything is base 10 unless we override later.
       tuple[9] = connection.encodeString("10");
 
-      if ("bit".equals(pgType) || "varbit".equals(pgType)) {
+      if (typeOid == Oid.BIT || typeOid == Oid.VARBIT) {
         tuple[9] = connection.encodeString("2");
       }
 
@@ -1918,9 +1942,9 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[18] = null; // SCOPE_CATLOG
       tuple[19] = null; // SCOPE_SCHEMA
       tuple[20] = null; // SCOPE_TABLE
-      tuple[21] = baseTypeOid == 0 // SOURCE_DATA_TYPE
+      tuple[21] = basePgType == null // SOURCE_DATA_TYPE
                   ? null
-                  : connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(baseTypeOid)));
+                  : connection.encodeString(Integer.toString(basePgType.getSqlType()));
 
       String autoinc = "NO";
       if (defval != null && defval.contains("nextval(") || identity != null) {
@@ -2331,7 +2355,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[8][];
       int typeOid = (int) rs.getLong("atttypid");
-      int sqlType = connection.getTypeInfo().getSQLType(typeOid);
+      PgType pgType = connection.getTypeInfo().getPgTypeByOid(typeOid);
+      int sqlType = pgType.getSqlType();
       int typeMod = rs.getInt("atttypmod");
       int decimalDigits = connection.getTypeInfo().getScale(typeOid, typeMod);
       int columnSize = connection.getTypeInfo().getPrecision(typeOid, typeMod);
@@ -2342,7 +2367,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       tuple[1] = rs.getBytes("attname");
       tuple[2] =
           connection.encodeString(Integer.toString(sqlType));
-      tuple[3] = connection.encodeString(connection.getTypeInfo().getPGType(typeOid));
+      tuple[3] = connection.encodeString(pgType.getTypeName().getName());
       tuple[4] = connection.encodeString(Integer.toString(columnSize));
       tuple[5] = null; // unused
       tuple[6] = connection.encodeString(Integer.toString(decimalDigits));
@@ -2388,8 +2413,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
 
     tuple[0] = null;
     tuple[1] = connection.encodeString("ctid");
+    PgType tidType = connection.getTypeInfo().getPgTypeByPgName("tid");
+    // TODO: use well-known sql type for tid
     tuple[2] =
-        connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType("tid")));
+        connection.encodeString(Integer.toString(tidType.getSqlType()));
     tuple[3] = connection.encodeString("tid");
     tuple[4] = null;
     tuple[5] = null;
@@ -2692,6 +2719,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
   @Override
   public ResultSet getTypeInfo() throws SQLException {
 
+    // Bulk-cache the SQL typecodes (one query instead of N) for callers that
+    // iterate this result set and look up types by OID.
+    TypeInfo typeInfo = connection.getTypeInfo();
+    if (typeInfo instanceof TypeInfoCache) {
+      ((TypeInfoCache) typeInfo).cacheSQLTypes();
+    }
+
     Field[] f = new Field[18];
     List<Tuple> v = new ArrayList<>(); // The new ResultSet tuple stuff
 
@@ -2730,6 +2764,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     // things up a little.
     byte[] bZero = connection.encodeString("0");
     byte[] b10 = connection.encodeString("10");
+    byte[] b1000 = connection.encodeString("1000");
     byte[] bf = connection.encodeString("f");
     byte[] bt = connection.encodeString("t");
     byte[] bliteral = connection.encodeString("'");
@@ -2738,18 +2773,26 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
     byte[] bSearchable =
               connection.encodeString(Integer.toString(DatabaseMetaData.typeSearchable));
 
-    TypeInfo ti = connection.getTypeInfo();
-    if (ti instanceof TypeInfoCache) {
-      ((TypeInfoCache) ti).cacheSQLTypes();
-    }
-
     while (rs.next()) {
       byte[] @Nullable [] tuple = new byte[19][];
       String typname = castNonNull(rs.getString(1));
       int typeOid = (int) rs.getLong(2);
+      PgType pgType;
+      try {
+        pgType = connection.getTypeInfo().getPgTypeByOid(typeOid);
+      } catch (PSQLException e) {
+        // Concurrent DROP TYPE may have removed the type between the outer
+        // SELECT pg_type and this per-oid lookup (TypeCacheDLLStressTest
+        // exercises the race). Skip the row rather than aborting the whole
+        // ResultSet.
+        if (PSQLState.NO_DATA.getState().equals(e.getSQLState())) {
+          continue;
+        }
+        throw e;
+      }
 
       tuple[0] = connection.encodeString(typname);
-      int sqlType = connection.getTypeInfo().getSQLType(typname);
+      int sqlType = pgType.getSqlType();
       tuple[1] =
           connection.encodeString(Integer.toString(sqlType));
 
@@ -2762,20 +2805,20 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       // Using requiresQuoting(oid) would might trigger select statements that might fail with NPE
       // if oid in question is being dropped.
       // requiresQuotingSqlType is not bulletproof, however, it solves the most visible NPE.
-      if (connection.getTypeInfo().requiresQuotingSqlType(sqlType)) {
+      if (pgType.requiresQuoting()) {
         tuple[3] = bliteral;
         tuple[4] = bliteral;
       }
 
       tuple[6] = bNullable; // all types can be null
-      tuple[7] = connection.getTypeInfo().isCaseSensitive(typeOid) ? bt : bf;
+      tuple[7] = pgType.isCaseSensitive() ? bt : bf;
       tuple[8] = bSearchable; // any thing can be used in the WHERE clause
-      tuple[9] = connection.getTypeInfo().isSigned(typeOid) ? bf : bt;
+      tuple[9] = pgType.isSigned() ? bf : bt;
       tuple[10] = bf; // false for now - must handle money
       tuple[11] = bf; // false - it isn't autoincrement
       tuple[13] = bZero; // min scale is zero
       // only numeric can supports a scale.
-      tuple[14] = typeOid == Oid.NUMERIC ? connection.encodeString("1000") : bZero;
+      tuple[14] = typeOid == Oid.NUMERIC ? b1000 : bZero;
 
       // 12 - LOCAL_TYPE_NAME is null
       // 15 & 16 are unused so we return null
@@ -3070,30 +3113,44 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       return ((BaseStatement) createMetaDataStatement()).createDriverResultSet(f, v);
     }
 
-    String sql = "select "
-        + "current_database() as \"TYPE_CAT\", n.nspname as \"TYPE_SCHEM\", t.typname as \"TYPE_NAME\", null as \"CLASS_NAME\", "
-        + "CASE WHEN t.typtype='c' then " + Types.STRUCT + " else "
-        + Types.DISTINCT
-        + " end as \"DATA_TYPE\", pg_catalog.obj_description(t.oid, 'pg_type')  "
-        + "as \"REMARKS\", CASE WHEN t.typtype = 'd' then  (select CASE";
-    TypeInfo typeInfo = connection.getTypeInfo();
-
-    StringBuilder sqlwhen = new StringBuilder();
-    for (Iterator<Integer> i = typeInfo.getPGTypeOidsWithSQLTypes(); i.hasNext(); ) {
-      Integer typOid = i.next();
-      // NB: Java Integers are signed 32-bit integers, but oids are unsigned 32-bit integers.
-      // We must therefore map it to a positive long value before writing it into the query,
-      // or we'll be unable to correctly handle ~ half of the oid space.
-      long longTypOid = typeInfo.intOidToLong(typOid);
-      int sqlType = typeInfo.getSQLType(typOid);
-
-      sqlwhen.append(" when base_type.oid = ").append(longTypOid).append(" then ").append(sqlType);
-    }
-    sql += sqlwhen.toString();
-
-    sql += " else " + Types.OTHER + " end from pg_type base_type where base_type.oid=t.typbasetype) "
-        + "else null end as \"BASE_TYPE\" "
-        + "from pg_catalog.pg_type t, pg_catalog.pg_namespace n where t.typnamespace = n.oid and n.nspname != 'pg_catalog' and n.nspname != 'pg_toast'";
+    // Query for user-defined types (composite, domain, and enum types)
+    // CLASS_NAME: populated via connection.getTypeMap() for types with registered SQLData classes
+    // BASE_TYPE: the JDBC SQL type code of the underlying type for DISTINCT types, null for STRUCT/JAVA_OBJECT
+    String sql = "SELECT "
+        + "current_database() AS \"TYPE_CAT\", "
+        + "n.nspname AS \"TYPE_SCHEM\", "
+        + "t.typname AS \"TYPE_NAME\", "
+        + "NULL AS \"CLASS_NAME\", "
+        + "CASE t.typtype "
+        + "  WHEN 'c' THEN " + Types.STRUCT
+        + "  WHEN 'd' THEN " + Types.DISTINCT
+        + "  WHEN 'e' THEN " + Types.JAVA_OBJECT
+        + "  ELSE " + Types.OTHER
+        + " END AS \"DATA_TYPE\", "
+        + "pg_catalog.obj_description(t.oid, 'pg_type') AS \"REMARKS\", "
+        + "CASE WHEN t.typtype = 'd' THEN ("
+        + "  CASE bt.typname "
+        + "    WHEN 'int2' THEN " + Types.SMALLINT
+        + "    WHEN 'int4' THEN " + Types.INTEGER
+        + "    WHEN 'int8' THEN " + Types.BIGINT
+        + "    WHEN 'float4' THEN " + Types.REAL
+        + "    WHEN 'float8' THEN " + Types.DOUBLE
+        + "    WHEN 'numeric' THEN " + Types.NUMERIC
+        + "    WHEN 'bool' THEN " + Types.BOOLEAN
+        + "    WHEN 'varchar' THEN " + Types.VARCHAR
+        + "    WHEN 'text' THEN " + Types.VARCHAR
+        + "    WHEN 'bpchar' THEN " + Types.CHAR
+        + "    WHEN 'date' THEN " + Types.DATE
+        + "    WHEN 'time' THEN " + Types.TIME
+        + "    WHEN 'timestamp' THEN " + Types.TIMESTAMP
+        + "    WHEN 'timestamptz' THEN " + Types.TIMESTAMP_WITH_TIMEZONE
+        + "    ELSE " + Types.OTHER
+        + "  END"
+        + ") ELSE NULL END AS \"BASE_TYPE\" "
+        + "FROM pg_catalog.pg_type t "
+        + "JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid "
+        + "LEFT JOIN pg_catalog.pg_type bt ON t.typbasetype = bt.oid "
+        + "WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast')";
 
     StringBuilder toAdd = new StringBuilder();
     if (types != null) {
@@ -3103,11 +3160,13 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           toAdd.append(" or t.typtype = 'c'");
         } else if (type == Types.DISTINCT) {
           toAdd.append(" or t.typtype = 'd'");
+        } else if (type == Types.JAVA_OBJECT) {
+          toAdd.append(" or t.typtype = 'e'");
         }
       }
       toAdd.append(" ) ");
     } else {
-      toAdd.append(" and t.typtype IN ('c','d') ");
+      toAdd.append(" and t.typtype IN ('c','d','e') ");
     }
     // spec says that if typeNamePattern is a fully qualified name
     // then the schema and catalog are ignored
@@ -3369,6 +3428,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           connection.encodeString(rs.getString("proname") + "_" + rs.getString("oid"));
       int returnType = (int) rs.getLong("prorettype");
       String returnTypeType = rs.getString("typtype");
+      // TODO: fix N+1
+      PgType returnPgType = connection.getTypeInfo().getPgTypeByOid(returnType);
       int returnTypeRelid = (int) rs.getLong("typrelid");
 
       String strArgTypes = castNonNull(rs.getString("proargtypes"));
@@ -3400,7 +3461,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // decide if we are returning a single column result.
-      if ("b".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
+      if ("b".equals(returnTypeType) || "c".equals(returnTypeType) || "d".equals(returnTypeType) || "e".equals(returnTypeType)
           || ("p".equals(returnTypeType) && argModesArray == null)) {
         byte[] @Nullable [] tuple = new byte[columns][];
         tuple[0] = catalogName;
@@ -3410,8 +3471,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         tuple[4] = connection
             .encodeString(Integer.toString(DatabaseMetaData.functionReturn));
         tuple[5] = connection
-            .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(returnType)));
-        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(returnType));
+            .encodeString(Integer.toString(returnPgType.getSqlType()));
+        tuple[6] = connection.encodeString(returnPgType.getTypeName().getName());
         tuple[7] = null;
         tuple[8] = null;
         tuple[9] = null;
@@ -3458,10 +3519,11 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         } else {
           argOid = argTypes.get(i).intValue();
         }
+        // TODO: fix N+1
+        PgType argPgType = connection.getTypeInfo().getPgTypeByOid(argOid);
 
-        tuple[5] =
-            connection.encodeString(Integer.toString(connection.getTypeInfo().getSQLType(argOid)));
-        tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(argOid));
+        tuple[5] = connection.encodeString(Integer.toString(argPgType.getSqlType()));
+        tuple[6] = connection.encodeString(argPgType.getTypeName().getName());
         tuple[7] = null;
         tuple[8] = null;
         tuple[9] = null;
@@ -3477,7 +3539,7 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
       }
 
       // if we are returning a multi-column result.
-      if ("c".equals(returnTypeType) || ("p".equals(returnTypeType) && argModesArray != null)) {
+      if (("c".equals(returnTypeType) && argModesArray != null) || ("p".equals(returnTypeType) && argModesArray != null)) {
         PreparedStatement columnstmt = connection.prepareStatement(
             "SELECT a.attname,a.atttypid FROM pg_catalog.pg_attribute a "
                 + " WHERE a.attrelid = ?"
@@ -3485,7 +3547,10 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
         columnstmt.setInt(1, returnTypeRelid);
         ResultSet columnrs = columnstmt.executeQuery();
         while (columnrs.next()) {
-          int columnTypeOid = (int) columnrs.getLong("atttypid");
+          // TODO: fix N+1 (we look up returnType, not the per-column atttypid;
+          //  preserved for now to keep the existing behavior).
+          PgType columnPgType = connection.getTypeInfo().getPgTypeByOid(returnType);
+
           byte[] @Nullable [] tuple = new byte[columns][];
           tuple[0] = catalogName;
           tuple[1] = schema;
@@ -3494,8 +3559,8 @@ public class PgDatabaseMetaData implements DatabaseMetaData {
           tuple[4] = connection
               .encodeString(Integer.toString(DatabaseMetaData.functionColumnResult));
           tuple[5] = connection
-              .encodeString(Integer.toString(connection.getTypeInfo().getSQLType(columnTypeOid)));
-          tuple[6] = connection.encodeString(connection.getTypeInfo().getPGType(columnTypeOid));
+              .encodeString(Integer.toString(columnPgType.getSqlType()));
+          tuple[6] = connection.encodeString(columnPgType.getTypeName().getName());
           tuple[7] = null;
           tuple[8] = null;
           tuple[9] = null;

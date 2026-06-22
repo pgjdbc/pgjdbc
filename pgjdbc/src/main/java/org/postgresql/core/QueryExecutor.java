@@ -371,6 +371,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
   void setBinaryReceiveOids(Set<Integer> useBinaryForOids);
 
   /**
+   * Injects the {@link TypeInfo} used to decide binary receive by the type's
+   * catalog capability (and recursive binaryTransferDisable opt-out). When left
+   * unset (for example when {@code binaryTransfer=false}), only the explicit
+   * receive-oids set enables binary receive.
+   *
+   * @param typeInfo the type info to consult, cache-only, on the bind path
+   */
+  void setTypeInfo(TypeInfo typeInfo);
+
+  /**
    * Adds a single oid that should be sent using binary encoding.
    *
    * @param oid The oid to send with binary encoding.
@@ -592,6 +602,16 @@ public interface QueryExecutor extends TypeTransferModeRegistry {
    * @param flushCacheOnDdl true to invalidate prepared statements on DDL
    */
   void setFlushCacheOnDdl(boolean flushCacheOnDdl);
+
+  /**
+   * Returns the current type cache epoch.
+   * A new epoch means the type cache should be invalidated.
+   * For instance, if user executes {@code DROP TYPE custom_type} SQL, then we should not reuse
+   * the type cache (for instance, oid) for the type. As of now, we can't have fine-grained
+   * notifications from the backend, so we invalidate the full cache.
+   * @return the current type cache epoch
+   */
+  int getTypeCacheEpoch();
 
   /**
    * @return the ReplicationProtocol instance for this connection.

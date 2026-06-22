@@ -136,6 +136,8 @@ dependencies {
         because("DataSourceFactory is needed for PGDataSourceFactoryTest")
     }
     shaded("com.ongres.scram:scram-client:3.2")
+    // Caffeine 2.9.x is the last version supporting Java 8
+    shaded("com.github.ben-manes.caffeine:caffeine:2.9.3")
 
     implementation("org.checkerframework:checker-qual:3.55.1")
     java11.implementationConfigurationName("org.checkerframework:checker-qual:3.55.1")
@@ -279,7 +281,8 @@ tasks.shadowJar {
     exclude("NOTICE")
     addMultiReleaseContents()
     listOf(
-            "com.ongres"
+        "com.github.benmanes.caffeine",
+        "com.ongres"
     ).forEach {
         relocate(it, "${project.group}.shaded.$it")
     }

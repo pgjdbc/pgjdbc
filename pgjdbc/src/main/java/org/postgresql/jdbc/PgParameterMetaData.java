@@ -5,8 +5,7 @@
 
 package org.postgresql.jdbc;
 
-import static org.postgresql.util.internal.Nullness.castNonNull;
-
+import org.postgresql.api.codec.Codec;
 import org.postgresql.core.BaseConnection;
 import org.postgresql.util.GT;
 import org.postgresql.util.PSQLException;
@@ -30,7 +29,19 @@ public class PgParameterMetaData implements ParameterMetaData {
   @Override
   public String getParameterClassName(@Positive int param) throws SQLException {
     checkParamIndex(param);
-    return connection.getTypeInfo().getJavaClass(oids[param - 1]);
+    int oid = oids[param - 1];
+    CodecContext ctx = connection.getCodecContext();
+    // Resolve PgType so codec lookup can fall through to typename / typtype
+    // resolution rather than returning FallbackCodec.
+    PgType pgType = connection.getTypeInfo().getPgTypeByOid(oid);
+    Codec codec = ctx.getCodecs().getByOid(oid, pgType);
+    if (codec != null) {
+      return codec.getDefaultJavaType().getName();
+    }
+    // Fallback for types without a registered codec
+    @SuppressWarnings("deprecation")
+    String className = connection.getTypeInfo().getJavaClass(oid);
+    return className;
   }
 
   @Override
@@ -51,13 +62,16 @@ public class PgParameterMetaData implements ParameterMetaData {
   @Override
   public int getParameterType(int param) throws SQLException {
     checkParamIndex(param);
-    return connection.getTypeInfo().getSQLType(oids[param - 1]);
+    return connection.getTypeInfo().getPgTypeByOid(oids[param - 1]).getSqlType();
   }
 
   @Override
   public String getParameterTypeName(int param) throws SQLException {
     checkParamIndex(param);
-    return castNonNull(connection.getTypeInfo().getPGType(oids[param - 1]));
+    // Return the raw pg_type.typname (e.g. "timestamp", "_int4") rather than
+    // format_type()'s pretty name ("timestamp without time zone", "integer[]"),
+    // matching the legacy contract that callers rely on.
+    return connection.getTypeInfo().getPgTypeByOid(oids[param - 1]).getTypeName().getName();
   }
 
   // we don't know this
@@ -87,7 +101,7 @@ public class PgParameterMetaData implements ParameterMetaData {
   @Override
   public boolean isSigned(int param) throws SQLException {
     checkParamIndex(param);
-    return connection.getTypeInfo().isSigned(oids[param - 1]);
+    return PgType.isSigned(oids[param - 1]);
   }
 
   private void checkParamIndex(int param) throws PSQLException {

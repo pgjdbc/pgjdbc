@@ -1,0 +1,140 @@
+/*
+ * Copyright (c) 2024, PostgreSQL Global Development Group
+ * See the LICENSE file in the project root for more information.
+ */
+
+package org.postgresql.jdbc;
+
+import static org.postgresql.util.internal.Nullness.castNonNull;
+
+import org.postgresql.api.codec.BinaryCodec;
+import org.postgresql.jdbc.codec.CompositeCodec;
+
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.SQLException;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.List;
+
+/**
+ * Binary format SQLOutput implementation.
+ *
+ * <p>Encodes values to binary format using the codec infrastructure.</p>
+ *
+ * <p>Codecs are pre-cached at construction time for performance.</p>
+ */
+public final class PgSQLOutputBinary extends PgSQLOutput<byte[]> {
+
+  /**
+   * Pre-cached codecs for each field.
+   */
+  private final BinaryCodec[] cachedCodecs;
+
+  /**
+   * Pre-cached PgTypes for each field.
+   */
+  private final PgType[] cachedTypes;
+
+  /**
+   * Creates a new PgSQLOutputBinary.
+   *
+   * @param type the composite type
+   * @param ctx the codec context
+   */
+  public PgSQLOutputBinary(PgType type, CodecContext ctx) throws SQLException {
+    super(type, ctx);
+    this.cachedCodecs = new BinaryCodec[fields.size()];
+    this.cachedTypes = new PgType[fields.size()];
+    cacheCodecs();
+  }
+
+  private void cacheCodecs() throws SQLException {
+    for (int i = 0; i < fields.size(); i++) {
+      PgField field = fields.get(i);
+      int oid = field.getTypeOid();
+      PgType fieldType = ctx.getTypeInfo().getPgTypeByOid(oid);
+      cachedTypes[i] = fieldType;
+      cachedCodecs[i] = castNonNull(ctx.getCodecs().getBinaryCodec(oid, fieldType));
+    }
+  }
+
+  private BinaryCodec getCodec() {
+    return cachedCodecs[fieldIndex - 1];
+  }
+
+  private PgType getCurrentType() {
+    return cachedTypes[fieldIndex - 1];
+  }
+
+  @Override
+  protected byte[] encodeInt(int value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeLong(long value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeDouble(double value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeFloat(float value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeBoolean(boolean value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeString(String value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeBigDecimal(BigDecimal value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeBytes(byte[] value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeDate(Date value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeTime(Time value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeTimestamp(Timestamp value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  @Override
+  protected byte[] encodeObject(Object value, PgType fieldType) throws SQLException {
+    return getCodec().encodeBinary(value, getCurrentType(), ctx);
+  }
+
+  /**
+   * Serializes the collected values to PostgreSQL binary composite format.
+   *
+   * @return the binary data
+   */
+  public byte[] toBytes() throws SQLException {
+    List<byte[]> values = (List<byte[]>) (List<?>) getAttributeValues();
+    byte[][] fieldData = values.toArray(new byte[values.size()][]);
+    return CompositeCodec.encodeBinaryFields(fields, fieldData);
+  }
+}

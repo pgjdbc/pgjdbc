@@ -27,31 +27,36 @@ import java.util.Map;
 /**
  * Utility for using arrays in requests.
  *
- * <p>
- * Binary format:
+ * <p>Binary format:</p>
  * <ul>
  * <li>4 bytes with number of dimensions</li>
  * <li>4 bytes, boolean indicating nulls present or not</li>
  * <li>4 bytes type oid</li>
- * <li>8 bytes describing the length of each dimension (repeated for each dimension)</li>
- * <ul>
- * <li>4 bytes for length</li>
- * <li>4 bytes for lower bound on length to check for overflow (it appears this value can always be 0)</li>
+ * <li>8 bytes describing the length of each dimension (repeated for each dimension)
+ *   <ul>
+ *   <li>4 bytes for length</li>
+ *   <li>4 bytes for lower bound on length to check for overflow (it appears this value can always be 0)</li>
+ *   </ul>
+ * </li>
+ * <li>data in depth first element order corresponding number and length of dimensions
+ *   <ul>
+ *   <li>4 bytes describing length of element, {@code 0xFFFFFFFF} ({@code -1}) means {@code null}</li>
+ *   <li>binary representation of element (iff not {@code null}).</li>
+ *   </ul>
+ * </li>
  * </ul>
- * <li>data in depth first element order corresponding number and length of dimensions</li>
- * <ul>
- * <li>4 bytes describing length of element, {@code 0xFFFFFFFF} ({@code -1}) means {@code null}</li>
- * <li>binary representation of element (iff not {@code null}).
- * </ul>
- * </ul>
- * </p>
  *
  * @author Brett Okken
+ * @deprecated array encoding moved to the codec layer
+ *     ({@link org.postgresql.jdbc.codec.ArrayCodec} and its leaf codecs, which encode every Java
+ *     array — primitive and reference — through the element type's codec). This class is no longer
+ *     used by the driver and will be removed. New code must use {@code ArrayCodec}.
  */
-final class ArrayEncoding {
+@Deprecated
+public final class ArrayEncoding {
 
   @SuppressWarnings("ExtendsObject")
-  interface ArrayEncoder<A extends Object> {
+  public interface ArrayEncoder<A extends Object> {
 
     /**
      * The default array type oid supported by this instance.
@@ -332,6 +337,12 @@ final class ArrayEncoding {
      */
     @Override
     public final void appendArray(StringBuilder sb, char delim, N[] array) {
+      // Numeric literals don't need quoting in a PG array literal — emit
+      // {1,2,3} rather than {"1","2","3"} so PgArray.toString() (used by
+      // BinaryCodec.decodeAsString) matches the wire text format that
+      // PostgreSQL would have sent in text mode. This is what the legacy
+      // Statement+text path produced and what tests like
+      // ResultSetTest#testgetBadBoolean assert on.
       sb.append('{');
       for (int i = 0; i < array.length; i++) {
         if (i != 0) {
@@ -340,9 +351,7 @@ final class ArrayEncoding {
         if (array[i] == null) {
           sb.append('N').append('U').append('L').append('L');
         } else {
-          sb.append('"');
           sb.append(array[i].toString());
-          sb.append('"');
         }
       }
       sb.append('}');
@@ -1019,6 +1028,29 @@ final class ArrayEncoding {
     ARRAY_CLASS_TO_ENCODER.put(Boolean.class, BOOLEAN_OBJ_ARRAY);
     ARRAY_CLASS_TO_ENCODER.put(byte[].class, BYTEA_ARRAY);
     ARRAY_CLASS_TO_ENCODER.put(String.class, STRING_ARRAY);
+  }
+
+  /**
+   * Returns whether {@link #getArrayEncoder} has a dedicated, element-aware
+   * encoder for <i>array</i>. When this returns {@code false} the lookup falls
+   * back to a generic {@code Object[]} encoder that emits each element via
+   * {@code toString()} and rejects binary encoding — callers that need correct
+   * encoding for arbitrary element types (e.g. {@code Struct[]},
+   * {@link java.sql.SQLData}{@code []}) should route per element through the
+   * codec layer instead.
+   *
+   * @param array
+   *          The array to inspect. Must not be {@code null}.
+   * @return {@code true} when the array's element type has a registered
+   *         encoder; {@code false} when only the generic {@code Object[]}
+   *         fallback applies.
+   */
+  public static boolean hasNativeEncoder(Object array) {
+    Class<?> componentType = array.getClass().getComponentType();
+    while (componentType != null && componentType.isArray()) {
+      componentType = componentType.getComponentType();
+    }
+    return componentType != null && ARRAY_CLASS_TO_ENCODER.containsKey(componentType);
   }
 
   /**
