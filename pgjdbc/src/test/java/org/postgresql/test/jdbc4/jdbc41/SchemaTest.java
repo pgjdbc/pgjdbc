@@ -10,9 +10,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+import org.postgresql.PGConnection;
 import org.postgresql.PGProperty;
+import org.postgresql.core.ServerVersion;
 import org.postgresql.test.TestUtil;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
@@ -341,6 +348,115 @@ class SchemaTest {
       execute("RESET statement_timeout");
       assertColType(ps, "RESET statement_timeout must not change search_path, so sptest still "
           + "points to schema1.sptest", Types.INTEGER);
+    }
+  }
+
+  /**
+   * A search_path change the driver does not detect -- here wrapped in {@code set_config()}, which
+   * reports a SELECT command tag rather than SET -- still leaves a reused server-side prepared
+   * statement correct: PostgreSQL re-plans the cached statement, so it returns rows from the table
+   * the current search_path selects. PostgreSQL re-plans on a search_path change since 9.3; 9.1
+   * silently keeps the old plan and would read the previously resolved table.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3399">issue 3399</a>
+   */
+  @Test
+  void searchPathPreparedStatementUndetectedChangeStaysCorrect() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3));
+    // Two schemas hold a table of the same shape but different rows.
+    TestUtil.createSchema(conn, "sphidden1");
+    TestUtil.createSchema(conn, "sphidden2");
+    try {
+      TestUtil.createTable(conn, "sphidden1.hidden_tbl", "val text");
+      TestUtil.createTable(conn, "sphidden2.hidden_tbl", "val text");
+      TestUtil.execute(conn, "INSERT INTO sphidden1.hidden_tbl VALUES ('from_1')");
+      TestUtil.execute(conn, "INSERT INTO sphidden2.hidden_tbl VALUES ('from_2')");
+
+      // set_config() reports a SELECT command tag, so the driver does not detect the change and
+      // keeps the cached server-side statement.
+      execute("SELECT set_config('search_path', 'sphidden1', false)");
+      try (PreparedStatement ps = conn.prepareStatement("SELECT val FROM hidden_tbl")) {
+        for (int i = 0; i < 10; i++) {
+          ps.execute(); // warm up so the statement is prepared server-side and then reused
+        }
+        assertEquals("from_1", selectSingleValue(ps),
+            "search_path = sphidden1 must resolve hidden_tbl to sphidden1.hidden_tbl");
+
+        execute("SELECT set_config('search_path', 'sphidden2', false)");
+        assertEquals("from_2", selectSingleValue(ps),
+            "after the undetected search_path change the reused statement must resolve hidden_tbl "
+                + "to sphidden2.hidden_tbl, because PostgreSQL re-plans the cached statement");
+      }
+    } finally {
+      TestUtil.dropSchema(conn, "sphidden1");
+      TestUtil.dropSchema(conn, "sphidden2");
+    }
+  }
+
+  /**
+   * A {@code set search_path} hidden inside a PL/pgSQL routine is also invisible to the driver (the
+   * command it sees is a SELECT, not a SET), yet a reused server-side prepared statement stays
+   * correct because PostgreSQL re-plans the cached statement (since 9.3). The test also checks
+   * whether the server reports search_path back to the client: PostgreSQL marks it as
+   * {@code GUC_REPORT} from version 18, so the value is visible through
+   * {@link PGConnection#getParameterStatus} on 18+ and absent on older servers.
+   *
+   * @see <a href="https://github.com/pgjdbc/pgjdbc/issues/3399">issue 3399</a>
+   */
+  @Test
+  void searchPathPreparedStatementInPlpgsqlStaysCorrect() throws SQLException {
+    assumeTrue(TestUtil.haveMinimumServerVersion(conn, ServerVersion.v9_3));
+    TestUtil.createSchema(conn, "splpgsql1");
+    TestUtil.createSchema(conn, "splpgsql2");
+    try {
+      TestUtil.createTable(conn, "splpgsql1.plpgsql_tbl", "val text");
+      TestUtil.createTable(conn, "splpgsql2.plpgsql_tbl", "val text");
+      TestUtil.execute(conn, "INSERT INTO splpgsql1.plpgsql_tbl VALUES ('from_1')");
+      TestUtil.execute(conn, "INSERT INTO splpgsql2.plpgsql_tbl VALUES ('from_2')");
+      // A PL/pgSQL routine that changes search_path. Calling it reports a SELECT command tag, so the
+      // driver does not detect the change; it lives in a test schema and is dropped with it.
+      TestUtil.execute(conn,
+          "CREATE FUNCTION splpgsql1.set_search_path(p_schema text) RETURNS void AS $$ "
+              + "BEGIN PERFORM set_config('search_path', p_schema, false); END; $$ LANGUAGE plpgsql");
+
+      execute("SELECT splpgsql1.set_search_path('splpgsql1')");
+      try (PreparedStatement ps = conn.prepareStatement("SELECT val FROM plpgsql_tbl")) {
+        for (int i = 0; i < 10; i++) {
+          ps.execute(); // warm up so the statement is prepared server-side and then reused
+        }
+        assertEquals("from_1", selectSingleValue(ps),
+            "search_path = splpgsql1 must resolve plpgsql_tbl to splpgsql1.plpgsql_tbl");
+
+        execute("SELECT splpgsql1.set_search_path('splpgsql2')");
+        assertEquals("from_2", selectSingleValue(ps),
+            "after the PL/pgSQL search_path change the reused statement must resolve plpgsql_tbl "
+                + "to splpgsql2.plpgsql_tbl, because PostgreSQL re-plans the cached statement");
+
+        // search_path is GUC_REPORT from PostgreSQL 18 on, so the server reports the new value even
+        // when the change happened inside PL/pgSQL; older servers never report it.
+        String reported = conn.unwrap(PGConnection.class).getParameterStatus("search_path");
+        if (TestUtil.haveMinimumServerVersion(conn, ServerVersion.v18)) {
+          assertNotNull(reported,
+              "PostgreSQL 18+ marks search_path as GUC_REPORT, so the change must be reported");
+          assertTrue(reported.contains("splpgsql2"),
+              "the reported search_path must reflect the latest value, but was: " + reported);
+        } else {
+          assertNull(reported,
+              "before PostgreSQL 18 search_path is not GUC_REPORT, so the server does not report it");
+        }
+      }
+    } finally {
+      TestUtil.dropSchema(conn, "splpgsql1");
+      TestUtil.dropSchema(conn, "splpgsql2");
+    }
+  }
+
+  private static String selectSingleValue(PreparedStatement ps) throws SQLException {
+    try (ResultSet rs = ps.executeQuery()) {
+      assertTrue(rs.next());
+      String value = rs.getString(1);
+      assertFalse(rs.next());
+      return value;
     }
   }
 
