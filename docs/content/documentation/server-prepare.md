@@ -380,25 +380,32 @@ The driver does understand top-level DEALLOCATE/DISCARD commands, and it invalid
 
 #### set search_path = ...
 
-PostgreSQL® allows to customize `search_path` , and it provides great power to the developer. With great power the 
-following case could happen:
+PostgreSQL® lets you customise `search_path`, which changes how unqualified table names resolve:
 
 ```sql
 set search_path='app_v1';
-SELECT * FROM mytable;
+SELECT * FROM mytable; -- resolves to app_v1.mytable
 set search_path='app_v2';
-SELECT * FROM mytable; -- Does mytable mean app_v1.mytable or app_v2.mytable here?
+SELECT * FROM mytable; -- resolves to app_v2.mytable
 ```
 
-Server side prepared statements are linked to database object IDs, so it could fetch data from "old" `app_v1.mytable` table.
-It is hard to tell which behaviour is expected, however pgJDBC tries to track `search_path` changes, and it invalidates
-prepare cache accordingly.
+The result stays correct across a `search_path` change. PostgreSQL® records the `search_path` used to build a cached
+plan and, since PostgreSQL® 9.3, re-plans the statement when that path changes, so a reused server side prepared
+statement still returns rows from the table the current `search_path` selects. (Releases before 9.3 keep the old plan
+and may read the previously resolved table.)
+
+What pgJDBC adds is a cache optimisation. It watches for top-level `set search_path...` commands and invalidates its
+prepared statement cache so the next execution re-prepares against the new path. This avoids the
+`cached plan must not change result type` error when the new path resolves to a table with a different column layout
+(for example, `SELECT *` over `app_v1.mytable` and `app_v2.mytable` with different columns).
 
 The recommendation is:
 
-1. Avoid changing `search_path` often, as it invalidates server side prepared statements
-2. Use simple `set search_path...` commands, avoid nesting the commands into pl/pgsql or alike, otherwise pgJDBC won't
-be able to identify `search_path` change
+1. Avoid changing `search_path` often. Each top-level `set search_path` that pgJDBC detects invalidates the server side
+prepared statement cache, so the affected statements have to be re-prepared.
+2. Keep `set search_path` at the top level. pgJDBC does not detect changes hidden inside pl/pgsql or a function, so it
+cannot re-prepare against the new path, and reusing a cached statement can then fail with
+`cached plan must not change result type`.
 
 #### Re-execution of failed statements
 
