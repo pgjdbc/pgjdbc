@@ -105,10 +105,13 @@ jobs:
 
       # Publish to Central before generating a tag, so we don't need to drop the tag if
       # Central deployment fails.
+      # publishAllPublicationsToTmp-mavenRepository stages the signed artifacts under
+      # pgjdbc/build/local-maven-repo in the same Gradle run, so the jar and signature attached to
+      # the GitHub release below are byte-for-byte the ones uploaded to Central.
       - name: Publish to Central Portal
         uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
         with:
-          arguments: publishAggregationToCentralPortal
+          arguments: publishAggregationToCentralPortal :postgresql:publishAllPublicationsToTmp-mavenRepository
           # language=properties
           properties: |
             release=true
@@ -129,6 +132,62 @@ jobs:
           version: ${{ steps.release_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Must run after "Publish GitHub release" (the release has to exist) and before the version
+      # bump below, whose push triggers release-drafter for the next version's draft.
+      - name: Attach files to the release
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          # https://github.com/release-drafter/release-drafter#action-outputs
+          RELEASE_ID: ${{ steps.publish_release.outputs.id }}
+          VERSION: ${{ steps.release_version.outputs.version }}
+        with:
+          # language=JavaScript
+          script: |
+            const fs = require('fs');
+            const {RELEASE_ID, VERSION} = process.env;
+            // The jar and its detached PGP signature staged by the publish step. Paths are fixed,
+            // so a missing file means the publish step failed to produce it.
+            const artifactDir = `pgjdbc/build/local-maven-repo/org/postgresql/postgresql/${VERSION}`;
+            const artifactName = `postgresql-${VERSION}.jar`;
+            const uploadFiles = [
+                [artifactName, `${artifactDir}/${artifactName}`],
+                [`${artifactName}.asc`, `${artifactDir}/${artifactName}.asc`],
+            ];
+            for (const [name, filePath] of uploadFiles) {
+                if (!fs.existsSync(filePath)) {
+                    core.setFailed(`Release artifact ${name} not found at ${filePath}. Check that the publish step ran publishAllPublicationsToTmp-mavenRepository.`);
+                    return;
+                }
+            }
+            // Drop any stale jar/signature assets (e.g. a SNAPSHOT jar carried over on an older
+            // draft) before re-uploading. This assumes the release ships exactly uploadFiles; widen
+            // the filter if more jars are ever attached.
+            const assets = await github.rest.repos.listReleaseAssets({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: RELEASE_ID
+            });
+            for (const asset of assets.data) {
+                if (asset.name.endsWith('.jar') || asset.name.endsWith('.jar.asc')) {
+                    core.info(`Deleting stale release asset ${asset.name}`);
+                    await github.rest.repos.deleteReleaseAsset({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        asset_id: asset.id
+                    });
+                }
+            }
+            for (const [name, filePath] of uploadFiles) {
+                core.info(`Uploading ${name} from ${filePath}`);
+                await github.rest.repos.uploadReleaseAsset({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    name,
+                    release_id: RELEASE_ID,
+                    data: fs.readFileSync(filePath)
+                });
+            }
 
       - name: Compute the next patch version
         id: next_version

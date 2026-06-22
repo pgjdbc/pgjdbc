@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * chore: `commitPrepared` / `rollback`-of-prepared now return `XAER_RMFAIL` instead of `XAER_RMERR` when the underlying connection is left in a non-idle `TransactionState`. Transaction managers (Geronimo, Narayana, Atomikos) treat `XAER_RMFAIL` as retryable on a fresh `XAResource`; the prepared transaction is no longer abandoned.
 
 ### Fixed
+* fix: the published GitHub release now ships the released `postgresql-<version>.jar` and its detached PGP signature, taken from the same signed build that is uploaded to Maven Central, instead of a leftover SNAPSHOT jar [Issue #3812](https://github.com/pgjdbc/pgjdbc/issues/3812) [PR #3814](https://github.com/pgjdbc/pgjdbc/pull/3814)
 * fix: simplify the `Statement#cancel` state machine by dropping the redundant `CANCELLED` state. `killTimerTask` now waits for the state to return to `IDLE` directly, which removes a spin-forever case when more than one thread observes the cancel completing [PR #1827](https://github.com/pgjdbc/pgjdbc/pull/1827).
 * fix: the driver no longer nulls the `contextClassLoader` of shared `ForkJoinPool.commonPool()` worker threads, which previously left unrelated tasks on those threads running with a `null` classloader [Issue #4155](https://github.com/pgjdbc/pgjdbc/issues/4155)
 * fix: getCharacterStream wraps String in StringReader [PR #4063](https://github.com/pgjdbc/pgjdbc/pull/4063)
