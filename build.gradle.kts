@@ -53,6 +53,12 @@ jacoco {
 val jacocoReport by tasks.registering(JacocoReport::class) {
     group = "Coverage reports"
     description = "Generates an aggregate report from all subprojects"
+    reports {
+        // Codecov consumes the XML report in CI (see .github/workflows/omni.yml);
+        // the HTML report is for browsing coverage locally.
+        xml.required.set(true)
+        html.required.set(true)
+    }
 }
 
 allprojects {
