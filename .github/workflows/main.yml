@@ -299,6 +299,7 @@ jobs:
 
     - uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
       name: Test
+      id: test
       env:
         S3_BUILD_CACHE_ACCESS_KEY_ID: ${{ secrets.S3_BUILD_CACHE_ACCESS_KEY_ID }}
         S3_BUILD_CACHE_SECRET_KEY: ${{ secrets.S3_BUILD_CACHE_SECRET_KEY }}
@@ -306,7 +307,7 @@ jobs:
       with:
         read-only: false
         job-id: jdk${{ matrix.java_version }}
-        arguments: --scan --no-parallel --no-daemon jandex test jacocoReport ${{ matrix.extraGradleArgs }}
+        arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
           testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
@@ -316,7 +317,21 @@ jobs:
           # We provision JDKs with GitHub Actions for caching purposes, so Gradle should rather fail in case JDK is not found
           org.gradle.java.installations.auto-download=false
 
+    - name: Build coverage report after a test failure
+      # On success jacocoReport already ran as part of the Test step above. When a
+      # test fails, that run aborts before the report, so re-run jacocoReport on its
+      # own (excluding the test tasks) to merge the coverage that was collected.
+      if: ${{ matrix.collectCoverage && steps.test.outcome == 'failure' }}
+      uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
+      with:
+        read-only: false
+        job-id: jdk${{ matrix.java_version }}
+        arguments: --scan --no-parallel --no-daemon jacocoReport -x test
+
     - name: Upload coverage to Codecov
+      # Run on both success and failure (after the fallback report above), but skip
+      # when coverage was not collected for this job.
+      if: ${{ !cancelled() && matrix.collectCoverage }}
       uses: codecov/codecov-action@v6
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
