@@ -9,7 +9,19 @@ comment:
   layout: header, changes, diff
 coverage:
   status:
-    patch: false
+    # Report coverage but never block a PR. The CI matrix is a random subset of
+    # jobs (.github/workflows/matrix.mjs), so two builds of the same code collect
+    # coverage on different paths: the project total swings by dozens of lines
+    # between commits, and a changed line covered only by an unsampled config
+    # (ssl-only, a specific PG version, SIMPLE vs EXTENDED, ...) reads as
+    # uncovered. Either status would then gate merges on noise. Keep both
+    # informational until coverage runs on a fixed, deterministic job set.
+    project:
+      default:
+        informational: true
+    patch:
+      default:
+        informational: true
   range: "60...100"
 ignore:
   - "**/translation/message*.java"
