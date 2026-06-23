@@ -4,6 +4,29 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 aliases:
     - "/documentation/head/index.html"
+    - "/documentation/head/intro.html"
+    - "/documentation/80/index.html"
+    - "/documentation/80/intro.html"
+    - "/documentation/81/index.html"
+    - "/documentation/81/intro.html"
+    - "/documentation/82/index.html"
+    - "/documentation/82/intro.html"
+    - "/documentation/83/index.html"
+    - "/documentation/83/intro.html"
+    - "/documentation/84/index.html"
+    - "/documentation/84/intro.html"
+    - "/documentation/85/index.html"
+    - "/documentation/85/intro.html"
+    - "/documentation/90/index.html"
+    - "/documentation/90/intro.html"
+    - "/documentation/91/index.html"
+    - "/documentation/91/intro.html"
+    - "/documentation/92/index.html"
+    - "/documentation/92/intro.html"
+    - "/documentation/93/index.html"
+    - "/documentation/93/intro.html"
+    - "/documentation/94/index.html"
+    - "/documentation/94/intro.html"
 ---
 
 Java Database Connectivity (JDBC) is an application programming interface (API) for
