@@ -41,11 +41,3 @@ jacocoReport {
     sourceDirectories.from(mainCode.allSource.srcDirs)
     classDirectories.from(mainCode.output)
 }
-
-// TODO: check which reports do we need
-//tasks.configureEach<JacocoReport> {
-//    reports {
-//        html.required.set(reportsForHumans())
-//        xml.required.set(!reportsForHumans())
-//    }
-//}

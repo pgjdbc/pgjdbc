@@ -114,6 +114,23 @@ If the test suite reports errors or failures that you cannot
 explain, please post the relevant parts of the output to the
 mailing list pgsql-jdbc@postgresql.org.
 
+### Code coverage
+
+The build collects JaCoCo coverage only when you ask for it, so a plain `./gradlew test` produces no coverage data. Run the tests together with the aggregate report task:
+
+```sh
+./gradlew test jacocoReport
+```
+
+Naming the `jacocoReport` task on the command line turns on instrumentation, so `-Pcoverage` is not required here. Use `-Pcoverage` when you want coverage from a plain `test` run without the report task.
+
+The aggregate report is written to:
+
+- `build/reports/jacoco/jacocoReport/html/index.html` — HTML report for browsing
+- `build/reports/jacoco/jacocoReport/jacocoReport.xml` — XML report (uploaded to Codecov in CI)
+
+`jacocoReport` writes these files; it does not print a coverage percentage to the console, so open the HTML report to read the numbers. The report reflects only the tests that ran, so configure a test database (see above) for full-suite coverage.
+
 ## 5 - Extending the test suite with new tests
 
 Most of the tests are written with JUnit4, however it is recommended to create new tests with JUnit5.
