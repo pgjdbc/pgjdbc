@@ -325,7 +325,9 @@ jobs:
       # On success jacocoReport already ran as part of the Test step above. When a
       # test fails, that run aborts before the report, so re-run jacocoReport on its
       # own (excluding the test tasks) to merge the coverage that was collected.
-      if: ${{ matrix.collectCoverage && steps.test.outcome == 'failure' }}
+      # `!cancelled()` is required: without a status function the `if` is implicitly
+      # wrapped in success(), which never holds after the test step has failed.
+      if: ${{ !cancelled() && matrix.collectCoverage && steps.test.outcome == 'failure' }}
       uses: burrunan/gradle-cache-action@4b67497abd37a511d6c1dc6299bdd84ff39f7bf5 # v3.0.2
       with:
         read-only: false
