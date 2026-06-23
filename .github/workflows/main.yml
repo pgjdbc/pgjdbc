@@ -306,7 +306,7 @@ jobs:
       with:
         read-only: false
         job-id: jdk${{ matrix.java_version }}
-        arguments: --scan --no-parallel --no-daemon jandex test ${{ matrix.extraGradleArgs }}
+        arguments: --scan --no-parallel --no-daemon jandex test jacocoReport ${{ matrix.extraGradleArgs }}
         properties: |
           includeTestTags=${{ matrix.includeTestTags }}
           testExtraJvmArgs=${{ matrix.testExtraJvmArgs }}
@@ -315,6 +315,16 @@ jobs:
           jdkTestVendor=${{ matrix.java_vendor }}
           # We provision JDKs with GitHub Actions for caching purposes, so Gradle should rather fail in case JDK is not found
           org.gradle.java.installations.auto-download=false
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
+        # Upload only the aggregate report; do not search the tree for other files.
+        disable_search: true
+        # A Codecov hiccup must not fail the test job.
+        fail_ci_if_error: false
 
     - name: 'Install krb5 for GSS tests'
       if: ${{ matrix.gss == 'yes' }}
@@ -425,3 +435,20 @@ jobs:
       run: |
         docker compose ps
         docker compose down -v --rmi local
+
+  # Aggregate gate that waits for the whole dynamic test matrix and finalizes
+  # coverage. Each build-test job uploads its own coverage, and Codecov holds
+  # all notifications until this job calls send-notifications (manual_trigger in
+  # codecov.yml), so the report count does not need to be known in advance.
+  tests:
+    name: Tests
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+    steps:
+    - name: Tell Codecov that all coverage uploads are in
+      uses: codecov/codecov-action@v6
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        run_command: send-notifications
+        fail_ci_if_error: false
