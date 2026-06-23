@@ -343,10 +343,11 @@ if (include.length === 0) {
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
-    // Collect JaCoCo coverage for this job. Coverage instrumentation slows the
-    // tests down, so this is a per-job toggle: every job collects coverage for now,
-    // and specific rows can opt out later if the matrix gets too slow.
-    v.collectCoverage = true;
+    // Collect JaCoCo coverage on Linux only. Instrumentation slows the tests down,
+    // ubuntu runners are the fastest, and the line coverage of a pure-Java driver
+    // does not vary by OS. The extra load was crashing the Gradle test worker on the
+    // slower Windows runners. This is a per-job flag, so the gate can be relaxed later.
+    v.collectCoverage = v.os.value === 'ubuntu-latest';
     let gradleArgs = [];
     if (v.collectCoverage) {
         // Build the aggregate report as part of the main test run. The workflow
