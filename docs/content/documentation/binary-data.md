@@ -4,6 +4,19 @@ date: 2022-06-19T22:46:55+05:30
 draft: false
 weight: 6
 toc: false
+aliases:
+    - "/documentation/head/binary-data.html"
+    - "/documentation/80/binary-data.html"
+    - "/documentation/81/binary-data.html"
+    - "/documentation/82/binary-data.html"
+    - "/documentation/83/binary-data.html"
+    - "/documentation/84/binary-data.html"
+    - "/documentation/85/binary-data.html"
+    - "/documentation/90/binary-data.html"
+    - "/documentation/91/binary-data.html"
+    - "/documentation/92/binary-data.html"
+    - "/documentation/93/binary-data.html"
+    - "/documentation/94/binary-data.html"
 ---
 
 PostgreSQL® provides two distinct ways to store binary data.  Binary data can be stored in a table using the data type
