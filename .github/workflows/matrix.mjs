@@ -337,17 +337,34 @@ matrix.ensureAllAxisValuesCovered('cpu_count');
 matrix.ensureAllAxisValuesCovered('assertions');
 // Ensure at least one job with autosave=always
 matrix.generateRow({autosave: {value: 'always'}});
+// Collect coverage from a single job that turns on every feature that moves coverage (ssl,
+// scram, xa, replication, the latest stable server, one query mode). The other flags add at
+// most a line or two to line/branch coverage, so leaving them to the random fill keeps the
+// corpus stable between builds without a fixed seed.
+const MAX_PG = matrix.axisByName.pg_version.values.filter(v => v !== 'HEAD').slice(-1)[0];
+// Latest non-EA Java from the axis, so this need not be bumped when Java versions change.
+const LATEST_JAVA = matrix.axisByName.java_version.values.filter(v => v !== eaJava).slice(-1)[0];
+const coverageRow = matrix.generateRow({
+  os: {value: 'ubuntu-latest'},            // coverage needs the Docker PostgreSQL (Linux only)
+  pg_version: MAX_PG,
+  java_version: LATEST_JAVA, java_distribution: {value: 'temurin'},
+  query_mode: {value: 'extended'},
+  ssl: {value: 'yes'}, scram: {value: 'yes'},
+  xa: {value: 'yes'}, replication: {value: 'yes'},
+  // slow tests add ~0 coverage but cost runtime; GSS auth needs its own krb5 job.
+  slow_tests: {value: 'no'}, gss: {value: 'no'},
+});
+if (!coverageRow) {
+  throw new Error('Could not generate the coverage job; check that the pinned axes are satisfiable');
+}
+coverageRow.collectCoverage = true;
+
 const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
-    // Collect JaCoCo coverage on Linux only. Instrumentation slows the tests down,
-    // ubuntu runners are the fastest, and the line coverage of a pure-Java driver
-    // does not vary by OS. The extra load was crashing the Gradle test worker on the
-    // slower Windows runners. This is a per-job flag, so the gate can be relaxed later.
-    v.collectCoverage = v.os.value === 'ubuntu-latest';
     let gradleArgs = [];
     if (v.collectCoverage) {
         // Build the aggregate report as part of the main test run. The workflow
@@ -359,11 +376,17 @@ include.forEach(v => {
         `-Duser.language=${v.locale.language}`,
     );
     v.extraGradleArgs = gradleArgs.join(' ');
-    // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
-    // The idea is that everything should still work since the option is just a hint to the driver
-    // on the minimal set of features it can use when connecting to the database.
-    let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
-    v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(random() * assumeMinServerVersion.length)];
+    if (v.collectCoverage) {
+        // Pin a fixed value so the coverage corpus is stable.
+        v.assumeMinServerVersion = '';
+        v.name += ', coverage';
+    } else {
+        // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
+        // The idea is that everything should still work since the option is just a hint to the driver
+        // on the minimal set of features it can use when connecting to the database.
+        let assumeMinServerVersion = ['', '', '8.0', ...matrix.axisByName.pg_version.values.filter(x => Number(x) <= Number(v.pg_version))];
+        v.assumeMinServerVersion = assumeMinServerVersion[Math.floor(random() * assumeMinServerVersion.length)];
+    }
     if (v.assumeMinServerVersion !== '') {
         v.name += ', assume min version ' + v.assumeMinServerVersion;
     }
