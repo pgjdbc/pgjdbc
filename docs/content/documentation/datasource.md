@@ -270,8 +270,6 @@ public class DBTest {
     public void init() {
         try {
             Context ctx = new InitialContext();
-            if (ctx == null)
-                throw new Exception("Boom - No Context");
 
             // /jdbc/postgres is the name of the resource above
             DataSource ds = (DataSource) ctx.lookup("java:comp/env/jdbc/postgres");
