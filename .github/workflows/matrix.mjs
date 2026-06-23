@@ -393,7 +393,6 @@ include.forEach(v => {
   v.query_mode = v.query_mode.value;
   v.adaptive_fetch = v.adaptive_fetch.value;
   v.rewrite_batch_inserts = v.rewrite_batch_inserts.value;
-  v.query_timeout = v.query_timeout.value;
   v.autosave = v.autosave.value;
   v.cleanupSavepoints = v.cleanupSavepoints.value;
 
