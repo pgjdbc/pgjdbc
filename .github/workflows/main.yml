@@ -339,7 +339,11 @@ jobs:
       if: ${{ !cancelled() && matrix.collectCoverage && (github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '') }}
       uses: codecov/codecov-action@v6
       with:
-        token: ${{ env.CODECOV_TOKEN }}
+        # Fall back to the public upload token so fork PRs upload with authentication
+        # rather than tokenless. The token only permits coverage uploads to this
+        # project; the `if` above still tests the bare secret, so a fork without its
+        # own token does not upload to upstream.
+        token: ${{ env.CODECOV_TOKEN || '75d2c960-72e1-4949-ac21-5f06ee310231' }}
         files: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
         # Upload only the aggregate report; do not search the tree for other files.
         disable_search: true
@@ -472,6 +476,7 @@ jobs:
       if: ${{ github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v6
       with:
-        token: ${{ env.CODECOV_TOKEN }}
+        # Public upload token fallback (see the upload step above).
+        token: ${{ env.CODECOV_TOKEN || '75d2c960-72e1-4949-ac21-5f06ee310231' }}
         run_command: send-notifications
         fail_ci_if_error: false
