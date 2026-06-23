@@ -341,8 +341,10 @@ class LogicalReplicationTest {
     LogSequenceNumber lsn = getCurrentLSN();
 
     Statement st = sqlConnection.createStatement();
+    // Insert enough rows that the server is still streaming the transaction when the
+    // connection drops below. A larger transaction only makes the test slower.
     st.execute("insert into test_logic_table\n"
-        + "  select id, md5(random()::text) as name from generate_series(1, 200000) as id;");
+        + "  select id, md5(random()::text) as name from generate_series(1, 20000) as id;");
     st.close();
 
     PGReplicationStream stream =
@@ -396,8 +398,12 @@ class LogicalReplicationTest {
     LogSequenceNumber lsn = getCurrentLSN();
 
     Statement st = sqlConnection.createStatement();
+    // Insert enough rows that the server is still streaming the transaction when
+    // stream.close() runs below. close() drains the remainder of the in-progress
+    // transaction, so keep the row count modest: a larger transaction makes the
+    // drain slow enough to time out under coverage or a loaded CI runner.
     st.execute("insert into test_logic_table\n"
-        + "  select id, md5(random()::text) as name from generate_series(1, 200000) as id;");
+        + "  select id, md5(random()::text) as name from generate_series(1, 20000) as id;");
     st.close();
 
     PGReplicationStream stream =
