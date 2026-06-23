@@ -148,6 +148,10 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
+      # Empty on fork pull requests (secrets are withheld), set on the upstream repo
+      # and on any fork that defined its own token. Used in the codecov steps' `if`,
+      # since secrets cannot be referenced from `if` conditions directly.
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       with:
@@ -329,12 +333,13 @@ jobs:
         arguments: --scan --no-parallel --no-daemon jacocoReport -x test
 
     - name: Upload coverage to Codecov
-      # Run on both success and failure (after the fallback report above), but skip
-      # when coverage was not collected for this job.
-      if: ${{ !cancelled() && matrix.collectCoverage }}
+      # Run on both success and failure (after the fallback report above). Skip when
+      # coverage was not collected, or on a fork that has not set up its own token:
+      # the upstream repo and any fork with a CODECOV_TOKEN still upload.
+      if: ${{ !cancelled() && matrix.collectCoverage && (github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '') }}
       uses: codecov/codecov-action@v6
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ env.CODECOV_TOKEN }}
         files: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
         # Upload only the aggregate report; do not search the tree for other files.
         disable_search: true
@@ -460,10 +465,13 @@ jobs:
     needs: build-test
     runs-on: ubuntu-latest
     if: ${{ always() }}
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
     - name: Tell Codecov that all coverage uploads are in
+      if: ${{ github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '' }}
       uses: codecov/codecov-action@v6
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ env.CODECOV_TOKEN }}
         run_command: send-notifications
         fail_ci_if_error: false
