@@ -343,10 +343,20 @@ if (include.length === 0) {
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
-    let gradleArgs = [
+    // Collect JaCoCo coverage for this job. Coverage instrumentation slows the
+    // tests down, so this is a per-job toggle: every job collects coverage for now,
+    // and specific rows can opt out later if the matrix gets too slow.
+    v.collectCoverage = true;
+    let gradleArgs = [];
+    if (v.collectCoverage) {
+        // Build the aggregate report as part of the main test run. The workflow
+        // re-runs it on its own if the tests fail (see .github/workflows/main.yml).
+        gradleArgs.push('jacocoReport');
+    }
+    gradleArgs.push(
         `-Duser.country=${v.locale.country}`,
         `-Duser.language=${v.locale.language}`,
-    ];
+    );
     v.extraGradleArgs = gradleArgs.join(' ');
     // 8.0 is here to test a case when somebody configured assumeMinServerVersion=8.0, and forgot to update it.
     // The idea is that everything should still work since the option is just a hint to the driver
