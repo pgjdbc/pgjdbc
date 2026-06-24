@@ -1324,14 +1324,24 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
   @Override
   public void setCharacterStream(@Positive int i, @Nullable Reader x,
       @NonNegative int length) throws SQLException {
+    setCharacterStream(i, x, (long) length);
+  }
+
+  @Override
+  public void setCharacterStream(@Positive int parameterIndex, @Nullable Reader value,
+      @NonNegative @IntRange(from = 0, to = Integer.MAX_VALUE) long length) throws SQLException {
     checkClosed();
 
-    if (x == null) {
-      setNull(i, Types.VARCHAR);
+    if (value == null) {
+      setNull(parameterIndex, Types.VARCHAR);
       return;
     }
 
-    if (length < 0) {
+    //noinspection ConstantConditions
+    if (length > Integer.MAX_VALUE) {
+      throw new PSQLException(GT.tr("Object is too large to send over the protocol."),
+          PSQLState.NUMERIC_CONSTANT_OUT_OF_RANGE);
+    } else if (length < 0) {
       throw new PSQLException(GT.tr("Invalid stream length {0}.", length),
           PSQLState.INVALID_PARAMETER_VALUE);
     }
@@ -1342,7 +1352,7 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
     // long varchar datatype, but with toast all the text datatypes are capable of
     // handling very large values. Thus the implementation ends up calling
     // setString() since there is no current way to stream the value to the server
-    setString(i, readerToString(x, length));
+    setString(parameterIndex, readerToString(value, (int) length));
   }
 
   @Override
@@ -1607,14 +1617,8 @@ class PgPreparedStatement extends PgStatement implements PreparedStatement {
 
   @Override
   public void setCharacterStream(@Positive int parameterIndex,
-      @Nullable Reader value, @NonNegative long length)
-      throws SQLException {
-    throw Driver.notImplemented(this.getClass(), "setCharacterStream(int, Reader, long)");
-  }
-
-  @Override
-  public void setCharacterStream(@Positive int parameterIndex,
       @Nullable Reader value) throws SQLException {
+    checkClosed();
     if (connection.getPreferQueryMode() == PreferQueryMode.SIMPLE) {
       String s = value != null ? readerToString(value, Integer.MAX_VALUE) : null;
       setString(parameterIndex, s);
