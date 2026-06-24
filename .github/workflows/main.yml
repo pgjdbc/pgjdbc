@@ -332,10 +332,12 @@ jobs:
 
     - name: Upload coverage to Codecov
       # Run on both success and failure (after the fallback report above); skip jobs that
-      # did not collect coverage. pgjdbc is public, so Codecov accepts tokenless uploads.
+      # did not collect coverage. A push to a protected branch (master) needs CODECOV_TOKEN;
+      # pull requests upload tokenlessly, since the secret is not exposed to forks.
       if: ${{ !cancelled() && matrix.collectCoverage }}
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         files: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
         # Upload only the aggregate report; do not search the tree for other files.
         disable_search: true
