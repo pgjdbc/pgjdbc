@@ -1,9 +1,8 @@
 codecov:
   notify:
-    # The CI matrix size is dynamic, so we cannot wait for a fixed number of
-    # uploads. The `Tests` job calls send-notifications once every matrix job
-    # has uploaded its coverage (see .github/workflows/main.yml).
-    manual_trigger: true
+    # Exactly one job collects coverage (the pinned coverage job in matrix.mjs),
+    # so finalise the report as soon as that single upload arrives.
+    after_n_builds: 1
     require_ci_to_pass: false
 comment:
   layout: header, changes, diff
