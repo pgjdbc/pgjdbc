@@ -53,6 +53,15 @@ val java11 by sourceSets.creating {
     // Make java11 source set depend on main source set (to access LazyCleaner base class)
     compileClasspath += sourceSets.main.get().output
 }
+// Create a separate source set for Java 21+ specific code (e.g., VirtualThread)
+val testJava21 by sourceSets.creating {
+    java {
+        srcDir("src/test/java21")
+    }
+    // Make java21 source set depend on test source set
+    compileClasspath += sourceSets.test.get().compileClasspath + sourceSets.test.get().output
+    runtimeClasspath += sourceSets.test.get().runtimeClasspath
+}
 
 if (buildParameters.testJdkVersion >= 11) {
     // By default, Gradle uses "test classes" dir for classpath, so multi-release jar is not used there
@@ -67,6 +76,13 @@ tasks.named<JavaCompile>(java11.compileJavaTaskName) {
     options.release.set(11)
     // Ensure main classes are compiled before java11 classes
     dependsOn(tasks.compileJava)
+}
+
+// Configure the java21 source set to compile with Java 21
+tasks.named<JavaCompile>(testJava21.compileJavaTaskName) {
+    options.release.set(21)
+    // Ensure main classes are compiled before java21 test classes
+    dependsOn(tasks.compileTestJava)
 }
 
 fun CopySpec.addMultiReleaseContents() {

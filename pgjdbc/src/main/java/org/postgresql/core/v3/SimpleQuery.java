@@ -249,7 +249,7 @@ class SimpleQuery implements Query {
    * Returns true if current query needs field formats be adjusted as per connection configuration.
    * Subsequent invocations would return {@code false}. The idea is to perform adjustments only
    * once, not for each
-   * {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal, boolean)}.
+   * {@link QueryExecutorImpl#sendBind(SimpleQuery, SimpleParameterList, Portal, boolean, QueryExecutorImpl.ExecutorQueues)}.
    *
    * @return true if current query needs field formats be adjusted as per connection configuration
    */
