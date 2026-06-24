@@ -3,72 +3,13 @@
  * See the LICENSE file in the project root for more information.
  */
 
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
-plugins {
-    id("build-logic.java-library")
-    id("build-logic.test-junit5")
-    id("org.jetbrains.kotlin.jvm")
-}
-
 // docs-tools is a build-time-only utility module. It is NOT shipped with
 // the driver jar; nothing here is on the runtime classpath of pgjdbc.
 
-dependencies {
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-
-    // GenerateReleaseHistory walks git refs (release/*.x branches and
-    // REL42.* tags). JGit 7.x has first-class git-worktree support
-    // (commondir indirection) and a typed API — preferable to shelling
-    // out to `git`. JGit 7.x bytecode targets Java 17; pgjdbc builds on
-    // JDK 21, so the runtime is fine.
-    implementation("org.eclipse.jgit:org.eclipse.jgit:7.5.0.202512021534-r")
-
-    // SLF4J binding for JGit. Without one, SLF4J 2.x prints a per-JVM
-    // "No SLF4J providers were found" warning and silently routes JGit's
-    // diagnostics to NOP. slf4j-simple writes to stderr with no config
-    // file; tune via -Dorg.slf4j.simpleLogger.defaultLogLevel=warn.
-    runtimeOnly("org.slf4j:slf4j-simple:2.0.17")
-
-    // snakeyaml drives the release-history YAML emitter and parses the
-    // hand-maintained release-history-overlay.yaml.
-    implementation("org.yaml:snakeyaml:2.2")
-}
-
-// pgjdbc targets Java 8 bytecode via --release 8; pin Kotlin to the same
-// jvmTarget so the two compilers agree (Gradle aborts on a mismatch).
-kotlin {
-    compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_1_8)
-        freeCompilerArgs.add("-Xjvm-default=all")
-    }
-}
-
-// docs-tools runs at build time on the project's buildJdk (Java 17+ in
-// practice — JGit 7.x already requires Java 17 at runtime). Its tests
-// freely use post-Java-8 APIs (e.g. ByteArrayOutputStream#toString(Charset),
-// since Java 10), so they cannot run on a Java 8 test toolchain even though
-// the produced bytecode is JVM 1.8.
-tasks.test {
-    onlyIf("docs-tools tests use post-Java-8 APIs (e.g. ByteArrayOutputStream#toString(Charset))") {
-        buildParameters.testJdkVersion > 8
-    }
-}
-
-// ===== generateReleaseHistory ============================================
-//
-// Scans the local clone's `release/<NN>.x` branches and `REL<NN>` tags,
-// merges with docs/data/release-history-overlay.yaml, emits
-// docs/data/release-history.yaml. Consumed by the `release-history`
-// Hugo shortcode on the compatibility page.
-//
-// For CI to produce a complete table the checkout must include all
-// `REL42.*` tags and the `release/42.*.x` branches (full-history clone
-// or an explicit `git fetch --tags`).
-// We pass the project root (where `.git` lives, as either a directory in
-// a regular clone or a pointer file in a git worktree); JGit's findGitDir()
-// walks up from there and follows the pointer in the worktree case.
 val projectRoot = isolated.rootProject.projectDirectory.asFile
+val docsDir = isolated.rootProject.projectDirectory.dir("docs").asFile
+val generateScript =
+    isolated.rootProject.projectDirectory.file("docs/bin/generate-release-history").asFile
 val releaseHistoryOverlay =
     isolated.rootProject.projectDirectory.dir("docs/data")
         .file("release-history-overlay.yaml")
@@ -76,44 +17,24 @@ val releaseHistoryYaml =
     isolated.rootProject.projectDirectory.dir("docs/data")
         .file("release-history.yaml")
 
-val generateReleaseHistory by tasks.registering(JavaExec::class) {
+// ===== generateReleaseHistory ============================================
+//
+// Runs docs/bin/generate-release-history (a self-contained shell script
+// using only `git` and `awk`) to produce docs/data/release-history.yaml.
+//
+// For CI to produce a complete table the checkout must include all
+// REL42.* tags (fetch-tags: true in the workflow suffices — a full-depth
+// clone is not required).
+val generateReleaseHistory by tasks.registering(Exec::class) {
     group = "documentation"
-    description = "Generate docs/data/release-history.yaml from git refs " +
-        "(release/* branches, REL* tags) + release-history-overlay.yaml."
+    description = "Generate docs/data/release-history.yaml from git tags " +
+        "+ docs/data/release-history-overlay.yaml."
 
-    mainClass.set("org.postgresql.tools.docs.GenerateReleaseHistory")
-    classpath = sourceSets.main.get().runtimeClasspath
-    dependsOn(tasks.named("classes"))
-    dependsOn(tasks.named("processJandexIndex"))
-    // Karaf's :postgresql:generateKar declares the :postgresql jar as
-    // one of its outputs. In a full-graph CI build (`gradle jandex test
-    // jacocoReport`) generateKar runs and writes pgjdbc/build/libs/
-    // postgresql-<v>.jar, the same path :postgresql:jar produces.
-    // Gradle 9's strict overlap check then refuses to schedule any
-    // task that even touches that directory on its classpath without
-    // an explicit ordering. We do not actually consume the jar here,
-    // so mustRunAfter (not dependsOn) suffices: if generateKar is in
-    // the task graph it runs first, and if it is not (e.g. during
-    // local `serveDocs`) the constraint is a no-op.
-    mustRunAfter(":postgresql:generateKar")
+    commandLine("bash", generateScript.absolutePath, projectRoot.absolutePath)
 
-    argumentProviders.add(CommandLineArgumentProvider {
-        listOf(
-            projectRoot.absolutePath,
-            releaseHistoryOverlay.asFile.absolutePath,
-            releaseHistoryYaml.asFile.absolutePath
-        )
-    })
-
-    // The git directory's content drives the output, but Gradle cannot
-    // track .git efficiently — declare the overlay as the only file input
-    // and mark the task non-cacheable on the git side via outputs.upToDateWhen.
     inputs.file(releaseHistoryOverlay).withPropertyName("overlay")
     outputs.file(releaseHistoryYaml).withPropertyName("releaseHistoryYaml")
     outputs.upToDateWhen { false }
-
-    standardOutput = System.out
-    errorOutput = System.err
 }
 
 // ----- Hugo wrappers -------------------------------------------------------
@@ -127,8 +48,6 @@ val generateReleaseHistory by tasks.registering(JavaExec::class) {
 // Both require a recent extended Hugo on PATH. The doFirst hook fails
 // with a readable error if Hugo is missing, too old, or not the
 // extended build.
-
-val docsDir = isolated.rootProject.projectDirectory.dir("docs").asFile
 
 // The templates track Hugo's current API rather than its deprecated
 // surface. site.Language.Locale arrived in 0.158.0 (the release that
@@ -228,7 +147,7 @@ val buildDocs by tasks.registering(Exec::class) {
 val serveDocs by tasks.registering(Exec::class) {
     group = "documentation"
     description = "Start the Hugo dev server with hot-reload " +
-        "(release-history.yaml regenerated from git refs)."
+        "(release-history.yaml regenerated from git tags)."
     dependsOn(generateReleaseHistory)
     workingDir = docsDir
 
