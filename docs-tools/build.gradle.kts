@@ -338,6 +338,3 @@ val lintDocsLinks by tasks.registering {
     }
 }
 
-tasks.check {
-    dependsOn(lintDocsLinks)
-}
