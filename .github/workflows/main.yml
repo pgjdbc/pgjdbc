@@ -123,7 +123,7 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     env:
-      MATRIX_JOBS: 5
+      MATRIX_JOBS: 6
       GITHUB_PR_NUMBER: ${{ github.event.number }}
       RNG_SEED: ${{ github.event.inputs.matrix_rng_seed }}
     steps:

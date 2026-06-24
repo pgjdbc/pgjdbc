@@ -307,36 +307,6 @@ matrix.imply({pg_version: 'HEAD'}, {os: {value: 'ubuntu-latest'}});
 // cleanupSavepoints is not relevant when autosave=never
 matrix.imply({autosave: {value: 'never'}}, {cleanupSavepoints: {value: 'false'}});
 
-// The most rare features should be generated the first
-// For instance, we have a lot of PostgreSQL versions, so we generate the minimal the first
-// It would have to generate other parameters, and it might happen it would cover "most recent Java" automatically
-// Ensure at least one job with "same" hashcode exists
-matrix.generateRow({hash: {value: 'same'}});
-matrix.generateRow({scram: {value: 'yes'}});
-// Ensure there's a row for Java EA. It is at the beginning to increase chances of covering cases like ssl=yes below
-matrix.generateRow({java_version: eaJava});
-// Ensure we have a job with the minimal and maximal PostgreSQL versions
-matrix.generateRow({pg_version: matrix.axisByName.pg_version.values[0]});
-matrix.generateRow({pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]});
-//Ensure at least one job with "simple" query_mode exists
-matrix.generateRow({query_mode: {value: 'simple'}});
-// Ensure there will be at least one job with minimal supported Java
-matrix.generateRow({java_version: matrix.axisByName.java_version.values[0]});
-// Ensure there will be at least one job with Java 17
-matrix.generateRow({java_version: "17"});
-// Ensure there will be at least one job with the latest Java (excluding EA)
-matrix.generateRow({java_version: matrix.axisByName.java_version.values.slice(-2)[0]});
-// Ensure we test all query_mode values
-matrix.ensureAllAxisValuesCovered('query_mode');
-matrix.ensureAllAxisValuesCovered('gss');
-matrix.ensureAllAxisValuesCovered('xa');
-matrix.ensureAllAxisValuesCovered('ssl');
-matrix.ensureAllAxisValuesCovered('replication');
-matrix.ensureAllAxisValuesCovered('os');
-matrix.ensureAllAxisValuesCovered('cpu_count');
-matrix.ensureAllAxisValuesCovered('assertions');
-// Ensure at least one job with autosave=always
-matrix.generateRow({autosave: {value: 'always'}});
 // Collect coverage from a single job that turns on every feature that moves coverage (ssl,
 // scram, xa, replication, the latest stable server, one query mode). The other flags add at
 // most a line or two to line/branch coverage, so leaving them to the random fill keeps the
@@ -344,24 +314,64 @@ matrix.generateRow({autosave: {value: 'always'}});
 const MAX_PG = matrix.axisByName.pg_version.values.filter(v => v !== 'HEAD').slice(-1)[0];
 // Latest non-EA Java from the axis, so this need not be bumped when Java versions change.
 const LATEST_JAVA = matrix.axisByName.java_version.values.filter(v => v !== eaJava).slice(-1)[0];
-const coverageRow = matrix.generateRow({
-  os: {value: 'ubuntu-latest'},            // coverage needs the Docker PostgreSQL (Linux only)
-  pg_version: MAX_PG,
-  java_version: LATEST_JAVA, java_distribution: {value: 'temurin'},
-  query_mode: {value: 'extended'},
-  ssl: {value: 'yes'}, scram: {value: 'yes'},
-  xa: {value: 'yes'}, replication: {value: 'yes'},
-  // slow tests add ~0 coverage but cost runtime; GSS auth needs its own krb5 job.
-  slow_tests: {value: 'no'}, gss: {value: 'no'},
-});
-if (!coverageRow) {
-  throw new Error('Could not generate the coverage job; check that the pinned axes are satisfiable');
-}
-coverageRow.collectCoverage = true;
 
-const include = matrix.generateRows(process.env.MATRIX_JOBS || 5);
+// Drive the whole matrix from one batch of requirements. generateRows guarantees a row for
+// each entry, packs them into as few jobs as it can, and spends the rest of the MATRIX_JOBS
+// budget on pairwise coverage. Unlike a sequence of generateRow() calls, the job count is
+// exactly MATRIX_JOBS and the result no longer depends on the order of the list, so the
+// rarest-first ordering the imperative version relied on is gone. Requirements already met by
+// another row (e.g. the coverage job pins scram=yes and the latest Java) cost no extra job.
+const include = matrix.generateRows(Number(process.env.MATRIX_JOBS || 6), {
+  require: [
+    // Collect coverage on one pinned job. It is the most specific requirement, so the batch
+    // packer anchors a row on it; tag() flags that row without a second pass over the result.
+    {
+      filter: {
+        os: {value: 'ubuntu-latest'},        // coverage needs the Docker PostgreSQL (Linux only)
+        pg_version: MAX_PG,
+        java_version: LATEST_JAVA, java_distribution: {value: 'temurin'},
+        query_mode: {value: 'extended'},
+        ssl: {value: 'yes'}, scram: {value: 'yes'},
+        xa: {value: 'yes'}, replication: {value: 'yes'},
+        // slow tests add ~0 coverage but cost runtime; GSS auth needs its own krb5 job.
+        slow_tests: {value: 'no'}, gss: {value: 'no'},
+      },
+      tag: row => { row.collectCoverage = true; },
+    },
+    // Ensure at least one job with "same" hashcode exists
+    {hash: {value: 'same'}},
+    {scram: {value: 'yes'}},
+    // Ensure there's a row for Java EA
+    {java_version: eaJava},
+    // Ensure we have a job with the minimal and maximal PostgreSQL versions
+    {pg_version: matrix.axisByName.pg_version.values[0]},
+    {pg_version: matrix.axisByName.pg_version.values.slice(-1)[0]},
+    // Ensure at least one job with "simple" query_mode exists
+    {query_mode: {value: 'simple'}},
+    // Ensure there will be at least one job with minimal supported Java
+    {java_version: matrix.axisByName.java_version.values[0]},
+    // Ensure there will be at least one job with Java 17
+    {java_version: "17"},
+    // Ensure there will be at least one job with the latest Java (excluding EA)
+    {java_version: LATEST_JAVA},
+    // Ensure at least one job with autosave=always
+    {autosave: {value: 'always'}},
+    // Ensure we test all values of the axes below
+    ...matrix.allAxisValues('query_mode'),
+    ...matrix.allAxisValues('gss'),
+    ...matrix.allAxisValues('xa'),
+    ...matrix.allAxisValues('ssl'),
+    ...matrix.allAxisValues('replication'),
+    ...matrix.allAxisValues('os'),
+    ...matrix.allAxisValues('cpu_count'),
+    ...matrix.allAxisValues('assertions'),
+  ],
+});
 if (include.length === 0) {
   throw new Error('Matrix list is empty');
+}
+if (!include.some(v => v.collectCoverage)) {
+  throw new Error('Could not generate the coverage job; check that the pinned axes are satisfiable');
 }
 include.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
 include.forEach(v => {
