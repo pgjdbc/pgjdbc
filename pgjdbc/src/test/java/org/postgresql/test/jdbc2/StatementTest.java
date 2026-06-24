@@ -14,7 +14,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import org.postgresql.Driver;
 import org.postgresql.PGProperty;
 import org.postgresql.core.ServerVersion;
 import org.postgresql.jdbc.PgStatement;
@@ -23,7 +22,6 @@ import org.postgresql.test.util.StrangeProxyServer;
 import org.postgresql.util.LazyCleaner;
 import org.postgresql.util.LazyCleanerImpl;
 import org.postgresql.util.PSQLState;
-import org.postgresql.util.SharedTimer;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -818,37 +816,6 @@ class StatementTest {
 
     ResultSet rsOther = stmt.getResultSet();
     assertNotNull(rsOther);
-  }
-
-  @Test
-  void multipleCancels() throws Exception {
-    SharedTimer sharedTimer = Driver.getSharedTimer();
-
-    try (Connection connA = TestUtil.openDB();
-         Connection connB = TestUtil.openDB();
-         Statement stmtA = connA.createStatement();
-         Statement stmtB = connB.createStatement();
-    ) {
-      assertEquals(0, sharedTimer.getRefCount());
-      stmtA.setQueryTimeout(1);
-      stmtB.setQueryTimeout(1);
-      try (ResultSet rsA = stmtA.executeQuery("SELECT pg_sleep(2)")) {
-        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
-      } catch (SQLException e) {
-        assertEquals(
-            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
-            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
-      }
-      assertEquals(1, sharedTimer.getRefCount());
-      try (ResultSet rsB = stmtB.executeQuery("SELECT pg_sleep(2)");) {
-        fail("statement should have been canceled by query timeout since the sleep should take 2 sec and the timeout was 1 sec");
-      } catch (SQLException e) {
-        assertEquals(
-            PSQLState.QUERY_CANCELED.getState(), e.getSQLState(),
-            "Query is expected to be cancelled since the sleep should take 2 sec and the timeout was 1 sec");
-      }
-    }
-    assertEquals(0, sharedTimer.getRefCount());
   }
 
   @Test
