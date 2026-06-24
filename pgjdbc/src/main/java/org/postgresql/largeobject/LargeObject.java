@@ -166,26 +166,27 @@ public class LargeObject
     if (closed) {
       return;
     }
-    // flush any open output streams before marking closed
-    if (os != null) {
-      try {
-        // we can't call os.close() otherwise we go into an infinite loop!
-        os.flush();
-      } catch (IOException ioe) {
-        throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
-      } finally {
-        os = null;
+    try {
+      // flush any open output streams
+      if (os != null) {
+        try {
+          // we can't call os.close() otherwise we go into an infinite loop!
+          os.flush();
+        } catch (IOException ioe) {
+          throw new PSQLException("Exception flushing output stream", PSQLState.DATA_ERROR, ioe);
+        } finally {
+          os = null;
+        }
       }
-    }
-    closed = true;
-
-    // finally close
-    FastpathArg[] args = new FastpathArg[1];
-    args[0] = new FastpathArg(fd);
-    fp.fastpath("lo_close", args); // true here as we dont care!!
-    BaseConnection conn = this.conn;
-    if (this.commitOnClose && conn != null) {
-      conn.commit();
+    } finally {
+      closed = true;
+      FastpathArg[] args = new FastpathArg[1];
+      args[0] = new FastpathArg(fd);
+      fp.fastpath("lo_close", args);
+      BaseConnection conn = this.conn;
+      if (this.commitOnClose && conn != null) {
+        conn.commit();
+      }
     }
   }
 
