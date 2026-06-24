@@ -148,10 +148,6 @@ jobs:
       ACTIONS_STEP_DEBUG: true
       ACTIONS_RUNNER_DEBUG: true
       TZ: ${{ matrix.tz }}
-      # Empty on fork pull requests (secrets are withheld), set on the upstream repo
-      # and on any fork that defined its own token. Used in the codecov steps' `if`,
-      # since secrets cannot be referenced from `if` conditions directly.
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
       with:
@@ -335,17 +331,11 @@ jobs:
         arguments: --scan --no-parallel --no-daemon jacocoReport -x test
 
     - name: Upload coverage to Codecov
-      # Run on both success and failure (after the fallback report above). Skip when
-      # coverage was not collected, or on a fork that has not set up its own token:
-      # the upstream repo and any fork with a CODECOV_TOKEN still upload.
-      if: ${{ !cancelled() && matrix.collectCoverage && (github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '') }}
+      # Run on both success and failure (after the fallback report above); skip jobs that
+      # did not collect coverage. pgjdbc is public, so Codecov accepts tokenless uploads.
+      if: ${{ !cancelled() && matrix.collectCoverage }}
       uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
       with:
-        # Fall back to the public upload token so fork PRs upload with authentication
-        # rather than tokenless. The token only permits coverage uploads to this
-        # project; the `if` above still tests the bare secret, so a fork without its
-        # own token does not upload to upstream.
-        token: ${{ env.CODECOV_TOKEN || '75d2c960-72e1-4949-ac21-5f06ee310231' }}
         files: ./build/reports/jacoco/jacocoReport/jacocoReport.xml
         # Upload only the aggregate report; do not search the tree for other files.
         disable_search: true
@@ -461,24 +451,3 @@ jobs:
       run: |
         docker compose ps
         docker compose down -v --rmi local
-
-  # Aggregate gate that waits for the whole dynamic test matrix and finalizes
-  # coverage. Each build-test job uploads its own coverage, and Codecov holds
-  # all notifications until this job calls send-notifications (manual_trigger in
-  # codecov.yml), so the report count does not need to be known in advance.
-  tests:
-    name: Tests
-    needs: build-test
-    runs-on: ubuntu-latest
-    if: ${{ always() }}
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    steps:
-    - name: Tell Codecov that all coverage uploads are in
-      if: ${{ github.repository == 'pgjdbc/pgjdbc' || env.CODECOV_TOKEN != '' }}
-      uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
-      with:
-        # Public upload token fallback (see the upload step above).
-        token: ${{ env.CODECOV_TOKEN || '75d2c960-72e1-4949-ac21-5f06ee310231' }}
-        run_command: send-notifications
-        fail_ci_if_error: false
