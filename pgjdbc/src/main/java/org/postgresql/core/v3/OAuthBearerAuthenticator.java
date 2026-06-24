@@ -15,6 +15,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,16 +29,18 @@ final class OAuthBearerAuthenticator {
   static final String MECHANISM = "OAUTHBEARER";
 
   private final PGStream pgStream;
-  private final String token;
+  // char[] rather than String so the token can be zeroed after use.
+  private final char[] token;
 
-  OAuthBearerAuthenticator(PGStream pgStream, String token) {
+  OAuthBearerAuthenticator(PGStream pgStream, char[] token) {
     this.pgStream = pgStream;
     this.token = token;
   }
 
   /**
    * Sends the SASLInitialResponse message with the OAUTHBEARER mechanism and
-   * the bearer token formatted per RFC 7628.
+   * the bearer token formatted per RFC 7628 section 3.1:
+   * {@code n,,\x01auth=Bearer <token>\x01\x01}
    */
   void handleAuthenticationSASL() throws IOException {
     byte[] mechanism = MECHANISM.getBytes(StandardCharsets.UTF_8);
@@ -53,39 +56,69 @@ final class OAuthBearerAuthenticator {
     pgStream.sendInteger4(initialResponse.length);
     pgStream.send(initialResponse);
     pgStream.flush();
+
+    // Zero the token immediately after sending — it is no longer needed.
+    Arrays.fill(token, '\0');
+    Arrays.fill(initialResponse, (byte) 0);
   }
 
   /**
-   * Handles AUTH_REQ_SASL_CONTINUE which indicates authentication failure.
-   * The server sends a JSON error body with optional discovery metadata.
-   * We must respond with a single 0x01 byte to acknowledge the failure.
-   *
-   * @return discovery info parsed from the server's error response
+   * Handles AUTH_REQ_SASL_CONTINUE, which for OAUTHBEARER indicates authentication
+   * failure. The server sends a JSON error body with optional discovery metadata.
+   * Per RFC 7628 section 3.2 the client must respond with a single 0x01 byte
+   * to acknowledge the failure message before the server closes the exchange.
    */
-  OAuthDiscoveryInfo handleAuthenticationSASLContinue(int length) throws IOException, PSQLException {
+  void handleAuthenticationSASLContinue(int length) throws IOException, PSQLException {
     String json = pgStream.receiveString(length);
     LOGGER.log(Level.FINEST, " <=BE AuthenticationSASLContinue(OAuth error: {0})", json);
 
     OAuthDiscoveryInfo discovery = OAuthDiscoveryInfo.parse(json);
 
-    // Send dummy client response (single 0x01 byte) to acknowledge failure
+    // RFC 7628 section 3.2: send a single 0x01 byte to acknowledge the error.
     pgStream.sendChar(PgMessageType.SASL_RESPONSE);
     pgStream.sendInteger4(Integer.BYTES + 1);
     pgStream.sendChar(1);
     pgStream.flush();
 
+    String status = discovery.getStatus();
+    String discoveryUrl = discovery.getDiscoveryUrl();
+    if (discoveryUrl != null) {
+      throw new PSQLException(
+          GT.tr("OAuth authentication failed. Server status: {0}. Discovery URL: {1}",
+              status, discoveryUrl),
+          PSQLState.CONNECTION_REJECTED);
+    }
     throw new PSQLException(
-        GT.tr("OAuth authentication failed. Server status: {0}", discovery.getStatus()),
+        GT.tr("OAuth authentication failed. Server status: {0}", status),
         PSQLState.CONNECTION_REJECTED);
   }
 
   /**
-   * Builds the initial client response per RFC 7628 section 3.1:
-   * {@code n,,\x01auth=Bearer <token>\x01\x01}
+   * Builds the initial client response per RFC 7628 section 3.1.
+   * Format: n,,\x01auth=Bearer token\x01\x01
+   * The GS2 header "n,," signals no channel binding. The attribute-value
+   * list uses 0x01 as both a leading separator and a terminator.
    */
-  private byte[] buildInitialResponse() {
-    String response = "n,,auth=Bearer " + token + "";
-    return response.getBytes(StandardCharsets.UTF_8);
+  byte[] buildInitialResponse() {
+    byte[] gs2Header = "n,,".getBytes(StandardCharsets.UTF_8);
+    // \x01auth=Bearer token\x01\x01
+    byte[] attrPrefix = new byte[]{0x01, 'a', 'u', 't', 'h', '=', 'B', 'e', 'a', 'r', 'e', 'r', ' '};
+    byte[] tokenBytes = new String(token).getBytes(StandardCharsets.UTF_8);
+    byte[] terminator = new byte[]{0x01, 0x01};
+
+    byte[] response = new byte[gs2Header.length + attrPrefix.length
+        + tokenBytes.length + terminator.length];
+    int pos = 0;
+    System.arraycopy(gs2Header, 0, response, pos, gs2Header.length);
+    pos += gs2Header.length;
+    System.arraycopy(attrPrefix, 0, response, pos, attrPrefix.length);
+    pos += attrPrefix.length;
+    System.arraycopy(tokenBytes, 0, response, pos, tokenBytes.length);
+    pos += tokenBytes.length;
+    System.arraycopy(terminator, 0, response, pos, terminator.length);
+
+    Arrays.fill(tokenBytes, (byte) 0);
+    return response;
   }
 
   /**
@@ -127,6 +160,10 @@ final class OAuthBearerAuthenticator {
       return new OAuthDiscoveryInfo(status, discoveryUrl, scope);
     }
 
+    /**
+     * Extracts a JSON string value for the given key, handling backslash escape
+     * sequences so a \" inside the value does not prematurely terminate it.
+     */
     private static @Nullable String extractJsonString(String json, String key) {
       String search = "\"" + key + "\"";
       int keyIdx = json.indexOf(search);
@@ -141,11 +178,26 @@ final class OAuthBearerAuthenticator {
       if (startQuote < 0) {
         return null;
       }
-      int endQuote = json.indexOf('"', startQuote + 1);
-      if (endQuote < 0) {
-        return null;
+      StringBuilder sb = new StringBuilder();
+      int i = startQuote + 1;
+      while (i < json.length()) {
+        char c = json.charAt(i);
+        if (c == '\\' && i + 1 < json.length()) {
+          char escaped = json.charAt(i + 1);
+          if (escaped == '"' || escaped == '\\') {
+            sb.append(escaped);
+          } else {
+            sb.append('\\').append(escaped);
+          }
+          i += 2;
+        } else if (c == '"') {
+          return sb.toString();
+        } else {
+          sb.append(c);
+          i++;
+        }
       }
-      return json.substring(startQuote + 1, endQuote);
+      return null; // unterminated string — malformed JSON
     }
   }
 }

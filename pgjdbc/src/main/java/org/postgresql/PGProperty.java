@@ -495,6 +495,16 @@ public enum PGProperty {
       "Class name of an OAuthTokenProvider implementation for acquiring bearer tokens."),
 
   /**
+   * Allow OAuth authentication over unencrypted connections. RFC 7628 requires TLS
+   * or equivalent transport encryption for bearer token exchange. Set to {@code true}
+   * only for testing or development.
+   */
+  OAUTH_ALLOW_UNENCRYPTED(
+      "oauthAllowUnencrypted",
+      "false",
+      "Allow OAuth authentication without TLS (unsafe, for testing only)."),
+
+  /**
    * Specify 'options' connection initialization parameter.
    * The value of this parameter may contain spaces and other special characters or their URL representation.
    */

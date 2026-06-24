@@ -48,13 +48,11 @@ class OAuthBearerAuthenticatorTest {
   }
 
   @Test
-  void testOAuthDiscoveryInfoParsing() {
-    String json = "{\"status\":\"invalid_token\","
-        + "\"openid-configuration\":\"https://idp.example.com/.well-known/openid-configuration\","
-        + "\"scope\":\"openid postgres\"}";
-
-    // Use reflection to test the inner class, or we test indirectly
-    // For now, verify that the parsing doesn't blow up by testing AuthMethod
-    // The full integration test requires a running server
+  void testParseRequireAuthWithoutOauthDoesNotIncludeIt() throws PSQLException {
+    EnumSet<AuthMethod> methods = AuthMethod.parseRequireAuth("scram-sha-256");
+    assertNotNull(methods);
+    assertTrue(!methods.contains(AuthMethod.OAUTH),
+        "oauth should not be present when only scram-sha-256 is specified");
+    assertEquals(1, methods.size());
   }
 }

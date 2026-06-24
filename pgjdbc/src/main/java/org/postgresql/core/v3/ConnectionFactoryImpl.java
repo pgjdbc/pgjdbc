@@ -1007,10 +1007,23 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                 if (mechanisms.contains(OAuthBearerAuthenticator.MECHANISM)
                     && hasOAuthConfig(info)) {
                   AuthMethod.checkAuth(authMethods, AuthMethod.OAUTH);
-                  String token = resolveOAuthToken(info, host, user);
+                  if (!pgStream.isGssEncrypted()
+                      && !(pgStream.getSocket() instanceof javax.net.ssl.SSLSocket)
+                      && !PGProperty.OAUTH_ALLOW_UNENCRYPTED.getBoolean(info)) {
+                    throw new PSQLException(
+                        GT.tr("OAuth authentication requires a TLS or GSS-encrypted connection."),
+                        PSQLState.CONNECTION_REJECTED);
+                  }
+                  char[] token = resolveOAuthToken(info, host, user);
                   oauthAuthenticator = new OAuthBearerAuthenticator(pgStream, token);
                   oauthAuthenticator.handleAuthenticationSASL();
                 } else {
+                  if (hasOAuthConfig(info)) {
+                    LOGGER.log(Level.WARNING,
+                        "OAuth credentials are configured (oauthToken/oauthTokenProvider) but the "
+                            + "server did not advertise OAUTHBEARER as a SASL mechanism. "
+                            + "Falling back to SCRAM authentication.");
+                  }
                   AuthMethod.checkAuth(authMethods, AuthMethod.SCRAM_SHA_256);
                   int scramMaxIterations = PGProperty.SCRAM_MAX_ITERATIONS.getInt(info);
                   if (scramMaxIterations < 0) {
@@ -1106,11 +1119,11 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     return provider != null && !provider.isEmpty();
   }
 
-  private static String resolveOAuthToken(Properties info, String host, String user)
+  private static char[] resolveOAuthToken(Properties info, String host, String user)
       throws PSQLException {
     String token = PGProperty.OAUTH_TOKEN.getOrDefault(info);
     if (token != null && !token.isEmpty()) {
-      return token;
+      return token.toCharArray();
     }
 
     String providerClassName = PGProperty.OAUTH_TOKEN_PROVIDER.getOrDefault(info);
@@ -1135,14 +1148,14 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
     String discoveryUrl = PGProperty.OAUTH_ISSUER_URL.getOrDefault(info);
     String scope = PGProperty.OAUTH_SCOPE.getOrDefault(info);
     String clientId = PGProperty.OAUTH_CLIENT_ID.getOrDefault(info);
-    int port = 5432;
+    int port;
     String portStr = PGProperty.PG_PORT.getOrDefault(info);
-    if (portStr != null && !portStr.isEmpty()) {
-      try {
-        port = Integer.parseInt(portStr);
-      } catch (NumberFormatException e) {
-        // use default
-      }
+    try {
+      port = (portStr != null && !portStr.isEmpty()) ? Integer.parseInt(portStr) : 5432;
+    } catch (NumberFormatException e) {
+      throw new PSQLException(
+          GT.tr("Invalid port number: {0}", portStr),
+          PSQLState.INVALID_PARAMETER_VALUE, e);
     }
 
     OAuthTokenRequest request = new OAuthTokenRequest(host, port, user, database,
@@ -1153,7 +1166,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
           GT.tr("OAuthTokenProvider {0} returned a null or empty token.", providerClassName),
           PSQLState.CONNECTION_REJECTED);
     }
-    return result;
+    return result.toCharArray();
   }
 
   private static void runInitialQueries(QueryExecutor queryExecutor, Properties info)

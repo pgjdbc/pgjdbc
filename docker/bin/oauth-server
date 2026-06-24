@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Helper script to start PostgreSQL 18 and Keycloak OAuth testing environment.
+# PostgreSQL is configured with pg_oidc_validator, which validates OIDC/JWT
+# tokens issued by Keycloak.
+
+log () {
+    echo "$@" 1>&2
+}
+
+main () {
+    local script_dir
+    script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    cd "${script_dir}/../postgres-server"
+
+    log "Starting OAuth test environment (Ctrl-C to stop)..."
+    exec env OAUTH=yes docker compose --profile oauth up
+}
+
+main "$@"
