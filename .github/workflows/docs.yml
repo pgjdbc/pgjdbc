@@ -20,13 +20,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-        with:
-          # docs/bin/generate-release-history reads REL42.* tags via `git tag`
-          # to build the release history table. fetch-tags fetches all tag
-          # objects; depth=1 is sufficient since only the tag metadata (not
-          # commit history) is needed.
-          fetch-depth: 1
-          fetch-tags: true
 
       # Hugo (extended) goes on PATH; the :docs-tools:buildDocs Gradle task
       # invokes it via Exec after the release-history generator has produced
@@ -51,9 +44,6 @@ jobs:
         with:
           enablement: true
 
-      # :docs-tools:buildDocs = :docs-tools:generateReleaseHistory then
-      # `hugo --gc --minify` in docs/. See docs-tools/build.gradle.kts.
-      #
       # HUGO_BASEURL is read by :docs-tools:buildDocs and forwarded to
       # hugo as `--baseURL` (CLI flag — config.toml's baseURL is the
       # fallback for forks that don't override it). Order of precedence:

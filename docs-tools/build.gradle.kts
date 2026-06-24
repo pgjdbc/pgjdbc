@@ -3,13 +3,40 @@
  * See the LICENSE file in the project root for more information.
  */
 
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+plugins {
+    id("build-logic.java-library")
+    id("build-logic.test-junit5")
+    id("org.jetbrains.kotlin.jvm")
+}
+
 // docs-tools is a build-time-only utility module. It is NOT shipped with
 // the driver jar; nothing here is on the runtime classpath of pgjdbc.
 
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib")
+}
+
+// pgjdbc targets Java 8 bytecode via --release 8; pin Kotlin to the same
+// jvmTarget so the two compilers agree (Gradle aborts on a mismatch).
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
+}
+
+// docs-tools tests use post-Java-8 APIs (e.g. Path.writeText from kotlin-io),
+// so they cannot run on a Java 8 test toolchain.
+tasks.test {
+    onlyIf("docs-tools tests use post-Java-8 APIs") {
+        buildParameters.testJdkVersion > 8
+    }
+}
+
 val projectRoot = isolated.rootProject.projectDirectory.asFile
 val docsDir = isolated.rootProject.projectDirectory.dir("docs").asFile
-val generateScript =
-    isolated.rootProject.projectDirectory.file("docs/bin/generate-release-history").asFile
 val releaseHistoryOverlay =
     isolated.rootProject.projectDirectory.dir("docs/data")
         .file("release-history-overlay.yaml")
@@ -19,31 +46,42 @@ val releaseHistoryYaml =
 
 // ===== generateReleaseHistory ============================================
 //
-// Runs docs/bin/generate-release-history (a self-contained shell script
-// using only `git` and `awk`) to produce docs/data/release-history.yaml.
+// Runs GenerateReleaseHistory.kt, which calls `git tag` via ProcessBuilder
+// to enumerate REL42.* tags and their dates, merges with the hand-maintained
+// release-history-overlay.yaml, and writes docs/data/release-history.yaml.
 //
-// For CI to produce a complete table the checkout must include all
-// REL42.* tags (fetch-tags: true in the workflow suffices — a full-depth
-// clone is not required).
-val generateReleaseHistory by tasks.registering(Exec::class) {
+// Only REL42.* tag objects need to be present in the local clone;
+// a shallow checkout with fetch-tags: true is sufficient.
+val generateReleaseHistory by tasks.registering(JavaExec::class) {
     group = "documentation"
     description = "Generate docs/data/release-history.yaml from git tags " +
         "+ docs/data/release-history-overlay.yaml."
 
-    commandLine("bash", generateScript.absolutePath, projectRoot.absolutePath)
+    mainClass.set("org.postgresql.tools.docs.GenerateReleaseHistory")
+    classpath = sourceSets.main.get().runtimeClasspath
+    dependsOn(tasks.named("classes"))
+
+    argumentProviders.add(CommandLineArgumentProvider {
+        listOf(
+            projectRoot.absolutePath,
+            releaseHistoryOverlay.asFile.absolutePath,
+            releaseHistoryYaml.asFile.absolutePath,
+        )
+    })
 
     inputs.file(releaseHistoryOverlay).withPropertyName("overlay")
     outputs.file(releaseHistoryYaml).withPropertyName("releaseHistoryYaml")
     outputs.upToDateWhen { false }
+
+    standardOutput = System.out
+    errorOutput = System.err
 }
 
 // ----- Hugo wrappers -------------------------------------------------------
 //
-// buildDocs  — production build: regenerate release-history.yaml, then
-//              run a one-shot Hugo build.
+// buildDocs  — regenerate release-history.yaml, then run a one-shot Hugo build.
 //
-// serveDocs  — local dev server: regenerate release-history.yaml, then
-//              start the Hugo dev server with hot-reload.
+// serveDocs  — regenerate release-history.yaml, then start the Hugo dev server.
 //
 // Both require a recent extended Hugo on PATH. The doFirst hook fails
 // with a readable error if Hugo is missing, too old, or not the
@@ -146,8 +184,8 @@ val buildDocs by tasks.registering(Exec::class) {
 
 val serveDocs by tasks.registering(Exec::class) {
     group = "documentation"
-    description = "Start the Hugo dev server with hot-reload " +
-        "(release-history.yaml regenerated from git tags)."
+    description = "Regenerate release-history.yaml, then start the Hugo " +
+        "dev server with hot-reload."
     dependsOn(generateReleaseHistory)
     workingDir = docsDir
 

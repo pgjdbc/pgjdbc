@@ -1,20 +1,16 @@
 # Hand-maintained companion to docs/data/release-history.yaml (generated
-# by :docs-tools:generateReleaseHistory from refs in the local clone).
+# by :docs-tools:generateReleaseHistory from git tags).
 #
 # Carries only what cannot be derived from git itself: the `.jre6` and
 # `.jre7` classifier builds of the 42.2.x line. Each entry produces one
-# extra row under its parent line in the release-history.yaml output,
-# rendered as a download card by the `recent-versions` shortcode and as
-# the .jre7 cutoff hint by `past-versions`.
+# extra row under its parent line in the release-history.yaml output.
 #
 # Schema (per entry):
 #   id            classifier suffix; emitted into `version_range` as
 #                 `<last_version>.<id>`, and the templates derive the
 #                 Java version from this suffix (`jre7` -> 7).
 #   branch        the parent release line (`42.X.x`).
-#   last_version  the newest tagged release of that classifier; used to
-#                 build the row's version_range and to look up the
-#                 release date from git tags.
+#   last_version  the newest tagged release of that classifier.
 
 classifiers:
   - id: jre7
