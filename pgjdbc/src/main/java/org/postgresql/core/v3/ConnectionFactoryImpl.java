@@ -67,6 +67,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
 
 /**
  * ConnectionFactory implementation for version 3 (7.4+) connections.
@@ -1008,7 +1009,7 @@ public class ConnectionFactoryImpl extends ConnectionFactory {
                     && hasOAuthConfig(info)) {
                   AuthMethod.checkAuth(authMethods, AuthMethod.OAUTH);
                   if (!pgStream.isGssEncrypted()
-                      && !(pgStream.getSocket() instanceof javax.net.ssl.SSLSocket)
+                      && !(pgStream.getSocket() instanceof SSLSocket)
                       && !PGProperty.OAUTH_ALLOW_UNENCRYPTED.getBoolean(info)) {
                     throw new PSQLException(
                         GT.tr("OAuth authentication requires a TLS or GSS-encrypted connection."),
