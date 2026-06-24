@@ -266,6 +266,11 @@ public class PgConnection implements BaseConnection {
     LOGGER.log(Level.FINE, "  setFlushCacheOnDeallocate = {0}", flushCacheOnDeallocate);
   }
 
+  @Override
+  public int getTypeCacheEpoch() {
+    return queryExecutor.getTypeCacheEpoch();
+  }
+
   //
   // Ctor.
   //
