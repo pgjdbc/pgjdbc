@@ -166,8 +166,8 @@ public class LargeObject
     if (closed) {
       return;
     }
-    closed = true;
-    // flush any open output streams
+    // flush any open output streams before marking the object closed, otherwise the flush
+    // would write through a closed LargeObject and fail its checkClosed() guard
     if (os != null) {
       try {
         // we can't call os.close() otherwise we go into an infinite loop!
@@ -178,6 +178,7 @@ public class LargeObject
         os = null;
       }
     }
+    closed = true;
 
     // finally close
     FastpathArg[] args = new FastpathArg[1];

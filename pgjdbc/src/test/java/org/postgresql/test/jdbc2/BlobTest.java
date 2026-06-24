@@ -27,6 +27,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.sql.Blob;
 import java.sql.Clob;
 import java.sql.Connection;
@@ -133,6 +134,35 @@ class BlobTest {
 
       pstmt.setObject(1, null, Types.CLOB);
       pstmt.executeUpdate();
+    }
+  }
+
+  /**
+   * Closing a LargeObject must flush its still-buffered output stream before marking the object
+   * closed. See <a href="https://github.com/pgjdbc/pgjdbc/issues/4247">issue 4247</a>: a regression
+   * in 42.7.11 set the closed flag first, so the implicit flush failed with
+   * "This large object has been closed.".
+   */
+  @Test
+  void closeFlushesBufferedOutputStream() throws Exception {
+    LargeObjectManager lom = ((PGConnection) con).getLargeObjectAPI();
+    long oid = lom.createLO(LargeObjectManager.READWRITE);
+
+    byte[] data = "pgjdbc-4247".getBytes(StandardCharsets.US_ASCII);
+
+    LargeObject blob = lom.open(oid, LargeObjectManager.WRITE);
+    OutputStream os = blob.getOutputStream();
+    // Less than the buffer size, so the bytes stay buffered until close() flushes them
+    os.write(data);
+    // Close the LargeObject directly without flushing the stream first: this must not throw
+    blob.close();
+
+    blob = lom.open(oid, LargeObjectManager.READ);
+    try {
+      assertArrayEquals(data, blob.read(data.length));
+    } finally {
+      blob.close();
+      lom.delete(oid);
     }
   }
 
